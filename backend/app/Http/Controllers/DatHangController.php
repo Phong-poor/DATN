@@ -58,11 +58,11 @@ class DatHangController extends Controller
                     'gia'        => $item->bienThe->gia,
                 ]);
 
-                // Trừ tồn kho
+               
                 $item->bienThe->decrement('soluong', $item->soluong);
             }
 
-            // 5. Xóa giỏ hàng
+            
             GioHang::where('user_id', $userId)->delete();
 
             DB::commit();
