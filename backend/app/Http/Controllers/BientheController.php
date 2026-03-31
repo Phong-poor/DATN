@@ -65,6 +65,7 @@ class BienTheController extends Controller
             'ten_bienthe' => $request->ten_bienthe,
             'gia'         => $request->gia,
             'soluong'     => $request->soluong,
+            'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
 
         return response()->json([
@@ -108,6 +109,7 @@ class BienTheController extends Controller
             'ten_bienthe' => $request->ten_bienthe,
             'gia'         => $request->gia,
             'soluong'     => $request->soluong,
+            'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
 
         return response()->json([
