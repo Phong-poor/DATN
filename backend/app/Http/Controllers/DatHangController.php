@@ -21,7 +21,7 @@ class DatHangController extends Controller
 
         $userId = Auth::id();
         
-        // 1. Lấy giỏ hàng của user
+       
         $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
 
         if ($gioHangItems->isEmpty()) {
@@ -31,7 +31,7 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        // 2. Tính tổng tiền
+
         $tongTien = 0;
         foreach ($gioHangItems as $item) {
             $tongTien += $item->soluong * $item->bienThe->gia;
@@ -40,7 +40,7 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            // 3. Tạo đơn hàng
+           
             $donHang = DatHang::create([
                 'user_id'   => $userId,
                 'tongtien'  => $tongTien,
@@ -49,7 +49,7 @@ class DatHangController extends Controller
                 'PTTT'      => $request->PTTT,
             ]);
 
-            // 4. Tạo chi tiết đơn hàng và cập nhật tồn kho
+           
             foreach ($gioHangItems as $item) {
                 DatHangChiTiet::create([
                     'id_dathang' => $donHang->id_dathang,
