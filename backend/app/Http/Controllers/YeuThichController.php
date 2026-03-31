@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Auth;
 
 class YeuThichController extends Controller
 {
-    // Lấy danh sách yêu thích của user đang đăng nhập
+  
     public function index()
     {
         $userId = Auth::id();
         
-        // Load danh sách kèm theo biến thể và sản phẩm
+       
         $wishlist = YeuThich::with('bienthe.sanpham')
             ->where('user_id', $userId)
             ->latest()
@@ -25,7 +25,7 @@ class YeuThichController extends Controller
         ]);
     }
 
-    // Thêm sản phẩm (biến thể) vào yêu thích
+    
     public function them(Request $request)
     {
         $request->validate([
@@ -37,17 +37,17 @@ class YeuThichController extends Controller
         $idBienthe = $request->id_bienthe;
         $soluong = $request->soluong ?? 1;
 
-        // Kiểm tra xem biến thể này đã có trong danh sách yêu thích chưa
+       
         $yeuThich = YeuThich::where('user_id', $userId)
                             ->where('id_bienthe', $idBienthe)
                             ->first();
 
         if ($yeuThich) {
-            // Nếu có rồi thì cộng dồn số lượng
+            
             $yeuThich->soluong += $soluong;
             $yeuThich->save();
         } else {
-            // Nếu chưa có thì tạo mới
+            
             YeuThich::create([
                 'user_id' => $userId,
                 'id_bienthe' => $idBienthe,
