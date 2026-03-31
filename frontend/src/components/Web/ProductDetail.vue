@@ -192,12 +192,49 @@ const related = [
     { name: 'Workstation Go X7', spec: 'Core i7 · 32GB RAM · 1TB SSD', price: '39.490.000đ', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300' },
     { name: 'Precision Slim 13 Ultra', spec: 'Core i5 · 16GB RAM · 512GB SSD', price: '26.990.000đ', img: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300' },
 ]
+const dangThemYeuThich = ref(false)
+
+const themVaoYeuThich = async () => {
+    // 1. Check đăng nhập
+    const token = localStorage.getItem('token')
+    if (!token) {
+        hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
+        setTimeout(() => {
+            router.push({ path: '/login', query: { redirect: route.fullPath } })
+        }, 1000)
+        return
+    }
+
+    // 2. Check xem khách đã chọn biến thể (RAM, SSD, Màu...) chưa
+    if (!selectedVariant.value) {
+        hienThiThongBao('error', 'Vui lòng chọn biến thể sản phẩm trước khi yêu thích!')
+        return
+    }
+
+    dangThemYeuThich.value = true
+    try {
+        // 3. Gọi API thêm vào Database
+        await api.post('/yeu-thich/them', {
+            id_bienthe: selectedVariant.value.id_bienthe,
+            soluong: soLuongMua.value, // Thích bao nhiêu cái thì truyền bấy nhiêu
+        })
+
+        // 4. Báo thành công và update Header
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
+        window.dispatchEvent(new Event('wishlist-updated'))
+
+    } catch (err) {
+        hienThiThongBao('error', err.response?.data?.message || 'Có lỗi xảy ra!')
+    } finally {
+        dangThemYeuThich.value = false
+    }
+}
 </script>
 
 <template>
     <Header />
 
-    
+
     <transition name="slide-down">
         <div v-if="thongBao.show" :class="['toast', thongBao.type]">
             {{ thongBao.message }}
@@ -242,7 +279,7 @@ const related = [
                             {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                         </div>
 
-                      
+
                         <div class="variant-stock" v-if="selectedVariant">
                             <span v-if="selectedVariant.soluong > 0" class="in-stock">
                                 ✅ Còn hàng: {{ selectedVariant.soluong }} sản phẩm
@@ -278,7 +315,7 @@ const related = [
                             <p style="color:#666; font-size:14px;">Sản phẩm đang cập nhật tùy chọn.</p>
                         </div>
 
-                
+
                         <div class="qty-wrap" v-if="selectedVariant && selectedVariant.soluong > 0">
                             <p class="option-label">Số lượng:</p>
                             <div class="qty-control">
@@ -289,7 +326,7 @@ const related = [
                             </div>
                         </div>
 
-                        
+
                         <div class="actions">
                             <button class="add"
                                 :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
@@ -299,6 +336,12 @@ const related = [
                                 <span v-else> Thêm vào giỏ hàng</span>
                             </button>
                             <button class="install">Trả góp 0%</button>
+
+                            <button class="wishlist-btn" :disabled="dangThemYeuThich" @click="themVaoYeuThich"
+                                title="Thêm vào yêu thích">
+                                <span v-if="dangThemYeuThich">⏳</span>
+                                <span v-else>❤️</span>
+                            </button>
                         </div>
 
                         <div class="info">
@@ -361,6 +404,29 @@ const related = [
 
 <style scoped>
 /* ===== TOAST THÔNG BÁO ===== */
+.wishlist-btn {
+    padding: 0 16px;
+    border: 1px solid #ff4d4f;
+    border-radius: 8px;
+    cursor: pointer;
+    background: white;
+    color: #ff4d4f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.2s;
+}
+
+.wishlist-btn:hover:not(:disabled) {
+    background: #fff1f0;
+    transform: scale(1.05);
+}
+
+.wishlist-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 .toast {
     position: fixed;
     top: 20px;

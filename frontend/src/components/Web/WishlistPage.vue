@@ -1,17 +1,8 @@
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
-
-</script>
-
-
 <template>
     <Header />
   <div class="page">
     <div class="container">
 
-      <!-- Header -->
       <div class="section-header">
         <h2 class="section-title">Sản phẩm yêu thích</h2>
         <button class="share-btn" @click="shareList">
@@ -27,17 +18,19 @@ import Footer from '../Layout/Footer.vue'
         Hiện có <span>{{ wishlist.length }} sản phẩm</span> trong danh sách của bạn
       </p>
 
-      <!-- Wishlist Grid -->
       <div class="wishlist-grid">
-        <transition-group name="card" tag="div" class="wishlist-inner">
+        <div v-if="isLoading" class="loading-text">Đang tải danh sách...</div>
+        <div v-else-if="wishlist.length === 0" class="empty-text">Chưa có sản phẩm nào trong danh sách yêu thích.</div>
+        
+        <transition-group v-else name="card" tag="div" class="wishlist-inner">
           <div
             v-for="item in wishlist"
             :key="item.id"
             class="product-card"
           >
             <div class="card-img-wrap">
-              <span class="badge" :class="item.inStock ? 'in-stock' : 'out-stock'">
-                {{ item.inStock ? 'Còn hàng' : 'Hết hàng' }}
+              <span class="badge" :class="item.bienthe?.soluong > 0 ? 'in-stock' : 'out-stock'">
+                {{ item.bienthe?.soluong > 0 ? 'Còn hàng' : 'Hết hàng' }}
               </span>
               <button class="delete-btn" title="Xoá" @click="removeItem(item.id)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -47,43 +40,53 @@ import Footer from '../Layout/Footer.vue'
                   <path d="M9 6V4h6v2"/>
                 </svg>
               </button>
-              <img :src="item.image" :alt="item.name" @error="onImgError" />
+              <img :src="getImage(item)" :alt="item.bienthe?.sanpham?.tenSP" @error="onImgError" />
             </div>
+            
             <div class="card-body">
-              <div class="card-name">{{ item.name }}</div>
-              <div class="card-price" :class="{ out: !item.inStock }">
-                {{ formatPrice(item.price) }}
+              <div class="card-name">{{ item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</div>
+              <div class="card-variant-name">Phân loại: {{ item.bienthe?.ten_bienthe || 'Mặc định' }}</div>
+              
+              <div class="card-price" :class="{ out: item.bienthe?.soluong === 0 }">
+                {{ formatPrice(item.bienthe?.gia) }}
               </div>
+
+              <div class="qty-control">
+                  <span class="qty-label">SL:</span>
+                  <div class="qty-actions">
+                      <button @click="updateQuantity(item, -1)" :disabled="item.soluong <= 1">-</button>
+                      <span>{{ item.soluong }}</span>
+                      <button @click="updateQuantity(item, 1)">+</button>
+                  </div>
+              </div>
+
               <button
-                v-if="item.inStock"
+                v-if="item.bienthe?.soluong > 0"
                 class="add-cart-btn"
-                :class="{ added: item.added }"
-                @click="addToCart(item)"
+                @click="moveToCart(item)"
               >
-                <svg v-if="!item.added" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                 </svg>
-                {{ item.added ? '✓ Đã thêm!' : 'Thêm vào giỏ hàng' }}
+                Thêm vào giỏ hàng
               </button>
               <button
                 v-else
                 class="notify-btn"
-                :class="{ notified: item.notified }"
                 @click="notifyMe(item)"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                {{ item.notified ? '🔔 Đã đăng ký!' : 'Thông báo khi có hàng' }}
+                Thông báo khi có hàng
               </button>
             </div>
           </div>
         </transition-group>
       </div>
 
-      <!-- Suggestions -->
       <div class="suggest-header">
         <h3 class="suggest-title">Gợi ý cho bạn</h3>
         <div class="nav-btns">
@@ -105,7 +108,6 @@ import Footer from '../Layout/Footer.vue'
           v-for="item in visibleSuggestions"
           :key="item.id"
           class="suggest-card"
-          @click="addToWishlist(item)"
         >
           <div class="suggest-img">
             <img :src="item.image" :alt="item.name" @error="onImgError" />
@@ -122,139 +124,129 @@ import Footer from '../Layout/Footer.vue'
     <Footer />
 </template>
 
-<script>
-export default {
-  name: 'WishlistPage',
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '../../services/api'
+import Header from '../Layout/Header.vue'
+import Footer from '../Layout/Footer.vue'
 
-  data() {
-    return {
-      suggestOffset: 0,
-      suggestPageSize: 4,
+// --- STATE ---
+const wishlist = ref([])
+const isLoading = ref(true)
+const suggestOffset = ref(0)
+const suggestPageSize = 4
 
-      wishlist: [
-        {
-          id: 1,
-          name: 'MacBook Pro 14" M3 Pro – 512GB',
-          price: 45990000,
-          inStock: true,
-          added: false,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/289700/apple-macbook-pro-14-inch-m3-pro-512gb-space-black-thumbnew-600x600.jpg',
-        },
-        {
-          id: 2,
-          name: 'ASUS ROG Zephyrus G14 (2024)',
-          price: 38490000,
-          inStock: true,
-          added: false,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/309155/asus-rog-zephyrus-g14-ga403uv-qd-oled-2024-ryzen-9-8945hs-16gb-1tb-rtx-4060-thumbnew-600x600.jpg',
-        },
-        {
-          id: 3,
-          name: 'Dell XPS 13 Plus 9320',
-          price: 42190000,
-          inStock: false,
-          notified: false,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/279415/dell-xps-13-plus-9320-i7-1260p-16gb-512gb-thumbnew-600x600.jpg',
-        },
-      ],
+// Dữ liệu gợi ý tĩnh
+const suggestions = ref([
+  { id: 101, name: 'Surface Laptop Studio 2', price: 56000000, image: 'https://cdn.tgdd.vn/Products/Images/44/290792/microsoft-surface-laptop-studio-2-i7-16gb-512gb-thumbnew-600x600.jpg' },
+  { id: 102, name: 'Lenovo ThinkPad X1 Carbon', price: 34990000, image: 'https://cdn.tgdd.vn/Products/Images/44/295360/lenovo-thinkpad-x1-carbon-gen-11-i7-1365u-16gb-512gb-thumbnew-600x600.jpg' },
+  { id: 103, name: 'iPad Pro M4 13-inch', price: 31490000, image: 'https://cdn.tgdd.vn/Products/Images/522/316703/apple-ipad-pro-m4-13-inch-wifi-256gb-thumbnew-600x600.jpg' },
+  { id: 104, name: 'LG Gram 16" (2024)', price: 29800000, image: 'https://cdn.tgdd.vn/Products/Images/44/304651/lg-gram-16-2024-i7-155h-16gb-512gb-thumbnew-600x600.jpg' },
+  { id: 105, name: 'HP Spectre x360 14', price: 41500000, image: 'https://cdn.tgdd.vn/Products/Images/44/289028/hp-spectre-x360-14-eu0055tu-i7-1355u-16gb-512gb-thumbnew-600x600.jpg' },
+])
 
-      suggestions: [
-        {
-          id: 101,
-          name: 'Surface Laptop Studio 2',
-          price: 56000000,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/290792/microsoft-surface-laptop-studio-2-i7-16gb-512gb-thumbnew-600x600.jpg',
-        },
-        {
-          id: 102,
-          name: 'Lenovo ThinkPad X1 Carbon',
-          price: 34990000,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/295360/lenovo-thinkpad-x1-carbon-gen-11-i7-1365u-16gb-512gb-thumbnew-600x600.jpg',
-        },
-        {
-          id: 103,
-          name: 'iPad Pro M4 13-inch',
-          price: 31490000,
-          image: 'https://cdn.tgdd.vn/Products/Images/522/316703/apple-ipad-pro-m4-13-inch-wifi-256gb-thumbnew-600x600.jpg',
-        },
-        {
-          id: 104,
-          name: 'LG Gram 16" (2024)',
-          price: 29800000,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/304651/lg-gram-16-2024-i7-155h-16gb-512gb-thumbnew-600x600.jpg',
-        },
-        {
-          id: 105,
-          name: 'HP Spectre x360 14',
-          price: 41500000,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/289028/hp-spectre-x360-14-eu0055tu-i7-1355u-16gb-512gb-thumbnew-600x600.jpg',
-        },
-        {
-          id: 106,
-          name: 'Razer Blade 15 (2024)',
-          price: 52000000,
-          image: 'https://cdn.tgdd.vn/Products/Images/44/309155/asus-rog-zephyrus-g14-ga403uv-qd-oled-2024-ryzen-9-8945hs-16gb-1tb-rtx-4060-thumbnew-600x600.jpg',
-        },
-      ],
+// --- COMPUTED ---
+const visibleSuggestions = computed(() => {
+  const total = suggestions.value.length
+  if(total === 0) return []
+  const start = suggestOffset.value % total
+  const result = []
+  for (let i = 0; i < suggestPageSize; i++) {
+    result.push(suggestions.value[(start + i) % total])
+  }
+  return result
+})
+
+
+onMounted(() => {
+    fetchWishlist()
+})
+
+
+const fetchWishlist = async () => {
+    try {
+        isLoading.value = true
+        const res = await api.get('/yeu-thich')
+        wishlist.value = res.data.data || res.data
+    } catch (error) {
+        console.error('Lỗi khi tải danh sách yêu thích:', error)
+    } finally {
+        isLoading.value = false
     }
-  },
+}
 
-  computed: {
-    visibleSuggestions() {
-      const total = this.suggestions.length
-      const start = this.suggestOffset % total
-      const result = []
-      for (let i = 0; i < this.suggestPageSize; i++) {
-        result.push(this.suggestions[(start + i) % total])
-      }
-      return result
-    },
-  },
+const updateQuantity = async (item, change) => {
+    const newQty = item.soluong + change
+    if (newQty < 1) return
 
-  methods: {
-    formatPrice(value) {
-      return value.toLocaleString('vi-VN') + '₫'
-    },
+    try {
+        await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: newQty })
+        item.soluong = newQty 
+        window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+        alert(err.response?.data?.message || 'Không thể cập nhật số lượng!')
+    }
+}
 
-    removeItem(id) {
-      this.wishlist = this.wishlist.filter(item => item.id !== id)
-    },
+const removeItem = async (id) => {
+    try {
+        await api.delete(`/yeu-thich/xoa/${id}`)
+        wishlist.value = wishlist.value.filter(item => item.id !== id)
+        window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+        alert('Lỗi khi xoá sản phẩm!')
+    }
+}
 
-    addToCart(item) {
-      if (item.added) return
-      item.added = true
-      setTimeout(() => { item.added = false }, 1800)
-    },
+const moveToCart = async (item) => {
+    try {
+        // 1. Gửi request thêm vào giỏ hàng
+        await api.post('/gio-hang/them', {
+            id_bienthe: item.id_bienthe,
+            soluong: item.soluong
+        })
+        
+        
+        await removeItem(item.id)
+        
+        alert('Đã chuyển sản phẩm sang giỏ hàng thành công!')
+        window.dispatchEvent(new Event('cart-updated')) // Cập nhật số đếm giỏ hàng nếu có
+    } catch (err) {
+        alert(err.response?.data?.message || 'Lỗi khi chuyển sang giỏ hàng!')
+    }
+}
 
-    notifyMe(item) {
-      item.notified = true
-    },
+const formatPrice = (value) => {
+    if(!value) return '0₫'
+    return parseInt(value).toLocaleString('vi-VN') + '₫'
+}
 
-    slideSuggest(dir) {
-      const total = this.suggestions.length
-      this.suggestOffset = (this.suggestOffset + dir + total) % total
-    },
+const getImage = (item) => {
+    // Ưu tiên ảnh của biến thể, nếu không có thì lấy ảnh mặc định của sản phẩm
+    const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
+    return imgPath ? `http://127.0.0.1:8000/storage/${imgPath}` : ''
+}
 
-    addToWishlist(item) {
-      const exists = this.wishlist.find(w => w.id === item.id)
-      if (!exists) {
-        this.wishlist.push({ ...item, inStock: true, added: false })
-      }
-    },
+const slideSuggest = (dir) => {
+  const total = suggestions.value.length
+  suggestOffset.value = (suggestOffset.value + dir + total) % total
+}
 
-    shareList() {
-      if (navigator.share) {
-        navigator.share({ title: 'Danh sách yêu thích', url: window.location.href })
-      } else {
-        navigator.clipboard?.writeText(window.location.href)
-        alert('Đã sao chép link!')
-      }
-    },
+const notifyMe = (item) => {
+  alert('Hệ thống sẽ gửi thông báo khi sản phẩm có hàng lại!')
+}
 
-    onImgError(e) {
-      e.target.style.display = 'none'
-    },
-  },
+const shareList = () => {
+  if (navigator.share) {
+    navigator.share({ title: 'Danh sách yêu thích', url: window.location.href })
+  } else {
+    navigator.clipboard?.writeText(window.location.href)
+    alert('Đã sao chép link!')
+  }
+}
+
+const onImgError = (e) => {
+  e.target.style.display = 'none'
 }
 </script>
 
@@ -302,9 +294,10 @@ export default {
 
 .section-sub { font-size: 13px; color: #888; margin-bottom: 20px; }
 .section-sub span { color: #5b5ef4; font-weight: 600; }
+.loading-text, .empty-text { font-size: 14px; color: #666; text-align: center; padding: 40px 0; }
 
 /* Wishlist */
-.wishlist-grid { margin-bottom: 40px; }
+.wishlist-grid { margin-bottom: 40px; min-height: 200px;}
 .wishlist-inner {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -322,6 +315,8 @@ export default {
   box-shadow: 0 2px 16px rgba(91,94,244,.07);
   overflow: hidden;
   transition: transform .2s, box-shadow .2s;
+  display: flex;
+  flex-direction: column;
 }
 .product-card:hover {
   transform: translateY(-3px);
@@ -374,10 +369,43 @@ export default {
 .delete-btn:hover { background: #fee2e2; color: #ef4444; }
 .delete-btn svg { width: 14px; height: 14px; }
 
-.card-body { padding: 12px 14px 14px; }
-.card-name { font-size: 13.5px; font-weight: 600; line-height: 1.4; margin-bottom: 6px; }
-.card-price { font-size: 16px; font-weight: 700; color: #5b5ef4; margin-bottom: 10px; }
+.card-body { padding: 12px 14px 14px; flex-grow: 1; display: flex; flex-direction: column;}
+.card-name { font-size: 13.5px; font-weight: 600; line-height: 1.4; margin-bottom: 2px; }
+.card-variant-name { font-size: 11.5px; color: #6b7280; margin-bottom: 6px; }
+.card-price { font-size: 16px; font-weight: 700; color: #5b5ef4; margin-bottom: 12px; }
 .card-price.out { color: #aaa; text-decoration: line-through; font-weight: 500; font-size: 14px; }
+
+/* Control Số Lượng */
+.qty-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    margin-top: auto;
+}
+.qty-label { font-size: 12.5px; font-weight: 500; color: #555; }
+.qty-actions {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e8eaf0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.qty-actions button {
+    background: #f6f7fb;
+    border: none;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #555;
+}
+.qty-actions button:hover:not(:disabled) { background: #e2e5f1; }
+.qty-actions button:disabled { opacity: 0.4; cursor: not-allowed;}
+.qty-actions span {
+    font-size: 13px;
+    padding: 0 10px;
+    font-weight: 500;
+}
 
 .add-cart-btn {
   width: 100%;
@@ -395,7 +423,6 @@ export default {
 }
 .add-cart-btn svg { width: 14px; height: 14px; }
 .add-cart-btn:hover { background: #4547d4; transform: scale(1.02); }
-.add-cart-btn.added { background: #22c55e; }
 
 .notify-btn {
   width: 100%;
@@ -412,8 +439,7 @@ export default {
   transition: border-color .18s, background .18s, color .18s;
 }
 .notify-btn svg { width: 13px; height: 13px; }
-.notify-btn:hover,
-.notify-btn.notified {
+.notify-btn:hover {
   border-color: #5b5ef4;
   background: #eef0ff;
   color: #5b5ef4;
