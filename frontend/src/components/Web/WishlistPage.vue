@@ -157,12 +157,12 @@ const visibleSuggestions = computed(() => {
   return result
 })
 
-// --- LIFECYCLE ---
+
 onMounted(() => {
     fetchWishlist()
 })
 
-// --- METHODS ---
+
 const fetchWishlist = async () => {
     try {
         isLoading.value = true
@@ -181,7 +181,7 @@ const updateQuantity = async (item, change) => {
 
     try {
         await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: newQty })
-        item.soluong = newQty // Cập nhật UI
+        item.soluong = newQty 
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
         alert(err.response?.data?.message || 'Không thể cập nhật số lượng!')
@@ -206,7 +206,7 @@ const moveToCart = async (item) => {
             soluong: item.soluong
         })
         
-        // 2. Xóa khỏi danh sách yêu thích
+        
         await removeItem(item.id)
         
         alert('Đã chuyển sản phẩm sang giỏ hàng thành công!')
