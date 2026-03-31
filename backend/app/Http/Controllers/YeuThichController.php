@@ -61,14 +61,14 @@ class YeuThichController extends Controller
         ]);
     }
 
-    // Cập nhật số lượng
+   
     public function capNhat(Request $request, $id)
     {
         $request->validate([
             'soluong' => 'required|integer|min:1'
         ]);
 
-        // Tìm record yêu thích của user hiện tại
+      
         $yeuThich = YeuThich::where('user_id', Auth::id())->findOrFail($id);
         
         $yeuThich->soluong = $request->soluong;
@@ -80,7 +80,7 @@ class YeuThichController extends Controller
         ]);
     }
 
-    // Xoá khỏi danh sách yêu thích
+    
     public function xoa($id)
     {
         $yeuThich = YeuThich::where('user_id', Auth::id())->findOrFail($id);
