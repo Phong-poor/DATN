@@ -1,11 +1,15 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router' // 👈 Thêm import này
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import GiftPopup from './GiftPopup.vue'
 import api from '../../services/api'
-
+const router = useRouter()
 const showGift = ref(false)
+
+
+
 
 
 const slides = [
@@ -48,19 +52,20 @@ const categories = [
 // 
 const featuredProducts = ref([])
 onMounted(async () => {
-    // Hiện popup sau 10 giây
-    setTimeout(() => {
-        showGift.value = true
-    }, 10000)
+    setTimeout(() => { showGift.value = true }, 10000)
 
     try {
         const response = await api.get('/sanpham')
         featuredProducts.value = response.data.map(p => ({
-            id: p.id_sanpham,//hihi
+            id: p.id_sanpham,
             name: p.tenSP,
             category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
             price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.bien_thes?.[0]?.gia || 0),
-            old: '', // Hoặc có thể lấy từ db nếu có
+
+
+            id_bienthe: p.bien_thes?.[0]?.id_bienthe || null,
+
+            old: '',
             img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800',
             badge: p.trangthai === 'Hot' ? 'HOT' : '',
             specs: [
@@ -72,6 +77,33 @@ onMounted(async () => {
         console.error('Lỗi khi tải sản phẩm:', error)
     }
 })
+
+// 👉 Bổ sung hàm xử lý Yêu thích
+const themVaoYeuThich = async (product) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+        alert('Vui lòng đăng nhập để thêm vào yêu thích!')
+        router.push('/login')
+        return
+    }
+
+    if (!product.id_bienthe) {
+        alert('Sản phẩm này chưa có cấu hình, không thể thêm!')
+        return
+    }
+
+    try {
+        await api.post('/yeu-thich/them', {
+            id_bienthe: product.id_bienthe,
+            soluong: 1
+        })
+        alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
+        window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+        alert(err.response?.data?.message || 'Có lỗi xảy ra!')
+    }
+}
 
 
 const benefits = [
@@ -260,17 +292,28 @@ onUnmounted(stop)
                         <div class="product-body">
                             <span class="product-category">{{ p.category }}</span>
                             <h3>{{ p.name }}</h3>
-                            
+
                             <div class="price-row">
                                 <strong>{{ p.price }}</strong>
                                 <span>{{ p.old }}</span>
                             </div>
                             <div class="product-actions">
-                                <button class="btn btn-primary small">Mua ngay</button>
+                                <button class="btn btn-wishlist small" title="Thêm vào yêu thích"
+                                    @click.stop="themVaoYeuThich(p)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                                        stroke-linecap="round">
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                                        </path>
+                                    </svg>
+                                </button>
+
+                                <button class="btn btn-primary small">Mua Ngay</button>
                                 <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
                                     Chi tiết
                                 </router-link>
                             </div>
+
                         </div>
                     </article>
                 </div>
@@ -387,6 +430,40 @@ onUnmounted(stop)
 *::after {
     box-sizing: border-box;
 }
+.product-actions {
+    display: flex;
+    gap: 8px;
+    align-items: stretch; /* Đảm bảo các nút cao bằng nhau */
+}
+
+.product-actions .btn {
+    flex: 1;
+    display: flex; /* Cần thiết cho thẻ <a> router-link canh giữa chữ */
+    align-items: center;
+    justify-content: center;
+}
+
+/* CSS riêng cho nút Yêu thích ở Home */
+.btn-wishlist {
+    flex: 0 0 auto !important; /* Không tự giãn như 2 nút kia */
+    width: 36px;
+    padding: 0 !important;
+    background: #fff;
+    border: 1px solid #ff4d4f;
+    color: #ff4d4f;
+    border-radius: 7px;
+}
+
+.btn-wishlist:hover {
+    background: #fff1f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
+}
+
+.btn-wishlist svg {
+    width: 15px;
+    height: 15px;
+}
 
 /* ─── VARIABLES ─── */
 /* 
@@ -417,6 +494,7 @@ onUnmounted(stop)
     background: var(--bg);
     color: var(--text);
 }
+
 a.btn {
     display: inline-flex;
     align-items: center;
