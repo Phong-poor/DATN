@@ -97,12 +97,7 @@ const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '�
 
 onMounted(() => { fetchGioHang() })
 
-// Sản phẩm gợi ý (demo tĩnh)
-const suggest = [
-    { name: 'iPad Air M2', price: '16.990.000đ', img: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=200' },
-    { name: 'AirPods Max', price: '12.490.000đ', img: 'https://images.unsplash.com/photo-1585386959984-a4155223163c?w=200' },
-    { name: 'MagSafe Charger', price: '1.190.000đ', img: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=200' },
-]
+
 </script>
 
 <template>

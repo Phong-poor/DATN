@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
-
+const thongBao = ref('')
 const router = useRouter()
 
 const selectedBrands = ref(['Apple'])
@@ -24,10 +24,14 @@ onMounted(async () => {
     try {
         const response = await api.get('/sanpham')
         products.value = response.data.map(p => ({
-            id: p.id_sanpham,   // 👈 dùng "id" giống Home.vue
+            id: p.id_sanpham,
             name: p.tenSP,
             brand: `${p.thuong_hieu?.ten_thuonghieu || ''} ${p.khoiluong ? '· ' + p.khoiluong + 'kg' : ''}`,
             price: new Intl.NumberFormat('vi-VN').format(p.bien_thes?.[0]?.gia || 0) + 'đ',
+
+            // 👉 Lấy ID biến thể mặc định (biến thể đầu tiên) để ném vào giỏ/yêu thích
+            id_bienthe: p.bien_thes?.[0]?.id_bienthe || null,
+
             oldPrice: '',
             img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
             badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
@@ -37,6 +41,31 @@ onMounted(async () => {
         console.error('Lỗi khi tải sản phẩm:', error)
     }
 })
+const themVaoYeuThich = async (product) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+        alert('Vui lòng đăng nhập để thêm vào yêu thích!')
+        router.push('/login')
+        return
+    }
+
+    if (!product.id_bienthe) {
+        alert('Sản phẩm này chưa có biến thể, không thể thêm!')
+        return
+    }
+
+    try {
+        await api.post('/yeu-thich/them', {
+            id_bienthe: product.id_bienthe,
+            soluong: 1
+        })
+        alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        // Kích hoạt event để Header update số đếm
+        window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+        alert(err.response?.data?.message || 'Có lỗi xảy ra!')
+    }
+}
 </script>
 
 <template>
@@ -89,7 +118,8 @@ onMounted(async () => {
 
                 <div class="filter-group">
                     <p class="group-label">Khoảng giá</p>
-                    <label class="check-label" v-for="g in ['Dưới 20 triệu', '20 – 50 triệu', 'Trên 50 triệu']" :key="g">
+                    <label class="check-label" v-for="g in ['Dưới 20 triệu', '20 – 50 triệu', 'Trên 50 triệu']"
+                        :key="g">
                         <input type="radio" name="price" />
                         <span class="checkmark"></span>
                         {{ g }}
@@ -151,18 +181,21 @@ onMounted(async () => {
                             </div>
 
                             <div class="card-actions">
-                                <!-- ✅ Giống Home.vue: router-link đến /products/:id -->
                                 <router-link :to="`/products/${p.id}`" class="btn-detail">
                                     Chi tiết
                                 </router-link>
 
-                                <button class="btn-cart" title="Thêm vào giỏ hàng">
+                                <button class="btn-cart" title="Yêu thích" @click="themVaoYeuThich(p)"
+                                    style="background: white; border: 1px solid #ff4d4f; color: #ff4d4f;">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                                         stroke-linecap="round">
-                                        <circle cx="9" cy="21" r="1" />
-                                        <circle cx="20" cy="21" r="1" />
-                                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                                        </path>
                                     </svg>
+                                </button>
+
+                                <button class="btn-cart" title="Thêm vào giỏ hàng">
                                 </button>
                             </div>
                         </div>
