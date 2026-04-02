@@ -84,7 +84,12 @@ const attrPages = computed(() => attrPagination.totalPages.value)
 const variantTypeOptions = computed(() => attrs.value.map((a) => a.name))
 
 // ── Forms ──
-const defaultVariantForm = () => ({ name: '', type: variantTypeOptions.value[0] || '', status: 'Hoạt động' })
+const defaultVariantForm = () => ({
+  name: '',
+  type: variantTypeOptions.value[0] || '',
+  status: 'Hoạt động',
+  gia_cong_them: 0
+})
 const defaultColorForm = () => ({ name: '', hex: '#000000', stock: 'Khả dụng' })
 const defaultGroupForm = () => ({ name: '' })
 const defaultAttrForm = () => ({ name: '', group: groups.value[0]?.name || '', status: 'Hoạt động' })
@@ -156,7 +161,14 @@ const normalizeData = (payload) => {
       normalizedAttrs.push({ id: a.id_thuoctinh, name: a.ten_thuoctinh, group: g.ten_nhom, groupId: g.id_nhom, status: 'Hoạt động' })
       const giaTris = Array.isArray(a.giatri_thuoc_tinhs) ? a.giatri_thuoc_tinhs : Array.isArray(a.giatriThuocTinhs) ? a.giatriThuocTinhs : []
       giaTris.forEach((v) => {
-        normalizedVariants.push({ id: v.id_giatri, name: v.giatri, type: a.ten_thuoctinh, attrId: a.id_thuoctinh, status: v.trangthai === 1 ? 'Hoạt động' : 'Nháp' })
+        normalizedVariants.push({
+          id: v.id_giatri,
+          name: v.giatri,
+          type: a.ten_thuoctinh,
+          attrId: a.id_thuoctinh,
+          status: Number(v.trangthai) === 1 ? 'Hoạt động' : 'Nháp',
+          gia_cong_them: Number(v.gia_cong_them || 0),
+        })
       })
     })
   })
@@ -212,10 +224,15 @@ const fetchColors = async () => {
 const openModal = (type, item = null) => {
   modalType.value = type
   formError.value = ''
-  editingId = item?.id ?? item?.id_giatri ?? null
+  editingId = item ? Number(item.id ?? item.id_giatri ?? 0) : null
 
   if (type === 'variant') variantForm.value = defaultVariantForm()
-  else if (type === 'editVariant' && item) variantForm.value = { ...item }
+  else if (type === 'editVariant' && item) {
+    variantForm.value = {
+      ...item,
+      gia_cong_them: item.gia_cong_them ?? 0
+    }
+  }
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
   else if (type === 'group') groupForm.value = defaultGroupForm()
@@ -253,12 +270,23 @@ const submitVariant = async () => {
     return
   }
 
+  const payload = {
+    id_thuoctinh: selectedAttr.id,
+    giatri: variantForm.value.name,
+    gia_cong_them: Number(variantForm.value.gia_cong_them || 0),
+    trangthai: variantForm.value.status === 'Hoạt động' ? 1 : 0,
+  }
+
   try {
     if (modalType.value === 'editVariant') {
-      if (!editingId) { formError.value = 'Không tìm thấy ID biến thể để cập nhật.'; return }
-      await api.put(`/giatrithuoctinh/${editingId}`, { id_thuoctinh: selectedAttr.id, giatri: variantForm.value.name })
+      if (!editingId) {
+        formError.value = 'Không tìm thấy ID biến thể để cập nhật.'
+        return
+      }
+
+      await api.put(`/giatrithuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/giatrithuoctinh', { id_thuoctinh: selectedAttr.id, giatri: variantForm.value.name })
+      await api.post('/giatrithuoctinh', payload)
     }
     await fetchAll()
     variantPagination.goToPage(1)
@@ -822,7 +850,7 @@ async function handleImportFile(e) {
                 </td>
                 <td>
                   <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status
-                    }}</span>
+                  }}</span>
                 </td>
                 <td>
                   <div class="actions">
@@ -1054,8 +1082,8 @@ async function handleImportFile(e) {
                 <div class="modal-header-left">
                   <div class="modal-icon"
                     :class="isEditModal ? 'icon-edit' : ['group', 'editGroup'].includes(modalType) ? 'icon-group' : ['attr', 'editAttr'].includes(modalType) ? 'icon-attr' : 'icon-add'">
-                    <svg v-if="['group', 'editGroup'].includes(modalType)" viewBox="0 0 24 24" fill="none" stroke="white"
-                      stroke-width="2">
+                    <svg v-if="['group', 'editGroup'].includes(modalType)" viewBox="0 0 24 24" fill="none"
+                      stroke="white" stroke-width="2">
                       <rect x="3" y="3" width="7" height="7" rx="1" />
                       <rect x="14" y="3" width="7" height="7" rx="1" />
                       <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -1101,6 +1129,10 @@ async function handleImportFile(e) {
                   <div class="form-group">
                     <label>TÊN BIẾN THỂ <span class="req">*</span></label>
                     <input v-model="variantForm.name" placeholder="VD: 16GB Unified Memory" />
+                  </div>
+                  <div class="form-group">
+                    <label>GIÁ CỘNG THÊM (₫)</label>
+                    <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
                   </div>
                   <div class="form-row">
                     <div class="form-group">
