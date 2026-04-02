@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\RegisterSuccessMail;
 
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -30,7 +31,7 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // 🔥 GỬI EMAIL
+        // GỬI EMAIL
         Mail::to($user->email)->send(new RegisterSuccessMail($user));
 
         return response()->json([
@@ -95,10 +96,56 @@ class AuthController extends Controller
             ]);
         }
 
-        // 🔥 tạo token Sanctum
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // 👉 redirect về FE
+
+        return redirect("http://localhost:5173/login-success?token=$token");
+    }
+
+    public function redirectFacebook()
+    {
+        return Socialite::driver('facebook')
+            ->stateless()
+            ->scopes(['email'])
+            ->redirect();
+    }
+
+    public function handleFacebook()
+    {
+        $facebookUser = Socialite::driver('facebook')->stateless()->user();
+
+        $email = $facebookUser->getEmail();
+
+        $user = User::where('facebook_id', $facebookUser->getId())->first();
+
+        if (!$user && $email) {
+            $user = User::where('email', $email)->first();
+        }
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $facebookUser->getName() ?: 'Facebook User',
+                'email' => $email ?: 'fb_' . $facebookUser->getId() . '@noemail.local',
+                'facebook_id' => $facebookUser->getId(),
+                'avatar' => $facebookUser->getAvatar(),
+                'password' => bcrypt(Str::random(16)),
+                'role' => 'user',
+            ]);
+        } else {
+            if (!$user->facebook_id) {
+                $user->facebook_id = $facebookUser->getId();
+            }
+
+            if (!$user->avatar && $facebookUser->getAvatar()) {
+                $user->avatar = $facebookUser->getAvatar();
+            }
+
+            $user->save();
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return redirect("http://localhost:5173/login-success?token=$token");
     }
 }
