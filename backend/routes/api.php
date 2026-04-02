@@ -11,12 +11,22 @@ use App\Http\Controllers\ThuongHieuController;
 
 use App\Http\Controllers\ThuocTinhController;
 
+
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\SanPhamController;
 use App\Http\Controllers\BienTheController;
 use App\Http\Controllers\BienTheHinhAnhController;
 use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\YeuThichController;
+
+use App\Http\Controllers\ForgotPasswordController;
+
+Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
+Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
+
+Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
+Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);

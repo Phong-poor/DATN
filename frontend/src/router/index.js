@@ -36,32 +36,29 @@ const routes = [
     path: '/',
     component: MainLayout,
     children: [
-      { path: '', component: Home },
-      { path: 'products', component: Producpage },
-      { path: 'products/:id', component: ProductDetail },
-      { path: 'news', component: News },
-      { path: 'contact', component: Contact },
-      { path: 'cart', component: Cart },
-      { path: 'checkout', component: Checkout },
-      { path: 'profile', component: Profile },
-      { path: 'chat', component: Chatbot },
-      { path: 'orderspage', component: Orderspage },
-      { path: 'addresspage', component: Addresspage },
-      { path: 'passwordpage', component: Passwordpage },
-      { path: 'wishlistpage', component: WishlistPage },
+      { path: '', name: 'home', component: Home },
+      { path: 'products', name: 'products', component: Producpage },
+      { path: 'products/:id', name: 'product-detail', component: ProductDetail },
+      { path: 'news', name: 'news', component: News },
+      { path: 'contact', name: 'contact', component: Contact },
+      { path: 'cart', name: 'cart', component: Cart },
+      { path: 'checkout', name: 'checkout', component: Checkout },
+      { path: 'profile', name: 'profile', component: Profile },
+      { path: 'chat', name: 'chat', component: Chatbot },
+      { path: 'orderspage', name: 'orderspage', component: Orderspage },
+      { path: 'addresspage', name: 'addresspage', component: Addresspage },
+      { path: 'passwordpage', name: 'passwordpage', component: Passwordpage },
+      { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
     ],
   },
 
   // ── AUTH ──
-  { path: '/login', component: Login },
-  { path: '/register', component: Register },
-  { path: '/forgot-password', component: ForgotPassword },
-  { path: '/otp-verify', component: OtpVerify },
-  { path: '/reset-password', component: ResetPassword },
-
-  { path: '/login-success', component: LoginSuccess },
-
-
+  { path: '/login', name: 'login', component: Login },
+  { path: '/register', name: 'register', component: Register },
+  { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword },
+  { path: '/otp-verify', name: 'otp-verify', component: OtpVerify },
+  { path: '/reset-password', name: 'reset-password', component: ResetPassword },
+  { path: '/login-success', name: 'login-success', component: LoginSuccess },
 
   // ── ADMIN ──
   {
@@ -69,18 +66,18 @@ const routes = [
     component: AdminLayout,
     meta: { requiresAdmin: true },
     children: [
-      { path: '', component: AdminDashboard },
-      { path: 'products', component: () => import('../components/Admin/Products.vue') },
-      { path: 'orders', component: () => import('../components/Admin/Orders.vue') },
-      { path: 'users', component: () => import('../components/Admin/Users.vue') },
-      { path: 'news', component: () => import('../components/Admin/News.vue') },
-      { path: 'settings', component: () => import('../components/Admin/Settings.vue') },
-      { path: 'variants', component: () => import('../components/Admin/ProductVariants.vue') },
-      { path: 'categories', component: () => import('../components/Admin/Categories.vue') },
-      { path: 'promotions', component: () => import('../components/Admin/Promotions.vue') },
-      { path: 'contacts', component: () => import('../components/Admin/Contact.vue') },
-      { path: 'brands', component: () => import('../components/Admin/Brands.vue') },
-      { path: 'reviews' , component: () => import('../components/Admin/ReviewManagement.vue')},
+      { path: '', name: 'admin-dashboard', component: AdminDashboard },
+      { path: 'products', name: 'admin-products', component: () => import('../components/Admin/Products.vue') },
+      { path: 'orders', name: 'admin-orders', component: () => import('../components/Admin/Orders.vue') },
+      { path: 'users', name: 'admin-users', component: () => import('../components/Admin/Users.vue') },
+      { path: 'news', name: 'admin-news', component: () => import('../components/Admin/News.vue') },
+      { path: 'settings', name: 'admin-settings', component: () => import('../components/Admin/Settings.vue') },
+      { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue') },
+      { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue') },
+      { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue') },
+      { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue') },
+      { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue') },
+      { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue') },
     ],
   },
 
@@ -94,37 +91,33 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user'))
+  const user = JSON.parse(localStorage.getItem('user') || 'null')
   const token = localStorage.getItem('token')
 
-  // route public (KHÔNG cần login)
   const publicPages = [
     '/',
     '/products',
-    '/products/',
     '/login',
-    '/register'
+    '/register',
+    '/forgot-password',
+    '/otp-verify',
+    '/reset-password',
+    '/login-success',
+    '/news',
+    '/contact',
+    '/cart',
   ]
 
-  const isPublic = publicPages.some(path => to.path.startsWith(path))
+  const isPublic =
+    publicPages.includes(to.path) ||
+    to.path.startsWith('/products/')
 
   if (!isPublic && !token) {
     return next('/login')
   }
 
   if (to.matched.some(route => route.meta.requiresAdmin)) {
-    if (!user) return next('/login')
-    if (user.role !== 'admin') return next('/')
-  }
-
-  next()
-})
-
-router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user'))
-
-  if (to.matched.some(route => route.meta.requiresAdmin)) {
-    if (!user) {
+    if (!user || !token) {
       return next('/login')
     }
 

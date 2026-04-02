@@ -20,6 +20,23 @@ const editError = ref('')
 const users = ref([])
 const loading = ref(false)
 
+// ─── PAGINATION ──────────────────────
+const currentPage = ref(1)
+const pageSize = 7
+
+const tabs = ['Tất cả', 'Admin', 'Khách hàng', 'Hỗ trợ']
+
+const roleStyle = {
+    'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
+    'HỖ TRỢ': { bg: '#ede9fe', color: '#6d28d9' },
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' }
+}
+
+const statusStyle = {
+    'Hoạt động': { color: '#16a34a' },
+    'Bị khóa': { color: '#dc2626' }
+}
+
 // ─── MAPPING ─────────────────────────
 const roleMap = {
     admin: 'ADMIN',
@@ -42,11 +59,13 @@ const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 // ─── NORMALIZE ───────────────────────
 const normalizeUser = (u) => ({
     id: u.id,
-    name: u.name,
-    email: u.email,
+    name: u.name || '',
+    email: u.email || '',
     phone: u.phone || '',
     role: mapRoleFromDB(u.role),
-    joined: new Date(u.created_at).toLocaleDateString('vi-VN'),
+    joined: u.created_at
+        ? new Date(u.created_at).toLocaleDateString('vi-VN')
+        : '',
     status: mapStatus(u.status)
 })
 
@@ -55,9 +74,9 @@ const fetchUsers = async () => {
     loading.value = true
     try {
         const { data } = await api.get('/users')
-        users.value = data.map(normalizeUser)
+        users.value = Array.isArray(data) ? data.map(normalizeUser) : []
     } catch (err) {
-        console.log('Load lỗi:', err)
+        console.log('Load lỗi:', err.response?.data || err.message)
     } finally {
         loading.value = false
     }
@@ -65,28 +84,53 @@ const fetchUsers = async () => {
 
 onMounted(fetchUsers)
 
-// ─── FILTER ──────────────────────────
+// ─── FILTER (reset page khi search/tab thay đổi) ──
 const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
-
+    const map = {
+        'Admin': 'ADMIN',
+        'Khách hàng': 'KHÁCH HÀNG',
+        'Hỗ trợ': 'HỖ TRỢ'
+    }
     return users.value.filter(u => {
         const matchSearch =
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q)
-
-        const map = {
-            'Admin': 'ADMIN',
-            'Khách hàng': 'KHÁCH HÀNG',
-            'Hỗ trợ': 'HỖ TRỢ'
-        }
-
         const matchTab =
             activeTab.value === 'Tất cả' ||
             u.role === map[activeTab.value]
-
         return matchSearch && matchTab
     })
 })
+
+// Reset về trang 1 khi search/tab thay đổi
+const onSearch = () => { currentPage.value = 1 }
+const onTabChange = (t) => { activeTab.value = t; currentPage.value = 1 }
+
+// ─── PAGINATION COMPUTED ─────────────
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)))
+
+const paginatedUsers = computed(() => {
+    const start = (currentPage.value - 1) * pageSize
+    return filtered.value.slice(start, start + pageSize)
+})
+
+// Dãy số trang hiển thị (tối đa 5 nút)
+const pageNumbers = computed(() => {
+    const total = totalPages.value
+    const current = currentPage.value
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+
+    let start = Math.max(1, current - 2)
+    let end = Math.min(total, start + 4)
+    if (end - start < 4) start = Math.max(1, end - 4)
+
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+const goToPage = (p) => {
+    if (p >= 1 && p <= totalPages.value) currentPage.value = p
+}
 
 // ─── AVATAR ──────────────────────────
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2', '#ffedd5']
@@ -104,38 +148,82 @@ const initials = (name) =>
 const validateUser = (f, isEdit = false) => {
     if (!f.name?.trim()) return 'Nhập họ tên'
     if (!f.email?.trim()) return 'Nhập email'
-
     if (!isEdit && !f.password) return 'Nhập mật khẩu'
     if (f.password && f.password.length < 8) return 'Mật khẩu >= 8 ký tự'
-
     return null
 }
 
-// ─── TOGGLE ──────────────────────────
-const toggleStatus = async (u) => {
-    const next = u.status === 'Hoạt động' ? 'Bị khóa' : 'Hoạt động'
+// ─── CUSTOM CONFIRM MODAL ────────────
+const confirmModal = ref({
+    show: false,
+    title: '',
+    message: '',
+    subMessage: '',
+    confirmText: '',
+    confirmColor: 'blue', // 'blue' | 'red' | 'orange'
+    icon: 'lock',         // 'lock' | 'unlock' | 'trash'
+    onConfirm: null
+})
 
-    try {
-        await api.put(`/users/${u.id}`, {
-            status: mapStatusToDB(next)
-        })
-    } catch (err) {
-        console.log('Toggle lỗi:', err)
-    }
-
-    u.status = next
+const showConfirm = ({ title, message, subMessage = '', confirmText, confirmColor, icon, onConfirm }) => {
+    confirmModal.value = { show: true, title, message, subMessage, confirmText, confirmColor, icon, onConfirm }
 }
 
-// ─── DELETE ──────────────────────────
-const removeUser = async (id) => {
-    if (!confirm('Xóa user này?')) return
+const closeConfirm = () => {
+    confirmModal.value.show = false
+}
 
-    try {
-        await api.delete(`/users/${id}`)
-        users.value = users.value.filter(u => u.id !== id)
-    } catch (err) {
-        console.log('Xóa lỗi:', err)
-    }
+const handleConfirm = async () => {
+    if (confirmModal.value.onConfirm) await confirmModal.value.onConfirm()
+    closeConfirm()
+}
+
+// ─── TOGGLE STATUS (dùng custom modal) ──
+const toggleStatus = (u) => {
+    const isLocking = u.status === 'Hoạt động'
+    showConfirm({
+        title: isLocking ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+        message: isLocking
+            ? `Bạn có chắc chắn muốn khóa tài khoản này không?`
+            : `Bạn có chắc chắn muốn mở khóa tài khoản này không?`,
+        subMessage: `Người dùng: ${u.name}`,
+        confirmText: isLocking ? 'Khóa tài khoản' : 'Mở khóa',
+        confirmColor: isLocking ? 'orange' : 'blue',
+        icon: isLocking ? 'lock' : 'unlock',
+        onConfirm: async () => {
+            const next = isLocking ? 'Bị khóa' : 'Hoạt động'
+            try {
+                await api.put(`/users/${u.id}`, { status: mapStatusToDB(next) })
+                u.status = next
+            } catch (err) {
+                console.log('Toggle lỗi:', err)
+            }
+        }
+    })
+}
+
+// ─── DELETE (dùng custom modal) ──────
+const removeUser = (id) => {
+    const user = users.value.find(u => u.id === id)
+    showConfirm({
+        title: 'Xóa người dùng',
+        message: 'Hành động này không thể hoàn tác. Tài khoản sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+        subMessage: `Người dùng: ${user?.name || ''}`,
+        confirmText: 'Xóa vĩnh viễn',
+        confirmColor: 'red',
+        icon: 'trash',
+        onConfirm: async () => {
+            try {
+                await api.delete(`/users/${id}`)
+                users.value = users.value.filter(u => u.id !== id)
+                if (paginatedUsers.value.length === 0 && currentPage.value > 1) {
+                    currentPage.value--
+                }
+            } catch (err) {
+                console.log('Xóa lỗi:', err)
+            }
+        }
+    })
 }
 
 // ─── CREATE ──────────────────────────
@@ -159,13 +247,17 @@ const submitForm = async () => {
     if (err) return formError.value = err
 
     try {
-        const { data } = await api.post('/register', {
-            ...form.value,
+        const { data } = await api.post('/users', {
+            name: form.value.name,
+            email: form.value.email,
+            phone: form.value.phone,
             role: mapRoleToDB(form.value.role),
+            status: mapStatusToDB(form.value.status),
+            password: form.value.password,
             password_confirmation: form.value.password
         })
-
         users.value.unshift(normalizeUser(data.user))
+        currentPage.value = 1
         closeModal()
     } catch (err) {
         formError.value = err.response?.data?.message || 'Lỗi tạo user'
@@ -197,15 +289,12 @@ const submitEdit = async () => {
         role: mapRoleToDB(editForm.value.role),
         status: mapStatusToDB(editForm.value.status)
     }
-
     if (!payload.password) delete payload.password
 
     try {
         const { data } = await api.put(`/users/${editingUser.value.id}`, payload)
-
         const i = users.value.findIndex(u => u.id === editingUser.value.id)
         if (i !== -1) users.value[i] = normalizeUser(data.user)
-
         closeEditModal()
     } catch (err) {
         editError.value = err.response?.data?.message || 'Update lỗi'
@@ -223,7 +312,7 @@ const submitEdit = async () => {
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                 </svg>
-                <input v-model="searchQuery" placeholder="Tìm kiếm người dùng, email hoặc vai trò..." />
+                <input v-model="searchQuery" @input="onSearch" placeholder="Tìm kiếm người dùng, email hoặc vai trò..." />
             </div>
             <div class="topbar-right">
                 <button class="icon-btn">🔔</button>
@@ -243,18 +332,9 @@ const submitEdit = async () => {
         <div class="page-header">
             <div>
                 <h1>Quản lý người dùng</h1>
-                <p>Theo dõi, điều chỉnh quyền hạn và trạng thái hoạt động của toàn bộ thành viên trong hệ thống
-                    VinaTech.</p>
+                <p>Theo dõi, điều chỉnh quyền hạn và trạng thái hoạt động của toàn bộ thành viên trong hệ thống VinaTech.</p>
             </div>
-            <button class="btn-new" @click="openModal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="19" y1="8" x2="19" y2="14" />
-                    <line x1="22" y1="11" x2="16" y2="11" />
-                </svg>
-                Thêm người dùng mới
-            </button>
+            
         </div>
 
         <!-- STATS -->
@@ -272,7 +352,7 @@ const submitEdit = async () => {
                 <div class="stat-info">
                     <p>ĐANG HOẠT ĐỘNG</p>
                     <div class="stat-val-row">
-                        <b>{{users.filter(u => u.status === 'Hoạt động').length}}</b>
+                        <b>{{ users.filter(u => u.status === 'Hoạt động').length }}</b>
                         <span class="badge-neutral">Ổn định</span>
                     </div>
                 </div>
@@ -281,7 +361,7 @@ const submitEdit = async () => {
                 <div class="stat-info">
                     <p>BỊ KHÓA</p>
                     <div class="stat-val-row">
-                        <b>{{users.filter(u => u.status === 'Bị khóa').length}}</b>
+                        <b>{{ users.filter(u => u.status === 'Bị khóa').length }}</b>
                         <span class="badge-down">-5%</span>
                     </div>
                 </div>
@@ -302,7 +382,7 @@ const submitEdit = async () => {
         <div class="filter-row">
             <div class="tabs-group">
                 <button v-for="t in tabs" :key="t" class="tab" :class="{ active: activeTab === t }"
-                    @click="activeTab = t">{{ t }}</button>
+                    @click="onTabChange(t)">{{ t }}</button>
                 <div class="tab-divider"></div>
                 <button class="tab status-tab">
                     Trạng thái: Tất cả
@@ -347,10 +427,10 @@ const submitEdit = async () => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="filtered.length === 0">
+                    <tr v-if="paginatedUsers.length === 0">
                         <td colspan="5" class="empty">Không tìm thấy người dùng nào.</td>
                     </tr>
-                    <tr v-for="u in filtered" :key="u.id">
+                    <tr v-for="u in paginatedUsers" :key="u.id">
                         <td>
                             <div class="user-cell">
                                 <div class="user-avatar" :style="getAvatarStyle(u.name)">{{ initials(u.name) }}</div>
@@ -374,14 +454,6 @@ const submitEdit = async () => {
                         </td>
                         <td>
                             <div class="actions">
-                                <!-- Xem (chỉ hiển thị, mở edit) -->
-                                <button class="act-btn" title="Xem chi tiết" @click="openEditModal(u)">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                        <circle cx="12" cy="12" r="3" />
-                                    </svg>
-                                </button>
                                 <!-- Sửa -->
                                 <button class="act-btn" title="Chỉnh sửa" @click="openEditModal(u)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -390,16 +462,18 @@ const submitEdit = async () => {
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
                                 </button>
-                                <!-- Khóa / Mở khóa -->
-                                <button class="act-btn" :title="u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa'"
+                                <!-- Khóa / Mở khóa (có confirm) -->
+                                <button class="act-btn" :class="{ 'lock-active': u.status === 'Bị khóa' }"
+                                    :title="u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'"
                                     @click="toggleStatus(u)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        <path v-if="u.status === 'Hoạt động'" d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        <path v-else d="M7 11V7a5 5 0 0 1 9.9-1" />
                                     </svg>
                                 </button>
-                                <!-- ✅ Xóa - dùng u.id -->
+                                <!-- Xóa -->
                                 <button class="act-btn danger" title="Xóa" @click="removeUser(u.id)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -417,14 +491,31 @@ const submitEdit = async () => {
 
         <!-- PAGINATION -->
         <div class="table-footer">
-            <span class="showing">Hiển thị 1 – {{ filtered.length }} của {{ users.length }} người dùng</span>
+            <span class="showing">
+                Hiển thị {{ filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }} –
+                {{ Math.min(currentPage * pageSize, filtered.length) }}
+                của {{ filtered.length }} người dùng
+            </span>
             <div class="pagination">
-                <button>‹</button>
-                <button class="active">1</button>
-                <button>2</button>
-                <button>3</button>
-                <button class="dots">...</button>
-                <button>›</button>
+                <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
+
+                <!-- Nút trang đầu nếu không hiển thị -->
+                <template v-if="pageNumbers[0] > 1">
+                    <button @click="goToPage(1)">1</button>
+                    <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
+                </template>
+
+                <button v-for="p in pageNumbers" :key="p"
+                    :class="{ active: currentPage === p }"
+                    @click="goToPage(p)">{{ p }}</button>
+
+                <!-- Nút trang cuối nếu không hiển thị -->
+                <template v-if="pageNumbers[pageNumbers.length - 1] < totalPages">
+                    <button class="dots" v-if="pageNumbers[pageNumbers.length - 1] < totalPages - 1" disabled>...</button>
+                    <button @click="goToPage(totalPages)">{{ totalPages }}</button>
+                </template>
+
+                <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
             </div>
         </div>
 
@@ -450,8 +541,7 @@ const submitEdit = async () => {
             </div>
             <div class="bottom-card security-card">
                 <div class="security-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                        stroke-linecap="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                 </div>
@@ -518,6 +608,54 @@ const submitEdit = async () => {
             </div>
         </Teleport>
 
+        <!-- ─── CUSTOM CONFIRM MODAL ─── -->
+        <Teleport to="body">
+            <Transition name="confirm-fade">
+                <div v-if="confirmModal.show" class="confirm-overlay" @click.self="closeConfirm">
+                    <div class="confirm-box" :class="`confirm-box--${confirmModal.confirmColor}`">
+                        <!-- Icon vùng -->
+                        <div class="confirm-icon-wrap" :class="`confirm-icon--${confirmModal.confirmColor}`">
+                            <!-- Lock icon -->
+                            <svg v-if="confirmModal.icon === 'lock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            <!-- Unlock icon -->
+                            <svg v-else-if="confirmModal.icon === 'unlock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                            </svg>
+                            <!-- Trash icon -->
+                            <svg v-else-if="confirmModal.icon === 'trash'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                        </div>
+
+                        <div class="confirm-content">
+                            <h4>{{ confirmModal.title }}</h4>
+                            <p>{{ confirmModal.message }}</p>
+                            <div v-if="confirmModal.subMessage" class="confirm-sub">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                                {{ confirmModal.subMessage }}
+                            </div>
+                        </div>
+
+                        <div class="confirm-actions">
+                            <button class="confirm-cancel" @click="closeConfirm">Hủy bỏ</button>
+                            <button class="confirm-ok" :class="`confirm-ok--${confirmModal.confirmColor}`" @click="handleConfirm">
+                                {{ confirmModal.confirmText }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
         <!-- ─── MODAL CHỈNH SỬA ─── -->
         <Teleport to="body">
             <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
@@ -531,28 +669,6 @@ const submitEdit = async () => {
                     </div>
                     <div class="modal-body">
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>HỌ TÊN <span class="req">*</span></label>
-                                <input v-model="editForm.name" placeholder="Họ tên" />
-                            </div>
-                            <div class="form-group">
-                                <label>EMAIL <span class="req">*</span></label>
-                                <input v-model="editForm.email" type="email" placeholder="Email" />
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>SỐ ĐIỆN THOẠI</label>
-                                <input v-model="editForm.phone" placeholder="Số điện thoại" />
-                            </div>
-                            <div class="form-group">
-                                <label>MẬT KHẨU MỚI</label>
-                                <input v-model="editForm.password" type="password"
-                                    placeholder="Để trống nếu không đổi" />
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <!-- ✅ Phân quyền -->
                             <div class="form-group">
                                 <label>VAI TRÒ / PHÂN QUYỀN</label>
                                 <select v-model="editForm.role">
@@ -1060,6 +1176,18 @@ tbody td {
     color: #2563eb;
 }
 
+/* Trạng thái đang bị khóa - icon ổ khóa nổi bật hơn */
+.act-btn.lock-active {
+    background: #fef9c3;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+.act-btn.lock-active:hover {
+    background: #fef08a;
+    color: #92400e;
+}
+
 .act-btn.danger:hover {
     background: #fee2e2;
     border-color: #fecaca;
@@ -1096,9 +1224,14 @@ tbody td {
     transition: all 0.2s;
 }
 
-.pagination button:hover {
+.pagination button:hover:not(:disabled) {
     border-color: #2563eb;
     color: #2563eb;
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .pagination .active {
@@ -1111,6 +1244,7 @@ tbody td {
     border: none;
     background: transparent;
     cursor: default;
+    pointer-events: none;
 }
 
 /* BOTTOM GRID */
@@ -1251,7 +1385,6 @@ tbody td {
         opacity: 0;
         transform: translateY(16px) scale(0.97);
     }
-
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1416,12 +1549,171 @@ tbody td {
     font-weight: 600;
 }
 
+/* ─── CUSTOM CONFIRM MODAL ─── */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.confirm-box {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    padding: 32px 28px 24px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+}
+
+/* Top accent border */
+.confirm-box--orange { border-top: 4px solid #f97316; }
+.confirm-box--red    { border-top: 4px solid #ef4444; }
+.confirm-box--blue   { border-top: 4px solid #2563eb; }
+
+/* Icon */
+.confirm-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.confirm-icon-wrap svg {
+    width: 28px;
+    height: 28px;
+}
+
+.confirm-icon--orange { background: #fff7ed; color: #ea580c; }
+.confirm-icon--red    { background: #fef2f2; color: #dc2626; }
+.confirm-icon--blue   { background: #eff6ff; color: #2563eb; }
+
+/* Content */
+.confirm-content {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.confirm-content h4 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+}
+
+.confirm-content p {
+    font-size: 13.5px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 12px;
+}
+
+.confirm-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 7px 12px;
+}
+
+.confirm-sub svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
+/* Actions */
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.confirm-cancel {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: white;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-cancel:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.confirm-ok {
+    flex: 1.4;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+}
+
+.confirm-ok--orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+.confirm-ok--red    { background: linear-gradient(135deg, #f87171, #dc2626); }
+.confirm-ok--blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+.confirm-ok:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* Transition */
+.confirm-fade-enter-active {
+    animation: confirmIn 0.25s cubic-bezier(.22, 1, .36, 1);
+}
+.confirm-fade-leave-active {
+    animation: confirmOut 0.18s ease-in forwards;
+}
+
+@keyframes confirmIn {
+    from { opacity: 0; transform: scale(0.88) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes confirmOut {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.93); }
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
     .stats {
         grid-template-columns: 1fr 1fr;
     }
-
     .bottom-grid {
         grid-template-columns: 1fr;
     }
@@ -1433,39 +1725,31 @@ tbody td {
         gap: 14px;
         padding: 16px;
     }
-
     .stats {
         padding: 0 16px 16px;
         grid-template-columns: 1fr 1fr;
     }
-
     .filter-row {
         padding: 0 16px 12px;
     }
-
     .table-wrap {
         margin: 0 16px;
         overflow-x: auto;
     }
-
     table {
         min-width: 640px;
     }
-
     .table-footer {
         padding: 12px 16px;
         flex-direction: column;
         gap: 10px;
     }
-
     .bottom-grid {
         padding: 16px 16px 0;
     }
-
     .form-row {
         grid-template-columns: 1fr;
     }
-
     .topbar {
         padding: 12px 16px;
     }
