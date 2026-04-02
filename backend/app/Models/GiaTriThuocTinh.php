@@ -14,6 +14,7 @@ class GiaTriThuocTinh extends Model
         'id_thuoctinh',
         'giatri',
         'trangthai',
+        'gia_cong_them',
     ];
 
     public function thuocTinh()
