@@ -254,18 +254,17 @@ const submitVariant = async () => {
     formError.value = 'Vui lòng nhập tên biến thể.'
     return
   }
-
   if (!variantForm.value.type) {
     formError.value = 'Vui lòng chọn loại thuộc tính.'
     return
   }
-
   const selectedAttr = attrs.value.find((a) => a.name === variantForm.value.type)
   if (!selectedAttr) {
     formError.value = 'Không tìm thấy loại thuộc tính tương ứng.'
     return
   }
 
+  // ── CHECK TRÙNG ──
   if (isDuplicateVariant(variantForm.value.name, variantForm.value.type, editingId)) {
     formError.value = `Biến thể "${variantForm.value.name}" đã tồn tại trong loại "${variantForm.value.type}".`
     return
@@ -289,17 +288,11 @@ const submitVariant = async () => {
     } else {
       await api.post('/giatrithuoctinh', payload)
     }
-
     await fetchAll()
     variantPagination.goToPage(1)
     closeModal()
   } catch (error) {
-    formError.value = getErrorMessage(
-      error,
-      modalType.value === 'editVariant'
-        ? 'Không cập nhật được biến thể.'
-        : 'Không thêm được biến thể.'
-    )
+    formError.value = getErrorMessage(error, modalType.value === 'editVariant' ? 'Không cập nhật được biến thể.' : 'Không thêm được biến thể.')
   }
 }
 

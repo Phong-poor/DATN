@@ -1,3 +1,93 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+
+const route = useRoute()
+const router = useRouter()
+
+const email = route.query.email
+const otp = route.query.otp
+
+onMounted(() => {
+  if (!email || !otp) {
+    alert('Thiếu thông tin xác thực. Vui lòng thực hiện lại.')
+    router.push('/forgot-password')
+  }
+})
+
+const showPassword = ref(false)
+const showConfirm = ref(false)
+const isLoading = ref(false)
+
+const form = ref({ password: '', confirm: '' })
+const errors = ref({ password: '', confirm: '' })
+
+const checks = computed(() => ({
+  length: form.value.password.length >= 8,
+  upper: /[A-Z]/.test(form.value.password),
+  special: /[0-9!@#$%^&*]/.test(form.value.password),
+}))
+
+const strengthScore = computed(() => Object.values(checks.value).filter(Boolean).length)
+
+const strengthWidth = computed(() => ['0%', '33%', '66%', '100%'][strengthScore.value])
+const strengthColor = computed(() => ['#e2e8f0', '#ef4444', '#f59e0b', '#22c55e'][strengthScore.value])
+const strengthText = computed(() => ['', 'Yếu', 'Trung bình', 'Mạnh'][strengthScore.value])
+
+function validatePassword() {
+  errors.value.password = ''
+  if (form.value.confirm && form.value.password === form.value.confirm) {
+    errors.value.confirm = ''
+  }
+}
+
+function validate() {
+  errors.value = { password: '', confirm: '' }
+  if (!form.value.password) { errors.value.password = 'Vui lòng nhập mật khẩu mới.'; return false }
+  if (strengthScore.value < 2) { errors.value.password = 'Mật khẩu chưa đủ mạnh.'; return false }
+  if (!form.value.confirm) { errors.value.confirm = 'Vui lòng xác nhận mật khẩu.'; return false }
+  if (form.value.password !== form.value.confirm) { errors.value.confirm = 'Mật khẩu xác nhận không khớp.'; return false }
+  return true
+}
+
+async function submit() {
+  if (!validate()) return
+  if (isLoading.value) return
+
+  isLoading.value = true
+
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/forgot-password/reset-password', {
+      email: email,
+      otp: otp,
+      password: form.value.password,
+      password_confirmation: form.value.confirm
+    })
+
+    alert(res.data.message || 'Đổi mật khẩu thành công!')
+
+    router.push('/login')
+
+  } catch (err) {
+    console.log(err)
+
+    if (err.response?.data?.errors) {
+      const firstError = Object.values(err.response.data.errors)[0][0]
+      alert(firstError)
+    } else {
+      alert(err.response?.data?.message || 'Lỗi đổi mật khẩu')
+    }
+
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+
+
 <template>
   <div class="layout">
 
@@ -87,7 +177,10 @@
       <div class="form-card">
 
         <h1 class="form-title">Đặt lại mật khẩu</h1>
-        <p class="form-desc">Vui lòng thiết lập mật khẩu mới cho tài khoản của bạn</p>
+        <p class="form-desc">
+          Vui lòng thiết lập mật khẩu mới cho tài khoản<br />
+          <strong>{{ email }}</strong>
+        </p>
 
         <!-- New password -->
         <div class="field-group">
@@ -166,7 +259,10 @@
         </button>
 
         <!-- Back -->
-        <p class="back-link">Quay lại trang <a href="/login">Đăng nhập</a></p>
+        <p class="back-link">
+          Quay lại trang
+          <a href="" @click.prevent="router.push('/login')">Đăng nhập</a>
+        </p>
 
       </div>
     </div>
@@ -174,49 +270,7 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
 
-const showPassword = ref(false)
-const showConfirm = ref(false)
-const isLoading = ref(false)
-
-const form = ref({ password: '', confirm: '' })
-const errors = ref({ password: '', confirm: '' })
-
-const checks = computed(() => ({
-  length: form.value.password.length >= 8,
-  upper: /[A-Z]/.test(form.value.password),
-  special: /[0-9!@#$%^&*]/.test(form.value.password),
-}))
-
-const strengthScore = computed(() => Object.values(checks.value).filter(Boolean).length)
-
-const strengthWidth = computed(() => ['0%', '33%', '66%', '100%'][strengthScore.value])
-const strengthColor = computed(() => ['#e2e8f0', '#ef4444', '#f59e0b', '#22c55e'][strengthScore.value])
-const strengthText = computed(() => ['', 'Yếu', 'Trung bình', 'Mạnh'][strengthScore.value])
-
-function validatePassword() {
-  errors.value.password = ''
-}
-
-function validate() {
-  errors.value = { password: '', confirm: '' }
-  if (!form.value.password) { errors.value.password = 'Vui lòng nhập mật khẩu mới.'; return false }
-  if (strengthScore.value < 2) { errors.value.password = 'Mật khẩu chưa đủ mạnh.'; return false }
-  if (!form.value.confirm) { errors.value.confirm = 'Vui lòng xác nhận mật khẩu.'; return false }
-  if (form.value.password !== form.value.confirm) { errors.value.confirm = 'Mật khẩu xác nhận không khớp.'; return false }
-  return true
-}
-
-async function submit() {
-  if (!validate()) return
-  isLoading.value = true
-  await new Promise(r => setTimeout(r, 1600))
-  isLoading.value = false
-  alert('Cập nhật mật khẩu thành công! ✅')
-}
-</script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
