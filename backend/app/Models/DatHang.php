@@ -14,7 +14,8 @@ class DatHang extends Model
         'tongtien',
         'trangthai',
         'diachi',
-        'PTTT'
+        'PTTT',
+        'ly_do_huy'
     ];
 
     public function user()

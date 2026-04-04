@@ -5,6 +5,8 @@ import api from '../../services/api'
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
 const showModal = ref(false)
+const showViewModal = ref(false)
+const selectedViewOrder = ref(null)
 const formError = ref('')
 
 const tabs = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
@@ -39,6 +41,13 @@ const fetchOrders = async () => {
                 status: o.trangthai,
                 phone: o.user?.phone || '',
                 address: o.diachi || '',
+                cancelReason: o.ly_do_huy || '',
+                items: o.chi_tiets?.map(item => ({
+                    name: item.bien_the?.ten_bienthe || 'Sản phẩm',
+                    qty: item.soluong,
+                    price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
+                    img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
+                })) || [],
                 note: '', // Có thể thêm cột này sau
             }))
         }
@@ -50,11 +59,22 @@ const fetchOrders = async () => {
 }
 
 const updateOrderStatus = async (orderId, newStatus) => {
+    let cancelReason = null
+    if (newStatus === 'cancelled') {
+        cancelReason = prompt('Nhập lý do hủy đơn hàng (không bắt buộc):')
+    }
+
     try {
-        const res = await api.put(`/admin/orders/${orderId}/status`, { trangthai: newStatus })
+        const payload = { trangthai: newStatus }
+        if (cancelReason !== null) payload.ly_do_huy = cancelReason
+
+        const res = await api.put(`/admin/orders/${orderId}/status`, payload)
         if (res.data.success) {
             const idx = orders.value.findIndex(o => o.id_backend === orderId)
-            if (idx !== -1) orders.value[idx].status = newStatus
+            if (idx !== -1) {
+                orders.value[idx].status = newStatus
+                if (cancelReason !== null) orders.value[idx].cancelReason = cancelReason
+            }
             alert('Cập nhật trạng thái thành công!')
         }
     } catch (error) {
@@ -65,6 +85,16 @@ const updateOrderStatus = async (orderId, newStatus) => {
 onMounted(() => {
     fetchOrders()
 })
+
+const openViewModal = (order) => {
+    selectedViewOrder.value = order
+    showViewModal.value = true
+}
+
+const closeViewModal = () => {
+    showViewModal.value = false
+    selectedViewOrder.value = null
+}
 
 const todayRevenue = computed(() => {
     const today = new Date().toLocaleDateString('vi-VN')
@@ -261,7 +291,7 @@ const getAvatarStyle = (name) => {
 
                         <td>
                             <div class="actions">
-                                <button class="act-btn" title="Xem">
+                                <button class="act-btn" title="Xem" @click="openViewModal(o)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
@@ -394,6 +424,77 @@ const getAvatarStyle = (name) => {
             </div>
         </Teleport>
 
+        <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
+        <Teleport to="body">
+            <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
+                <div class="modal detail-modal">
+                    <div class="modal-header">
+                        <div>
+                            <p class="modal-sub">Mã đơn: <b>{{ selectedViewOrder.id }}</b></p>
+                            <h3>Chi tiết đơn hàng</h3>
+                        </div>
+                        <button class="modal-close" @click="closeViewModal">×</button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="info-section">
+                            <div class="section-title">Thông tin khách hàng</div>
+                            <div class="customer-info-grid">
+                                <div class="info-item">
+                                    <span class="label">Họ tên:</span>
+                                    <span class="value">{{ selectedViewOrder.name }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Số ĐT:</span>
+                                    <span class="value">{{ selectedViewOrder.phone }}</span>
+                                </div>
+                                <div class="info-item full">
+                                    <span class="label">Địa chỉ:</span>
+                                    <span class="value">{{ selectedViewOrder.address }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="selectedViewOrder.status === 'cancelled' && selectedViewOrder.cancelReason" class="alert-reason">
+                            <div class="label">Lý do hủy đơn:</div>
+                            <div class="value">{{ selectedViewOrder.cancelReason }}</div>
+                        </div>
+
+                        <div class="items-section">
+                            <div class="section-title">Sản phẩm đã đặt</div>
+                            <div class="items-list">
+                                <div v-for="(item, idx) in selectedViewOrder.items" :key="idx" class="order-item">
+                                    <img :src="item.img" alt="product" />
+                                    <div class="item-info">
+                                        <div class="item-name">{{ item.name }}</div>
+                                        <div class="item-qty">Số lượng: {{ item.qty }}</div>
+                                    </div>
+                                    <div class="item-price">{{ item.price }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-summary">
+                            <div class="summary-row">
+                                <span>Trạng thái:</span>
+                                <span class="status-pill" :style="getStatusStyle(selectedViewOrder.status)">
+                                    {{ getStatusLabel(selectedViewOrder.status) }}
+                                </span>
+                            </div>
+                            <div class="summary-row total">
+                                <span>Tổng cộng:</span>
+                                <span class="total-val">{{ selectedViewOrder.total }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn-cancel" @click="closeViewModal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
     </div>
 </template>
 
@@ -457,7 +558,7 @@ const getAvatarStyle = (name) => {
     border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;
     outline: none; transition: border-color 0.2s;
 }
-.search-box input:focus { border-color: #2563eb; }
+.status-select:focus { border-color: #2563eb; }
 
 .tabs { display: flex; gap: 6px; }
 .tab {
@@ -529,6 +630,63 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .act-btn svg { width: 14px; height: 14px; }
 .act-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #2563eb; }
 .act-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #ef4444; }
+
+/* DETAIL MODAL SPECIALS */
+.detail-modal { max-width: 650px; }
+.info-section, .items-section { margin-bottom: 24px; }
+.customer-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+}
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-item.full { grid-column: 1 / -1; }
+.info-item .label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; }
+.info-item .value { font-size: 13px; font-weight: 600; color: #1e293b; }
+
+.alert-reason {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+}
+.alert-reason .label { font-size: 12px; font-weight: 700; color: #ef4444; margin-bottom: 4px; }
+.alert-reason .value { font-size: 13px; color: #991b1b; line-height: 1.5; }
+
+.items-list { display: flex; flex-direction: column; gap: 10px; }
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px;
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+}
+.order-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0; }
+.item-info { flex: 1; }
+.item-name { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.item-qty { font-size: 12px; color: #94a3b8; }
+.item-price { font-size: 14px; font-weight: 700; color: #2563eb; }
+
+.modal-summary {
+    border-top: 2px dashed #f1f5f9;
+    padding-top: 16px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.summary-row span:first-child { font-size: 13px; font-weight: 500; color: #64748b; }
+.summary-row.total { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f8fafc; }
+.total-val { font-size: 20px; font-weight: 800; color: #0f172a; }
 
 /* FOOTER */
 .table-footer {

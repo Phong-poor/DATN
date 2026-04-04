@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import axios from 'axios'
+import api from '@/services/api'
 
 // ── Active tab ────────────────────────────────────────────
 const activeTab = ref('profile')
@@ -22,6 +23,12 @@ const showToast = (msg) => {
     toast.value.show = false
   }, 2500)
 }
+
+// ── Cancellation state ────────────────────────────────────
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
 
 // ════════════════════════════════════════════════
 //  TAB 1 — PROFILE
@@ -62,12 +69,7 @@ const loadUser = async () => {
       }
       return
     }
-const res = await axios.get('http://127.0.0.1:8000/api/user/profile', {
-    
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const res = await api.get('/user/profile')
 
     const apiUser = res.data
 
@@ -105,12 +107,7 @@ const res = await axios.get('http://127.0.0.1:8000/api/user/profile', {
 
 const fetchOrders = async () => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) return
-
-    const res = await axios.get('http://127.0.0.1:8000/api/orders', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    const res = await api.get('/orders')
 
     if (res.data.success) {
       orders.value = res.data.orders.map(order => {
@@ -122,12 +119,16 @@ const fetchOrders = async () => {
         if (order.trangthai === 'cancelled') statusKey = 'cancelled'
 
         return {
+          id_dathang: order.id_dathang,
           id: `NGL-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
           status: statusKey,
+          trangthai: order.trangthai, // 🔥 Keep original for logic
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
+          tongtien: order.tongtien,
+          ly_do_huy: order.ly_do_huy,
           items: order.chi_tiets.map(item => ({
-            name: item.bien_the?.san_pham?.tenSP || 'Sản phẩm',
+            name: item.bien_the?.ten_bienthe || 'Sản phẩm',
             qty: item.soluong,
             price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
             img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
@@ -143,6 +144,53 @@ const fetchOrders = async () => {
     }
   } catch (error) {
     console.error('Lỗi tải đơn hàng:', error)
+  }
+}
+
+const openCancelModal = (order) => {
+  orderToCancel.value = order
+  cancelReason.value = ''
+  showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+  if (!cancelReason.value.trim()) {
+    showToast('Vui lòng nhập lý do hủy.')
+    return
+  }
+
+  if (!confirm('Chắc chắn hủy đơn?')) return
+
+  isSubmitting.value = true
+  try {
+    const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, {
+      ly_do_huy: cancelReason.value.trim()
+    })
+
+    if (res.data.success) {
+      showToast('Hủy đơn hàng thành công!')
+      showCancelModal.value = false
+      await fetchOrders()
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Lỗi khi hủy đơn.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const handleReorder = async (order) => {
+  if (!confirm('Chắc chắn mua lại?')) return
+
+  try {
+    const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+    if (res.data.success) {
+      showToast(res.data.message)
+      window.location.href = '/gio-hang'
+    }
+  } catch (err) {
+    showToast('Lỗi khi mua lại sản phẩm.')
   }
 }
 
@@ -171,19 +219,14 @@ const saveProfile = async () => {
     console.log('DATA GỬI:', profileForm.value)
     console.log('TOKEN:', token)
 
-    const res = await axios.put(
-      'http://127.0.0.1:8000/api/user/profile',
+    const res = await api.put(
+      '/user/profile',
       {
         name: profileForm.value.name,
         email: profileForm.value.email,
         phone: profileForm.value.phone,
         date_of_birth: profileForm.value.birthday,
         gender: profileForm.value.gender,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
 
@@ -269,28 +312,28 @@ const provinces = [
   'Buôn Ma Thuột',
 ]
 
-const addresses = ref([
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    phone: '0901 234 567',
-    province: 'TP. Hồ Chí Minh',
-    district: 'Quận 1',
-    ward: 'Phường Bến Nghé',
-    detail: '123 Lê Lợi',
-    isDefault: true,
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Văn A',
-    phone: '0912 345 678',
-    province: 'Hà Nội',
-    district: 'Quận Cầu Giấy',
-    ward: 'Phường Dịch Vọng',
-    detail: '45 Nguyễn Phong Sắc',
-    isDefault: false,
-  },
-])
+// const addresses = ref([
+//   {
+//     id: 1,
+//     name: 'Nguyễn Văn A',
+//     phone: '0901 234 567',
+//     province: 'TP. Hồ Chí Minh',
+//     district: 'Quận 1',
+//     ward: 'Phường Bến Nghé',
+//     detail: '123 Lê Lợi',
+//     isDefault: true,
+//   },
+//   {
+//     id: 2,
+//     name: 'Nguyễn Văn A',
+//     phone: '0912 345 678',
+//     province: 'Hà Nội',
+//     district: 'Quận Cầu Giấy',
+//     ward: 'Phường Dịch Vọng',
+//     detail: '45 Nguyễn Phong Sắc',
+//     isDefault: false,
+//   },
+// ])
 
 const openAddAddr = () => {
   addrForm.value = defaultAddrForm()
@@ -428,6 +471,12 @@ const savePw = async () => {
             <div class="modal-status" :style="{ color: statusMap[selectedOrder.status].color, background: statusMap[selectedOrder.status].bg }">
               {{ statusMap[selectedOrder.status].label }}
             </div>
+
+            <!-- Lý do hủy -->
+            <div v-if="selectedOrder.status === 'cancelled' && selectedOrder.ly_do_huy" class="alert alert-danger mb-4" style="font-size: 13px; padding: 12px; border-radius: 10px;">
+              <strong>Lý do hủy:</strong> {{ selectedOrder.ly_do_huy }}
+            </div>
+
             <div class="timeline">
               <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                 <div class="tl-col">
@@ -452,6 +501,41 @@ const savePw = async () => {
             <div class="modal-total">
               <span>Tổng cộng</span>
               <span class="total-val">{{ selectedOrder.total }}</span>
+            </div>
+
+            <!-- Nút hành động trong modal -->
+            <div class="modal-actions mt-4 d-flex gap-2">
+              <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" 
+                class="btn-cancel-order w-100" @click="openCancelModal(selectedOrder)">Hủy đơn hàng</button>
+
+              <button v-if="['done', 'cancelled'].includes(selectedOrder.status)" 
+                class="btn-reorder w-100" @click="handleReorder(selectedOrder)">Mua lại</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Cancellation Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 1001;">
+        <div class="modal mini-modal">
+          <div class="modal-head">
+            <h2 class="modal-title">Lý do hủy đơn</h2>
+            <button class="close-btn" @click="showCancelModal = false">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
+            
+            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
+            
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+              <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+              </button>
+              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
             </div>
           </div>
         </div>
@@ -583,7 +667,13 @@ const savePw = async () => {
               </div>
               <div class="order-foot">
                 <span class="order-total">Tổng: <strong>{{ order.total }}</strong></span>
-                <button class="btn-detail" @click="selectedOrder = order">Xem chi tiết</button>
+                <div class="d-flex gap-2">
+                  <button v-if="['pending', 'confirmed'].includes(order.status)" 
+                    class="btn-cancel-order" @click.stop="openCancelModal(order)">Hủy đơn</button>
+                  <button v-if="['done', 'cancelled'].includes(order.status)" 
+                    class="btn-reorder" @click.stop="handleReorder(order)">Mua lại</button>
+                  <button class="btn-detail" @click="selectedOrder = order">Chi tiết</button>
+                </div>
               </div>
             </div>
           </div>
@@ -828,6 +918,8 @@ const savePw = async () => {
 .order-total strong { color:#0f172a; font-size:15px; }
 .btn-detail { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #2563eb; color:#2563eb; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-detail:hover { background:#2563eb; color:#fff; }
+.btn-cancel-order { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #ef4444; color:#ef4444; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-cancel-order:hover { background:#ef4444; color:#fff; }
 
 /* ADDRESS */
 .btn-add { display:flex; align-items:center; gap:8px; padding:10px 18px; border-radius:10px; background:#2563eb; border:none; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
@@ -915,7 +1007,8 @@ const savePw = async () => {
 .modal-item-qty { font-size:12px; color:#94a3b8; margin:0; }
 .modal-item-price { font-size:14px; font-weight:700; color:#2563eb; }
 .modal-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 0; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#64748b; }
-.total-val { font-size:18px; font-weight:800; color:#2563eb; }
+.btn-reorder { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #16a34a; color:#16a34a; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-reorder:hover { background:#16a34a; color:#fff; }
 
 /* TOAST */
 .toast { position:fixed; top:24px; right:24px; z-index:9999; background:#0f172a; color:#fff; padding:12px 20px; border-radius:12px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
@@ -931,4 +1024,92 @@ const savePw = async () => {
 .slide-leave-active { transition:all 0.18s ease; }
 .slide-enter-from { opacity:0; transform:translateY(-8px); }
 .slide-leave-to { opacity:0; transform:translateY(-6px); }
+
+.d-none { display: none; }
+.d-flex { display: flex; align-items: center; }
+.gap-2 { gap: 12px; }
+
+/* CANCEL MODAL */
+.cancel-options {
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.cancel-option-item {
+  padding: 14px 18px;
+  cursor: pointer;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.2s;
+  margin: 0;
+}
+.cancel-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cancel-radio-native {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+.cancel-option-item:last-child {
+  border-bottom: none;
+}
+.cancel-option-item:hover {
+  background: #f8fafc;
+}
+.cancel-option-text {
+  font-size: 14.5px;
+  color: #334155;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.cancel-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  font-size: 14px;
+  margin-bottom: 20px;
+  background: #eff6ff;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s;
+  resize: vertical;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+.cancel-textarea::placeholder {
+  color: #94a3b8;
+}
+.cancel-textarea:focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+  background: #fff;
+}
+.btn-danger-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-danger-confirm:hover {
+  background: #dc2626;
+}
+.btn-danger-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 </style>

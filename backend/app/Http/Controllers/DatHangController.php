@@ -9,9 +9,123 @@ use App\Models\BienThe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DatHangController extends Controller
 {
+    public function cancelOrder(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::with('chiTiets.bienThe')
+            ->where('id_dathang', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        if (!in_array($order->trangthai, ['pending', 'confirmed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể hủy đơn hàng ở trạng thái này.'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Update status and reason
+            $order->update([
+                'trangthai' => 'cancelled',
+                'ly_do_huy' => $request->ly_do_huy ?? 'Người dùng hủy đơn'
+            ]);
+
+            // 2. Return stock
+            foreach ($order->chiTiets as $chiTiet) {
+                if ($chiTiet->bienThe) {
+                    $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Hủy đơn hàng thành công!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reorder(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::with('chiTiets.bienThe')
+            ->where('id_dathang', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+
+            //  Xóa lý do hủy khi mua lại
+            $order->update(['ly_do_huy' => null]);
+            $addedItemsCount = 0;
+            $skippedItems = [];
+
+            foreach ($order->chiTiets as $chiTiet) {
+                $bienThe = $chiTiet->bienThe;
+
+                if (!$bienThe || $bienThe->soluong <= 0) {
+                    $skippedItems[] = $bienThe ? $bienThe->ten_bienthe : 'Sản phẩm không còn tồn tại';
+                    continue;
+                }
+
+                // Check if already in cart
+                $cartItem = GioHang::where('user_id', $userId)
+                    ->where('id_bienthe', $chiTiet->id_bienthe)
+                    ->first();
+
+                if ($cartItem) {
+                    $cartItem->increment('soluong', $chiTiet->soluong);
+                } else {
+                    GioHang::create([
+                        'user_id'    => $userId,
+                        'id_bienthe' => $chiTiet->id_bienthe,
+                        'soluong'    => $chiTiet->soluong,
+                    ]);
+                }
+                $addedItemsCount++;
+            }
+
+            DB::commit();
+
+            if ($addedItemsCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rất tiếc! Tất cả sản phẩm trong đơn hàng này đều đã hết hàng.',
+                    'skipped' => $skippedItems
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã thêm $addedItemsCount sản phẩm vào giỏ hàng.",
+                'skipped' => $skippedItems
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function checkout(Request $request)
     {
         $request->validate([
@@ -116,13 +230,64 @@ class DatHangController extends Controller
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
         ]);
 
-        $order = DatHang::findOrFail($id);
-        $order->update(['trangthai' => $request->trangthai]);
+        $order = DatHang::with('chiTiets.bienThe')->findOrFail($id);
+        $oldStatus = $order->trangthai;
+        $newStatus = $request->trangthai;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật trạng thái thành công!',
-            'order'   => $order
-        ]);
+        if ($oldStatus === $newStatus) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Trạng thái không đổi.',
+                'order'   => $order
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Handle Stock Sync
+            // 1. If changing TO cancelled -> Restock
+            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                foreach ($order->chiTiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                    }
+                }
+            }
+
+            // 2. If changing FROM cancelled back to something else -> Deduct stock again
+            if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                foreach ($order->chiTiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        // Check if enough stock
+                        if ($chiTiet->bienThe->soluong < $chiTiet->soluong) {
+                            throw new \Exception("Sản phẩm {$chiTiet->bienThe->ten_bienthe} không đủ hàng để khôi phục đơn hàng.");
+                        }
+                        $chiTiet->bienThe->decrement('soluong', $chiTiet->soluong);
+                    }
+                }
+            }
+
+            $updateData = ['trangthai' => $newStatus];
+            if ($newStatus === 'cancelled' && $request->has('ly_do_huy')) {
+                $updateData['ly_do_huy'] = $request->ly_do_huy;
+            }
+            $order->update($updateData);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật trạng thái thành công!',
+                'order'   => $order
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
