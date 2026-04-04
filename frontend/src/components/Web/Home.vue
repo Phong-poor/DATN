@@ -138,7 +138,23 @@ onMounted(async () => {
         console.error('Lỗi khi tải sản phẩm:', error)
     }
 })
+// === SLIDER LOGIC ===
+const currentProductPage = ref(0)
+const itemsPerSliderFrame = 5
+const totalProductPages = computed(() => Math.ceil(featuredProducts.value.length / itemsPerSliderFrame))
 
+const visibleFeaturedProducts = computed(() => {
+    if (featuredProducts.value.length === 0) return []
+    const start = currentProductPage.value * itemsPerSliderFrame
+    return featuredProducts.value.slice(start, start + itemsPerSliderFrame)
+})
+
+const nextFeaturedPage = () => {
+    if (currentProductPage.value < totalProductPages.value - 1) currentProductPage.value++
+}
+const prevFeaturedPage = () => {
+    if (currentProductPage.value > 0) currentProductPage.value--
+}
 // 👉 Bổ sung hàm xử lý Yêu thích
 const themVaoYeuThich = async (product) => {
     const token = localStorage.getItem('token')
