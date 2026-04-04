@@ -43,6 +43,19 @@ const fetchCart = async () => {
 
 onMounted(() => {
     fetchCart()
+
+    // Tự động điền thông tin người dùng nếu đã đăng nhập
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+        try {
+            const user = JSON.parse(storedUser)
+            form.value.name = user.name || user.ten || ''
+            form.value.email = user.email || ''
+            form.value.phone = user.phone || user.sdt || ''
+        } catch (error) {
+            console.error('Lỗi khi đọc thông tin user từ localStorage:', error)
+        }
+    }
 })
 
 const subtotal = computed(() =>

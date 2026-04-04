@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import GiftPopup from './GiftPopup.vue'
@@ -45,33 +45,112 @@ const categories = [
     { name: 'Doanh nhân', desc: 'Thiết kế cao cấp, bảo mật tốt', icon: '👔' }
 ]
 
-// 
+const mapProducts = (rawProducts) => {
+    const productVariants = rawProducts.map(p => {
+        if (!p.bien_thes || p.bien_thes.length === 0) {
+            return [{
+                id: p.id_sanpham,
+                key_id: String(p.id_sanpham),
+                name: p.tenSP,
+                category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
+                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
+                weight: p.khoiluong,
+                price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(0),
+                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : '')
+            }];
+        }
+
+        return p.bien_thes.map(bt => {
+            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '';
+            let thuoc_tinh = [];
+            try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
+
+            if (Array.isArray(thuoc_tinh)) {
+                thuoc_tinh.forEach(attr => {
+                    const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                    if (ten === 'ram') ram = attr.giatri;
+                    else if (ten === 'cpu') cpu = attr.giatri;
+                    else if (ten === 'gpu') gpu = attr.giatri;
+                    else if (ten === 'kích thước') kichthuoc = attr.giatri;
+                    else if (ten === 'độ phân giải') dophan = attr.giatri;
+                    else if (ten === 'tấm nền') tamnen = attr.giatri;
+                    else if (ten === 'pin') pin = attr.giatri;
+                    else if (ten === 'sạc') sac = attr.giatri;
+                });
+            }
+            
+            const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
+            const fullName = nameExt ? `${p.tenSP} (${nameExt})` : p.tenSP;
+
+            return {
+                id: p.id_sanpham,
+                key_id: String(bt.id_bienthe || (p.id_sanpham + '_' + Math.random())),
+                name: fullName,
+                category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
+                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
+                weight: p.khoiluong,
+                price: bt.gia > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bt.gia) : 'Liên hệ',
+                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : '')
+            };
+        });
+    });
+
+    const flatList = [];
+    let hasMore = true;
+    let variantIndex = 0;
+    while (hasMore) {
+        hasMore = false;
+        for (let i = 0; i < productVariants.length; i++) {
+            if (productVariants[i].length > variantIndex) {
+                flatList.push(productVariants[i][variantIndex]);
+                hasMore = true;
+            }
+        }
+        variantIndex++;
+    }
+
+    return flatList;
+}
+
 const featuredProducts = ref([])
 onMounted(async () => {
-    // Hiện popup sau 10 giây
     setTimeout(() => {
         showGift.value = true
     }, 10000)
 
     try {
         const response = await api.get('/sanpham')
-        featuredProducts.value = response.data.map(p => ({
-            id: p.id_sanpham,//hihi
-            name: p.tenSP,
-            category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
-            price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.bien_thes?.[0]?.gia || 0),
-            old: '', // Hoặc có thể lấy từ db nếu có
-            img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800',
-            badge: p.trangthai === 'Hot' ? 'HOT' : '',
-            specs: [
-                `Thương hiệu: ${p.thuong_hieu?.ten_thuonghieu || 'N/A'}`,
-                p.khoiluong ? `Cân nặng: ${p.khoiluong}kg` : ''
-            ].filter(s => s)
-        }))
+        const allProducts = mapProducts(response.data)
+        featuredProducts.value = allProducts.slice(0, 20)
     } catch (error) {
         console.error('Lỗi khi tải sản phẩm:', error)
     }
 })
+
+// === SLIDER LOGIC ===
+const currentProductPage = ref(0)
+const itemsPerSliderFrame = 5
+const totalProductPages = computed(() => Math.ceil(featuredProducts.value.length / itemsPerSliderFrame))
+
+const visibleFeaturedProducts = computed(() => {
+    if (featuredProducts.value.length === 0) return []
+    const start = currentProductPage.value * itemsPerSliderFrame
+    return featuredProducts.value.slice(start, start + itemsPerSliderFrame)
+})
+
+const nextFeaturedPage = () => {
+    if (currentProductPage.value < totalProductPages.value - 1) currentProductPage.value++
+}
+const prevFeaturedPage = () => {
+    if (currentProductPage.value > 0) currentProductPage.value--
+}
+// ====================
 
 
 const benefits = [
@@ -243,7 +322,7 @@ onUnmounted(stop)
             </div>
         </section>
 
-        <!-- FEATURED — 8 sản phẩm, 2 hàng x 4 cột -->
+        <!-- FEATURED — 20 sản phẩm slider chia 5 cột -->
         <section class="section featured-section">
             <div class="container">
                 <div class="section-head center">
@@ -253,26 +332,40 @@ onUnmounted(stop)
                         <p>Chọn lọc từ các dòng máy bán chạy với hiệu năng tốt, thiết kế đẹp và giá trị cao.</p>
                     </div>
                 </div>
-                <div class="product-grid">
-                    <article class="product-card" v-for="(p, i) in featuredProducts" :key="i">
-                        <span class="product-badge" v-if="p.badge">{{ p.badge }}</span>
-                        <div class="product-thumb"><img :src="p.img" :alt="p.name" /></div>
-                        <div class="product-body">
-                            <span class="product-category">{{ p.category }}</span>
-                            <h3>{{ p.name }}</h3>
-                            
-                            <div class="price-row">
-                                <strong>{{ p.price }}</strong>
-                                <span>{{ p.old }}</span>
+                
+                <div class="product-slider-container">
+                    <button class="slider-btn prev" @click="prevFeaturedPage" :disabled="currentProductPage === 0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+
+                    <div class="product-slider-grid">
+                        <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
+                            <span class="product-badge" v-if="p.badge">{{ p.badge }}</span>
+                            <div class="product-thumb"><img :src="p.img" :alt="p.name" /></div>
+                            <div class="product-body">
+                                <span class="product-category">{{ p.category }}</span>
+                                <h3 :title="p.name">{{ p.name }}</h3>
+                                <p class="product-price">{{ p.price }}</p>
+                                
+                                <div class="product-actions">
+                                    <button class="btn btn-primary small">Mua ngay</button>
+                                    <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
+                                        Chi tiết
+                                    </router-link>
+                                </div>
                             </div>
-                            <div class="product-actions">
-                                <button class="btn btn-primary small">Mua ngay</button>
-                                <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
-                                    Chi tiết
-                                </router-link>
-                            </div>
-                        </div>
-                    </article>
+                        </article>
+                    </div>
+
+                    <button class="slider-btn next" @click="nextFeaturedPage" :disabled="currentProductPage >= totalProductPages - 1">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+
+                <div class="see-all-container">
+                    <router-link to="/products" class="btn see-all-btn">
+                        Xem tất cả sản phẩm →
+                    </router-link>
                 </div>
             </div>
         </section>
@@ -1056,10 +1149,70 @@ a.btn {
     background: var(--bg-soft);
 }
 
-.product-grid {
+.product-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.product-slider-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 14px;
+    flex: 1;
+}
+.slider-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--navy);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.slider-btn.prev svg { margin-right: 2px; }
+.slider-btn.next svg { margin-left: 2px; }
+.slider-btn:hover:not(:disabled) {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+}
+.slider-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.see-all-container {
+    margin-top: 36px;
+    display: flex;
+    justify-content: center;
+}
+.see-all-btn {
+    background: #fff;
+    color: var(--navy);
+    border: 1px solid var(--border);
+    padding: 12px 28px;
+    font-size: 14px;
+}
+.see-all-btn:hover {
+    background: var(--bg-soft);
+}
+.product-price {
+    font-weight: 800;
+    color: var(--blue);
+    margin: 8px 0 16px;
+    font-size: 15px;
+}
+.product-body h3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 40px;
 }
 
 .product-card {
