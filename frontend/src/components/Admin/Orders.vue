@@ -1,13 +1,19 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import * as XLSX from 'xlsx'
 
+import { ref, computed, onMounted, watch } from 'vue'
+import * as XLSX from 'xlsx'
+  
 import api from '../../services/api'
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
-const showModal = ref(false)
-const formError = ref('')
+const showViewModal = ref(false)
+const viewOrder = ref(null)
+const selectedMonthYear = ref('Tất cả')
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 5
 
 const tabs = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
 
@@ -21,6 +27,24 @@ const statusMap = {
 
 const getStatusLabel = (s) => statusMap[s]?.label || s
 const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
+
+const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
+const terminalStatuses = ['done', 'cancelled']
+
+const getAllowedStatuses = (current) => {
+    if (terminalStatuses.includes(current)) return [current]
+    const idx = statusSequence.indexOf(current)
+    if (idx === -1) return [current]
+    if (idx === statusSequence.length - 1) return [current]
+    // Return current and next one
+    return [current, statusSequence[idx + 1]]
+}
+
+const getNextStatus = (current) => {
+    const idx = statusSequence.indexOf(current)
+    if (idx !== -1 && idx < statusSequence.length - 1) return statusSequence[idx + 1]
+    return current
+}
 
 const orders = ref([])
 const isLoading = ref(false)
@@ -41,6 +65,7 @@ const fetchOrders = async () => {
                 status: o.trangthai,
                 phone: o.user?.phone || '',
                 address: o.diachi || '',
+                raw: o,
                 note: '', // Có thể thêm cột này sau
             }))
         }
@@ -64,8 +89,26 @@ const updateOrderStatus = async (orderId, newStatus) => {
     }
 }
 
+const confirmUpdateStatus = (id, currentStatus) => {
+    const next = getNextStatus(currentStatus)
+    const label = getStatusLabel(next)
+    if (confirm(`Cập nhật trạng thái đơn hàng sang: ${label}?`)) {
+        updateOrderStatus(id, next)
+    }
+}
+
+const confirmCancelOrder = (id) => {
+    if (confirm('Bạn có chắc muốn HỦY đơn hàng này?')) {
+        updateOrderStatus(id, 'cancelled')
+    }
+}
+
 onMounted(() => {
     fetchOrders()
+})
+
+watch(searchQuery, () => {
+    currentPage.value = 1
 })
 
 const todayRevenue = computed(() => {
@@ -84,66 +127,64 @@ const formatRevenue = (val) => {
     return '+' + val.toLocaleString('vi-VN')
 }
 
+const availableMonths = computed(() => {
+    const months = new Set()
+    orders.value.forEach(o => {
+        const d = new Date(o.raw.created_at)
+        const my = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
+        months.add(my)
+    })
+    return ['Tất cả', ...Array.from(months)]
+})
+
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
-        const matchTab = activeTab.value === 'Tất cả' || o.status === activeTab.value
+        // Find the status key that matches the active tab's label
+        const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === activeTab.value)
+        const matchTab = activeTab.value === 'Tất cả' || o.status === activeStatusKey
+        
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        return matchTab && matchSearch
+        
+        const d = new Date(o.raw.created_at)
+        const my = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
+        const matchDate = selectedMonthYear.value === 'Tất cả' || my === selectedMonthYear.value
+
+        return matchTab && matchSearch && matchDate
     })
 })
 
-// Generate next order ID
-const nextId = computed(() => {
-    const nums = orders.value.map(o => parseInt(o.id.split('-')[2]))
-    const max = Math.max(...nums)
-    return `#VT-2026-${String(max + 1).padStart(3, '0')}`
+const paginatedOrders = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    return filteredOrders.value.slice(start, start + itemsPerPage)
 })
 
-const defaultForm = () => ({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    total: '',
-    status: 'Chờ xác nhận',
-    note: '',
-    date: new Date().toLocaleDateString('vi-VN'),
-})
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
 
-const form = ref(defaultForm())
 
-const openModal = () => {
-    form.value = defaultForm()
-    formError.value = ''
-    showModal.value = true
+
+const openViewDetail = (order) => {
+    viewOrder.value = order
+    showViewModal.value = true
 }
 
-const closeModal = () => { showModal.value = false }
-
-const submitForm = () => {
-    if (!form.value.name.trim())    { formError.value = 'Vui lòng nhập tên khách hàng.'; return }
-    if (!form.value.phone.trim())   { formError.value = 'Vui lòng nhập số điện thoại.'; return }
-    if (!form.value.address.trim()) { formError.value = 'Vui lòng nhập địa chỉ.'; return }
-    if (!form.value.total.trim())   { formError.value = 'Vui lòng nhập tổng tiền.'; return }
-
-    const initials = form.value.name.trim().split(' ').map(w => w[0]).slice(-2).join('').toUpperCase()
-    orders.value.unshift({
-        id: nextId.value,
-        name: form.value.name.trim(),
-        email: form.value.email.trim(),
-        avatar: initials,
-        date: form.value.date,
-        total: form.value.total.trim(),
-        status: form.value.status,
-        phone: form.value.phone.trim(),
-        address: form.value.address.trim(),
-        note: form.value.note.trim(),
-    })
-    closeModal()
+const closeViewModal = () => {
+    showViewModal.value = false
+    viewOrder.value = null
 }
 
-const removeOrder = (i) => orders.value.splice(i, 1)
+const changeTab = (tab) => {
+    activeTab.value = tab
+    currentPage.value = 1
+}
+
+const parseAttr = (json) => {
+    try {
+        const attr = JSON.parse(json)
+        if (Array.isArray(attr)) return attr.map(a => `${a.ten_thuoctinh}: ${a.giatri}`).join(' | ')
+        return ''
+    } catch (e) { return '' }
+}
 
 const avatarColors = ['#dbeafe', '#dcfce7', '#fef9c3', '#ede9fe', '#fee2e2', '#ffedd5']
 const avatarTextColors = ['#1d4ed8', '#15803d', '#a16207', '#6d28d9', '#b91c1c', '#c2410c']
@@ -210,7 +251,6 @@ function exportExcel() {
                     </svg>
                     Xuất báo cáo
                 </button>
-                <button class="btn-create" @click="openModal">+ Tạo đơn mới</button>
             </div>
         </div>
 
@@ -228,21 +268,22 @@ function exportExcel() {
                     <button
                         v-for="tab in tabs" :key="tab"
                         class="tab" :class="{ active: activeTab === tab }"
-                        @click="activeTab = tab"
+                        @click="changeTab(tab)"
                     >{{ tab }}</button>
                 </div>
             </div>
 
-            <div class="date-filter">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-                <span>Tháng 10, 2026</span>
-                <svg viewBox="0 0 20 20" fill="none" class="chevron">
-                    <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2"/>
-                </svg>
+            <div class="date-filter-wrap">
+                <div class="date-filter shadow-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <select v-model="selectedMonthYear" class="month-select" @change="currentPage = 1">
+                        <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -260,10 +301,10 @@ function exportExcel() {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="filteredOrders.length === 0">
+                    <tr v-if="paginatedOrders.length === 0">
                         <td colspan="6" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
-                    <tr v-for="(o, i) in filteredOrders" :key="o.id">
+                    <tr v-for="(o, i) in paginatedOrders" :key="o.id">
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
@@ -284,36 +325,25 @@ function exportExcel() {
                         <td><b class="total">{{ o.total }}</b></td>
 
                         <td>
-                            <select 
-                                :value="o.status" 
-                                @change="updateOrderStatus(o.id_backend, $event.target.value)"
-                                class="status-select"
-                                :style="getStatusStyle(o.status)"
-                            >
-                                <option v-for="(val, key) in statusMap" :key="key" :value="key">
-                                    {{ val.label }}
-                                </option>
-                            </select>
+                            <span class="status-pill" :style="getStatusStyle(o.status)">
+                                {{ getStatusLabel(o.status) }}
+                            </span>
                         </td>
 
                         <td>
                             <div class="actions">
-                                <button class="act-btn" title="Xem">
+                                <button class="act-btn" @click="openViewDetail(o)" title="Xem chi tiết">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
                                 </button>
-                                <button class="act-btn" title="Sửa">
+                                
+                                <button v-if="!terminalStatuses.includes(o.status)" 
+                                        class="act-btn" style="color: #2563eb;"
+                                        @click="confirmUpdateStatus(o.id_backend, o.status)" 
+                                        title="Chuyển trạng thái tiếp theo">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
-                                </button>
-                                <button class="act-btn danger" title="Xóa" @click="removeOrder(i)">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                        <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
                                 </button>
                             </div>
@@ -326,16 +356,19 @@ function exportExcel() {
 
         <!-- FOOTER -->
         <div class="table-footer">
-            <span class="showing">Hiển thị 1 – {{ filteredOrders.length }} của {{ orders.length }} đơn hàng</span>
+            <span class="showing" v-if="filteredOrders.length > 0">
+                Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng
+            </span>
+            <span class="showing" v-else>Không có dữ liệu hiển thị</span>
 
-            <div class="pagination">
-                <button>‹</button>
-                <button class="active">1</button>
-                <button>2</button>
-                <button>3</button>
-                <button class="dots">...</button>
-                <button>12</button>
-                <button>›</button>
+            <div class="pagination" v-if="totalPages > 1">
+                <button :disabled="currentPage === 1" @click="currentPage--">‹</button>
+                <button 
+                    v-for="p in totalPages" :key="p" 
+                    :class="{ active: currentPage === p }"
+                    @click="currentPage = p"
+                >{{ p }}</button>
+                <button :disabled="currentPage === totalPages" @click="currentPage++">›</button>
             </div>
 
             <div class="revenue-chip">
@@ -350,86 +383,78 @@ function exportExcel() {
             </div>
         </div>
 
-        <!-- MODAL TẠO ĐƠN MỚI -->
+        <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
         <Teleport to="body">
-            <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-                <div class="modal">
-
+            <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
+                <div v-if="viewOrder" class="modal detail-modal">
                     <div class="modal-header">
                         <div>
-                            <p class="modal-sub">Mã đơn: <b>{{ nextId }}</b></p>
-                            <h3>Tạo đơn hàng mới</h3>
+                            <p class="modal-sub">Mã đơn: <b>{{ viewOrder.id }}</b></p>
+                            <h3>Chi tiết đơn hàng</h3>
                         </div>
-                        <button class="modal-close" @click="closeModal">×</button>
+                        <button class="modal-close" @click="closeViewModal">×</button>
                     </div>
 
-                    <div class="modal-body">
-
-                        <div class="section-title">Thông tin khách hàng</div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Họ tên khách hàng <span class="req">*</span></label>
-                                <input v-model="form.name" placeholder="VD: Nguyễn Văn A" />
-                            </div>
-                            <div class="form-group">
-                                <label>Số điện thoại <span class="req">*</span></label>
-                                <input v-model="form.phone" placeholder="VD: 0901234567" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input v-model="form.email" placeholder="VD: khachhang@gmail.com" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Địa chỉ giao hàng <span class="req">*</span></label>
-                            <input v-model="form.address" placeholder="VD: 12 Nguyễn Huệ, Q.1, TP.HCM" />
-                        </div>
-
-                        <div class="section-title" style="margin-top: 8px;">Thông tin đơn hàng</div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Tổng tiền <span class="req">*</span></label>
-                                <input v-model="form.total" placeholder="VD: 45.990.000đ" />
-                            </div>
-                            <div class="form-group">
-                                <label>Trạng thái</label>
-                                <select v-model="form.status">
-                                    <option>Chờ xác nhận</option>
-                                    <option>Đang giao</option>
-                                    <option>Hoàn thành</option>
-                                    <option>Đã hủy</option>
-                                </select>
+                    <div class="modal-body scrollable">
+                        <div class="detail-section">
+                            <div class="section-title">Thông tin giao hàng</div>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Khách hàng:</label>
+                                    <span>{{ viewOrder.name }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Số điện thoại:</label>
+                                    <span>{{ viewOrder.phone }}</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <label>Địa chỉ:</label>
+                                    <span>{{ viewOrder.address }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Ngày đặt:</label>
+                                    <span>{{ viewOrder.date }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Thanh toán:</label>
+                                    <span>{{ viewOrder.raw.PTTT }}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Ngày đặt hàng</label>
-                                <input v-model="form.date" placeholder="DD/MM/YYYY" />
+                        <div class="detail-section">
+                            <div class="section-title">Danh sách sản phẩm</div>
+                            <div class="items-list">
+                                <div v-for="item in viewOrder.raw.chi_tiets" :key="item.id_chitiet" class="order-item">
+                                    <img :src="item.bien_the?.san_pham?.hinhanh ? 'http://127.0.0.1:8000/storage/' + item.bien_the.san_pham.hinhanh : 'https://via.placeholder.com/60'" class="item-img" />
+                                    <div class="item-info">
+                                        <p class="item-name">{{ item.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</p>
+                                        <p class="item-variant">{{ parseAttr(item.bien_the?.thuoc_tinh_json) }}</p>
+                                    </div>
+                                    <div class="item-price-qty">
+                                        <span class="iq-price">{{ new Intl.NumberFormat('vi-VN').format(item.gia) }}đ</span>
+                                        <span class="iq-qty">x{{ item.soluong }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Ghi chú</label>
-                            <textarea v-model="form.note" placeholder="Ghi chú thêm về đơn hàng..." rows="3"></textarea>
+                        <div class="order-summary-box">
+                            <div class="sum-row">
+                                <span>Tổng cộng:</span>
+                                <b class="final-total">{{ viewOrder.total }}</b>
+                            </div>
                         </div>
-
-                        <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
-
                     </div>
 
                     <div class="modal-footer">
-                        <button class="btn-cancel" @click="closeModal">Hủy</button>
-                        <button class="btn-submit" @click="submitForm">Tạo đơn hàng</button>
+                        <button class="btn-cancel" @click="closeViewModal">Đóng</button>
                     </div>
-
                 </div>
             </div>
         </Teleport>
+
+
 
     </div>
 </template>
@@ -507,15 +532,20 @@ function exportExcel() {
 
 .date-filter {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
-    font-size: 13px; font-weight: 500; color: #334155; cursor: pointer;
-    width: fit-content;
+    padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e8f0;
+    background: white; transition: all 0.2s;
 }
+.date-filter:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.06); }
 .date-filter svg { width: 14px; height: 14px; color: #64748b; }
-.chevron { width: 12px; height: 12px; }
+
+.month-select {
+    border: none; background: transparent; font-size: 13px; font-weight: 600;
+    color: #334155; outline: none; cursor: pointer; font-family: inherit;
+    padding: 2px 0;
+}
 
 /* TABLE */
-.table-wrap { background: white; border-radius: 14px; border: 1px solid #f1f5f9; overflow: hidden; }
+.table-wrap { background: white; border-radius: 14px; border: 1px solid #f1f5f9; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8fafc; }
 thead th {
@@ -580,6 +610,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background: white; font-size: 13px; cursor: pointer; color: #334155; transition: all 0.2s;
 }
 .pagination button:hover { border-color: #2563eb; color: #2563eb; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 .pagination .active { background: #2563eb; border-color: #2563eb; color: white; }
 .pagination .dots { border: none; background: transparent; cursor: default; }
 .pagination .dots:hover { color: #334155; border-color: transparent; }
@@ -686,4 +717,42 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     .form-row { grid-template-columns: 1fr; }
     .table-footer { flex-direction: column; align-items: flex-start; }
 }
+
+/* ORDER DETAIL */
+.detail-modal { max-width: 650px; }
+.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
+.scrollable::-webkit-scrollbar { width: 6px; }
+.scrollable::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+.detail-section { margin-bottom: 24px; }
+.info-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+    background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9;
+}
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-item label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+.info-item span { font-size: 13px; font-weight: 600; color: #334155; }
+
+.items-list { display: flex; flex-direction: column; gap: 12px; }
+.order-item {
+    display: flex; align-items: center; gap: 15px; padding: 12px;
+    background: white; border: 1px solid #f1f5f9; border-radius: 12px;
+    transition: transform 0.2s;
+}
+.order-item:hover { transform: translateX(4px); border-color: #cbd5e1; }
+.item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #f1f5f9; }
+.item-info { flex: 1; }
+.item-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+.item-variant { font-size: 12px; color: #64748b; margin: 0; }
+.item-price-qty { text-align: right; }
+.iq-price { display: block; font-size: 14px; font-weight: 700; color: #2563eb; }
+.iq-qty { font-size: 12px; color: #94a3b8; font-weight: 600; }
+
+.order-summary-box {
+    margin-top: 10px; padding: 16px; background: #f0f9ff; border-radius: 12px;
+    border: 1px solid #e0f2fe; display: flex; justify-content: flex-end;
+}
+.sum-row { display: flex; align-items: baseline; gap: 12px; }
+.sum-row span { font-size: 13px; color: #0369a1; font-weight: 500; }
+.final-total { font-size: 20px; font-weight: 800; color: #0369a1; }
 </style>
