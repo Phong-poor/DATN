@@ -1,5 +1,8 @@
 <script setup>
+
 import { ref, computed, onMounted, watch } from 'vue'
+import * as XLSX from 'xlsx'
+  
 import api from '../../services/api'
 
 const activeTab = ref('Tất cả')
@@ -189,6 +192,41 @@ const getAvatarStyle = (name) => {
     const idx = name.charCodeAt(0) % avatarColors.length
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
 }
+
+// ── XUẤT EXCEL ──────────────────────────────────────────────
+function exportExcel() {
+    const today = new Date().toLocaleDateString('vi-VN')
+    const tabLabel = activeTab.value
+
+    const titleRow = [`BÁO CÁO ĐƠN HÀNG – ${tabLabel.toUpperCase()} (xuất ngày ${today})`]
+    const blankRow = []
+    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
+
+    const dataRows = filteredOrders.value.map(o => [
+        o.id,
+        o.name,
+        o.email,
+        o.phone,
+        o.address,
+        o.date,
+        o.total,
+        o.status,
+        o.note,
+    ])
+
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, blankRow, header, ...dataRows])
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }]
+    ws['!cols'] = [
+        { wch: 16 }, { wch: 22 }, { wch: 26 }, { wch: 14 },
+        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 28 },
+    ]
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
+
+    const fileName = `don-hang-${tabLabel.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.xlsx`
+    XLSX.writeFile(wb, fileName)
+}
 </script>
 
 <template>
@@ -205,7 +243,7 @@ const getAvatarStyle = (name) => {
         <div class="top">
             <h1>QUẢN LÝ ĐƠN HÀNG</h1>
             <div class="top-actions">
-                <button class="btn-export">
+                <button class="btn-export" @click="exportExcel">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />

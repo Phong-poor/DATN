@@ -1,11 +1,17 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+
+import { useRouter } from 'vue-router'
+
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import GiftPopup from './GiftPopup.vue'
 import api from '../../services/api'
-
+const router = useRouter()
 const showGift = ref(false)
+
+
+
 
 
 const slides = [
@@ -133,24 +139,32 @@ onMounted(async () => {
     }
 })
 
-// === SLIDER LOGIC ===
-const currentProductPage = ref(0)
-const itemsPerSliderFrame = 5
-const totalProductPages = computed(() => Math.ceil(featuredProducts.value.length / itemsPerSliderFrame))
+// 👉 Bổ sung hàm xử lý Yêu thích
+const themVaoYeuThich = async (product) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+        alert('Vui lòng đăng nhập để thêm vào yêu thích!')
+        router.push('/login')
+        return
+    }
 
-const visibleFeaturedProducts = computed(() => {
-    if (featuredProducts.value.length === 0) return []
-    const start = currentProductPage.value * itemsPerSliderFrame
-    return featuredProducts.value.slice(start, start + itemsPerSliderFrame)
-})
+    if (!product.id_bienthe) {
+        alert('Sản phẩm này chưa có cấu hình, không thể thêm!')
+        return
+    }
 
-const nextFeaturedPage = () => {
-    if (currentProductPage.value < totalProductPages.value - 1) currentProductPage.value++
+    try {
+        await api.post('/yeu-thich/them', {
+            id_bienthe: product.id_bienthe,
+            soluong: 1
+        })
+        alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
+        window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+        alert(err.response?.data?.message || 'Có lỗi xảy ra!')
+    }
 }
-const prevFeaturedPage = () => {
-    if (currentProductPage.value > 0) currentProductPage.value--
-}
-// ====================
 
 
 const benefits = [
@@ -480,6 +494,40 @@ onUnmounted(stop)
 *::after {
     box-sizing: border-box;
 }
+.product-actions {
+    display: flex;
+    gap: 8px;
+    align-items: stretch; /* Đảm bảo các nút cao bằng nhau */
+}
+
+.product-actions .btn {
+    flex: 1;
+    display: flex; /* Cần thiết cho thẻ <a> router-link canh giữa chữ */
+    align-items: center;
+    justify-content: center;
+}
+
+/* CSS riêng cho nút Yêu thích ở Home */
+.btn-wishlist {
+    flex: 0 0 auto !important; /* Không tự giãn như 2 nút kia */
+    width: 36px;
+    padding: 0 !important;
+    background: #fff;
+    border: 1px solid #ff4d4f;
+    color: #ff4d4f;
+    border-radius: 7px;
+}
+
+.btn-wishlist:hover {
+    background: #fff1f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
+}
+
+.btn-wishlist svg {
+    width: 15px;
+    height: 15px;
+}
 
 /* ─── VARIABLES ─── */
 /* 
@@ -510,6 +558,7 @@ onUnmounted(stop)
     background: var(--bg);
     color: var(--text);
 }
+
 a.btn {
     display: inline-flex;
     align-items: center;

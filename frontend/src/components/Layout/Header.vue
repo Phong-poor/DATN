@@ -24,12 +24,54 @@ const fetchCartCount = async () => {
   }
 }
 
-// Lắng nghe event khi thêm vào giỏ hàng từ bất kỳ trang nào
+// ===================== WISHLIST (DỮ LIỆU THẬT) =====================
+const wishlistItems = ref([])
+
+const fetchWishlist = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) { wishlistItems.value = []; return }
+
+    const res = await api.get('/yeu-thich')
+    wishlistItems.value = res.data.data || res.data || []
+  } catch {
+    wishlistItems.value = []
+  }
+}
+
+const removeWishlist = async (id) => {
+  try {
+    await api.delete(`/yeu-thich/xoa/${id}`)
+    wishlistItems.value = wishlistItems.value.filter(i => i.id !== id)
+    // Cập nhật lại số lượng ở các trang khác (nếu có)
+    window.dispatchEvent(new Event('wishlist-updated'))
+  } catch (err) {
+    console.error('Lỗi khi xóa khỏi yêu thích', err)
+  }
+}
+
+// Hàm hỗ trợ format và lấy ảnh
+const formatPrice = (value) => {
+    if(!value) return '0₫'
+    return parseInt(value).toLocaleString('vi-VN') + '₫'
+}
+
+const getWishlistImg = (item) => {
+    const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
+    return imgPath ? `http://127.0.0.1:8000/storage/${imgPath}` : 'https://via.placeholder.com/150'
+}
+
+
+// Lắng nghe event khi thay đổi dữ liệu từ bất kỳ trang nào
 const handleCartUpdated = () => { fetchCartCount() }
+const handleWishlistUpdated = () => { fetchWishlist() }
 
 onMounted(() => {
   fetchCartCount()
+  fetchWishlist() // Fetch dữ liệu tim lúc mới load
+
   window.addEventListener('cart-updated', handleCartUpdated)
+  window.addEventListener('wishlist-updated', handleWishlistUpdated)
 
   try {
     const storedUser = localStorage.getItem('user')
@@ -43,26 +85,28 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('cart-updated', handleCartUpdated)
+  window.removeEventListener('wishlist-updated', handleWishlistUpdated)
   document.removeEventListener('click', handleOutside)
 })
+
 const goToCart = () => {
   const token = localStorage.getItem('token')
-
   if (!token) {
     alert('Vui lòng đăng nhập trước!')
-
     router.push({
       path: '/login',
       query: { redirect: '/cart' }
     })
-
     return
   }
-
   router.push('/cart')
 }
+
 // ===================== WISHLIST / USER DROPDOWN =====================
 const toggleWishlist = () => {
+  const token = localStorage.getItem('token')
+  if (!token) { router.push('/login'); return } // Yêu cầu đăng nhập
+
   showWishlist.value = !showWishlist.value
   if (showWishlist.value) showUser.value = false
 }
@@ -86,17 +130,6 @@ const handleOutside = (e) => {
   }
 }
 
-// ===================== WISHLIST =====================
-const wishlistItems = ref([
-  { id: 1, name: 'VinaBook Pro X14', price: '36.990.000đ', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200' },
-  { id: 2, name: 'Zephyrus Titan 16', price: '62.990.000đ', img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=200' },
-  { id: 3, name: 'Creator Studio 15', price: '48.490.000đ', img: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=200' },
-])
-
-const removeWishlist = (id) => {
-  wishlistItems.value = wishlistItems.value.filter(i => i.id !== id)
-}
-
 // ===================== USER =====================
 const user = ref(null)
 
@@ -111,12 +144,12 @@ const handleLogout = async () => {
   localStorage.removeItem('token')
   localStorage.removeItem('remember_email')
   cartCount.value = 0
+  wishlistItems.value = [] // Xóa danh sách tim khi đăng xuất
   router.push('/login')
 }
 </script>
 
 <template>
-  <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-container">
       <span class="topbar-message">
@@ -143,17 +176,14 @@ const handleLogout = async () => {
     </div>
   </div>
 
-  <!-- MAIN HEADER -->
   <header class="header">
     <div class="container">
 
-      <!-- LOGO -->
       <div class="logo">
         <span class="logo-black">NextGen</span>
         <span class="logo-blue">Laptop</span>
       </div>
 
-      <!-- MENU -->
       <nav class="nav">
         <router-link to="/" :exact="true">Trang chủ</router-link>
         <router-link to="/products">Sản phẩm</router-link>
@@ -161,10 +191,8 @@ const handleLogout = async () => {
         <router-link to="/contact">Liên hệ</router-link>
       </nav>
 
-      <!-- RIGHT -->
       <div class="right">
 
-        <!-- SEARCH -->
         <div class="search">
           <input type="text" placeholder="Tìm kiếm sản phẩm..." />
           <svg viewBox="0 0 24 24" fill="none">
@@ -173,7 +201,6 @@ const handleLogout = async () => {
           </svg>
         </div>
 
-        <!-- WISHLIST DROPDOWN -->
         <div class="dropdown-wrap">
           <button class="icon-btn" @click.stop="toggleWishlist" :class="{ active: showWishlist }">
             <svg viewBox="0 0 24 24" fill="none">
@@ -197,11 +224,12 @@ const handleLogout = async () => {
                   </svg>
                   <p>Chưa có sản phẩm yêu thích</p>
                 </div>
-                <div class="wish-item" v-for="item in recentWishlist" :key="item.id">
-                  <img :src="item.img" :alt="item.name" />
+                
+                <div class="wish-item" v-for="item in wishlistItems" :key="item.id">
+                  <img :src="getWishlistImg(item)" :alt="item.bienthe?.sanpham?.tenSP" />
                   <div class="wish-info">
-                    <p class="wish-name">{{ item.name }}</p>
-                    <p class="wish-price">{{ item.price }}</p>
+                    <p class="wish-name">{{ item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</p>
+                    <p class="wish-price">{{ formatPrice(item.bienthe?.gia) }}</p>
                   </div>
                   <button class="wish-remove" @click="removeWishlist(item.id)" title="Xóa">
                     <svg viewBox="0 0 24 24" fill="none">
@@ -219,7 +247,6 @@ const handleLogout = async () => {
           </transition>
         </div>
 
-        <!-- ===== CART (SỐ LƯỢNG THẬT TỪ API) ===== -->
         <div class="icon-btn-wrap">
           <button class="icon-btn" @click="goToCart">
             <svg viewBox="0 0 24 24" fill="none">
@@ -234,7 +261,6 @@ const handleLogout = async () => {
           </span>
         </div>
 
-        <!-- USER DROPDOWN -->
         <div class="dropdown-wrap">
           <div class="icon-btn-wrap">
             <button class="icon-btn icon-btn-user" @click.stop="toggleUser" :class="{ active: showUser }">

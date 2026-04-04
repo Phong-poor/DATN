@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SanPham;
 use App\Models\BienThe;
+use App\Models\ThuocTinh;
 use App\Models\BienTheHinhAnh;
 use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
@@ -95,6 +96,9 @@ class SanPhamController extends Controller
             ], 404);
         }
 
+        // TỐI ƯU CỰC KỲ QUAN TRỌNG: Pre-load tất cả ThuocTinh 1 lần duy nhất thay vì query cho mỗi thuộc tính của mỗi biến thể (Lỗi N+1)
+        $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
+
         $result = [
             'id_sanpham' => $sanpham->id_sanpham,
             'tenSP' => $sanpham->tenSP,
@@ -102,6 +106,16 @@ class SanPhamController extends Controller
             'hinhanh' => $sanpham->hinhanh,
             'trangthai' => $sanpham->trangthai,
             'khoiluong' => $sanpham->khoiluong,
+
+            // thêm 2 dòng này
+            'id_danhmuc' => $sanpham->id_danhmuc,
+            'id_thuonghieu' => $sanpham->id_thuonghieu,
+
+            // thêm block này
+            'danh_muc' => $sanpham->danhMuc ? [
+                'id_danhmuc' => $sanpham->danhMuc->id_danhmuc,
+                'ten_danhmuc' => $sanpham->danhMuc->ten_danhmuc,
+            ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
                 'id_thuonghieu' => $sanpham->thuongHieu->id_thuonghieu,
@@ -115,13 +129,32 @@ class SanPhamController extends Controller
                 ];
             })->values(),
 
-            'bien_thes' => $sanpham->bienThes->map(function ($bt) {
+            'bien_thes' => $sanpham->bienThes->map(function ($bt) use ($allThuocTinhs) {
+                $thuocTinhJson = collect(json_decode($bt->thuoc_tinh_json ?? '[]', true))
+                    ->map(function ($item) use ($allThuocTinhs) {
+                        $idThuocTinh = $item['id_thuoctinh'] ?? null;
+                        $tenThuocTinh = $item['ten_thuoctinh'] ?? null;
+
+                        if (!$idThuocTinh && $tenThuocTinh) {
+                            $thuocTinh = $allThuocTinhs->get($tenThuocTinh);
+                            $idThuocTinh = $thuocTinh?->id_thuoctinh;
+                        }
+
+                        return [
+                            'id_thuoctinh' => $idThuocTinh,
+                            'ten_thuoctinh' => $tenThuocTinh,
+                            'giatri' => $item['giatri'] ?? null,
+                            'ma_mau' => $item['ma_mau'] ?? ($item['hex'] ?? null),
+                        ];
+                    })
+                    ->values();
+
                 return [
                     'id_bienthe' => $bt->id_bienthe,
                     'ten_bienthe' => $bt->ten_bienthe,
                     'gia' => $bt->gia,
                     'soluong' => $bt->soluong,
-                    'thuoc_tinh' => json_decode($bt->thuoc_tinh_json ?? '[]', true),
+                    'thuoc_tinh' => $thuocTinhJson,
                 ];
             })->values()
         ];

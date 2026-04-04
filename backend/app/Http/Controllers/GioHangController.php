@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class GioHangController extends Controller
 {
-    /**
-     * Lấy danh sách giỏ hàng của user đang đăng nhập
-     */
+   
     public function index()
     {
         $userId = Auth::id();

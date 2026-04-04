@@ -11,11 +11,22 @@ use App\Http\Controllers\ThuongHieuController;
 
 use App\Http\Controllers\ThuocTinhController;
 
+
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\SanPhamController;
 use App\Http\Controllers\BienTheController;
 use App\Http\Controllers\BienTheHinhAnhController;
 use App\Http\Controllers\GioHangController;
+use App\Http\Controllers\YeuThichController;
+
+use App\Http\Controllers\ForgotPasswordController;
+
+Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
+Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
+
+Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
+Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
@@ -32,6 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== ĐẶT HÀNG =====
     Route::post('/checkout',                    [DatHangController::class, 'checkout']);
     Route::get('/orders',                       [DatHangController::class, 'orders']);
+    // ===== YÊU THÍCH =====
+    Route::get('/yeu-thich', [YeuThichController::class, 'index']);
+    Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
+    Route::put('/yeu-thich/cap-nhat/{id}', [YeuThichController::class, 'capNhat']);
+    Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
 });
 
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
