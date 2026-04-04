@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
+
 const thongBao = ref('')
 const router = useRouter()
+const route = useRoute()
 
 const selectedBrands = ref(['Apple'])
 const selectedSort = ref('Mới nhất')
@@ -20,18 +22,22 @@ const toggleBrand = (b) => {
 
 const products = ref([])
 
-onMounted(async () => {
+const fetchProducts = async () => {
     try {
-        const response = await api.get('/sanpham')
+        const q = route.query.q
+
+        // Nếu có từ khóa → gọi API search, không thì gọi API danh sách
+        const url = q ? `/sanpham/search?q=${encodeURIComponent(q)}` : '/sanpham'
+        const response = await api.get(url)
+
         products.value = response.data.map(p => ({
             id: p.id_sanpham,
             name: p.tenSP,
-            brand: `${p.thuong_hieu?.ten_thuonghieu || ''} ${p.khoiluong ? '· ' + p.khoiluong + 'kg' : ''}`,
-            price: new Intl.NumberFormat('vi-VN').format(p.bien_thes?.[0]?.gia || 0) + 'đ',
-
-            // 👉 Lấy ID biến thể mặc định (biến thể đầu tiên) để ném vào giỏ/yêu thích
-            id_bienthe: p.bien_thes?.[0]?.id_bienthe || null,
-
+            brand: `${p.thuong_hieu?.ten_thuonghieu || p.thuongHieu?.ten_thuonghieu || ''} ${p.khoiluong ? '· ' + p.khoiluong + 'kg' : ''}`,
+            price: new Intl.NumberFormat('vi-VN').format(
+                p.bien_thes?.[0]?.gia || p.bienThes?.[0]?.gia || 0
+            ) + 'đ',
+            id_bienthe: p.bien_thes?.[0]?.id_bienthe || p.bienThes?.[0]?.id_bienthe || null,
             oldPrice: '',
             img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
             badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
@@ -40,7 +46,17 @@ onMounted(async () => {
     } catch (error) {
         console.error('Lỗi khi tải sản phẩm:', error)
     }
+}
+
+onMounted(() => {
+    fetchProducts()
 })
+
+// Khi từ khóa thay đổi thì fetch lại
+watch(() => route.query.q, () => {
+    fetchProducts()
+})
+
 const themVaoYeuThich = async (product) => {
     const token = localStorage.getItem('token')
     if (!token) {
@@ -60,7 +76,6 @@ const themVaoYeuThich = async (product) => {
             soluong: 1
         })
         alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
-        // Kích hoạt event để Header update số đếm
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
         alert(err.response?.data?.message || 'Có lỗi xảy ra!')
@@ -140,7 +155,11 @@ const themVaoYeuThich = async (product) => {
 
                 <div class="top-bar">
                     <div>
-                        <h1>Danh sách Laptop</h1>
+                        <h1>
+                            {{ route.query.q
+                                ? 'Kết quả tìm kiếm: "' + route.query.q + '"'
+                                : 'Danh sách Laptop' }}
+                        </h1>
                         <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
                     </div>
 
@@ -161,8 +180,18 @@ const themVaoYeuThich = async (product) => {
                     </div>
                 </div>
 
+                <!-- Không có kết quả -->
+                <div v-if="products.length === 0 && route.query.q" class="empty-search">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <p>Không tìm thấy sản phẩm nào cho <strong>"{{ route.query.q }}"</strong></p>
+                    <button @click="router.push('/products')" class="clear-search-btn">Xem tất cả sản phẩm</button>
+                </div>
+
                 <!-- GRID -->
-                <div class="grid">
+                <div class="grid" v-else>
                     <div class="card" v-for="(p, i) in products" :key="p.id || i">
 
                         <span v-if="p.badge" class="badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
@@ -203,8 +232,8 @@ const themVaoYeuThich = async (product) => {
                     </div>
                 </div>
 
-                <!-- PAGINATION -->
-                <div class="pagination">
+                <!-- PAGINATION (ẩn khi đang search) -->
+                <div class="pagination" v-if="!route.query.q">
                     <button class="pg-btn">‹</button>
                     <button class="pg-btn active">1</button>
                     <button class="pg-btn">2</button>
@@ -563,7 +592,6 @@ const themVaoYeuThich = async (product) => {
     gap: 8px;
 }
 
-/* ✅ btn-detail là <a> (router-link) nên cần display flex */
 .btn-detail {
     flex: 1;
     display: flex;
@@ -579,7 +607,6 @@ const themVaoYeuThich = async (product) => {
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    /* quan trọng cho router-link */
     font-family: 'Inter', sans-serif;
 }
 
@@ -611,6 +638,48 @@ const themVaoYeuThich = async (product) => {
 .btn-cart:hover {
     opacity: 0.9;
     transform: scale(1.06);
+}
+
+/* EMPTY SEARCH */
+.empty-search {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 80px 0;
+    color: #94a3b8;
+}
+
+.empty-search svg {
+    width: 64px;
+    height: 64px;
+    stroke: #cbd5e1;
+    stroke-width: 1.5;
+}
+
+.empty-search p {
+    font-size: 16px;
+    color: #64748b;
+}
+
+.empty-search strong {
+    color: #0f172a;
+}
+
+.clear-search-btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.clear-search-btn:hover {
+    background: #1d4ed8;
 }
 
 /* PAGINATION */

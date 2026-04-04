@@ -27,6 +27,27 @@ class SanPhamController extends Controller
         return response()->json($sanphams);
     }
 
+    // ===== TÌM KIẾM SẢN PHẨM =====
+    public function search(Request $request)
+    {
+        $keyword = $request->query('q', '');
+
+        if (strlen(trim($keyword)) === 0) {
+            return response()->json([]);
+        }
+
+        $sanphams = SanPham::with([
+            'danhMuc',
+            'thuongHieu',
+            'bienThes'
+        ])
+        ->where('tenSP', 'LIKE', "%{$keyword}%")
+        ->orderByDesc('id_sanpham')
+        ->get();
+
+        return response()->json($sanphams);
+    }
+
     public function show($id)
     {
         $sanpham = SanPham::with([
