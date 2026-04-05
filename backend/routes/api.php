@@ -11,12 +11,22 @@ use App\Http\Controllers\ThuongHieuController;
 
 use App\Http\Controllers\ThuocTinhController;
 
+
 use App\Http\Controllers\ColorController;
 use App\Http\Controllers\SanPhamController;
 use App\Http\Controllers\BienTheController;
 use App\Http\Controllers\BienTheHinhAnhController;
 use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\YeuThichController;
+
+use App\Http\Controllers\ForgotPasswordController;
+
+Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
+Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
+
+Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
+Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
@@ -47,19 +57,17 @@ Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
 
+Route::get('/danhmuc',                      [DanhMucController::class, 'index']);
+Route::post('/danhmuc',                     [DanhMucController::class, 'store']);
+Route::get('/danhmuc/{id_danhmuc}',         [DanhMucController::class, 'show']);
+Route::put('/danhmuc/{id_danhmuc}',         [DanhMucController::class, 'update']);
+Route::delete('/danhmuc/{id_danhmuc}',      [DanhMucController::class, 'destroy']);
 
-
-Route::get('/danhmuc',             [DanhMucController::class, 'index']);
-Route::post('/danhmuc',         [DanhMucController::class, 'store']);
-Route::get('/danhmuc/{id_danhmuc}',        [DanhMucController::class, 'show']);
-Route::put('/danhmuc/{id_danhmuc}',        [DanhMucController::class, 'update']);
-Route::delete('/danhmuc/{id_danhmuc}',     [DanhMucController::class, 'destroy']);
-
-Route::get('/thuonghieu',             [ThuongHieuController::class, 'index']);
-Route::post('/thuonghieu',         [ThuongHieuController::class, 'store']);
-Route::get('/thuonghieu/{id_thuonghieu}',        [ThuongHieuController::class, 'show']);
-Route::put('/thuonghieu/{id_thuonghieu}',        [ThuongHieuController::class, 'update']);
-Route::delete('/thuonghieu/{id_thuonghieu}',     [ThuongHieuController::class, 'destroy']);
+Route::get('/thuonghieu',                   [ThuongHieuController::class, 'index']);
+Route::post('/thuonghieu',                  [ThuongHieuController::class, 'store']);
+Route::get('/thuonghieu/{id_thuonghieu}',   [ThuongHieuController::class, 'show']);
+Route::put('/thuonghieu/{id_thuonghieu}',   [ThuongHieuController::class, 'update']);
+Route::delete('/thuonghieu/{id_thuonghieu}',[ThuongHieuController::class, 'destroy']);
 
 
 Route::post('/register',         [UserController::class, 'store']);
@@ -83,7 +91,7 @@ Route::delete('/thuoctinh/{id}',            [ThuocTinhController::class, 'delete
 
 Route::get('/giatrithuoctinh/{id}',         [ThuocTinhController::class, 'getGiaTri']);
 Route::post('/giatrithuoctinh',             [ThuocTinhController::class, 'addGiaTri']);
-Route::put('/giatrithuoctinh/{id}',               [ThuocTinhController::class, 'updateGiaTri']);
+Route::put('/giatrithuoctinh/{id}',         [ThuocTinhController::class, 'updateGiaTri']);
 Route::delete('/giatrithuoctinh/{id}',      [ThuocTinhController::class, 'deleteGiaTri']);
 
 
@@ -97,11 +105,15 @@ Route::put('/colors/{id}',        [ColorController::class, 'update']);
 Route::delete('/colors/{id}',     [ColorController::class, 'destroy']);
 
 
+// ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
+Route::get('/sanpham/search',      [SanPhamController::class, 'search']);
+Route::get('/sanpham/attribute-options',  [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham',             [SanPhamController::class, 'index']);
 Route::post('/sanpham',            [SanPhamController::class, 'store']);
 Route::get('/sanpham/{id}',        [SanPhamController::class, 'show']);
 Route::put('/sanpham/{id}',        [SanPhamController::class, 'update']);
 Route::delete('/sanpham/{id}',     [SanPhamController::class, 'destroy']);
+
 
 
 Route::get('/bienthe',                      [BienTheController::class, 'index']);
@@ -112,12 +124,12 @@ Route::put('/bienthe/{id}',                 [BienTheController::class, 'update']
 Route::delete('/bienthe/{id}',              [BienTheController::class, 'destroy']);
 
 
-Route::get('/bienthe-hinhanh',                         [BienTheHinhAnhController::class, 'index']);
+Route::get('/bienthe-hinhanh',                      [BienTheHinhAnhController::class, 'index']);
 Route::get('/bienthe-hinhanh/sanpham/{id_sanpham}', [BienTheHinhAnhController::class, 'getBySanPham']);
-Route::get('/bienthe-hinhanh/{id}',                   [BienTheHinhAnhController::class, 'show']);
-Route::post('/bienthe-hinhanh',                       [BienTheHinhAnhController::class, 'store']);
-Route::put('/bienthe-hinhanh/{id}',                   [BienTheHinhAnhController::class, 'update']);
-Route::delete('/bienthe-hinhanh/{id}',                [BienTheHinhAnhController::class, 'destroy']);
+Route::get('/bienthe-hinhanh/{id}',                 [BienTheHinhAnhController::class, 'show']);
+Route::post('/bienthe-hinhanh',                     [BienTheHinhAnhController::class, 'store']);
+Route::put('/bienthe-hinhanh/{id}',                 [BienTheHinhAnhController::class, 'update']);
+Route::delete('/bienthe-hinhanh/{id}',              [BienTheHinhAnhController::class, 'destroy']);
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);

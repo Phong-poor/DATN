@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import * as XLSX from 'xlsx'
 
 const api = axios.create({
   baseURL: 'http://127.0.0.1:8000/api',
@@ -35,10 +36,19 @@ const getTypeStyle = (name) => {
 const variants = ref([])
 const groups = ref([])
 const attrs = ref([])
-
 const colors = ref([])
+const selectedColor = ref(null)
 
-const selectedColor = ref(colors.value[0] || null)
+// ── Filter ──
+const selectedAttribute = ref('')
+
+const filteredVariants = computed(() => {
+  if (!selectedAttribute.value) return variants.value
+  return variants.value.filter(item => item.type === selectedAttribute.value)
+})
+
+// Reset về trang 1 khi đổi filter
+watch(selectedAttribute, () => { variantPage.value = 1 })
 
 // ── Pagination ──
 const PER_PAGE = 6
@@ -50,54 +60,25 @@ const attrPage = ref(1)
 
 const usePagination = (listRef, pageRef) => {
   const total = computed(() => listRef.value.length)
-
-  const totalPages = computed(() => {
-    return Math.max(1, Math.ceil(total.value / PER_PAGE))
-  })
-
+  const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PER_PAGE)))
   const pagedData = computed(() => {
     const start = (pageRef.value - 1) * PER_PAGE
     return listRef.value.slice(start, start + PER_PAGE)
   })
-
-  const from = computed(() => {
-    if (total.value === 0) return 0
-    return (pageRef.value - 1) * PER_PAGE + 1
-  })
-
-  const to = computed(() => {
-    if (total.value === 0) return 0
-    return Math.min(pageRef.value * PER_PAGE, total.value)
-  })
-
+  const from = computed(() => (total.value === 0 ? 0 : (pageRef.value - 1) * PER_PAGE + 1))
+  const to = computed(() => (total.value === 0 ? 0 : Math.min(pageRef.value * PER_PAGE, total.value)))
   const goToPage = (page) => {
-    if (page < 1) {
-      pageRef.value = 1
-      return
-    }
-    if (page > totalPages.value) {
-      pageRef.value = totalPages.value
-      return
-    }
+    if (page < 1) { pageRef.value = 1; return }
+    if (page > totalPages.value) { pageRef.value = totalPages.value; return }
     pageRef.value = page
   }
-
   const prevPage = () => goToPage(pageRef.value - 1)
   const nextPage = () => goToPage(pageRef.value + 1)
-
-  return {
-    total,
-    totalPages,
-    pagedData,
-    from,
-    to,
-    goToPage,
-    prevPage,
-    nextPage,
-  }
+  return { total, totalPages, pagedData, from, to, goToPage, prevPage, nextPage }
 }
 
-const variantPagination = usePagination(variants, variantPage)
+// ← dùng filteredVariants thay vì variants
+const variantPagination = usePagination(filteredVariants, variantPage)
 const colorPagination = usePagination(colors, colorPage)
 const groupPagination = usePagination(groups, groupPage)
 const attrPagination = usePagination(attrs, attrPage)
@@ -119,23 +100,11 @@ const defaultVariantForm = () => ({
   name: '',
   type: variantTypeOptions.value[0] || '',
   status: 'Hoạt động',
+  gia_cong_them: 0
 })
-
-const defaultColorForm = () => ({
-  name: '',
-  hex: '#000000',
-  stock: 'Khả dụng',
-})
-
-const defaultGroupForm = () => ({
-  name: '',
-})
-
-const defaultAttrForm = () => ({
-  name: '',
-  group: groups.value[0]?.name || '',
-  status: 'Hoạt động',
-})
+const defaultColorForm = () => ({ name: '', hex: '#000000', stock: 'Khả dụng' })
+const defaultGroupForm = () => ({ name: '' })
+const defaultAttrForm = () => ({ name: '', group: groups.value[0]?.name || '', status: 'Hoạt động' })
 
 const variantForm = ref(defaultVariantForm())
 const colorForm = ref(defaultColorForm())
@@ -143,89 +112,74 @@ const groupForm = ref(defaultGroupForm())
 const attrForm = ref(defaultAttrForm())
 let editingId = null
 
+// ── Duplicate Check Helpers ──
+const isDuplicateVariant = (name, type, excludeId = null) => {
+  return variants.value.some(v =>
+    v.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+    v.type === type &&
+    v.id !== excludeId
+  )
+}
+
+const isDuplicateColor = (name, excludeId = null) => {
+  return colors.value.some(c =>
+    c.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+    c.id !== excludeId
+  )
+}
+
+const isDuplicateGroup = (name, excludeId = null) => {
+  return groups.value.some(g =>
+    g.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+    g.id !== excludeId
+  )
+}
+
+const isDuplicateAttr = (name, groupName, excludeId = null) => {
+  return attrs.value.some(a =>
+    a.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+    a.group === groupName &&
+    a.id !== excludeId
+  )
+}
+
 // ── Helpers ──
 const buildPageItems = (currentPage, totalPages) => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1)
-  }
-
-  // Gần đầu: 1 2 3 4 ... n-2 n-1 n
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, '...', totalPages - 2, totalPages - 1, totalPages]
-  }
-
-  // Gần cuối: 1 2 3 ... n-3 n-2 n-1 n
-  if (currentPage >= totalPages - 3) {
-    return [1, 2, 3, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
-  }
-
-  // Ở giữa: 1 ... current-1 current current+1 ... n
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+  if (currentPage <= 4) return [1, 2, 3, 4, '...', totalPages - 2, totalPages - 1, totalPages]
+  if (currentPage >= totalPages - 3) return [1, 2, 3, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
   return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
 }
-const variantPageItems = computed(() =>
-  buildPageItems(variantPage.value, variantPages.value)
-)
 
-const colorPageItems = computed(() =>
-  buildPageItems(colorPage.value, colorPages.value)
-)
+const variantPageItems = computed(() => buildPageItems(variantPage.value, variantPages.value))
+const colorPageItems = computed(() => buildPageItems(colorPage.value, colorPages.value))
+const groupPageItems = computed(() => buildPageItems(groupPage.value, groupPages.value))
+const attrPageItems = computed(() => buildPageItems(attrPage.value, attrPages.value))
 
-const groupPageItems = computed(() =>
-  buildPageItems(groupPage.value, groupPages.value)
-)
-
-const attrPageItems = computed(() =>
-  buildPageItems(attrPage.value, attrPages.value)
-)
 const normalizeData = (payload) => {
   const nhoms = Array.isArray(payload) ? payload : []
 
   const normalizedGroups = nhoms.map((g) => {
-    const thuocTinhs = Array.isArray(g.thuoc_tinhs)
-      ? g.thuoc_tinhs
-      : Array.isArray(g.thuocTinhs)
-        ? g.thuocTinhs
-        : []
-
-    return {
-      id: g.id_nhom,
-      name: g.ten_nhom,
-      attrCount: thuocTinhs.length,
-    }
+    const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
+    return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length }
   })
 
   const normalizedAttrs = []
   const normalizedVariants = []
 
   nhoms.forEach((g) => {
-    const thuocTinhs = Array.isArray(g.thuoc_tinhs)
-      ? g.thuoc_tinhs
-      : Array.isArray(g.thuocTinhs)
-        ? g.thuocTinhs
-        : []
-
+    const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
     thuocTinhs.forEach((a) => {
-      normalizedAttrs.push({
-        id: a.id_thuoctinh,
-        name: a.ten_thuoctinh,
-        group: g.ten_nhom,
-        groupId: g.id_nhom,
-        status: 'Hoạt động',
-      })
-
-      const giaTris = Array.isArray(a.giatri_thuoc_tinhs)
-        ? a.giatri_thuoc_tinhs
-        : Array.isArray(a.giatriThuocTinhs)
-          ? a.giatriThuocTinhs
-          : []
-
+      normalizedAttrs.push({ id: a.id_thuoctinh, name: a.ten_thuoctinh, group: g.ten_nhom, groupId: g.id_nhom, status: 'Hoạt động' })
+      const giaTris = Array.isArray(a.giatri_thuoc_tinhs) ? a.giatri_thuoc_tinhs : Array.isArray(a.giatriThuocTinhs) ? a.giatriThuocTinhs : []
       giaTris.forEach((v) => {
         normalizedVariants.push({
           id: v.id_giatri,
           name: v.giatri,
           type: a.ten_thuoctinh,
           attrId: a.id_thuoctinh,
-          status: v.trangthai === 1 ? 'Hoạt động' : 'Nháp',
+          status: Number(v.trangthai) === 1 ? 'Hoạt động' : 'Nháp',
+          gia_cong_them: Number(v.gia_cong_them || 0),
         })
       })
     })
@@ -235,17 +189,9 @@ const normalizeData = (payload) => {
   attrs.value = normalizedAttrs
   variants.value = normalizedVariants
 
-  if (!selectedColor.value && colors.value.length > 0) {
-    selectedColor.value = colors.value[0]
-  }
-
-  if (!variantForm.value.type && normalizedAttrs.length > 0) {
-    variantForm.value.type = normalizedAttrs[0].name
-  }
-
-  if (!attrForm.value.group && normalizedGroups.length > 0) {
-    attrForm.value.group = normalizedGroups[0].name
-  }
+  if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
+  if (!variantForm.value.type && normalizedAttrs.length > 0) variantForm.value.type = normalizedAttrs[0].name
+  if (!attrForm.value.group && normalizedGroups.length > 0) attrForm.value.group = normalizedGroups[0].name
 
   groupPagination.goToPage(groupPage.value)
   attrPagination.goToPage(attrPage.value)
@@ -255,15 +201,11 @@ const normalizeData = (payload) => {
 
 const getErrorMessage = (error, fallback) => {
   if (error?.response?.data?.message) return error.response.data.message
-
   const errors = error?.response?.data?.errors
   if (errors && typeof errors === 'object') {
     const firstKey = Object.keys(errors)[0]
-    if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) {
-      return errors[firstKey][0]
-    }
+    if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) return errors[firstKey][0]
   }
-
   return fallback
 }
 
@@ -279,29 +221,36 @@ const fetchAll = async () => {
   }
 }
 
+const fetchColors = async () => {
+  try {
+    const res = await api.get('/colors')
+    colors.value = res.data.map(c => ({ id: c.id, name: c.name, hex: c.hex || c.hex_code }))
+    if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
+    colorPagination.goToPage(1)
+  } catch (error) {
+    formError.value = getErrorMessage(error, 'Không tải được danh sách màu.')
+  }
+}
+
 // ── Modal ──
 const openModal = (type, item = null) => {
   modalType.value = type
   formError.value = ''
-  editingId = item?.id ?? item?.id_giatri ?? null
+  editingId = item ? Number(item.id ?? item.id_giatri ?? 0) : null
 
-  if (type === 'variant') {
-    variantForm.value = defaultVariantForm()
-  } else if (type === 'editVariant' && item) {
-    variantForm.value = { ...item }
-  } else if (type === 'color') {
-    colorForm.value = defaultColorForm()
-  } else if (type === 'editColor' && item) {
-    colorForm.value = { ...item }
-  } else if (type === 'group') {
-    groupForm.value = defaultGroupForm()
-  } else if (type === 'editGroup' && item) {
-    groupForm.value = { name: item.name }
-  } else if (type === 'attr') {
-    attrForm.value = defaultAttrForm()
-  } else if (type === 'editAttr' && item) {
-    attrForm.value = { name: item.name, group: item.group, status: item.status }
+  if (type === 'variant') variantForm.value = defaultVariantForm()
+  else if (type === 'editVariant' && item) {
+    variantForm.value = {
+      ...item,
+      gia_cong_them: item.gia_cong_them ?? 0
+    }
   }
+  else if (type === 'color') colorForm.value = defaultColorForm()
+  else if (type === 'editColor' && item) colorForm.value = { ...item }
+  else if (type === 'group') groupForm.value = defaultGroupForm()
+  else if (type === 'editGroup' && item) groupForm.value = { name: item.name }
+  else if (type === 'attr') attrForm.value = defaultAttrForm()
+  else if (type === 'editAttr' && item) attrForm.value = { name: item.name, group: item.group, status: item.status }
 
   showModal.value = true
 }
@@ -317,17 +266,26 @@ const submitVariant = async () => {
     formError.value = 'Vui lòng nhập tên biến thể.'
     return
   }
-
   if (!variantForm.value.type) {
     formError.value = 'Vui lòng chọn loại thuộc tính.'
     return
   }
-
   const selectedAttr = attrs.value.find((a) => a.name === variantForm.value.type)
-
   if (!selectedAttr) {
     formError.value = 'Không tìm thấy loại thuộc tính tương ứng.'
     return
+  }
+
+  if (isDuplicateVariant(variantForm.value.name, variantForm.value.type, editingId)) {
+    formError.value = `Biến thể "${variantForm.value.name}" đã tồn tại trong loại "${variantForm.value.type}".`
+    return
+  }
+
+  const payload = {
+    id_thuoctinh: selectedAttr.id,
+    giatri: variantForm.value.name,
+    gia_cong_them: Number(variantForm.value.gia_cong_them || 0),
+    trangthai: variantForm.value.status === 'Hoạt động' ? 1 : 0,
   }
 
   try {
@@ -336,28 +294,15 @@ const submitVariant = async () => {
         formError.value = 'Không tìm thấy ID biến thể để cập nhật.'
         return
       }
-
-      await api.put(`/giatrithuoctinh/${editingId}`, {
-        id_thuoctinh: selectedAttr.id,
-        giatri: variantForm.value.name,
-      })
+      await api.put(`/giatrithuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/giatrithuoctinh', {
-        id_thuoctinh: selectedAttr.id,
-        giatri: variantForm.value.name,
-      })
+      await api.post('/giatrithuoctinh', payload)
     }
-
     await fetchAll()
     variantPagination.goToPage(1)
     closeModal()
   } catch (error) {
-    formError.value = getErrorMessage(
-      error,
-      modalType.value === 'editVariant'
-        ? 'Không cập nhật được biến thể.'
-        : 'Không thêm được biến thể.'
-    )
+    formError.value = getErrorMessage(error, modalType.value === 'editVariant' ? 'Không cập nhật được biến thể.' : 'Không thêm được biến thể.')
   }
 }
 
@@ -366,29 +311,20 @@ const submitColor = async () => {
     formError.value = 'Vui lòng nhập tên màu.'
     return
   }
-
+  if (isDuplicateColor(colorForm.value.name, editingId)) {
+    formError.value = `Màu sắc "${colorForm.value.name}" đã tồn tại.`
+    return
+  }
   try {
     if (modalType.value === 'editColor') {
-      await api.put(`/colors/${editingId}`, {
-        name: colorForm.value.name,
-        hex_code: colorForm.value.hex,
-      })
+      await api.put(`/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
     } else {
-      await api.post('/colors', {
-        name: colorForm.value.name,
-        hex_code: colorForm.value.hex,
-      })
+      await api.post('/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
     }
-
     await fetchColors()
     closeModal()
   } catch (error) {
-    formError.value = getErrorMessage(
-      error,
-      modalType.value === 'editColor'
-        ? 'Không cập nhật được màu.'
-        : 'Không thêm được màu.'
-    )
+    formError.value = getErrorMessage(error, modalType.value === 'editColor' ? 'Không cập nhật được màu.' : 'Không thêm được màu.')
   }
 }
 
@@ -397,28 +333,21 @@ const submitGroup = async () => {
     formError.value = 'Vui lòng nhập tên nhóm.'
     return
   }
-
+  if (isDuplicateGroup(groupForm.value.name, editingId)) {
+    formError.value = `Nhóm thuộc tính "${groupForm.value.name}" đã tồn tại.`
+    return
+  }
   try {
     if (modalType.value === 'editGroup') {
-      await api.put(`/nhomthuoctinh/${editingId}`, {
-        ten_nhom: groupForm.value.name,
-      })
+      await api.put(`/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
     } else {
-      await api.post('/nhomthuoctinh', {
-        ten_nhom: groupForm.value.name,
-      })
+      await api.post('/nhomthuoctinh', { ten_nhom: groupForm.value.name })
     }
-
     await fetchAll()
     groupPagination.goToPage(1)
     closeModal()
   } catch (error) {
-    formError.value = getErrorMessage(
-      error,
-      modalType.value === 'editGroup'
-        ? 'Không cập nhật được nhóm thuộc tính.'
-        : 'Không tạo được nhóm thuộc tính.'
-    )
+    formError.value = getErrorMessage(error, modalType.value === 'editGroup' ? 'Không cập nhật được nhóm thuộc tính.' : 'Không tạo được nhóm thuộc tính.')
   }
 }
 
@@ -427,42 +356,30 @@ const submitAttr = async () => {
     formError.value = 'Vui lòng nhập tên thuộc tính.'
     return
   }
-
   if (!attrForm.value.group) {
     formError.value = 'Vui lòng chọn nhóm thuộc tính.'
     return
   }
-
   const selectedGroup = groups.value.find((g) => g.name === attrForm.value.group)
-
   if (!selectedGroup) {
     formError.value = 'Không tìm thấy nhóm thuộc tính tương ứng.'
     return
   }
-
+  if (isDuplicateAttr(attrForm.value.name, attrForm.value.group, editingId)) {
+    formError.value = `Thuộc tính "${attrForm.value.name}" đã tồn tại trong nhóm "${attrForm.value.group}".`
+    return
+  }
   try {
     if (modalType.value === 'editAttr') {
-      await api.put(`/thuoctinh/${editingId}`, {
-        ten_thuoctinh: attrForm.value.name,
-        id_nhom: selectedGroup.id,
-      })
+      await api.put(`/thuoctinh/${editingId}`, { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
     } else {
-      await api.post('/thuoctinh', {
-        ten_thuoctinh: attrForm.value.name,
-        id_nhom: selectedGroup.id,
-      })
+      await api.post('/thuoctinh', { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
     }
-
     await fetchAll()
     attrPagination.goToPage(1)
     closeModal()
   } catch (error) {
-    formError.value = getErrorMessage(
-      error,
-      modalType.value === 'editAttr'
-        ? 'Không cập nhật được loại thuộc tính.'
-        : 'Không tạo được loại thuộc tính.'
-    )
+    formError.value = getErrorMessage(error, modalType.value === 'editAttr' ? 'Không cập nhật được loại thuộc tính.' : 'Không tạo được loại thuộc tính.')
   }
 }
 
@@ -487,11 +404,7 @@ const removeVariant = async (id) => {
 const removeColor = async (id) => {
   try {
     await api.delete(`/colors/${id}`)
-
-    if (selectedColor.value?.id === id) {
-      selectedColor.value = colors.value.find(c => c.id !== id) || null
-    }
-
+    if (selectedColor.value?.id === id) selectedColor.value = colors.value.find(c => c.id !== id) || null
     await fetchColors()
   } catch (error) {
     formError.value = getErrorMessage(error, 'Không xóa được màu.')
@@ -520,54 +433,143 @@ const removeAttr = async (id) => {
 
 const isEditModal = computed(() => modalType.value.startsWith('edit'))
 
-const modalTitle = computed(
-  () =>
-    ({
-      variant: 'Thêm biến thể mới',
-      editVariant: 'Chỉnh sửa biến thể',
-      color: 'Thêm màu sắc mới',
-      editColor: 'Chỉnh sửa màu sắc',
-      group: 'Tạo nhóm thuộc tính',
-      editGroup: 'Chỉnh sửa nhóm thuộc tính',
-      attr: 'Tạo loại thuộc tính',
-      editAttr: 'Chỉnh sửa loại thuộc tính',
-    })[modalType.value] || ''
-)
+const modalTitle = computed(() => ({
+  variant: 'Thêm biến thể mới',
+  editVariant: 'Chỉnh sửa biến thể',
+  color: 'Thêm màu sắc mới',
+  editColor: 'Chỉnh sửa màu sắc',
+  group: 'Tạo nhóm thuộc tính',
+  editGroup: 'Chỉnh sửa nhóm thuộc tính',
+  attr: 'Tạo loại thuộc tính',
+  editAttr: 'Chỉnh sửa loại thuộc tính',
+})[modalType.value] || '')
 
 const modalBtnLabel = computed(() =>
-  isEditModal.value
-    ? 'Lưu thay đổi'
-    : ({
-        variant: 'Thêm biến thể',
-        color: 'Thêm màu sắc',
-        group: 'Tạo nhóm',
-        attr: 'Tạo thuộc tính',
-      })[modalType.value] || 'Lưu'
+  isEditModal.value ? 'Lưu thay đổi' : ({
+    variant: 'Thêm biến thể',
+    color: 'Thêm màu sắc',
+    group: 'Tạo nhóm',
+    attr: 'Tạo thuộc tính',
+  })[modalType.value] || 'Lưu'
 )
-const fetchColors = async () => {
-  try {
-    const res = await api.get('/colors')
 
-    // map từ backend -> frontend
-    colors.value = res.data.map(c => ({
-      id: c.id,
-      name: c.name,
-      hex: c.hex || c.hex_code, // support cả 2
-    }))
-
-    if (!selectedColor.value && colors.value.length > 0) {
-      selectedColor.value = colors.value[0]
-    }
-
-    colorPagination.goToPage(1)
-  } catch (error) {
-    formError.value = getErrorMessage(error, 'Không tải được danh sách màu.')
-  }
-}
 onMounted(() => {
   fetchAll()
   fetchColors()
 })
+
+// ══════════════════════════════════════════════════════
+// XUẤT / IMPORT EXCEL
+// ══════════════════════════════════════════════════════
+
+function exportVariants() {
+  const today = new Date().toLocaleDateString('vi-VN')
+  const title = [`DANH SÁCH BIẾN THỂ CẤU HÌNH (xuất ngày ${today})`]
+  const header = ['Tên biến thể', 'Loại thuộc tính', 'Trạng thái']
+  const rows = variants.value.map(v => [v.name, v.type, v.status])
+  const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows])
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }]
+  ws['!cols'] = [{ wch: 24 }, { wch: 20 }, { wch: 14 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Biến thể')
+  XLSX.writeFile(wb, `bien-the-${Date.now()}.xlsx`)
+}
+
+function exportColors() {
+  const today = new Date().toLocaleDateString('vi-VN')
+  const title = [`DANH SÁCH MÀU SẮC SẢN PHẨM (xuất ngày ${today})`]
+  const header = ['Tên màu', 'Mã màu (HEX)']
+  const rows = colors.value.map(c => [c.name, c.hex])
+  const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows])
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }]
+  ws['!cols'] = [{ wch: 20 }, { wch: 14 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Màu sắc')
+  XLSX.writeFile(wb, `mau-sac-${Date.now()}.xlsx`)
+}
+
+// ── Import ──
+const importLoading = ref(false)
+const importError = ref('')
+const importSuccess = ref('')
+const importFileRef = ref(null)
+
+function triggerImport() {
+  importError.value = ''
+  importSuccess.value = ''
+  importFileRef.value.click()
+}
+
+async function handleImportFile(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  e.target.value = ''
+
+  importLoading.value = true
+  importError.value = ''
+  importSuccess.value = ''
+
+  try {
+    const data = await file.arrayBuffer()
+    const wb = XLSX.read(data)
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 })
+
+    const headerIdx = rows.findIndex(r =>
+      r.some(cell => typeof cell === 'string' && (cell.includes('Tên biến thể') || cell.includes('Tên màu')))
+    )
+    if (headerIdx === -1) throw new Error('Không tìm thấy header hợp lệ trong file.')
+
+    const headers = rows[headerIdx].map(h => String(h || '').trim())
+    const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(Boolean))
+
+    const isColorFile = headers.includes('Mã màu (HEX)')
+
+    let successCount = 0
+    let skipCount = 0
+    let failCount = 0
+
+    for (const row of dataRows) {
+      const obj = {}
+      headers.forEach((h, i) => { obj[h] = row[i] ?? '' })
+
+      try {
+        if (isColorFile) {
+          const name = String(obj['Tên màu'] || '').trim()
+          if (!name) { skipCount++; continue }
+          if (isDuplicateColor(name)) { skipCount++; continue }
+          await api.post('/colors', {
+            name,
+            hex_code: String(obj['Mã màu (HEX)'] || '#000000').trim(),
+          })
+        } else {
+          const varName = String(obj['Tên biến thể'] || '').trim()
+          const attrName = String(obj['Loại thuộc tính'] || '').trim()
+          if (!varName || !attrName) { skipCount++; continue }
+          const attr = attrs.value.find(a => a.name === attrName)
+          if (!attr) { skipCount++; continue }
+          if (isDuplicateVariant(varName, attrName)) { skipCount++; continue }
+          await api.post('/giatrithuoctinh', { id_thuoctinh: attr.id, giatri: varName })
+        }
+        successCount++
+      } catch {
+        failCount++
+      }
+    }
+
+    await fetchAll()
+    await fetchColors()
+
+    const parts = [`Nhập thành công ${successCount} dòng`]
+    if (skipCount) parts.push(`bỏ qua trùng ${skipCount} dòng`)
+    if (failCount) parts.push(`thất bại ${failCount} dòng`)
+    importSuccess.value = parts.join(', ') + '.'
+  } catch (err) {
+    importError.value = err.message || 'Đọc file thất bại. Hãy dùng file xuất từ hệ thống.'
+  } finally {
+    importLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -696,15 +698,9 @@ onMounted(() => {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button
-              v-for="p in groupPages"
-              :key="p"
-              class="page-btn"
-              :class="{ active: p === groupPage }"
-              @click="groupPagination.goToPage(p)"
-            >
-              {{ p }}
-            </button>
+            <button v-for="(p, index) in groupPageItems" :key="`${p}-${index}`" class="page-btn"
+              :class="{ active: p === groupPage, dots: p === '...' }" :disabled="p === '...'"
+              @click="p !== '...' && groupPagination.goToPage(p)">{{ p }}</button>
             <button class="page-btn" :disabled="groupPage === groupPages" @click="groupPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -783,16 +779,9 @@ onMounted(() => {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button
-              v-for="(p, index) in attrPageItems"
-              :key="`${p}-${index}`"
-              class="page-btn"
-              :class="{ active: p === attrPage, dots: p === '...' }"
-              :disabled="p === '...'"
-              @click="p !== '...' && attrPagination.goToPage(p)"
-            >
-              {{ p }}
-            </button>
+            <button v-for="(p, index) in attrPageItems" :key="`${p}-${index}`" class="page-btn"
+              :class="{ active: p === attrPage, dots: p === '...' }" :disabled="p === '...'"
+              @click="p !== '...' && attrPagination.goToPage(p)">{{ p }}</button>
             <button class="page-btn" :disabled="attrPage === attrPages" @click="attrPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -805,12 +794,10 @@ onMounted(() => {
 
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }" @click="activeTab = 'Biến thể cấu hình'">
-        Biến thể cấu hình
-      </button>
-      <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }" @click="activeTab = 'Bảng màu sản phẩm'">
-        Bảng màu sản phẩm
-      </button>
+      <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }"
+        @click="activeTab = 'Biến thể cấu hình'">Biến thể cấu hình</button>
+      <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
+        @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
     </div>
 
     <!-- MAIN LAYOUT -->
@@ -820,19 +807,31 @@ onMounted(() => {
         <div v-if="activeTab === 'Biến thể cấu hình'" class="card">
           <div class="card-header">
             <div class="card-title"><span class="bar blue"></span>Danh sách biến thể</div>
-            <div class="card-tools">
-              <button class="tool-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <line x1="4" y1="6" x2="20" y2="6" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                  <line x1="11" y1="18" x2="13" y2="18" />
+            <div class="card-header-right">
+              <!-- ── FILTER SELECT ── -->
+              <div class="filter-wrap">
+                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
-              </button>
-              <button class="tool-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M3 6h18M6 12h12M9 18h6" />
-                </svg>
-              </button>
+                <select v-model="selectedAttribute" class="filter-select">
+                  <option value="">Tất cả loại</option>
+                  <option v-for="opt in variantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+              <div class="card-tools">
+                <button class="tool-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                    <line x1="11" y1="18" x2="13" y2="18" />
+                  </svg>
+                </button>
+                <button class="tool-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M3 6h18M6 12h12M9 18h6" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <table>
@@ -851,9 +850,8 @@ onMounted(() => {
               <tr v-for="v in pagedVariants" :key="v.id">
                 <td class="variant-name">{{ v.name }}</td>
                 <td>
-                  <span class="type-badge" :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">
-                    {{ v.type }}
-                  </span>
+                  <span class="type-badge"
+                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
                 </td>
                 <td>
                   <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status }}</span>
@@ -879,25 +877,16 @@ onMounted(() => {
             </tbody>
           </table>
           <div class="table-footer">
-            <span class="page-info">
-              Hiển thị {{ variantPagination.from }}–{{ variantPagination.to }} / {{ variantPagination.total }}
-            </span>
+            <span class="page-info">Hiển thị {{ variantPagination.from }}–{{ variantPagination.to }} / {{ variantPagination.total }}</span>
             <div class="pagination">
               <button class="page-btn" :disabled="variantPage === 1" @click="variantPagination.prevPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button
-                v-for="(p, index) in variantPageItems"
-                :key="`${p}-${index}`"
-                class="page-btn"
-                :class="{ active: p === variantPage, dots: p === '...' }"
-                :disabled="p === '...'"
-                @click="p !== '...' && variantPagination.goToPage(p)"
-              >
-                {{ p }}
-              </button>
+              <button v-for="(p, index) in variantPageItems" :key="`${p}-${index}`" class="page-btn"
+                :class="{ active: p === variantPage, dots: p === '...' }" :disabled="p === '...'"
+                @click="p !== '...' && variantPagination.goToPage(p)">{{ p }}</button>
               <button class="page-btn" :disabled="variantPage === variantPages" @click="variantPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />
@@ -923,7 +912,9 @@ onMounted(() => {
             </thead>
             <tbody>
               <tr v-for="c in pagedColors" :key="c.id" @click="selectedColor = c" style="cursor:pointer">
-                <td><div class="color-swatch-cell" :style="{ background: c.hex }"></div></td>
+                <td>
+                  <div class="color-swatch-cell" :style="{ background: c.hex }"></div>
+                </td>
                 <td class="variant-name">{{ c.name }}</td>
                 <td>
                   <div class="actions">
@@ -946,25 +937,16 @@ onMounted(() => {
             </tbody>
           </table>
           <div class="table-footer">
-            <span class="page-info">
-              Hiển thị {{ colorPagination.from }}–{{ colorPagination.to }} / {{ colorPagination.total }}
-            </span>
+            <span class="page-info">Hiển thị {{ colorPagination.from }}–{{ colorPagination.to }} / {{ colorPagination.total }}</span>
             <div class="pagination">
               <button class="page-btn" :disabled="colorPage === 1" @click="colorPagination.prevPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button
-                v-for="(p, index) in colorPageItems"
-                :key="`${p}-${index}`"
-                class="page-btn"
-                :class="{ active: p === colorPage, dots: p === '...' }"
-                :disabled="p === '...'"
-                @click="p !== '...' && colorPagination.goToPage(p)"
-              >
-                {{ p }}
-              </button>
+              <button v-for="(p, index) in colorPageItems" :key="`${p}-${index}`" class="page-btn"
+                :class="{ active: p === colorPage, dots: p === '...' }" :disabled="p === '...'"
+                @click="p !== '...' && colorPagination.goToPage(p)">{{ p }}</button>
               <button class="page-btn" :disabled="colorPage === colorPages" @click="colorPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />
@@ -981,13 +963,8 @@ onMounted(() => {
           <div class="side-header">
             <div class="card-title" style="font-size:14px"><span class="bar purple"></span>Bảng màu</div>
             <button class="btn-add-sm" @click="openModal('color')">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                style="width:11px;height:11px;flex-shrink:0"
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                style="width:11px;height:11px;flex-shrink:0">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -995,13 +972,8 @@ onMounted(() => {
             </button>
           </div>
           <div class="color-list">
-            <div
-              v-for="c in colors"
-              :key="c.id"
-              class="color-row-item"
-              :class="{ 'color-selected': selectedColor?.id === c.id }"
-              @click="selectedColor = c"
-            >
+            <div v-for="c in colors" :key="c.id" class="color-row-item"
+              :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
               <div class="color-dot" :style="{ background: c.hex }"></div>
               <div class="color-info"><b>{{ c.name }}</b><span>{{ c.hex }}</span></div>
               <div class="color-row-actions">
@@ -1023,12 +995,8 @@ onMounted(() => {
         <div class="card preview-card">
           <div class="preview-label">PREVIEW: VINABOOK PRO 2026</div>
           <div class="preview-img-wrap">
-            <div
-              class="preview-laptop"
-              :style="{
-                background: `linear-gradient(135deg,${selectedColor?.hex || '#1a1a1a'}cc,${selectedColor?.hex || '#1a1a1a'})`,
-              }"
-            >
+            <div class="preview-laptop"
+              :style="{ background: `linear-gradient(135deg,${selectedColor?.hex || '#1a1a1a'}cc,${selectedColor?.hex || '#1a1a1a'})` }">
               <div class="laptop-screen"></div>
               <div class="laptop-base"></div>
             </div>
@@ -1056,22 +1024,38 @@ onMounted(() => {
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </div>
-        <div>
+        <div style="flex:1;min-width:0">
           <h4>Xuất dữ liệu</h4>
-          <p>Tải xuống danh sách cấu hình (CSV)</p>
+          <p>Tải xuống danh sách cấu hình (Excel)</p>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="export-sm-btn" @click="exportVariants">Xuất biến thể</button>
+            <button class="export-sm-btn purple-sm" @click="exportColors">Xuất màu sắc</button>
+          </div>
         </div>
       </div>
+
       <div class="bottom-card">
         <div class="bottom-icon purple">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" style="transform:rotate(180deg);transform-origin:12px 9px" />
           </svg>
         </div>
-        <div>
-          <h4>Tự động hóa</h4>
-          <p>Gán ý biến thể theo xu hướng thị trường</p>
+        <div style="flex:1;min-width:0">
+          <h4>Nhập dữ liệu</h4>
+          <p>Import biến thể hoặc màu từ file Excel</p>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+            <button class="export-sm-btn green-sm" :disabled="importLoading" @click="triggerImport">
+              {{ importLoading ? 'Đang nhập...' : 'Chọn file Excel' }}
+            </button>
+            <span v-if="importSuccess" style="font-size:11px;color:#16a34a;font-weight:600">✓ {{ importSuccess }}</span>
+            <span v-if="importError" style="font-size:11px;color:#dc2626;font-weight:600">✗ {{ importError }}</span>
+          </div>
+          <input ref="importFileRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
         </div>
       </div>
+
       <div class="bottom-card dark-bottom">
         <div class="bottom-icon white-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1094,18 +1078,8 @@ onMounted(() => {
             <div class="modal" v-if="showModal">
               <div class="modal-header">
                 <div class="modal-header-left">
-                  <div
-                    class="modal-icon"
-                    :class="
-                      isEditModal
-                        ? 'icon-edit'
-                        : ['group', 'editGroup'].includes(modalType)
-                          ? 'icon-group'
-                          : ['attr', 'editAttr'].includes(modalType)
-                            ? 'icon-attr'
-                            : 'icon-add'
-                    "
-                  >
+                  <div class="modal-icon"
+                    :class="isEditModal ? 'icon-edit' : ['group', 'editGroup'].includes(modalType) ? 'icon-group' : ['attr', 'editAttr'].includes(modalType) ? 'icon-attr' : 'icon-add'">
                     <svg v-if="['group', 'editGroup'].includes(modalType)" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                       <rect x="3" y="3" width="7" height="7" rx="1" />
                       <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -1129,15 +1103,10 @@ onMounted(() => {
                   <div>
                     <h3 class="modal-title">{{ modalTitle }}</h3>
                     <p class="modal-subtitle">
-                      {{
-                        ['group', 'editGroup'].includes(modalType)
-                          ? 'Nhóm các thuộc tính liên quan vào một danh mục'
-                          : ['attr', 'editAttr'].includes(modalType)
-                            ? 'Loại thuộc tính thuộc về một nhóm cụ thể'
-                            : ['color', 'editColor'].includes(modalType)
-                              ? 'Màu sắc hiển thị cho sản phẩm ngoài cửa hàng'
-                              : 'Thông số kỹ thuật áp dụng cho sản phẩm'
-                      }}
+                      {{ ['group', 'editGroup'].includes(modalType) ? 'Nhóm các thuộc tính liên quan vào một danh mục'
+                        : ['attr', 'editAttr'].includes(modalType) ? 'Loại thuộc tính thuộc về một nhóm cụ thể'
+                          : ['color', 'editColor'].includes(modalType) ? 'Màu sắc hiển thị cho sản phẩm ngoài cửa hàng'
+                            : 'Thông số kỹ thuật áp dụng cho sản phẩm' }}
                     </p>
                   </div>
                 </div>
@@ -1156,6 +1125,10 @@ onMounted(() => {
                     <label>TÊN BIẾN THỂ <span class="req">*</span></label>
                     <input v-model="variantForm.name" placeholder="VD: 16GB Unified Memory" />
                   </div>
+                  <div class="form-group">
+                    <label>GIÁ CỘNG THÊM (₫)</label>
+                    <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
+                  </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label>LOẠI THUỘC TÍNH <span class="req">*</span></label>
@@ -1166,20 +1139,13 @@ onMounted(() => {
                     <div class="form-group">
                       <label>TRẠNG THÁI</label>
                       <div class="toggle-group">
-                        <button
-                          type="button"
-                          class="toggle-btn"
+                        <button type="button" class="toggle-btn"
                           :class="{ 'tg-green': variantForm.status === 'Hoạt động' }"
-                          @click="variantForm.status = 'Hoạt động'"
-                        >
+                          @click="variantForm.status = 'Hoạt động'">
                           <span class="tdot"></span>Hoạt động
                         </button>
-                        <button
-                          type="button"
-                          class="toggle-btn"
-                          :class="{ 'tg-yellow': variantForm.status === 'Nháp' }"
-                          @click="variantForm.status = 'Nháp'"
-                        >
+                        <button type="button" class="toggle-btn" :class="{ 'tg-yellow': variantForm.status === 'Nháp' }"
+                          @click="variantForm.status = 'Nháp'">
                           <span class="tdot"></span>Nháp
                         </button>
                       </div>
@@ -1209,20 +1175,12 @@ onMounted(() => {
                   <div class="form-group">
                     <label>TRẠNG THÁI KHO</label>
                     <div class="toggle-group">
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ 'tg-green': colorForm.stock === 'Khả dụng' }"
-                        @click="colorForm.stock = 'Khả dụng'"
-                      >
+                      <button type="button" class="toggle-btn" :class="{ 'tg-green': colorForm.stock === 'Khả dụng' }"
+                        @click="colorForm.stock = 'Khả dụng'">
                         <span class="tdot"></span>Khả dụng
                       </button>
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ 'tg-red': colorForm.stock === 'Hết hàng' }"
-                        @click="colorForm.stock = 'Hết hàng'"
-                      >
+                      <button type="button" class="toggle-btn" :class="{ 'tg-red': colorForm.stock === 'Hết hàng' }"
+                        @click="colorForm.stock = 'Hết hàng'">
                         <span class="tdot"></span>Hết hàng
                       </button>
                     </div>
@@ -1277,20 +1235,12 @@ onMounted(() => {
                   <div class="form-group">
                     <label>TRẠNG THÁI</label>
                     <div class="toggle-group">
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ 'tg-green': attrForm.status === 'Hoạt động' }"
-                        @click="attrForm.status = 'Hoạt động'"
-                      >
+                      <button type="button" class="toggle-btn" :class="{ 'tg-green': attrForm.status === 'Hoạt động' }"
+                        @click="attrForm.status = 'Hoạt động'">
                         <span class="tdot"></span>Hoạt động
                       </button>
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ 'tg-yellow': attrForm.status === 'Nháp' }"
-                        @click="attrForm.status = 'Nháp'"
-                      >
+                      <button type="button" class="toggle-btn" :class="{ 'tg-yellow': attrForm.status === 'Nháp' }"
+                        @click="attrForm.status = 'Nháp'">
                         <span class="tdot"></span>Nháp
                       </button>
                     </div>
@@ -1333,7 +1283,6 @@ onMounted(() => {
   padding-bottom: 40px;
 }
 
-/* TOPBAR */
 .topbar {
   display: flex;
   align-items: center;
@@ -1454,7 +1403,6 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* PAGE HEADER */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -1486,41 +1434,6 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 14px;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all .15s;
-  font-family: inherit;
-}
-
-.btn-secondary svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
-.btn-secondary:hover {
-  border-color: #16a34a;
-  color: #15803d;
-  background: #f0fdf4;
-}
-
-.btn-sec-purple:hover {
-  border-color: #7c3aed;
-  color: #6d28d9;
-  background: #faf5ff;
-}
-
 .btn-new {
   display: flex;
   align-items: center;
@@ -1549,7 +1462,6 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
-/* TOP TABLES */
 .top-tables {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1561,7 +1473,6 @@ onMounted(() => {
   padding: 18px 20px;
 }
 
-/* TABS */
 .tabs {
   display: flex;
   gap: 4px;
@@ -1593,7 +1504,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* MAIN LAYOUT */
 .main-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -1601,7 +1511,6 @@ onMounted(() => {
   padding: 0 32px;
 }
 
-/* CARD */
 .card {
   background: white;
   border-radius: 14px;
@@ -1615,6 +1524,57 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
+  gap: 10px;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── FILTER SELECT ── */
+.filter-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 9px;
+  width: 12px;
+  height: 12px;
+  color: #64748b;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.filter-select {
+  padding: 7px 30px 7px 28px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  min-width: 140px;
+}
+
+.filter-select:focus {
+  border-color: #2563eb;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.filter-select:hover {
+  border-color: #cbd5e1;
 }
 
 .card-title {
@@ -1633,21 +1593,10 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.bar.blue {
-  background: #2563eb;
-}
-
-.bar.purple {
-  background: #7c3aed;
-}
-
-.bar.purple2 {
-  background: #9333ea;
-}
-
-.bar.green {
-  background: #16a34a;
-}
+.bar.blue { background: #2563eb; }
+.bar.purple { background: #7c3aed; }
+.bar.purple2 { background: #9333ea; }
+.bar.green { background: #16a34a; }
 
 .card-tools {
   display: flex;
@@ -1701,9 +1650,7 @@ onMounted(() => {
   color: #15803d;
 }
 
-.green-btn:hover {
-  background: #dcfce7;
-}
+.green-btn:hover { background: #dcfce7; }
 
 .purple-btn {
   border-color: #7c3aed;
@@ -1711,11 +1658,8 @@ onMounted(() => {
   color: #6d28d9;
 }
 
-.purple-btn:hover {
-  background: #ede9fe;
-}
+.purple-btn:hover { background: #ede9fe; }
 
-/* TABLE */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -1736,13 +1680,8 @@ tbody tr {
   transition: background .15s;
 }
 
-tbody tr:last-child {
-  border-bottom: none;
-}
-
-tbody tr:hover {
-  background: #fafbff;
-}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #fafbff; }
 
 tbody td {
   padding: 12px 12px;
@@ -1762,10 +1701,6 @@ tbody td {
   font-size: 13px;
 }
 
-.muted {
-  color: #64748b;
-}
-
 .type-badge {
   display: inline-block;
   font-size: 10px;
@@ -1779,31 +1714,14 @@ tbody td {
   font-weight: 600;
 }
 
-.status-dot.active {
-  color: #16a34a;
-}
-
-.status-dot.draft {
-  color: #d97706;
-}
+.status-dot.active { color: #16a34a; }
+.status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: 2px solid rgba(0, 0, 0, .08);
-}
-
-.stock-ok {
-  color: #16a34a;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.stock-out {
-  color: #dc2626;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .count-badge {
@@ -1846,26 +1764,12 @@ tbody td {
   height: 13px;
 }
 
-.green-icon {
-  background: #f0fdf4;
-}
+.green-icon { background: #f0fdf4; }
+.green-icon svg { stroke: #16a34a; }
+.purple-icon { background: #faf5ff; }
+.purple-icon svg { stroke: #7c3aed; }
 
-.green-icon svg {
-  stroke: #16a34a;
-}
-
-.purple-icon {
-  background: #faf5ff;
-}
-
-.purple-icon svg {
-  stroke: #7c3aed;
-}
-
-.actions {
-  display: flex;
-  gap: 5px;
-}
+.actions { display: flex; gap: 5px; }
 
 .act-btn {
   width: 28px;
@@ -1898,7 +1802,6 @@ tbody td {
   color: #ef4444;
 }
 
-/* TABLE FOOTER */
 .table-footer {
   display: flex;
   align-items: center;
@@ -1957,10 +1860,20 @@ tbody td {
   cursor: default;
 }
 
-/* SIDEBAR */
-.side-card {
-  padding: 16px;
+.page-btn.dots {
+  cursor: default;
+  border-color: transparent;
+  background: transparent;
+  color: #94a3b8;
 }
+
+.page-btn.dots:hover {
+  border-color: transparent;
+  color: #94a3b8;
+  background: transparent;
+}
+
+.side-card { padding: 16px; }
 
 .side-header {
   display: flex;
@@ -2007,10 +1920,7 @@ tbody td {
   border: 1px solid transparent;
 }
 
-.color-row-item:hover {
-  background: #f8fafc;
-}
-
+.color-row-item:hover { background: #f8fafc; }
 .color-row-item.color-selected {
   background: #f0f6ff;
   border-color: #bfdbfe;
@@ -2024,11 +1934,7 @@ tbody td {
   border: 2px solid rgba(0, 0, 0, .08);
 }
 
-.color-info {
-  flex: 1;
-  min-width: 0;
-}
-
+.color-info { flex: 1; min-width: 0; }
 .color-info b {
   display: block;
   font-size: 12px;
@@ -2071,21 +1977,17 @@ tbody td {
   height: 10px;
 }
 
-.color-row-item:hover .color-del-btn {
-  opacity: 1;
-}
-
+.color-row-item:hover .color-del-btn { opacity: 1; }
 .color-del-btn:hover {
   background: #fee2e2;
   border-color: #fecaca;
   color: #ef4444;
 }
 
-/* PREVIEW */
-.preview-card {
-  padding: 14px;
-}
+.stock-ok { color: #16a34a; font-size: 12px; font-weight: 600; }
+.stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
 
+.preview-card { padding: 14px; }
 .preview-label {
   font-size: 9px;
   font-weight: 700;
@@ -2169,7 +2071,6 @@ tbody td {
   white-space: nowrap;
 }
 
-/* BOTTOM */
 .bottom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -2202,15 +2103,8 @@ tbody td {
   height: 18px;
 }
 
-.bottom-icon.blue {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.bottom-icon.purple {
-  background: #ede9fe;
-  color: #7c3aed;
-}
+.bottom-icon.blue { background: #dbeafe; color: #2563eb; }
+.bottom-icon.purple { background: #ede9fe; color: #7c3aed; }
 
 .bottom-card h4 {
   font-size: 13px;
@@ -2231,20 +2125,31 @@ tbody td {
   border-color: transparent;
 }
 
-.dark-bottom h4 {
-  color: white;
+.dark-bottom h4 { color: white; }
+.dark-bottom p { color: rgba(255, 255, 255, .7); }
+.white-icon { background: rgba(255, 255, 255, .15); color: white; }
+
+.export-sm-btn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1.5px solid #2563eb;
+  background: #fff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+  white-space: nowrap;
 }
 
-.dark-bottom p {
-  color: rgba(255, 255, 255, .7);
-}
+.export-sm-btn:hover:not(:disabled) { background: #2563eb; color: #fff; }
+.export-sm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.export-sm-btn.purple-sm { border-color: #7c3aed; color: #7c3aed; }
+.export-sm-btn.purple-sm:hover { background: #7c3aed; color: #fff; }
+.export-sm-btn.green-sm { border-color: #16a34a; color: #16a34a; }
+.export-sm-btn.green-sm:hover:not(:disabled) { background: #16a34a; color: #fff; }
 
-.white-icon {
-  background: rgba(255, 255, 255, .15);
-  color: white;
-}
-
-/* ══ MODAL ══ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2299,21 +2204,10 @@ tbody td {
   height: 17px;
 }
 
-.icon-add {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-}
-
-.icon-edit {
-  background: linear-gradient(135deg, #f59e0b, #f97316);
-}
-
-.icon-group {
-  background: linear-gradient(135deg, #16a34a, #059669);
-}
-
-.icon-attr {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-}
+.icon-add { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+.icon-edit { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.icon-group { background: linear-gradient(135deg, #16a34a, #059669); }
+.icon-attr { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
 
 .modal-title {
   font-size: 15px;
@@ -2353,9 +2247,7 @@ tbody td {
   border-color: #fecaca;
 }
 
-.modal-close:hover svg {
-  stroke: #ef4444;
-}
+.modal-close:hover svg { stroke: #ef4444; }
 
 .modal-body {
   padding: 18px 22px;
@@ -2372,7 +2264,6 @@ tbody td {
   border-top: 1px solid #f1f5f9;
 }
 
-/* Forms */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2392,9 +2283,7 @@ tbody td {
   letter-spacing: .08em;
 }
 
-.req {
-  color: #ef4444;
-}
+.req { color: #ef4444; }
 
 .form-group input,
 .form-group select,
@@ -2416,11 +2305,6 @@ tbody td {
   border-color: #2563eb;
   background: white;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 72px;
 }
 
 .color-input-wrap {
@@ -2486,13 +2370,8 @@ tbody td {
   border: 1px solid #e8ecf4;
 }
 
-.green-preview {
-  background: #f0fdf4;
-}
-
-.purple-preview {
-  background: #faf5ff;
-}
+.green-preview { background: #f0fdf4; }
+.purple-preview { background: #faf5ff; }
 
 .prev-icon {
   width: 42px;
@@ -2509,21 +2388,8 @@ tbody td {
   height: 19px;
 }
 
-.green-icon {
-  background: #dcfce7;
-}
-
-.green-icon svg {
-  stroke: #16a34a;
-}
-
-.purple-icon-prev {
-  background: #ede9fe;
-}
-
-.purple-icon-prev svg {
-  stroke: #7c3aed;
-}
+.purple-icon-prev { background: #ede9fe; }
+.purple-icon-prev svg { stroke: #7c3aed; }
 
 .prev-name {
   font-size: 14px;
@@ -2537,10 +2403,7 @@ tbody td {
   color: #64748b;
 }
 
-.toggle-group {
-  display: flex;
-  gap: 6px;
-}
+.toggle-group { display: flex; gap: 6px; }
 
 .toggle-btn {
   flex: 1;
@@ -2569,35 +2432,12 @@ tbody td {
   transition: background .15s;
 }
 
-.tg-green {
-  border-color: #16a34a;
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.tg-green .tdot {
-  background: #16a34a;
-}
-
-.tg-yellow {
-  border-color: #d97706;
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.tg-yellow .tdot {
-  background: #d97706;
-}
-
-.tg-red {
-  border-color: #dc2626;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.tg-red .tdot {
-  background: #dc2626;
-}
+.tg-green { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+.tg-green .tdot { background: #16a34a; }
+.tg-yellow { border-color: #d97706; background: #fffbeb; color: #b45309; }
+.tg-yellow .tdot { background: #d97706; }
+.tg-red { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+.tg-red .tdot { background: #dc2626; }
 
 .form-error {
   font-size: 12px;
@@ -2620,9 +2460,7 @@ tbody td {
   font-family: inherit;
 }
 
-.btn-cancel:hover {
-  background: #f8fafc;
-}
+.btn-cancel:hover { background: #f8fafc; }
 
 .btn-submit {
   display: flex;
@@ -2645,28 +2483,18 @@ tbody td {
   height: 14px;
 }
 
-.btn-submit:hover {
-  opacity: .9;
-}
+.btn-submit:hover { opacity: .9; }
 
-/* Transitions */
 .fade-enter-active,
-.fade-leave-active {
-  transition: opacity .22s ease;
-}
-
+.fade-leave-active { transition: opacity .22s ease; }
 .fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+.fade-leave-to { opacity: 0; }
 
 .slide-up-enter-active {
   transition: all .28s cubic-bezier(.34, 1.56, .64, 1);
 }
 
-.slide-up-leave-active {
-  transition: all .18s ease;
-}
+.slide-up-leave-active { transition: all .18s ease; }
 
 .slide-up-enter-from {
   opacity: 0;
@@ -2677,22 +2505,9 @@ tbody td {
   opacity: 0;
   transform: translateY(8px) scale(.98);
 }
-.page-btn.dots {
-  cursor: default;
-  border-color: transparent;
-  background: transparent;
-  color: #94a3b8;
-}
 
-.page-btn.dots:hover {
-  border-color: transparent;
-  color: #94a3b8;
-  background: transparent;
-}
 @media (max-width:1100px) {
-  .top-tables {
-    grid-template-columns: 1fr;
-  }
+  .top-tables { grid-template-columns: 1fr; }
 }
 
 @media (max-width:900px) {
@@ -2701,9 +2516,7 @@ tbody td {
     padding: 0 16px;
   }
 
-  .top-tables {
-    padding: 0 16px 14px;
-  }
+  .top-tables { padding: 0 16px 14px; }
 
   .bottom-grid {
     grid-template-columns: 1fr 1fr;
@@ -2722,18 +2535,11 @@ tbody td {
     padding-right: 16px;
   }
 
-  .action-row {
-    flex-wrap: wrap;
-  }
+  .action-row { flex-wrap: wrap; }
 }
 
 @media (max-width:640px) {
-  .bottom-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
 }
 </style>

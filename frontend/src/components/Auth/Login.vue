@@ -19,6 +19,9 @@ const showModal = (type, title, message, onConfirm = null) => {
 const loginGoogle = () => {
   window.location.href = 'http://127.0.0.1:8000/api/auth/google'
 }
+const loginFacebook = () => {
+  window.location.href = 'http://127.0.0.1:8000/api/auth/facebook'
+}
 
 const closeModal = () => {
   const cb = modal.value.onConfirm

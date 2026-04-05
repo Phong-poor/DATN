@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SanPham;
 use App\Models\BienThe;
+use App\Models\ThuocTinh;
 use App\Models\BienTheHinhAnh;
 use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
@@ -12,14 +13,89 @@ use Illuminate\Support\Str;
 
 class SanPhamController extends Controller
 {
-    public function index()
+    public function index(Request $request)
+{
+    $query = SanPham::with([
+        'danhMuc',
+        'thuongHieu',
+        'bienThes',
+        'hinhAnhs'
+    ])->orderByDesc('id_sanpham');
+
+    // Cấu hình các thuộc tính cần lọc dựa trên query params
+    $attributesToFilter = [
+        'ram' => 'ram',
+        'cpu' => 'cpu',
+        'gpu' => 'gpu',
+        'kichthuoc' => 'kích thước',
+        'dophan' => 'độ phân giải',
+        'tamnen' => 'tấm nền',
+        'pin' => 'pin',
+        'sac' => 'sạc'
+    ];
+
+    foreach ($attributesToFilter as $param => $jsonKey) {
+        if ($request->filled($param)) {
+            $values = explode(',', $request->$param);
+            $query->whereHas('bienThes', function ($q) use ($values) {
+                $q->where(function ($subQ) use ($values) {
+                    foreach ($values as $val) {
+                        $subQ->orWhere('thuoc_tinh_json', 'like', '%' . trim($val) . '%');
+                    }
+                });
+            });
+        }
+    }
+
+    $sanphams = $query->get();
+
+    return response()->json($sanphams);
+}
+
+    // Trả về danh sách các giá trị thuộc tính có trong DB (để populate sidebar)
+    public function attributeOptions()
     {
+        // Danh sách các ID thuộc tính cần thiết theo ảnh cung cấp:
+        // 1: RAM, 2: CPU, 3: GPU, 4: Kích thước, 5: Độ phân giải, 6: Tấm nền, 7: Pin, 8: Sạc
+        $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
+        
+        $options = \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
+            ->where('trangthai', 1)
+            ->orderBy('id_thuoctinh')
+            ->orderBy('giatri')
+            ->get()
+            ->groupBy('id_thuoctinh')
+            ->map(function ($items) {
+                return $items->pluck('giatri');
+            });
+
+        return response()->json([
+            'ram' => $options->get(1, []),
+            'cpu' => $options->get(2, []),
+            'gpu' => $options->get(3, []),
+            'kichthuoc' => $options->get(4, []),
+            'dophan' => $options->get(5, []),
+            'tamnen' => $options->get(6, []),
+            'pin' => $options->get(7, []),
+            'sac' => $options->get(8, [])
+        ]);
+    }
+
+    // ===== TÌM KIẾM SẢN PHẨM =====
+    public function search(Request $request)
+    {
+        $keyword = $request->query('q', '');
+
+        if (strlen(trim($keyword)) === 0) {
+            return response()->json([]);
+        }
+
         $sanphams = SanPham::with([
             'danhMuc',
             'thuongHieu',
-            'bienThes',
-            'hinhAnhs'
+            'bienThes'
         ])
+        ->where('tenSP', 'LIKE', "%{$keyword}%")
         ->orderByDesc('id_sanpham')
         ->get();
 
@@ -41,6 +117,9 @@ class SanPhamController extends Controller
             ], 404);
         }
 
+        // TỐI ƯU CỰC KỲ QUAN TRỌNG: Pre-load tất cả ThuocTinh 1 lần duy nhất thay vì query cho mỗi thuộc tính của mỗi biến thể (Lỗi N+1)
+        $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
+
         $result = [
             'id_sanpham' => $sanpham->id_sanpham,
             'tenSP' => $sanpham->tenSP,
@@ -48,6 +127,16 @@ class SanPhamController extends Controller
             'hinhanh' => $sanpham->hinhanh,
             'trangthai' => $sanpham->trangthai,
             'khoiluong' => $sanpham->khoiluong,
+
+            // thêm 2 dòng này
+            'id_danhmuc' => $sanpham->id_danhmuc,
+            'id_thuonghieu' => $sanpham->id_thuonghieu,
+
+            // thêm block này
+            'danh_muc' => $sanpham->danhMuc ? [
+                'id_danhmuc' => $sanpham->danhMuc->id_danhmuc,
+                'ten_danhmuc' => $sanpham->danhMuc->ten_danhmuc,
+            ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
                 'id_thuonghieu' => $sanpham->thuongHieu->id_thuonghieu,
@@ -61,13 +150,32 @@ class SanPhamController extends Controller
                 ];
             })->values(),
 
-            'bien_thes' => $sanpham->bienThes->map(function ($bt) {
+            'bien_thes' => $sanpham->bienThes->map(function ($bt) use ($allThuocTinhs) {
+                $thuocTinhJson = collect(json_decode($bt->thuoc_tinh_json ?? '[]', true))
+                    ->map(function ($item) use ($allThuocTinhs) {
+                        $idThuocTinh = $item['id_thuoctinh'] ?? null;
+                        $tenThuocTinh = $item['ten_thuoctinh'] ?? null;
+
+                        if (!$idThuocTinh && $tenThuocTinh) {
+                            $thuocTinh = $allThuocTinhs->get($tenThuocTinh);
+                            $idThuocTinh = $thuocTinh?->id_thuoctinh;
+                        }
+
+                        return [
+                            'id_thuoctinh' => $idThuocTinh,
+                            'ten_thuoctinh' => $tenThuocTinh,
+                            'giatri' => $item['giatri'] ?? null,
+                            'ma_mau' => $item['ma_mau'] ?? ($item['hex'] ?? null),
+                        ];
+                    })
+                    ->values();
+
                 return [
                     'id_bienthe' => $bt->id_bienthe,
                     'ten_bienthe' => $bt->ten_bienthe,
                     'gia' => $bt->gia,
                     'soluong' => $bt->soluong,
-                    'thuoc_tinh' => json_decode($bt->thuoc_tinh_json ?? '[]', true),
+                    'thuoc_tinh' => $thuocTinhJson,
                 ];
             })->values()
         ];

@@ -102,9 +102,14 @@ class ThuocTinhController extends Controller
     public function addGiaTri(Request $request)
     {
         $data = $request->validate([
-            'id_thuoctinh' => 'required|exists:thuoctinh,id_thuoctinh',
-            'giatri'       => 'required|string|max:255'
+            'id_thuoctinh'  => 'required|exists:thuoctinh,id_thuoctinh',
+            'giatri'        => 'required|string|max:255',
+            'gia_cong_them' => 'nullable|numeric|min:0',
+            'trangthai'     => 'nullable|boolean',
         ]);
+
+        $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
+        $data['trangthai'] = $data['trangthai'] ?? 1;
 
         return response()->json(
             GiaTriThuocTinh::create($data)
@@ -121,9 +126,14 @@ class ThuocTinhController extends Controller
     public function updateGiaTri(Request $request, $id)
     {
         $data = $request->validate([
-            'id_thuoctinh' => 'required|exists:thuoctinh,id_thuoctinh',
-            'giatri'       => 'required|string|max:255'
+            'id_thuoctinh'  => 'required|exists:thuoctinh,id_thuoctinh',
+            'giatri'        => 'required|string|max:255',
+            'gia_cong_them' => 'nullable|numeric|min:0',
+            'trangthai'     => 'nullable|boolean',
         ]);
+
+        $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
+        $data['trangthai'] = $data['trangthai'] ?? 1;
 
         $giaTri = GiaTriThuocTinh::findOrFail($id);
         $giaTri->update($data);
@@ -135,10 +145,31 @@ class ThuocTinhController extends Controller
     // lấy full data (phù hợp render 1 lần bên Vue)
     public function getAll()
     {
+        $nhoms = NhomThuocTinh::with([
+            'thuocTinhs.giatriThuocTinhs'
+        ])->get();
+
         return response()->json(
-            NhomThuocTinh::with([
-                'thuocTinhs.giatriThuocTinhs'
-            ])->get()
+            $nhoms->map(function ($group) {
+                return [
+                    'id_nhom' => $group->id_nhom,
+                    'ten_nhom' => $group->ten_nhom,
+                    'thuoc_tinhs' => $group->thuocTinhs->map(function ($attr) {
+                        return [
+                            'id_thuoctinh' => $attr->id_thuoctinh,
+                            'ten_thuoctinh' => $attr->ten_thuoctinh,
+                            'giatri_thuoc_tinhs' => $attr->giatriThuocTinhs->map(function ($gt) {
+                                return [
+                                    'id_giatri' => $gt->id_giatri,
+                                    'giatri' => $gt->giatri,
+                                    'gia_cong_them' => $gt->gia_cong_them ?? 0,
+                                    'trangthai' => $gt->trangthai ?? 1,
+                                ];
+                            })->values(),
+                        ];
+                    })->values(),
+                ];
+            })->values()
         );
     }
 }
