@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import * as XLSX from 'xlsx'
 
@@ -39,6 +39,17 @@ const attrs = ref([])
 const colors = ref([])
 const selectedColor = ref(null)
 
+// ── Filter ──
+const selectedAttribute = ref('')
+
+const filteredVariants = computed(() => {
+  if (!selectedAttribute.value) return variants.value
+  return variants.value.filter(item => item.type === selectedAttribute.value)
+})
+
+// Reset về trang 1 khi đổi filter
+watch(selectedAttribute, () => { variantPage.value = 1 })
+
 // ── Pagination ──
 const PER_PAGE = 6
 
@@ -66,7 +77,8 @@ const usePagination = (listRef, pageRef) => {
   return { total, totalPages, pagedData, from, to, goToPage, prevPage, nextPage }
 }
 
-const variantPagination = usePagination(variants, variantPage)
+// ← dùng filteredVariants thay vì variants
+const variantPagination = usePagination(filteredVariants, variantPage)
 const colorPagination = usePagination(colors, colorPage)
 const groupPagination = usePagination(groups, groupPage)
 const attrPagination = usePagination(attrs, attrPage)
@@ -264,7 +276,6 @@ const submitVariant = async () => {
     return
   }
 
-  // ── CHECK TRÙNG ──
   if (isDuplicateVariant(variantForm.value.name, variantForm.value.type, editingId)) {
     formError.value = `Biến thể "${variantForm.value.name}" đã tồn tại trong loại "${variantForm.value.type}".`
     return
@@ -283,7 +294,6 @@ const submitVariant = async () => {
         formError.value = 'Không tìm thấy ID biến thể để cập nhật.'
         return
       }
-
       await api.put(`/giatrithuoctinh/${editingId}`, payload)
     } else {
       await api.post('/giatrithuoctinh', payload)
@@ -301,13 +311,10 @@ const submitColor = async () => {
     formError.value = 'Vui lòng nhập tên màu.'
     return
   }
-
-  // ── CHECK TRÙNG ──
   if (isDuplicateColor(colorForm.value.name, editingId)) {
     formError.value = `Màu sắc "${colorForm.value.name}" đã tồn tại.`
     return
   }
-
   try {
     if (modalType.value === 'editColor') {
       await api.put(`/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
@@ -326,13 +333,10 @@ const submitGroup = async () => {
     formError.value = 'Vui lòng nhập tên nhóm.'
     return
   }
-
-  // ── CHECK TRÙNG ──
   if (isDuplicateGroup(groupForm.value.name, editingId)) {
     formError.value = `Nhóm thuộc tính "${groupForm.value.name}" đã tồn tại.`
     return
   }
-
   try {
     if (modalType.value === 'editGroup') {
       await api.put(`/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
@@ -361,13 +365,10 @@ const submitAttr = async () => {
     formError.value = 'Không tìm thấy nhóm thuộc tính tương ứng.'
     return
   }
-
-  // ── CHECK TRÙNG ──
   if (isDuplicateAttr(attrForm.value.name, attrForm.value.group, editingId)) {
     formError.value = `Thuộc tính "${attrForm.value.name}" đã tồn tại trong nhóm "${attrForm.value.group}".`
     return
   }
-
   try {
     if (modalType.value === 'editAttr') {
       await api.put(`/thuoctinh/${editingId}`, { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
@@ -536,10 +537,7 @@ async function handleImportFile(e) {
         if (isColorFile) {
           const name = String(obj['Tên màu'] || '').trim()
           if (!name) { skipCount++; continue }
-
-          // ── CHECK TRÙNG MÀU ──
           if (isDuplicateColor(name)) { skipCount++; continue }
-
           await api.post('/colors', {
             name,
             hex_code: String(obj['Mã màu (HEX)'] || '#000000').trim(),
@@ -548,13 +546,9 @@ async function handleImportFile(e) {
           const varName = String(obj['Tên biến thể'] || '').trim()
           const attrName = String(obj['Loại thuộc tính'] || '').trim()
           if (!varName || !attrName) { skipCount++; continue }
-
           const attr = attrs.value.find(a => a.name === attrName)
           if (!attr) { skipCount++; continue }
-
-          // ── CHECK TRÙNG BIẾN THỂ ──
           if (isDuplicateVariant(varName, attrName)) { skipCount++; continue }
-
           await api.post('/giatrithuoctinh', { id_thuoctinh: attr.id, giatri: varName })
         }
         successCount++
@@ -813,19 +807,31 @@ async function handleImportFile(e) {
         <div v-if="activeTab === 'Biến thể cấu hình'" class="card">
           <div class="card-header">
             <div class="card-title"><span class="bar blue"></span>Danh sách biến thể</div>
-            <div class="card-tools">
-              <button class="tool-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <line x1="4" y1="6" x2="20" y2="6" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                  <line x1="11" y1="18" x2="13" y2="18" />
+            <div class="card-header-right">
+              <!-- ── FILTER SELECT ── -->
+              <div class="filter-wrap">
+                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
-              </button>
-              <button class="tool-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M3 6h18M6 12h12M9 18h6" />
-                </svg>
-              </button>
+                <select v-model="selectedAttribute" class="filter-select">
+                  <option value="">Tất cả loại</option>
+                  <option v-for="opt in variantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+              <div class="card-tools">
+                <button class="tool-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                    <line x1="11" y1="18" x2="13" y2="18" />
+                  </svg>
+                </button>
+                <button class="tool-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M3 6h18M6 12h12M9 18h6" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <table>
@@ -845,25 +851,21 @@ async function handleImportFile(e) {
                 <td class="variant-name">{{ v.name }}</td>
                 <td>
                   <span class="type-badge"
-                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type
-                    }}</span>
+                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
                 </td>
                 <td>
-                  <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status
-                  }}</span>
+                  <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status }}</span>
                 </td>
                 <td>
                   <div class="actions">
                     <button class="act-btn" @click="openModal('editVariant', v)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
                     <button class="act-btn danger" @click="removeVariant(v.id)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                         <path d="M10 11v6M14 11v6" />
@@ -875,8 +877,7 @@ async function handleImportFile(e) {
             </tbody>
           </table>
           <div class="table-footer">
-            <span class="page-info">Hiển thị {{ variantPagination.from }}–{{ variantPagination.to }} / {{
-              variantPagination.total }}</span>
+            <span class="page-info">Hiển thị {{ variantPagination.from }}–{{ variantPagination.to }} / {{ variantPagination.total }}</span>
             <div class="pagination">
               <button class="page-btn" :disabled="variantPage === 1" @click="variantPagination.prevPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -918,15 +919,13 @@ async function handleImportFile(e) {
                 <td>
                   <div class="actions">
                     <button class="act-btn" @click.stop="openModal('editColor', c)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
                     <button class="act-btn danger" @click.stop="removeColor(c.id)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                         <path d="M10 11v6M14 11v6" />
@@ -938,8 +937,7 @@ async function handleImportFile(e) {
             </tbody>
           </table>
           <div class="table-footer">
-            <span class="page-info">Hiển thị {{ colorPagination.from }}–{{ colorPagination.to }} / {{
-              colorPagination.total }}</span>
+            <span class="page-info">Hiển thị {{ colorPagination.from }}–{{ colorPagination.to }} / {{ colorPagination.total }}</span>
             <div class="pagination">
               <button class="page-btn" :disabled="colorPage === 1" @click="colorPagination.prevPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1082,20 +1080,17 @@ async function handleImportFile(e) {
                 <div class="modal-header-left">
                   <div class="modal-icon"
                     :class="isEditModal ? 'icon-edit' : ['group', 'editGroup'].includes(modalType) ? 'icon-group' : ['attr', 'editAttr'].includes(modalType) ? 'icon-attr' : 'icon-add'">
-                    <svg v-if="['group', 'editGroup'].includes(modalType)" viewBox="0 0 24 24" fill="none"
-                      stroke="white" stroke-width="2">
+                    <svg v-if="['group', 'editGroup'].includes(modalType)" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                       <rect x="3" y="3" width="7" height="7" rx="1" />
                       <rect x="14" y="3" width="7" height="7" rx="1" />
                       <rect x="3" y="14" width="7" height="7" rx="1" />
                       <rect x="14" y="14" width="7" height="7" rx="1" />
                     </svg>
-                    <svg v-else-if="['attr', 'editAttr'].includes(modalType)" viewBox="0 0 24 24" fill="none"
-                      stroke="white" stroke-width="2">
+                    <svg v-else-if="['attr', 'editAttr'].includes(modalType)" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                       <line x1="7" y1="7" x2="7.01" y2="7" />
                     </svg>
-                    <svg v-else-if="['color', 'editColor'].includes(modalType)" viewBox="0 0 24 24" fill="none"
-                      stroke="white" stroke-width="2">
+                    <svg v-else-if="['color', 'editColor'].includes(modalType)" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                       <circle cx="13.5" cy="6.5" r="2.5" />
                       <circle cx="6.5" cy="12" r="2.5" />
                       <circle cx="13.5" cy="17.5" r="2.5" />
@@ -1529,6 +1524,57 @@ async function handleImportFile(e) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
+  gap: 10px;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── FILTER SELECT ── */
+.filter-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 9px;
+  width: 12px;
+  height: 12px;
+  color: #64748b;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.filter-select {
+  padding: 7px 30px 7px 28px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  min-width: 140px;
+}
+
+.filter-select:focus {
+  border-color: #2563eb;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.filter-select:hover {
+  border-color: #cbd5e1;
 }
 
 .card-title {
@@ -1547,21 +1593,10 @@ async function handleImportFile(e) {
   flex-shrink: 0;
 }
 
-.bar.blue {
-  background: #2563eb;
-}
-
-.bar.purple {
-  background: #7c3aed;
-}
-
-.bar.purple2 {
-  background: #9333ea;
-}
-
-.bar.green {
-  background: #16a34a;
-}
+.bar.blue { background: #2563eb; }
+.bar.purple { background: #7c3aed; }
+.bar.purple2 { background: #9333ea; }
+.bar.green { background: #16a34a; }
 
 .card-tools {
   display: flex;
@@ -1615,9 +1650,7 @@ async function handleImportFile(e) {
   color: #15803d;
 }
 
-.green-btn:hover {
-  background: #dcfce7;
-}
+.green-btn:hover { background: #dcfce7; }
 
 .purple-btn {
   border-color: #7c3aed;
@@ -1625,9 +1658,7 @@ async function handleImportFile(e) {
   color: #6d28d9;
 }
 
-.purple-btn:hover {
-  background: #ede9fe;
-}
+.purple-btn:hover { background: #ede9fe; }
 
 table {
   width: 100%;
@@ -1649,13 +1680,8 @@ tbody tr {
   transition: background .15s;
 }
 
-tbody tr:last-child {
-  border-bottom: none;
-}
-
-tbody tr:hover {
-  background: #fafbff;
-}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #fafbff; }
 
 tbody td {
   padding: 12px 12px;
@@ -1688,13 +1714,8 @@ tbody td {
   font-weight: 600;
 }
 
-.status-dot.active {
-  color: #16a34a;
-}
-
-.status-dot.draft {
-  color: #d97706;
-}
+.status-dot.active { color: #16a34a; }
+.status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
   width: 28px;
@@ -1743,26 +1764,12 @@ tbody td {
   height: 13px;
 }
 
-.green-icon {
-  background: #f0fdf4;
-}
+.green-icon { background: #f0fdf4; }
+.green-icon svg { stroke: #16a34a; }
+.purple-icon { background: #faf5ff; }
+.purple-icon svg { stroke: #7c3aed; }
 
-.green-icon svg {
-  stroke: #16a34a;
-}
-
-.purple-icon {
-  background: #faf5ff;
-}
-
-.purple-icon svg {
-  stroke: #7c3aed;
-}
-
-.actions {
-  display: flex;
-  gap: 5px;
-}
+.actions { display: flex; gap: 5px; }
 
 .act-btn {
   width: 28px;
@@ -1866,9 +1873,7 @@ tbody td {
   background: transparent;
 }
 
-.side-card {
-  padding: 16px;
-}
+.side-card { padding: 16px; }
 
 .side-header {
   display: flex;
@@ -1915,10 +1920,7 @@ tbody td {
   border: 1px solid transparent;
 }
 
-.color-row-item:hover {
-  background: #f8fafc;
-}
-
+.color-row-item:hover { background: #f8fafc; }
 .color-row-item.color-selected {
   background: #f0f6ff;
   border-color: #bfdbfe;
@@ -1932,11 +1934,7 @@ tbody td {
   border: 2px solid rgba(0, 0, 0, .08);
 }
 
-.color-info {
-  flex: 1;
-  min-width: 0;
-}
-
+.color-info { flex: 1; min-width: 0; }
 .color-info b {
   display: block;
   font-size: 12px;
@@ -1979,32 +1977,17 @@ tbody td {
   height: 10px;
 }
 
-.color-row-item:hover .color-del-btn {
-  opacity: 1;
-}
-
+.color-row-item:hover .color-del-btn { opacity: 1; }
 .color-del-btn:hover {
   background: #fee2e2;
   border-color: #fecaca;
   color: #ef4444;
 }
 
-.stock-ok {
-  color: #16a34a;
-  font-size: 12px;
-  font-weight: 600;
-}
+.stock-ok { color: #16a34a; font-size: 12px; font-weight: 600; }
+.stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
 
-.stock-out {
-  color: #dc2626;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.preview-card {
-  padding: 14px;
-}
-
+.preview-card { padding: 14px; }
 .preview-label {
   font-size: 9px;
   font-weight: 700;
@@ -2120,15 +2103,8 @@ tbody td {
   height: 18px;
 }
 
-.bottom-icon.blue {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.bottom-icon.purple {
-  background: #ede9fe;
-  color: #7c3aed;
-}
+.bottom-icon.blue { background: #dbeafe; color: #2563eb; }
+.bottom-icon.purple { background: #ede9fe; color: #7c3aed; }
 
 .bottom-card h4 {
   font-size: 13px;
@@ -2149,18 +2125,9 @@ tbody td {
   border-color: transparent;
 }
 
-.dark-bottom h4 {
-  color: white;
-}
-
-.dark-bottom p {
-  color: rgba(255, 255, 255, .7);
-}
-
-.white-icon {
-  background: rgba(255, 255, 255, .15);
-  color: white;
-}
+.dark-bottom h4 { color: white; }
+.dark-bottom p { color: rgba(255, 255, 255, .7); }
+.white-icon { background: rgba(255, 255, 255, .15); color: white; }
 
 .export-sm-btn {
   padding: 5px 12px;
@@ -2176,35 +2143,12 @@ tbody td {
   white-space: nowrap;
 }
 
-.export-sm-btn:hover:not(:disabled) {
-  background: #2563eb;
-  color: #fff;
-}
-
-.export-sm-btn:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.export-sm-btn.purple-sm {
-  border-color: #7c3aed;
-  color: #7c3aed;
-}
-
-.export-sm-btn.purple-sm:hover {
-  background: #7c3aed;
-  color: #fff;
-}
-
-.export-sm-btn.green-sm {
-  border-color: #16a34a;
-  color: #16a34a;
-}
-
-.export-sm-btn.green-sm:hover:not(:disabled) {
-  background: #16a34a;
-  color: #fff;
-}
+.export-sm-btn:hover:not(:disabled) { background: #2563eb; color: #fff; }
+.export-sm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.export-sm-btn.purple-sm { border-color: #7c3aed; color: #7c3aed; }
+.export-sm-btn.purple-sm:hover { background: #7c3aed; color: #fff; }
+.export-sm-btn.green-sm { border-color: #16a34a; color: #16a34a; }
+.export-sm-btn.green-sm:hover:not(:disabled) { background: #16a34a; color: #fff; }
 
 .modal-overlay {
   position: fixed;
@@ -2260,21 +2204,10 @@ tbody td {
   height: 17px;
 }
 
-.icon-add {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-}
-
-.icon-edit {
-  background: linear-gradient(135deg, #f59e0b, #f97316);
-}
-
-.icon-group {
-  background: linear-gradient(135deg, #16a34a, #059669);
-}
-
-.icon-attr {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-}
+.icon-add { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+.icon-edit { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.icon-group { background: linear-gradient(135deg, #16a34a, #059669); }
+.icon-attr { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
 
 .modal-title {
   font-size: 15px;
@@ -2314,9 +2247,7 @@ tbody td {
   border-color: #fecaca;
 }
 
-.modal-close:hover svg {
-  stroke: #ef4444;
-}
+.modal-close:hover svg { stroke: #ef4444; }
 
 .modal-body {
   padding: 18px 22px;
@@ -2352,9 +2283,7 @@ tbody td {
   letter-spacing: .08em;
 }
 
-.req {
-  color: #ef4444;
-}
+.req { color: #ef4444; }
 
 .form-group input,
 .form-group select,
@@ -2441,13 +2370,8 @@ tbody td {
   border: 1px solid #e8ecf4;
 }
 
-.green-preview {
-  background: #f0fdf4;
-}
-
-.purple-preview {
-  background: #faf5ff;
-}
+.green-preview { background: #f0fdf4; }
+.purple-preview { background: #faf5ff; }
 
 .prev-icon {
   width: 42px;
@@ -2464,13 +2388,8 @@ tbody td {
   height: 19px;
 }
 
-.purple-icon-prev {
-  background: #ede9fe;
-}
-
-.purple-icon-prev svg {
-  stroke: #7c3aed;
-}
+.purple-icon-prev { background: #ede9fe; }
+.purple-icon-prev svg { stroke: #7c3aed; }
 
 .prev-name {
   font-size: 14px;
@@ -2484,10 +2403,7 @@ tbody td {
   color: #64748b;
 }
 
-.toggle-group {
-  display: flex;
-  gap: 6px;
-}
+.toggle-group { display: flex; gap: 6px; }
 
 .toggle-btn {
   flex: 1;
@@ -2516,35 +2432,12 @@ tbody td {
   transition: background .15s;
 }
 
-.tg-green {
-  border-color: #16a34a;
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-.tg-green .tdot {
-  background: #16a34a;
-}
-
-.tg-yellow {
-  border-color: #d97706;
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.tg-yellow .tdot {
-  background: #d97706;
-}
-
-.tg-red {
-  border-color: #dc2626;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.tg-red .tdot {
-  background: #dc2626;
-}
+.tg-green { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+.tg-green .tdot { background: #16a34a; }
+.tg-yellow { border-color: #d97706; background: #fffbeb; color: #b45309; }
+.tg-yellow .tdot { background: #d97706; }
+.tg-red { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+.tg-red .tdot { background: #dc2626; }
 
 .form-error {
   font-size: 12px;
@@ -2567,9 +2460,7 @@ tbody td {
   font-family: inherit;
 }
 
-.btn-cancel:hover {
-  background: #f8fafc;
-}
+.btn-cancel:hover { background: #f8fafc; }
 
 .btn-submit {
   display: flex;
@@ -2592,27 +2483,18 @@ tbody td {
   height: 14px;
 }
 
-.btn-submit:hover {
-  opacity: .9;
-}
+.btn-submit:hover { opacity: .9; }
 
 .fade-enter-active,
-.fade-leave-active {
-  transition: opacity .22s ease;
-}
-
+.fade-leave-active { transition: opacity .22s ease; }
 .fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+.fade-leave-to { opacity: 0; }
 
 .slide-up-enter-active {
   transition: all .28s cubic-bezier(.34, 1.56, .64, 1);
 }
 
-.slide-up-leave-active {
-  transition: all .18s ease;
-}
+.slide-up-leave-active { transition: all .18s ease; }
 
 .slide-up-enter-from {
   opacity: 0;
@@ -2625,9 +2507,7 @@ tbody td {
 }
 
 @media (max-width:1100px) {
-  .top-tables {
-    grid-template-columns: 1fr;
-  }
+  .top-tables { grid-template-columns: 1fr; }
 }
 
 @media (max-width:900px) {
@@ -2636,9 +2516,7 @@ tbody td {
     padding: 0 16px;
   }
 
-  .top-tables {
-    padding: 0 16px 14px;
-  }
+  .top-tables { padding: 0 16px 14px; }
 
   .bottom-grid {
     grid-template-columns: 1fr 1fr;
@@ -2657,18 +2535,11 @@ tbody td {
     padding-right: 16px;
   }
 
-  .action-row {
-    flex-wrap: wrap;
-  }
+  .action-row { flex-wrap: wrap; }
 }
 
 @media (max-width:640px) {
-  .bottom-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
 }
 </style>

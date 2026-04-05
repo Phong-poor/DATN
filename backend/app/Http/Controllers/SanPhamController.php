@@ -13,18 +13,72 @@ use Illuminate\Support\Str;
 
 class SanPhamController extends Controller
 {
-    public function index()
-    {
-        $sanphams = SanPham::with([
-            'danhMuc',
-            'thuongHieu',
-            'bienThes'
-            // Đã bỏ hinhAnhs ra khỏi get() vì API danh sách (Products.vue, Producpage.vue) không dùng mảng hinh_anhs phụ, giúp JSON trả về nhẹ hơn 50%.
-        ])
-        ->orderByDesc('id_sanpham')
-        ->get();
+    public function index(Request $request)
+{
+    $query = SanPham::with([
+        'danhMuc',
+        'thuongHieu',
+        'bienThes',
+        'hinhAnhs'
+    ])->orderByDesc('id_sanpham');
 
-        return response()->json($sanphams);
+    // Cấu hình các thuộc tính cần lọc dựa trên query params
+    $attributesToFilter = [
+        'ram' => 'ram',
+        'cpu' => 'cpu',
+        'gpu' => 'gpu',
+        'kichthuoc' => 'kích thước',
+        'dophan' => 'độ phân giải',
+        'tamnen' => 'tấm nền',
+        'pin' => 'pin',
+        'sac' => 'sạc'
+    ];
+
+    foreach ($attributesToFilter as $param => $jsonKey) {
+        if ($request->filled($param)) {
+            $values = explode(',', $request->$param);
+            $query->whereHas('bienThes', function ($q) use ($values) {
+                $q->where(function ($subQ) use ($values) {
+                    foreach ($values as $val) {
+                        $subQ->orWhere('thuoc_tinh_json', 'like', '%' . trim($val) . '%');
+                    }
+                });
+            });
+        }
+    }
+
+    $sanphams = $query->get();
+
+    return response()->json($sanphams);
+}
+
+    // Trả về danh sách các giá trị thuộc tính có trong DB (để populate sidebar)
+    public function attributeOptions()
+    {
+        // Danh sách các ID thuộc tính cần thiết theo ảnh cung cấp:
+        // 1: RAM, 2: CPU, 3: GPU, 4: Kích thước, 5: Độ phân giải, 6: Tấm nền, 7: Pin, 8: Sạc
+        $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
+        
+        $options = \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
+            ->where('trangthai', 1)
+            ->orderBy('id_thuoctinh')
+            ->orderBy('giatri')
+            ->get()
+            ->groupBy('id_thuoctinh')
+            ->map(function ($items) {
+                return $items->pluck('giatri');
+            });
+
+        return response()->json([
+            'ram' => $options->get(1, []),
+            'cpu' => $options->get(2, []),
+            'gpu' => $options->get(3, []),
+            'kichthuoc' => $options->get(4, []),
+            'dophan' => $options->get(5, []),
+            'tamnen' => $options->get(6, []),
+            'pin' => $options->get(7, []),
+            'sac' => $options->get(8, [])
+        ]);
     }
 
     // ===== TÌM KIẾM SẢN PHẨM =====

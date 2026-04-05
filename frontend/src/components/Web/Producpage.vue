@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
@@ -9,77 +9,275 @@ const thongBao = ref('')
 const router = useRouter()
 const route = useRoute()
 
-const selectedBrands = ref(['Apple'])
-const selectedSort = ref('Mới nhất')
-
-const brands = ['Apple', 'ASUS', 'Dell', 'HP', 'Lenovo', 'MSI']
-
-const toggleBrand = (b) => {
-    const idx = selectedBrands.value.indexOf(b)
-    if (idx === -1) selectedBrands.value.push(b)
-    else selectedBrands.value.splice(idx, 1)
-}
-
+// ===================== STATE =====================
 const products = ref([])
+const categories = ref([])
+const brands = ref([])
+const isLoading = ref(true)
 
-const fetchProducts = async () => {
-    try {
-        const q = route.query.q
+// Filters State
+const selectedCategories = ref([])
+const selectedBrands = ref([])
+const selectedRAMs = ref([])
+const selectedCPUs = ref([])
+const selectedGPUs = ref([])
+const selectedKichThuoc = ref([])
+const selectedDoPhanGiai = ref([])
+const selectedTamNen = ref([])
+const selectedPin = ref([])
+const selectedSac = ref([])
 
-        // Nếu có từ khóa → gọi API search, không thì gọi API danh sách
-        const url = q ? `/sanpham/search?q=${encodeURIComponent(q)}` : '/sanpham'
-        const response = await api.get(url)
+const attrOptions = ref({
+    ram: [], cpu: [], gpu: [], kichthuoc: [], 
+    dophan: [], tamnen: [], pin: [], sac: []
+})
 
-        products.value = response.data.map(p => ({
+// Collapse
+const collapsed = ref({
+    danhmuc: false,
+    thuonghieu: false,
+    ram: true,
+    cpu: true,
+    gpu: true,
+    kichthuoc: true,
+    dophan: true,
+    tamnen: true,
+    pin: true,
+    sac: true,
+    gia: true
+})
+
+const selectedPriceRange = ref('')
+const selectedSort = ref('newest')
+
+// ===================== MAP PRODUCTS =====================
+const mapProducts = (rawProducts) => {
+    const productVariants = rawProducts.map(p => {
+        if (!p.bien_thes || p.bien_thes.length === 0) {
+            return [{
+                id: p.id_sanpham,
+                key_id: String(p.id_sanpham),
+                name: p.tenSP,
+                id_danhmuc: String(p.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu || '',
+                weight: p.khoiluong,
+                priceNum: 0,
+                oldPriceNum: 0,
+                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
+                badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
+            }]
+        }
+
+        return p.bien_thes.map(bt => ({
             id: p.id_sanpham,
+            key_id: String(bt.id_bienthe),
             name: p.tenSP,
-            brand: `${p.thuong_hieu?.ten_thuonghieu || p.thuongHieu?.ten_thuonghieu || ''} ${p.khoiluong ? '· ' + p.khoiluong + 'kg' : ''}`,
-            price: new Intl.NumberFormat('vi-VN').format(
-                p.bien_thes?.[0]?.gia || p.bienThes?.[0]?.gia || 0
-            ) + 'đ',
-            id_bienthe: p.bien_thes?.[0]?.id_bienthe || p.bienThes?.[0]?.id_bienthe || null,
-            oldPrice: '',
+            id_danhmuc: String(p.id_danhmuc || ''),
+            id_thuonghieu: String(p.id_thuonghieu || ''),
+            brandName: p.thuong_hieu?.ten_thuonghieu || '',
+            weight: p.khoiluong,
+            priceNum: bt.gia || 0,
+            oldPriceNum: bt.gia_khuyen_mai || 0,
             img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
             badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
             badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
         }))
+    })
+
+    return productVariants.flat()
+}
+
+// ===================== FETCH PRODUCTS =====================
+const fetchProducts = async () => {
+    try {
+        const q = route.query.q
+        const url = q 
+            ? `/sanpham/search?q=${encodeURIComponent(q)}`
+            : '/sanpham'
+
+        const res = await api.get(url)
+        const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
+        products.value = mapProducts(raw)
+
     } catch (error) {
-        console.error('Lỗi khi tải sản phẩm:', error)
+        console.error(error)
     }
 }
 
-onMounted(() => {
-    fetchProducts()
+// ===================== LOAD FILTER =====================
+const loadFilterData = async () => {
+    try {
+        const [catRes, brandRes, attrRes] = await Promise.all([
+            api.get('/danhmuc'),
+            api.get('/thuonghieu'),
+            api.get('/sanpham/attribute-options')
+        ])
+
+        categories.value = catRes.data?.data || catRes.data || []
+        brands.value = brandRes.data?.data || brandRes.data || []
+        attrOptions.value = attrRes.data || attrOptions.value
+
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+// ===================== FILTER + PAGINATION =====================
+const filteredProducts = ref([])
+const currentPage = ref(1)
+const itemsPerPage = 15
+
+const displayedProducts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    return filteredProducts.value.slice(start, start + itemsPerPage)
 })
 
-// Khi từ khóa thay đổi thì fetch lại
-watch(() => route.query.q, () => {
-    fetchProducts()
+const totalPages = computed(() =>
+    Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage))
+)
+
+const applyFilters = async () => {
+    try {
+        // backend filter (chỉ khi không search)
+        if (!route.query.q) {
+            const params = {}
+
+            if (selectedRAMs.value.length) params.ram = selectedRAMs.value.join(',')
+            if (selectedCPUs.value.length) params.cpu = selectedCPUs.value.join(',')
+            if (selectedGPUs.value.length) params.gpu = selectedGPUs.value.join(',')
+
+            const res = await api.get('/sanpham', { params })
+            const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
+            products.value = mapProducts(raw)
+        }
+
+        let result = [...products.value]
+
+        if (selectedCategories.value.length) {
+            result = result.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
+        }
+
+        if (selectedBrands.value.length) {
+            result = result.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
+        }
+
+        if (selectedPriceRange.value === 'under20') {
+            result = result.filter(p => p.priceNum < 20000000)
+        } else if (selectedPriceRange.value === '20to50') {
+            result = result.filter(p => p.priceNum <= 50000000)
+        } else if (selectedPriceRange.value === 'above50') {
+            result = result.filter(p => p.priceNum > 50000000)
+        }
+
+        if (selectedSort.value === 'price_asc') {
+            result.sort((a, b) => a.priceNum - b.priceNum)
+        } else if (selectedSort.value === 'price_desc') {
+            result.sort((a, b) => b.priceNum - a.priceNum)
+        }
+
+        filteredProducts.value = result
+        currentPage.value = 1
+
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+// ===================== WATCH =====================
+watch(() => route.query.q, async () => {
+    isLoading.value = true
+    await fetchProducts()
+    applyFilters()
+    isLoading.value = false
 })
 
+watch([
+    selectedCategories,
+    selectedBrands,
+    selectedRAMs,
+    selectedCPUs,
+    selectedGPUs,
+    selectedKichThuoc,
+    selectedDoPhanGiai,
+    selectedTamNen,
+    selectedPin,
+    selectedSac,
+    selectedPriceRange,
+    selectedSort
+], applyFilters)
+
+// ===================== WISHLIST =====================
 const themVaoYeuThich = async (product) => {
     const token = localStorage.getItem('token')
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm vào yêu thích!')
+        alert('Vui lòng đăng nhập!')
         router.push('/login')
         return
     }
 
-    if (!product.id_bienthe) {
-        alert('Sản phẩm này chưa có biến thể, không thể thêm!')
-        return
-    }
-
     try {
-        await api.post('/yeu-thich/them', {
-            id_bienthe: product.id_bienthe,
-            soluong: 1
+        await api.post('/yeuthich', {
+            id_sanpham: product.id
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
         })
-        alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+
+        alert(`Đã thêm ${product.name} ❤️`)
         window.dispatchEvent(new Event('wishlist-updated'))
+
     } catch (err) {
-        alert(err.response?.data?.message || 'Có lỗi xảy ra!')
+        alert('Có lỗi xảy ra!')
     }
+}
+
+// ===================== INIT =====================
+onMounted(async () => {
+    isLoading.value = true
+    await Promise.all([
+        fetchProducts(),
+        loadFilterData()
+    ])
+    applyFilters()
+    isLoading.value = false
+})
+
+// ===================== HELPERS =====================
+const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'đ'
+
+const toggleList = (listType, item) => {
+    const val = String(item)
+    let target = []
+    if (listType === 'cat') target = selectedCategories
+    else if (listType === 'brand') target = selectedBrands
+    else if (listType === 'ram') target = selectedRAMs
+    else if (listType === 'cpu') target = selectedCPUs
+    else if (listType === 'gpu') target = selectedGPUs
+    else if (listType === 'kichthuoc') target = selectedKichThuoc
+    else if (listType === 'dophan') target = selectedDoPhanGiai
+    else if (listType === 'tamnen') target = selectedTamNen
+    else if (listType === 'pin') target = selectedPin
+    else if (listType === 'sac') target = selectedSac
+
+    const idx = target.value.indexOf(val)
+    if (idx === -1) target.value.push(val)
+    else target.value.splice(idx, 1)
+}
+
+const clearAll = () => {
+    selectedCategories.value = []
+    selectedBrands.value = []
+    selectedRAMs.value = []
+    selectedCPUs.value = []
+    selectedGPUs.value = []
+    selectedKichThuoc.value = []
+    selectedDoPhanGiai.value = []
+    selectedTamNen.value = []
+    selectedPin.value = []
+    selectedSac.value = []
+    selectedPriceRange.value = ''
+    applyFilters()
 }
 </script>
 
@@ -99,54 +297,233 @@ const themVaoYeuThich = async (product) => {
                     <h3>Bộ lọc sản phẩm</h3>
                 </div>
 
+                <!-- DANH MỤC -->
                 <div class="filter-group">
-                    <p class="group-label">Danh mục</p>
-                    <label class="check-label" v-for="c in ['Gaming', 'Văn phòng', 'Cao cấp']" :key="c">
-                        <input type="checkbox" />
-                        <span class="checkmark"></span>
-                        {{ c }}
-                    </label>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="filter-group">
-                    <p class="group-label">Thương hiệu</p>
-                    <div class="brands">
-                        <span v-for="b in brands" :key="b" class="brand-tag"
-                            :class="{ active: selectedBrands.includes(b) }" @click="toggleBrand(b)">{{ b }}</span>
+                    <div class="filter-group-header" @click="collapsed.danhmuc = !collapsed.danhmuc">
+                        <p class="group-label">Danh mục</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.danhmuc }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.danhmuc }">
+                        <div v-if="categories.length === 0" class="loading-small">Đang tải...</div>
+                        <label class="check-label" v-for="c in categories" :key="c.id_danhmuc">
+                            <input type="checkbox" :checked="selectedCategories.includes(String(c.id_danhmuc))" 
+                                   @change="toggleList('cat', c.id_danhmuc)" />
+                            <span class="checkmark"></span>
+                            {{ c.ten_danhmuc }}
+                        </label>
                     </div>
                 </div>
 
                 <div class="divider"></div>
 
+                <!-- THƯƠNG HIỆU -->
                 <div class="filter-group">
-                    <p class="group-label">RAM</p>
-                    <label class="check-label" v-for="r in ['16GB', '32GB', '64GB']" :key="r">
-                        <input type="checkbox" />
-                        <span class="checkmark"></span>
-                        {{ r }}
-                    </label>
+                    <div class="filter-group-header" @click="collapsed.thuonghieu = !collapsed.thuonghieu">
+                        <p class="group-label">Thương hiệu</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.thuonghieu }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.thuonghieu }">
+                        <div v-if="brands.length === 0" class="loading-small">Đang tải...</div>
+                        <div class="brands">
+                            <span v-for="b in brands" :key="b.id_thuonghieu" class="brand-tag"
+                                :class="{ active: selectedBrands.includes(String(b.id_thuonghieu)) }"
+                                @click="toggleList('brand', b.id_thuonghieu)">
+                                {{ b.ten_thuonghieu === 'Levono' ? 'Lenovo' : b.ten_thuonghieu }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="divider"></div>
 
+                <!-- RAM -->
+                <div class="filter-group" v-if="attrOptions.ram.length > 0">
+                    <div class="filter-group-header" @click="collapsed.ram = !collapsed.ram">
+                        <p class="group-label">RAM</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.ram }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.ram }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.ram" :key="r" class="attr-tag"
+                                :class="{ active: selectedRAMs.includes(r) }"
+                                @click="toggleList('ram', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+
+                <!-- CPU -->
+                <div class="filter-group" v-if="attrOptions.cpu.length > 0">
+                    <div class="filter-group-header" @click="collapsed.cpu = !collapsed.cpu">
+                        <p class="group-label">CPU</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.cpu }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.cpu }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.cpu" :key="r" class="attr-tag"
+                                :class="{ active: selectedCPUs.includes(r) }"
+                                @click="toggleList('cpu', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.cpu.length > 0"></div>
+
+                <!-- GPU -->
+                <div class="filter-group" v-if="attrOptions.gpu.length > 0">
+                    <div class="filter-group-header" @click="collapsed.gpu = !collapsed.gpu">
+                        <p class="group-label">GPU</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.gpu }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.gpu }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.gpu" :key="r" class="attr-tag"
+                                :class="{ active: selectedGPUs.includes(r) }"
+                                @click="toggleList('gpu', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.gpu.length > 0"></div>
+
+                <!-- Kích thước -->
+                <div class="filter-group" v-if="attrOptions.kichthuoc.length > 0">
+                    <div class="filter-group-header" @click="collapsed.kichthuoc = !collapsed.kichthuoc">
+                        <p class="group-label">Kích thước</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.kichthuoc }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.kichthuoc }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.kichthuoc" :key="r" class="attr-tag"
+                                :class="{ active: selectedKichThuoc.includes(r) }"
+                                @click="toggleList('kichthuoc', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.kichthuoc.length > 0"></div>
+
+                <!-- Độ phân giải -->
+                <div class="filter-group" v-if="attrOptions.dophan.length > 0">
+                    <div class="filter-group-header" @click="collapsed.dophan = !collapsed.dophan">
+                        <p class="group-label">Độ phân giải</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.dophan }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.dophan }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.dophan" :key="r" class="attr-tag"
+                                :class="{ active: selectedDoPhanGiai.includes(r) }"
+                                @click="toggleList('dophan', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.dophan.length > 0"></div>
+
+                <!-- Tấm nền -->
+                <div class="filter-group" v-if="attrOptions.tamnen.length > 0">
+                    <div class="filter-group-header" @click="collapsed.tamnen = !collapsed.tamnen">
+                        <p class="group-label">Tấm nền</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.tamnen }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.tamnen }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.tamnen" :key="r" class="attr-tag"
+                                :class="{ active: selectedTamNen.includes(r) }"
+                                @click="toggleList('tamnen', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.tamnen.length > 0"></div>
+
+                <!-- Pin -->
+                <div class="filter-group" v-if="attrOptions.pin.length > 0">
+                    <div class="filter-group-header" @click="collapsed.pin = !collapsed.pin">
+                        <p class="group-label">PIN</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.pin }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.pin }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.pin" :key="r" class="attr-tag"
+                                :class="{ active: selectedPin.includes(r) }"
+                                @click="toggleList('pin', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.pin.length > 0"></div>
+
+                <!-- Sạc -->
+                <div class="filter-group" v-if="attrOptions.sac.length > 0">
+                    <div class="filter-group-header" @click="collapsed.sac = !collapsed.sac">
+                        <p class="group-label">SẠC</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.sac }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.sac }">
+                        <div class="attr-tags">
+                            <span v-for="r in attrOptions.sac" :key="r" class="attr-tag"
+                                :class="{ active: selectedSac.includes(r) }"
+                                @click="toggleList('sac', r)">{{ r }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="divider" v-if="attrOptions.sac.length > 0"></div>
+
+                <!-- Lọc Theo Giá -->
                 <div class="filter-group">
-                    <p class="group-label">Khoảng giá</p>
-                    <label class="check-label" v-for="g in ['Dưới 20 triệu', '20 – 50 triệu', 'Trên 50 triệu']"
-                        :key="g">
-                        <input type="radio" name="price" />
-                        <span class="checkmark"></span>
-                        {{ g }}
-                    </label>
+                    <div class="filter-group-header" @click="collapsed.gia = !collapsed.gia">
+                        <p class="group-label">Mức giá</p>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.gia }" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapse-body" :class="{ closed: collapsed.gia }">
+                        <label class="check-label">
+                            <input type="radio" name="price" value="" v-model="selectedPriceRange" />
+                            <span class="checkmark radio"></span> Tất cả
+                        </label>
+                        <label class="check-label">
+                            <input type="radio" name="price" value="under20" v-model="selectedPriceRange" />
+                            <span class="checkmark radio"></span> Dưới 20.000.000đ
+                        </label>
+                        <label class="check-label">
+                            <input type="radio" name="price" value="20to50" v-model="selectedPriceRange" />
+                            <span class="checkmark radio"></span> Từ 20 - 50.000.000đ
+                        </label>
+                        <label class="check-label">
+                            <input type="radio" name="price" value="above50" v-model="selectedPriceRange" />
+                            <span class="checkmark radio"></span> Trên 50.000.000đ
+                        </label>
+                    </div>
                 </div>
 
-                <button class="apply-btn">
+                <div class="divider"></div>
+
+                <button class="apply-btn" @click="applyFilters">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round">
                         <polyline points="20 6 9 17 4 12" />
                     </svg>
                     Áp dụng bộ lọc
+                </button>
+
+                <button class="reset-link" @click="clearAll">
+                    Xóa tất cả bộ lọc
                 </button>
             </aside>
 
@@ -161,23 +538,15 @@ const themVaoYeuThich = async (product) => {
                                 : 'Danh sách Laptop' }}
                         </h1>
                         <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
+                        <h1>Danh sách Laptop</h1>
+                        <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
+                        <p v-else>Đang tìm kiếm sản phẩm...</p>
                     </div>
+                </div>
 
-                    <div class="sort-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round">
-                            <path d="M3 6h18M6 12h12M9 18h6" />
-                        </svg>
-                        <select v-model="selectedSort">
-                            <option>Mới nhất</option>
-                            <option>Giá thấp → cao</option>
-                            <option>Giá cao → thấp</option>
-                            <option>Phổ biến nhất</option>
-                        </select>
-                        <svg class="chevron" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" />
-                        </svg>
-                    </div>
+                <!-- LOADING STATE -->
+                <div v-if="isLoading" class="loading-grid">
+                    <div class="skeleton-card" v-for="i in 6" :key="i"></div>
                 </div>
 
                 <!-- Không có kết quả -->
@@ -191,22 +560,23 @@ const themVaoYeuThich = async (product) => {
                 </div>
 
                 <!-- GRID -->
-                <div class="grid" v-else>
-                    <div class="card" v-for="(p, i) in products" :key="p.id || i">
+                <div class="grid" v-else-if="displayedProducts.length > 0">
+                    <div class="card" v-for="p in displayedProducts" :key="p.key_id">
 
                         <span v-if="p.badge" class="badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
 
-                        <div class="img-box">
+                        <div class="img-box" @click="router.push(`/products/${p.id}`)">
                             <img :src="p.img" :alt="p.name" />
                         </div>
 
                         <div class="card-body">
-                            <h3>{{ p.name }}</h3>
-                            <p class="brand-txt">{{ p.brand }}</p>
+                            <h3 @click="router.push(`/products/${p.id}`)">{{ p.name }}</h3>
+                            <p class="brand-txt">{{ p.brandName }} {{ p.weight ? '· ' + p.weight + 'kg' : '' }}</p>
 
                             <div class="price-row">
-                                <span class="price">{{ p.price }}</span>
-                                <span v-if="p.oldPrice" class="old-price">{{ p.oldPrice }}</span>
+                                <span class="price" v-if="p.priceNum > 0">{{ formatPrice(p.priceNum) }}</span>
+                                <span class="price" v-else>Liên hệ</span>
+                                <span v-if="p.oldPriceNum > p.priceNum" class="old-price">{{ formatPrice(p.oldPriceNum) }}</span>
                             </div>
 
                             <div class="card-actions">
@@ -232,15 +602,28 @@ const themVaoYeuThich = async (product) => {
                     </div>
                 </div>
 
-                <!-- PAGINATION (ẩn khi đang search) -->
-                <div class="pagination" v-if="!route.query.q">
-                    <button class="pg-btn">‹</button>
-                    <button class="pg-btn active">1</button>
-                    <button class="pg-btn">2</button>
-                    <button class="pg-btn">3</button>
-                    <span class="pg-dots">...</span>
-                    <button class="pg-btn">12</button>
-                    <button class="pg-btn">›</button>
+                <!-- EMPTY STATE -->
+                <div v-else class="empty-state">
+                    <h3>Không tìm thấy sản phẩm nào</h3>
+                    <button @click="clearAll">Xóa bộ lọc</button>
+                </div>
+
+                <!-- PAGINATION -->
+                <div class="pagination" v-if="totalPages > 1">
+                    <button class="pg-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+                        &laquo;
+                    </button>
+                    <button 
+                        v-for="page in visiblePages" 
+                        :key="page"
+                        class="pg-btn" 
+                        :class="{ active: currentPage === page }"
+                        @click="changePage(page)">
+                        {{ page }}
+                    </button>
+                    <button class="pg-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+                        &raquo;
+                    </button>
                 </div>
 
             </main>
@@ -252,9 +635,7 @@ const themVaoYeuThich = async (product) => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 .page {
     font-family: 'Inter', sans-serif;
@@ -263,16 +644,8 @@ const themVaoYeuThich = async (product) => {
     min-height: 100vh;
 }
 
-.container {
-    width: min(1200px, 95%);
-    margin: auto;
-}
-
-.layout {
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
-}
+.container { width: min(1200px, 95%); margin: auto; }
+.layout { display: flex; gap: 24px; align-items: flex-start; }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
@@ -287,33 +660,11 @@ const themVaoYeuThich = async (product) => {
     top: 20px;
 }
 
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-}
+.sidebar-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+.sidebar-header svg { width: 16px; height: 16px; color: #2563eb; }
+.sidebar-header h3 { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0; }
 
-.sidebar-header svg {
-    width: 16px;
-    height: 16px;
-    color: #2563eb;
-}
-
-.sidebar-header h3 {
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0;
-}
-
-.divider {
-    height: 1px;
-    background: #f1f5f9;
-    margin: 16px 0;
-}
-
-.filter-group {}
+.divider { height: 1px; background: #f1f5f9; margin: 16px 0; }
 
 .group-label {
     font-size: 10px;
@@ -321,7 +672,43 @@ const themVaoYeuThich = async (product) => {
     color: #94a3b8;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    margin: 0 0 10px;
+    margin: 0;
+}
+
+/* Dropdown header */
+.filter-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 6px 0;
+    user-select: none;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+.filter-group-header:hover { background: #f8fafc; }
+
+.arrow-icon {
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+.arrow-icon.rotated { transform: rotate(-90deg); }
+
+/* Collapse animation */
+.collapse-body {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+    opacity: 1;
+    margin-bottom: 6px;
+}
+.collapse-body.closed {
+    max-height: 0;
+    opacity: 0;
 }
 
 .check-label {
@@ -335,9 +722,7 @@ const themVaoYeuThich = async (product) => {
     user-select: none;
 }
 
-.check-label input {
-    display: none;
-}
+.check-label input { display: none; }
 
 .checkmark {
     width: 16px;
@@ -352,11 +737,7 @@ const themVaoYeuThich = async (product) => {
     justify-content: center;
 }
 
-.check-label input:checked~.checkmark {
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
+.check-label input:checked~.checkmark { background: #2563eb; border-color: #2563eb; }
 .check-label input:checked~.checkmark::after {
     content: '';
     width: 8px;
@@ -367,11 +748,7 @@ const themVaoYeuThich = async (product) => {
     display: block;
 }
 
-.brands {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
+.brands { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .brand-tag {
     padding: 5px 12px;
@@ -384,17 +761,18 @@ const themVaoYeuThich = async (product) => {
     transition: all 0.2s;
 }
 
-.brand-tag:hover {
-    border-color: #2563eb;
-    color: #2563eb;
-    background: #f0f6ff;
-}
+.brand-tag:hover { border-color: #2563eb; color: #2563eb; background: #f0f6ff; }
+.brand-tag.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
 
-.brand-tag.active {
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-    color: white;
-    border-color: transparent;
+.attr-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.attr-tag {
+    padding: 5px 14px; border-radius: 20px; border: 1px solid #e2e8f0;
+    font-size: 12px; font-weight: 600; color: #475569; cursor: pointer;
+    background: white; transition: all 0.2s;
 }
+.attr-tag:hover { border-color: #2563eb; color: #2563eb; background: #f0f6ff; }
+.attr-tag.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
+
 
 .apply-btn {
     display: flex;
@@ -402,16 +780,16 @@ const themVaoYeuThich = async (product) => {
     justify-content: center;
     gap: 7px;
     width: 100%;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 10px;
+    border-radius: 10px;
     border: none;
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     color: white;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: 20px;
-    transition: opacity 0.2s, transform 0.2s;
+    margin-top: 15px;
+    transition: all 0.2s;
 }
 
 .apply-btn svg {
@@ -419,40 +797,27 @@ const themVaoYeuThich = async (product) => {
     height: 14px;
 }
 
-.apply-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
+.apply-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.reset-link {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 12px;
+    cursor: pointer;
+    text-decoration: underline;
 }
 
 /* ===== CONTENT ===== */
-.content {
-    flex: 1;
-    min-width: 0;
-}
+.content { flex: 1; min-width: 0; }
 
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 20px;
-}
-
-.top-bar h1 {
-    font-size: 22px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 4px;
-}
-
-.top-bar p {
-    font-size: 13px;
-    color: #94a3b8;
-    margin: 0;
-}
-
-.top-bar b {
-    color: #2563eb;
-}
+.top-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+.top-bar h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.top-bar p { font-size: 13px; color: #94a3b8; margin: 0; }
+.top-bar b { color: #2563eb; }
 
 .sort-wrap {
     display: flex;
@@ -462,20 +827,7 @@ const themVaoYeuThich = async (product) => {
     border-radius: 10px;
     border: 1px solid #e2e8f0;
     background: white;
-    transition: border-color 0.2s;
     cursor: pointer;
-}
-
-.sort-wrap:focus-within {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
-}
-
-.sort-wrap>svg:first-child {
-    width: 14px;
-    height: 14px;
-    color: #64748b;
-    flex-shrink: 0;
 }
 
 .sort-wrap select {
@@ -491,19 +843,10 @@ const themVaoYeuThich = async (product) => {
     font-family: 'Inter', sans-serif;
 }
 
-.chevron {
-    width: 12px;
-    height: 12px;
-    color: #94a3b8;
-    flex-shrink: 0;
-}
+.chevron { width: 12px; height: 12px; color: #94a3b8; }
 
 /* GRID */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-}
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 
 .card {
     background: white;
@@ -515,10 +858,7 @@ const themVaoYeuThich = async (product) => {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
-}
+.card:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1); }
 
 .badge {
     position: absolute;
@@ -530,30 +870,20 @@ const themVaoYeuThich = async (product) => {
     padding: 4px 9px;
     border-radius: 6px;
     z-index: 1;
-    letter-spacing: 0.04em;
 }
 
-.img-box {
-    background: #f8fafc;
-    padding: 14px;
-    overflow: hidden;
-}
+.img-box { background: #f8fafc; padding: 14px; cursor: pointer; }
+.img-box img { width: 100%; height: 148px; object-fit: cover; border-radius: 10px; }
 
-.img-box img {
-    width: 100%;
-    height: 148px;
-    object-fit: cover;
-    border-radius: 10px;
-    transition: transform 0.4s ease;
-}
+.card-body { padding: 13px 15px 15px; }
+.card-body h3 { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; cursor: pointer; }
+.brand-txt { font-size: 11px; color: #94a3b8; margin: 0 0 10px; }
 
-.card:hover .img-box img {
-    transform: scale(1.05);
-}
+.price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.price { font-size: 15px; font-weight: 800; color: #2563eb; }
+.old-price { font-size: 11px; color: #cbd5e1; text-decoration: line-through; }
 
-.card-body {
-    padding: 13px 15px 15px;
-}
+.card-actions { display: flex; gap: 8px; }
 
 .card-body h3 {
     font-size: 14px;
@@ -605,15 +935,11 @@ const themVaoYeuThich = async (product) => {
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
 }
 
-.btn-detail:hover {
-    background: #2563eb;
-    color: white;
-}
+.btn-detail:hover { background: #2563eb; color: white; }
 
 .btn-cart {
     width: 34px;
@@ -691,63 +1017,33 @@ const themVaoYeuThich = async (product) => {
     margin-top: 28px;
 }
 
-.pg-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    font-size: 13px;
-    font-weight: 500;
-    color: #334155;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* SKELETON & LOADING */
+.loading-small { font-size: 12px; color: #94a3b8; padding: 5px 0; }
+.loading-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%; }
+.skeleton-card { height: 320px; background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 16px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-.pg-btn:hover {
-    border-color: #2563eb;
-    color: #2563eb;
-}
+/* RADIO CUSTOM */
+.checkmark.radio { border-radius: 50%; }
+.check-label input:checked ~ .checkmark.radio::after { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; border: none; transform: none; }
 
-.pg-btn.active {
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-    color: white;
-    border-color: transparent;
-}
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 20px; border: 1px dashed #e2e8f0; grid-column: 1 / -1; }
+.empty-state h3 { font-size: 18px; color: #0f172a; margin: 0 0 8px; }
+.empty-state button { padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; }
 
-.pg-dots {
-    color: #94a3b8;
-    padding: 0 4px;
-}
+/* PAGINATION */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 28px; }
+.pg-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid #e2e8f0; background: white; font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; }
+.pg-btn.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
+.pg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* RESPONSIVE */
-@media (max-width: 900px) {
-    .grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) {
-    .layout {
-        flex-direction: column;
-    }
-
-    .sidebar {
-        width: 100%;
-        position: static;
-    }
-
-    .grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .top-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; position: static; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .top-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
 </style>

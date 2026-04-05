@@ -105,11 +105,13 @@ Route::delete('/colors/{id}',     [ColorController::class, 'destroy']);
 
 // ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
 Route::get('/sanpham/search',      [SanPhamController::class, 'search']);
+Route::get('/sanpham/attribute-options',  [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham',             [SanPhamController::class, 'index']);
 Route::post('/sanpham',            [SanPhamController::class, 'store']);
 Route::get('/sanpham/{id}',        [SanPhamController::class, 'show']);
 Route::put('/sanpham/{id}',        [SanPhamController::class, 'update']);
 Route::delete('/sanpham/{id}',     [SanPhamController::class, 'destroy']);
+
 
 
 Route::get('/bienthe',                      [BienTheController::class, 'index']);
