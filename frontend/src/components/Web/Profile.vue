@@ -44,6 +44,66 @@ const user = ref({
   joinDate: '',
 })
 
+const sidebarAvatarUrl = computed(() => {
+  if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
+  if (user.value.avatar.startsWith('http')) return user.value.avatar
+  return `http://127.0.0.1:8000/storage/${user.value.avatar}`
+})
+
+const formAvatarUrl = computed(() => {
+  if (tempAvatarUrl.value) return tempAvatarUrl.value
+  return sidebarAvatarUrl.value
+})
+
+/**
+ * Unify mapping from API user object to the local 'user' reactive state.
+ */
+const updateUserData = (apiUser) => {
+  user.value = {
+    ...user.value,
+    ...apiUser,
+    phone: apiUser.phone || '',
+    birthday: apiUser.date_of_birth || '', 
+    gender: apiUser.gender || '',
+    avatar: apiUser.avatar || user.value.avatar,
+    memberSince: apiUser.memberSince || 'Thành viên',
+    joinDate: apiUser.joinDate || user.value.joinDate,
+  }
+}
+
+const fileInput = ref(null)
+const selectedAvatarFile = ref(null)
+const tempAvatarUrl = ref(null)
+
+const triggerAvatarUpload = () => {
+  fileInput.value.click()
+}
+
+const handleAvatarUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Frontend Validation
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Chỉ chấp nhận ảnh định dạng JPG hoặc PNG!')
+    return
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Kích thước ảnh phải nhỏ hơn 2MB!')
+    return
+  }
+
+  if (file) {
+    if (tempAvatarUrl.value) {
+      URL.revokeObjectURL(tempAvatarUrl.value);
+    }
+    selectedAvatarFile.value = file;
+    tempAvatarUrl.value = URL.createObjectURL(file);
+  }
+}
+
 const profileForm = ref({})
 const editing = ref(false)
 const savingProfile = ref(false)
@@ -71,18 +131,7 @@ const loadUser = async () => {
     }
     const res = await api.get('/user/profile')
 
-    const apiUser = res.data
-
-    user.value = {
-      ...user.value,
-      ...apiUser,
-      phone: apiUser.phone || '',
-      birthday: apiUser.birthday || '',
-      gender: apiUser.gender || '',
-      memberSince: apiUser.memberSince || 'Thành viên',
-      joinDate: apiUser.joinDate || '',
-      avatar: apiUser.avatar || user.value.avatar,
-    }
+    updateUserData(res.data)
 
     localStorage.setItem('user', JSON.stringify(user.value))
   } catch (error) {
@@ -201,6 +250,10 @@ onMounted(() => {
 
 const startEdit = () => {
   profileForm.value = { ...user.value }
+  // Map gender back to English values for select
+  if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
+  if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
+
   editing.value = true
 }
 
@@ -213,12 +266,22 @@ const saveProfile = async () => {
   try {
     savingProfile.value = true
 
-    const token = localStorage.getItem('token')
+    // 1. Nếu có ảnh mới chờ upload, ta xử lý upload trước
+    if (selectedAvatarFile.value) {
+      const formData = new FormData()
+      formData.append('avatar', selectedAvatarFile.value)
+      
+      const avatarRes = await api.post('/user/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if (avatarRes.data.user) {
+        updateUserData(avatarRes.data.user)
+      }
+    }
 
-    //  DEBUG Ở ĐÂY
-    console.log('DATA GỬI:', profileForm.value)
-    console.log('TOKEN:', token)
-
+    // 2. Lưu thông tin profile còn lại
     const res = await api.put(
       '/user/profile',
       {
@@ -230,8 +293,9 @@ const saveProfile = async () => {
       }
     )
 
-    user.value = res.data.user
+    updateUserData(res.data.user)
     localStorage.setItem('user', JSON.stringify(user.value))
+    window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
     showToast('Cập nhật thành công!')
@@ -560,11 +624,10 @@ const savePw = async () => {
       <!-- ── SIDEBAR ── -->
       <aside class="sidebar">
         <div class="avatar-section">
-          <div class="avatar-wrap">
-            <img :src="user.avatar" class="avatar" :alt="user.name" />
-            <button class="avatar-edit" title="Đổi ảnh">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
+          <div class="avatar-sidebar-container">
+            <div class="avatar-circle">
+              <img :src="sidebarAvatarUrl" :alt="user.name" class="profile-avatar" />
+            </div>
           </div>
           <h2 class="sidebar-name">{{ user.name }}</h2>
           <span class="sidebar-badge">{{ user.memberSince }}</span>
@@ -626,9 +689,34 @@ const savePw = async () => {
             <div class="info-row"><span class="info-lbl">Email</span><span class="info-val">{{ user.email }}</span></div>
             <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val">{{ user.phone }}</span></div>
             <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val">{{ user.birthday }}</span></div>
-            <div class="info-row"><span class="info-lbl">Giới tính</span><span class="info-val">{{ user.gender === 'male' ? 'Nam' : user.gender === 'female' ? 'Nữ' : 'Khác' }}</span></div>
+            <div class="info-row">
+              <span class="info-lbl">Giới tính</span>
+              <span class="info-val">
+                {{ ['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác' }}
+              </span>
+            </div>
           </div>
           <form v-else class="edit-form" @submit.prevent="saveProfile">
+            <!-- Redesigned Avatar Upload UI -->
+            <div class="form-avatar-section">
+              <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+                <div class="form-avatar-circle">
+                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                  <div class="form-avatar-plus-overlay">
+                    <i class="fas fa-plus"></i>
+                  </div>
+                </div>
+              </div>
+              <p class="form-avatar-upload-text">Tải ảnh lên</p>
+              <input 
+                type="file" 
+                ref="fileInput" 
+                class="d-none" 
+                accept="image/jpeg, image/png"
+                @change="handleAvatarUpload" 
+              />
+            </div>
+
             <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
             <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
             <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
@@ -636,7 +724,11 @@ const savePw = async () => {
               <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
               <div class="form-group">
                 <label>Giới tính</label>
-                <select v-model="profileForm.gender"><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select>
+                <select v-model="profileForm.gender">
+                  <option value="male">Nam</option>
+                  <option value="female">Nữ</option>
+                  <option value="other">Khác</option>
+                </select>
               </div>
             </div>
             <div class="form-actions">
@@ -1062,6 +1154,101 @@ const savePw = async () => {
 
 /* TOAST */
 .toast { position:fixed; top:24px; right:24px; z-index:9999; background:#0f172a; color:#fff; padding:12px 20px; border-radius:12px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+/* SIDEBAR AVATAR */
+.avatar-sidebar-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* FORM AVATAR REDESIGN */
+.form-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.form-avatar-dashed-border {
+  width: 120px;
+  height: 120px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px;
+}
+
+.form-avatar-dashed-border:hover {
+  border-color: #2563eb;
+  transform: scale(1.02);
+}
+
+.form-avatar-circle {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.form-avatar-plus-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(37, 99, 235, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 32px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.form-avatar-dashed-border:hover .form-avatar-plus-overlay {
+  opacity: 1;
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.form-avatar-upload-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+  letter-spacing: 0.3px;
+}
 .toast svg { width:18px; height:18px; stroke:#4ade80; stroke-width:2.5; fill:none; }
 .toast-enter-active { transition:all 0.3s cubic-bezier(0.34,1.4,0.64,1); }
 .toast-leave-active { transition:all 0.2s ease; }

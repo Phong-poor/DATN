@@ -21,6 +21,7 @@ use App\Http\Controllers\YeuThichController;
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
+    Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang',                     [GioHangController::class, 'index']);

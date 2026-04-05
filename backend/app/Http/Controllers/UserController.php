@@ -8,9 +8,58 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+
 
 class UserController extends Controller
 {
+    /**
+     * POST /api/user/avatar
+     * Upload and update user avatar
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            
+            // 1. Tạo tên file duy nhất
+            $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+            
+            // 2. Định nghĩa thư mục lưu trữ: public/uploads/avatar
+            $path = 'uploads/avatar';
+            
+            // 3. Xóa avatar cũ nếu có (và không phải mặc định)
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+
+            // 4. Lưu file vào disk 'public'
+            $filePath = $file->storeAs($path, $filename, 'public');
+
+            // 5. Cập nhật DB
+            $user->avatar = $filePath;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Cập nhật ảnh đại diện thành công',
+                'avatar_url' => asset('storage/' . $filePath),
+                'user' => $user
+            ]);
+        }
+
+        return response()->json(['message' => 'Không tìm thấy file'], 400);
+    }
 
     public function index()
     {
@@ -99,13 +148,13 @@ class UserController extends Controller
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email,' . $user->id,
         'phone' => 'nullable|string|max:20',
-        'birthday' => 'nullable|date',
+        'date_of_birth' => 'nullable|date',
         'gender' => 'nullable|in:male,female',
     ]);
 
     // FIX DATE
-    $date = isset($validated['birthday']) 
-        ? Carbon::parse($validated['birthday'])->format('Y-m-d') 
+    $date = (!empty($validated['date_of_birth'])) 
+        ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d') 
         : null;
 
     // FIX GENDER (nếu DB tiếng Việt)
