@@ -63,7 +63,7 @@ const confirmCancel = async () => {
     isSubmitting.value = true
     try {
         const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
-            { ly_do_huy: cancelReason.value }
+            { lydo: cancelReason.value }
         )
 
         if (res.data.success) {
@@ -139,7 +139,7 @@ onMounted(fetchOrders)
                     <div class="modal-head">
                         <div>
                             <h2 class="modal-title">Chi tiết đơn hàng</h2>
-                            <p class="modal-id">Mã đơn: #{{ selectedOrder.id_dathang }}</p>
+                            <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
                         </div>
                         <button class="close-btn" @click="closeDetail">
                             <svg viewBox="0 0 24 24" fill="none">
@@ -156,8 +156,8 @@ onMounted(fetchOrders)
                         </div>
 
                         <!-- Cancellation info if cancelled -->
-                        <div v-if="selectedOrder.trangthai === 'cancelled' && selectedOrder.ly_do_huy" class="alert alert-danger py-2 px-3 mb-4" style="font-size: 13px;">
-                            <strong>Lý do hủy:</strong> {{ selectedOrder.ly_do_huy }}
+                        <div v-if="selectedOrder.trangthai === 'cancelled' && selectedOrder.lydo" class="alert alert-danger py-2 px-3 mb-4" style="font-size: 13px;">
+                            <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
                         </div>
 
                         <!-- Products -->
@@ -226,7 +226,7 @@ onMounted(fetchOrders)
                 <div class="order-card" v-for="order in filtered" :key="order.id_dathang">
                     <div class="order-head">
                         <div class="order-meta">
-                            <span class="order-id">#{{ order.id_dathang }}</span>
+                            <span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span>
                             <span class="order-date">{{ new Date(order.created_at).toLocaleDateString('vi-VN') }}</span>
                         </div>
                         <span class="order-badge"

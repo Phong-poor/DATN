@@ -34,7 +34,7 @@ class DatHangController extends Controller
             // 1. Update status and reason
             $order->update([
                 'trangthai' => 'cancelled',
-                'ly_do_huy' => $request->ly_do_huy ?? 'Người dùng hủy đơn'
+                'lydo' => $request->lydo ?? 'Người dùng hủy đơn'
             ]);
 
             // 2. Return stock
@@ -72,7 +72,7 @@ class DatHangController extends Controller
             DB::beginTransaction();
 
             //  Xóa lý do hủy khi mua lại
-            $order->update(['ly_do_huy' => null]);
+            $order->update(['lydo' => null]);
             $addedItemsCount = 0;
             $skippedItems = [];
 
@@ -269,8 +269,8 @@ class DatHangController extends Controller
             }
 
             $updateData = ['trangthai' => $newStatus];
-            if ($newStatus === 'cancelled' && $request->has('ly_do_huy')) {
-                $updateData['ly_do_huy'] = $request->ly_do_huy;
+            if ($newStatus === 'cancelled' && $request->has('lydo')) {
+                $updateData['lydo'] = $request->lydo;
             }
             $order->update($updateData);
 

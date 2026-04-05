@@ -41,7 +41,7 @@ const fetchOrders = async () => {
                 status: o.trangthai,
                 phone: o.user?.phone || '',
                 address: o.diachi || '',
-                cancelReason: o.ly_do_huy || '',
+                cancelReason: o.lydo || '',
                 items: o.chi_tiets?.map(item => ({
                     name: item.bien_the?.ten_bienthe || 'Sản phẩm',
                     qty: item.soluong,
@@ -66,7 +66,7 @@ const updateOrderStatus = async (orderId, newStatus) => {
 
     try {
         const payload = { trangthai: newStatus }
-        if (cancelReason !== null) payload.ly_do_huy = cancelReason
+        if (cancelReason !== null) payload.lydo = cancelReason
 
         const res = await api.put(`/admin/orders/${orderId}/status`, payload)
         if (res.data.success) {

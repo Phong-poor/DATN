@@ -120,13 +120,13 @@ const fetchOrders = async () => {
 
         return {
           id_dathang: order.id_dathang,
-          id: `NGL-2026-${String(order.id_dathang).padStart(3, '0')}`,
+          id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
           status: statusKey,
           trangthai: order.trangthai, // 🔥 Keep original for logic
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
-          ly_do_huy: order.ly_do_huy,
+          lydo: order.lydo,
           items: order.chi_tiets.map(item => ({
             name: item.bien_the?.ten_bienthe || 'Sản phẩm',
             qty: item.soluong,
@@ -164,7 +164,7 @@ const confirmCancel = async () => {
   isSubmitting.value = true
   try {
     const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, {
-      ly_do_huy: cancelReason.value.trim()
+      lydo: cancelReason.value.trim()
     })
 
     if (res.data.success) {
@@ -475,7 +475,7 @@ const savePw = async () => {
           <div class="modal-head">
             <div>
               <h2 class="modal-title">Chi tiết đơn hàng</h2>
-              <p class="modal-id">{{ selectedOrder.id }}</p>
+              <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
             </div>
             <button class="close-btn" @click="selectedOrder = null">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -487,8 +487,8 @@ const savePw = async () => {
             </div>
 
             <!-- Lý do hủy -->
-            <div v-if="selectedOrder.status === 'cancelled' && selectedOrder.ly_do_huy" class="alert alert-danger mb-4" style="font-size: 13px; padding: 12px; border-radius: 10px;">
-              <strong>Lý do hủy:</strong> {{ selectedOrder.ly_do_huy }}
+            <div v-if="selectedOrder.status === 'cancelled' && selectedOrder.lydo" class="alert alert-danger mb-4" style="font-size: 13px; padding: 12px; border-radius: 10px;">
+              <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
             </div>
 
             <div class="timeline">
@@ -665,7 +665,7 @@ const savePw = async () => {
             <table class="order-data-table">
               <thead>
                 <tr>
-                  <th>Mã đơn</th>
+                  <th>MÃ ĐƠN HÀNG</th>
                   <th>Ngày đặt</th>
                   <th>Tổng tiền</th>
                   <th>Trạng thái</th>
@@ -682,7 +682,7 @@ const savePw = async () => {
                   </td>
                 </tr>
                 <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
-                  <td class="id-col">#{{ order.id.split('-').pop() }}</td>
+                  <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span></td>
                   <td>{{ order.date }}</td>
                   <td>{{ order.total }}</td>
                   <td>
@@ -703,6 +703,7 @@ const savePw = async () => {
 
             <!-- Pagination -->
             <div class="pagination-footer" v-if="totalPages > 1">
+              <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
               <div class="pagination">
                 <button class="p-arrow" :disabled="currentPage === 1" @click="currentPage--">‹ Trước</button>
                 <div class="p-nums">
@@ -940,7 +941,7 @@ const savePw = async () => {
 .order-data-table th { background: #f8fafc; padding: 16px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid #f1f5f9; }
 .order-data-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
 .order-row:hover { background: #fafafa; }
-.id-col { font-weight: 700; color: #1e293b; }
+.id-col { font-weight: 700; color: #2563eb; }
 .status-cell { font-weight: 600; font-size: 13px; }
 
 .btn-group { display: flex; gap: 8px; }
@@ -951,7 +952,8 @@ const savePw = async () => {
 .btn-huy-don { background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
 .btn-huy-don:hover { background: #ef4444; color: #fff; }
 
-.pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: center; background: #fff; }
+.pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; }
+.pagination-info { font-size: 13px; color: #64748b; margin: 0; }
 .pagination { display: flex; align-items: center; gap: 10px; }
 .p-arrow { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; color: #64748b; font-weight: 600; cursor: pointer; font-size: 13px; }
 .p-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
