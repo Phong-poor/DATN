@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import axios from 'axios'
@@ -187,7 +187,7 @@ const handleReorder = async (order) => {
 
     if (res.data.success) {
       showToast(res.data.message)
-      window.location.href = '/gio-hang'
+      window.location.href = '/cart'
     }
   } catch (err) {
     showToast('Lỗi khi mua lại sản phẩm.')
@@ -282,6 +282,20 @@ const filteredOrders = computed(() =>
     ? orders.value
     : orders.value.filter((o) => o.status === orderTab.value)
 )
+
+// Pagination logic for orders
+const currentPage = ref(1)
+const itemsPerPage = 8
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredOrders.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
+
+watch(orderTab, () => {
+  currentPage.value = 1
+})
 
 // ════════════════════════════════════════════════
 //  TAB 3 — ADDRESS
@@ -498,18 +512,17 @@ const savePw = async () => {
               </div>
               <p class="modal-item-price">{{ item.price }}</p>
             </div>
-            <div class="modal-total">
-              <span>Tổng cộng</span>
-              <span class="total-val">{{ selectedOrder.total }}</span>
-            </div>
-
-            <!-- Nút hành động trong modal -->
-            <div class="modal-actions mt-4 d-flex gap-2">
-              <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" 
-                class="btn-cancel-order w-100" @click="openCancelModal(selectedOrder)">Hủy đơn hàng</button>
-
-              <button v-if="['done', 'cancelled'].includes(selectedOrder.status)" 
-                class="btn-reorder w-100" @click="handleReorder(selectedOrder)">Mua lại</button>
+            <div class="modal-footer">
+              <div class="modal-btns">
+                <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" 
+                  class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
+                <button v-if="['done', 'cancelled'].includes(selectedOrder.status)" 
+                  class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
+              </div>
+              <div class="modal-total-wrap">
+                <span class="total-label">Tổng cộng</span>
+                <span class="total-value">{{ selectedOrder.total }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -638,9 +651,8 @@ const savePw = async () => {
 
         <!-- ════ TAB: ORDERS ════ -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline">
-            <h1 class="card-title">Đơn hàng của tôi</h1>
-            <p class="card-sub">Theo dõi và quản lý đơn hàng</p>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Lịch Sử Đơn Hàng</h1>
           </div>
           <div class="order-tabs">
             <button v-for="t in orderTabs" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
@@ -648,32 +660,55 @@ const savePw = async () => {
               <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
             </button>
           </div>
-          <div class="orders-list">
-            <div v-if="filteredOrders.length === 0" class="empty">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-              <p>Không có đơn hàng nào</p>
-            </div>
-            <div class="order-card" v-for="order in filteredOrders" :key="order.id">
-              <div class="order-head">
-                <div class="order-meta"><span class="order-id">{{ order.id }}</span><span class="order-date">{{ order.date }}</span></div>
-                <span class="order-badge" :style="{ color: statusMap[order.status].color, background: statusMap[order.status].bg }">{{ statusMap[order.status].label }}</span>
-              </div>
-              <div class="order-items">
-                <div class="order-item" v-for="item in order.items" :key="item.name">
-                  <img :src="item.img" :alt="item.name" />
-                  <div class="order-item-info"><p class="order-item-name">{{ item.name }}</p><p class="order-item-qty">x{{ item.qty }}</p></div>
-                  <p class="order-item-price">{{ item.price }}</p>
+          
+          <div class="table-card">
+            <table class="order-data-table">
+              <thead>
+                <tr>
+                  <th>Mã đơn</th>
+                  <th>Ngày đặt</th>
+                  <th>Tổng tiền</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredOrders.length === 0">
+                  <td colspan="5" class="empty-state-cell">
+                    <div class="empty-msg">
+                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                      <p>Không có đơn hàng nào</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
+                  <td class="id-col">#{{ order.id.split('-').pop() }}</td>
+                  <td>{{ order.date }}</td>
+                  <td>{{ order.total }}</td>
+                  <td>
+                    <span class="status-cell" :style="{ color: statusMap[order.status].color }">
+                      {{ statusMap[order.status].label }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button class="btn-xem" @click="selectedOrder = order">Xem</button>
+                      <button v-if="['done', 'cancelled'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination-footer" v-if="totalPages > 1">
+              <div class="pagination">
+                <button class="p-arrow" :disabled="currentPage === 1" @click="currentPage--">‹ Trước</button>
+                <div class="p-nums">
+                  <button v-for="p in totalPages" :key="p" class="p-num" :class="{ active: currentPage === p }" @click="currentPage = p">{{ p }}</button>
                 </div>
-              </div>
-              <div class="order-foot">
-                <span class="order-total">Tổng: <strong>{{ order.total }}</strong></span>
-                <div class="d-flex gap-2">
-                  <button v-if="['pending', 'confirmed'].includes(order.status)" 
-                    class="btn-cancel-order" @click.stop="openCancelModal(order)">Hủy đơn</button>
-                  <button v-if="['done', 'cancelled'].includes(order.status)" 
-                    class="btn-reorder" @click.stop="handleReorder(order)">Mua lại</button>
-                  <button class="btn-detail" @click="selectedOrder = order">Chi tiết</button>
-                </div>
+                <button class="p-arrow" :disabled="currentPage === totalPages" @click="currentPage++">Sau ›</button>
               </div>
             </div>
           </div>
@@ -893,33 +928,40 @@ const savePw = async () => {
 .err-msg { font-size:12px; color:#ef4444; font-weight:500; }
 
 /* ORDERS */
-.order-tabs { display:flex; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:6px; margin-bottom:16px; flex-wrap:wrap; }
+.order-tabs { display:flex; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:6px; margin-bottom:20px; flex-wrap:wrap; }
 .order-tab { padding:8px 14px; border-radius:10px; border:none; background:transparent; font-size:13px; font-weight:500; color:#64748b; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
 .order-tab:hover { background:#f1f5f9; }
 .order-tab.active { background:#2563eb; color:#fff; font-weight:600; }
 .otab-count { background:rgba(255,255,255,0.25); padding:1px 7px; border-radius:99px; font-size:11px; }
 .order-tab:not(.active) .otab-count { background:#f1f5f9; color:#64748b; }
-.orders-list { display:flex; flex-direction:column; gap:12px; }
-.order-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; overflow:hidden; }
-.order-head { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f1f5f9; }
-.order-meta { display:flex; align-items:center; gap:12px; }
-.order-id { font-size:13px; font-weight:700; color:#0f172a; }
-.order-date { font-size:12px; color:#94a3b8; }
-.order-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; }
-.order-items { padding:12px 20px; }
-.order-item { display:flex; align-items:center; gap:14px; padding:8px 0; }
-.order-item img { width:52px; height:52px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; flex-shrink:0; }
-.order-item-info { flex:1; min-width:0; }
-.order-item-name { font-size:14px; font-weight:600; color:#1e293b; margin:0 0 3px; }
-.order-item-qty { font-size:12px; color:#94a3b8; margin:0; }
-.order-item-price { font-size:14px; font-weight:700; color:#2563eb; flex-shrink:0; }
-.order-foot { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid #f1f5f9; background:#f8fafc; }
-.order-total { font-size:13px; color:#64748b; }
-.order-total strong { color:#0f172a; font-size:15px; }
-.btn-detail { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #2563eb; color:#2563eb; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.btn-detail:hover { background:#2563eb; color:#fff; }
-.btn-cancel-order { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #ef4444; color:#ef4444; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.btn-cancel-order:hover { background:#ef4444; color:#fff; }
+
+.table-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+.order-data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.order-data-table th { background: #f8fafc; padding: 16px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid #f1f5f9; }
+.order-data-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.order-row:hover { background: #fafafa; }
+.id-col { font-weight: 700; color: #1e293b; }
+.status-cell { font-weight: 600; font-size: 13px; }
+
+.btn-group { display: flex; gap: 8px; }
+.btn-xem { background: #2563eb; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 13px; }
+.btn-xem:hover { background: #1d4ed8; }
+.btn-mua-lai { background: #10b981; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 13px; }
+.btn-mua-lai:hover { background: #059669; }
+.btn-huy-don { background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+.btn-huy-don:hover { background: #ef4444; color: #fff; }
+
+.pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: center; background: #fff; }
+.pagination { display: flex; align-items: center; gap: 10px; }
+.p-arrow { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; color: #64748b; font-weight: 600; cursor: pointer; font-size: 13px; }
+.p-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
+.p-nums { display: flex; gap: 6px; }
+.p-num { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-weight: 600; cursor: pointer; }
+.p-num.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+.empty-state-cell { padding: 60px 0; }
+.empty-msg { text-align: center; color: #94a3b8; }
+.empty-icon { width: 44px; height: 44px; stroke: #cbd5e1; margin-bottom: 10px; display: block; margin: 0 auto; }
 
 /* ADDRESS */
 .btn-add { display:flex; align-items:center; gap:8px; padding:10px 18px; border-radius:10px; background:#2563eb; border:none; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
@@ -1006,9 +1048,15 @@ const savePw = async () => {
 .modal-item-name { font-size:13px; font-weight:600; color:#1e293b; margin:0 0 3px; }
 .modal-item-qty { font-size:12px; color:#94a3b8; margin:0; }
 .modal-item-price { font-size:14px; font-weight:700; color:#2563eb; }
-.modal-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 0; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#64748b; }
-.btn-reorder { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #16a34a; color:#16a34a; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.btn-reorder:hover { background:#16a34a; color:#fff; }
+.modal-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid #f1f5f9; margin-top: 12px; }
+.modal-btns { display: flex; gap: 12px; }
+.btn-modal-huy { background: white; border: 1.2px solid #ef4444; color: #ef4444; padding: 7px 16px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-huy:hover { background: #fee2e2; }
+.btn-modal-mua { background: white; border: 1.5px solid #10b981; color: #10b981; padding: 7px 16px; border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-mua:hover { background: #dcfce7; }
+.modal-total-wrap { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.total-label { font-size: 13px; color: #64748b; font-weight: 600; }
+.total-value { font-size: 18px; font-weight: 800; color: #2563eb; }
 
 /* TOAST */
 .toast { position:fixed; top:24px; right:24px; z-index:9999; background:#0f172a; color:#fff; padding:12px 20px; border-radius:12px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); }

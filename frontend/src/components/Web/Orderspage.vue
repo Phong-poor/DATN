@@ -87,7 +87,7 @@ const handleReorder = async (order) => {
         if (res.data.success) {
             alert(res.data.message)
             // Redirect to cart
-            window.location.href = '/gio-hang'
+            window.location.href = '/cart'
         }
     } catch (err) {
         alert('Lỗi khi mua lại sản phẩm.')
