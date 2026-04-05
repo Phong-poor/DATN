@@ -146,12 +146,12 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
-            'birthday' => 'nullable|date',
+            'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|in:male,female',
         ]);
 
-        $date = isset($validated['birthday'])
-            ? Carbon::parse($validated['birthday'])->format('Y-m-d')
+        $date = (!empty($validated['date_of_birth'])) 
+            ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d') 
             : null;
 
         $genderMap = [
@@ -173,40 +173,7 @@ class UserController extends Controller
         ]);
     }
 
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
-        'phone' => 'nullable|string|max:20',
-        'date_of_birth' => 'nullable|date',
-        'gender' => 'nullable|in:male,female',
-    ]);
-
-    // FIX DATE
-    $date = (!empty($validated['date_of_birth'])) 
-        ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d') 
-        : null;
-
-    // FIX GENDER (nếu DB tiếng Việt)
-    $genderMap = [
-        'male' => 'Nam',
-        'female' => 'Nữ',
-    ];
-
-    $user->name = $validated['name'];
-    $user->email = $validated['email'];
-    $user->phone = $validated['phone'] ?? null;
-    $user->date_of_birth = $date;
-    $user->gender = isset($validated['gender']) ? $genderMap[$validated['gender']] : null;
-
-    $user->save();
-
-    return response()->json([
-        'message' => 'Cập nhật thành công',
-        'user' => $user
-    ]);
-}
-
-     public function profile(Request $request)
+    public function profile(Request $request)
     {
         return response()->json($request->user());
     }
