@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
+
 const thongBao = ref('')
 const router = useRouter()
+const route = useRoute()
 
 // ===================== STATE =====================
 const products = ref([])
@@ -30,7 +32,7 @@ const attrOptions = ref({
     dophan: [], tamnen: [], pin: [], sac: []
 })
 
-// Trạng thái đóng/mở từng section
+// Collapse
 const collapsed = ref({
     danhmuc: false,
     thuonghieu: false,
@@ -44,10 +46,11 @@ const collapsed = ref({
     sac: true,
     gia: true
 })
+
 const selectedPriceRange = ref('')
 const selectedSort = ref('newest')
 
-// ===================== FETCH DATA =====================
+// ===================== MAP PRODUCTS =====================
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
@@ -55,205 +58,192 @@ const mapProducts = (rawProducts) => {
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
                 name: p.tenSP,
-                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
-                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
-                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
+                id_danhmuc: String(p.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
                 priceNum: 0,
                 oldPriceNum: 0,
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
+                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
-            }];
+            }]
         }
 
-        return p.bien_thes.map(bt => {
-            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '';
-            
-            let thuoc_tinh = [];
-            try {
-                thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []);
-            } catch (e) { }
+        return p.bien_thes.map(bt => ({
+            id: p.id_sanpham,
+            key_id: String(bt.id_bienthe),
+            name: p.tenSP,
+            id_danhmuc: String(p.id_danhmuc || ''),
+            id_thuonghieu: String(p.id_thuonghieu || ''),
+            brandName: p.thuong_hieu?.ten_thuonghieu || '',
+            weight: p.khoiluong,
+            priceNum: bt.gia || 0,
+            oldPriceNum: bt.gia_khuyen_mai || 0,
+            img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+            badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
+            badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
+        }))
+    })
 
-            if (Array.isArray(thuoc_tinh)) {
-                thuoc_tinh.forEach(attr => {
-                    const ten = (attr.ten_thuoctinh || '').toLowerCase();
-                    if (ten === 'ram') ram = attr.giatri;
-                    else if (ten === 'cpu') cpu = attr.giatri;
-                    else if (ten === 'gpu') gpu = attr.giatri;
-                    else if (ten === 'kích thước') kichthuoc = attr.giatri;
-                    else if (ten === 'độ phân giải') dophan = attr.giatri;
-                    else if (ten === 'tấm nền') tamnen = attr.giatri;
-                    else if (ten === 'pin') pin = attr.giatri;
-                    else if (ten === 'sạc') sac = attr.giatri;
-                });
-            }
-            
-            const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
-            const fullName = nameExt ? `${p.tenSP} (${nameExt})` : p.tenSP;
-
-            return {
-                id: p.id_sanpham,
-                key_id: String(bt.id_bienthe || (p.id_sanpham + '_' + Math.random())),
-                name: fullName,
-                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
-                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
-                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
-                weight: p.khoiluong,
-                priceNum: bt.gia || 0,
-                oldPriceNum: bt.gia_khuyen_mai || 0,
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
-                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
-                badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
-            };
-        });
-    });
-
-    const flatList = [];
-    let hasMore = true;
-    let variantIndex = 0;
-    while (hasMore) {
-        hasMore = false;
-        for (let i = 0; i < productVariants.length; i++) {
-            if (productVariants[i].length > variantIndex) {
-                flatList.push(productVariants[i][variantIndex]);
-                hasMore = true;
-            }
-        }
-        variantIndex++;
-    }
-
-    return flatList;
+    return productVariants.flat()
 }
 
-onMounted(async () => {
+// ===================== FETCH PRODUCTS =====================
+const fetchProducts = async () => {
     try {
-        isLoading.value = true
+        const q = route.query.q
+        const url = q 
+            ? `/sanpham/search?q=${encodeURIComponent(q)}`
+            : '/sanpham'
+
+        const res = await api.get(url)
+        const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
+        products.value = mapProducts(raw)
+
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+// ===================== LOAD FILTER =====================
+const loadFilterData = async () => {
+    try {
         const [catRes, brandRes, attrRes] = await Promise.all([
             api.get('/danhmuc'),
             api.get('/thuonghieu'),
             api.get('/sanpham/attribute-options')
         ])
-        
+
         categories.value = catRes.data?.data || catRes.data || []
         brands.value = brandRes.data?.data || brandRes.data || []
-        attrOptions.value = attrRes.data || {
-            ram: [], cpu: [], gpu: [], kichthuoc: [], 
-            dophan: [], tamnen: [], pin: [], sac: []
-        }
-        
-        // Initial apply
-        applyFilters()
-    } catch (error) {
-        console.error('Lỗi tải dữ liệu:', error)
-    } finally {
-        isLoading.value = false
-    }
-})
+        attrOptions.value = attrRes.data || attrOptions.value
 
-// ===================== FILTER LOGIC =====================
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+// ===================== FILTER + PAGINATION =====================
 const filteredProducts = ref([])
 const currentPage = ref(1)
 const itemsPerPage = 15
 
 const displayedProducts = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredProducts.value.slice(start, end)
+    return filteredProducts.value.slice(start, start + itemsPerPage)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage)))
-
-const visiblePages = computed(() => {
-    const total = totalPages.value;
-    const current = currentPage.value;
-    const MathMax = Math.max;
-    const MathMin = Math.min;
-    
-    let startPage = MathMax(1, current - 2);
-    let endPage = MathMin(total, startPage + 4);
-    
-    if (endPage - startPage < 4) {
-        startPage = MathMax(1, endPage - 4);
-    }
-    
-    const pages = [];
-    for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-    }
-    return pages;
-})
-
-const changePage = (page) => {
-    if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-}
+const totalPages = computed(() =>
+    Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage))
+)
 
 const applyFilters = async () => {
-    // Filter by category on backend
-    const params = {}
-    if (selectedRAMs.value.length > 0) params.ram = selectedRAMs.value.join(',')
-    if (selectedCPUs.value.length > 0) params.cpu = selectedCPUs.value.join(',')
-    if (selectedGPUs.value.length > 0) params.gpu = selectedGPUs.value.join(',')
-    if (selectedKichThuoc.value.length > 0) params.kichthuoc = selectedKichThuoc.value.join(',')
-    if (selectedDoPhanGiai.value.length > 0) params.dophan = selectedDoPhanGiai.value.join(',')
-    if (selectedTamNen.value.length > 0) params.tamnen = selectedTamNen.value.join(',')
-    if (selectedPin.value.length > 0) params.pin = selectedPin.value.join(',')
-    if (selectedSac.value.length > 0) params.sac = selectedSac.value.join(',')
+    try {
+        // backend filter (chỉ khi không search)
+        if (!route.query.q) {
+            const params = {}
 
-    const res = await api.get('/sanpham', { params })
-    const rawProducts = Array.isArray(res.data) ? res.data : (res.data.data || [])
-    products.value = mapProducts(rawProducts)
+            if (selectedRAMs.value.length) params.ram = selectedRAMs.value.join(',')
+            if (selectedCPUs.value.length) params.cpu = selectedCPUs.value.join(',')
+            if (selectedGPUs.value.length) params.gpu = selectedGPUs.value.join(',')
 
-    let result = [...products.value]
+            const res = await api.get('/sanpham', { params })
+            const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
+            products.value = mapProducts(raw)
+        }
 
-    // Filter by Category
-    if (selectedCategories.value.length > 0) {
-        result = result.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
-    }
+        let result = [...products.value]
 
-    // Filter by Brand
-    if (selectedBrands.value.length > 0) {
-        result = result.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
-    }
+        if (selectedCategories.value.length) {
+            result = result.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
+        }
 
-    // Filter by Price
-    if (selectedPriceRange.value) {
-        const pRange = String(selectedPriceRange.value)
-        if (pRange === 'under20') {
+        if (selectedBrands.value.length) {
+            result = result.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
+        }
+
+        if (selectedPriceRange.value === 'under20') {
             result = result.filter(p => p.priceNum < 20000000)
-        } else if (pRange === '20to50') {
-            result = result.filter(p => p.priceNum >= 20000000 && p.priceNum <= 50000000)
-        } else if (pRange === 'above50') {
+        } else if (selectedPriceRange.value === '20to50') {
+            result = result.filter(p => p.priceNum <= 50000000)
+        } else if (selectedPriceRange.value === 'above50') {
             result = result.filter(p => p.priceNum > 50000000)
         }
-    }
 
-    // Sorting
-    const sValue = String(selectedSort.value)
-    if (sValue === 'price_asc') {
-        result.sort((a, b) => {
-            if (a.priceNum !== b.priceNum) return a.priceNum - b.priceNum;
-            return b.id - a.id;
-        })
-    } else if (sValue === 'price_desc') {
-        result.sort((a, b) => {
-            if (a.priceNum !== b.priceNum) return b.priceNum - a.priceNum;
-            return b.id - a.id;
-        })
-    } else if (sValue === 'newest') {
-        // Mặc định mapProducts đã trộn xen kẽ (interleave) dựa theo sản phẩm mới nhất
-        // Nên giữ nguyên thứ tự ban đầu để đảm bảo trộn đều
-    }
+        if (selectedSort.value === 'price_asc') {
+            result.sort((a, b) => a.priceNum - b.priceNum)
+        } else if (selectedSort.value === 'price_desc') {
+            result.sort((a, b) => b.priceNum - a.priceNum)
+        }
 
-    filteredProducts.value = result
-    currentPage.value = 1
+        filteredProducts.value = result
+        currentPage.value = 1
+
+    } catch (error) {
+        console.error(error)
+    }
 }
-watch(selectedSort, () => applyFilters())
 
-// Format helpers
+// ===================== WATCH =====================
+watch(() => route.query.q, async () => {
+    isLoading.value = true
+    await fetchProducts()
+    applyFilters()
+    isLoading.value = false
+})
+
+watch([
+    selectedCategories,
+    selectedBrands,
+    selectedRAMs,
+    selectedCPUs,
+    selectedGPUs,
+    selectedKichThuoc,
+    selectedDoPhanGiai,
+    selectedTamNen,
+    selectedPin,
+    selectedSac,
+    selectedPriceRange,
+    selectedSort
+], applyFilters)
+
+// ===================== WISHLIST =====================
+const themVaoYeuThich = async (product) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+        alert('Vui lòng đăng nhập!')
+        router.push('/login')
+        return
+    }
+
+    try {
+        await api.post('/yeuthich', {
+            id_sanpham: product.id
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+
+        alert(`Đã thêm ${product.name} ❤️`)
+        window.dispatchEvent(new Event('wishlist-updated'))
+
+    } catch (err) {
+        alert('Có lỗi xảy ra!')
+    }
+}
+
+// ===================== INIT =====================
+onMounted(async () => {
+    isLoading.value = true
+    await Promise.all([
+        fetchProducts(),
+        loadFilterData()
+    ])
+    applyFilters()
+    isLoading.value = false
+})
+
+// ===================== HELPERS =====================
 const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'đ'
 
 const toggleList = (listType, item) => {
@@ -289,7 +279,6 @@ const clearAll = () => {
     selectedPriceRange.value = ''
     applyFilters()
 }
-
 </script>
 
 <template>
@@ -543,6 +532,12 @@ const clearAll = () => {
 
                 <div class="top-bar">
                     <div>
+                        <h1>
+                            {{ route.query.q
+                                ? 'Kết quả tìm kiếm: "' + route.query.q + '"'
+                                : 'Danh sách Laptop' }}
+                        </h1>
+                        <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
                         <h1>Danh sách Laptop</h1>
                         <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
                         <p v-else>Đang tìm kiếm sản phẩm...</p>
@@ -552,6 +547,16 @@ const clearAll = () => {
                 <!-- LOADING STATE -->
                 <div v-if="isLoading" class="loading-grid">
                     <div class="skeleton-card" v-for="i in 6" :key="i"></div>
+                </div>
+
+                <!-- Không có kết quả -->
+                <div v-if="products.length === 0 && route.query.q" class="empty-search">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <p>Không tìm thấy sản phẩm nào cho <strong>"{{ route.query.q }}"</strong></p>
+                    <button @click="router.push('/products')" class="clear-search-btn">Xem tất cả sản phẩm</button>
                 </div>
 
                 <!-- GRID -->
@@ -880,6 +885,43 @@ const clearAll = () => {
 
 .card-actions { display: flex; gap: 8px; }
 
+.card-body h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px;
+}
+
+.brand-txt {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 10px;
+}
+
+.price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.old-price {
+    font-size: 11px;
+    color: #cbd5e1;
+    text-decoration: line-through;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .btn-detail {
     flex: 1;
     display: flex;
@@ -910,6 +952,69 @@ const clearAll = () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.2s, transform 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-cart svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-cart:hover {
+    opacity: 0.9;
+    transform: scale(1.06);
+}
+
+/* EMPTY SEARCH */
+.empty-search {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 80px 0;
+    color: #94a3b8;
+}
+
+.empty-search svg {
+    width: 64px;
+    height: 64px;
+    stroke: #cbd5e1;
+    stroke-width: 1.5;
+}
+
+.empty-search p {
+    font-size: 16px;
+    color: #64748b;
+}
+
+.empty-search strong {
+    color: #0f172a;
+}
+
+.clear-search-btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.clear-search-btn:hover {
+    background: #1d4ed8;
+}
+
+/* PAGINATION */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-top: 28px;
 }
 
 /* SKELETON & LOADING */
