@@ -31,6 +31,7 @@ Route::post('/forgot-password/reset-password', [ForgotPasswordController::class,
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
+    Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang',                     [GioHangController::class, 'index']);
@@ -43,7 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== ĐẶT HÀNG =====
     Route::post('/checkout',                    [DatHangController::class, 'checkout']);
     Route::get('/orders',                       [DatHangController::class, 'orders']);
-
+    Route::post('/orders/{id}/cancel',          [DatHangController::class, 'cancelOrder']);
+    Route::post('/orders/{id}/reorder',         [DatHangController::class, 'reorder']);
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);

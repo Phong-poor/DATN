@@ -1,12 +1,23 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import api from '@/services/api'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
+const orders = ref([])
+const isLoading = ref(true)
+
+// Cancellation state
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
     { key: 'pending', label: 'Chờ xác nhận' },
+    { key: 'confirmed', label: 'Đã xác nhận' },
     { key: 'shipping', label: 'Đang giao' },
     { key: 'done', label: 'Hoàn thành' },
     { key: 'cancelled', label: 'Đã hủy' },
@@ -14,86 +25,113 @@ const tabs = [
 
 const statusMap = {
     pending: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
+    confirmed: { label: 'Đã xác nhận', color: '#0ea5e9', bg: '#e0f2fe' },
     shipping: { label: 'Đang giao', color: '#2563eb', bg: '#dbeafe' },
     done: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
-const orders = ref([
-    {
-        id: 'NGL-2026-001',
-        date: '18/03/2026',
-        status: 'done',
-        total: '36.990.000đ',
-        items: [
-            { name: 'VinaBook Pro X14', qty: 1, price: '36.990.000đ', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200' }
-        ],
-        steps: [
-            { label: 'Đặt hàng', date: '15/03/2026 09:12', done: true },
-            { label: 'Xác nhận', date: '15/03/2026 10:30', done: true },
-            { label: 'Đang đóng gói', date: '16/03/2026 08:00', done: true },
-            { label: 'Đang giao', date: '17/03/2026 14:20', done: true },
-            { label: 'Hoàn thành', date: '18/03/2026 11:05', done: true },
-        ]
-    },
-    {
-        id: 'NGL-2026-002',
-        date: '20/03/2026',
-        status: 'shipping',
-        total: '62.990.000đ',
-        items: [
-            { name: 'Zephyrus Titan 16', qty: 1, price: '62.990.000đ', img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=200' }
-        ],
-        steps: [
-            { label: 'Đặt hàng', date: '20/03/2026 14:00', done: true },
-            { label: 'Xác nhận', date: '20/03/2026 15:10', done: true },
-            { label: 'Đang đóng gói', date: '21/03/2026 09:00', done: true },
-            { label: 'Đang giao', date: '22/03/2026 08:30', done: true },
-            { label: 'Hoàn thành', date: null, done: false },
-        ]
-    },
-    {
-        id: 'NGL-2026-003',
-        date: '22/03/2026',
-        status: 'pending',
-        total: '48.490.000đ',
-        items: [
-            { name: 'Creator Studio 15', qty: 1, price: '48.490.000đ', img: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=200' }
-        ],
-        steps: [
-            { label: 'Đặt hàng', date: '22/03/2026 20:05', done: true },
-            { label: 'Xác nhận', date: null, done: false },
-            { label: 'Đang đóng gói', date: null, done: false },
-            { label: 'Đang giao', date: null, done: false },
-            { label: 'Hoàn thành', date: null, done: false },
-        ]
-    },
-    {
-        id: 'NGL-2025-089',
-        date: '10/12/2025',
-        status: 'cancelled',
-        total: '29.990.000đ',
-        items: [
-            { name: 'SlimBook Air 13', qty: 1, price: '29.990.000đ', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200' }
-        ],
-        steps: [
-            { label: 'Đặt hàng', date: '10/12/2025 11:00', done: true },
-            { label: 'Đã hủy', date: '10/12/2025 11:45', done: true },
-        ]
-    },
-])
+const fetchOrders = async () => {
+    isLoading.value = true
+    try {
+        const res = await api.get('/orders')
+        if (res.data.success) {
+            orders.value = res.data.orders
+        }
+    } catch (err) {
+        console.error('Lỗi lấy đơn hàng:', err)
+        alert('Không thể tải danh sách đơn hàng.')
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const openCancelModal = (order) => {
+    orderToCancel.value = order
+    cancelReason.value = ''
+    showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+    if (!cancelReason.value.trim()) {
+        alert('Vui lòng nhập lý do hủy.')
+        return
+    }
+
+    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
+
+    isSubmitting.value = true
+    try {
+        const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
+            { lydo: cancelReason.value }
+        )
+
+        if (res.data.success) {
+            alert('Hủy đơn hàng thành công!')
+            showCancelModal.value = false
+            await fetchOrders()
+        }
+    } catch (err) {
+        alert(err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
+    } finally {
+        isSubmitting.value = false
+    }
+}
+
+const handleReorder = async (order) => {
+    if (!confirm('Bạn có chắc chắn muốn mua lại các sản phẩm này?')) return
+
+    try {
+        const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+        if (res.data.success) {
+            alert(res.data.message)
+            // Redirect to cart
+            window.location.href = '/cart'
+        }
+    } catch (err) {
+        alert('Lỗi khi mua lại sản phẩm.')
+    }
+}
+
+const formatPrice = (val) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
+}
 
 const filtered = computed(() => {
     if (activeTab.value === 'all') return orders.value
-    return orders.value.filter(o => o.status === activeTab.value)
+    return orders.value.filter(o => o.trangthai === activeTab.value)
 })
 
 const openDetail = (order) => { selectedOrder.value = order }
 const closeDetail = () => { selectedOrder.value = null }
+
+onMounted(fetchOrders)
 </script>
 
 <template>
     <div class="page">
+        <!-- Cancellation Modal -->
+        <transition name="fade">
+            <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false">
+                <div class="modal mini-modal">
+                    <div class="modal-head">
+                        <h2 class="modal-title">Lý do hủy đơn</h2>
+                        <button class="close-btn" @click="showCancelModal = false">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea v-model="cancelReason" class="form-control mb-3" rows="3" placeholder="Nhập lý do hủy đơn hàng..."></textarea>
+                        <div class="d-flex gap-2 justify-content-end mt-3">
+                            <button class="btn btn-secondary" @click="showCancelModal = false">Đóng</button>
+                            <button class="btn btn-danger" @click="confirmCancel" :disabled="isSubmitting">
+                                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
         <!-- Detail Modal -->
         <transition name="fade">
             <div class="overlay" v-if="selectedOrder" @click.self="closeDetail">
@@ -101,7 +139,7 @@ const closeDetail = () => { selectedOrder.value = null }
                     <div class="modal-head">
                         <div>
                             <h2 class="modal-title">Chi tiết đơn hàng</h2>
-                            <p class="modal-id">{{ selectedOrder.id }}</p>
+                            <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
                         </div>
                         <button class="close-btn" @click="closeDetail">
                             <svg viewBox="0 0 24 24" fill="none">
@@ -113,43 +151,40 @@ const closeDetail = () => { selectedOrder.value = null }
                     <div class="modal-body">
                         <!-- Status badge -->
                         <div class="modal-status"
-                            :style="{ color: statusMap[selectedOrder.status].color, background: statusMap[selectedOrder.status].bg }">
-                            {{ statusMap[selectedOrder.status].label }}
+                            :style="{ color: statusMap[selectedOrder.trangthai].color, background: statusMap[selectedOrder.trangthai].bg }">
+                            {{ statusMap[selectedOrder.trangthai].label }}
                         </div>
 
-                        <!-- Timeline -->
-                        <div class="timeline">
-                            <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i"
-                                :class="{ done: step.done, last: i === selectedOrder.steps.length - 1 }">
-                                <div class="tl-dot">
-                                    <svg v-if="step.done" viewBox="0 0 24 24" fill="none">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                </div>
-                                <div class="tl-line" v-if="i < selectedOrder.steps.length - 1"></div>
-                                <div class="tl-content">
-                                    <p class="tl-label">{{ step.label }}</p>
-                                    <p class="tl-date">{{ step.date || '—' }}</p>
-                                </div>
-                            </div>
+                        <!-- Cancellation info if cancelled -->
+                        <div v-if="selectedOrder.trangthai === 'cancelled' && selectedOrder.lydo" class="alert alert-danger py-2 px-3 mb-4" style="font-size: 13px;">
+                            <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
                         </div>
 
                         <!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
-                            <div class="modal-item" v-for="item in selectedOrder.items" :key="item.name">
-                                <img :src="item.img" :alt="item.name" />
+                            <div class="modal-item" v-for="item in selectedOrder.chi_tiets" :key="item.id_dathang_chi_tiet">
+                                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                                 <div class="modal-item-info">
-                                    <p class="modal-item-name">{{ item.name }}</p>
-                                    <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
+                                    <p class="modal-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
+                                    <p class="modal-item-qty">Số lượng: {{ item.soluong }}</p>
                                 </div>
-                                <p class="modal-item-price">{{ item.price }}</p>
+                                <p class="modal-item-price">{{ formatPrice(item.gia) }}</p>
                             </div>
                         </div>
 
                         <div class="modal-total">
                             <span>Tổng cộng</span>
-                            <span class="total-val">{{ selectedOrder.total }}</span>
+                            <span class="total-val">{{ formatPrice(selectedOrder.tongtien) }}</span>
+                        </div>
+
+                        <!-- Action buttons in modal -->
+                        <div class="modal-foot mt-4 d-flex gap-2">
+                            <button v-if="['pending', 'confirmed'].includes(selectedOrder.trangthai)" 
+                                class="btn-cancel w-100" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
+                            
+                            <button v-if="['done', 'cancelled'].includes(selectedOrder.trangthai)" 
+                                class="btn-reorder w-100" @click="handleReorder(selectedOrder)">Mua lại</button>
                         </div>
                     </div>
                 </div>
@@ -168,14 +203,19 @@ const closeDetail = () => { selectedOrder.value = null }
                     @click="activeTab = tab.key">
                     {{ tab.label }}
                     <span class="tab-count" v-if="tab.key !== 'all'">
-                        {{orders.filter(o => o.status === tab.key).length}}
+                        {{orders.filter(o => o.trangthai === tab.key).length}}
                     </span>
                 </button>
             </div>
 
             <!-- Order list -->
             <div class="orders-list">
-                <div v-if="filtered.length === 0" class="empty">
+                <div v-if="isLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Đang tải đơn hàng...</p>
+                </div>
+
+                <div v-else-if="filtered.length === 0" class="empty">
                     <svg viewBox="0 0 24 24" fill="none">
                         <rect x="2" y="3" width="20" height="14" rx="2" />
                         <path d="M8 21h8M12 17v4" />
@@ -183,32 +223,40 @@ const closeDetail = () => { selectedOrder.value = null }
                     <p>Không có đơn hàng nào</p>
                 </div>
 
-                <div class="order-card" v-for="order in filtered" :key="order.id">
+                <div class="order-card" v-for="order in filtered" :key="order.id_dathang">
                     <div class="order-head">
                         <div class="order-meta">
-                            <span class="order-id">{{ order.id }}</span>
-                            <span class="order-date">{{ order.date }}</span>
+                            <span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span>
+                            <span class="order-date">{{ new Date(order.created_at).toLocaleDateString('vi-VN') }}</span>
                         </div>
                         <span class="order-badge"
-                            :style="{ color: statusMap[order.status].color, background: statusMap[order.status].bg }">
-                            {{ statusMap[order.status].label }}
+                            :style="{ color: statusMap[order.trangthai].color, background: statusMap[order.trangthai].bg }">
+                            {{ statusMap[order.trangthai].label }}
                         </span>
                     </div>
 
                     <div class="order-items">
-                        <div class="order-item" v-for="item in order.items" :key="item.name">
-                            <img :src="item.img" :alt="item.name" />
+                        <div class="order-item" v-for="item in order.chi_tiets" :key="item.id_dathang_chi_tiet">
+                            <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                             <div class="order-item-info">
-                                <p class="order-item-name">{{ item.name }}</p>
-                                <p class="order-item-qty">x{{ item.qty }}</p>
+                                <p class="order-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
+                                <p class="order-item-qty">x{{ item.soluong }}</p>
                             </div>
-                            <p class="order-item-price">{{ item.price }}</p>
+                            <p class="order-item-price">{{ formatPrice(item.gia) }}</p>
                         </div>
                     </div>
 
                     <div class="order-foot">
-                        <span class="order-total">Tổng: <strong>{{ order.total }}</strong></span>
-                        <button class="btn-detail" @click="openDetail(order)">Xem chi tiết</button>
+                        <span class="order-total">Tổng: <strong>{{ formatPrice(order.tongtien) }}</strong></span>
+                        <div class="d-flex gap-2">
+                            <button v-if="['pending', 'confirmed'].includes(order.trangthai)" 
+                                class="btn-cancel" @click="openCancelModal(order)">Hủy đơn</button>
+                            
+                            <button v-if="['done', 'cancelled'].includes(order.trangthai)" 
+                                class="btn-reorder" @click="handleReorder(order)">Mua lại</button>
+
+                            <button class="btn-detail" @click="openDetail(order)">Chi tiết</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,7 +269,6 @@ const closeDetail = () => { selectedOrder.value = null }
     min-height: 100vh;
     background: #f8fafc;
     padding: 32px 30px;
-    font-family: system-ui, sans-serif;
 }
 
 .container {
@@ -425,20 +472,44 @@ const closeDetail = () => { selectedOrder.value = null }
     font-size: 15px;
 }
 
-.btn-detail {
+.btn-detail, .btn-reorder, .btn-cancel {
     padding: 8px 18px;
     border-radius: 9px;
-    background: #fff;
-    border: 1.5px solid #2563eb;
-    color: #2563eb;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
+    border: 1.5px solid transparent;
+}
+
+.btn-detail {
+    background: #fff;
+    border-color: #2563eb;
+    color: #2563eb;
 }
 
 .btn-detail:hover {
     background: #2563eb;
+    color: #fff;
+}
+
+.btn-reorder {
+    background: #2563eb;
+    color: #fff;
+}
+
+.btn-reorder:hover {
+    background: #1d4ed8;
+}
+
+.btn-cancel {
+    background: #fff;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.btn-cancel:hover {
+    background: #dc2626;
     color: #fff;
 }
 
@@ -464,6 +535,10 @@ const closeDetail = () => { selectedOrder.value = null }
     overflow-y: auto;
 }
 
+.mini-modal {
+    max-width: 400px;
+}
+
 .modal-head {
     display: flex;
     align-items: flex-start;
@@ -475,7 +550,7 @@ const closeDetail = () => { selectedOrder.value = null }
     font-size: 18px;
     font-weight: 700;
     color: #0f172a;
-    margin: 0 0 2px;
+    margin: 0;
 }
 
 .modal-id {
@@ -495,13 +570,8 @@ const closeDetail = () => { selectedOrder.value = null }
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-}
-
-.close-btn svg {
-    width: 14px;
-    height: 14px;
-    stroke: #64748b;
-    stroke-width: 2.5;
+    font-size: 20px;
+    color: #64748b;
 }
 
 .modal-body {
@@ -515,79 +585,6 @@ const closeDetail = () => { selectedOrder.value = null }
     padding: 5px 14px;
     border-radius: 99px;
     margin-bottom: 20px;
-}
-
-/* TIMELINE */
-.timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    margin-bottom: 24px;
-}
-
-.tl-item {
-    display: grid;
-    grid-template-columns: 24px auto 1fr;
-    gap: 0 12px;
-    align-items: start;
-}
-
-.tl-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    z-index: 1;
-}
-
-.tl-item.done .tl-dot {
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
-.tl-dot svg {
-    width: 12px;
-    height: 12px;
-    stroke: #fff;
-    stroke-width: 3;
-    fill: none;
-}
-
-.tl-line {
-    width: 2px;
-    background: #e2e8f0;
-    min-height: 28px;
-    margin: 0 auto;
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.tl-item.done .tl-line {
-    background: #2563eb;
-}
-
-.tl-content {
-    grid-column: 3;
-    grid-row: 1;
-    padding-bottom: 20px;
-}
-
-.tl-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1e293b;
-    margin: 3px 0 2px;
-}
-
-.tl-date {
-    font-size: 11px;
-    color: #94a3b8;
-    margin: 0;
 }
 
 .modal-section {
@@ -619,7 +616,6 @@ const closeDetail = () => { selectedOrder.value = null }
     border-radius: 10px;
     object-fit: cover;
     border: 1px solid #e5e7eb;
-    flex-shrink: 0;
 }
 
 .modal-item-info {
@@ -644,7 +640,6 @@ const closeDetail = () => { selectedOrder.value = null }
     font-size: 14px;
     font-weight: 700;
     color: #2563eb;
-    flex-shrink: 0;
 }
 
 .modal-total {
@@ -664,16 +659,36 @@ const closeDetail = () => { selectedOrder.value = null }
     color: #2563eb;
 }
 
-.fade-enter-active {
-    transition: all 0.2s ease;
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.2s;
 }
-
-.fade-leave-active {
-    transition: all 0.15s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+.fade-enter-from, .fade-leave-to {
     opacity: 0;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #94a3b8;
+    color: #fff;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: #fff;
 }
 </style>

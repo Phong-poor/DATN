@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import api from '@/services/api'
 
 const email = ref('')
 const password = ref('')
@@ -64,9 +65,8 @@ const handleLogin = async () => {
 
   if (loading.value) return
   loading.value = true
-
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/login', {
+    const res = await api.post('/login', {
       email: email.value,
       password: password.value
     })
