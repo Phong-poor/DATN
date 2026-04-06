@@ -358,7 +358,7 @@ onUnmounted(stop)
                 <div class="section-head center">
                     <div>
                         <span class="section-label">SẢN PHẨM NỔI BẬT</span>
-                        <h2>Những mẫu laptop được yêu thích nhất</h2>
+                        <h2>Những mẫu laptop bán chạy nhất nhất</h2>
                         <p>Chọn lọc từ các dòng máy bán chạy với hiệu năng tốt, thiết kế đẹp và giá trị cao.</p>
                     </div>
                 </div>
@@ -368,24 +368,26 @@ onUnmounted(stop)
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
 
-                    <div class="product-slider-grid">
-                        <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
-                            <span class="product-badge" v-if="p.badge">{{ p.badge }}</span>
-                            <div class="product-thumb"><img :src="p.img" :alt="p.name" /></div>
-                            <div class="product-body">
-                                <span class="product-category">{{ p.category }}</span>
-                                <h3 :title="p.name">{{ p.name }}</h3>
-                                <p class="product-price">{{ p.price }}</p>
-                                
-                                <div class="product-actions">
-                                    <button class="btn btn-primary small">Mua ngay</button>
-                                    <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
-                                        Chi tiết
-                                    </router-link>
+                    <Transition name="slider-fade" mode="out-in">
+                        <div class="product-slider-grid" :key="currentProductPage">
+                            <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
+                                <span class="product-badge" v-if="p.badge">{{ p.badge }}</span>
+                                <div class="product-thumb"><img :src="p.img" :alt="p.name" /></div>
+                                <div class="product-body">
+                                    <span class="product-category">{{ p.category }}</span>
+                                    <h3 :title="p.name">{{ p.name }}</h3>
+                                    <p class="product-price">{{ p.price }}</p>
+                                    
+                                    <div class="product-actions">
+                                        <button class="btn btn-primary small">Mua ngay</button>
+                                        <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
+                                            Chi tiết
+                                        </router-link>
+                                    </div>
                                 </div>
-                            </div>
-                        </article>
-                    </div>
+                            </article>
+                        </div>
+                    </Transition>
 
                     <button class="slider-btn next" @click="nextFeaturedPage" :disabled="currentProductPage >= totalProductPages - 1">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -1226,30 +1228,46 @@ a.btn {
     flex: 1;
 }
 .slider-btn {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    border: 1px solid var(--border);
+    border: 2px solid var(--blue);
     background: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--navy);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    transition: all 0.2s;
+    color: var(--blue);
+    box-shadow: 0 4px 16px rgba(30, 107, 230, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+    z-index: 10;
 }
-.slider-btn.prev svg { margin-right: 2px; }
-.slider-btn.next svg { margin-left: 2px; }
+.slider-btn.prev svg { margin-right: 2px; width: 22px; height: 22px; }
+.slider-btn.next svg { margin-left: 2px; width: 22px; height: 22px; }
 .slider-btn:hover:not(:disabled) {
     background: var(--blue);
     color: #fff;
-    border-color: var(--blue);
+    box-shadow: 0 8px 24px rgba(30, 107, 230, 0.3);
+    transform: scale(1.1);
 }
 .slider-btn:disabled {
-    opacity: 0.3;
+    opacity: 0.25;
+    border-color: var(--border);
+    color: var(--text3);
     cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* SLIDER TRANSITION */
+.slider-fade-enter-active,
+.slider-fade-leave-active {
+    transition: all 0.3s ease;
+}
+.slider-fade-enter-from,
+.slider-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
 }
 .see-all-container {
     margin-top: 36px;
