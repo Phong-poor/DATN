@@ -33,6 +33,7 @@ const selectedImage = ref('https://via.placeholder.com/600')
 const selectedVariant = ref(null)
 const selectedOptions = ref({})
 
+
 // ===================== HELPERS BIẾN THỂ =====================
 const getVariantAttributes = (variant) =>
     variant?.thuoc_tinh || variant?.attributes ||
@@ -68,6 +69,7 @@ const findMatchingVariant = () => {
         })
     ) || null
 }
+
 
 const handleSelectOption = (groupName, value) => {
     selectedOptions.value = { ...selectedOptions.value, [groupName]: value }
@@ -169,13 +171,25 @@ const fetchProductDetail = async () => {
         if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
 
         if (variants.length > 0) {
-            const firstVariant = variants[0]
-            selectedVariant.value = firstVariant
-            const defaultOptions = {}
-            getVariantAttributes(firstVariant).forEach(attr => {
-                defaultOptions[attr.ten_thuoctinh] = attr.giatri
+            const variantId = route.query.variant
+            let targetVariant = variants[0]
+
+            if (variantId) {
+                const found = variants.find(v => String(v.id_bienthe) === String(variantId))
+                if (found) targetVariant = found
+            }
+
+            selectedVariant.value = targetVariant
+            const options = {}
+            getVariantAttributes(targetVariant).forEach(attr => {
+                options[attr.ten_thuoctinh] = attr.giatri
             })
-            selectedOptions.value = defaultOptions
+            selectedOptions.value = options
+
+            // Cập nhật ảnh đại diện nếu biến thể có ảnh (optional - nếu có field hinhanh trong biến thể)
+            if (targetVariant.hinhanh) {
+                selectedImage.value = getImageUrl(targetVariant.hinhanh)
+            }
         }
     } catch (error) {
         console.error('Lỗi khi tải chi tiết sản phẩm:', error)

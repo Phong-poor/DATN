@@ -14,11 +14,8 @@ use App\Http\Controllers\BienTheHinhAnhController;
 use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\DashboardController;
 
-// ✅ THÊM MỚI
-use App\Http\Controllers\LienHeController;
-
-// ================= AUTH =================
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
 
@@ -140,14 +137,16 @@ Route::get('/test', function () {
 
 // ================= ADMIN =================
 Route::middleware(['auth:sanctum', 'admin'])
-->prefix('admin')
-->group(function () {
+    ->prefix('admin')
+    ->group(function () {
+        // ===== DASHBOARD =====
+        Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/{id}', [UserController::class, 'show']);
-    Route::post('/users', [UserController::class, 'store']);
-    Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     // ===== ADMIN ORDERS =====
     Route::get('/orders', [DatHangController::class, 'allOrders']);

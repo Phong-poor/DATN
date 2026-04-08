@@ -380,7 +380,7 @@ onUnmounted(stop)
                                     
                                     <div class="product-actions">
                                         <button class="btn btn-primary small">Mua ngay</button>
-                                        <router-link :to="`/products/${p.id}`" class="btn btn-secondary small">
+                                        <router-link :to="`/products/${p.id}?variant=${p.key_id}`" class="btn btn-secondary small">
                                             Chi tiết
                                         </router-link>
                                     </div>
