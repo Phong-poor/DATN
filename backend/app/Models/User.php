@@ -19,6 +19,7 @@ class User extends Authenticatable
         'phone',
         'date_of_birth',
         'gender',
+        'avatar',
         'password',
         'role',
         'facebook_id',

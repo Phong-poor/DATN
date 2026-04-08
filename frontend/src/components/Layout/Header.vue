@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '../../services/api' 
@@ -79,13 +79,9 @@ onMounted(() => {
 
   window.addEventListener('cart-updated', handleCartUpdated)
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
+  window.addEventListener('user-updated', fetchUser)
 
-  try {
-    const storedUser = localStorage.getItem('user')
-    user.value = storedUser ? JSON.parse(storedUser) : null
-  } catch {
-    user.value = null
-  }
+  fetchUser()
 
   document.addEventListener('click', handleOutside)
 })
@@ -93,6 +89,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('cart-updated', handleCartUpdated)
   window.removeEventListener('wishlist-updated', handleWishlistUpdated)
+  window.removeEventListener('user-updated', fetchUser)
   document.removeEventListener('click', handleOutside)
 })
 
@@ -133,6 +130,21 @@ const handleOutside = (e) => {
 }
 
 const user = ref(null)
+
+const avatarUrl = computed(() => {
+  if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User')
+  if (user.value.avatar.startsWith('http')) return user.value.avatar
+  return `http://127.0.0.1:8000/storage/${user.value.avatar}`
+})
+
+const fetchUser = () => {
+    try {
+        const storedUser = localStorage.getItem('user')
+        user.value = storedUser ? JSON.parse(storedUser) : null
+    } catch {
+        user.value = null
+    }
+}
 
 const handleLogout = async () => {
   showUser.value = false
@@ -266,7 +278,7 @@ const handleLogout = async () => {
         <div class="dropdown-wrap">
           <div class="icon-btn-wrap">
             <button class="icon-btn icon-btn-user" @click.stop="toggleUser" :class="{ active: showUser }">
-              <img v-if="user && user.avatar" :src="user.avatar" class="avatar-img" :alt="user.name" />
+              <img v-if="user" :src="avatarUrl" class="avatar-img" :alt="user.name" />
               <svg v-else viewBox="0 0 24 24" fill="none">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -277,7 +289,7 @@ const handleLogout = async () => {
           <transition name="drop">
             <div class="dropdown user-drop" v-if="showUser">
               <div class="user-profile-card">
-                <img v-if="user" :src="user.avatar" :alt="user.name" class="user-avatar" />
+                <img v-if="user" :src="avatarUrl" :alt="user.name" class="user-avatar" />
                 <div class="user-info">
                   <p class="user-name">{{ user?.name }}</p>
                   <p class="user-email">{{ user?.email }}</p>

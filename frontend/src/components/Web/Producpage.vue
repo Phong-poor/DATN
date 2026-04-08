@@ -70,23 +70,60 @@ const mapProducts = (rawProducts) => {
             }]
         }
 
-        return p.bien_thes.map(bt => ({
-            id: p.id_sanpham,
-            key_id: String(bt.id_bienthe),
-            name: p.tenSP,
-            id_danhmuc: String(p.id_danhmuc || ''),
-            id_thuonghieu: String(p.id_thuonghieu || ''),
-            brandName: p.thuong_hieu?.ten_thuonghieu || '',
-            weight: p.khoiluong,
-            priceNum: bt.gia || 0,
-            oldPriceNum: bt.gia_khuyen_mai || 0,
-            img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
-            badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
-            badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
-        }))
-    })
+        return p.bien_thes.map(bt => {
+            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '';
+            let thuoc_tinh = [];
+            try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
 
-    return productVariants.flat()
+            if (Array.isArray(thuoc_tinh)) {
+                thuoc_tinh.forEach(attr => {
+                    const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                    if (ten === 'ram') ram = attr.giatri;
+                    else if (ten === 'cpu') cpu = attr.giatri;
+                    else if (ten === 'gpu') gpu = attr.giatri;
+                    else if (ten === 'kích thước') kichthuoc = attr.giatri;
+                    else if (ten === 'độ phân giải') dophan = attr.giatri;
+                    else if (ten === 'tấm nền') tamnen = attr.giatri;
+                    else if (ten === 'pin') pin = attr.giatri;
+                    else if (ten === 'sạc') sac = attr.giatri;
+                });
+            }
+            
+            const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
+            const fullName = nameExt ? `${p.tenSP} (${nameExt})` : p.tenSP;
+
+            return {
+                id: p.id_sanpham,
+                key_id: String(bt.id_bienthe || (p.id_sanpham + '_' + Math.random())),
+                name: fullName,
+                id_danhmuc: String(p.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu || '',
+                weight: p.khoiluong,
+                priceNum: bt.gia || 0,
+                oldPriceNum: bt.gia_khuyen_mai || 0,
+                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
+                badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
+            };
+        });
+    });
+
+    const flatList = [];
+    let hasMore = true;
+    let variantIndex = 0;
+    while (hasMore) {
+        hasMore = false;
+        for (let i = 0; i < productVariants.length; i++) {
+            if (productVariants[i].length > variantIndex) {
+                flatList.push(productVariants[i][variantIndex]);
+                hasMore = true;
+            }
+        }
+        variantIndex++;
+    }
+
+    return flatList;
 }
 
 // ===================== FETCH PRODUCTS =====================
@@ -137,6 +174,42 @@ const displayedProducts = computed(() => {
 const totalPages = computed(() =>
     Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage))
 )
+
+const visiblePages = computed(() => {
+    const total = totalPages.value;
+    const current = currentPage.value;
+    const delta = 1;
+    const left = current - delta;
+    const right = current + delta + 1;
+    let range = [];
+    let rangeWithDots = [];
+    let l;
+
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= left && i < right)) {
+            range.push(i);
+        }
+    }
+
+    for (let i of range) {
+        if (l) {
+            if (i - l !== 1) {
+                rangeWithDots.push('...');
+            }
+        }
+        rangeWithDots.push(i);
+        l = i;
+    }
+
+    return rangeWithDots;
+})
+
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+}
 
 const applyFilters = async () => {
     try {
@@ -532,11 +605,7 @@ const clearAll = () => {
 
                 <div class="top-bar">
                     <div>
-                        <h1>
-                            {{ route.query.q
-                                ? 'Kết quả tìm kiếm: "' + route.query.q + '"'
-                                : 'Danh sách Laptop' }}
-                        </h1>
+                        
                         <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
                         <h1>Danh sách Laptop</h1>
                         <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
@@ -611,19 +680,23 @@ const clearAll = () => {
                 <!-- PAGINATION -->
                 <div class="pagination" v-if="totalPages > 1">
                     <button class="pg-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-                        &laquo;
+                        &lsaquo;
                     </button>
                     <button 
-                        v-for="page in visiblePages" 
-                        :key="page"
+                        v-for="(page, index) in visiblePages" 
+                        :key="index"
                         class="pg-btn" 
-                        :class="{ active: currentPage === page }"
-                        @click="changePage(page)">
+                        :class="{ active: currentPage === page, dots: page === '...' }"
+                        :disabled="page === '...'"
+                        @click="page !== '...' && changePage(page)">
                         {{ page }}
                     </button>
                     <button class="pg-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
-                        &raquo;
+                        &rsaquo;
                     </button>
+                </div>
+                <div class="pagination-info" v-if="filteredProducts.length > 0">
+                    <strong>{{ filteredProducts.length }}</strong> biến thể — trang <strong>{{ currentPage }}/{{ totalPages }}</strong>
                 </div>
 
             </main>
@@ -1033,10 +1106,15 @@ const clearAll = () => {
 .empty-state button { padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; }
 
 /* PAGINATION */
-.pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 28px; }
-.pg-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid #e2e8f0; background: white; font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 28px; }
+.pg-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid #e2e8f0; background: white; font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; transition: all 0.2s; }
+.pg-btn:not(.dots):hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
 .pg-btn.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
-.pg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pg-btn.dots { border: none; background: transparent; opacity: 1; cursor: default; padding: 0 4px; width: auto; font-size: 15px; color: #94a3b8; }
+
+.pagination-info { text-align: right; font-size: 13px; color: #64748b; margin-top: 14px; }
+.pagination-info strong { color: #0f172a; }
 
 /* RESPONSIVE */
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }

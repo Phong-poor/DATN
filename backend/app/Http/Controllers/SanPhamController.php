@@ -14,51 +14,48 @@ use Illuminate\Support\Str;
 class SanPhamController extends Controller
 {
     public function index(Request $request)
-{
-    $query = SanPham::with([
-        'danhMuc',
-        'thuongHieu',
-        'bienThes',
-        'hinhAnhs'
-    ])->orderByDesc('id_sanpham');
+    {
+        $query = SanPham::with([
+            'danhMuc',
+            'thuongHieu',
+            'bienThes',
+            'hinhAnhs'
+        ])->orderByDesc('id_sanpham');
 
-    // Cấu hình các thuộc tính cần lọc dựa trên query params
-    $attributesToFilter = [
-        'ram' => 'ram',
-        'cpu' => 'cpu',
-        'gpu' => 'gpu',
-        'kichthuoc' => 'kích thước',
-        'dophan' => 'độ phân giải',
-        'tamnen' => 'tấm nền',
-        'pin' => 'pin',
-        'sac' => 'sạc'
-    ];
+        $attributesToFilter = [
+            'ram'      => 'ram',
+            'cpu'      => 'cpu',
+            'gpu'      => 'gpu',
+            'kichthuoc' => 'kích thước',
+            'dophan'   => 'độ phân giải',
+            'tamnen'   => 'tấm nền',
+            'pin'      => 'pin',
+            'sac'      => 'sạc'
+        ];
 
-    foreach ($attributesToFilter as $param => $jsonKey) {
-        if ($request->filled($param)) {
-            $values = explode(',', $request->$param);
-            $query->whereHas('bienThes', function ($q) use ($values) {
-                $q->where(function ($subQ) use ($values) {
-                    foreach ($values as $val) {
-                        $subQ->orWhere('thuoc_tinh_json', 'like', '%' . trim($val) . '%');
-                    }
+        foreach ($attributesToFilter as $param => $jsonKey) {
+            if ($request->filled($param)) {
+                $values = explode(',', $request->$param);
+                $query->whereHas('bienThes', function ($q) use ($values) {
+                    $q->where(function ($subQ) use ($values) {
+                        foreach ($values as $val) {
+                            $subQ->orWhere('thuoc_tinh_json', 'like', '%' . trim($val) . '%');
+                        }
+                    });
                 });
-            });
+            }
         }
+
+        $sanphams = $query->get();
+
+        return response()->json($sanphams);
     }
 
-    $sanphams = $query->get();
-
-    return response()->json($sanphams);
-}
-
-    // Trả về danh sách các giá trị thuộc tính có trong DB (để populate sidebar)
+    // Trả về danh sách các giá trị thuộc tính có trong DB
     public function attributeOptions()
     {
-        // Danh sách các ID thuộc tính cần thiết theo ảnh cung cấp:
-        // 1: RAM, 2: CPU, 3: GPU, 4: Kích thước, 5: Độ phân giải, 6: Tấm nền, 7: Pin, 8: Sạc
         $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
-        
+
         $options = \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
             ->where('trangthai', 1)
             ->orderBy('id_thuoctinh')
@@ -70,35 +67,51 @@ class SanPhamController extends Controller
             });
 
         return response()->json([
-            'ram' => $options->get(1, []),
-            'cpu' => $options->get(2, []),
-            'gpu' => $options->get(3, []),
+            'ram'       => $options->get(1, []),
+            'cpu'       => $options->get(2, []),
+            'gpu'       => $options->get(3, []),
             'kichthuoc' => $options->get(4, []),
-            'dophan' => $options->get(5, []),
-            'tamnen' => $options->get(6, []),
-            'pin' => $options->get(7, []),
-            'sac' => $options->get(8, [])
+            'dophan'    => $options->get(5, []),
+            'tamnen'    => $options->get(6, []),
+            'pin'       => $options->get(7, []),
+            'sac'       => $options->get(8, [])
         ]);
     }
 
     // ===== TÌM KIẾM SẢN PHẨM =====
+    // Tìm theo tên sản phẩm + tên biến thể, không trùng sản phẩm
     public function search(Request $request)
     {
-        $keyword = $request->query('q', '');
+        $keyword = trim($request->query('q', ''));
 
-        if (strlen(trim($keyword)) === 0) {
+        if (strlen($keyword) === 0) {
             return response()->json([]);
         }
 
+        // Lấy id_sanpham từ bienthe có ten_bienthe chứa keyword
+        $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
+            ->pluck('id_sanpham')
+            ->toArray();
+
+        // Tìm sản phẩm theo tên SP HOẶC có biến thể khớp, dùng whereIn + orWhere để không trùng
         $sanphams = SanPham::with([
             'danhMuc',
             'thuongHieu',
             'bienThes'
         ])
-        ->where('tenSP', 'LIKE', "%{$keyword}%")
+        ->where(function ($q) use ($keyword, $idsByBienThe) {
+            // Tìm theo tên sản phẩm
+            $q->where('tenSP', 'LIKE', "%{$keyword}%");
+
+            // HOẶC tìm theo tên biến thể (nếu có)
+            if (!empty($idsByBienThe)) {
+                $q->orWhereIn('id_sanpham', $idsByBienThe);
+            }
+        })
         ->orderByDesc('id_sanpham')
         ->get();
 
+        // distinct() không cần vì whereIn + orWhere trên cùng 1 bảng không tạo trùng
         return response()->json($sanphams);
     }
 
@@ -117,65 +130,61 @@ class SanPhamController extends Controller
             ], 404);
         }
 
-        // TỐI ƯU CỰC KỲ QUAN TRỌNG: Pre-load tất cả ThuocTinh 1 lần duy nhất thay vì query cho mỗi thuộc tính của mỗi biến thể (Lỗi N+1)
         $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
 
         $result = [
-            'id_sanpham' => $sanpham->id_sanpham,
-            'tenSP' => $sanpham->tenSP,
-            'SKU' => $sanpham->SKU,
-            'hinhanh' => $sanpham->hinhanh,
-            'trangthai' => $sanpham->trangthai,
-            'khoiluong' => $sanpham->khoiluong,
+            'id_sanpham'     => $sanpham->id_sanpham,
+            'tenSP'          => $sanpham->tenSP,
+            'SKU'            => $sanpham->SKU,
+            'hinhanh'        => $sanpham->hinhanh,
+            'trangthai'      => $sanpham->trangthai,
+            'khoiluong'      => $sanpham->khoiluong,
+            'id_danhmuc'     => $sanpham->id_danhmuc,
+            'id_thuonghieu'  => $sanpham->id_thuonghieu,
 
-            // thêm 2 dòng này
-            'id_danhmuc' => $sanpham->id_danhmuc,
-            'id_thuonghieu' => $sanpham->id_thuonghieu,
-
-            // thêm block này
             'danh_muc' => $sanpham->danhMuc ? [
-                'id_danhmuc' => $sanpham->danhMuc->id_danhmuc,
-                'ten_danhmuc' => $sanpham->danhMuc->ten_danhmuc,
+                'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
+                'ten_danhmuc'  => $sanpham->danhMuc->ten_danhmuc,
             ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
-                'id_thuonghieu' => $sanpham->thuongHieu->id_thuonghieu,
+                'id_thuonghieu'  => $sanpham->thuongHieu->id_thuonghieu,
                 'ten_thuonghieu' => $sanpham->thuongHieu->ten_thuonghieu,
             ] : null,
 
             'hinh_anhs' => $sanpham->hinhAnhs->map(function ($img) {
                 return [
                     'duongdan' => $img->duongdan,
-                    'thutu' => $img->thutu
+                    'thutu'    => $img->thutu
                 ];
             })->values(),
 
             'bien_thes' => $sanpham->bienThes->map(function ($bt) use ($allThuocTinhs) {
                 $thuocTinhJson = collect(json_decode($bt->thuoc_tinh_json ?? '[]', true))
                     ->map(function ($item) use ($allThuocTinhs) {
-                        $idThuocTinh = $item['id_thuoctinh'] ?? null;
+                        $idThuocTinh  = $item['id_thuoctinh'] ?? null;
                         $tenThuocTinh = $item['ten_thuoctinh'] ?? null;
 
                         if (!$idThuocTinh && $tenThuocTinh) {
-                            $thuocTinh = $allThuocTinhs->get($tenThuocTinh);
+                            $thuocTinh   = $allThuocTinhs->get($tenThuocTinh);
                             $idThuocTinh = $thuocTinh?->id_thuoctinh;
                         }
 
                         return [
-                            'id_thuoctinh' => $idThuocTinh,
+                            'id_thuoctinh'  => $idThuocTinh,
                             'ten_thuoctinh' => $tenThuocTinh,
-                            'giatri' => $item['giatri'] ?? null,
-                            'ma_mau' => $item['ma_mau'] ?? ($item['hex'] ?? null),
+                            'giatri'        => $item['giatri'] ?? null,
+                            'ma_mau'        => $item['ma_mau'] ?? ($item['hex'] ?? null),
                         ];
                     })
                     ->values();
 
                 return [
-                    'id_bienthe' => $bt->id_bienthe,
+                    'id_bienthe'  => $bt->id_bienthe,
                     'ten_bienthe' => $bt->ten_bienthe,
-                    'gia' => $bt->gia,
-                    'soluong' => $bt->soluong,
-                    'thuoc_tinh' => $thuocTinhJson,
+                    'gia'         => $bt->gia,
+                    'soluong'     => $bt->soluong,
+                    'thuoc_tinh'  => $thuocTinhJson,
                 ];
             })->values()
         ];
@@ -193,15 +202,15 @@ class SanPhamController extends Controller
             'hinhanh'        => 'nullable|string',
             'khoiluong'      => 'nullable|numeric',
 
-            'bienthes'                    => 'nullable|array',
-            'bienthes.*.ten_bienthe'      => 'nullable|string|max:255',
-            'bienthes.*.gia'              => 'required_with:bienthes|numeric|min:0',
-            'bienthes.*.soluong'          => 'required_with:bienthes|integer|min:0',
+            'bienthes'                => 'nullable|array',
+            'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
+            'bienthes.*.gia'          => 'required_with:bienthes|numeric|min:0',
+            'bienthes.*.soluong'      => 'required_with:bienthes|integer|min:0',
 
-            'hinh_anhs'                   => 'nullable|array',
-            'hinh_anhs.*.duongdan'        => 'required_with:hinh_anhs|string',
-            'hinh_anhs.*.thutu'           => 'nullable|integer|min:0',
-            'hinh_anhs.*.macdinh'         => 'nullable|integer|in:0,1',
+            'hinh_anhs'               => 'nullable|array',
+            'hinh_anhs.*.duongdan'    => 'required_with:hinh_anhs|string',
+            'hinh_anhs.*.thutu'       => 'nullable|integer|min:0',
+            'hinh_anhs.*.macdinh'     => 'nullable|integer|in:0,1',
         ], [
             'id_danhmuc.required'    => 'Vui lòng chọn danh mục.',
             'id_thuonghieu.required' => 'Vui lòng chọn thương hiệu.',
@@ -211,7 +220,7 @@ class SanPhamController extends Controller
         DB::beginTransaction();
 
         try {
-            $sku = $this->generateUniqueSKU($request->id_thuonghieu);
+            $sku       = $this->generateUniqueSKU($request->id_thuonghieu);
             $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
 
             $sanpham = SanPham::create([
@@ -224,11 +233,9 @@ class SanPhamController extends Controller
                 'khoiluong'     => $request->khoiluong,
             ]);
 
-            // Lưu ảnh phụ của sản phẩm
             if ($request->has('hinh_anhs') && is_array($request->hinh_anhs)) {
                 foreach ($request->hinh_anhs as $index => $ha) {
                     $imagePath = ImageHelper::saveBase64Image($ha['duongdan'] ?? null, 'uploads/sanpham');
-
                     if ($imagePath) {
                         BienTheHinhAnh::create([
                             'id_sanpham' => $sanpham->id_sanpham,
@@ -240,39 +247,33 @@ class SanPhamController extends Controller
                 }
             }
 
-            // Lưu biến thể
             if ($request->has('bienthes') && is_array($request->bienthes)) {
                 foreach ($request->bienthes as $bt) {
                     BienThe::create([
-                        'id_sanpham'  => $sanpham->id_sanpham,
-                        'ten_bienthe' => $bt['ten_bienthe'] ?? null,
-                        'gia'         => $bt['gia'],
-                        'soluong'     => $bt['soluong'],
-                         'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        'id_sanpham'      => $sanpham->id_sanpham,
+                        'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                        'gia'             => $bt['gia'],
+                        'soluong'         => $bt['soluong'],
+                        'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
                     ]);
                 }
             }
 
             DB::commit();
 
-            $sanpham = SanPham::with([
-                'danhMuc',
-                'thuongHieu',
-                'bienThes',
-                'hinhAnhs'
-            ])->find($sanpham->id_sanpham);
+            $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
+                ->find($sanpham->id_sanpham);
 
             return response()->json([
                 'message' => 'Thêm sản phẩm thành công.',
-                'data' => $sanpham
+                'data'    => $sanpham
             ], 201);
 
         } catch (\Throwable $e) {
             DB::rollBack();
-
             return response()->json([
                 'message' => 'Không thêm được sản phẩm.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -282,9 +283,7 @@ class SanPhamController extends Controller
         $sanpham = SanPham::find($id);
 
         if (!$sanpham) {
-            return response()->json([
-                'message' => 'Không tìm thấy sản phẩm.'
-            ], 404);
+            return response()->json(['message' => 'Không tìm thấy sản phẩm.'], 404);
         }
 
         $request->validate([
@@ -299,10 +298,10 @@ class SanPhamController extends Controller
             'hinh_anhs.*.duongdan' => 'required_with:hinh_anhs|string',
             'hinh_anhs.*.thutu'    => 'nullable|integer|min:0',
 
-            'bienthes'                    => 'nullable|array',
-            'bienthes.*.ten_bienthe'      => 'nullable|string|max:255',
-            'bienthes.*.gia'              => 'required_with:bienthes|numeric|min:0',
-            'bienthes.*.soluong'          => 'required_with:bienthes|integer|min:0',
+            'bienthes'                => 'nullable|array',
+            'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
+            'bienthes.*.gia'          => 'required_with:bienthes|numeric|min:0',
+            'bienthes.*.soluong'      => 'required_with:bienthes|integer|min:0',
         ], [
             'id_danhmuc.required'    => 'Vui lòng chọn danh mục.',
             'id_thuonghieu.required' => 'Vui lòng chọn thương hiệu.',
@@ -315,15 +314,12 @@ class SanPhamController extends Controller
         try {
             $coverPath = $sanpham->hinhanh;
 
-            // Ảnh chính mới là base64 thì lưu file mới
             if ($request->filled('hinhanh') && str_starts_with($request->hinhanh, 'data:image')) {
                 $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
             }
 
-            // Nếu frontend gửi lại path /storage/... thì giữ ảnh cũ
             if ($request->filled('hinhanh') && !str_starts_with($request->hinhanh, 'data:image')) {
                 $incoming = $request->hinhanh;
-
                 if (str_contains($incoming, '/storage/')) {
                     $coverPath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $incoming), '/');
                     $coverPath = ltrim(str_replace('/storage/', '', $coverPath), '/');
@@ -339,7 +335,6 @@ class SanPhamController extends Controller
                 'khoiluong'     => $request->khoiluong,
             ]);
 
-            // Sync ảnh phụ sản phẩm
             BienTheHinhAnh::where('id_sanpham', $sanpham->id_sanpham)->delete();
 
             if ($request->has('hinh_anhs') && is_array($request->hinh_anhs)) {
@@ -347,11 +342,9 @@ class SanPhamController extends Controller
                     $imagePath = $ha['duongdan'] ?? null;
                     if (!$imagePath) continue;
 
-                    // Ảnh mới dạng base64
                     if (str_starts_with($imagePath, 'data:image')) {
                         $imagePath = ImageHelper::saveBase64Image($imagePath, 'uploads/sanpham');
                     } else {
-                        // Ảnh cũ đang hiển thị dạng full URL /storage/...
                         $imagePath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $imagePath), '/');
                         $imagePath = ltrim(str_replace('/storage/', '', $imagePath), '/');
                     }
@@ -366,16 +359,15 @@ class SanPhamController extends Controller
                 }
             }
 
-            // Sync biến thể luôn cho đồng bộ
             BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
 
             if ($request->has('bienthes') && is_array($request->bienthes)) {
                 foreach ($request->bienthes as $bt) {
                     BienThe::create([
-                        'id_sanpham'  => $sanpham->id_sanpham,
-                        'ten_bienthe' => $bt['ten_bienthe'] ?? null,
-                        'gia'         => $bt['gia'],
-                        'soluong'     => $bt['soluong'],
+                        'id_sanpham'      => $sanpham->id_sanpham,
+                        'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                        'gia'             => $bt['gia'],
+                        'soluong'         => $bt['soluong'],
                         'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
                     ]);
                 }
@@ -383,23 +375,19 @@ class SanPhamController extends Controller
 
             DB::commit();
 
-            $sanpham = SanPham::with([
-                'danhMuc',
-                'thuongHieu',
-                'bienThes',
-                'hinhAnhs'
-            ])->find($sanpham->id_sanpham);
+            $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
+                ->find($sanpham->id_sanpham);
 
             return response()->json([
                 'message' => 'Cập nhật sản phẩm thành công.',
-                'data' => $sanpham
+                'data'    => $sanpham
             ]);
+
         } catch (\Throwable $e) {
             DB::rollBack();
-
             return response()->json([
                 'message' => 'Không cập nhật được sản phẩm.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -409,17 +397,12 @@ class SanPhamController extends Controller
         $sanpham = SanPham::find($id);
 
         if (!$sanpham) {
-            return response()->json([
-                'message' => 'Không tìm thấy sản phẩm.'
-            ], 404);
+            return response()->json(['message' => 'Không tìm thấy sản phẩm.'], 404);
         }
 
-        // Nếu DB đã set foreign key cascade thì chỉ cần xóa sản phẩm
         $sanpham->delete();
 
-        return response()->json([
-            'message' => 'Xóa sản phẩm thành công.'
-        ]);
+        return response()->json(['message' => 'Xóa sản phẩm thành công.']);
     }
 
     private function generateUniqueSKU($id_thuonghieu)

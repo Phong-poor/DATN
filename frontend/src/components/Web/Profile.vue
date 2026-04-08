@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import axios from 'axios'
+import api from '@/services/api'
 
 // ── Active tab ────────────────────────────────────────────
 const activeTab = ref('profile')
@@ -23,6 +24,12 @@ const showToast = (msg) => {
   }, 2500)
 }
 
+// ── Cancellation state ────────────────────────────────────
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
+
 // ════════════════════════════════════════════════
 //  TAB 1 — PROFILE
 // ════════════════════════════════════════════════
@@ -36,6 +43,66 @@ const user = ref({
   memberSince: 'Thành viên',
   joinDate: '',
 })
+
+const sidebarAvatarUrl = computed(() => {
+  if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
+  if (user.value.avatar.startsWith('http')) return user.value.avatar
+  return `http://127.0.0.1:8000/storage/${user.value.avatar}`
+})
+
+const formAvatarUrl = computed(() => {
+  if (tempAvatarUrl.value) return tempAvatarUrl.value
+  return sidebarAvatarUrl.value
+})
+
+/**
+ * Unify mapping from API user object to the local 'user' reactive state.
+ */
+const updateUserData = (apiUser) => {
+  user.value = {
+    ...user.value,
+    ...apiUser,
+    phone: apiUser.phone || '',
+    birthday: apiUser.date_of_birth || '', 
+    gender: apiUser.gender || '',
+    avatar: apiUser.avatar || user.value.avatar,
+    memberSince: apiUser.memberSince || 'Thành viên',
+    joinDate: apiUser.joinDate || user.value.joinDate,
+  }
+}
+
+const fileInput = ref(null)
+const selectedAvatarFile = ref(null)
+const tempAvatarUrl = ref(null)
+
+const triggerAvatarUpload = () => {
+  fileInput.value.click()
+}
+
+const handleAvatarUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Frontend Validation
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Chỉ chấp nhận ảnh định dạng JPG hoặc PNG!')
+    return
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Kích thước ảnh phải nhỏ hơn 2MB!')
+    return
+  }
+
+  if (file) {
+    if (tempAvatarUrl.value) {
+      URL.revokeObjectURL(tempAvatarUrl.value);
+    }
+    selectedAvatarFile.value = file;
+    tempAvatarUrl.value = URL.createObjectURL(file);
+  }
+}
 
 const profileForm = ref({})
 const editing = ref(false)
@@ -62,25 +129,9 @@ const loadUser = async () => {
       }
       return
     }
-const res = await axios.get('http://127.0.0.1:8000/api/user/profile', {
-    
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const res = await api.get('/user/profile')
 
-    const apiUser = res.data
-
-    user.value = {
-      ...user.value,
-      ...apiUser,
-      phone: apiUser.phone || '',
-      birthday: apiUser.birthday || '',
-      gender: apiUser.gender || '',
-      memberSince: apiUser.memberSince || 'Thành viên',
-      joinDate: apiUser.joinDate || '',
-      avatar: apiUser.avatar || user.value.avatar,
-    }
+    updateUserData(res.data)
 
     localStorage.setItem('user', JSON.stringify(user.value))
   } catch (error) {
@@ -105,12 +156,7 @@ const res = await axios.get('http://127.0.0.1:8000/api/user/profile', {
 
 const fetchOrders = async () => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) return
-
-    const res = await axios.get('http://127.0.0.1:8000/api/orders', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    const res = await api.get('/orders')
 
     if (res.data.success) {
       orders.value = res.data.orders.map(order => {
@@ -122,12 +168,16 @@ const fetchOrders = async () => {
         if (order.trangthai === 'cancelled') statusKey = 'cancelled'
 
         return {
-          id: `NGL-2026-${String(order.id_dathang).padStart(3, '0')}`,
+          id_dathang: order.id_dathang,
+          id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
           status: statusKey,
+          trangthai: order.trangthai, // 🔥 Keep original for logic
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
+          tongtien: order.tongtien,
+          lydo: order.lydo,
           items: order.chi_tiets.map(item => ({
-            name: item.bien_the?.san_pham?.tenSP || 'Sản phẩm',
+            name: item.bien_the?.ten_bienthe || 'Sản phẩm',
             qty: item.soluong,
             price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
             img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
@@ -146,6 +196,53 @@ const fetchOrders = async () => {
   }
 }
 
+const openCancelModal = (order) => {
+  orderToCancel.value = order
+  cancelReason.value = ''
+  showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+  if (!cancelReason.value.trim()) {
+    showToast('Vui lòng nhập lý do hủy.')
+    return
+  }
+
+  if (!confirm('Chắc chắn hủy đơn?')) return
+
+  isSubmitting.value = true
+  try {
+    const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, {
+      lydo: cancelReason.value.trim()
+    })
+
+    if (res.data.success) {
+      showToast('Hủy đơn hàng thành công!')
+      showCancelModal.value = false
+      await fetchOrders()
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Lỗi khi hủy đơn.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const handleReorder = async (order) => {
+  if (!confirm('Chắc chắn mua lại?')) return
+
+  try {
+    const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+    if (res.data.success) {
+      showToast(res.data.message)
+      window.location.href = '/cart'
+    }
+  } catch (err) {
+    showToast('Lỗi khi mua lại sản phẩm.')
+  }
+}
+
 onMounted(() => {
   loadUser()
   fetchOrders()
@@ -153,6 +250,10 @@ onMounted(() => {
 
 const startEdit = () => {
   profileForm.value = { ...user.value }
+  // Map gender back to English values for select
+  if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
+  if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
+
   editing.value = true
 }
 
@@ -165,30 +266,36 @@ const saveProfile = async () => {
   try {
     savingProfile.value = true
 
-    const token = localStorage.getItem('token')
+    // 1. Nếu có ảnh mới chờ upload, ta xử lý upload trước
+    if (selectedAvatarFile.value) {
+      const formData = new FormData()
+      formData.append('avatar', selectedAvatarFile.value)
+      
+      const avatarRes = await api.post('/user/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if (avatarRes.data.user) {
+        updateUserData(avatarRes.data.user)
+      }
+    }
 
-    //  DEBUG Ở ĐÂY
-    console.log('DATA GỬI:', profileForm.value)
-    console.log('TOKEN:', token)
-
-    const res = await axios.put(
-      'http://127.0.0.1:8000/api/user/profile',
+    // 2. Lưu thông tin profile còn lại
+    const res = await api.put(
+      '/user/profile',
       {
         name: profileForm.value.name,
         email: profileForm.value.email,
         phone: profileForm.value.phone,
         date_of_birth: profileForm.value.birthday,
         gender: profileForm.value.gender,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       }
     )
 
-    user.value = res.data.user
+    updateUserData(res.data.user)
     localStorage.setItem('user', JSON.stringify(user.value))
+    window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
     showToast('Cập nhật thành công!')
@@ -240,6 +347,20 @@ const filteredOrders = computed(() =>
     : orders.value.filter((o) => o.status === orderTab.value)
 )
 
+// Pagination logic for orders
+const currentPage = ref(1)
+const itemsPerPage = 8
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredOrders.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
+
+watch(orderTab, () => {
+  currentPage.value = 1
+})
+
 // ════════════════════════════════════════════════
 //  TAB 3 — ADDRESS
 // ════════════════════════════════════════════════
@@ -269,28 +390,28 @@ const provinces = [
   'Buôn Ma Thuột',
 ]
 
-const addresses = ref([
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    phone: '0901 234 567',
-    province: 'TP. Hồ Chí Minh',
-    district: 'Quận 1',
-    ward: 'Phường Bến Nghé',
-    detail: '123 Lê Lợi',
-    isDefault: true,
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Văn A',
-    phone: '0912 345 678',
-    province: 'Hà Nội',
-    district: 'Quận Cầu Giấy',
-    ward: 'Phường Dịch Vọng',
-    detail: '45 Nguyễn Phong Sắc',
-    isDefault: false,
-  },
-])
+// const addresses = ref([
+//   {
+//     id: 1,
+//     name: 'Nguyễn Văn A',
+//     phone: '0901 234 567',
+//     province: 'TP. Hồ Chí Minh',
+//     district: 'Quận 1',
+//     ward: 'Phường Bến Nghé',
+//     detail: '123 Lê Lợi',
+//     isDefault: true,
+//   },
+//   {
+//     id: 2,
+//     name: 'Nguyễn Văn A',
+//     phone: '0912 345 678',
+//     province: 'Hà Nội',
+//     district: 'Quận Cầu Giấy',
+//     ward: 'Phường Dịch Vọng',
+//     detail: '45 Nguyễn Phong Sắc',
+//     isDefault: false,
+//   },
+// ])
 
 const openAddAddr = () => {
   addrForm.value = defaultAddrForm()
@@ -418,7 +539,7 @@ const savePw = async () => {
           <div class="modal-head">
             <div>
               <h2 class="modal-title">Chi tiết đơn hàng</h2>
-              <p class="modal-id">{{ selectedOrder.id }}</p>
+              <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
             </div>
             <button class="close-btn" @click="selectedOrder = null">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -428,6 +549,12 @@ const savePw = async () => {
             <div class="modal-status" :style="{ color: statusMap[selectedOrder.status].color, background: statusMap[selectedOrder.status].bg }">
               {{ statusMap[selectedOrder.status].label }}
             </div>
+
+            <!-- Lý do hủy -->
+            <div v-if="selectedOrder.status === 'cancelled' && selectedOrder.lydo" class="alert alert-danger mb-4" style="font-size: 13px; padding: 12px; border-radius: 10px;">
+              <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
+            </div>
+
             <div class="timeline">
               <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                 <div class="tl-col">
@@ -449,9 +576,43 @@ const savePw = async () => {
               </div>
               <p class="modal-item-price">{{ item.price }}</p>
             </div>
-            <div class="modal-total">
-              <span>Tổng cộng</span>
-              <span class="total-val">{{ selectedOrder.total }}</span>
+            <div class="modal-footer">
+              <div class="modal-btns">
+                <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" 
+                  class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
+                <button v-if="['done', 'cancelled'].includes(selectedOrder.status)" 
+                  class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
+              </div>
+              <div class="modal-total-wrap">
+                <span class="total-label">Tổng cộng</span>
+                <span class="total-value">{{ selectedOrder.total }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Cancellation Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 1001;">
+        <div class="modal mini-modal">
+          <div class="modal-head">
+            <h2 class="modal-title">Lý do hủy đơn</h2>
+            <button class="close-btn" @click="showCancelModal = false">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
+            
+            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
+            
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+              <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+              </button>
+              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
             </div>
           </div>
         </div>
@@ -463,11 +624,10 @@ const savePw = async () => {
       <!-- ── SIDEBAR ── -->
       <aside class="sidebar">
         <div class="avatar-section">
-          <div class="avatar-wrap">
-            <img :src="user.avatar" class="avatar" :alt="user.name" />
-            <button class="avatar-edit" title="Đổi ảnh">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
+          <div class="avatar-sidebar-container">
+            <div class="avatar-circle">
+              <img :src="sidebarAvatarUrl" :alt="user.name" class="profile-avatar" />
+            </div>
           </div>
           <h2 class="sidebar-name">{{ user.name }}</h2>
           <span class="sidebar-badge">{{ user.memberSince }}</span>
@@ -529,9 +689,34 @@ const savePw = async () => {
             <div class="info-row"><span class="info-lbl">Email</span><span class="info-val">{{ user.email }}</span></div>
             <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val">{{ user.phone }}</span></div>
             <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val">{{ user.birthday }}</span></div>
-            <div class="info-row"><span class="info-lbl">Giới tính</span><span class="info-val">{{ user.gender === 'male' ? 'Nam' : user.gender === 'female' ? 'Nữ' : 'Khác' }}</span></div>
+            <div class="info-row">
+              <span class="info-lbl">Giới tính</span>
+              <span class="info-val">
+                {{ ['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác' }}
+              </span>
+            </div>
           </div>
           <form v-else class="edit-form" @submit.prevent="saveProfile">
+            <!-- Redesigned Avatar Upload UI -->
+            <div class="form-avatar-section">
+              <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+                <div class="form-avatar-circle">
+                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                  <div class="form-avatar-plus-overlay">
+                    <i class="fas fa-plus"></i>
+                  </div>
+                </div>
+              </div>
+              <p class="form-avatar-upload-text">Tải ảnh lên</p>
+              <input 
+                type="file" 
+                ref="fileInput" 
+                class="d-none" 
+                accept="image/jpeg, image/png"
+                @change="handleAvatarUpload" 
+              />
+            </div>
+
             <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
             <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
             <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
@@ -539,7 +724,11 @@ const savePw = async () => {
               <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
               <div class="form-group">
                 <label>Giới tính</label>
-                <select v-model="profileForm.gender"><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select>
+                <select v-model="profileForm.gender">
+                  <option value="male">Nam</option>
+                  <option value="female">Nữ</option>
+                  <option value="other">Khác</option>
+                </select>
               </div>
             </div>
             <div class="form-actions">
@@ -554,9 +743,8 @@ const savePw = async () => {
 
         <!-- ════ TAB: ORDERS ════ -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline">
-            <h1 class="card-title">Đơn hàng của tôi</h1>
-            <p class="card-sub">Theo dõi và quản lý đơn hàng</p>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Lịch Sử Đơn Hàng</h1>
           </div>
           <div class="order-tabs">
             <button v-for="t in orderTabs" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
@@ -564,26 +752,56 @@ const savePw = async () => {
               <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
             </button>
           </div>
-          <div class="orders-list">
-            <div v-if="filteredOrders.length === 0" class="empty">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-              <p>Không có đơn hàng nào</p>
-            </div>
-            <div class="order-card" v-for="order in filteredOrders" :key="order.id">
-              <div class="order-head">
-                <div class="order-meta"><span class="order-id">{{ order.id }}</span><span class="order-date">{{ order.date }}</span></div>
-                <span class="order-badge" :style="{ color: statusMap[order.status].color, background: statusMap[order.status].bg }">{{ statusMap[order.status].label }}</span>
-              </div>
-              <div class="order-items">
-                <div class="order-item" v-for="item in order.items" :key="item.name">
-                  <img :src="item.img" :alt="item.name" />
-                  <div class="order-item-info"><p class="order-item-name">{{ item.name }}</p><p class="order-item-qty">x{{ item.qty }}</p></div>
-                  <p class="order-item-price">{{ item.price }}</p>
+          
+          <div class="table-card">
+            <table class="order-data-table">
+              <thead>
+                <tr>
+                  <th>MÃ ĐƠN HÀNG</th>
+                  <th>Ngày đặt</th>
+                  <th>Tổng tiền</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredOrders.length === 0">
+                  <td colspan="5" class="empty-state-cell">
+                    <div class="empty-msg">
+                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                      <p>Không có đơn hàng nào</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
+                  <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span></td>
+                  <td>{{ order.date }}</td>
+                  <td>{{ order.total }}</td>
+                  <td>
+                    <span class="status-cell" :style="{ color: statusMap[order.status].color }">
+                      {{ statusMap[order.status].label }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button class="btn-xem" @click="selectedOrder = order">Xem</button>
+                      <button v-if="['done', 'cancelled'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination-footer" v-if="totalPages > 1">
+              <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
+              <div class="pagination">
+                <button class="p-arrow" :disabled="currentPage === 1" @click="currentPage--">‹ Trước</button>
+                <div class="p-nums">
+                  <button v-for="p in totalPages" :key="p" class="p-num" :class="{ active: currentPage === p }" @click="currentPage = p">{{ p }}</button>
                 </div>
-              </div>
-              <div class="order-foot">
-                <span class="order-total">Tổng: <strong>{{ order.total }}</strong></span>
-                <button class="btn-detail" @click="selectedOrder = order">Xem chi tiết</button>
+                <button class="p-arrow" :disabled="currentPage === totalPages" @click="currentPage++">Sau ›</button>
               </div>
             </div>
           </div>
@@ -803,31 +1021,41 @@ const savePw = async () => {
 .err-msg { font-size:12px; color:#ef4444; font-weight:500; }
 
 /* ORDERS */
-.order-tabs { display:flex; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:6px; margin-bottom:16px; flex-wrap:wrap; }
+.order-tabs { display:flex; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:6px; margin-bottom:20px; flex-wrap:wrap; }
 .order-tab { padding:8px 14px; border-radius:10px; border:none; background:transparent; font-size:13px; font-weight:500; color:#64748b; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
 .order-tab:hover { background:#f1f5f9; }
 .order-tab.active { background:#2563eb; color:#fff; font-weight:600; }
 .otab-count { background:rgba(255,255,255,0.25); padding:1px 7px; border-radius:99px; font-size:11px; }
 .order-tab:not(.active) .otab-count { background:#f1f5f9; color:#64748b; }
-.orders-list { display:flex; flex-direction:column; gap:12px; }
-.order-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; overflow:hidden; }
-.order-head { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f1f5f9; }
-.order-meta { display:flex; align-items:center; gap:12px; }
-.order-id { font-size:13px; font-weight:700; color:#0f172a; }
-.order-date { font-size:12px; color:#94a3b8; }
-.order-badge { font-size:11px; font-weight:700; padding:4px 10px; border-radius:99px; }
-.order-items { padding:12px 20px; }
-.order-item { display:flex; align-items:center; gap:14px; padding:8px 0; }
-.order-item img { width:52px; height:52px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; flex-shrink:0; }
-.order-item-info { flex:1; min-width:0; }
-.order-item-name { font-size:14px; font-weight:600; color:#1e293b; margin:0 0 3px; }
-.order-item-qty { font-size:12px; color:#94a3b8; margin:0; }
-.order-item-price { font-size:14px; font-weight:700; color:#2563eb; flex-shrink:0; }
-.order-foot { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid #f1f5f9; background:#f8fafc; }
-.order-total { font-size:13px; color:#64748b; }
-.order-total strong { color:#0f172a; font-size:15px; }
-.btn-detail { padding:8px 18px; border-radius:9px; background:#fff; border:1.5px solid #2563eb; color:#2563eb; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-.btn-detail:hover { background:#2563eb; color:#fff; }
+
+.table-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+.order-data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.order-data-table th { background: #f8fafc; padding: 16px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid #f1f5f9; }
+.order-data-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.order-row:hover { background: #fafafa; }
+.id-col { font-weight: 700; color: #2563eb; }
+.status-cell { font-weight: 600; font-size: 13px; }
+
+.btn-group { display: flex; gap: 8px; }
+.btn-xem { background: #2563eb; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 13px; }
+.btn-xem:hover { background: #1d4ed8; }
+.btn-mua-lai { background: #10b981; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 13px; }
+.btn-mua-lai:hover { background: #059669; }
+.btn-huy-don { background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+.btn-huy-don:hover { background: #ef4444; color: #fff; }
+
+.pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; }
+.pagination-info { font-size: 13px; color: #64748b; margin: 0; }
+.pagination { display: flex; align-items: center; gap: 10px; }
+.p-arrow { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; color: #64748b; font-weight: 600; cursor: pointer; font-size: 13px; }
+.p-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
+.p-nums { display: flex; gap: 6px; }
+.p-num { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-weight: 600; cursor: pointer; }
+.p-num.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+.empty-state-cell { padding: 60px 0; }
+.empty-msg { text-align: center; color: #94a3b8; }
+.empty-icon { width: 44px; height: 44px; stroke: #cbd5e1; margin-bottom: 10px; display: block; margin: 0 auto; }
 
 /* ADDRESS */
 .btn-add { display:flex; align-items:center; gap:8px; padding:10px 18px; border-radius:10px; background:#2563eb; border:none; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
@@ -914,11 +1142,113 @@ const savePw = async () => {
 .modal-item-name { font-size:13px; font-weight:600; color:#1e293b; margin:0 0 3px; }
 .modal-item-qty { font-size:12px; color:#94a3b8; margin:0; }
 .modal-item-price { font-size:14px; font-weight:700; color:#2563eb; }
-.modal-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 0; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#64748b; }
-.total-val { font-size:18px; font-weight:800; color:#2563eb; }
+.modal-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid #f1f5f9; margin-top: 12px; }
+.modal-btns { display: flex; gap: 12px; }
+.btn-modal-huy { background: white; border: 1.2px solid #ef4444; color: #ef4444; padding: 7px 16px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-huy:hover { background: #fee2e2; }
+.btn-modal-mua { background: white; border: 1.5px solid #10b981; color: #10b981; padding: 7px 16px; border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-mua:hover { background: #dcfce7; }
+.modal-total-wrap { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.total-label { font-size: 13px; color: #64748b; font-weight: 600; }
+.total-value { font-size: 18px; font-weight: 800; color: #2563eb; }
 
 /* TOAST */
 .toast { position:fixed; top:24px; right:24px; z-index:9999; background:#0f172a; color:#fff; padding:12px 20px; border-radius:12px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+/* SIDEBAR AVATAR */
+.avatar-sidebar-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* FORM AVATAR REDESIGN */
+.form-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.form-avatar-dashed-border {
+  width: 120px;
+  height: 120px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px;
+}
+
+.form-avatar-dashed-border:hover {
+  border-color: #2563eb;
+  transform: scale(1.02);
+}
+
+.form-avatar-circle {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.form-avatar-plus-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(37, 99, 235, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 32px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.form-avatar-dashed-border:hover .form-avatar-plus-overlay {
+  opacity: 1;
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.form-avatar-upload-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+  letter-spacing: 0.3px;
+}
 .toast svg { width:18px; height:18px; stroke:#4ade80; stroke-width:2.5; fill:none; }
 .toast-enter-active { transition:all 0.3s cubic-bezier(0.34,1.4,0.64,1); }
 .toast-leave-active { transition:all 0.2s ease; }
@@ -931,4 +1261,92 @@ const savePw = async () => {
 .slide-leave-active { transition:all 0.18s ease; }
 .slide-enter-from { opacity:0; transform:translateY(-8px); }
 .slide-leave-to { opacity:0; transform:translateY(-6px); }
+
+.d-none { display: none; }
+.d-flex { display: flex; align-items: center; }
+.gap-2 { gap: 12px; }
+
+/* CANCEL MODAL */
+.cancel-options {
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.cancel-option-item {
+  padding: 14px 18px;
+  cursor: pointer;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.2s;
+  margin: 0;
+}
+.cancel-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cancel-radio-native {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+.cancel-option-item:last-child {
+  border-bottom: none;
+}
+.cancel-option-item:hover {
+  background: #f8fafc;
+}
+.cancel-option-text {
+  font-size: 14.5px;
+  color: #334155;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.cancel-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  font-size: 14px;
+  margin-bottom: 20px;
+  background: #eff6ff;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s;
+  resize: vertical;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+.cancel-textarea::placeholder {
+  color: #94a3b8;
+}
+.cancel-textarea:focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+  background: #fff;
+}
+.btn-danger-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-danger-confirm:hover {
+  background: #dc2626;
+}
+.btn-danger-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 </style>
