@@ -71,7 +71,7 @@ const mapProducts = (rawProducts) => {
         }
 
         return p.bien_thes.map(bt => {
-            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '';
+            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '', mausac = '';
             let thuoc_tinh = [];
             try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
 
@@ -86,11 +86,13 @@ const mapProducts = (rawProducts) => {
                     else if (ten === 'tấm nền') tamnen = attr.giatri;
                     else if (ten === 'pin') pin = attr.giatri;
                     else if (ten === 'sạc') sac = attr.giatri;
+                    else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
                 });
             }
             
             const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
-            const fullName = nameExt ? `${p.tenSP} (${nameExt})` : p.tenSP;
+            const tenKemMau = mausac ? `${p.tenSP} - ${mausac}` : p.tenSP;
+            const fullName = nameExt ? `${tenKemMau} (${nameExt})` : tenKemMau;
 
             return {
                 id: p.id_sanpham,
@@ -649,7 +651,7 @@ const clearAll = () => {
                             </div>
 
                             <div class="card-actions">
-                                <router-link :to="`/products/${p.id}`" class="btn-detail">
+                                <router-link :to="`/products/${p.id}?variant=${p.key_id}`" class="btn-detail">
                                     Chi tiết
                                 </router-link>
 
