@@ -20,6 +20,7 @@ use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\YeuThichController;
 
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -141,6 +142,9 @@ Route::get('/test', function () {
 Route::middleware(['auth:sanctum', 'admin'])
     ->prefix('admin')
     ->group(function () {
+        // ===== DASHBOARD =====
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);
         Route::post('/users', [UserController::class, 'store']);
