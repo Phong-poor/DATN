@@ -49,24 +49,85 @@ class LienHeController extends Controller
 
         $contact = LienHe::findOrFail($id);
 
-        Mail::send([], [], function ($mail) use ($contact, $request) {
-            $mail->to($contact->email, $contact->name)
-                ->subject('Phản hồi từ VinaTech - ' . $contact->name)
-                ->html("
-                    <div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'>
-                        <div style='background:#4f46e5;padding:24px;border-radius:12px 12px 0 0'>
-                            <h2 style='color:#fff;margin:0'>VinaTech Support</h2>
-                        </div>
-                        <div style='background:#f8faff;padding:24px;border:1px solid #e2e8f0'>
-                            <p>Xin chào <strong>{$contact->name}</strong>,</p>
-                            <p>Dưới đây là phản hồi:</p>
-                            <div style='background:#fff;padding:16px;margin:16px 0'>
-                                " . nl2br(e($request->reply)) . "
-                            </div>
-                        </div>
+            Mail::send([], [], function ($mail) use ($contact, $request) {
+                $mail->to($contact->email, $contact->name)
+                    ->subject('💻 NextGen Laptop | Phản hồi liên hệ #' . $contact->id)
+                    ->html("
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta charset='UTF-8'>
+            </head>
+
+            <body style='margin:0;padding:0;background:#f1f5f9;font-family:Segoe UI,Arial,sans-serif'>
+
+            <div style='max-width:640px;margin:30px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.08)'>
+
+                <!-- HEADER -->
+                <div style='background:linear-gradient(135deg,#6366f1,#2563eb,#06b6d4);padding:30px;text-align:center;color:white'>
+                    <h1 style='margin:0;font-size:26px'>💻 NextGen Laptop</h1>
+                    <p style='margin-top:8px;font-size:13px;opacity:0.9'>
+                        Công nghệ dẫn đầu – Phục vụ tận tâm
+                    </p>
+                </div>
+
+                <!-- BODY -->
+                <div style='padding:28px'>
+
+                    <h2 style='margin:0 0 10px;color:#111827;font-size:18px'>
+                        Xin chào {$contact->name} 👋
+                    </h2>
+
+                    <p style='color:#374151;font-size:14px;line-height:1.6'>
+                        Cảm ơn bạn đã liên hệ với <strong>NextGen Laptop</strong>. 
+                        Đội ngũ của chúng tôi đã tiếp nhận và phản hồi như sau:
+                    </p>
+
+                    <!-- RESPONSE BOX -->
+                    <div style='margin:20px 0;padding:18px;border-radius:12px;
+                                background:linear-gradient(135deg,#eef2ff,#f0f9ff);
+                                border:1px solid #e0e7ff'>
+
+                        <p style='margin:0;color:#111827;font-size:14px;line-height:1.6'>
+                            " . nl2br(e($request->reply)) . "
+                        </p>
                     </div>
-                ");
-        });
+
+                    <!-- CTA -->
+                    <div style='text-align:center;margin:30px 0'>
+                        <a href='#'
+                        style='display:inline-block;
+                        padding:12px 22px;
+                        background:linear-gradient(135deg,#2563eb,#4f46e5);
+                        color:#fff;
+                        border-radius:999px;
+                        text-decoration:none;
+                        font-size:14px;
+                        font-weight:600;
+                        box-shadow:0 6px 18px rgba(37,99,235,0.4)'>
+                        🚀 Truy cập NextGen Laptop
+                        </a>
+                    </div>
+
+                    <p style='font-size:13px;color:#6b7280;text-align:center'>
+                        Nếu bạn cần hỗ trợ thêm, hãy phản hồi lại email này nhé!
+                    </p>
+
+                </div>
+
+                <!-- FOOTER -->
+                <div style='background:#0f172a;color:#94a3b8;text-align:center;padding:18px;font-size:12px'>
+                    <p style='margin:0'>© 2026 NextGen Laptop</p>
+                    <p style='margin:5px 0'>📞 Hotline: 1900 8888</p>
+                    <p style='margin:0'>📧 support@nextgen.vn</p>
+                </div>
+
+            </div>
+
+            </body>
+            </html>
+            ");
+            });
 
         $contact->update([
             'reply'      => $request->reply,
