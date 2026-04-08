@@ -15,6 +15,7 @@ use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LienHeController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -31,7 +32,9 @@ Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 've
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 // ================= LIÊN HỆ (KHÁCH) =================
+
 Route::get('/contacts', [LienHeController::class, 'index']);
+Route::post('/lien-he', [LienHeController::class, 'store']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
@@ -134,6 +137,16 @@ Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destro
 Route::get('/test', function () {
     return 'OK API';
 });
+use Illuminate\Support\Facades\Mail;
+
+Route::get('/test-mail', function () {
+    Mail::raw('Test gửi mail thành công', function ($msg) {
+        $msg->to('machquanlac5@gmail.com')
+            ->subject('Test Mail Laravel');
+    });
+
+    return 'OK';
+});
 
 // ================= ADMIN =================
 Route::middleware(['auth:sanctum', 'admin'])
@@ -155,4 +168,6 @@ Route::middleware(['auth:sanctum', 'admin'])
     // ===== LIÊN HỆ ADMIN =====
     Route::get('/lien-he', [LienHeController::class, 'index']);
     Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
+    Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
+
 });
