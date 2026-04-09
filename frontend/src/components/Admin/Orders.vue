@@ -111,14 +111,10 @@ watch(searchQuery, () => {
     currentPage.value = 1
 })
 
-const todayRevenue = computed(() => {
-    const today = new Date().toLocaleDateString('vi-VN')
+const totalRevenue = computed(() => {
     return orders.value
-        .filter(o => o.date === today && o.status === 'done')
-        .reduce((sum, o) => {
-            const price = parseInt(o.total.replace(/[^0-9]/g, ''))
-            return sum + price
-        }, 0)
+        .filter(o => o.status !== 'cancelled')
+        .reduce((sum, o) => sum + Number(o.raw.tongtien || 0), 0)
 })
 
 const formatRevenue = (val) => {
@@ -377,8 +373,8 @@ function exportExcel() {
                     <polyline points="17 6 23 6 23 12"/>
                 </svg>
                 <div>
-                    <span>DOANH THU HÔM NAY</span>
-                    <b>{{ formatRevenue(todayRevenue) }}</b>
+                    <span>TỔNG DOANH THU</span>
+                    <b>{{ formatRevenue(totalRevenue) }}</b>
                 </div>
             </div>
         </div>
