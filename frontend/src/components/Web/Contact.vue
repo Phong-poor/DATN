@@ -11,6 +11,27 @@ const error = ref('')
 const success = ref(false)
 const loading = ref(false)
 
+import { onMounted } from 'vue'
+
+onMounted(async () => {
+    try {
+        const res = await fetch('http://localhost:8000/api/user/profile', {
+            headers: {
+                Authorization: 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+
+        const data = await res.json()
+
+        name.value = data.name
+        email.value = data.email
+        phone.value = data.phone
+
+    } catch (err) {
+        console.log('Chưa đăng nhập')
+    }
+})
+
 async function submitForm() {
     if (loading.value) return
 
@@ -161,7 +182,7 @@ const infos = [
 
                             <p v-if="error" class="msg error">⚠ {{ error }}</p>
                             <p v-if="success" class="msg success">
-                                ✓ Gửi thành công! Chúng tôi sẽ liên hệ sớm.
+                                ✓ gửi thành công! chúng tôi sẽ liên hệ trong 24 giờ tới.
                             </p>
 
                             <button
