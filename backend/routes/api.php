@@ -52,10 +52,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gio-hang/dem', [GioHangController::class, 'demSoLuong']);
 
     // ===== ĐẶT HÀNG =====
-    Route::post('/checkout',                    [DatHangController::class, 'checkout']);
-    Route::get('/orders',                       [DatHangController::class, 'orders']);
-    Route::post('/orders/{id}/cancel',          [DatHangController::class, 'cancelOrder']);
-    Route::post('/orders/{id}/reorder',         [DatHangController::class, 'reorder']);
+    Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::get('/orders', [DatHangController::class, 'orders']);
+    Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
+    Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
@@ -63,7 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
 });
 
-// ================= DANH MỤC =================
+Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+
+
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
 Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
@@ -77,7 +80,8 @@ Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show'])
 Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
 Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
-// ================= USER =================
+
+Route::post('/register', [UserController::class, 'store']);
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}', [UserController::class, 'update']);
@@ -108,7 +112,8 @@ Route::get('/colors/{id}', [ColorController::class, 'show']);
 Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
-// ================= SẢN PHẨM =================
+
+// ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
 Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
@@ -132,6 +137,9 @@ Route::get('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'show']);
 Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
+
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
 // ================= TEST =================
 Route::get('/test', function () {
