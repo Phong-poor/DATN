@@ -45,6 +45,34 @@ const totalInventoryStats = computed(() =>
   allVariants.value.reduce((sum, v) => sum + Number(v.soluong ?? 0), 0)
 )
 
+const showLowStockModal = ref(false)
+const selectedLowStockProduct = ref(null)
+const showLowStockVariantsModal = ref(false)
+
+const lowStockProducts = computed(() => {
+  return products.value.filter(p => {
+    return Array.isArray(p.bienThes) && p.bienThes.some(v => Number(v.soluong ?? 0) < 10)
+  })
+})
+
+const openLowStockModal = () => {
+  showLowStockModal.value = true
+}
+
+const closeLowStockModal = () => {
+  showLowStockModal.value = false
+}
+
+const openLowStockVariantsModal = (product) => {
+  selectedLowStockProduct.value = product
+  showLowStockVariantsModal.value = true
+}
+
+const closeLowStockVariantsModal = () => {
+  showLowStockVariantsModal.value = false
+  selectedLowStockProduct.value = null
+}
+
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filteredProducts.value.length / PER_PAGE))
 )
@@ -1147,7 +1175,7 @@ onMounted(() => {
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card clickable-stat" @click="openLowStockModal">
         <span class="stat-icon red">⚠️</span>
         <div>
           <p>Sắp hết hàng</p>
@@ -1499,15 +1527,17 @@ onMounted(() => {
 
                     <div class="bulk-actions">
                       <button class="btn-apply-outline" @click="applyRulesToAll(false)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="12" height="12">
-                          <circle cx="7" cy="7" r="5.5"/>
-                          <polyline points="4.5,7 6,8.5 9.5,5"/>
+                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" width="12" height="12">
+                          <circle cx="7" cy="7" r="5.5" />
+                          <polyline points="4.5,7 6,8.5 9.5,5" />
                         </svg>
                         Chỉ điền ô trống
                       </button>
                       <button class="btn-apply-solid" @click="applyRulesToAll(true)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="12" height="12">
-                          <polyline points="1.5,7 5,10.5 12.5,3"/>
+                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" width="12" height="12">
+                          <polyline points="1.5,7 5,10.5 12.5,3" />
                         </svg>
                         Áp dụng tất cả
                       </button>
@@ -1605,6 +1635,82 @@ onMounted(() => {
       </div>
     </Teleport>
 
+    <!-- Modal Danh sách sản phẩm sắp hết hàng -->
+    <Teleport to="body">
+      <div v-if="showLowStockModal" class="modal-overlay" @click.self="closeLowStockModal">
+        <div class="modal modal-wide">
+          <div class="modal-header">
+            <h3>Danh sách sản phẩm sắp hết hàng</h3>
+            <button class="modal-close" @click="closeLowStockModal">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Hình ảnh</th>
+                    <th>Tên SP</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!lowStockProducts.length">
+                    <td colspan="4" class="empty">Không có sản phẩm nào sắp hết hàng.</td>
+                  </tr>
+                  <tr v-for="(p, i) in lowStockProducts" :key="p.id">
+                    <td>{{ i + 1 }}</td>
+                    <td>
+                      <img :src="p.img" :alt="p.name"
+                        style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
+                    </td>
+                    <td><b>{{ p.name }}</b><br><span style="font-size: 11px; color: #94a3b8;">SKU: {{ p.sku }}</span>
+                    </td>
+                    <td>
+                      <button class="btn-apply-solid"
+                        style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer;"
+                        @click="openLowStockVariantsModal(p)">Xem chi tiết</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal Danh sách biến thể sắp hết hàng -->
+    <Teleport to="body">
+      <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
+            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tên biến thể</th>
+                    <th>Số lượng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
+                    :key="v.id_bienthe || v.id">
+                    <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
+                    <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
@@ -1668,6 +1774,16 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   border: 1px solid #f1f5f9;
+}
+
+.clickable-stat {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .stat-card p {
@@ -2883,8 +2999,6 @@ tbody td {
   border-radius: 10px;
 }
 
-.combo-bar {}
-
 .combo-formula {
   display: flex;
   align-items: center;
@@ -3145,6 +3259,7 @@ tbody td {
   flex-direction: column;
   gap: 6px;
 }
+
 .bulk-actions {
   display: flex;
   gap: 8px;
@@ -3192,6 +3307,7 @@ tbody td {
   opacity: .88;
   transform: translateY(-1px);
 }
+
 @media (max-width: 768px) {
   .admin {
     padding: 20px 16px;
