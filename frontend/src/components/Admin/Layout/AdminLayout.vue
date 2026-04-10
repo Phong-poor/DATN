@@ -6,8 +6,8 @@
 
       <!-- LOGO -->
       <div class="sidebar-logo">
-        <div class="logo-icon">V</div>
-        <span class="logo-text">VinaTech</span>
+        <div class="logo-icon">N</div>
+        <span class="logo-text">NextGen LabTop</span>
       </div>
 
       <!-- MAIN MENU -->
