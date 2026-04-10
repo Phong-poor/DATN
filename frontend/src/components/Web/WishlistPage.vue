@@ -721,4 +721,9 @@ const onImgError = (e) => {
   font-size: 11.5px; 
   color: #6b7280;
 }
+.variant-tags {
+  display: flex;
+  gap: 4px; 
+  flex-wrap: wrap;
+}
 </style>
