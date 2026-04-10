@@ -28,7 +28,7 @@ const selectedPin = ref([])
 const selectedSac = ref([])
 
 const attrOptions = ref({
-    ram: [], cpu: [], gpu: [], kichthuoc: [], 
+    ram: [], cpu: [], gpu: [], kichthuoc: [],
     dophan: [], tamnen: [], pin: [], sac: []
 })
 
@@ -89,7 +89,7 @@ const mapProducts = (rawProducts) => {
                     else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
                 });
             }
-            
+
             const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
             const tenKemMau = mausac ? `${p.tenSP} - ${mausac}` : p.tenSP;
             const fullName = nameExt ? `${tenKemMau} (${nameExt})` : tenKemMau;
@@ -132,7 +132,7 @@ const mapProducts = (rawProducts) => {
 const fetchProducts = async () => {
     try {
         const q = route.query.q
-        const url = q 
+        const url = q
             ? `/sanpham/search?q=${encodeURIComponent(q)}`
             : '/sanpham'
 
@@ -292,10 +292,10 @@ const themVaoYeuThich = async (product) => {
     }
 
     try {
-       
+
         await api.post('/yeu-thich/them', {
             id_bienthe: product.key_id,
-            soluong: 1 
+            soluong: 1
         }, {
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -304,7 +304,7 @@ const themVaoYeuThich = async (product) => {
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
-        
+
         console.error('Lỗi thêm yêu thích:', err)
         alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
     }
@@ -380,14 +380,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.danhmuc = !collapsed.danhmuc">
                         <p class="group-label">Danh mục</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.danhmuc }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.danhmuc }">
                         <div v-if="categories.length === 0" class="loading-small">Đang tải...</div>
                         <label class="check-label" v-for="c in categories" :key="c.id_danhmuc">
-                            <input type="checkbox" :checked="selectedCategories.includes(String(c.id_danhmuc))" 
-                                   @change="toggleList('cat', c.id_danhmuc)" />
+                            <input type="checkbox" :checked="selectedCategories.includes(String(c.id_danhmuc))"
+                                @change="toggleList('cat', c.id_danhmuc)" />
                             <span class="checkmark"></span>
                             {{ c.ten_danhmuc }}
                         </label>
@@ -400,8 +400,9 @@ const clearAll = () => {
                 <div class="filter-group">
                     <div class="filter-group-header" @click="collapsed.thuonghieu = !collapsed.thuonghieu">
                         <p class="group-label">Thương hiệu</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.thuonghieu }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.thuonghieu }" viewBox="0 0 20 20"
+                            fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.thuonghieu }">
@@ -423,14 +424,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.ram = !collapsed.ram">
                         <p class="group-label">RAM</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.ram }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.ram }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.ram" :key="r" class="attr-tag"
-                                :class="{ active: selectedRAMs.includes(r) }"
-                                @click="toggleList('ram', r)">{{ r }}</span>
+                                :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -441,14 +442,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.cpu = !collapsed.cpu">
                         <p class="group-label">CPU</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.cpu }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.cpu }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.cpu" :key="r" class="attr-tag"
-                                :class="{ active: selectedCPUs.includes(r) }"
-                                @click="toggleList('cpu', r)">{{ r }}</span>
+                                :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -459,14 +460,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.gpu = !collapsed.gpu">
                         <p class="group-label">GPU</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.gpu }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.gpu }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.gpu" :key="r" class="attr-tag"
-                                :class="{ active: selectedGPUs.includes(r) }"
-                                @click="toggleList('gpu', r)">{{ r }}</span>
+                                :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -476,8 +477,9 @@ const clearAll = () => {
                 <div class="filter-group" v-if="attrOptions.kichthuoc.length > 0">
                     <div class="filter-group-header" @click="collapsed.kichthuoc = !collapsed.kichthuoc">
                         <p class="group-label">Kích thước</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.kichthuoc }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <svg class="arrow-icon" :class="{ rotated: collapsed.kichthuoc }" viewBox="0 0 20 20"
+                            fill="none">
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.kichthuoc }">
@@ -495,14 +497,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.dophan = !collapsed.dophan">
                         <p class="group-label">Độ phân giải</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.dophan }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.dophan }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.dophan" :key="r" class="attr-tag"
-                                :class="{ active: selectedDoPhanGiai.includes(r) }"
-                                @click="toggleList('dophan', r)">{{ r }}</span>
+                                :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{
+                                r }}</span>
                         </div>
                     </div>
                 </div>
@@ -513,14 +515,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.tamnen = !collapsed.tamnen">
                         <p class="group-label">Tấm nền</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.tamnen }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.tamnen }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.tamnen" :key="r" class="attr-tag"
-                                :class="{ active: selectedTamNen.includes(r) }"
-                                @click="toggleList('tamnen', r)">{{ r }}</span>
+                                :class="{ active: selectedTamNen.includes(r) }" @click="toggleList('tamnen', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -531,14 +533,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.pin = !collapsed.pin">
                         <p class="group-label">PIN</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.pin }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.pin }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.pin" :key="r" class="attr-tag"
-                                :class="{ active: selectedPin.includes(r) }"
-                                @click="toggleList('pin', r)">{{ r }}</span>
+                                :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -549,14 +551,14 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.sac = !collapsed.sac">
                         <p class="group-label">SẠC</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.sac }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.sac }">
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.sac" :key="r" class="attr-tag"
-                                :class="{ active: selectedSac.includes(r) }"
-                                @click="toggleList('sac', r)">{{ r }}</span>
+                                :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -567,7 +569,7 @@ const clearAll = () => {
                     <div class="filter-group-header" @click="collapsed.gia = !collapsed.gia">
                         <p class="group-label">Mức giá</p>
                         <svg class="arrow-icon" :class="{ rotated: collapsed.gia }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
                     <div class="collapse-body" :class="{ closed: collapsed.gia }">
@@ -610,7 +612,7 @@ const clearAll = () => {
 
                 <div class="top-bar">
                     <div>
-                        
+
                         <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
                         <h1>Danh sách Laptop</h1>
                         <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
@@ -650,7 +652,8 @@ const clearAll = () => {
                             <div class="price-row">
                                 <span class="price" v-if="p.priceNum > 0">{{ formatPrice(p.priceNum) }}</span>
                                 <span class="price" v-else>Liên hệ</span>
-                                <span v-if="p.oldPriceNum > p.priceNum" class="old-price">{{ formatPrice(p.oldPriceNum) }}</span>
+                                <span v-if="p.oldPriceNum > p.priceNum" class="old-price">{{ formatPrice(p.oldPriceNum)
+                                    }}</span>
                             </div>
 
                             <div class="card-actions">
@@ -668,7 +671,14 @@ const clearAll = () => {
                                     </svg>
                                 </button>
 
-                                <button class="btn-cart" title="Thêm vào giỏ hàng">
+                                <button class="btn-cart" title="Thêm vào giỏ hàng" @click.stop="themVaoGioHang(p)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="9" cy="21" r="1"></circle>
+                                        <circle cx="20" cy="21" r="1"></circle>
+                                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6">
+                                        </path>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -687,12 +697,8 @@ const clearAll = () => {
                     <button class="pg-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
                         &lsaquo;
                     </button>
-                    <button 
-                        v-for="(page, index) in visiblePages" 
-                        :key="index"
-                        class="pg-btn" 
-                        :class="{ active: currentPage === page, dots: page === '...' }"
-                        :disabled="page === '...'"
+                    <button v-for="(page, index) in visiblePages" :key="index" class="pg-btn"
+                        :class="{ active: currentPage === page, dots: page === '...' }" :disabled="page === '...'"
                         @click="page !== '...' && changePage(page)">
                         {{ page }}
                     </button>
@@ -701,7 +707,8 @@ const clearAll = () => {
                     </button>
                 </div>
                 <div class="pagination-info" v-if="filteredProducts.length > 0">
-                    <strong>{{ filteredProducts.length }}</strong> biến thể — trang <strong>{{ currentPage }}/{{ totalPages }}</strong>
+                    <strong>{{ filteredProducts.length }}</strong> biến thể — trang <strong>{{ currentPage }}/{{
+                        totalPages }}</strong>
                 </div>
 
             </main>
@@ -713,7 +720,9 @@ const clearAll = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 .page {
     font-family: 'Inter', sans-serif;
@@ -722,8 +731,16 @@ const clearAll = () => {
     min-height: 100vh;
 }
 
-.container { width: min(1200px, 95%); margin: auto; }
-.layout { display: flex; gap: 24px; align-items: flex-start; }
+.container {
+    width: min(1200px, 95%);
+    margin: auto;
+}
+
+.layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
 
 /* ===== SIDEBAR ===== */
 .sidebar {
@@ -738,11 +755,31 @@ const clearAll = () => {
     top: 20px;
 }
 
-.sidebar-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-.sidebar-header svg { width: 16px; height: 16px; color: #2563eb; }
-.sidebar-header h3 { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0; }
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
 
-.divider { height: 1px; background: #f1f5f9; margin: 16px 0; }
+.sidebar-header svg {
+    width: 16px;
+    height: 16px;
+    color: #2563eb;
+}
+
+.sidebar-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 16px 0;
+}
 
 .group-label {
     font-size: 10px;
@@ -765,7 +802,10 @@ const clearAll = () => {
     border-radius: 6px;
     transition: background 0.15s;
 }
-.filter-group-header:hover { background: #f8fafc; }
+
+.filter-group-header:hover {
+    background: #f8fafc;
+}
 
 .arrow-icon {
     width: 16px;
@@ -774,7 +814,10 @@ const clearAll = () => {
     transition: transform 0.25s ease;
     flex-shrink: 0;
 }
-.arrow-icon.rotated { transform: rotate(-90deg); }
+
+.arrow-icon.rotated {
+    transform: rotate(-90deg);
+}
 
 /* Collapse animation */
 .collapse-body {
@@ -784,6 +827,7 @@ const clearAll = () => {
     opacity: 1;
     margin-bottom: 6px;
 }
+
 .collapse-body.closed {
     max-height: 0;
     opacity: 0;
@@ -800,7 +844,9 @@ const clearAll = () => {
     user-select: none;
 }
 
-.check-label input { display: none; }
+.check-label input {
+    display: none;
+}
 
 .checkmark {
     width: 16px;
@@ -815,7 +861,11 @@ const clearAll = () => {
     justify-content: center;
 }
 
-.check-label input:checked~.checkmark { background: #2563eb; border-color: #2563eb; }
+.check-label input:checked~.checkmark {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
 .check-label input:checked~.checkmark::after {
     content: '';
     width: 8px;
@@ -826,7 +876,11 @@ const clearAll = () => {
     display: block;
 }
 
-.brands { display: flex; flex-wrap: wrap; gap: 6px; }
+.brands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
 
 .brand-tag {
     padding: 5px 12px;
@@ -839,17 +893,48 @@ const clearAll = () => {
     transition: all 0.2s;
 }
 
-.brand-tag:hover { border-color: #2563eb; color: #2563eb; background: #f0f6ff; }
-.brand-tag.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
-
-.attr-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.attr-tag {
-    padding: 5px 14px; border-radius: 20px; border: 1px solid #e2e8f0;
-    font-size: 12px; font-weight: 600; color: #475569; cursor: pointer;
-    background: white; transition: all 0.2s;
+.brand-tag:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #f0f6ff;
 }
-.attr-tag:hover { border-color: #2563eb; color: #2563eb; background: #f0f6ff; }
-.attr-tag.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
+
+.brand-tag.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    border-color: transparent;
+}
+
+.attr-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.attr-tag {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    background: white;
+    transition: all 0.2s;
+}
+
+.attr-tag:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #f0f6ff;
+}
+
+.attr-tag.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    border-color: transparent;
+}
 
 
 .apply-btn {
@@ -875,7 +960,10 @@ const clearAll = () => {
     height: 14px;
 }
 
-.apply-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.apply-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
 
 .reset-link {
     display: block;
@@ -890,12 +978,34 @@ const clearAll = () => {
 }
 
 /* ===== CONTENT ===== */
-.content { flex: 1; min-width: 0; }
+.content {
+    flex: 1;
+    min-width: 0;
+}
 
-.top-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
-.top-bar h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
-.top-bar p { font-size: 13px; color: #94a3b8; margin: 0; }
-.top-bar b { color: #2563eb; }
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+.top-bar h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 4px;
+}
+
+.top-bar p {
+    font-size: 13px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.top-bar b {
+    color: #2563eb;
+}
 
 .sort-wrap {
     display: flex;
@@ -921,10 +1031,18 @@ const clearAll = () => {
     font-family: 'Inter', sans-serif;
 }
 
-.chevron { width: 12px; height: 12px; color: #94a3b8; }
+.chevron {
+    width: 12px;
+    height: 12px;
+    color: #94a3b8;
+}
 
 /* GRID */
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
 
 .card {
     background: white;
@@ -936,7 +1054,10 @@ const clearAll = () => {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-.card:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1); }
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
+}
 
 .badge {
     position: absolute;
@@ -950,18 +1071,60 @@ const clearAll = () => {
     z-index: 1;
 }
 
-.img-box { background: #f8fafc; padding: 14px; cursor: pointer; }
-.img-box img { width: 100%; height: 148px; object-fit: cover; border-radius: 10px; }
+.img-box {
+    background: #f8fafc;
+    padding: 14px;
+    cursor: pointer;
+}
 
-.card-body { padding: 13px 15px 15px; }
-.card-body h3 { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; cursor: pointer; }
-.brand-txt { font-size: 11px; color: #94a3b8; margin: 0 0 10px; }
+.img-box img {
+    width: 100%;
+    height: 148px;
+    object-fit: cover;
+    border-radius: 10px;
+}
 
-.price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
-.price { font-size: 15px; font-weight: 800; color: #2563eb; }
-.old-price { font-size: 11px; color: #cbd5e1; text-decoration: line-through; }
+.card-body {
+    padding: 13px 15px 15px;
+}
 
-.card-actions { display: flex; gap: 8px; }
+.card-body h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px;
+    cursor: pointer;
+}
+
+.brand-txt {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 10px;
+}
+
+.price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.old-price {
+    font-size: 11px;
+    color: #cbd5e1;
+    text-decoration: line-through;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
 
 .card-body h3 {
     font-size: 14px;
@@ -1017,7 +1180,10 @@ const clearAll = () => {
     font-family: 'Inter', sans-serif;
 }
 
-.btn-detail:hover { background: #2563eb; color: white; }
+.btn-detail:hover {
+    background: #2563eb;
+    color: white;
+}
 
 .btn-cart {
     width: 34px;
@@ -1096,37 +1262,161 @@ const clearAll = () => {
 }
 
 /* SKELETON & LOADING */
-.loading-small { font-size: 12px; color: #94a3b8; padding: 5px 0; }
-.loading-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%; }
-.skeleton-card { height: 320px; background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 16px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.loading-small {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 5px 0;
+}
+
+.loading-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+}
+
+.skeleton-card {
+    height: 320px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 16px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
 
 /* RADIO CUSTOM */
-.checkmark.radio { border-radius: 50%; }
-.check-label input:checked ~ .checkmark.radio::after { content: ''; width: 8px; height: 8px; background: white; border-radius: 50%; border: none; transform: none; }
+.checkmark.radio {
+    border-radius: 50%;
+}
+
+.check-label input:checked~.checkmark.radio::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    border: none;
+    transform: none;
+}
 
 /* EMPTY STATE */
-.empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 20px; border: 1px dashed #e2e8f0; grid-column: 1 / -1; }
-.empty-state h3 { font-size: 18px; color: #0f172a; margin: 0 0 8px; }
-.empty-state button { padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; }
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 20px;
+    border: 1px dashed #e2e8f0;
+    grid-column: 1 / -1;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    color: #0f172a;
+    margin: 0 0 8px;
+}
+
+.empty-state button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    cursor: pointer;
+}
 
 /* PAGINATION */
-.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 28px; }
-.pg-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid #e2e8f0; background: white; font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; transition: all 0.2s; }
-.pg-btn:not(.dots):hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
-.pg-btn.active { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; border-color: transparent; }
-.pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.pg-btn.dots { border: none; background: transparent; opacity: 1; cursor: default; padding: 0 4px; width: auto; font-size: 15px; color: #94a3b8; }
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+}
 
-.pagination-info { text-align: right; font-size: 13px; color: #64748b; margin-top: 14px; }
-.pagination-info strong { color: #0f172a; }
+.pg-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pg-btn:not(.dots):hover:not(:disabled) {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.pg-btn.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    border-color: transparent;
+}
+
+.pg-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pg-btn.dots {
+    border: none;
+    background: transparent;
+    opacity: 1;
+    cursor: default;
+    padding: 0 4px;
+    width: auto;
+    font-size: 15px;
+    color: #94a3b8;
+}
+
+.pagination-info {
+    text-align: right;
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 14px;
+}
+
+.pagination-info strong {
+    color: #0f172a;
+}
 
 /* RESPONSIVE */
-@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 640px) {
-    .layout { flex-direction: column; }
-    .sidebar { width: 100%; position: static; }
-    .grid { grid-template-columns: repeat(2, 1fr); }
-    .top-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        position: static;
+    }
+
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
 }
 </style>
