@@ -509,4 +509,17 @@ const onImgError = (e) => {
 .card-leave-active { transition: all .25s ease; }
 .card-enter-from  { opacity: 0; transform: translateY(16px) scale(.95); }
 .card-leave-to    { opacity: 0; transform: scale(.9); }
+.card-variant-name { font-size: 11.5px; color: #6b7280; margin-bottom: 6px; }
+.card-variant-name { 
+  font-size: 11.5px; 
+  color: #6b7280; 
+  margin-bottom: 10px;
+  
+ 
+  background: rgba(246, 247, 251, 0.8); 
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block; 
+  border: 1px solid rgba(0, 0, 0, 0.04); 
+}
 </style>
