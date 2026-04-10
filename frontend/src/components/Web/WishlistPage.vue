@@ -53,7 +53,9 @@
                   </span>
                 </div>
 
-                
+                <div class="variant-tags" v-else>
+                  <span class="variant-tag">Mặc định</span>
+                </div>
               </div>
 
               <div class="card-price" :class="{ out: item.bienthe?.soluong === 0 }">
