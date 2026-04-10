@@ -697,5 +697,15 @@ const onImgError = (e) => {
   gap: 6px; 
   flex-wrap: wrap; 
 }
-
+.variant-label { font-size: 11.5px; color: #6b7280; }
+.variant-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.variant-item {
+  background: #f1f5f9; 
+  color: #334155; 
+  padding: 3px 8px; 
+  border-radius: 6px; 
+  border: 1px solid #e2e8f0; 
+  font-weight: 500;
+  font-size: 11px;
+}
 </style>
