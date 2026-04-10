@@ -61,6 +61,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
     Route::put('/yeu-thich/cap-nhat/{id}', [YeuThichController::class, 'capNhat']);
     Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
+
+    // ===== ĐÁNH GIÁ =====
+    Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
 });
 
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);

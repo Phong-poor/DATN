@@ -33,6 +33,34 @@ const selectedImage = ref('https://via.placeholder.com/600')
 const selectedVariant = ref(null)
 const selectedOptions = ref({})
 
+// ===================== REVIEWS STATE =====================
+const reviews = ref([])
+const fetchReviews = async () => {
+    try {
+        const productId = route.params.id || 1
+        const res = await api.get(`/sanpham/${productId}/reviews`)
+        reviews.value = res.data.reviews || []
+    } catch (error) {
+        console.error('Lỗi khi tải đánh giá:', error)
+    }
+}
+
+const averageRating = computed(() => {
+    if (reviews.value.length === 0) return 0
+    const sum = reviews.value.reduce((acc, r) => acc + r.danhgia, 0)
+    return (sum / reviews.value.length).toFixed(1)
+})
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    })
+}
+
 
 // ===================== HELPERS BIẾN THỂ =====================
 const getVariantAttributes = (variant) =>
@@ -198,7 +226,10 @@ const fetchProductDetail = async () => {
     }
 }
 
-onMounted(() => { fetchProductDetail() })
+onMounted(() => { 
+    fetchProductDetail()
+    fetchReviews()
+})
 
 const related = [
     { name: 'Precision Air 14 Ultrabook', spec: 'Core i7 · 16GB RAM · 512GB SSD', price: '32.990.000đ', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300' },
@@ -287,7 +318,18 @@ const themVaoYeuThich = async () => {
 
                         <h1>{{ product.tenSP }}</h1>
 
-                        <div class="rating">⭐⭐⭐⭐⭐ (Chưa có đánh giá)</div>
+                        <div class="rating">
+                            <span class="stars-gold">
+                                <template v-for="i in 5">
+                                    <span v-if="i <= Math.round(averageRating)">★</span>
+                                    <span v-else style="color: #e2e8f0;">★</span>
+                                </template>
+                            </span>
+                            <span class="rating-count">
+                                ({{ reviews.length > 0 ? averageRating + '/5' : 'Chưa có đánh giá' }})
+                                <span v-if="reviews.length > 0"> • {{ reviews.length }} đánh giá</span>
+                            </span>
+                        </div>
 
                         <div class="price">
                             {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
@@ -366,30 +408,43 @@ const themVaoYeuThich = async () => {
                 </div>
 
                 <!-- ĐÁNH GIÁ -->
-                <div class="reviews">
+                <div class="reviews" id="reviews-section">
                     <div class="review-header">
                         <div>
-                            <h2>Đánh giá từ người dùng</h2>
-                            <p>Ý kiến thực tế từ khách hàng</p>
+                            <h2>Đánh giá từ người dùng ({{ reviews.length }})</h2>
+                            <p v-if="reviews.length > 0">Điểm trung bình: <b>{{ averageRating }} / 5</b></p>
+                            <p v-else>Sản phẩm này chưa có đánh giá. Hãy là người đầu tiên mua và đánh giá!</p>
                         </div>
-                        <button>Viết đánh giá</button>
                     </div>
-                    <div class="review-list">
-                        <div class="review-card"><b>Nguyễn Hoàng</b>
-                            <p class="role">Designer</p>
-                            <p class="stars">★★★★★</p>
-                            <p>"Màn OLED cực đẹp!"</p>
+                    
+                    <div class="review-list" v-if="reviews.length > 0">
+                        <div class="review-card" v-for="review in reviews" :key="review.id_danhgia">
+                            <div class="review-user-row">
+                                <div class="user-avatar-small">
+                                    {{ review.user?.name?.charAt(0) || 'U' }}
+                                </div>
+                                <div>
+                                    <b class="user-name">{{ review.user?.name || 'Người dùng' }}</b>
+                                    <p class="review-date">{{ formatDate(review.created_at) }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="stars-gold">
+                                <span v-for="s in 5" :key="s">
+                                    {{ s <= review.danhgia ? '★' : '☆' }}
+                                </span>
+                            </div>
+
+                            <p class="review-comment">{{ review.binhluan || 'Hài lòng với sản phẩm.' }}</p>
                         </div>
-                        <div class="review-card"><b>Trần Phan</b>
-                            <p class="role">Dev</p>
-                            <p class="stars">★★★★★</p>
-                            <p>"Chạy code cực mượt."</p>
-                        </div>
-                        <div class="review-card"><b>Lê Minh</b>
-                            <p class="role">Business</p>
-                            <p class="stars">★★★★★</p>
-                            <p>"Pin trâu, ổn định."</p>
-                        </div>
+                    </div>
+
+                    <div v-else class="empty-reviews">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 20.25c4.556 0 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75 3.75 7.444 3.75 12s3.694 8.25 8.25 8.25z" />
+                            <path d="M12 8.25v7.5M15.75 12h-7.5" />
+                        </svg>
+                        <p>Chưa có bình luận nào cho sản phẩm này.</p>
                     </div>
                 </div>
 
@@ -830,4 +885,22 @@ h1 {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* REVIEW STYLES */
+.stars-gold { color: #f59e0b; font-size: 16px; margin-right: 5px; }
+.rating-count { font-size: 14px; color: #64748b; }
+.review-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+.review-header h2 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
+.review-header p { font-size: 14px; color: #64748b; margin-top: 5px; }
+.review-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 16px; transition: transform 0.2s; }
+.review-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.review-user-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.user-avatar-small { width: 36px; height: 36px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+.user-name { font-size: 14px; color: #0f172a; }
+.review-date { font-size: 11px; color: #94a3b8; }
+.review-attr-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.attr-tag { font-size: 12px; color: #475569; background: #f8fafc; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 500; }
+.review-comment { font-size: 14px; color: #334155; line-height: 1.6; margin-top: 5px; }
+.empty-reviews { text-align: center; padding: 60px 0; color: #94a3b8; }
+.empty-reviews svg { width: 48px; height: 48px; margin-bottom: 15px; }
 </style>
