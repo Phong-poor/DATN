@@ -710,4 +710,11 @@ const onImgError = (e) => {
   display: inline-block;
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
+.card-variant-name { 
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center; 
+  gap: 6px; 
+  flex-wrap: wrap; 
+}
 </style>
