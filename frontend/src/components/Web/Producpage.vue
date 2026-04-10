@@ -283,7 +283,6 @@ watch([
     selectedSort
 ], applyFilters)
 
-// ===================== WISHLIST =====================
 const themVaoYeuThich = async (product) => {
     const token = localStorage.getItem('token')
     if (!token) {
@@ -293,17 +292,21 @@ const themVaoYeuThich = async (product) => {
     }
 
     try {
-        await api.post('/yeuthich', {
-            id_sanpham: product.id
+       
+        await api.post('/yeu-thich/them', {
+            id_bienthe: product.key_id,
+            soluong: 1 
         }, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
-        alert(`Đã thêm ${product.name} ❤️`)
+        alert(`Đã thêm ${product.name} vào yêu thích`)
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
-        alert('Có lỗi xảy ra!')
+        
+        console.error('Lỗi thêm yêu thích:', err)
+        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
     }
 }
 
