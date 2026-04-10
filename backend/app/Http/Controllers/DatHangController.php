@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderSuccessMail;
 
 class DatHangController extends Controller
 {
@@ -180,6 +182,15 @@ class DatHangController extends Controller
             GioHang::where('user_id', $userId)->delete();
 
             DB::commit();
+
+            // Gửi Email xác nhận
+            try {
+                $user = Auth::user();
+                $donHang->load('chiTiets.bienThe.sanPham');
+                Mail::to($user->email)->send(new OrderSuccessMail($donHang, $user));
+            } catch (\Exception $e) {
+                Log::error("Lỗi gửi mail đặt hàng: " . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
