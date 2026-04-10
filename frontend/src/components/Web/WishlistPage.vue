@@ -47,7 +47,11 @@
               <div class="card-variant-name">
                 <span class="variant-label">Phân loại:</span>
 
-                
+                <div class="variant-tags" v-if="item.bienthe?.ten_bienthe">
+                  <span class="variant-tag" v-for="(val, idx) in item.bienthe.ten_bienthe.split(',')" :key="idx">
+                    {{ val.trim() }}
+                  </span>
+                </div>
 
                 
               </div>
