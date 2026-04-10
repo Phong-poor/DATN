@@ -342,7 +342,34 @@ const toggleList = (listType, item) => {
     if (idx === -1) target.value.push(val)
     else target.value.splice(idx, 1)
 }
+// ===================== CART (GIỎ HÀNG) =====================
+const themVaoGioHang = async (product) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        router.push('/login')
+        return
+    }
 
+    try {
+       
+        await api.post('/gio-hang/them', {
+            id_bienthe: product.key_id, 
+            soluong: 1
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+
+        alert(`Đã thêm ${product.name} vào giỏ hàng!`)
+        
+        
+        window.dispatchEvent(new Event('cart-updated'))
+
+    } catch (err) {
+        console.error('Lỗi thêm giỏ hàng:', err)
+        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
+    }
+}
 const clearAll = () => {
     selectedCategories.value = []
     selectedBrands.value = []
