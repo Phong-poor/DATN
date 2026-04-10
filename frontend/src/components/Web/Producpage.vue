@@ -1446,4 +1446,35 @@ const clearAll = () => {
         gap: 12px;
     }
 }
+.card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.btn-cart {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-cart:hover {
+  background: #5b5ef4;
+  border-color: #5b5ef4;
+  color: #fff;
+}
+
+.btn-cart svg {
+  width: 18px;
+  height: 18px;
+}
 </style>
