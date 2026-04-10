@@ -199,10 +199,20 @@ class DatHangController extends Controller
     public function orders()
     {
         $userId = Auth::id();
-        $orders = DatHang::with('chiTiets.bienThe.sanPham')
+        $orders = DatHang::with(['chiTiets.bienThe.sanPham'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Map để thêm trạng thái đã đánh giá
+        $orders->each(function($order) use ($userId) {
+            $order->chiTiets->each(function($chiTiet) use ($order, $userId) {
+                $chiTiet->is_reviewed = \App\Models\DanhGia::where('id_dathang', $order->id_dathang)
+                    ->where('id_bienthe', $chiTiet->id_bienthe)
+                    ->where('user_id', $userId)
+                    ->exists();
+            });
+        });
 
         return response()->json([
             'success' => true,

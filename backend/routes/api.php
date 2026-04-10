@@ -51,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
     Route::put('/yeu-thich/cap-nhat/{id}', [YeuThichController::class, 'capNhat']);
     Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
+
+    // ===== ĐÁNH GIÁ =====
+    Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
 });
 
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
@@ -150,4 +153,11 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
+
+        // ===== ADMIN REVIEWS =====
+        Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
+        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
     });
+
+Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
