@@ -180,5 +180,9 @@ Route::middleware(['auth:sanctum', 'admin'])
     Route::get('/lien-he', [LienHeController::class, 'index']);
     Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
     Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
+    Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
+    Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+    Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
 });
+Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
