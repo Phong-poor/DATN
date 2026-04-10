@@ -47,15 +47,13 @@
               <div class="card-variant-name">
                 <span class="variant-label">Phân loại:</span>
 
-                <div class="variant-tags" v-if="item.bienthe?.ten_bienthe">
-                  <span class="variant-tag" v-for="(val, idx) in item.bienthe.ten_bienthe.split(',')" :key="idx">
+                <div v-if="item.bienthe?.ten_bienthe" class="variant-list">
+                  <span class="variant-item" v-for="(val, index) in item.bienthe.ten_bienthe.split('-')" :key="index">
                     {{ val.trim() }}
                   </span>
                 </div>
 
-                <div class="variant-tags" v-else>
-                  <span class="variant-tag">Mặc định</span>
-                </div>
+                <span v-else class="variant-item">Mặc định</span>
               </div>
 
               <div class="card-price" :class="{ out: item.bienthe?.soluong === 0 }">
@@ -692,47 +690,12 @@ const onImgError = (e) => {
   transform: scale(.9);
 }
 
-.card-variant-name {
-  font-size: 11.5px;
-  color: #6b7280;
-  margin-bottom: 6px;
-}
-
-.card-variant-name {
-  font-size: 11.5px;
-  color: #6b7280;
-  margin-bottom: 10px;
-
-
-  background: rgba(246, 247, 251, 0.8);
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-block;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-}
 .card-variant-name { 
   margin-bottom: 10px;
-  display: flex;
+  display: flex; 
   align-items: center; 
   gap: 6px; 
   flex-wrap: wrap; 
 }
-.variant-label {
-  font-size: 11.5px; 
-  color: #6b7280;
-}
-.variant-tags {
-  display: flex;
-  gap: 4px; 
-  flex-wrap: wrap;
-}
-.variant-tag {
-  font-size: 11px;
-  color: #4b5563; 
-  background: rgba(246, 247, 251, 0.9); 
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.05); 
-  font-weight: 500;
-}
+
 </style>
