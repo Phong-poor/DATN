@@ -183,19 +183,18 @@ class DatHangController extends Controller
 
             DB::commit();
 
-            // Gửi Email xác nhận
-            try {
-                $user = Auth::user();
-                $donHang->load('chiTiets.bienThe.sanPham');
-                Mail::to($user->email)->send(new OrderSuccessMail($donHang, $user));
-            } catch (\Exception $e) {
-                Log::error("Lỗi gửi mail đặt hàng: " . $e->getMessage());
+            // Nếu là ví điện tử, tạo link thanh toán VNPay
+            $payUrl = null;
+            if ($request->PTTT === 'Ví điện tử') {
+                $vnpay = new VnpayController();
+                $payUrl = $vnpay->createPaymentUrl($donHang);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Đặt hàng thành công!',
-                'order'   => $donHang
+                'order'   => $donHang,
+                'payUrl'  => $payUrl
             ]);
 
         } catch (\Exception $e) {
@@ -204,6 +203,25 @@ class DatHangController extends Controller
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi đặt hàng: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function sendSuccessEmail($id)
+    {
+        try {
+            $order = DatHang::with(['chiTiets.bienThe.sanPham', 'user'])->findOrFail($id);
+            
+            // Bảo mật: Chỉ người mua mới có quyền kích hoạt gửi mail cho đơn hàng của mình
+            if ($order->user_id !== Auth::id()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            Mail::to($order->user->email)->send(new \App\Mail\OrderSuccessMail($order, $order->user));
+            
+            return response()->json(['success' => true, 'message' => 'Email sent']);
+        } catch (\Exception $e) {
+            Log::error("Lỗi gửi mail thủ công: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 

@@ -18,6 +18,7 @@ import Addresspage from '../components/Web/Addresspage.vue'
 import Passwordpage from '../components/Web/Passwordpage.vue'
 import LoginSuccess from '../components/Web/LoginSuccess.vue'
 import WishlistPage from '../components/Web/WishlistPage.vue'
+import ThankYou from '../components/Web/ThankYou.vue'
 
 // ── Auth ──
 import Login from '../components/Auth/Login.vue'
@@ -49,6 +50,7 @@ const routes = [
       { path: 'addresspage', name: 'addresspage', component: Addresspage },
       { path: 'passwordpage', name: 'passwordpage', component: Passwordpage },
       { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
+      { path: 'thank-you', name: 'thank-you', component: ThankYou },
     ],
   },
 
@@ -106,6 +108,7 @@ router.beforeEach((to, from, next) => {
     '/news',
     '/contact',
     '/cart',
+    '/thank-you',
   ]
 
   const isPublic =
