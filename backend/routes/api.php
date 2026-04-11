@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DatHangController;
+use App\Http\Controllers\VnpayController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DanhMucController;
 use App\Http\Controllers\ThuongHieuController;
@@ -27,6 +28,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
 // ================= QUÊN MẬT KHẨU =================
+Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
+Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
+
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
@@ -53,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ===== ĐẶT HÀNG =====
     Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
