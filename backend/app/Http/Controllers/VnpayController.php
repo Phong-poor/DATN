@@ -10,11 +10,11 @@ class VnpayController extends Controller
 {
     public function createPaymentUrl($order)
     {
-        $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-        $vnp_Returnurl = "http://localhost:8000/api/vnpay/return"; 
+        $vnp_Url = env('VNPAY_URL');
+        $vnp_Returnurl = env('VNPAY_RETURN_URL'); 
         
-        $vnp_TmnCode = env('VNPAY_TMN_CODE', "X659D3Z3");
-        $vnp_HashSecret = env('VNPAY_HASH_SECRET', "1GVZB7SKT2D0MP7HZ5W7NAVI8RPJJQ3W");
+        $vnp_TmnCode = env('VNPAY_TMN_CODE');
+        $vnp_HashSecret = env('VNPAY_HASH_SECRET');
 
         $vnp_TxnRef = (string)$order->id_dathang . '_' . time(); 
         $vnp_OrderInfo = "Thanh toan don hang " . $order->id_dathang;
@@ -64,7 +64,7 @@ class VnpayController extends Controller
     public function handleIPN(Request $request)
     {
         $inputData = $request->all();
-        $vnp_HashSecret = env('VNPAY_HASH_SECRET', "1GVZB7SKT2D0MP7HZ5W7NAVI8RPJJQ3W");
+        $vnp_HashSecret = env('VNPAY_HASH_SECRET');
         
         $vnp_SecureHash = $inputData['vnp_SecureHash'] ?? '';
         unset($inputData['vnp_SecureHashType']);
@@ -106,11 +106,12 @@ class VnpayController extends Controller
     {
         $parts = explode('_', $request->vnp_TxnRef);
         $orderId = $parts[0];
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
 
         if ($request->vnp_ResponseCode == '00') {
-            return redirect('http://localhost:5173/thank-you?status=success&order_id=' . $orderId);
+            return redirect($frontendUrl . '/thank-you?status=success&order_id=' . $orderId);
         } else {
-            return redirect('http://localhost:5173/thank-you?status=error&order_id=' . $orderId);
+            return redirect($frontendUrl . '/thank-you?status=error&order_id=' . $orderId);
         }
     }
 }
