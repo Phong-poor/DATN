@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
 import api from '@/services/api'
+import echo from '@/services/echo'
+import { getUser } from '@/services/auth'
+import { onUnmounted } from 'vue'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
@@ -106,7 +108,36 @@ const filtered = computed(() => {
 const openDetail = (order) => { selectedOrder.value = order }
 const closeDetail = () => { selectedOrder.value = null }
 
-onMounted(fetchOrders)
+onMounted(() => {
+    fetchOrders()
+    
+    const user = getUser()
+
+    if (user && (user.id || user.id_user)) {
+        const userId = user.id || user.id_user
+        
+        echo.private(`user.${userId}`)
+            .listen('.order.status.updated', (e) => {
+                // Cập nhật mảng orders
+                const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
+                if (index !== -1) {
+                    orders.value[index].trangthai = e.trangthai
+                    // Cập nhật modal chi tiết nếu đang mở đúng đơn đó
+                    if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
+                        selectedOrder.value.trangthai = e.trangthai
+                    }
+                }
+            })
+    }
+})
+
+onUnmounted(() => {
+    const user = getUser()
+    const userId = user?.id || user?.id_user
+    if (userId) {
+        echo.leave(`user.${userId}`)
+    }
+})
 </script>
 
 <template>
