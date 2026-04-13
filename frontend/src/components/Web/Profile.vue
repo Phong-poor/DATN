@@ -31,6 +31,18 @@ const orderToCancel = ref(null)
 const cancelReason = ref('')
 const isSubmitting = ref(false)
 
+// ── Review state ──────────────────────────────────────────
+const showReviewModal = ref(false)
+const reviewForm = ref({
+  id_dathang: null,
+  id_bienthe: null,
+  productName: '',
+  rating: 5,
+  comment: ''
+})
+const hoverRating = ref(0)
+const isSubmittingReview = ref(false)
+
 // ════════════════════════════════════════════════
 //  TAB 1 — PROFILE
 // ════════════════════════════════════════════════
@@ -172,12 +184,44 @@ const fetchOrders = async () => {
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           lydo: order.lydo,
-          items: order.chi_tiets.map(item => ({
-            name: item.bien_the?.ten_bienthe || 'Sản phẩm',
-            qty: item.soluong,
-            price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
-            img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
-          })),
+          items: order.chi_tiets.map(item => {
+            let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
+            
+            if (item.bien_the && item.bien_the.thuoc_tinh_json) {
+              try {
+                const thuocTinhs = typeof item.bien_the.thuoc_tinh_json === 'string'
+                  ? JSON.parse(item.bien_the.thuoc_tinh_json)
+                  : item.bien_the.thuoc_tinh_json
+
+                if (Array.isArray(thuocTinhs) && thuocTinhs.length > 0) {
+                  const colorAttr = thuocTinhs.find(t => t.ten_thuoctinh.toLowerCase().includes('màu') || t.ten_thuoctinh.toLowerCase().includes('color'))
+                  const otherAttrs = thuocTinhs.filter(t => !t.ten_thuoctinh.toLowerCase().includes('màu') && !t.ten_thuoctinh.toLowerCase().includes('color')).map(t => t.giatri).join(' - ')
+                  
+                  if (colorAttr) {
+                    fullName += ` - ${colorAttr.giatri}`
+                  }
+                  if (otherAttrs) {
+                    fullName += ` (${otherAttrs})`
+                  }
+                } else if (item.bien_the.ten_bienthe) {
+                  fullName += ` (${item.bien_the.ten_bienthe})`
+                }
+              } catch (e) {
+                 if (item.bien_the.ten_bienthe) fullName += ` (${item.bien_the.ten_bienthe})`
+              }
+            } else if (item.bien_the && item.bien_the.ten_bienthe) {
+              fullName += ` (${item.bien_the.ten_bienthe})`
+            }
+
+            return {
+              id_bienthe: item.id_bienthe,
+              is_reviewed: item.is_reviewed,
+              name: fullName,
+              qty: item.soluong,
+              price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
+              img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
+            }
+          }),
           steps: [
             { label: 'Đặt hàng', date: new Date(order.created_at).toLocaleString('vi-VN'), done: true },
             { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
@@ -236,6 +280,52 @@ const handleReorder = async (order) => {
     }
   } catch (err) {
     showToast('Lỗi khi mua lại sản phẩm.')
+  }
+}
+
+const openReviewModal = (order, item) => {
+  reviewForm.value = {
+    id_dathang: order.id_dathang,
+    id_bienthe: item.id_bienthe,
+    productName: item.name,
+    rating: 5,
+    comment: ''
+  }
+  showReviewModal.value = true
+}
+
+const submitReview = async () => {
+  if (reviewForm.value.rating < 1) {
+    showToast('Vui lòng chọn số sao đánh giá.')
+    return
+  }
+
+  isSubmittingReview.value = true
+  try {
+    const res = await api.post('/danh-gia', {
+      id_dathang: reviewForm.value.id_dathang,
+      id_bienthe: reviewForm.value.id_bienthe,
+      danhgia: reviewForm.value.rating,
+      binhluan: reviewForm.value.comment
+    })
+
+    if (res.data.success) {
+      showToast('Cảm ơn bạn đã đánh giá sản phẩm! ❤️')
+      showReviewModal.value = false
+      
+      // Cập nhật trạng thái item ngay lập tức trong UI
+      if (selectedOrder.value) {
+        const item = selectedOrder.value.items.find(i => i.id_bienthe === reviewForm.value.id_bienthe)
+        if (item) item.is_reviewed = true
+      }
+      
+      // Tải lại toàn bộ đơn hàng để cập nhật danh sách chính
+      await fetchOrders()
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá.')
+  } finally {
+    isSubmittingReview.value = false
   }
 }
 
@@ -380,6 +470,29 @@ const provinces = [
   'Biên Hòa',
   'Buôn Ma Thuột',
 ]
+
+const addresses = ref([
+  {
+    id: 1,
+    name: 'Nguyễn Văn A',
+    phone: '0901 234 567',
+    province: 'TP. Hồ Chí Minh',
+    district: 'Quận 1',
+    ward: 'Phường Bến Nghé',
+    detail: '123 Lê Lợi',
+    isDefault: true,
+  },
+  {
+    id: 2,
+    name: 'Nguyễn Văn A',
+    phone: '0912 345 678',
+    province: 'Hà Nội',
+    district: 'Quận Cầu Giấy',
+    ward: 'Phường Dịch Vọng',
+    detail: '45 Nguyễn Phong Sắc',
+    isDefault: false,
+  },
+])
 
 const openAddAddr = () => {
   addrForm.value = defaultAddrForm()
@@ -567,13 +680,18 @@ const promoStatusMap = {
               </div>
             </div>
             <h3 class="section-title">Sản phẩm</h3>
-            <div class="modal-item" v-for="item in selectedOrder.items" :key="item.name">
+            <div class="modal-item" v-for="item in selectedOrder.items" :key="item.id_bienthe">
               <img :src="item.img" :alt="item.name" />
               <div class="modal-item-info">
                 <p class="modal-item-name">{{ item.name }}</p>
                 <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
               </div>
-              <p class="modal-item-price">{{ item.price }}</p>
+              <div class="modal-item-right" style="text-align: right;">
+                <p class="modal-item-price">{{ item.price }}</p>
+                <button v-if="selectedOrder.status === 'done' && !item.is_reviewed" 
+                  class="btn-review-small" @click="openReviewModal(selectedOrder, item)">Đánh giá</button>
+                <span v-else-if="item.is_reviewed" class="reviewed-tag">Đã đánh giá</span>
+              </div>
             </div>
             <div class="modal-footer">
               <div class="modal-btns">
@@ -594,7 +712,7 @@ const promoStatusMap = {
 
     <!-- Cancellation Modal -->
     <transition name="fade">
-      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 1001;">
+      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 9005;">
         <div class="modal mini-modal">
           <div class="modal-head">
             <h2 class="modal-title">Lý do hủy đơn</h2>
@@ -610,6 +728,64 @@ const promoStatusMap = {
                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
               </button>
               <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Review Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
+        <div class="modal review-modal">
+          <div class="modal-head">
+            <h2 class="modal-title">Đánh giá sản phẩm</h2>
+            <button class="close-btn" @click="showReviewModal = false">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="review-product-info">
+              <p class="review-product-name">{{ reviewForm.productName }}</p>
+            </div>
+
+            <div class="rating-selector">
+              <span class="rating-label">Chất lượng sản phẩm</span>
+              <div class="stars-input">
+                <button 
+                  v-for="i in 5" 
+                  :key="i" 
+                  class="star-btn" 
+                  :class="{ filled: i <= (hoverRating || reviewForm.rating) }"
+                  @mouseenter="hoverRating = i"
+                  @mouseleave="hoverRating = 0"
+                  @click="reviewForm.rating = i"
+                  type="button"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </button>
+                <span class="rating-text" v-if="reviewForm.rating">
+                  {{ ['Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][reviewForm.rating - 1] }}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group mb-0">
+              <label>Bình luận</label>
+              <textarea 
+                v-model="reviewForm.comment" 
+                class="form-control" 
+                placeholder="Hãy chia sẻ trải nghiệm của bạn về sản phẩm nhé..." 
+                rows="4"
+              ></textarea>
+            </div>
+
+            <div class="modal-footer pt-4" style="border:none; padding-bottom:0;">
+              <button class="btn-save w-100" @click="submitReview" :disabled="isSubmittingReview">
+                {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+              </button>
             </div>
           </div>
         </div>
@@ -1286,4 +1462,183 @@ const promoStatusMap = {
 .btn-danger-confirm { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; border-radius: 10px; background: #ef4444; border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
 .btn-danger-confirm:hover { background: #dc2626; }
 .btn-danger-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
+.cancel-options {
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.cancel-option-item {
+  padding: 14px 18px;
+  cursor: pointer;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.2s;
+  margin: 0;
+}
+.cancel-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cancel-radio-native {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+.cancel-option-item:last-child {
+  border-bottom: none;
+}
+.cancel-option-item:hover {
+  background: #f8fafc;
+}
+.cancel-option-text {
+  font-size: 14.5px;
+  color: #334155;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.cancel-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #2563eb;
+  font-size: 14px;
+  margin-bottom: 20px;
+  background: #eff6ff;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s;
+  resize: vertical;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+.cancel-textarea::placeholder {
+  color: #94a3b8;
+}
+.cancel-textarea:focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+  background: #fff;
+}
+.btn-danger-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-danger-confirm:hover {
+  background: #dc2626;
+}
+.btn-danger-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+/* ===== REVIEW STYLES ===== */
+.btn-review-small {
+  background: white;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s;
+}
+
+.btn-review-small:hover {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.reviewed-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.review-modal {
+  max-width: 480px !important;
+}
+
+.review-product-info {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.review-product-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.rating-selector {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.rating-label {
+  display: block;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.stars-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: all 0.2s;
+}
+
+.star-btn svg {
+  width: 32px;
+  height: 32px;
+}
+
+.star-btn.filled {
+  color: #f59e0b;
+  transform: scale(1.1);
+}
+
+.rating-text {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f59e0b;
+  min-width: 100px;
+  text-align: left;
+}
+
+.w-100 { width: 100%; }
 </style>

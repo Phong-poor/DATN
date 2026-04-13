@@ -11,15 +11,15 @@
                 <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-label">TỔNG CỘNG</div>
-                        <div class="stat-value">1,284</div>
+                        <div class="stat-value">{{ stats.total }}</div>
                     </div>
                     <div class="stat-card highlight">
-                        <div class="stat-label">MỚI NHẤT</div>
-                        <div class="stat-value">42</div>
+                        <div class="stat-label">CHỜ DUYỆT</div>
+                        <div class="stat-value">{{ stats.pending }}</div>
                     </div>
                     <div class="stat-card gold">
                         <div class="stat-label">ĐÁNH GIÁ TB</div>
-                        <div class="stat-value">4.8 <span class="star">★</span></div>
+                        <div class="stat-value">{{ stats.avg }} <span class="star">★</span></div>
                     </div>
                 </div>
             </div>
@@ -49,74 +49,71 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="review in filteredReviews" :key="review.id" class="review-row">
+                            <tr v-for="review in filteredReviews" :key="review.id_danhgia" class="review-row">
 
                                 <!-- Customer -->
                                 <td class="td-customer">
                                     <div class="customer-info">
-                                        <div class="avatar" :style="{ background: review.avatarColor }">
-                                            <span v-if="review.avatar">{{ review.avatar }}</span>
-                                            <svg v-else viewBox="0 0 24 24" fill="currentColor">
-                                                <path
-                                                    d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                                            </svg>
+                                        <div class="avatar" style="background: #4f8ef7">
+                                            <span>{{ review.user?.name?.charAt(0) }}</span>
                                         </div>
                                         <div>
-                                            <div class="customer-name" :class="{ anonymous: review.anonymous }">{{
-                                                review.name }}</div>
-                                            <div class="customer-email">{{ review.email }}</div>
+                                            <div class="customer-name">{{ review.user?.name || 'Ẩn danh' }}</div>
+                                            <div class="customer-email">{{ review.user?.email }}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 <!-- Product -->
-                                <td><span class="product-link">{{ review.product }}</span></td>
+                                                                <td><span class="product-link">{{ review.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</span></td>
 
                                 <!-- Stars -->
                                 <td>
                                     <div class="stars">
                                         <span v-for="s in 5" :key="s" class="star-icon"
-                                            :class="s <= review.stars ? 'filled' : 'empty'">★</span>
+                                            :class="s <= review.danhgia ? 'filled' : 'empty'">★</span>
                                     </div>
                                 </td>
 
                                 <!-- Content -->
                                 <td>
-                                    <p class="review-text" :class="{ spam: review.status === 'spam' }">{{ review.content
-                                        }}</p>
+                                    <p class="review-text" :class="{ spam: review.trangthai === 'spam' }">
+                                        {{ review.binhluan || '(Không có nội dung)' }}
+                                    </p>
                                 </td>
 
                                 <!-- Date -->
-                                <td><span class="date-text">{{ review.date }}</span></td>
+                                <td><span class="date-text">{{ new Date(review.created_at).toLocaleDateString() }}</span></td>
 
                                 <!-- Status -->
                                 <td>
-                                    <span class="status-badge" :class="review.status">
-                                        {{ statusLabel(review.status) }}
+                                    <span class="status-badge" :class="review.trangthai">
+                                        {{ statusLabel(review.trangthai) }}
                                     </span>
                                 </td>
 
                                 <!-- Actions -->
                                 <td>
                                     <div class="action-btns">
-                                        <button v-if="review.status === 'pending'" class="action-btn approve"
+                                        <button v-if="review.trangthai === 'pending'" class="action-btn approve"
                                             @click="approveReview(review)">DUYỆT<br />NGAY</button>
-
-                                        <button class="action-btn icon-btn reply" title="Trả lời">
+                                        
+                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu Spam" @click="markAsSpam(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path
-                                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                            </svg>
+                                        </button>
+
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#10b981" title="Khôi phục trạng thái" @click="undoReview(review)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
                                         </button>
 
                                         <button class="action-btn icon-btn delete" title="Xoá"
-                                            @click="deleteReview(review.id)">
+                                            @click="deleteReview(review.id_danhgia)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6l-1 14H6L5 6" />
-                                                <path d="M10 11v6" />
-                                                <path d="M14 11v6" />
-                                                <path d="M9 6V4h6v2" />
+                                                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
                                             </svg>
                                         </button>
                                     </div>
@@ -129,8 +126,7 @@
 
                 <!-- Pagination -->
                 <div class="pagination">
-                    <span class="page-info">Hiển thị 1 – {{ filteredReviews.length }} trong tổng số 1,284 bình
-                        luận</span>
+                    <span class="page-info">Hiển thị {{ filteredReviews.length }} đánh giá</span>
                     <div class="page-btns">
                         <button class="page-btn arrow">&lt;</button>
                         <button v-for="p in 4" :key="p" class="page-btn" :class="{ active: currentPage === p }"
@@ -166,10 +162,21 @@
             </div>
 
         </div>
+
+        <!-- Toast Hoàn Tác -->
+        <transition name="slide-down">
+            <div v-if="toast.show" class="toast-undo">
+                <span class="toast-message">{{ toast.message }}</span>
+                <button class="toast-btn-undo" @click="triggerUndo">HOÀN TÁC</button>
+            </div>
+        </transition>
+
     </div>
 </template>
 
 <script>
+import api from '../../services/api'
+
 export default {
     name: 'ReviewManagement',
 
@@ -177,76 +184,160 @@ export default {
         return {
             activeTab: 'all',
             currentPage: 1,
+            isLoading: false,
 
             tabs: [
                 { key: 'all', label: 'Tất cả' },
                 { key: 'pending', label: 'Chờ duyệt' },
+                { key: 'approved', label: 'Đã duyệt' },
                 { key: 'spam', label: 'Spam' },
             ],
 
-            reviews: [
-                {
-                    id: 1,
-                    name: 'Lê Minh Hoàng',
-                    email: 'hoang.lm@email.com',
-                    avatar: 'L',
-                    avatarColor: '#4f8ef7',
-                    anonymous: false,
-                    product: 'ZenBook Pro 16X',
-                    stars: 5,
-                    content: 'Máy chạy cực mượt, màn hình OLED 4K quá đẹp cho dân design. Hàng VinaTech chuẩn 100%.',
-                    date: '12 TH04, 2024',
-                    status: 'approved',
-                },
-                {
-                    id: 2,
-                    name: 'Nguyễn Thảo Vy',
-                    email: 'thaovy.ng@email.com',
-                    avatar: 'N',
-                    avatarColor: '#f97316',
-                    anonymous: false,
-                    product: 'AirPods Pro Gen 3',
-                    stars: 4,
-                    content: 'Chất âm hay, chống ồn tốt nhưng hộp sạc hơi dễ trầy xước. Shop giao hàng rất nhanh.',
-                    date: '11 TH04, 2024',
-                    status: 'pending',
-                },
-                {
-                    id: 3,
-                    name: 'Người dùng ẩn danh',
-                    email: 'unknown@spam.net',
-                    avatar: null,
-                    avatarColor: '#94a3b8',
-                    anonymous: true,
-                    product: 'iPhone 15 Pro Max',
-                    stars: 0,
-                    content: 'Click vào link này để nhận: Khuyến mãi không: bit.ly/spam-link-example',
-                    date: '10 TH04, 2024',
-                    status: 'spam',
-                },
-            ],
+            reviews: [],
+
+            toast: {
+                show: false,
+                message: '',
+                reviewId: null,
+                oldStatus: null,
+                timeout: null
+            }
         }
     },
 
     computed: {
         filteredReviews() {
             if (this.activeTab === 'all') return this.reviews
-            return this.reviews.filter(r => r.status === this.activeTab)
+            return this.reviews.filter(r => r.trangthai === this.activeTab)
         },
+        stats() {
+            return {
+                total: this.reviews.length,
+                pending: this.reviews.filter(r => r.trangthai === 'pending').length,
+                avg: this.reviews.length > 0 
+                    ? (this.reviews.reduce((acc, r) => acc + r.danhgia, 0) / this.reviews.length).toFixed(1)
+                    : 0
+            }
+        }
     },
 
     methods: {
+        async fetchReviews() {
+            this.isLoading = true
+            try {
+                const res = await api.get('/admin/reviews')
+                this.reviews = res.data.reviews || []
+            } catch (err) {
+                console.error('Lỗi khi tải đánh giá:', err)
+            } finally {
+                this.isLoading = false
+            }
+        },
+
         statusLabel(status) {
             const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'SPAM' }
             return map[status] || status
         },
-        approveReview(review) {
-            review.status = 'approved'
+
+        async updateStatusDropdown(review, newStatus) {
+            try {
+                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: newStatus })
+                if (res.data.success) {
+                    review.trangthai = newStatus
+                }
+            } catch (err) {
+                alert('Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
+            }
         },
-        deleteReview(id) {
-            this.reviews = this.reviews.filter(r => r.id !== id)
+
+        async undoReview(review) {
+            try {
+                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: 'pending' })
+                if (res.data.success) {
+                    review.trangthai = 'pending'
+                }
+            } catch (err) {
+                alert('Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
+            }
+        },
+
+        showUndoToast(review, oldStatus) {
+            if (this.toast.timeout) clearTimeout(this.toast.timeout);
+            this.toast.show = true;
+            this.toast.message = 'Đã chuyển bình luận vào mục SPAM.';
+            this.toast.reviewId = review.id_danhgia;
+            this.toast.oldStatus = oldStatus;
+
+            this.toast.timeout = setTimeout(() => {
+                this.toast.show = false;
+            }, 5000);
+        },
+
+        async triggerUndo() {
+            const reviewId = this.toast.reviewId;
+            const targetStatus = this.toast.oldStatus;
+            this.toast.show = false;
+
+            const review = this.reviews.find(r => r.id_danhgia === reviewId);
+            if (!review) return;
+
+            try {
+                const res = await api.put(`/admin/reviews/${reviewId}/status`, { trangthai: targetStatus });
+                if (res.data.success) review.trangthai = targetStatus;
+            } catch (err) {
+                alert('Lỗi hoàn tác: ' + err.message);
+            }
+        },
+
+        async approveReview(review) {
+            if (!confirm('Bạn có chắc chắn muốn duyệt đánh giá này không?')) return;
+
+            try {
+                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
+                    trangthai: 'approved'
+                })
+                if (res.data.success) {
+                    review.trangthai = 'approved'
+                    alert('Duyệt đánh giá thành công!')
+                }
+            } catch (err) {
+                alert('Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
+            }
+        },
+
+        async markAsSpam(review) {
+            const oldStatus = review.trangthai;
+            try {
+                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
+                    trangthai: 'spam'
+                })
+                if (res.data.success) {
+                    review.trangthai = 'spam'
+                    this.showUndoToast(review, oldStatus);
+                }
+            } catch (err) {
+                alert('Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
+            }
+        },
+
+        async deleteReview(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')) return;
+
+            try {
+                const res = await api.delete(`/admin/reviews/${id}`)
+                if (res.data.success) {
+                    this.reviews = this.reviews.filter(r => r.id_danhgia !== id)
+                    alert('Đã xóa đánh giá thành công!')
+                }
+            } catch (err) {
+                alert('Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
+            }
         },
     },
+
+    mounted() {
+        this.fetchReviews()
+    }
 }
 </script>
 
@@ -791,5 +882,46 @@ td {
     .stats-row {
         flex-wrap: wrap;
     }
+}
+
+/* ── Toast Undo ── */
+.toast-undo {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background: #1e293b;
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 9999;
+}
+.toast-message { font-size: 14px; font-weight: 500; }
+.toast-btn-undo {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    letter-spacing: 0.3px;
+}
+.toast-btn-undo:hover { background: #60a5fa; color: #0f172a; }
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all 0.3s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
 }
 </style>
