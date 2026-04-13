@@ -1,21 +1,13 @@
 export function saveAuth(token, user, remember = false) {
   const encodedUser = btoa(JSON.stringify(user))
 
-  if (remember) {
-    // lưu lâu
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', encodedUser)
+  // Luôn lưu vào localStorage để đảm bảo token được lưu trữ ổn định
+  localStorage.setItem('token', token)
+  localStorage.setItem('user', encodedUser)
 
-    sessionStorage.removeItem('token')
-    sessionStorage.removeItem('user')
-  } else {
-    // chỉ lưu phiên hiện tại
-    sessionStorage.setItem('token', token)
-    sessionStorage.setItem('user', encodedUser)
-
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
+  // Lưu thêm vào sessionStorage để đồng bộ
+  sessionStorage.setItem('token', token)
+  sessionStorage.setItem('user', encodedUser)
 }
 
 export function clearAuth() {

@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
-import { getUser } from '@/services/auth'
+import { getUser, saveAuth } from '@/services/auth'
 
 const email = ref('')
 const password = ref('')
@@ -45,19 +45,6 @@ const closeModal = () => {
 
 const router = useRouter()
 
-const saveAuthByRemember = (token, user, rememberLogin) => {
-  if (rememberLogin) {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    sessionStorage.removeItem('token')
-    sessionStorage.removeItem('user')
-  } else {
-    sessionStorage.setItem('token', token)
-    sessionStorage.setItem('user', JSON.stringify(user))
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
-}
 
 onMounted(() => {
   const user = getUser()
@@ -107,7 +94,7 @@ const handleLogin = async () => {
       return
     }
 
-    saveAuthByRemember(token, user, remember.value)
+    saveAuth(token, user, remember.value)
 
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
