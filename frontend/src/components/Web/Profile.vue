@@ -3,8 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '@/services/api'
+import { getUser, updateUser } from '@/services/auth'
 import echo from '@/services/echo'
-import { getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
 
 // ── Active tab ────────────────────────────────────────────
@@ -85,7 +85,7 @@ const updateUserData = (apiUser) => {
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
-const tempAvatarUrl = ref(null)
+const isUploadingAvatar = ref(false)
 
 const triggerAvatarUpload = () => {
   fileInput.value.click()
@@ -106,12 +106,29 @@ const handleAvatarUpload = async (event) => {
     return
   }
 
-  if (file) {
-    if (tempAvatarUrl.value) {
-      URL.revokeObjectURL(tempAvatarUrl.value);
+  isUploadingAvatar.value = true
+  try {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    
+    const avatarRes = await api.post('/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    if (avatarRes.data.user) {
+      updateUserData(avatarRes.data.user)
+      updateUser(user.value)
+      window.dispatchEvent(new Event('user-updated'))
+      showToast('Cập nhật ảnh đại diện thành công!')
     }
-    selectedAvatarFile.value = file;
-    tempAvatarUrl.value = URL.createObjectURL(file);
+  } catch (error) {
+    console.error('Lỗi upload avatar:', error)
+    showToast('Lỗi cập nhật ảnh đại diện!')
+  } finally {
+    isUploadingAvatar.value = false
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
@@ -124,9 +141,8 @@ const loadUser = async () => {
     const token = localStorage.getItem('token')
 
     if (!token) {
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser)
+      const parsed = getUser()
+      if (parsed) {
         user.value = {
           ...user.value,
           ...parsed,
@@ -144,13 +160,12 @@ const loadUser = async () => {
 
     updateUserData(res.data)
 
-    localStorage.setItem('user', JSON.stringify(user.value))
+    updateUser(user.value)
   } catch (error) {
     console.error('Load user lỗi:', error)
 
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser)
+    const parsed = getUser()
+    if (parsed) {
       user.value = {
         ...user.value,
         ...parsed,
@@ -412,7 +427,7 @@ const saveProfile = async () => {
     )
 
     updateUserData(res.data.user)
-    localStorage.setItem('user', JSON.stringify(user.value))
+    updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
@@ -830,10 +845,25 @@ const promoStatusMap = {
 
       <!-- ── SIDEBAR ── -->
       <aside class="sidebar">
+        <!-- Input ẩn cho avatar upload -->
+        <input 
+          type="file" 
+          ref="fileInput" 
+          class="d-none" 
+          style="display:none"
+          accept="image/jpeg, image/png"
+          @change="handleAvatarUpload" 
+        />
         <div class="avatar-section">
           <div class="avatar-sidebar-container">
-            <div class="avatar-circle">
+            <div class="avatar-circle" @click="triggerAvatarUpload" style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
               <img :src="sidebarAvatarUrl" :alt="user.name" class="profile-avatar" />
+              <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div v-else class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <i class="fas fa-camera"></i> <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">Đổi ảnh</span>
+              </div>
             </div>
           </div>
           <h2 class="sidebar-name">{{ user.name }}</h2>
@@ -905,9 +935,12 @@ const promoStatusMap = {
           <form v-else class="edit-form" @submit.prevent="saveProfile">
             <div class="form-avatar-section">
               <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
-                <div class="form-avatar-circle">
-                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
-                  <div class="form-avatar-plus-overlay">
+                <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
+                  <img :src="sidebarAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                  <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                    <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  </div>
+                  <div v-else class="form-avatar-plus-overlay">
                     <i class="fas fa-plus"></i>
                   </div>
                 </div>

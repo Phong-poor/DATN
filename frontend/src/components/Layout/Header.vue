@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '../../services/api' 
+import { getUser, clearAuth } from '@/services/auth'
 
 const router = useRouter()
 
@@ -138,12 +139,7 @@ const avatarUrl = computed(() => {
 })
 
 const fetchUser = () => {
-    try {
-        const storedUser = localStorage.getItem('user')
-        user.value = storedUser ? JSON.parse(storedUser) : null
-    } catch {
-        user.value = null
-    }
+    user.value = getUser()
 }
 
 const handleLogout = async () => {
@@ -153,8 +149,7 @@ const handleLogout = async () => {
   } catch {
     console.log('Logout API lỗi (bỏ qua)')
   }
-  localStorage.removeItem('user')
-  localStorage.removeItem('token')
+  clearAuth()
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []

@@ -45,6 +45,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
         ]);
 
         $user = User::where('email', $validated['email'])->first();
@@ -55,11 +56,13 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $tokenName = !empty($validated['remember']) ? 'remember_token' : 'session_token';
+        $token = $user->createToken($tokenName)->plainTextToken;
 
         return response()->json([
             'message' => 'Đăng nhập thành công',
-            'token' => $token, // 🔥 QUAN TRỌNG
+            'token' => $token,
+            'remember' => (bool) ($validated['remember'] ?? false),
             'user' => $user
         ]);
     }

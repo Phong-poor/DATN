@@ -536,27 +536,50 @@ async function handleImportFile(e) {
       try {
         if (isColorFile) {
           const name = String(obj['Tên màu'] || '').trim()
+          const hex = String(obj['Mã màu (HEX)'] || '#000000').trim()
           if (!name) { skipCount++; continue }
-          if (isDuplicateColor(name)) { skipCount++; continue }
-          await api.post('/colors', {
-            name,
-            hex_code: String(obj['Mã màu (HEX)'] || '#000000').trim(),
-          })
+
+          const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
+          if (existingColor) {
+            // Cập nhật màu hiện có
+            await api.put(`/colors/${existingColor.id}`, { name, hex_code: hex })
+          } else {
+            // Thêm màu mới
+            await api.post('/colors', { name, hex_code: hex })
+          }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
           const attrName = String(obj['Loại thuộc tính'] || '').trim()
+          const statusStr = String(obj['Trạng thái'] || '').trim()
           const giaCongThem = Number(obj['Giá cộng thêm'] || 0)
           
           if (!varName || !attrName) { skipCount++; continue }
           const attr = attrs.value.find(a => a.name === attrName)
           if (!attr) { skipCount++; continue }
-          if (isDuplicateVariant(varName, attrName)) { skipCount++; continue }
-          
-          await api.post('/giatrithuoctinh', { 
-            id_thuoctinh: attr.id, 
-            giatri: varName,
-            gia_cong_them: giaCongThem
-          })
+
+          const statusVal = statusStr === 'Hoạt động' ? 1 : 0
+          const existingVar = variants.value.find(v => 
+            v.name.trim().toLowerCase() === varName.toLowerCase() && 
+            v.type === attrName
+          )
+
+          if (existingVar) {
+            // Cập nhật biến thể hiện có
+            await api.put(`/giatrithuoctinh/${existingVar.id}`, {
+              id_thuoctinh: attr.id,
+              giatri: varName,
+              gia_cong_them: giaCongThem,
+              trangthai: statusVal
+            })
+          } else {
+            // Thêm biến thể mới
+            await api.post('/giatrithuoctinh', { 
+              id_thuoctinh: attr.id, 
+              giatri: varName,
+              gia_cong_them: giaCongThem,
+              trangthai: statusVal
+            })
+          }
         }
         successCount++
       } catch {
@@ -567,8 +590,8 @@ async function handleImportFile(e) {
     await fetchAll()
     await fetchColors()
 
-    const parts = [`Nhập thành công ${successCount} dòng`]
-    if (skipCount) parts.push(`bỏ qua trùng ${skipCount} dòng`)
+    const parts = [`Nhập thành công/Cập nhật ${successCount} dòng`]
+    if (skipCount) parts.push(`bỏ qua ${skipCount} dòng`)
     if (failCount) parts.push(`thất bại ${failCount} dòng`)
     importSuccess.value = parts.join(', ') + '.'
   } catch (err) {

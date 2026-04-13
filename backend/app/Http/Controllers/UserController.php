@@ -32,13 +32,13 @@ class UserController extends Controller
 
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
-            
+
             // 1. Tạo tên file duy nhất
             $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
-            
+
             // 2. Định nghĩa thư mục lưu trữ: public/uploads/avatar
             $path = 'uploads/avatar';
-            
+
             // 3. Xóa avatar cũ nếu có (và không phải mặc định)
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
@@ -81,26 +81,26 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'phone'    => 'nullable|string|max:20',
-            'role'     => 'nullable|in:admin,support,user',
-            'status'   => 'nullable|in:active,locked',
+            'phone' => 'nullable|string|max:20',
+            'role' => 'nullable|in:admin,support,user',
+            'status' => 'nullable|in:active,locked',
         ]);
 
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'phone'    => $validated['phone'] ?? null,
-            'role'     => $validated['role'] ?? 'user',
-            'status'   => $validated['status'] ?? 'active',
+            'phone' => $validated['phone'] ?? null,
+            'role' => $validated['role'] ?? 'user',
+            'status' => $validated['status'] ?? 'active',
         ]);
 
         return response()->json([
             'message' => 'Tạo người dùng thành công',
-            'user'    => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
+            'user' => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
         ], 201);
     }
 
@@ -109,19 +109,24 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'name'     => 'sometimes|required|string|max:255',
-            'email'    => ['sometimes', 'required', 'email', Rule::unique('users', 'email')->ignore($id)],
-            'phone'    => 'nullable|string|max:20',
-            'role'     => 'nullable|in:admin,support,user',
-            'status'   => 'nullable|in:active,locked',
+            'name' => 'sometimes|required|string|max:255',
+            'email' => ['sometimes', 'required', 'email', Rule::unique('users', 'email')->ignore($id)],
+            'phone' => 'nullable|string|max:20',
+            'role' => 'nullable|in:admin,support,user',
+            'status' => 'nullable|in:active,locked',
             'password' => 'nullable|string|min:8',
         ]);
 
-        if (isset($validated['name']))   $user->name   = $validated['name'];
-        if (isset($validated['email']))  $user->email  = $validated['email'];
-        if (isset($validated['phone']))  $user->phone  = $validated['phone'];
-        if (isset($validated['role']))   $user->role   = $validated['role'];
-        if (isset($validated['status'])) $user->status = $validated['status'];
+        if (isset($validated['name']))
+            $user->name = $validated['name'];
+        if (isset($validated['email']))
+            $user->email = $validated['email'];
+        if (isset($validated['phone']))
+            $user->phone = $validated['phone'];
+        if (isset($validated['role']))
+            $user->role = $validated['role'];
+        if (isset($validated['status']))
+            $user->status = $validated['status'];
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
@@ -130,7 +135,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Cập nhật thành công',
-            'user'    => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
+            'user' => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
         ]);
     }
 
@@ -150,8 +155,8 @@ class UserController extends Controller
             'gender' => 'nullable|in:male,female',
         ]);
 
-        $date = (!empty($validated['date_of_birth'])) 
-            ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d') 
+        $date = (!empty($validated['date_of_birth']))
+            ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d')
             : null;
 
         $genderMap = [
