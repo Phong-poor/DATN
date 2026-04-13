@@ -28,7 +28,6 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/chat', [ChatbotController::class, 'chat']);
 
 // ================= QUÊN MẬT KHẨU =================
 Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
@@ -156,6 +155,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::get('/test', function () {
     return 'OK API';
 });
+
 use Illuminate\Support\Facades\Mail;
 
 Route::get('/test-mail', function () {
@@ -174,13 +174,13 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== DASHBOARD =====
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
-
-        // ===== PRODUCT IMPORT/EXPORT =====
         Route::get('/sanpham/export-inventory', [SanPhamController::class, 'exportInventory']);
         Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
-
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
