@@ -480,28 +480,28 @@ const provinces = [
   'Buôn Ma Thuột',
 ]
 
-// const addresses = ref([
-//   {
-//     id: 1,
-//     name: 'Nguyễn Văn A',
-//     phone: '0901 234 567',
-//     province: 'TP. Hồ Chí Minh',
-//     district: 'Quận 1',
-//     ward: 'Phường Bến Nghé',
-//     detail: '123 Lê Lợi',
-//     isDefault: true,
-//   },
-//   {
-//     id: 2,
-//     name: 'Nguyễn Văn A',
-//     phone: '0912 345 678',
-//     province: 'Hà Nội',
-//     district: 'Quận Cầu Giấy',
-//     ward: 'Phường Dịch Vọng',
-//     detail: '45 Nguyễn Phong Sắc',
-//     isDefault: false,
-//   },
-// ])
+const addresses = ref([
+  {
+    id: 1,
+    name: 'Nguyễn Văn A',
+    phone: '0901 234 567',
+    province: 'TP. Hồ Chí Minh',
+    district: 'Quận 1',
+    ward: 'Phường Bến Nghé',
+    detail: '123 Lê Lợi',
+    isDefault: true,
+  },
+  {
+    id: 2,
+    name: 'Nguyễn Văn A',
+    phone: '0912 345 678',
+    province: 'Hà Nội',
+    district: 'Quận Cầu Giấy',
+    ward: 'Phường Dịch Vọng',
+    detail: '45 Nguyễn Phong Sắc',
+    isDefault: false,
+  },
+])
 
 const openAddAddr = () => {
   addrForm.value = defaultAddrForm()
