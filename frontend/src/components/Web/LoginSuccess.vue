@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { saveAuth } from '@/services/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,8 +10,6 @@ onMounted(() => {
   const token = route.query.token
 
   if (token) {
-    localStorage.setItem('token', token)
-
     // 👉 gọi API lấy user
     fetchUser(token)
   } else {
@@ -28,7 +27,7 @@ const fetchUser = async (token) => {
 
     const user = await res.json()
 
-    localStorage.setItem('user', JSON.stringify(user))
+    saveAuth(token, user)
 
     router.push('/')
   } catch (e) {

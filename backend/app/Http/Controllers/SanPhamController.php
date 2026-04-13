@@ -427,4 +427,52 @@ class SanPhamController extends Controller
 
         return $sku;
     }
+
+    public function importStock(Request $request)
+    {
+        $request->validate([
+            'updates' => 'required|array',
+            'updates.*.id_bienthe' => 'required|exists:bienthe,id_bienthe',
+            'updates.*.soluong' => 'nullable|integer|min:0',
+            'updates.*.gia' => 'nullable|numeric|min:0',
+        ]);
+
+        $successCount = 0;
+        foreach ($request->updates as $item) {
+            $updateData = [];
+            if (isset($item['soluong']) && $item['soluong'] !== '') {
+                $updateData['soluong'] = $item['soluong'];
+            }
+            if (isset($item['gia']) && $item['gia'] !== '') {
+                $updateData['gia'] = $item['gia'];
+            }
+
+            if (!empty($updateData)) {
+                BienThe::where('id_bienthe', $item['id_bienthe'])->update($updateData);
+                $successCount++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Cập nhật thành công $successCount dòng dữ liệu.",
+            'count' => $successCount
+        ]);
+    }
+
+    public function exportInventory()
+    {
+        $data = DB::table('sanpham')
+            ->join('bienthe', 'sanpham.id_sanpham', '=', 'bienthe.id_sanpham')
+            ->select(
+                'bienthe.id_bienthe',
+                'sanpham.tenSP',
+                'bienthe.ten_bienthe',
+                'bienthe.gia',
+                'bienthe.soluong'
+            )
+            ->orderBy('sanpham.id_sanpham')
+            ->get();
+
+        return response()->json($data);
+    }
 }

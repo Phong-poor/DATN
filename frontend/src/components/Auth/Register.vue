@@ -14,11 +14,23 @@ const loading = ref(false)
 
 const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
 
+let autoCloseTimer = null
+
 const showModal = (type, title, message, onConfirm = null) => {
   modal.value = { show: true, type, title, message, onConfirm }
+  if (type === 'success') {
+    if (autoCloseTimer) clearTimeout(autoCloseTimer)
+    autoCloseTimer = setTimeout(() => {
+      closeModal()
+    }, 2000)
+  }
 }
 
 const closeModal = () => {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer)
+    autoCloseTimer = null
+  }
   const cb = modal.value.onConfirm
   modal.value.show = false
   if (cb) cb()
@@ -217,7 +229,7 @@ const handleRegister = async () => {
           </div>
           <h3 class="modal-title">{{ modal.title }}</h3>
           <p class="modal-message">{{ modal.message }}</p>
-          <button class="modal-btn" :class="modal.type" @click="closeModal">
+          <button v-if="modal.type !== 'success'" class="modal-btn" :class="modal.type" @click="closeModal">
             {{ modal.type === 'success' ? 'Tiếp tục' : 'Đã hiểu' }}
           </button>
         </div>

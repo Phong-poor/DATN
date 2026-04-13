@@ -17,6 +17,7 @@ use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -27,6 +28,7 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/chat', [ChatbotController::class, 'chat']);
 
 // ================= QUÊN MẬT KHẨU =================
 Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
@@ -172,31 +174,30 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== DASHBOARD =====
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
-        Route::get('/users', [UserController::class, 'index']);
-        Route::get('/users/{id}', [UserController::class, 'show']);
-        Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-    // ===== ADMIN ORDERS =====
-    Route::get('/orders', [DatHangController::class, 'allOrders']);
-    Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
+        // ===== PRODUCT IMPORT/EXPORT =====
+        Route::get('/sanpham/export-inventory', [SanPhamController::class, 'exportInventory']);
+        Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
 
-    // ===== LIÊN HỆ ADMIN =====
-    Route::get('/lien-he', [LienHeController::class, 'index']);
-    Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
-    Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
-    Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
+        // ===== ADMIN ORDERS =====
+        Route::get('/orders', [DatHangController::class, 'allOrders']);
+        Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
 
-});
+        // ===== LIÊN HỆ ADMIN =====
+        Route::get('/lien-he', [LienHeController::class, 'index']);
+        Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
+        Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
+        Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
-    Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
-    Route::apiResource('promotions', PromotionController::class);
-    Route::get('/promotions', [PromotionController::class, 'index']);
-    Route::post('/promotions', [PromotionController::class, 'store']);
-    Route::put('/promotions/{id}', [PromotionController::class, 'update']);
-    Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
-    Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
-    Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
-});
+        Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+        Route::apiResource('promotions', PromotionController::class);
+        Route::get('/promotions', [PromotionController::class, 'index']);
+        Route::post('/promotions', [PromotionController::class, 'store']);
+        Route::put('/promotions/{id}', [PromotionController::class, 'update']);
+        Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
+        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
+    });
 Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
