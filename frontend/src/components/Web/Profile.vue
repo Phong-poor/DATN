@@ -12,6 +12,7 @@ const tabs = [
   { key: 'profile', label: 'Thông tin cá nhân', icon: 'person' },
   { key: 'orders', label: 'Đơn hàng', icon: 'orders' },
   { key: 'address', label: 'Địa chỉ', icon: 'map' },
+  { key: 'promotions', label: 'Khuyến mãi', icon: 'tag' },
   { key: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
 ]
 
@@ -67,15 +68,12 @@ const formAvatarUrl = computed(() => {
   return sidebarAvatarUrl.value
 })
 
-/**
- * Unify mapping from API user object to the local 'user' reactive state.
- */
 const updateUserData = (apiUser) => {
   user.value = {
     ...user.value,
     ...apiUser,
     phone: apiUser.phone || '',
-    birthday: apiUser.date_of_birth || '', 
+    birthday: apiUser.date_of_birth || '',
     gender: apiUser.gender || '',
     avatar: apiUser.avatar || user.value.avatar,
     memberSince: apiUser.memberSince || 'Thành viên',
@@ -95,7 +93,6 @@ const handleAvatarUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  // Frontend Validation
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
   if (!allowedTypes.includes(file.type)) {
     showToast('Chỉ chấp nhận ảnh định dạng JPG hoặc PNG!')
@@ -172,7 +169,6 @@ const fetchOrders = async () => {
 
     if (res.data.success) {
       orders.value = res.data.orders.map(order => {
-        // Map backend state to frontend keys
         let statusKey = 'pending'
         if (order.trangthai === 'confirmed') statusKey = 'confirmed'
         if (order.trangthai === 'shipping') statusKey = 'shipping'
@@ -184,7 +180,7 @@ const fetchOrders = async () => {
           id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
           status: statusKey,
-          trangthai: order.trangthai, // 🔥 Keep original for logic
+          trangthai: order.trangthai,
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           lydo: order.lydo,
@@ -336,11 +332,11 @@ const submitReview = async () => {
 onMounted(() => {
   loadUser()
   fetchOrders()
+  fetchPromotions()
 })
 
 const startEdit = () => {
   profileForm.value = { ...user.value }
-  // Map gender back to English values for select
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
@@ -356,11 +352,10 @@ const saveProfile = async () => {
   try {
     savingProfile.value = true
 
-    // 1. Nếu có ảnh mới chờ upload, ta xử lý upload trước
     if (selectedAvatarFile.value) {
       const formData = new FormData()
       formData.append('avatar', selectedAvatarFile.value)
-      
+
       const avatarRes = await api.post('/user/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -371,7 +366,6 @@ const saveProfile = async () => {
       }
     }
 
-    // 2. Lưu thông tin profile còn lại
     const res = await api.put(
       '/user/profile',
       {
@@ -391,9 +385,7 @@ const saveProfile = async () => {
     showToast('Cập nhật thành công!')
 
   } catch (error) {
-    // 👉 DEBUG LỖI
     console.error('LỖI API:', error.response?.data)
-
     showToast(error.response?.data?.message || 'Lỗi cập nhật!')
   } finally {
     savingProfile.value = false
@@ -437,7 +429,6 @@ const filteredOrders = computed(() =>
     : orders.value.filter((o) => o.status === orderTab.value)
 )
 
-// Pagination logic for orders
 const currentPage = ref(1)
 const itemsPerPage = 8
 const paginatedOrders = computed(() => {
@@ -608,6 +599,38 @@ const savePw = async () => {
   pwForm.value = { current: '', newPass: '', confirm: '' }
   showToast('Đổi mật khẩu thành công!')
 }
+
+// ════════════════════════════════════════════════
+//  TAB 5 — PROMOTIONS
+// ════════════════════════════════════════════════
+const promotions = ref([])
+const promoPage = ref(1)
+const promoPerPage = 5
+
+const fetchPromotions = async () => {
+  try {
+    const res = await api.get('/promotions')
+    // API trả về array trực tiếp (không có wrapper success)
+    promotions.value = Array.isArray(res.data) ? res.data : []
+  } catch (error) {
+    console.error('Lỗi tải khuyến mãi:', error)
+  }
+}
+
+const paginatedPromos = computed(() => {
+  const start = (promoPage.value - 1) * promoPerPage
+  return promotions.value.slice(start, start + promoPerPage)
+})
+
+const totalPromoPages = computed(() =>
+  Math.ceil(promotions.value.length / promoPerPage)
+)
+
+const promoStatusMap = {
+  running: { label: 'Đang chạy',   color: '#16a34a', bg: '#dcfce7' },
+  open:    { label: 'Sắp diễn ra', color: '#2563eb', bg: '#dbeafe' },
+  ended:   { label: 'Đã kết thúc', color: '#94a3b8', bg: '#f1f5f9' },
+}
 </script>
 
 <template>
@@ -640,7 +663,6 @@ const savePw = async () => {
               {{ statusMap[selectedOrder.status].label }}
             </div>
 
-            <!-- Lý do hủy -->
             <div v-if="selectedOrder.status === 'cancelled' && selectedOrder.lydo" class="alert alert-danger mb-4" style="font-size: 13px; padding: 12px; border-radius: 10px;">
               <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
             </div>
@@ -673,9 +695,9 @@ const savePw = async () => {
             </div>
             <div class="modal-footer">
               <div class="modal-btns">
-                <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" 
+                <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)"
                   class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
-                <button v-if="['done', 'cancelled'].includes(selectedOrder.status)" 
+                <button v-if="['done', 'cancelled'].includes(selectedOrder.status)"
                   class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
               </div>
               <div class="modal-total-wrap">
@@ -700,9 +722,7 @@ const savePw = async () => {
           </div>
           <div class="modal-body">
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            
             <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
-            
             <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
               <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
@@ -789,11 +809,8 @@ const savePw = async () => {
 
         <div class="stat-grid">
           <div class="stat-card" v-for="s in stats" :key="s.label">
-            <!-- orders icon -->
             <svg v-if="s.icon==='orders'" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>
-            <!-- heart icon -->
             <svg v-else-if="s.icon==='heart'" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <!-- star icon -->
             <svg v-else viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             <span class="stat-val">{{ s.value }}</span>
             <span class="stat-lbl">{{ s.label }}</span>
@@ -814,6 +831,8 @@ const savePw = async () => {
             <svg v-else-if="tab.icon==='orders'" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
             <!-- map -->
             <svg v-else-if="tab.icon==='map'" viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <!-- tag (promotions) -->
+            <svg v-else-if="tab.icon==='tag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             <!-- lock -->
             <svg v-else viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span>{{ tab.label }}</span>
@@ -850,7 +869,6 @@ const savePw = async () => {
             </div>
           </div>
           <form v-else class="edit-form" @submit.prevent="saveProfile">
-            <!-- Redesigned Avatar Upload UI -->
             <div class="form-avatar-section">
               <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
                 <div class="form-avatar-circle">
@@ -861,12 +879,12 @@ const savePw = async () => {
                 </div>
               </div>
               <p class="form-avatar-upload-text">Tải ảnh lên</p>
-              <input 
-                type="file" 
-                ref="fileInput" 
-                class="d-none" 
+              <input
+                type="file"
+                ref="fileInput"
+                class="d-none"
                 accept="image/jpeg, image/png"
-                @change="handleAvatarUpload" 
+                @change="handleAvatarUpload"
               />
             </div>
 
@@ -905,7 +923,7 @@ const savePw = async () => {
               <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
             </button>
           </div>
-          
+
           <div class="table-card">
             <table class="order-data-table">
               <thead>
@@ -946,7 +964,6 @@ const savePw = async () => {
               </tbody>
             </table>
 
-            <!-- Pagination -->
             <div class="pagination-footer" v-if="totalPages > 1">
               <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
               <div class="pagination">
@@ -1007,6 +1024,90 @@ const savePw = async () => {
                 <button class="addr-btn" @click="openEditAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Chỉnh sửa</button>
                 <button class="addr-btn addr-btn-default" v-if="!addr.isDefault" @click="setDefaultAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Đặt mặc định</button>
                 <button class="addr-btn addr-btn-delete" @click="removeAddr(i)"><svg viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>Xóa</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════ TAB: PROMOTIONS ════ -->
+        <div v-else-if="activeTab === 'promotions'">
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Khuyến Mãi</h1>
+            <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
+          </div>
+
+          <div class="table-card">
+            <table class="order-data-table">
+              <thead>
+                <tr>
+                  <th>TÊN</th>
+                  <th>MÃ</th>
+                  <th>LOẠI</th>
+                  <th>GIÁ TRỊ</th>
+                  <th>THỜI GIAN HẾT HẠN  </th>
+                  <th>TRẠNG THÁI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="promotions.length === 0">
+                  <td colspan="6" class="empty-state-cell">
+                    <div class="empty-msg">
+                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                        <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5"/>
+                      </svg>
+                      <p>Không có khuyến mãi nào</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="promo in paginatedPromos" :key="promo.id" class="order-row">
+                  <td><span style="font-weight:600; color:#1e293b;">{{ promo.name }}</span></td>
+                  <td><span class="promo-code-badge">{{ promo.code }}</span></td>
+                  <td style="color:#64748b; font-size:13px;">
+                    {{ promo.type === 'percent' ? 'Phần trăm' : 'Cố định' }}
+                  </td>
+                  <td style="font-weight:700; color:#2563eb;">
+                    {{ promo.type === 'percent'
+                      ? promo.value + '%'
+                      : new Intl.NumberFormat('vi-VN').format(promo.value) + 'đ' }}
+                  </td>
+                  <td style="font-size:13px; color:#64748b;">
+                    <span v-if="promo.end_date">{{ new Date(promo.end_date).toLocaleDateString('vi-VN') }}</span>
+                    <span v-else>Không giới hạn</span>
+                  </td>
+                  <td>
+                    <span :style="{
+                      color: (promoStatusMap[promo.status] || promoStatusMap.ended).color,
+                      background: (promoStatusMap[promo.status] || promoStatusMap.ended).bg,
+                      padding: '4px 12px',
+                      borderRadius: '99px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      display: 'inline-block'
+                    }">
+                      {{ (promoStatusMap[promo.status] || promoStatusMap.ended).label }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination-footer" v-if="totalPromoPages > 1">
+              <p class="pagination-info">
+                Hiển thị {{ (promoPage - 1) * promoPerPage + 1 }} –
+                {{ Math.min(promoPage * promoPerPage, promotions.length) }}
+                của {{ promotions.length }} khuyến mãi
+              </p>
+              <div class="pagination">
+                <button class="p-arrow" :disabled="promoPage === 1" @click="promoPage--">‹ Trước</button>
+                <div class="p-nums">
+                  <button
+                    v-for="p in totalPromoPages" :key="p"
+                    class="p-num" :class="{ active: promoPage === p }"
+                    @click="promoPage = p">{{ p }}</button>
+                </div>
+                <button class="p-arrow" :disabled="promoPage === totalPromoPages" @click="promoPage++">Sau ›</button>
               </div>
             </div>
           </div>
@@ -1260,6 +1361,20 @@ const savePw = async () => {
 .tip-list li { font-size:12px; color:#3b82f6; padding-left:12px; position:relative; }
 .tip-list li::before { content:'•'; position:absolute; left:0; }
 
+/* PROMOTIONS */
+.promo-code-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px dashed #fbbf24;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+
 /* EMPTY */
 .empty { text-align:center; padding:48px 0; color:#94a3b8; }
 .empty svg { width:44px; height:44px; stroke:#cbd5e1; stroke-width:1.5; fill:none; margin-bottom:10px; }
@@ -1307,101 +1422,22 @@ const savePw = async () => {
 
 /* TOAST */
 .toast { position:fixed; top:24px; right:24px; z-index:9999; background:#0f172a; color:#fff; padding:12px 20px; border-radius:12px; display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+
 /* SIDEBAR AVATAR */
-.avatar-sidebar-container {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 15px;
-}
+.avatar-sidebar-container { width: 100px; height: 100px; margin: 0 auto 15px; }
+.avatar-circle { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; position: relative; border: 3px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
 
-.avatar-circle {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  position: relative;
-  border: 3px solid #fff;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
+/* FORM AVATAR */
+.form-avatar-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+.form-avatar-dashed-border { width: 120px; height: 120px; border: 2px dashed #cbd5e1; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; padding: 8px; }
+.form-avatar-dashed-border:hover { border-color: #2563eb; transform: scale(1.02); }
+.form-avatar-circle { width: 100%; height: 100%; background: #f1f5f9; border-radius: 50%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.form-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.form-avatar-plus-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(37, 99, 235, 0.1); display: flex; align-items: center; justify-content: center; color: #2563eb; font-size: 32px; opacity: 0.6; transition: all 0.3s ease; }
+.form-avatar-dashed-border:hover .form-avatar-plus-overlay { opacity: 1; background: rgba(37, 99, 235, 0.2); }
+.form-avatar-upload-text { margin-top: 12px; font-size: 14px; font-weight: 600; color: #2563eb; letter-spacing: 0.3px; }
 
-.avatar-circle img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* FORM AVATAR REDESIGN */
-.form-avatar-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.form-avatar-dashed-border {
-  width: 120px;
-  height: 120px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 8px;
-}
-
-.form-avatar-dashed-border:hover {
-  border-color: #2563eb;
-  transform: scale(1.02);
-}
-
-.form-avatar-circle {
-  width: 100%;
-  height: 100%;
-  background: #f1f5f9;
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.form-avatar-plus-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(37, 99, 235, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #2563eb;
-  font-size: 32px;
-  opacity: 0.6;
-  transition: all 0.3s ease;
-}
-
-.form-avatar-dashed-border:hover .form-avatar-plus-overlay {
-  opacity: 1;
-  background: rgba(37, 99, 235, 0.2);
-}
-
-.form-avatar-upload-text {
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2563eb;
-  letter-spacing: 0.3px;
-}
 .toast svg { width:18px; height:18px; stroke:#4ade80; stroke-width:2.5; fill:none; }
 .toast-enter-active { transition:all 0.3s cubic-bezier(0.34,1.4,0.64,1); }
 .toast-leave-active { transition:all 0.2s ease; }
@@ -1420,6 +1456,12 @@ const savePw = async () => {
 .gap-2 { gap: 12px; }
 
 /* CANCEL MODAL */
+.cancel-textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #2563eb; font-size: 14px; margin-bottom: 20px; background: #eff6ff; outline: none; font-family: inherit; transition: all 0.2s; resize: vertical; color: #1e293b; box-sizing: border-box; }
+.cancel-textarea::placeholder { color: #94a3b8; }
+.cancel-textarea:focus { box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: #fff; }
+.btn-danger-confirm { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; border-radius: 10px; background: #ef4444; border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-danger-confirm:hover { background: #dc2626; }
+.btn-danger-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
 .cancel-options {
   background: #f8fafc;
   border-radius: 14px;

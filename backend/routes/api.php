@@ -17,6 +17,7 @@ use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\PromotionController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -187,6 +188,14 @@ Route::middleware(['auth:sanctum', 'admin'])
     Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
     Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
+});
+
+    Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+    Route::apiResource('promotions', PromotionController::class);
+    Route::get('/promotions', [PromotionController::class, 'index']);
+    Route::post('/promotions', [PromotionController::class, 'store']);
+    Route::put('/promotions/{id}', [PromotionController::class, 'update']);
+    Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
     Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
     Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
 });
