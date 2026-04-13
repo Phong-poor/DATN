@@ -2,8 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
-import axios from 'axios'
 import api from '@/services/api'
+import echo from '@/services/echo'
+import { getUser } from '@/services/auth'
+import { onUnmounted } from 'vue'
 
 // ── Active tab ────────────────────────────────────────────
 const activeTab = ref('profile')
@@ -332,7 +334,39 @@ const submitReview = async () => {
 onMounted(() => {
   loadUser()
   fetchOrders()
-  fetchPromotions()
+
+  const userData = getUser()
+  if (userData && (userData.id || userData.id_user)) {
+    const userId = userData.id || userData.id_user
+    
+    echo.private(`user.${userId}`)
+      .listen('.order.status.updated', (e) => {
+        const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
+        if (index !== -1) {
+          orders.value[index].trangthai = e.trangthai
+          // Map to frontend status keys if needed
+          let statusKey = 'pending'
+          if (e.trangthai === 'confirmed') statusKey = 'confirmed'
+          if (e.trangthai === 'shipping') statusKey = 'shipping'
+          if (e.trangthai === 'done' || e.trangthai === 'completed') statusKey = 'done'
+          if (e.trangthai === 'cancelled') statusKey = 'cancelled'
+          orders.value[index].status = statusKey
+
+          if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
+            selectedOrder.value.trangthai = e.trangthai
+            selectedOrder.value.status = statusKey
+          }
+        }
+      })
+  }
+})
+
+onUnmounted(() => {
+  const userData = getUser()
+  const userId = userData?.id || userData?.id_user
+  if (userId) {
+    echo.leave(`user.${userId}`)
+  }
 })
 
 const startEdit = () => {
