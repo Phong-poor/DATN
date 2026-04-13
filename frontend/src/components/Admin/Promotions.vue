@@ -293,7 +293,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
 const searchQuery = ref('')
 const showModal = ref(false)
@@ -325,28 +326,67 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm())
 const errors = ref({})
+const promos = ref([])
 
-const promos = ref([
-  { id: 1, name: 'Tết 2026 Sale', code: 'VNATECH-TET-26', discount: 'Giảm 50%', tagBg: '#fef3c7', tagColor: '#92400e', startDate: '15/01/2026', endDate: '15/02/2026', status: 'running', icon: '🏮', iconBg: '#fef3c7', type: 'percent', value: 50, description: '', roi: 45 },
-  { id: 2, name: 'Black Friday', code: 'BF-DEAL-2025', discount: 'Giảm 70%', tagBg: '#fce7f3', tagColor: '#9d174d', startDate: '20/11/2025', endDate: '30/11/2025', status: 'expired', icon: '🛍️', iconBg: '#fce7f3', type: 'percent', value: 70, description: '', roi: 30 },
-  { id: 3, name: 'Student Discount', code: 'STUDENT-PRO-MAX', discount: 'Cố định 15%', tagBg: '#dbeafe', tagColor: '#1e40af', startDate: '01/01/2025', endDate: '31/12/2026', status: 'open', icon: '🎓', iconBg: '#dbeafe', type: 'fixed', value: 15, description: '', roi: 22 },
-  { id: 4, name: 'Flash Sale 12.12', code: 'FS-DECEMBER-25', discount: 'Lên đến 90%', tagBg: '#fef9c3', tagColor: '#854d0e', startDate: '12/12/2025', endDate: '13/12/2025', status: 'expired', icon: '⚡', iconBg: '#fef9c3', type: 'maxprice', value: 90, description: '', roi: 18 },
-])
 
+// ================= FETCH DATA =================
+const fetchPromos = async () => {
+  try {
+    const res = await axios.get('http://localhost:8000/api/promotions')
+
+    promos.value = res.data.map(p => ({
+      ...p,
+      startDate: formatDate(p.start_date),
+      endDate: formatDate(p.end_date),
+      discount: discountLabel(p),
+      ...tagColors(p.type),
+      icon: '🏮',
+      iconBg: '#fef3c7',
+      roi: 20
+    }))
+
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+onMounted(fetchPromos)
+
+
+// ================= COMPUTED =================
 const filteredPromos = computed(() => {
   if (!searchQuery.value) return promos.value
   const q = searchQuery.value.toLowerCase()
-  return promos.value.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+  return promos.value.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.code.toLowerCase().includes(q)
+  )
 })
 
-const activeCount = computed(() => promos.value.filter(p => p.status === 'running' || p.status === 'open').length)
-const topPromos = computed(() => [...promos.value].sort((a, b) => b.roi - a.roi).slice(0, 2))
+const activeCount = computed(() =>
+  promos.value.filter(p => p.status === 'running' || p.status === 'open').length
+)
 
+const topPromos = computed(() =>
+  [...promos.value].sort((a, b) => b.roi - a.roi).slice(0, 2)
+)
+
+
+// ================= FUNCTIONS =================
 function statusClass(s) {
-  return { running: 'status-running', expired: 'status-expired', open: 'status-open' }[s] || ''
+  return {
+    running: 'status-running',
+    expired: 'status-expired',
+    open: 'status-open'
+  }[s] || ''
 }
+
 function statusLabel(s) {
-  return { running: '● Đang chạy', expired: '◌ Hết hạn', open: '● Luôn mở' }[s] || s
+  return {
+    running: '● Đang chạy',
+    expired: '◌ Hết hạn',
+    open: '● Luôn mở'
+  }[s] || s
 }
 
 function autoCode() {
@@ -378,57 +418,95 @@ function tagColors(type) {
 
 function formatDate(d) {
   if (!d) return ''
-  const [y, m, dd] = d.split('-')
-  return `${dd}/${m}/${y}`
+  const date = new Date(d)
+  const dd = String(date.getDate()).padStart(2, '0')
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const yyyy = date.getFullYear()
+  return `${dd}/${mm}/${yyyy}`
 }
 
+
+// ================= VALIDATE =================
 function validate() {
   errors.value = {}
+
   if (!form.value.name.trim()) errors.value.name = 'Tên không được để trống.'
   if (!form.value.code.trim()) errors.value.code = 'Mã không được để trống.'
-  if (!form.value.value && form.value.value !== 0) errors.value.value = 'Vui lòng nhập giá trị.'
+  if (form.value.value === '' || form.value.value === null)
+    errors.value.value = 'Vui lòng nhập giá trị.'
   if (!form.value.startDate) errors.value.startDate = 'Chọn ngày bắt đầu.'
   if (!form.value.endDate) errors.value.endDate = 'Chọn ngày kết thúc.'
+
   return Object.keys(errors.value).length === 0
 }
 
+
+// ================= CRUD =================
 function openCreate() {
-  isEdit.value = false; editId.value = null
-  form.value = defaultForm(); errors.value = {}
+  isEdit.value = false
+  editId.value = null
+  form.value = defaultForm()
+  errors.value = {}
   showModal.value = true
 }
 
 function openEdit(p) {
-  isEdit.value = true; editId.value = p.id
+  isEdit.value = true
+  editId.value = p.id
+
   const [dd, mm, yyyy] = p.startDate.split('/')
   const [dd2, mm2, yyyy2] = p.endDate.split('/')
-  form.value = { ...p, startDate: `${yyyy}-${mm}-${dd}`, endDate: `${yyyy2}-${mm2}-${dd2}` }
-  errors.value = {}; showModal.value = true
+
+  form.value = {
+    ...p,
+    startDate: `${yyyy}-${mm}-${dd}`,
+    endDate: `${yyyy2}-${mm2}-${dd2}`
+  }
+
+  errors.value = {}
+  showModal.value = true
 }
 
-function closeModal() { showModal.value = false }
+function closeModal() {
+  showModal.value = false
+}
 
-function savePromo() {
+async function savePromo() {
   if (!validate()) return
-  const built = {
-    ...form.value,
-    discount: discountLabel(form.value),
-    startDate: formatDate(form.value.startDate),
-    endDate: formatDate(form.value.endDate),
-    ...tagColors(form.value.type),
-    roi: form.value.roi || 0,
+
+  const data = {
+    name: form.value.name,
+    code: form.value.code,
+    type: form.value.type,
+    value: form.value.value,
+    start_date: form.value.startDate,
+    end_date: form.value.endDate,
+    status: form.value.status,
+    description: form.value.description,
   }
-  if (isEdit.value) {
-    const idx = promos.value.findIndex(p => p.id === editId.value)
-    if (idx !== -1) promos.value[idx] = { ...promos.value[idx], ...built }
-  } else {
-    promos.value.push({ id: Date.now(), roi: 0, ...built })
+
+  try {
+    if (isEdit.value) {
+      await axios.put(`http://localhost:8000/api/promotions/${editId.value}`, data)
+    } else {
+      await axios.post(`http://localhost:8000/api/promotions`, data)
+    }
+
+    alert('Thêm thành công ✅')
+    await fetchPromos()
+    closeModal()
+
+  } catch (err) {
+    console.log(err.response) // 👈 QUAN TRỌNG
+    alert('Lỗi rồi ❌ xem console')
   }
-  closeModal()
 }
 
-function deletePromo(id) {
-  if (confirm('Xóa chương trình khuyến mãi này?')) promos.value = promos.value.filter(p => p.id !== id)
+async function deletePromo(id) {
+  if (!confirm('Xóa?')) return
+
+  await axios.delete(`http://localhost:8000/api/promotions/${id}`)
+  await fetchPromos()
 }
 </script>
 

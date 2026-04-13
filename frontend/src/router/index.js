@@ -14,7 +14,6 @@ import Contact from '../components/Web/Contact.vue'
 import Profile from '../components/Web/Profile.vue'
 import Chatbot from '../components/Web/Chatbot.vue'
 import Orderspage from '../components/Web/Orderspage.vue'
-import Addresspage from '../components/Web/Addresspage.vue'
 import Passwordpage from '../components/Web/Passwordpage.vue'
 import LoginSuccess from '../components/Web/LoginSuccess.vue'
 import WishlistPage from '../components/Web/WishlistPage.vue'
@@ -47,7 +46,6 @@ const routes = [
       { path: 'profile', name: 'profile', component: Profile },
       { path: 'chat', name: 'chat', component: Chatbot },
       { path: 'orderspage', name: 'orderspage', component: Orderspage },
-      { path: 'addresspage', name: 'addresspage', component: Addresspage },
       { path: 'passwordpage', name: 'passwordpage', component: Passwordpage },
       { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
       { path: 'thank-you', name: 'thank-you', component: ThankYou },
