@@ -188,8 +188,6 @@ Route::middleware(['auth:sanctum', 'admin'])
     Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
     Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
-});
-
     Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
     Route::apiResource('promotions', PromotionController::class);
     Route::get('/promotions', [PromotionController::class, 'index']);
