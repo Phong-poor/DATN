@@ -37,10 +37,14 @@ Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 've
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 // ================= LIÊN HỆ (KHÁCH) =================
-
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
+
+// ================= KHUYẾN MÃI (PUBLIC) =================
+Route::get('/promotions', [PromotionController::class, 'index']);
+Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -62,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
+
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
@@ -70,12 +75,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ===== ĐÁNH GIÁ =====
     Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
+
+    // ===== VOUCHER CỦA TÔI =====
+    Route::get('/user/vouchers', [PromotionController::class, 'myVouchers']);
+    Route::get('/user/vouchers/available', [PromotionController::class, 'availableGifts']);
+    Route::post('/user/vouchers/claim', [PromotionController::class, 'claimVoucher']);
 });
 
-Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
-Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
-
-
+// ================= DANH MỤC =================
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
 Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
@@ -89,8 +96,7 @@ Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show'])
 Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
 Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
-
-Route::post('/register', [UserController::class, 'store']);
+// ================= USER =================
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}', [UserController::class, 'update']);
@@ -121,8 +127,7 @@ Route::get('/colors/{id}', [ColorController::class, 'show']);
 Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
-
-// ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
+// ================= SẢN PHẨM =================
 Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
@@ -147,13 +152,11 @@ Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
-
 // ================= TEST =================
 Route::get('/test', function () {
     return 'OK API';
 });
+
 use Illuminate\Support\Facades\Mail;
 
 Route::get('/test-mail', function () {
@@ -178,16 +181,21 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-    // ===== ADMIN ORDERS =====
-    Route::get('/orders', [DatHangController::class, 'allOrders']);
-    Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
+        // ===== ADMIN ORDERS =====
+        Route::get('/orders', [DatHangController::class, 'allOrders']);
+        Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
 
-    // ===== LIÊN HỆ ADMIN =====
-    Route::get('/lien-he', [LienHeController::class, 'index']);
-    Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
-    Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
-    Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
+        // ===== LIÊN HỆ ADMIN =====
+        Route::get('/lien-he', [LienHeController::class, 'index']);
+        Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
+        Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
 
-    Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
-    Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
-});
+        Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
+        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
+
+        // ===== ADMIN PROMOTIONS =====
+        Route::post('/promotions', [PromotionController::class, 'store']);
+        Route::put('/promotions/{id}', [PromotionController::class, 'update']);
+        Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
+    });

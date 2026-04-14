@@ -163,7 +163,7 @@ onMounted(fetchOrders)
                         <!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
-                            <div class="modal-item" v-for="item in selectedOrder.chi_tiets" :key="item.id_dathang_chi_tiet">
+                            <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                                 <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                                 <div class="modal-item-info">
                                     <p class="modal-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
@@ -236,7 +236,7 @@ onMounted(fetchOrders)
                     </div>
 
                     <div class="order-items">
-                        <div class="order-item" v-for="item in order.chi_tiets" :key="item.id_dathang_chi_tiet">
+                        <div class="order-item" v-for="item in (order.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                             <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                             <div class="order-item-info">
                                 <p class="order-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>

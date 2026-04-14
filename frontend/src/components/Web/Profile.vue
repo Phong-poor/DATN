@@ -184,7 +184,7 @@ const fetchOrders = async () => {
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           lydo: order.lydo,
-          items: order.chi_tiets.map(item => {
+          items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
             
             if (item.bien_the && item.bien_the.thuoc_tinh_json) {
@@ -609,9 +609,12 @@ const promoPerPage = 5
 
 const fetchPromotions = async () => {
   try {
-    const res = await api.get('/promotions')
-    // API trả về array trực tiếp (không có wrapper success)
-    promotions.value = Array.isArray(res.data) ? res.data : []
+    const res = await api.get('/user/vouchers')
+    if (res.data.success) {
+      promotions.value = res.data.vouchers || []
+    } else {
+      promotions.value = []
+    }
   } catch (error) {
     console.error('Lỗi tải khuyến mãi:', error)
   }
@@ -627,9 +630,9 @@ const totalPromoPages = computed(() =>
 )
 
 const promoStatusMap = {
-  running: { label: 'Đang chạy',   color: '#16a34a', bg: '#dcfce7' },
-  open:    { label: 'Sắp diễn ra', color: '#2563eb', bg: '#dbeafe' },
-  ended:   { label: 'Đã kết thúc', color: '#94a3b8', bg: '#f1f5f9' },
+  0: { label: 'Chưa sử dụng', color: '#16a34a', bg: '#dcfce7' },
+  1: { label: 'Đã sử dụng',   color: '#94a3b8', bg: '#f1f5f9' },
+  expired: { label: 'Hết hạn', color: '#dc2626', bg: '#fee2e2' },
 }
 </script>
 
@@ -1060,32 +1063,43 @@ const promoStatusMap = {
                     </div>
                   </td>
                 </tr>
-                <tr v-for="promo in paginatedPromos" :key="promo.id" class="order-row">
-                  <td><span style="font-weight:600; color:#1e293b;">{{ promo.name }}</span></td>
-                  <td><span class="promo-code-badge">{{ promo.code }}</span></td>
+                <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
+                  <td><span style="font-weight:600; color:#1e293b;">{{ item.promotion?.name }}</span></td>
+                  <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
                   <td style="color:#64748b; font-size:13px;">
-                    {{ promo.type === 'percent' ? 'Phần trăm' : 'Cố định' }}
+                    {{ item.promotion?.type === 'percent' ? 'Phần trăm' : 'Cố định' }}
                   </td>
                   <td style="font-weight:700; color:#2563eb;">
-                    {{ promo.type === 'percent'
-                      ? promo.value + '%'
-                      : new Intl.NumberFormat('vi-VN').format(promo.value) + 'đ' }}
+                    {{ item.promotion?.type === 'percent'
+                      ? item.promotion?.value + '%'
+                      : new Intl.NumberFormat('vi-VN').format(item.promotion?.value) + 'đ' }}
                   </td>
                   <td style="font-size:13px; color:#64748b;">
-                    <span v-if="promo.end_date">{{ new Date(promo.end_date).toLocaleDateString('vi-VN') }}</span>
+                    <span v-if="item.promotion?.end_date">{{ new Date(item.promotion?.end_date).toLocaleDateString('vi-VN') }}</span>
                     <span v-else>Không giới hạn</span>
                   </td>
                   <td>
-                    <span :style="{
-                      color: (promoStatusMap[promo.status] || promoStatusMap.ended).color,
-                      background: (promoStatusMap[promo.status] || promoStatusMap.ended).bg,
+                    <span v-if="item.promotion?.end_date && new Date(item.promotion?.end_date) < new Date()" :style="{
+                      color: promoStatusMap.expired.color,
+                      background: promoStatusMap.expired.bg,
                       padding: '4px 12px',
                       borderRadius: '99px',
                       fontSize: '12px',
                       fontWeight: '700',
                       display: 'inline-block'
                     }">
-                      {{ (promoStatusMap[promo.status] || promoStatusMap.ended).label }}
+                      {{ promoStatusMap.expired.label }}
+                    </span>
+                    <span v-else :style="{
+                      color: (promoStatusMap[item.trang_thai] || promoStatusMap[1]).color,
+                      background: (promoStatusMap[item.trang_thai] || promoStatusMap[1]).bg,
+                      padding: '4px 12px',
+                      borderRadius: '99px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      display: 'inline-block'
+                    }">
+                      {{ (promoStatusMap[item.trang_thai] || promoStatusMap[1]).label }}
                     </span>
                   </td>
                 </tr>

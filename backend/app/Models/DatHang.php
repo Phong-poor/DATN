@@ -15,7 +15,9 @@ class DatHang extends Model
         'trangthai',
         'diachi',
         'PTTT',
-        'lydo'
+        'lydo',
+        'promotion_id',
+        'giam_gia'
     ];
 
     public function user()
@@ -23,7 +25,7 @@ class DatHang extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function chiTiets()
+    public function chi_tiets()
     {
         return $this->hasMany(DatHangChiTiet::class, 'id_dathang', 'id_dathang');
     }
