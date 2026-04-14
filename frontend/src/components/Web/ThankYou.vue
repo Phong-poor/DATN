@@ -2,8 +2,6 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -25,7 +23,6 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Header />
   
   <div class="thank-you-page">
     <div class="container">
@@ -61,7 +58,6 @@ onMounted(async () => {
     </div>
   </div>
 
-  <Footer />
 </template>
 
 <style scoped>

@@ -1,6 +1,5 @@
 <script setup>
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 
 const posts = [
   {
@@ -43,7 +42,6 @@ const posts = [
 </script>
 
 <template>
-  <Header />
 
   <section class="news-page">
 
@@ -148,7 +146,6 @@ const posts = [
 
   </section>
 
-  <Footer />
 </template>
 
 <style scoped>

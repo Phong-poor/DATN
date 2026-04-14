@@ -3,27 +3,41 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
+import { getUser, saveAuth } from '@/services/auth'
 
 const email = ref('')
 const password = ref('')
 const remember = ref(false)
 const showPassword = ref(false)
-const loading = ref(false) // ✅ FIX
+const loading = ref(false)
 
 const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
 
+let autoCloseTimer = null
+
 const showModal = (type, title, message, onConfirm = null) => {
   modal.value = { show: true, type, title, message, onConfirm }
+  if (type === 'success') {
+    if (autoCloseTimer) clearTimeout(autoCloseTimer)
+    autoCloseTimer = setTimeout(() => {
+      closeModal()
+    }, 2000)
+  }
 }
 
 const loginGoogle = () => {
   window.location.href = 'http://127.0.0.1:8000/api/auth/google'
 }
+
 const loginFacebook = () => {
   window.location.href = 'http://127.0.0.1:8000/api/auth/facebook'
 }
 
 const closeModal = () => {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer)
+    autoCloseTimer = null
+  }
   const cb = modal.value.onConfirm
   modal.value.show = false
   if (cb) cb()
@@ -31,18 +45,17 @@ const closeModal = () => {
 
 const router = useRouter()
 
-// ✅ AUTO LOGIN + REMEMBER EMAIL
+
 onMounted(() => {
-  const user = localStorage.getItem('user')
-  const token = localStorage.getItem('token')
+  const user = getUser()
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   }
 
   if (user && token) {
-    const parsed = JSON.parse(user)
-
-    if (parsed.role === 'admin') {
+    if (user.role === 'admin') {
       router.push('/admin')
     } else {
       router.push('/')
@@ -65,10 +78,12 @@ const handleLogin = async () => {
 
   if (loading.value) return
   loading.value = true
+
   try {
     const res = await api.post('/login', {
       email: email.value,
-      password: password.value
+      password: password.value,
+      remember: remember.value
     })
 
     const user = res.data.user
@@ -79,14 +94,10 @@ const handleLogin = async () => {
       return
     }
 
-    // lưu
-    localStorage.setItem('user', JSON.stringify(user))
-    localStorage.setItem('token', token)
+    saveAuth(token, user, remember.value)
 
-    // set header
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
-    // remember email
     if (remember.value) {
       localStorage.setItem('remember_email', email.value)
     } else {
@@ -105,7 +116,6 @@ const handleLogin = async () => {
         }
       }
     )
-
   } catch (err) {
     console.log(err)
 
@@ -114,7 +124,6 @@ const handleLogin = async () => {
     } else {
       showModal('error', 'Lỗi', 'Sai tài khoản hoặc mật khẩu')
     }
-
   } finally {
     loading.value = false
   }
@@ -152,13 +161,15 @@ const handleLogin = async () => {
         <!-- EMAIL -->
         <div class="input-box">
           <span>@</span>
-          <input v-model="email" placeholder="example@vinatech.vn" />
+          <input v-model="email" type="email" name="username" autocomplete="username"
+            placeholder="example@vinatech.vn" />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-box">
           <span>🔒</span>
-          <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="••••••••" />
+          <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
+            autocomplete="current-password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -242,7 +253,7 @@ const handleLogin = async () => {
           </div>
           <h3 class="modal-title">{{ modal.title }}</h3>
           <p class="modal-message">{{ modal.message }}</p>
-          <button class="modal-btn" :class="modal.type" @click="closeModal">
+          <button v-if="modal.type !== 'success'" class="modal-btn" :class="modal.type" @click="closeModal">
             {{ modal.type === 'success' ? 'Tiếp tục' : 'Đã hiểu' }}
           </button>
         </div>

@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\ThuongHieu;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ThuongHieuController extends Controller
 {
     
     public function index(){
-        $thuonghieu = ThuongHieu::all();
+        $thuonghieu = Cache::remember('thuonghieu_all', 3600, function () {
+            return ThuongHieu::all();
+        });
         return response()->json(['thongbao' => 'thành công', 'data' => $thuonghieu]);
     }
     public function store(Request $request){
@@ -19,6 +22,9 @@ class ThuongHieuController extends Controller
         ]);
 
         $danhmuc = ThuongHieu::create($validated);
+        
+        Cache::forget('thuonghieu_all');
+
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Thêm danh mục thành công',
@@ -27,7 +33,9 @@ class ThuongHieuController extends Controller
     }
     public function show($id)
     {
-        $thuonghieu = ThuongHieu::find($id);
+        $thuonghieu = Cache::remember("thuonghieu_show_{$id}", 3600, function () use ($id) {
+            return ThuongHieu::find($id);
+        });
 
         if (!$thuonghieu) {
             return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
@@ -51,6 +59,9 @@ class ThuongHieuController extends Controller
         
         $thuonghieu->update($validated);
 
+        Cache::forget('thuonghieu_all');
+        Cache::forget("thuonghieu_show_{$id}");
+
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Cập nhật thành công',
@@ -66,6 +77,9 @@ class ThuongHieuController extends Controller
         }
 
         $thuonghieu->delete();
+
+        Cache::forget('thuonghieu_all');
+        Cache::forget("thuonghieu_show_{$id}");
 
         return response()->json([
             'thongbao' => 'thành công',

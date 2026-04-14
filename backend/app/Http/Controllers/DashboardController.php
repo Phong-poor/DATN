@@ -9,6 +9,7 @@ use App\Models\DatHang;
 use App\Models\User;
 use App\Models\Bienthe;
 use App\Models\DatHangChiTiet;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -17,8 +18,9 @@ class DashboardController extends Controller
         try {
             $period = $request->query('period', 'all');
 
-            // ================= TIME =================
-            $dateFrom = match ($period) {
+            $data = Cache::remember("dashboard_data_{$period}", 600, function () use ($period) {
+                // ================= TIME =================
+                $dateFrom = match ($period) {
                 'month' => now()->startOfMonth(),
                 'year'  => now()->startOfYear(),
                 'all'   => now()->subYears(50),
@@ -135,11 +137,7 @@ class DashboardController extends Controller
                     ];
                 });
 
-            // ================= RESPONSE =================
-            return response()->json([
-                'thongbao' => 'thành công',
-                'message'  => 'Lấy dữ liệu dashboard thành công',
-                'data' => [
+                return [
                     'period'      => $period,
                     'doanh_thu'   => $tongDoanhThu,
                     'khach_hang'  => $tongKhachHang,
@@ -148,7 +146,14 @@ class DashboardController extends Controller
                     'bieu_do'     => $bieuDo,
                     'don_hang'    => $donHang,
                     'san_pham'    => $sanPham,
-                ]
+                ];
+            });
+
+            // ================= RESPONSE =================
+            return response()->json([
+                'thongbao' => 'thành công',
+                'message'  => 'Lấy dữ liệu dashboard thành công',
+                'data' => $data
             ]);
 
         } catch (\Exception $e) {

@@ -31,15 +31,31 @@ class DanhGiaController extends Controller
     /**
      * Admin: Lấy toàn bộ danh sách đánh giá
      */
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
+        $status = $request->query('status');
+
         $reviews = DanhGia::with(['user', 'bienThe.sanPham'])
+            ->when($status && $status !== 'all', function ($q) use ($status) {
+                $q->where('trangthai', $status);
+            })
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(5);
 
         return response()->json([
             'success' => true,
-            'reviews' => $reviews
+            'reviews' => $reviews->items(),
+            'pagination' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page'    => $reviews->lastPage(),
+                'total'        => $reviews->total(),
+                'per_page'     => $reviews->perPage(),
+            ],
+            'stats' => [
+                'total' => DanhGia::count(),
+                'pending' => DanhGia::where('trangthai', 'pending')->count(),
+                'avg' => round(DanhGia::avg('danhgia') ?: 0, 1)
+            ]
         ]);
     }
 
@@ -66,7 +82,7 @@ class DanhGiaController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể đánh giá sau khi đơn hàng đã hoàn thành.'], 400);
         }
 
-        $hasItem = $order->chiTiets()->where('id_bienthe', $request->id_bienthe)->exists();
+        $hasItem = $order->chi_tiets()->where('id_bienthe', $request->id_bienthe)->exists();
         if (!$hasItem) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này không nằm trong đơn hàng.'], 400);
         }

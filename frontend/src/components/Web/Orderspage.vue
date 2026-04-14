@@ -1,20 +1,16 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import axios from 'axios'
 import api from '@/services/api'
 import echo from '@/services/echo'
 import { getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
+import swal from '@/services/swal'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
-
-// Cancellation state
-const showCancelModal = ref(false)
-const orderToCancel = ref(null)
-const cancelReason = ref('')
-const isSubmitting = ref(false)
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
@@ -33,6 +29,62 @@ const statusMap = {
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
+// Cancellation state
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
+
+const openCancelModal = (order) => {
+    orderToCancel.value = order
+    cancelReason.value = ''
+    showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+    if (!cancelReason.value.trim()) {
+        swal.warning('Thông báo', 'Vui lòng nhập lý do hủy.')
+        return
+    }
+
+    const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+    if (!isConfirmed) return
+
+    isSubmitting.value = true
+    try {
+        const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
+            { lydo: cancelReason.value }
+        )
+
+        if (res.data.success) {
+            swal.success('Thành công', 'Hủy đơn hàng thành công!')
+            showCancelModal.value = false
+            await fetchOrders()
+        }
+    } catch (err) {
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
+    } finally {
+        isSubmitting.value = false
+    }
+}
+
+const handleReorder = async (order) => {
+    const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại các sản phẩm này?')
+    if (!isConfirmed) return
+
+    try {
+        const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+        if (res.data.success) {
+            swal.success('Thành công', res.data.message)
+            // Redirect to cart
+            window.location.href = '/cart'
+        }
+    } catch (err) {
+        swal.error('Lỗi', 'Lỗi khi mua lại sản phẩm.')
+    }
+}
+
 const fetchOrders = async () => {
     isLoading.value = true
     try {
@@ -45,54 +97,6 @@ const fetchOrders = async () => {
         alert('Không thể tải danh sách đơn hàng.')
     } finally {
         isLoading.value = false
-    }
-}
-
-const openCancelModal = (order) => {
-    orderToCancel.value = order
-    cancelReason.value = ''
-    showCancelModal.value = true
-}
-
-const confirmCancel = async () => {
-    if (!cancelReason.value.trim()) {
-        alert('Vui lòng nhập lý do hủy.')
-        return
-    }
-
-    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
-
-    isSubmitting.value = true
-    try {
-        const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
-            { lydo: cancelReason.value }
-        )
-
-        if (res.data.success) {
-            alert('Hủy đơn hàng thành công!')
-            showCancelModal.value = false
-            await fetchOrders()
-        }
-    } catch (err) {
-        alert(err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
-    } finally {
-        isSubmitting.value = false
-    }
-}
-
-const handleReorder = async (order) => {
-    if (!confirm('Bạn có chắc chắn muốn mua lại các sản phẩm này?')) return
-
-    try {
-        const res = await api.post(`/orders/${order.id_dathang}/reorder`)
-
-        if (res.data.success) {
-            alert(res.data.message)
-            // Redirect to cart
-            window.location.href = '/cart'
-        }
-    } catch (err) {
-        alert('Lỗi khi mua lại sản phẩm.')
     }
 }
 
@@ -194,7 +198,7 @@ onUnmounted(() => {
                         <!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
-                            <div class="modal-item" v-for="item in selectedOrder.chi_tiets" :key="item.id_dathang_chi_tiet">
+                            <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                                 <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                                 <div class="modal-item-info">
                                     <p class="modal-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
@@ -267,7 +271,7 @@ onUnmounted(() => {
                     </div>
 
                     <div class="order-items">
-                        <div class="order-item" v-for="item in order.chi_tiets" :key="item.id_dathang_chi_tiet">
+                        <div class="order-item" v-for="item in (order.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                             <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                             <div class="order-item-info">
                                 <p class="order-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>

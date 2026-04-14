@@ -1,6 +1,8 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+import { getToken } from './auth';
+
 window.Pusher = Pusher;
 
 const echo = new Echo({

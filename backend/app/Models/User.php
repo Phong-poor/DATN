@@ -41,4 +41,12 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
+
+    /**
+     * Get the vouchers for the user.
+     */
+    public function vouchers()
+    {
+        return $this->hasMany(UserVoucher::class, 'id_user');
+    }
 }

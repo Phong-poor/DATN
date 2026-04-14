@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx'
 import api from '../../services/api'
 import echo from '../../services/echo'
 import { onUnmounted } from 'vue'
+import swal from '../../services/swal'
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
@@ -84,23 +85,25 @@ const updateOrderStatus = async (orderId, newStatus) => {
         if (res.data.success) {
             const idx = orders.value.findIndex(o => o.id_backend === orderId)
             if (idx !== -1) orders.value[idx].status = newStatus
-            alert('Cập nhật trạng thái thành công!')
+            swal.success('Thành công', 'Cập nhật trạng thái đơn hàng thành công!')
         }
     } catch (error) {
-        alert('Lỗi: ' + (error.response?.data?.message || 'Không thể cập nhật'))
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái')
     }
 }
 
-const confirmUpdateStatus = (id, currentStatus) => {
+const confirmUpdateStatus = async (id, currentStatus) => {
     const next = getNextStatus(currentStatus)
     const label = getStatusLabel(next)
-    if (confirm(`Cập nhật trạng thái đơn hàng sang: ${label}?`)) {
+    const isConfirmed = await swal.confirm('Xác nhận cập nhật', `Bạn có chắc muốn cập nhật trạng thái đơn hàng sang: ${label}?`)
+    if (isConfirmed) {
         updateOrderStatus(id, next)
     }
 }
 
-const confirmCancelOrder = (id) => {
-    if (confirm('Bạn có chắc muốn HỦY đơn hàng này?')) {
+const confirmCancelOrder = async (id) => {
+    const isConfirmed = await swal.confirm('Xác nhận HỦY', 'Bạn có chắc chắn muốn HỦY đơn hàng này?')
+    if (isConfirmed) {
         updateOrderStatus(id, 'cancelled')
     }
 }
