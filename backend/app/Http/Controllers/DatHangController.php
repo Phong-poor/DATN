@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderSuccessMail;
 use App\Events\OrderStatusUpdated;
+use App\Events\NewOrderPlaced;
 
 
 class DatHangController extends Controller

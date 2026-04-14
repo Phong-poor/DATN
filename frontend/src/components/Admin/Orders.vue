@@ -4,6 +4,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
   
 import api from '../../services/api'
+import echo from '../../services/echo'
+import { onUnmounted } from 'vue'
 import swal from '../../services/swal'
 
 const activeTab = ref('Tất cả')
@@ -108,6 +110,16 @@ const confirmCancelOrder = async (id) => {
 
 onMounted(() => {
     fetchOrders()
+
+    echo.private('admin.orders')
+        .listen('.order.placed', (e) => {
+            fetchOrders()
+            alert('Có đơn hàng mới vừa được đặt!')
+        })
+})
+
+onUnmounted(() => {
+    echo.leave('admin.orders')
 })
 
 watch(searchQuery, () => {
