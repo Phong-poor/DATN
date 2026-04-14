@@ -12,7 +12,7 @@ import Checkout from '../components/Web/Checkout.vue'
 import ProductDetail from '../components/Web/ProductDetail.vue'
 import Contact from '../components/Web/Contact.vue'
 import Profile from '../components/Web/Profile.vue'
-import Chatbot from '../components/Web/Chatbot.vue'
+import ChatbotWidget from '../components/Web/ChatbotWidget.vue'
 import Orderspage from '../components/Web/Orderspage.vue'
 import Passwordpage from '../components/Web/Passwordpage.vue'
 import LoginSuccess from '../components/Web/LoginSuccess.vue'
@@ -25,6 +25,8 @@ import Register from '../components/Auth/Register.vue'
 import ForgotPassword from '../components/Auth/ForgotPassword.vue'
 import OtpVerify from '../components/Auth/OtpVerify.vue'
 import ResetPassword from '../components/Auth/ResetPassword.vue'
+
+import { getUser, getToken } from '../services/auth'
 
 // ── Admin ──
 import AdminLayout from '../components/Admin/Layout/AdminLayout.vue'
@@ -44,7 +46,7 @@ const routes = [
       { path: 'cart', name: 'cart', component: Cart },
       { path: 'checkout', name: 'checkout', component: Checkout },
       { path: 'profile', name: 'profile', component: Profile },
-      { path: 'chat', name: 'chat', component: Chatbot },
+      { path: 'chat', name: 'chat', component: ChatbotWidget },
       { path: 'orderspage', name: 'orderspage', component: Orderspage },
       { path: 'passwordpage', name: 'passwordpage', component: Passwordpage },
       { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
@@ -91,8 +93,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user') || 'null')
-  const token = localStorage.getItem('token')
+  const user = getUser()
+  const token = getToken()
 
   const publicPages = [
     '/',

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/services/api'
 
 const name = ref('')
 const email = ref('')
@@ -14,11 +14,23 @@ const loading = ref(false)
 
 const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
 
+let autoCloseTimer = null
+
 const showModal = (type, title, message, onConfirm = null) => {
   modal.value = { show: true, type, title, message, onConfirm }
+  if (type === 'success') {
+    if (autoCloseTimer) clearTimeout(autoCloseTimer)
+    autoCloseTimer = setTimeout(() => {
+      closeModal()
+    }, 2000)
+  }
 }
 
 const closeModal = () => {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer)
+    autoCloseTimer = null
+  }
   const cb = modal.value.onConfirm
   modal.value.show = false
   if (cb) cb()
@@ -41,7 +53,7 @@ const handleRegister = async () => {
   loading.value = true
 
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/register', {
+    const res = await api.post('/register', {
       name: name.value,
       email: email.value,
       phone: phone.value,
@@ -217,7 +229,7 @@ const handleRegister = async () => {
           </div>
           <h3 class="modal-title">{{ modal.title }}</h3>
           <p class="modal-message">{{ modal.message }}</p>
-          <button class="modal-btn" :class="modal.type" @click="closeModal">
+          <button v-if="modal.type !== 'success'" class="modal-btn" :class="modal.type" @click="closeModal">
             {{ modal.type === 'success' ? 'Tiếp tục' : 'Đã hiểu' }}
           </button>
         </div>

@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
-import axios from 'axios'
+
 import api from '@/services/api'
+import { getUser, updateUser, getToken } from '@/services/auth'
+import echo from '@/services/echo'
+import swal from '@/services/swal'
+import { onUnmounted } from 'vue'
 
 // ── Active tab ────────────────────────────────────────────
 const activeTab = ref('profile')
@@ -83,7 +85,7 @@ const updateUserData = (apiUser) => {
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
-const tempAvatarUrl = ref(null)
+const isUploadingAvatar = ref(false)
 
 const triggerAvatarUpload = () => {
   fileInput.value.click()
@@ -104,12 +106,29 @@ const handleAvatarUpload = async (event) => {
     return
   }
 
-  if (file) {
-    if (tempAvatarUrl.value) {
-      URL.revokeObjectURL(tempAvatarUrl.value);
+  isUploadingAvatar.value = true
+  try {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    
+    const avatarRes = await api.post('/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    if (avatarRes.data.user) {
+      updateUserData(avatarRes.data.user)
+      updateUser(user.value)
+      window.dispatchEvent(new Event('user-updated'))
+      showToast('Cập nhật ảnh đại diện thành công!')
     }
-    selectedAvatarFile.value = file;
-    tempAvatarUrl.value = URL.createObjectURL(file);
+  } catch (error) {
+    console.error('Lỗi upload avatar:', error)
+    showToast('Lỗi cập nhật ảnh đại diện!')
+  } finally {
+    isUploadingAvatar.value = false
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
@@ -119,12 +138,11 @@ const savingProfile = ref(false)
 
 const loadUser = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
 
     if (!token) {
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser)
+      const parsed = getUser()
+      if (parsed) {
         user.value = {
           ...user.value,
           ...parsed,
@@ -142,13 +160,12 @@ const loadUser = async () => {
 
     updateUserData(res.data)
 
-    localStorage.setItem('user', JSON.stringify(user.value))
+    updateUser(user.value)
   } catch (error) {
     console.error('Load user lỗi:', error)
 
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser)
+    const parsed = getUser()
+    if (parsed) {
       user.value = {
         ...user.value,
         ...parsed,
@@ -248,7 +265,8 @@ const confirmCancel = async () => {
     return
   }
 
-  if (!confirm('Chắc chắn hủy đơn?')) return
+  const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+  if (!isConfirmed) return
 
   isSubmitting.value = true
   try {
@@ -269,7 +287,8 @@ const confirmCancel = async () => {
 }
 
 const handleReorder = async (order) => {
-  if (!confirm('Chắc chắn mua lại?')) return
+  const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại đơn hàng này?')
+  if (!isConfirmed) return
 
   try {
     const res = await api.post(`/orders/${order.id_dathang}/reorder`)
@@ -332,7 +351,39 @@ const submitReview = async () => {
 onMounted(() => {
   loadUser()
   fetchOrders()
-  fetchPromotions()
+
+  const userData = getUser()
+  if (userData && (userData.id || userData.id_user)) {
+    const userId = userData.id || userData.id_user
+    
+    echo.private(`user.${userId}`)
+      .listen('.order.status.updated', (e) => {
+        const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
+        if (index !== -1) {
+          orders.value[index].trangthai = e.trangthai
+          // Map to frontend status keys if needed
+          let statusKey = 'pending'
+          if (e.trangthai === 'confirmed') statusKey = 'confirmed'
+          if (e.trangthai === 'shipping') statusKey = 'shipping'
+          if (e.trangthai === 'done' || e.trangthai === 'completed') statusKey = 'done'
+          if (e.trangthai === 'cancelled') statusKey = 'cancelled'
+          orders.value[index].status = statusKey
+
+          if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
+            selectedOrder.value.trangthai = e.trangthai
+            selectedOrder.value.status = statusKey
+          }
+        }
+      })
+  }
+})
+
+onUnmounted(() => {
+  const userData = getUser()
+  const userId = userData?.id || userData?.id_user
+  if (userId) {
+    echo.leave(`user.${userId}`)
+  }
 })
 
 const startEdit = () => {
@@ -378,7 +429,7 @@ const saveProfile = async () => {
     )
 
     updateUserData(res.data.user)
-    localStorage.setItem('user', JSON.stringify(user.value))
+    updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
@@ -471,28 +522,28 @@ const provinces = [
   'Buôn Ma Thuột',
 ]
 
-// const addresses = ref([
-//   {
-//     id: 1,
-//     name: 'Nguyễn Văn A',
-//     phone: '0901 234 567',
-//     province: 'TP. Hồ Chí Minh',
-//     district: 'Quận 1',
-//     ward: 'Phường Bến Nghé',
-//     detail: '123 Lê Lợi',
-//     isDefault: true,
-//   },
-//   {
-//     id: 2,
-//     name: 'Nguyễn Văn A',
-//     phone: '0912 345 678',
-//     province: 'Hà Nội',
-//     district: 'Quận Cầu Giấy',
-//     ward: 'Phường Dịch Vọng',
-//     detail: '45 Nguyễn Phong Sắc',
-//     isDefault: false,
-//   },
-// ])
+const addresses = ref([
+  {
+    id: 1,
+    name: 'Nguyễn Văn A',
+    phone: '0901 234 567',
+    province: 'TP. Hồ Chí Minh',
+    district: 'Quận 1',
+    ward: 'Phường Bến Nghé',
+    detail: '123 Lê Lợi',
+    isDefault: true,
+  },
+  {
+    id: 2,
+    name: 'Nguyễn Văn A',
+    phone: '0912 345 678',
+    province: 'Hà Nội',
+    district: 'Quận Cầu Giấy',
+    ward: 'Phường Dịch Vọng',
+    detail: '45 Nguyễn Phong Sắc',
+    isDefault: false,
+  },
+])
 
 const openAddAddr = () => {
   addrForm.value = defaultAddrForm()
@@ -637,7 +688,6 @@ const promoStatusMap = {
 </script>
 
 <template>
-  <Header />
   <div class="page">
 
     <!-- Global toast -->
@@ -799,10 +849,25 @@ const promoStatusMap = {
 
       <!-- ── SIDEBAR ── -->
       <aside class="sidebar">
+        <!-- Input ẩn cho avatar upload -->
+        <input 
+          type="file" 
+          ref="fileInput" 
+          class="d-none" 
+          style="display:none"
+          accept="image/jpeg, image/png"
+          @change="handleAvatarUpload" 
+        />
         <div class="avatar-section">
           <div class="avatar-sidebar-container">
-            <div class="avatar-circle">
+            <div class="avatar-circle" @click="triggerAvatarUpload" style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
               <img :src="sidebarAvatarUrl" :alt="user.name" class="profile-avatar" />
+              <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div v-else class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <i class="fas fa-camera"></i> <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">Đổi ảnh</span>
+              </div>
             </div>
           </div>
           <h2 class="sidebar-name">{{ user.name }}</h2>
@@ -874,9 +939,12 @@ const promoStatusMap = {
           <form v-else class="edit-form" @submit.prevent="saveProfile">
             <div class="form-avatar-section">
               <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
-                <div class="form-avatar-circle">
-                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
-                  <div class="form-avatar-plus-overlay">
+                <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
+                  <img :src="sidebarAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                  <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                    <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  </div>
+                  <div v-else class="form-avatar-plus-overlay">
                     <i class="fas fa-plus"></i>
                   </div>
                 </div>
@@ -1205,7 +1273,6 @@ const promoStatusMap = {
       </main>
     </div>
   </div>
-  <Footer />
 </template>
 
 <style scoped>
@@ -1470,6 +1537,12 @@ const promoStatusMap = {
 .gap-2 { gap: 12px; }
 
 /* CANCEL MODAL */
+.cancel-textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #2563eb; font-size: 14px; margin-bottom: 20px; background: #eff6ff; outline: none; font-family: inherit; transition: all 0.2s; resize: vertical; color: #1e293b; box-sizing: border-box; }
+.cancel-textarea::placeholder { color: #94a3b8; }
+.cancel-textarea:focus { box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: #fff; }
+.btn-danger-confirm { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; border-radius: 10px; background: #ef4444; border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-danger-confirm:hover { background: #dc2626; }
+.btn-danger-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
 .cancel-options {
   background: #f8fafc;
   border-radius: 14px;
@@ -1552,4 +1625,101 @@ const promoStatusMap = {
   opacity: 0.7;
   cursor: not-allowed;
 }
+/* ===== REVIEW STYLES ===== */
+.btn-review-small {
+  background: white;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s;
+}
+
+.btn-review-small:hover {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.reviewed-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.review-modal {
+  max-width: 480px !important;
+}
+
+.review-product-info {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.review-product-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.rating-selector {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.rating-label {
+  display: block;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.stars-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: all 0.2s;
+}
+
+.star-btn svg {
+  width: 32px;
+  height: 32px;
+}
+
+.star-btn.filled {
+  color: #f59e0b;
+  transform: scale(1.1);
+}
+
+.rating-text {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f59e0b;
+  min-width: 100px;
+  text-align: left;
+}
+
+.w-100 { width: 100%; }
 </style>

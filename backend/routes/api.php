@@ -17,6 +17,8 @@ use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\DanhGiaController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -51,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+    Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
+    Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang', [GioHangController::class, 'index']);
@@ -82,7 +86,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/vouchers/claim', [PromotionController::class, 'claimVoucher']);
 });
 
-// ================= DANH MỤC =================
+// Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
+// Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+
+
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
 Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
@@ -96,7 +103,8 @@ Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show'])
 Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
 Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
-// ================= USER =================
+
+// Route::post('/register', [UserController::class, 'store']);
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}', [UserController::class, 'update']);
@@ -152,6 +160,9 @@ Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
+// Route::post('/login', [AuthController::class, 'login']);
+// Route::post('/register', [AuthController::class, 'register']);
+
 // ================= TEST =================
 Route::get('/test', function () {
     return 'OK API';
@@ -167,6 +178,8 @@ Route::get('/test-mail', function () {
 
     return 'OK';
 });
+// ================= CHATBOT =================
+Route::post('/chat', [ChatbotController::class, 'chat']);
 
 // ================= ADMIN =================
 Route::middleware(['auth:sanctum', 'admin'])
@@ -180,7 +193,8 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
-
+        Route::get('/sanpham/export-inventory', [SanPhamController::class, 'exportInventory']);
+        Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
@@ -189,13 +203,23 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/lien-he', [LienHeController::class, 'index']);
         Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
         Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
-
         Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
-        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
-        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
 
-        // ===== ADMIN PROMOTIONS =====
+        Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+        Route::apiResource('promotions', PromotionController::class);
+        Route::get('/promotions', [PromotionController::class, 'index']);
         Route::post('/promotions', [PromotionController::class, 'store']);
         Route::put('/promotions/{id}', [PromotionController::class, 'update']);
         Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
-    });
+        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
+        Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
+
+
+
+        // ===== ADMIN REVIEWS =====
+        Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+        Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
+
+});

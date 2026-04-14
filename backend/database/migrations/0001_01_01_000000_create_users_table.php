@@ -22,7 +22,7 @@ return new class extends Migration
 
             $table->enum('role', ['user', 'admin'])->default('user');
 
-            // 🔥 OTP
+            //  OTP
             $table->string('otp')->nullable();
             $table->timestamp('otp_expired_at')->nullable(); // otp_hethan
             $table->timestamp('otp_wait_until')->nullable(); // otp_wait

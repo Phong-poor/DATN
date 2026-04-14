@@ -1,18 +1,16 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
+import echo from '@/services/echo'
+import { getUser } from '@/services/auth'
+import { onUnmounted } from 'vue'
+import swal from '@/services/swal'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
-
-// Cancellation state
-const showCancelModal = ref(false)
-const orderToCancel = ref(null)
-const cancelReason = ref('')
-const isSubmitting = ref(false)
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
@@ -31,6 +29,62 @@ const statusMap = {
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
+// Cancellation state
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
+
+const openCancelModal = (order) => {
+    orderToCancel.value = order
+    cancelReason.value = ''
+    showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+    if (!cancelReason.value.trim()) {
+        swal.warning('Thông báo', 'Vui lòng nhập lý do hủy.')
+        return
+    }
+
+    const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+    if (!isConfirmed) return
+
+    isSubmitting.value = true
+    try {
+        const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
+            { lydo: cancelReason.value }
+        )
+
+        if (res.data.success) {
+            swal.success('Thành công', 'Hủy đơn hàng thành công!')
+            showCancelModal.value = false
+            await fetchOrders()
+        }
+    } catch (err) {
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
+    } finally {
+        isSubmitting.value = false
+    }
+}
+
+const handleReorder = async (order) => {
+    const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại các sản phẩm này?')
+    if (!isConfirmed) return
+
+    try {
+        const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+        if (res.data.success) {
+            swal.success('Thành công', res.data.message)
+            // Redirect to cart
+            window.location.href = '/cart'
+        }
+    } catch (err) {
+        swal.error('Lỗi', 'Lỗi khi mua lại sản phẩm.')
+    }
+}
+
 const fetchOrders = async () => {
     isLoading.value = true
     try {
@@ -46,54 +100,6 @@ const fetchOrders = async () => {
     }
 }
 
-const openCancelModal = (order) => {
-    orderToCancel.value = order
-    cancelReason.value = ''
-    showCancelModal.value = true
-}
-
-const confirmCancel = async () => {
-    if (!cancelReason.value.trim()) {
-        alert('Vui lòng nhập lý do hủy.')
-        return
-    }
-
-    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
-
-    isSubmitting.value = true
-    try {
-        const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, 
-            { lydo: cancelReason.value }
-        )
-
-        if (res.data.success) {
-            alert('Hủy đơn hàng thành công!')
-            showCancelModal.value = false
-            await fetchOrders()
-        }
-    } catch (err) {
-        alert(err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
-    } finally {
-        isSubmitting.value = false
-    }
-}
-
-const handleReorder = async (order) => {
-    if (!confirm('Bạn có chắc chắn muốn mua lại các sản phẩm này?')) return
-
-    try {
-        const res = await api.post(`/orders/${order.id_dathang}/reorder`)
-
-        if (res.data.success) {
-            alert(res.data.message)
-            // Redirect to cart
-            window.location.href = '/cart'
-        }
-    } catch (err) {
-        alert('Lỗi khi mua lại sản phẩm.')
-    }
-}
-
 const formatPrice = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
 }
@@ -106,7 +112,36 @@ const filtered = computed(() => {
 const openDetail = (order) => { selectedOrder.value = order }
 const closeDetail = () => { selectedOrder.value = null }
 
-onMounted(fetchOrders)
+onMounted(() => {
+    fetchOrders()
+    
+    const user = getUser()
+
+    if (user && (user.id || user.id_user)) {
+        const userId = user.id || user.id_user
+        
+        echo.private(`user.${userId}`)
+            .listen('.order.status.updated', (e) => {
+                // Cập nhật mảng orders
+                const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
+                if (index !== -1) {
+                    orders.value[index].trangthai = e.trangthai
+                    // Cập nhật modal chi tiết nếu đang mở đúng đơn đó
+                    if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
+                        selectedOrder.value.trangthai = e.trangthai
+                    }
+                }
+            })
+    }
+})
+
+onUnmounted(() => {
+    const user = getUser()
+    const userId = user?.id || user?.id_user
+    if (userId) {
+        echo.leave(`user.${userId}`)
+    }
+})
 </script>
 
 <template>

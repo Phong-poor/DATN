@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderSuccessMail;
+use App\Events\OrderStatusUpdated;
+
 
 class DatHangController extends Controller
 {
@@ -368,6 +370,10 @@ class DatHangController extends Controller
             $order->update($updateData);
 
             DB::commit();
+
+            // Broadcast the status update
+            event(new OrderStatusUpdated($order));
+
 
             return response()->json([
                 'success' => true,

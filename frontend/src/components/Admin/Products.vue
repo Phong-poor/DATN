@@ -1,10 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
-
-const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
-})
+import * as XLSX from 'xlsx'
+import api from '@/services/api'
 
 /* ═══════════════════════════════════════
    DANH SÁCH SẢN PHẨM
@@ -22,6 +20,10 @@ const brands = ref([])
 const colors = ref([])
 const readingExtraImages = ref(false)
 const variantLoading = ref(false)
+const isExporting = ref(false)
+const isImporting = ref(false)
+const importExcelRef = ref(null)
+const importVariantsExcelRef = ref(null)
 
 const filteredProducts = computed(() =>
   products.value.filter(p => {
@@ -129,6 +131,181 @@ const getErrorMessage = (error, fallback) => {
   }
 
   return fallback
+}
+
+/* ═══════════════════════════════════════
+   NHẬP XUẤT EXCEL
+   ═══════════════════════════════════════ */
+const handleExportExcel = async () => {
+  if (isExporting.value) return
+  isExporting.value = true
+  try {
+    const res = await api.get('/admin/sanpham/export-inventory')
+    const data = res.data
+
+    if (!data || data.length === 0) {
+      alert("Không có dữ liệu để xuất")
+      return
+    }
+
+    // Map data to user-friendly column names
+    const worksheetData = data.map(item => ({
+      'ID Biến Thể': item.id_bienthe,
+      'Tên Sản Phẩm': item.tenSP,
+      'Biến Thể': item.ten_bienthe,
+      'Giá': item.gia,
+      'Số Lượng': item.soluong
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory")
+
+    // Download file
+    XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
+  } catch (error) {
+    console.error(error)
+    alert("Lỗi khi xuất file Excel")
+  } finally {
+    isExporting.value = false
+  }
+}
+
+const triggerImportExcel = () => {
+  importExcelRef.value?.click()
+}
+
+const handleImportExcel = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  isImporting.value = true
+  const reader = new FileReader()
+
+  reader.onload = async (event) => {
+    try {
+      const data = new Uint8Array(event.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet)
+
+      // Transform to backend format
+      const updates = jsonData.map(row => ({
+        id_bienthe: row['ID Biến Thể'],
+        gia: row['Giá'],
+        soluong: row['Số Lượng']
+      })).filter(item => item.id_bienthe)
+
+      if (updates.length === 0) {
+        alert("Không tìm thấy dữ liệu hợp lệ trong file Excel (Hãy đảm bảo cột 'ID Biến Thể' không bị thay đổi)")
+        return
+      }
+
+      if (!confirm(`Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)) {
+        return
+      }
+
+      const res = await api.post('/admin/sanpham/import-stock', { updates })
+      alert(res.data.message)
+      await fetchProducts()
+    } catch (error) {
+      console.error(error)
+      alert("Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.")
+    } finally {
+      isImporting.value = false
+      e.target.value = ''
+    }
+  }
+
+  reader.readAsArrayBuffer(file)
+}
+
+/* ═══════════════════════════════════════
+   NHẬP XUẤT EXCEL BIẾN THỂ (TRONG MODAL)
+   ═══════════════════════════════════════ */
+const handleExportVariantsExcel = () => {
+  const headers = tableHeaders.value
+  if (!headers.length) {
+    alert("Không có thuộc tính để xuất")
+    return
+  }
+
+  const data = generatedRows.value.map(row => {
+    const item = {}
+    headers.forEach(h => {
+      item[h.label] = row.attrs[h.id] || ''
+    })
+    item['Giá'] = row.price
+    item['Kho'] = row.stock
+    return item
+  })
+
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, "Variants")
+  XLSX.writeFile(wb, `${form.value.name || 'SanPham'}_BienThe.xlsx`)
+}
+
+const triggerImportVariantsExcel = () => {
+  importVariantsExcelRef.value?.click()
+}
+
+const handleImportVariantsExcel = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    try {
+      const data = new Uint8Array(event.target.result)
+      const wb = XLSX.read(data, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(ws)
+
+      const headers = tableHeaders.value
+      let added = 0
+      let skipped = 0
+
+      jsonData.forEach(rowData => {
+        const attrs = {}
+        let hasValue = false
+        headers.forEach(h => {
+          const val = String(rowData[h.label] || '').trim()
+          attrs[h.id] = val
+          if (val) hasValue = true
+        })
+
+        if (!hasValue) return // Skip empty rows
+
+        const key = buildVariantKeyFromAttrs(attrs, headers)
+        const exists = generatedRows.value.some(r => buildVariantKeyFromAttrs(r.attrs, headers) === key)
+
+        if (exists) {
+          skipped++
+        } else {
+          generatedRows.value.push({
+            id: `${Date.now()}-${Math.random()}`,
+            attrs,
+            price: rowData['Giá'] || '',
+            stock: rowData['Kho'] || '',
+            ten_bienthe: headers.map(h => attrs[h.id]).join(' - '),
+            isExisting: false,
+            _manualPrice: rowData['Giá'] !== undefined,
+            _manualStock: rowData['Kho'] !== undefined
+          })
+          added++
+        }
+      })
+
+      alert(`Đã kiểm tra check trùng: Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
+    } catch (err) {
+      console.error(err)
+      alert("Lỗi khi đọc file Excel biến thể")
+    } finally {
+      e.target.value = ''
+    }
+  }
+  reader.readAsArrayBuffer(file)
 }
 
 const fetchProducts = async () => {
@@ -1164,7 +1341,22 @@ onMounted(() => {
         <h1>Quản lý sản phẩm</h1>
         <p>Cập nhật và theo dõi danh mục thiết bị công nghệ 2026</p>
       </div>
-      <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
+        <div class="excel-actions">
+          <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
+            <svg v-if="!isExporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span v-else class="spinner-sm"></span>
+            {{ isExporting ? 'Đang xuất...' : 'Xuất Excel' }}
+          </button>
+          
+          <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
+            <svg v-if="!isImporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span v-else class="spinner-sm"></span>
+            {{ isImporting ? 'Đang nhập...' : 'Nhập Excel' }}
+          </button>
+          <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls" @change="handleImportExcel" />
+
+          <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
+        </div>
     </div>
 
     <div class="stats">
@@ -1518,6 +1710,29 @@ onMounted(() => {
                     {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
                   </button>
 
+                  <div class="modal-excel-actions">
+                    <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
+                      @click="handleExportVariantsExcel">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Xuất Excel
+                    </button>
+                    <button class="btn-xl-sm btn-xl-import" title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
+                      @click="triggerImportVariantsExcel">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      Nhập Excel (Check trùng)
+                    </button>
+                    <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
+                      @change="handleImportVariantsExcel" />
+                  </div>
+
                   <div class="bulk-stack">
                     <div class="bulk-bar">
                       <span class="bulk-lbl">Giá/kho nền:</span>
@@ -1757,6 +1972,99 @@ onMounted(() => {
 .add-btn:hover {
   opacity: .9;
   transform: translateY(-1px);
+}
+
+.excel-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-excel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.btn-excel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-export {
+  color: #16a34a;
+}
+
+.btn-export:hover:not(:disabled) {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.btn-import {
+  color: #2563eb;
+}
+
+.btn-import:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.modal-excel-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.btn-xl-sm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.btn-xl-export {
+  color: #16a34a;
+}
+
+.btn-xl-export:hover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.btn-xl-import {
+  color: #2563eb;
+}
+
+.btn-xl-import:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .stats {

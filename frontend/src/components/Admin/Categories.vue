@@ -116,6 +116,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
+import swal from '@/services/swal';
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const categories = ref([]);
@@ -190,37 +191,38 @@ const closeModal = () => {
 
 // --- LƯU DỮ LIỆU (CREATE / UPDATE) ---
 const saveCategory = async () => {
-  if(!form.value.ten_danhmuc | !form.value.trangthai) {
-    alert("Vui lòng nhập Tên danh mục!");
+  if(!form.value.ten_danhmuc || !form.value.trangthai) {
+    swal.error("Thiếu thông tin", "Vui lòng nhập Tên danh mục!");
     return;
   }
 
   try {
     if (isEdit.value) {
       await api.put(`/danhmuc/${editId.value}`, form.value);
-      alert('Cập nhật thành công!');
+      swal.success('Thành công', 'Cập nhật danh mục thành công!');
     } else {
       await api.post('/danhmuc', form.value);
-      alert('Thêm mới thành công!');
+      swal.success('Thành công', 'Thêm mới danh mục thành công!');
     }
     closeModal();
     fetchCategories(); 
   } catch (error) {
     console.error('Lỗi khi lưu danh mục:', error);
-    alert('Có lỗi xảy ra, vui lòng kiểm tra lại!');
+    swal.error('Lỗi', 'Có lỗi xảy ra, vui lòng kiểm tra lại!');
   }
 };
 
 // --- XÓA (DELETE) ---
 const deleteCategory = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa danh mục này? Thao tác không thể hoàn tác!')) {
+  const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa danh mục này? Thao tác không thể hoàn tác!')
+  if (isConfirmed) {
     try {
       await api.delete(`/danhmuc/${id}`);
-      alert('Đã xóa thành công!');
+      swal.success('Đã xóa', 'Xóa danh mục thành công!');
       fetchCategories();
     } catch (error) {
       console.error('Lỗi khi xóa:', error);
-      alert('Không thể xóa danh mục này!');
+      swal.error('Lỗi', 'Không thể xóa danh mục này!');
     }
   }
 };
