@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderSuccessMail;
 use App\Events\OrderStatusUpdated;
+use App\Events\NewOrderPlaced;
 
 
 class DatHangController extends Controller
@@ -184,6 +185,9 @@ class DatHangController extends Controller
             GioHang::where('user_id', $userId)->delete();
 
             DB::commit();
+
+            // Broadcast to Admin for new order
+            event(new NewOrderPlaced($donHang));
 
             // Nếu là ví điện tử, tạo link thanh toán VNPay
             $payUrl = null;
