@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { saveAuth } from '@/services/auth'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,7 +11,6 @@ onMounted(() => {
   const token = route.query.token
 
   if (token) {
-    // 👉 gọi API lấy user
     fetchUser(token)
   } else {
     router.push('/login')
@@ -19,18 +19,19 @@ onMounted(() => {
 
 const fetchUser = async (token) => {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/user/profile', {
+    const res = await api.get('/user/profile', {
       headers: {
         Authorization: `Bearer ${token}`
       }
     })
 
-    const user = await res.json()
+    const user = res.data
 
     saveAuth(token, user)
 
     router.push('/')
   } catch (e) {
+    console.error('Lỗi lấy profile sau login Google:', e)
     router.push('/login')
   }
 }

@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 
 const name = ref('')
 const phone = ref('')
@@ -12,12 +11,13 @@ const success = ref(false)
 const loading = ref(false)
 
 import { onMounted } from 'vue'
+import { getToken } from '@/services/auth'
 
 onMounted(async () => {
     try {
         const res = await fetch('http://localhost:8000/api/user/profile', {
             headers: {
-                Authorization: 'Bearer ' + localStorage.getItem('token')
+                Authorization: 'Bearer ' + getToken()
             }
         })
 
@@ -117,7 +117,6 @@ const infos = [
 </script>
 
 <template>
-    <Header />
 
     <div class="page">
         <!-- HERO -->
@@ -247,7 +246,6 @@ const infos = [
         </section>
     </div>
 
-    <Footer />
 </template>
 
 <style scoped>

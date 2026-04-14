@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
+import { getToken } from '@/services/auth'
+import swal from '@/services/swal'
 
 const thongBao = ref('')
 const router = useRouter()
@@ -290,15 +292,14 @@ watch([
 ], applyFilters)
 
 const themVaoYeuThich = async (product) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
-        alert('Vui lòng đăng nhập!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập!')
         router.push('/login')
         return
     }
 
     try {
-
         await api.post('/yeu-thich/them', {
             id_bienthe: product.key_id,
             soluong: 1
@@ -306,13 +307,12 @@ const themVaoYeuThich = async (product) => {
             headers: { Authorization: `Bearer ${token}` }
         })
 
-        alert(`Đã thêm ${product.name} vào yêu thích`)
+        swal.success('Thành công', `Đã thêm ${product.name} vào yêu thích`)
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
-
         console.error('Lỗi thêm yêu thích:', err)
-        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
     }
 }
 
@@ -350,15 +350,14 @@ const toggleList = (listType, item) => {
 }
 // ===================== CART (GIỎ HÀNG) =====================
 const themVaoGioHang = async (product) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
         router.push('/login')
         return
     }
 
     try {
-
         await api.post('/gio-hang/them', {
             id_bienthe: product.key_id,
             soluong: 1
@@ -366,14 +365,12 @@ const themVaoGioHang = async (product) => {
             headers: { Authorization: `Bearer ${token}` }
         })
 
-        alert(`Đã thêm ${product.name} vào giỏ hàng!`)
-
-
+        swal.success('Thành công', `Đã thêm ${product.name} vào giỏ hàng!`)
         window.dispatchEvent(new Event('cart-updated'))
 
     } catch (err) {
         console.error('Lỗi thêm giỏ hàng:', err)
-        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
     }
 }
 const clearAll = () => {
@@ -393,7 +390,6 @@ const clearAll = () => {
 </script>
 
 <template>
-    <Header />
     <div class="page">
         <div class="container layout">
 
@@ -747,7 +743,6 @@ const clearAll = () => {
             </main>
         </div>
     </div>
-    <Footer />
 </template>
 
 <style scoped>

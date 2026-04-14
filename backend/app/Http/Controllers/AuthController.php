@@ -28,7 +28,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
         ]);
 
         // GỬI EMAIL
@@ -94,7 +94,8 @@ class AuthController extends Controller
             $user = User::create([
                 'name' => $googleUser->getName(),
                 'email' => $googleUser->getEmail(),
-                'password' => bcrypt(Str::random(16)),
+                'password' => Str::random(16),
+
                 'role' => 'user'
             ]);
         }
@@ -103,7 +104,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
 
-        return redirect("http://localhost:5173/login-success?token=$token");
+        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login-success?token=$token");
     }
 
     public function redirectFacebook()
@@ -132,7 +133,8 @@ class AuthController extends Controller
                 'email' => $email ?: 'fb_' . $facebookUser->getId() . '@noemail.local',
                 'facebook_id' => $facebookUser->getId(),
                 'avatar' => $facebookUser->getAvatar(),
-                'password' => bcrypt(Str::random(16)),
+                'password' => Str::random(16),
+
                 'role' => 'user',
             ]);
         } else {
@@ -149,6 +151,6 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return redirect("http://localhost:5173/login-success?token=$token");
+        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login-success?token=$token");
     }
 }

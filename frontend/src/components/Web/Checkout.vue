@@ -3,9 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getUser } from '@/services/auth'
+import swal from '@/services/swal'
 
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 
 const router = useRouter()
 const isLoading = ref(true)
@@ -65,7 +65,7 @@ const format = (n) => n.toLocaleString('vi-VN') + 'đ'
 
 const confirmOrder = async () => {
     if (!form.value.address) {
-        alert('Vui lòng nhập địa chỉ nhận hàng!')
+        swal.warning('Thiếu thông tin', 'Vui lòng nhập địa chỉ nhận hàng!')
         return
     }
 
@@ -91,7 +91,7 @@ const confirmOrder = async () => {
         }
     } catch (error) {
         const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt hàng.'
-        alert('❌ ' + msg)
+        swal.error('Lỗi đặt hàng', msg)
     } finally {
         isSubmitting.value = false
     }
@@ -100,7 +100,6 @@ const confirmOrder = async () => {
 
 <template>
 
-  <Header />
 
   <div class="checkout-page">
     <div class="container">
@@ -213,7 +212,6 @@ const confirmOrder = async () => {
     </div>
   </div>
 
-  <Footer />
 
 </template>
 

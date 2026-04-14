@@ -2,8 +2,10 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
-// sửa chỗ này
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 import ChatbotWidget from '../Web/ChatbotWidget.vue'
+
 
 const route = useRoute()
 
