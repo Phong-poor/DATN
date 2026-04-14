@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser } from '@/services/auth'
 import swal from '@/services/swal'
@@ -8,6 +8,14 @@ import swal from '@/services/swal'
 
 
 const router = useRouter()
+const route = useRoute()
+
+const promoCode = ref(route.query.promo_code || '')
+const discount = ref(Number(route.query.discount) || 0)
+const freeshipCode = ref(route.query.freeship_code || '')
+const freeshipDiscount = ref(Number(route.query.freeship_discount) || 0)
+const shippingFee = ref(30000)
+
 const isLoading = ref(true)
 const isSubmitting = ref(false)
 
@@ -59,7 +67,11 @@ const subtotal = computed(() =>
 )
 
 const tax = computed(() => subtotal.value * 0.1)
-const total = computed(() => subtotal.value + tax.value)
+const total = computed(() => {
+    const afterDiscount = Math.max(0, subtotal.value - discount.value)
+    const afterShipping = Math.max(0, shippingFee.value - freeshipDiscount.value)
+    return afterDiscount + afterShipping + tax.value
+})
 
 const format = (n) => n.toLocaleString('vi-VN') + 'đ'
 
@@ -73,7 +85,9 @@ const confirmOrder = async () => {
         isSubmitting.value = true
         const response = await api.post('/checkout', {
             diachi: form.value.address,
-            PTTT: payment.value === 'cod' ? 'COD' : (payment.value === 'bank' ? 'Chuyển khoản' : 'Ví điện tử')
+            PTTT: payment.value === 'cod' ? 'COD' : (payment.value === 'bank' ? 'Chuyển khoản' : 'Ví điện tử'),
+            promo_code: promoCode.value,
+            freeship_code: freeshipCode.value
         })
 
         if (response.data.success) {
@@ -180,9 +194,19 @@ const confirmOrder = async () => {
             <b>{{ format(subtotal) }}</b>
           </div>
 
+          <div class="row" v-if="discount > 0">
+            <span>Giảm giá (Mã {{ promoCode }})</span>
+            <b style="color:#dc2626">-{{ format(discount) }}</b>
+          </div>
+
           <div class="row">
             <span>Phí vận chuyển</span>
-            <b>0đ</b>
+            <b>{{ format(shippingFee) }}</b>
+          </div>
+
+          <div class="row" v-if="freeshipDiscount > 0">
+            <span>Freeship (Mã {{ freeshipCode }})</span>
+            <b style="color:#16a34a">-{{ format(freeshipDiscount) }}</b>
           </div>
 
           <div class="row">
@@ -203,9 +227,10 @@ const confirmOrder = async () => {
           <p class="secure">🔒 Giao dịch được bảo mật 256-bit</p>
         </div>
 
-        <div class="coupon">
-          <span>🏷️ Mã giảm giá</span>
-          <p>Áp dụng mã TECH2024 để nhận ưu đãi</p>
+        <div class="coupon" v-if="promoCode || freeshipCode">
+          <span>🏷️ Ưu đãi đã áp dụng</span>
+          <p v-if="promoCode" style="margin:5px 0">Giảm giá đơn hàng: <b>{{ promoCode }}</b></p>
+          <p v-if="freeshipCode" style="margin:5px 0">Miễn phí vận chuyển: <b>{{ freeshipCode }}</b></p>
         </div>
       </div>
 

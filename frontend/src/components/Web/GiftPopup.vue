@@ -1,82 +1,107 @@
 <template>
-    <div class="scene" v-if="visible">
-        <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
-        <div class="backdrop" @click.self="dismiss"></div>
+  <div class="scene" v-if="visible">
+    <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
+    <div class="backdrop" @click.self="dismiss"></div>
 
-        <div class="modal" :class="{ 'modal--entered': entered }">
-            <div class="glow-ring"></div>
+    <div class="modal" :class="{ 'modal--entered': entered }">
+      <div class="glow-ring"></div>
 
-            <button class="close-btn" @click="dismiss">✕</button>
+      <button class="close-btn" @click="dismiss">✕</button>
 
-            <div class="gift-badge">
-                <div class="gift-icon-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 12 20 22 4 22 4 12"></polyline>
-                        <rect x="2" y="7" width="20" height="5"></rect>
-                        <line x1="12" y1="22" x2="12" y2="7"></line>
-                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-                    </svg>
-                </div>
-                <div class="gift-pulse"></div>
-                <div class="gift-pulse gift-pulse--2"></div>
-            </div>
-
-            <div class="modal__content">
-                <p class="label-top">🎉 VinaTech Elite 2026</p>
-                <h1 class="title">Chúc Mừng Bạn!</h1>
-                <p class="subtitle">Phần quà đặc quyền dành riêng cho thành viên Elite 2026.</p>
-
-                <div class="cards">
-                    <div class="card card--purple" :class="{ 'card--visible': cardsVisible }">
-                        <div class="card__shimmer"></div>
-                        <div class="card__header">
-                            <span class="card__tag">%</span>
-                            <span class="card__label">GIẢM GIÁ 15%</span>
-                        </div>
-                        <h2 class="card__code">VINATECH2026</h2>
-                        <p class="card__desc">Áp dụng cho dòng máy Elite Pro &amp; Phụ kiện cao cấp.</p>
-                        <button class="card__copy" @click="copyCode('VINATECH2026', 1)">
-                            {{ copied1 ? '✓ Đã sao chép' : 'Sao chép mã' }}
-                        </button>
-                    </div>
-
-                    <div class="card card--pink" :class="{ 'card--visible': cardsVisible }">
-                        <div class="card__shimmer"></div>
-                        <div class="card__header">
-                            <span class="card__tag card__tag--pink">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="1" y="3" width="15" height="13"></rect>
-                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                                </svg>
-                            </span>
-                            <span class="card__label card__label--pink">MIỄN PHÍ VẬN CHUYỂN</span>
-                        </div>
-                        <h2 class="card__code">VINA_FREESHIP</h2>
-                        <p class="card__desc">Giao hàng tốc 2h tại khu vực nội thành.</p>
-                        <button class="card__copy card__copy--pink" @click="copyCode('VINA_FREESHIP', 2)">
-                            {{ copied2 ? '✓ Đã sao chép' : 'Sao chép mã' }}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <button class="btn-primary" @click="accept">
-                        <span>Nhận ngay</span>
-                        <span class="btn-primary__shine"></span>
-                    </button>
-                    <button class="btn-ghost" @click="dismiss">Bỏ qua</button>
-                </div>
-            </div>
+      <div class="gift-badge">
+        <div class="gift-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="white" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 12 20 22 4 22 4 12"></polyline>
+            <rect x="2" y="7" width="20" height="5"></rect>
+            <line x1="12" y1="22" x2="12" y2="7"></line>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+          </svg>
         </div>
-    </div>
-</template>
+        <div class="gift-pulse"></div>
+        <div class="gift-pulse gift-pulse--2"></div>
+      </div>
 
+      <div class="modal__content">
+        <p class="label-top">🎉 VinaTech Elite 2026</p>
+
+        <h1 class="title">Chúc Mừng Bạn!</h1>
+
+        <!-- FIX lỗi ở đây -->
+        <p class="subtitle">
+          Phần quà đặc quyền dành riêng cho thành viên
+        </p>
+
+        <div class="cards">
+          <div
+            v-for="(promo, index) in promos"
+            :key="promo.id"
+            class="card"
+            :class="[
+              index === 0 ? 'card--purple' : 'card--pink',
+              { 'card--visible': cardsVisible }
+            ]"
+          >
+            <div class="card__shimmer"></div>
+
+            <div class="card__header">
+              <span class="card__tag"
+                    :class="{ 'card__tag--pink': index === 1 }">
+
+                <template v-if="promo.category === 'freeship'">
+                  🚚
+                </template>
+                <template v-else>
+                  %
+                </template>
+
+              </span>
+
+              <span class="card__label"
+                    :class="{ 'card__label--pink': index === 1 }">
+                {{ getDiscountLabel(promo) }}
+              </span>
+            </div>
+
+            <h2 class="card__code">{{ promo.code }}</h2>
+
+            <p class="card__desc">
+              {{ promo.mota || 'Không có mô tả' }}
+            </p>
+
+            <button
+              class="card__copy"
+              :class="{ 'card__copy--pink': index === 1 }"
+              @click="handleCopy(promo, index + 1)"
+            >
+              {{ (index === 0 ? copied1 : copied2)
+                ? '✓ Đã sao chép'
+                : 'Sao chép mã' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- FIX: bỏ button thừa ở đây -->
+
+        <div class="actions">
+          <button class="btn-primary" @click="accept">
+            <span>Nhận ngay</span>
+            <span class="btn-primary__shine"></span>
+          </button>
+
+          <button class="btn-ghost" @click="dismiss">
+            Bỏ qua
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 <script>
+import api from '../../services/api'
+
 export default {
     name: 'GiftPopup',
     props: {
@@ -91,9 +116,20 @@ export default {
             copied2: false,
             animFrame: null,
             showTimer: null,
+            promos: [], // [0]: product, [1]: freeship
+            loading: true
         }
     },
-    mounted() {
+    async mounted() {
+        // Chỉ hiện cho thành viên
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        // Đợi tải quà tặng về trước khi quyết định hiện popup
+        await this.fetchGifts()
+
+        if (this.promos.length === 0) return 
+
         this.showTimer = setTimeout(() => {
             this.visible = true
             this.$nextTick(() => {
@@ -146,12 +182,58 @@ export default {
             }
             draw()
         },
+        async fetchGifts() {
+            try {
+                // Gọi API lấy các mã mà User chưa nhận
+                const res = await api.get('/user/vouchers/available')
+                const all = res.data
+                
+                const productPromo = all.find(p => p.category === 'product')
+                const freeshipPromo = all.find(p => p.category === 'freeship')
+                
+                if (productPromo) this.promos.push(productPromo)
+                if (freeshipPromo) this.promos.push(freeshipPromo)
+            } catch (err) {
+                console.error('Lỗi lấy quà tặng:', err)
+            } finally {
+                this.loading = false
+            }
+        },
+        async claim(promoId) {
+            try {
+                await api.post('/user/vouchers/claim', { id_promotion: promoId })
+                // Chúng ta không quan tâm nếu báo lỗi (ví dụ đã nhận rồi) 
+                // vì mục tiêu là đảm bảo nó được lưu vào hồ sơ.
+            } catch (err) {
+                console.warn('Lưu voucher thất bại hoặc đã nhận:', err.response?.data?.message)
+            }
+        },
+        formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN').format(price) + 'đ'
+        },
+        getDiscountLabel(p) {
+            if (p.category === 'freeship') return 'MIỄN PHÍ VẬN CHUYỂN'
+            if (p.type === 'percent') return `GIẢM GIÁ ${p.value}%`
+            return `GIẢM ${this.formatPrice(p.value)}`
+        },
+        async handleCopy(promo, which) {
+            this.copyCode(promo.code, which)
+            // Tự động lưu vào hồ sơ
+            await this.claim(promo.id)
+        },
         copyCode(code, which) {
             navigator.clipboard?.writeText(code)
             if (which === 1) { this.copied1 = true; setTimeout(() => { this.copied1 = false }, 2000) }
             else { this.copied2 = true; setTimeout(() => { this.copied2 = false }, 2000) }
         },
-        accept() { this.launchConfetti(); setTimeout(() => this.close(), 1600) },
+        async accept() { 
+            this.launchConfetti(); 
+            // Lưu tất cả các mã đang hiện vào hồ sơ
+            for (const p of this.promos) {
+                await this.claim(p.id)
+            }
+            setTimeout(() => this.close(), 1600) 
+        },
         dismiss() { this.close() },
         close() { this.entered = false; setTimeout(() => { this.visible = false }, 450) }
     }

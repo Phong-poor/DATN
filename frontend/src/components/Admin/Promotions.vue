@@ -23,12 +23,21 @@
       </div>
     </div>
 
+    <!-- TOAST -->
+    <transition name="toast">
+      <div class="toast" v-if="toast.show" :class="toast.type">
+        <svg v-if="toast.type === 'success'" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg v-else viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {{ toast.msg }}
+      </div>
+    </transition>
+
     <!-- STATS ROW -->
     <div class="stats-row">
       <div class="stat-card">
         <p class="stat-label">ĐANG HOẠT ĐỘNG</p>
         <h2 class="stat-value">{{ activeCount }}</h2>
-        <p class="stat-sub green">↑ +2 tháng này</p>
+        <p class="stat-sub green">↑ Tổng khuyến mãi: {{ promos.length }}</p>
       </div>
       <div class="stat-card">
         <p class="stat-label">TỔNG NGÂN SÁCH SALE</p>
@@ -74,7 +83,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in filteredPromos" :key="p.id">
+          <tr v-if="loading">
+            <td colspan="6" class="empty-row">
+              <div class="loading-spinner"></div>
+              Đang tải...
+            </td>
+          </tr>
+          <tr v-else-if="filteredPromos.length === 0">
+            <td colspan="6" class="empty-row">Không tìm thấy chương trình nào.</td>
+          </tr>
+          <tr v-else v-for="p in filteredPromos" :key="p.id">
             <td>
               <div class="promo-name-cell">
                 <div class="promo-icon" :style="{ background: p.iconBg }">
@@ -107,9 +125,6 @@
               </div>
             </td>
           </tr>
-          <tr v-if="filteredPromos.length === 0">
-            <td colspan="6" class="empty-row">Không tìm thấy chương trình nào.</td>
-          </tr>
         </tbody>
       </table>
 
@@ -118,8 +133,6 @@
         <div class="pagination">
           <button class="page-btn">‹</button>
           <button class="page-btn active">1</button>
-          <button class="page-btn">2</button>
-          <button class="page-btn">3</button>
           <button class="page-btn">›</button>
         </div>
       </div>
@@ -127,7 +140,6 @@
 
     <!-- BOTTOM CARDS -->
     <div class="bottom-row">
-      <!-- Best campaign -->
       <div class="bottom-card">
         <div class="bottom-card-header">
           <h3>Chiến dịch hiệu quả nhất</h3>
@@ -145,7 +157,6 @@
         </div>
       </div>
 
-      <!-- Distribution -->
       <div class="bottom-card bottom-card-gradient">
         <button class="dist-add-btn">
           <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -190,77 +201,105 @@
 
             <div class="modal-body">
 
-              <!-- Tên -->
               <div class="form-group">
-                <label class="form-label">Tên chương trình <span class="req">*</span></label>
+                <label class="form-label">Loại Voucher <span class="req">*</span></label>
+                <select class="form-input" v-model="form.category" @change="onCategoryChange">
+                  <option value="product">Giảm giá sản phẩm</option>
+                  <option value="birthday">Mã Sinh nhật</option>
+                  <option value="freeship">Miễn phí vận chuyển (Freeship)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Tên Voucher <span class="req">*</span></label>
                 <input class="form-input" :class="{ err: errors.name }" v-model="form.name" placeholder="VD: Tết 2026 Sale" @input="autoCode"/>
                 <p class="err-msg" v-if="errors.name">{{ errors.name }}</p>
               </div>
 
-              <!-- Mã code -->
               <div class="form-group">
-                <label class="form-label">Mã chương trình <span class="req">*</span></label>
-                <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase"/>
+                <label class="form-label">Mã Voucher <span class="req">*</span></label>
+                <div style="display: flex; gap: 8px;">
+                  <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase" :readonly="form.category === 'birthday'"/>
+                  <button type="button" @click="generateRandomCode" style="padding: 0 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; white-space: nowrap;" :disabled="form.category === 'birthday'">Tạo ngẫu nhiên</button>
+                </div>
                 <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
-                <p class="form-hint">Mã ngắn dùng nhận dạng hệ thống. Chỉ hoa, số, dấu gạch ngang.</p>
+                <p class="form-hint">Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
               </div>
 
-              <!-- Loại + Giá trị -->
-              <div class="form-row">
+              <div class="form-row" v-if="form.category !== 'freeship'">
                 <div class="form-group">
                   <label class="form-label">Loại ưu đãi <span class="req">*</span></label>
-                  <select class="form-input" v-model="form.type">
+                  <select class="form-input" v-model="form.type" :disabled="form.category === 'birthday'">
                     <option value="percent">Giảm %</option>
-                    <option value="fixed">Cố định</option>
-                    <option value="maxprice">Lên đến</option>
+                    <option value="fixed">Giảm theo giá tiền</option>
+                    <option value="maxprice">Giảm % tối đa</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Giá trị <span class="req">*</span></label>
                   <div class="input-suffix-wrap">
-                    <input class="form-input" :class="{ err: errors.value }" v-model.number="form.value" type="number" min="0" placeholder="50"/>
+                    <input class="form-input" :class="{ err: errors.value }" v-model.number="form.value" type="number" min="0" placeholder="50" />
                     <span class="input-suffix">{{ form.type === 'percent' || form.type === 'maxprice' ? '%' : 'VNĐ' }}</span>
                   </div>
                   <p class="err-msg" v-if="errors.value">{{ errors.value }}</p>
                 </div>
               </div>
 
-              <!-- Ngày bắt đầu + kết thúc -->
-              <div class="form-row">
+              <!-- ĐIỀU KIỆN ĐƠN HÀNG: chỉ hiện với category = product -->
+              <div class="form-row condition-row" v-if="form.category === 'product'">
                 <div class="form-group">
-                  <label class="form-label">Ngày bắt đầu <span class="req">*</span></label>
-                  <input class="form-input" :class="{ err: errors.startDate }" type="date" v-model="form.startDate"/>
-                  <p class="err-msg" v-if="errors.startDate">{{ errors.startDate }}</p>
+                  <label class="form-label">
+                    <span class="condition-badge">🎯 Điều kiện đơn hàng</span>
+                  </label>
+                  <select class="form-input condition-select" v-model="form.loai_dieu_kien">
+                    <option value=">=">≥ Tạm tính từ (lớn hơn hoặc bằng)</option>
+                    <option value=">">＞ Tạm tính hơn (lớn hơn)</option>
+                    <option value="=">＝ Tạm tính bằng đúng</option>
+                  </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Ngày kết thúc <span class="req">*</span></label>
-                  <input class="form-input" :class="{ err: errors.endDate }" type="date" v-model="form.endDate"/>
-                  <p class="err-msg" v-if="errors.endDate">{{ errors.endDate }}</p>
+                  <label class="form-label">Giá trị điều kiện (VNĐ)</label>
+                  <div class="input-suffix-wrap">
+                    <input
+                      class="form-input condition-input"
+                      :class="{ err: errors.dieu_kien }"
+                      v-model.number="form.dieu_kien"
+                      type="number" min="0"
+                      placeholder="VD: 500000"
+                    />
+                    <span class="input-suffix">đ</span>
+                  </div>
+                  <p class="err-msg" v-if="errors.dieu_kien">{{ errors.dieu_kien }}</p>
+                  <p class="form-hint">Để trống nếu không cần điều kiện tạm tính.</p>
                 </div>
               </div>
 
-              <!-- Trạng thái -->
-              <div class="form-group">
+                <div class="form-group">
                 <label class="form-label">Trạng thái</label>
                 <div class="toggle-group">
                   <button v-for="s in statusOptions" :key="s.value"
                     class="toggle-btn"
                     :class="{ 'toggle-active': form.status === s.value }"
                     :style="form.status === s.value ? { borderColor: s.color, background: s.bg, color: s.color } : {}"
-                    @click="form.status = s.value">
+                    @click="form.status = s.value; if(s.value === 'open') form.endDate = ''">
                     <span class="toggle-dot" :style="form.status === s.value ? { background: s.color } : {}"></span>
                     {{ s.label }}
                   </button>
                 </div>
               </div>
 
-              <!-- Mô tả -->
-              <div class="form-group">
-                <label class="form-label">Mô tả</label>
-                <textarea class="form-input form-textarea" v-model="form.description" rows="3" placeholder="Mô tả ngắn về chương trình khuyến mãi..."></textarea>
+              <div class="form-group" v-if="form.status !== 'open'">
+                <label class="form-label">Ngày kết thúc</label>
+                <input class="form-input" type="date" v-model="form.endDate"/>
               </div>
 
-              <!-- Icon -->
+
+
+              <div class="form-group">
+                <label class="form-label">Mô tả</label>
+                <textarea class="form-input form-textarea" v-model="form.mota" rows="3" placeholder="Mô tả ngắn về chương trình khuyến mãi..."></textarea>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Biểu tượng</label>
                 <div class="icon-picker">
@@ -278,9 +317,10 @@
 
             <div class="modal-footer">
               <button class="btn-cancel" @click="closeModal">Hủy</button>
-              <button class="btn-save" @click="savePromo">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                {{ isEdit ? 'Lưu thay đổi' : 'Tạo khuyến mãi' }}
+              <button class="btn-save" @click="savePromo" :disabled="saving">
+                <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                {{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo khuyến mãi') }}
               </button>
             </div>
 
@@ -296,14 +336,34 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
+// ── Lấy token từ localStorage ──────────────────
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token')
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+}
+
+const BASE_URL = 'http://localhost:8000/api'
+
 const searchQuery = ref('')
 const showModal = ref(false)
 const isEdit = ref(false)
 const editId = ref(null)
+const loading = ref(false)
+const saving = ref(false)
+
+// ── Toast ──────────────────────────────────────
+const toast = ref({ show: false, msg: '', type: 'success' })
+const showToast = (msg, type = 'success') => {
+  toast.value = { show: true, msg, type }
+  setTimeout(() => { toast.value.show = false }, 3000)
+}
 
 const statusOptions = [
   { value: 'running', label: 'Đang chạy', color: '#16a34a', bg: '#f0fdf4' },
-  { value: 'expired', label: 'Hết hạn',   color: '#dc2626', bg: '#fef2f2' },
   { value: 'open',    label: 'Luôn mở',   color: '#2563eb', bg: '#eff6ff' },
 ]
 
@@ -319,21 +379,22 @@ const iconOptions = [
 ]
 
 const defaultForm = () => ({
-  name: '', code: '', type: 'percent', value: '',
-  startDate: '', endDate: '', status: 'running',
-  description: '', icon: '🏮', iconBg: '#fef3c7',
+  name: '', category: 'product', code: '', type: 'percent', value: '',
+  endDate: '', status: 'running',
+  mota: '', icon: '🏮', iconBg: '#fef3c7',
+  loai_dieu_kien: '>=', dieu_kien: '',
 })
 
 const form = ref(defaultForm())
 const errors = ref({})
 const promos = ref([])
 
-
 // ================= FETCH DATA =================
 const fetchPromos = async () => {
+  loading.value = true
   try {
-    const res = await axios.get('http://localhost:8000/api/promotions')
-
+    // GET /promotions là public — không cần token
+    const res = await axios.get(`${BASE_URL}/promotions`)
     promos.value = res.data.map(p => ({
       ...p,
       startDate: formatDate(p.start_date),
@@ -344,14 +405,15 @@ const fetchPromos = async () => {
       iconBg: '#fef3c7',
       roi: 20
     }))
-
   } catch (err) {
+    showToast('Lỗi tải danh sách khuyến mãi!', 'error')
     console.error(err)
+  } finally {
+    loading.value = false
   }
 }
 
 onMounted(fetchPromos)
-
 
 // ================= COMPUTED =================
 const filteredPromos = computed(() => {
@@ -371,40 +433,55 @@ const topPromos = computed(() =>
   [...promos.value].sort((a, b) => b.roi - a.roi).slice(0, 2)
 )
 
-
-// ================= FUNCTIONS =================
+// ================= HELPERS =================
 function statusClass(s) {
-  return {
-    running: 'status-running',
-    expired: 'status-expired',
-    open: 'status-open'
-  }[s] || ''
+  return { running: 'status-running', expired: 'status-expired', open: 'status-open' }[s] || ''
 }
 
 function statusLabel(s) {
-  return {
-    running: '● Đang chạy',
-    expired: '◌ Hết hạn',
-    open: '● Luôn mở'
-  }[s] || s
+  return { running: '● Đang chạy', expired: '◌ Hết hạn', open: '● Luôn mở' }[s] || s
 }
 
 function autoCode() {
-  if (!isEdit.value) {
-    form.value.code = form.value.name
+  if (!isEdit.value && form.value.category !== 'birthday') {
+    const base = form.value.name
       .toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/Đ/gi, 'D')
       .replace(/[^A-Z0-9\s]/g, '')
       .trim().replace(/\s+/g, '-')
-      .slice(0, 20)
+      .slice(0, 15)
+    
+    if (base) {
+      form.value.code = base + '-' + Math.floor(1000 + Math.random() * 9000)
+    }
+  }
+}
+
+function generateRandomCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = ''
+  for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  form.value.code = result
+}
+
+function onCategoryChange() {
+  if (form.value.category === 'freeship') {
+     form.value.type = 'percent'
+     form.value.value = 100
+  } else if (form.value.category === 'birthday') {
+     form.value.type = 'fixed'
+     form.value.code = 'BIRTHDAY'
   }
 }
 
 function discountLabel(f) {
   if (f.type === 'percent') return `Giảm ${f.value}%`
-  if (f.type === 'fixed') return `Cố định ${f.value}%`
-  if (f.type === 'maxprice') return `Lên đến ${f.value}%`
+  if (f.type === 'fixed') return `Cố định ${f.value}đ`
+  if (f.type === 'maxprice') return `giảm theo giá tiền  ${f.value}%`
+  if (f.type === 'freeship') return `Freeship ${f.value}đ`
   return ''
 }
 
@@ -413,6 +490,7 @@ function tagColors(type) {
     percent:  { tagBg: '#fef3c7', tagColor: '#92400e' },
     fixed:    { tagBg: '#dbeafe', tagColor: '#1e40af' },
     maxprice: { tagBg: '#fef9c3', tagColor: '#854d0e' },
+    freeship: { tagBg: '#dcfce7', tagColor: '#166534' },
   }[type] || {}
 }
 
@@ -425,21 +503,15 @@ function formatDate(d) {
   return `${dd}/${mm}/${yyyy}`
 }
 
-
 // ================= VALIDATE =================
 function validate() {
   errors.value = {}
-
   if (!form.value.name.trim()) errors.value.name = 'Tên không được để trống.'
   if (!form.value.code.trim()) errors.value.code = 'Mã không được để trống.'
   if (form.value.value === '' || form.value.value === null)
     errors.value.value = 'Vui lòng nhập giá trị.'
-  if (!form.value.startDate) errors.value.startDate = 'Chọn ngày bắt đầu.'
-  if (!form.value.endDate) errors.value.endDate = 'Chọn ngày kết thúc.'
-
   return Object.keys(errors.value).length === 0
 }
-
 
 // ================= CRUD =================
 function openCreate() {
@@ -454,15 +526,21 @@ function openEdit(p) {
   isEdit.value = true
   editId.value = p.id
 
-  const [dd, mm, yyyy] = p.startDate.split('/')
-  const [dd2, mm2, yyyy2] = p.endDate.split('/')
+  // Chuyển dd/mm/yyyy → yyyy-mm-dd cho input[type=date]
+  const toInputDate = (str) => {
+    if (!str) return ''
+    const parts = str.split('/')
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`
+    return str
+  }
 
   form.value = {
     ...p,
-    startDate: `${yyyy}-${mm}-${dd}`,
-    endDate: `${yyyy2}-${mm2}-${dd2}`
+    category: p.category || 'product',
+    endDate: toInputDate(p.endDate),
+    loai_dieu_kien: p.loai_dieu_kien || '>=',
+    dieu_kien: p.dieu_kien || '',
   }
-
   errors.value = {}
   showModal.value = true
 }
@@ -474,39 +552,67 @@ function closeModal() {
 async function savePromo() {
   if (!validate()) return
 
+  saving.value = true
+
   const data = {
-    name: form.value.name,
-    code: form.value.code,
-    type: form.value.type,
-    value: form.value.value,
-    start_date: form.value.startDate,
-    end_date: form.value.endDate,
-    status: form.value.status,
-    description: form.value.description,
+    name:           form.value.name,
+    category:       form.value.category,
+    code:           form.value.code.toUpperCase(),
+    type:           form.value.type,
+    value:          form.value.value,
+    end_date:       form.value.endDate || null,
+    status:         form.value.status,
+    mota:           form.value.mota,
+    loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
+    dieu_kien:      form.value.category === 'product' ? (form.value.dieu_kien || null) : null,
   }
 
   try {
     if (isEdit.value) {
-      await axios.put(`http://localhost:8000/api/promotions/${editId.value}`, data)
+      // PUT /api/admin/promotions/{id} — cần token admin
+      await axios.put(
+        `${BASE_URL}/admin/promotions/${editId.value}`,
+        data,
+        { headers: getAuthHeaders() }
+      )
+      showToast('Cập nhật khuyến mãi thành công!')
     } else {
-      await axios.post(`http://localhost:8000/api/promotions`, data)
+      // POST /api/admin/promotions — cần token admin
+      await axios.post(
+        `${BASE_URL}/admin/promotions`,
+        data,
+        { headers: getAuthHeaders() }
+      )
+      showToast('Tạo khuyến mãi thành công!')
     }
 
-    alert('Thêm thành công ✅')
     await fetchPromos()
     closeModal()
 
   } catch (err) {
-    console.log(err.response) // 👈 QUAN TRỌNG
-    alert('Lỗi rồi ❌ xem console')
+    const msg = err.response?.data?.message || 'Lỗi khi lưu khuyến mãi!'
+    showToast(msg, 'error')
+    console.error(err.response?.data)
+  } finally {
+    saving.value = false
   }
 }
 
 async function deletePromo(id) {
-  if (!confirm('Xóa?')) return
+  if (!confirm('Bạn chắc chắn muốn xóa khuyến mãi này?')) return
 
-  await axios.delete(`http://localhost:8000/api/promotions/${id}`)
-  await fetchPromos()
+  try {
+    // DELETE /api/admin/promotions/{id} — cần token admin
+    await axios.delete(
+      `${BASE_URL}/admin/promotions/${id}`,
+      { headers: getAuthHeaders() }
+    )
+    showToast('Xóa khuyến mãi thành công!')
+    await fetchPromos()
+  } catch (err) {
+    showToast('Lỗi khi xóa khuyến mãi!', 'error')
+    console.error(err)
+  }
 }
 </script>
 
@@ -534,6 +640,18 @@ async function deletePromo(id) {
 .admin-name { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
 .admin-role { font-size: 11px; color: #94a3b8; text-align: right; }
 .admin-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+/* TOAST */
+.toast { position: fixed; top: 24px; right: 24px; z-index: 99999; padding: 12px 20px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.toast.success { background: #0f172a; color: #fff; }
+.toast.success svg { stroke: #4ade80; }
+.toast.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.toast.error svg { stroke: #dc2626; }
+.toast svg { width: 18px; height: 18px; stroke-width: 2.5; fill: none; flex-shrink: 0; }
+.toast-enter-active { transition: all 0.3s cubic-bezier(0.34,1.4,0.64,1); }
+.toast-leave-active { transition: all 0.2s ease; }
+.toast-enter-from { opacity: 0; transform: translateY(-12px); }
+.toast-leave-to { opacity: 0; transform: translateY(-8px); }
 
 /* STATS */
 .stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
@@ -589,6 +707,8 @@ td { padding: 14px 18px; vertical-align: middle; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 28px; }
+.loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .pagination-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-top: 1px solid #f1f5f9; }
 .page-info { font-size: 12.5px; color: #64748b; }
 .pagination { display: flex; gap: 4px; }
@@ -652,6 +772,13 @@ select.form-input { cursor: pointer; }
 .input-suffix-wrap { position: relative; }
 .input-suffix-wrap .form-input { padding-right: 44px; }
 .input-suffix { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: #94a3b8; pointer-events: none; }
+
+/* CONDITION ROW */
+.condition-row { margin-top: 2px; background: #f5f3ff; border: 1.5px dashed #a5b4fc; border-radius: 12px; padding: 12px 14px; grid-template-columns: 1.3fr 1fr; }
+.condition-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #4f46e5; background: #ede9fe; padding: 3px 10px; border-radius: 20px; }
+.condition-select option { font-size: 12.5px; }
+.condition-input { border-color: #c4b5fd !important; }
+.condition-input:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important; }
 .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
@@ -662,13 +789,14 @@ select.form-input { cursor: pointer; }
 .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid #f1f5f9; background: #fafbff; }
 .btn-cancel { padding: 9px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fff; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; font-family: inherit; }
 .btn-save { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); transition: transform 0.15s; font-family: inherit; }
-.btn-save:hover { transform: translateY(-1px); }
+.btn-save:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-save:disabled { opacity: 0.7; cursor: not-allowed; }
 .btn-save svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 2; fill: none; }
+.spin { animation: spin 0.7s linear infinite; }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .slide-up-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .slide-up-leave-active { transition: all 0.2s ease; }
 .slide-up-enter-from { opacity: 0; transform: translateY(28px) scale(0.97); }
 .slide-up-leave-to { opacity: 0; transform: translateY(8px) scale(0.98); }
-a { text-decoration: none; }
 </style>

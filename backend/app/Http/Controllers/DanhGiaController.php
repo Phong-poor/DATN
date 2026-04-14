@@ -82,7 +82,7 @@ class DanhGiaController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn chỉ có thể đánh giá sau khi đơn hàng đã hoàn thành.'], 400);
         }
 
-        $hasItem = $order->chiTiets()->where('id_bienthe', $request->id_bienthe)->exists();
+        $hasItem = $order->chi_tiets()->where('id_bienthe', $request->id_bienthe)->exists();
         if (!$hasItem) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này không nằm trong đơn hàng.'], 400);
         }

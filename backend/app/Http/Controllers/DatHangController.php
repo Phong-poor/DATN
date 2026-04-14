@@ -6,6 +6,8 @@ use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
 use App\Models\GioHang;
 use App\Models\BienThe;
+use App\Models\Promotion;
+use App\Models\UserVoucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,7 @@ class DatHangController extends Controller
     public function cancelOrder(Request $request, $id)
     {
         $userId = Auth::id();
-        $order = DatHang::with('chiTiets.bienThe')
+        $order = DatHang::with('chi_tiets.bienThe')
             ->where('id_dathang', $id)
             ->where('user_id', $userId)
             ->firstOrFail();
@@ -35,14 +37,12 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Update status and reason
             $order->update([
                 'trangthai' => 'cancelled',
                 'lydo' => $request->lydo ?? 'Người dùng hủy đơn'
             ]);
 
-            // 2. Return stock
-            foreach ($order->chiTiets as $chiTiet) {
+            foreach ($order->chi_tiets as $chiTiet) {
                 if ($chiTiet->bienThe) {
                     $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
                 }
@@ -67,7 +67,7 @@ class DatHangController extends Controller
     public function reorder(Request $request, $id)
     {
         $userId = Auth::id();
-        $order = DatHang::with('chiTiets.bienThe')
+        $order = DatHang::with('chi_tiets.bienThe')
             ->where('id_dathang', $id)
             ->where('user_id', $userId)
             ->firstOrFail();
@@ -75,12 +75,11 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            //  Xóa lý do hủy khi mua lại
             $order->update(['lydo' => null]);
             $addedItemsCount = 0;
             $skippedItems = [];
 
-            foreach ($order->chiTiets as $chiTiet) {
+            foreach ($order->chi_tiets as $chiTiet) {
                 $bienThe = $chiTiet->bienThe;
 
                 if (!$bienThe || $bienThe->soluong <= 0) {
@@ -88,7 +87,6 @@ class DatHangController extends Controller
                     continue;
                 }
 
-                // Check if already in cart
                 $cartItem = GioHang::where('user_id', $userId)
                     ->where('id_bienthe', $chiTiet->id_bienthe)
                     ->first();
@@ -138,8 +136,7 @@ class DatHangController extends Controller
         ]);
 
         $userId = Auth::id();
-        
-       
+
         $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
 
         if ($gioHangItems->isEmpty()) {
@@ -149,25 +146,76 @@ class DatHangController extends Controller
             ], 400);
         }
 
-
-        $tongTien = 0;
+        // Tính tổng tiền gốc
+        $tongTienGoc = 0;
         foreach ($gioHangItems as $item) {
-            $tongTien += $item->soluong * $item->bienThe->gia;
+            $tongTienGoc += $item->soluong * $item->bienThe->gia;
         }
+
+        $shippingFee = 30000;
+
+        // ── Xử lý mã giảm giá ──────────────────────────
+        $giamGia = 0;
+        $giamGiaShip = 0;
+        $promoId = null;
+
+        if ($request->filled('promo_code')) {
+            $promo = Promotion::where('code', strtoupper($request->promo_code))
+                ->whereIn('status', ['running', 'open'])
+                ->first();
+
+            if ($promo) {
+                if ($promo->category === 'freeship') {
+                    return response()->json(['success' => false, 'message' => 'Mã này là mã freeship, không áp dụng cho đơn hàng.'], 400);
+                }
+                if ($promo->end_date && now()->gt($promo->end_date)) {
+                    return response()->json(['success' => false, 'message' => 'Mã giảm giá đã hết hạn.'], 400);
+                }
+
+                if ($promo->type === 'percent') {
+                    $giamGia = round($tongTienGoc * $promo->value / 100);
+                } elseif ($promo->type === 'fixed') {
+                    $giamGia = min($promo->value, $tongTienGoc);
+                } elseif ($promo->type === 'maxprice') {
+                    $giamGia = min($promo->value, $tongTienGoc);
+                }
+
+                $promoId = $promo->id;
+            }
+        }
+
+        if ($request->filled('freeship_code')) {
+            $fpromo = Promotion::where('code', strtoupper($request->freeship_code))
+                ->whereIn('status', ['running', 'open'])
+                ->first();
+
+            if ($fpromo) {
+                if ($fpromo->end_date && now()->gt($fpromo->end_date)) {
+                    return response()->json(['success' => false, 'message' => 'Mã freeship đã hết hạn.'], 400);
+                }
+                if ($fpromo->category === 'freeship') {
+                    $giamGiaShip = $shippingFee;
+                } else {
+                    return response()->json(['success' => false, 'message' => 'Mã này không phải mã freeship.'], 400);
+                }
+            }
+        }
+
+        $tongTienSauGiam = max(0, $tongTienGoc - $giamGia) + max(0, $shippingFee - $giamGiaShip);
 
         try {
             DB::beginTransaction();
 
-           
             $donHang = DatHang::create([
-                'user_id'   => $userId,
-                'tongtien'  => $tongTien,
-                'trangthai' => 'pending',
-                'diachi'    => $request->diachi,
-                'PTTT'      => $request->PTTT,
+                'user_id'     => $userId,
+                'tongtien'    => $tongTienSauGiam,
+                'trangthai'   => 'pending',
+                'diachi'      => $request->diachi,
+                'PTTT'        => $request->PTTT,
+                'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
+                'promotion_id' => $promoId,      // lưu id promotion đã dùng
             ]);
 
-           
             foreach ($gioHangItems as $item) {
                 DatHangChiTiet::create([
                     'id_dathang' => $donHang->id_dathang,
@@ -176,16 +224,27 @@ class DatHangController extends Controller
                     'gia'        => $item->bienThe->gia,
                 ]);
 
-               
                 $item->bienThe->decrement('soluong', $item->soluong);
             }
 
-            
             GioHang::where('user_id', $userId)->delete();
+
+            // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
+            if ($promoId) {
+                UserVoucher::where('id_user', $userId)
+                    ->where('id_promotion', $promoId)
+                    ->update(['trang_thai' => 1]);
+            }
+
+            // Nếu có dùng thêm mã freeship
+            if (isset($fpromo) && $fpromo) {
+                UserVoucher::where('id_user', $userId)
+                    ->where('id_promotion', $fpromo->id)
+                    ->update(['trang_thai' => 1]);
+            }
 
             DB::commit();
 
-            // Nếu là ví điện tử, tạo link thanh toán VNPay
             $payUrl = null;
             if ($request->PTTT === 'Ví điện tử') {
                 $vnpay = new VnpayController();
@@ -193,10 +252,11 @@ class DatHangController extends Controller
             }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Đặt hàng thành công!',
-                'order'   => $donHang,
-                'payUrl'  => $payUrl
+                'success'   => true,
+                'message'   => 'Đặt hàng thành công!',
+                'order'     => $donHang,
+                'payUrl'    => $payUrl,
+                'giam_gia'  => $giamGia,
             ]);
 
         } catch (\Exception $e) {
@@ -211,15 +271,14 @@ class DatHangController extends Controller
     public function sendSuccessEmail($id)
     {
         try {
-            $order = DatHang::with(['chiTiets.bienThe.sanPham', 'user'])->findOrFail($id);
-            
-            // Bảo mật: Chỉ người mua mới có quyền kích hoạt gửi mail cho đơn hàng của mình
+            $order = DatHang::with(['chi_tiets.bienThe.sanPham', 'user'])->findOrFail($id);
+
             if ($order->user_id !== Auth::id()) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
             Mail::to($order->user->email)->send(new \App\Mail\OrderSuccessMail($order, $order->user));
-            
+
             return response()->json(['success' => true, 'message' => 'Email sent']);
         } catch (\Exception $e) {
             Log::error("Lỗi gửi mail thủ công: " . $e->getMessage());
@@ -230,14 +289,13 @@ class DatHangController extends Controller
     public function orders()
     {
         $userId = Auth::id();
-        $orders = DatHang::with(['chiTiets.bienThe.sanPham'])
+        $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Map để thêm trạng thái đã đánh giá
         $orders->each(function($order) use ($userId) {
-            $order->chiTiets->each(function($chiTiet) use ($order, $userId) {
+            $order->chi_tiets->each(function($chiTiet) use ($order, $userId) {
                 $chiTiet->is_reviewed = \App\Models\DanhGia::where('id_dathang', $order->id_dathang)
                     ->where('id_bienthe', $chiTiet->id_bienthe)
                     ->where('user_id', $userId)
@@ -255,7 +313,7 @@ class DatHangController extends Controller
 
     public function allOrders()
     {
-        $orders = DatHang::with(['user', 'chiTiets.bienThe.sanPham'])
+        $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -271,7 +329,7 @@ class DatHangController extends Controller
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
         ]);
 
-        $order = DatHang::with('chiTiets.bienThe')->findOrFail($id);
+        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
         $oldStatus = $order->trangthai;
         $newStatus = $request->trangthai;
 
@@ -286,21 +344,17 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            // Handle Stock Sync
-            // 1. If changing TO cancelled -> Restock
             if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
-                foreach ($order->chiTiets as $chiTiet) {
+                foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
                     }
                 }
             }
 
-            // 2. If changing FROM cancelled back to something else -> Deduct stock again
             if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
-                foreach ($order->chiTiets as $chiTiet) {
+                foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
-                        // Check if enough stock
                         if ($chiTiet->bienThe->soluong < $chiTiet->soluong) {
                             throw new \Exception("Sản phẩm {$chiTiet->bienThe->ten_bienthe} không đủ hàng để khôi phục đơn hàng.");
                         }

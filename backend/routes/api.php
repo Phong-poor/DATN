@@ -39,10 +39,14 @@ Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 've
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 // ================= LIÊN HỆ (KHÁCH) =================
-
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
+
+// ================= KHUYẾN MÃI (PUBLIC) =================
+Route::get('/promotions', [PromotionController::class, 'index']);
+Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -66,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
+
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
@@ -74,6 +79,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ===== ĐÁNH GIÁ =====
     Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
+
+    // ===== VOUCHER CỦA TÔI =====
+    Route::get('/user/vouchers', [PromotionController::class, 'myVouchers']);
+    Route::get('/user/vouchers/available', [PromotionController::class, 'availableGifts']);
+    Route::post('/user/vouchers/claim', [PromotionController::class, 'claimVoucher']);
 });
 
 // Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
@@ -125,8 +135,7 @@ Route::get('/colors/{id}', [ColorController::class, 'show']);
 Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
-
-// ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
+// ================= SẢN PHẨM =================
 Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
@@ -169,6 +178,8 @@ Route::get('/test-mail', function () {
 
     return 'OK';
 });
+// ================= CHATBOT =================
+Route::post('/chat', [ChatbotController::class, 'chat']);
 
 // ================= ADMIN =================
 Route::middleware(['auth:sanctum', 'admin'])
@@ -202,15 +213,13 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
         Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
-    });
-Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
+        Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
 
-// ================= CHATBOT =================
-Route::post('/chat', [ChatbotController::class, 'chat']);
 
-    // ===== ADMIN REVIEWS =====
-    Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
-    Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
-    Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
+
+        // ===== ADMIN REVIEWS =====
+        Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+        Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
+        Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
 
 });
