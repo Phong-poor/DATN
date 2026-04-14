@@ -26,7 +26,7 @@ import ForgotPassword from '../components/Auth/ForgotPassword.vue'
 import OtpVerify from '../components/Auth/OtpVerify.vue'
 import ResetPassword from '../components/Auth/ResetPassword.vue'
 
-import { getUser } from '../services/auth'
+import { getUser, getToken } from '../services/auth'
 
 // ── Admin ──
 import AdminLayout from '../components/Admin/Layout/AdminLayout.vue'
@@ -94,7 +94,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const user = getUser()
-  const token = localStorage.getItem('token')
+  const token = getToken()
 
   const publicPages = [
     '/',

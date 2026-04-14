@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 import api from '@/services/api'
-import { getUser, updateUser } from '@/services/auth'
+import { getUser, updateUser, getToken } from '@/services/auth'
 import echo from '@/services/echo'
+import swal from '@/services/swal'
 import { onUnmounted } from 'vue'
 
 // ── Active tab ────────────────────────────────────────────
@@ -138,7 +138,7 @@ const savingProfile = ref(false)
 
 const loadUser = async () => {
   try {
-    const token = localStorage.getItem('token')
+    const token = getToken()
 
     if (!token) {
       const parsed = getUser()
@@ -265,7 +265,8 @@ const confirmCancel = async () => {
     return
   }
 
-  if (!confirm('Chắc chắn hủy đơn?')) return
+  const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+  if (!isConfirmed) return
 
   isSubmitting.value = true
   try {
@@ -286,7 +287,8 @@ const confirmCancel = async () => {
 }
 
 const handleReorder = async (order) => {
-  if (!confirm('Chắc chắn mua lại?')) return
+  const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại đơn hàng này?')
+  if (!isConfirmed) return
 
   try {
     const res = await api.post(`/orders/${order.id_dathang}/reorder`)
@@ -683,7 +685,6 @@ const promoStatusMap = {
 </script>
 
 <template>
-  <Header />
   <div class="page">
 
     <!-- Global toast -->
@@ -1258,7 +1259,6 @@ const promoStatusMap = {
       </main>
     </div>
   </div>
-  <Footer />
 </template>
 
 <style scoped>

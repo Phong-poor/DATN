@@ -1,5 +1,4 @@
 <template>
-  <Header />
   <div class="page">
     <div class="container">
 
@@ -119,14 +118,12 @@
 
     </div>
   </div>
-  <Footer />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+import swal from '@/services/swal'
 
 // --- STATE ---
 const wishlist = ref([])
@@ -182,7 +179,7 @@ const updateQuantity = async (item, change) => {
     item.soluong = newQty
     window.dispatchEvent(new Event('wishlist-updated'))
   } catch (err) {
-    alert(err.response?.data?.message || 'Không thể cập nhật số lượng!')
+    swal.error('Lỗi', err.response?.data?.message || 'Không thể cập nhật số lượng!')
   }
 }
 
@@ -192,7 +189,7 @@ const removeItem = async (id) => {
     wishlist.value = wishlist.value.filter(item => item.id !== id)
     window.dispatchEvent(new Event('wishlist-updated'))
   } catch (err) {
-    alert('Lỗi khi xoá sản phẩm!')
+    swal.error('Lỗi', 'Lỗi khi xoá sản phẩm!')
   }
 }
 
@@ -207,10 +204,10 @@ const moveToCart = async (item) => {
 
     await removeItem(item.id)
 
-    alert('Đã chuyển sản phẩm sang giỏ hàng thành công!')
+    swal.success('Thành công', 'Đã chuyển sản phẩm sang giỏ hàng thành công!')
     window.dispatchEvent(new Event('cart-updated')) // Cập nhật số đếm giỏ hàng nếu có
   } catch (err) {
-    alert(err.response?.data?.message || 'Lỗi khi chuyển sang giỏ hàng!')
+    swal.error('Lỗi', err.response?.data?.message || 'Lỗi khi chuyển sang giỏ hàng!')
   }
 }
 
@@ -231,7 +228,7 @@ const slideSuggest = (dir) => {
 }
 
 const notifyMe = (item) => {
-  alert('Hệ thống sẽ gửi thông báo khi sản phẩm có hàng lại!')
+  swal.info('Thông báo', 'Hệ thống sẽ gửi thông báo khi sản phẩm có hàng lại!')
 }
 
 const shareList = () => {
@@ -239,7 +236,7 @@ const shareList = () => {
     navigator.share({ title: 'Danh sách yêu thích', url: window.location.href })
   } else {
     navigator.clipboard?.writeText(window.location.href)
-    alert('Đã sao chép link!')
+    swal.toast('Đã sao chép link!')
   }
 }
 

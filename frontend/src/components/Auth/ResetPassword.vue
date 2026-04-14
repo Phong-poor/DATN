@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import swal from '@/services/swal'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,7 +13,7 @@ const otp = route.query.otp
 
 onMounted(() => {
   if (!email || !otp) {
-    alert('Thiếu thông tin xác thực. Vui lòng thực hiện lại.')
+    swal.error('Lỗi xác thực', 'Thiếu thông tin xác thực. Vui lòng thực hiện lại.')
     router.push('/forgot-password')
   }
 })
@@ -66,7 +67,7 @@ async function submit() {
       password_confirmation: form.value.confirm
     })
 
-    alert(res.data.message || 'Đổi mật khẩu thành công!')
+    swal.success('Thành công', res.data.message || 'Đổi mật khẩu thành công!')
 
     router.push('/login')
 
@@ -75,9 +76,9 @@ async function submit() {
 
     if (err.response?.data?.errors) {
       const firstError = Object.values(err.response.data.errors)[0][0]
-      alert(firstError)
+      swal.error('Lỗi', firstError)
     } else {
-      alert(err.response?.data?.message || 'Lỗi đổi mật khẩu')
+      swal.error('Lỗi', err.response?.data?.message || 'Lỗi đổi mật khẩu')
     }
 
   } finally {

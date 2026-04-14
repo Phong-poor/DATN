@@ -4,6 +4,7 @@ import api from '@/services/api'
 import echo from '@/services/echo'
 import { getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
+import swal from '@/services/swal'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
@@ -42,7 +43,7 @@ const fetchOrders = async () => {
         }
     } catch (err) {
         console.error('Lỗi lấy đơn hàng:', err)
-        alert('Không thể tải danh sách đơn hàng.')
+        swal.error('Lỗi', 'Không thể tải danh sách đơn hàng.')
     } finally {
         isLoading.value = false
     }
@@ -56,11 +57,12 @@ const openCancelModal = (order) => {
 
 const confirmCancel = async () => {
     if (!cancelReason.value.trim()) {
-        alert('Vui lòng nhập lý do hủy.')
+        swal.warning('Thông báo', 'Vui lòng nhập lý do hủy.')
         return
     }
 
-    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
+    const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+    if (!isConfirmed) return
 
     isSubmitting.value = true
     try {
@@ -69,30 +71,31 @@ const confirmCancel = async () => {
         )
 
         if (res.data.success) {
-            alert('Hủy đơn hàng thành công!')
+            swal.success('Thành công', 'Hủy đơn hàng thành công!')
             showCancelModal.value = false
             await fetchOrders()
         }
     } catch (err) {
-        alert(err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn.')
     } finally {
         isSubmitting.value = false
     }
 }
 
 const handleReorder = async (order) => {
-    if (!confirm('Bạn có chắc chắn muốn mua lại các sản phẩm này?')) return
+    const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại các sản phẩm này?')
+    if (!isConfirmed) return
 
     try {
         const res = await api.post(`/orders/${order.id_dathang}/reorder`)
 
         if (res.data.success) {
-            alert(res.data.message)
+            swal.success('Thành công', res.data.message)
             // Redirect to cart
             window.location.href = '/cart'
         }
     } catch (err) {
-        alert('Lỗi khi mua lại sản phẩm.')
+        swal.error('Lỗi', 'Lỗi khi mua lại sản phẩm.')
     }
 }
 

@@ -2,9 +2,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
+import { getToken } from '@/services/auth'
 
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 
 const route = useRoute()
 const isLoading = ref(true)
@@ -122,7 +122,7 @@ const tangSoLuong = () => {
 const themVaoGioHang = async () => {
 
     // ✅ CHECK ĐĂNG NHẬP TRƯỚC
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
         setTimeout(() => {
@@ -241,7 +241,7 @@ const dangThemYeuThich = ref(false)
 
 const themVaoYeuThich = async () => {
     // 1. Check đăng nhập
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
         setTimeout(() => {
@@ -277,7 +277,6 @@ const themVaoYeuThich = async () => {
 </script>
 
 <template>
-    <Header />
 
 
     <transition name="slide-down">
@@ -468,7 +467,6 @@ const themVaoYeuThich = async () => {
         </div>
     </div>
 
-    <Footer />
 </template>
 
 <style scoped>

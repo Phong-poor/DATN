@@ -73,8 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
 });
 
-Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
-Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+// Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
+// Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
 
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
@@ -91,7 +91,7 @@ Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update'
 Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
 
-Route::post('/register', [UserController::class, 'store']);
+// Route::post('/register', [UserController::class, 'store']);
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}', [UserController::class, 'update']);
@@ -148,8 +148,8 @@ Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+// Route::post('/login', [AuthController::class, 'login']);
+// Route::post('/register', [AuthController::class, 'register']);
 
 // ================= TEST =================
 Route::get('/test', function () {
@@ -201,3 +201,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
     });
 Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
+
+// ================= CHATBOT =================
+Route::post('/chat', [ChatbotController::class, 'chat']);
+

@@ -2,11 +2,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 import { useRouter } from 'vue-router'
+import { getToken } from '@/services/auth'
 
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 import GiftPopup from './GiftPopup.vue'
 import api from '../../services/api'
+import swal from '@/services/swal'
 const router = useRouter()
 const showGift = ref(false)
 
@@ -157,15 +158,15 @@ const prevFeaturedPage = () => {
 }
 // 👉 Bổ sung hàm xử lý Yêu thích
 const themVaoYeuThich = async (product) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm vào yêu thích!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm vào yêu thích!')
         router.push('/login')
         return
     }
 
     if (!product.id_bienthe) {
-        alert('Sản phẩm này chưa có cấu hình, không thể thêm!')
+        swal.warning('Thông báo', 'Sản phẩm này chưa có cấu hình, không thể thêm!')
         return
     }
 
@@ -174,11 +175,11 @@ const themVaoYeuThich = async (product) => {
             id_bienthe: product.id_bienthe,
             soluong: 1
         })
-        alert(`Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
         // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
-        alert(err.response?.data?.message || 'Có lỗi xảy ra!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!')
     }
 }
 
@@ -220,7 +221,6 @@ onUnmounted(stop)
 </script>
 
 <template>
-    <Header />
     <GiftPopup v-if="showGift" :delay="0" />
 
     <main class="home">
@@ -501,7 +501,6 @@ onUnmounted(stop)
 
     </main>
 
-    <Footer />
 </template>
 
 <style scoped>

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import swal from '@/services/swal'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,7 +44,7 @@ function focusInput(index = 0) {
 
 onMounted(() => {
   if (!email.value) {
-    alert('Thiếu email, vui lòng quay lại trang quên mật khẩu.')
+    swal.error('Lỗi', 'Thiếu email, vui lòng quay lại trang quên mật khẩu.')
     router.push('/forgot-password')
     return
   }
@@ -160,10 +161,10 @@ async function resend() {
     clearOtp()
     focusInput(0)
     startTimer()
-    alert('Đã gửi lại mã OTP.')
+    swal.toast('Đã gửi lại mã OTP.')
   } catch (err) {
     console.log(err)
-    alert(
+    swal.error('Lỗi', 
       err.response?.data?.errors?.email?.[0] ||
       err.response?.data?.message ||
       'Không thể gửi lại OTP.'
