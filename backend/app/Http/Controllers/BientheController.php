@@ -4,30 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\BienThe;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BienTheController extends Controller
 {
     public function index()
     {
-        $bienthes = BienThe::with('sanPham')
-            ->orderByDesc('id_bienthe')
-            ->get();
+        $bienthes = Cache::remember('bienthe_all', 3600, function () {
+            return BienThe::with('sanPham')
+                ->orderByDesc('id_bienthe')
+                ->get();
+        });
 
         return response()->json($bienthes);
     }
 
     public function getBySanPham($id_sanpham)
     {
-        $bienthes = BienThe::where('id_sanpham', $id_sanpham)
-            ->orderByDesc('id_bienthe')
-            ->get();
+        $bienthes = Cache::remember("bienthe_sp_{$id_sanpham}", 3600, function () use ($id_sanpham) {
+            return BienThe::where('id_sanpham', $id_sanpham)
+                ->orderByDesc('id_bienthe')
+                ->get();
+        });
 
         return response()->json($bienthes);
     }
 
     public function show($id)
     {
-        $bienthe = BienThe::with('sanPham')->find($id);
+        $bienthe = Cache::remember("bienthe_{$id}", 3600, function () use ($id) {
+            return BienThe::with('sanPham')->find($id);
+        });
 
         if (!$bienthe) {
             return response()->json([
@@ -67,6 +74,9 @@ class BienTheController extends Controller
             'soluong'     => $request->soluong,
             'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
+
+        Cache::forget('bienthe_all');
+        Cache::forget("bienthe_sp_{$request->id_sanpham}");
 
         return response()->json([
             'message' => 'Thêm biến thể thành công.',
@@ -112,6 +122,10 @@ class BienTheController extends Controller
             'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
 
+        Cache::forget('bienthe_all');
+        Cache::forget("bienthe_sp_{$request->id_sanpham}");
+        Cache::forget("bienthe_{$id}");
+
         return response()->json([
             'message' => 'Cập nhật biến thể thành công.',
             'data' => $bienthe
@@ -128,7 +142,12 @@ class BienTheController extends Controller
             ], 404);
         }
 
+        $id_sanpham = $bienthe->id_sanpham;
         $bienthe->delete();
+
+        Cache::forget('bienthe_all');
+        Cache::forget("bienthe_sp_{$id_sanpham}");
+        Cache::forget("bienthe_{$id}");
 
         return response()->json([
             'message' => 'Xóa biến thể thành công.'

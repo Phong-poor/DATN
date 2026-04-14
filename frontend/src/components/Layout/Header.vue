@@ -3,6 +3,8 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '../../services/api' 
+import { getUser, clearAuth, getToken } from '@/services/auth'
+import swal from '@/services/swal'
 
 const router = useRouter()
 
@@ -25,7 +27,7 @@ const cartCount = ref(0)
 
 const fetchCartCount = async () => {
   try {
-    const token = localStorage.getItem('token')
+  const token = getToken()
     if (!token) { cartCount.value = 0; return }
 
     const res = await api.get('/gio-hang/dem')
@@ -40,7 +42,7 @@ const wishlistItems = ref([])
 
 const fetchWishlist = async () => {
   try {
-    const token = localStorage.getItem('token')
+  const token = getToken()
     if (!token) { wishlistItems.value = []; return }
 
     const res = await api.get('/yeu-thich')
@@ -94,7 +96,7 @@ onUnmounted(() => {
 })
 
 const goToCart = () => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) {
     alert('Vui lòng đăng nhập trước!')
     router.push({ path: '/login', query: { redirect: '/cart' } })
@@ -104,14 +106,14 @@ const goToCart = () => {
 }
 
 const toggleWishlist = () => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) { router.push('/login'); return }
   showWishlist.value = !showWishlist.value
   if (showWishlist.value) showUser.value = false
 }
 
 const toggleUser = () => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) { router.push('/login'); return }
   showUser.value = !showUser.value
   if (showUser.value) showWishlist.value = false
@@ -138,23 +140,27 @@ const avatarUrl = computed(() => {
 })
 
 const fetchUser = () => {
-    try {
-        const storedUser = localStorage.getItem('user')
-        user.value = storedUser ? JSON.parse(storedUser) : null
-    } catch {
-        user.value = null
+    user.value = getUser()
+    if (user.value) {
+        fetchCartCount()
+        fetchWishlist()
     }
 }
 
 const handleLogout = async () => {
+  const isConfirmed = await swal.confirm(
+    'Xác nhận đăng xuất',
+    'Bạn có chắc chắn muốn thoát khỏi hệ thống?'
+  )
+  if (!isConfirmed) return
+
   showUser.value = false
   try {
     await axios.post('http://127.0.0.1:8000/api/logout')
   } catch {
     console.log('Logout API lỗi (bỏ qua)')
   }
-  localStorage.removeItem('user')
-  localStorage.removeItem('token')
+  clearAuth()
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
@@ -354,9 +360,62 @@ const handleLogout = async () => {
 .admin-btn:hover { background: #2563eb; color: #fff; }
 .header { background: #fff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 1000; box-shadow: 0 1px 8px rgba(0,0,0,0.05); }
 .container { max-width: 1300px; margin: auto; padding: 0 30px; height: 68px; display: flex; align-items: center; justify-content: space-between; }
-.logo { font-size: 21px; font-weight: 800; letter-spacing: 0.5px; user-select: none; }
-.logo-black { color: #0f172a; }
-.logo-blue { color: #2563eb; }
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.logo-black {
+  color: #0f172a;
+  transition: color 0.3s ease;
+}
+
+.logo:hover .logo-black {
+  color: #1e293b;
+}
+
+.logo-blue {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  display: inline-block;
+}
+
+.logo-blue::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-20deg);
+  animation: logo-shimmer 3s infinite;
+}
+
+@keyframes logo-shimmer {
+  0% { left: -100%; }
+  30% { left: 200%; }
+  100% { left: 200%; }
+}
 .profile-btn { display: block; width: 92%; margin-bottom: 8px; padding: 10px; border-radius: 12px; background: #bec0c1; color: #334155; font-weight: 500; text-align: left; text-decoration: none; transition: 0.2s; }
 .profile-btn:hover { background: #858788; }
 .nav { display: flex; gap: 28px; }

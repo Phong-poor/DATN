@@ -2,9 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../services/api'
+import { getUser } from '@/services/auth'
+import swal from '@/services/swal'
 
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+
 
 const router = useRouter()
 const isLoading = ref(true)
@@ -45,16 +46,11 @@ onMounted(() => {
     fetchCart()
 
     // Tự động điền thông tin người dùng nếu đã đăng nhập
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-        try {
-            const user = JSON.parse(storedUser)
-            form.value.name = user.name || user.ten || ''
-            form.value.email = user.email || ''
-            form.value.phone = user.phone || user.sdt || ''
-        } catch (error) {
-            console.error('Lỗi khi đọc thông tin user từ localStorage:', error)
-        }
+    const user = getUser()
+    if (user) {
+        form.value.name = user.name || user.ten || ''
+        form.value.email = user.email || ''
+        form.value.phone = user.phone || user.sdt || ''
     }
 })
 
@@ -69,7 +65,7 @@ const format = (n) => n.toLocaleString('vi-VN') + 'đ'
 
 const confirmOrder = async () => {
     if (!form.value.address) {
-        alert('Vui lòng nhập địa chỉ nhận hàng!')
+        swal.warning('Thiếu thông tin', 'Vui lòng nhập địa chỉ nhận hàng!')
         return
     }
 
@@ -81,12 +77,21 @@ const confirmOrder = async () => {
         })
 
         if (response.data.success) {
-            alert('🎉 Đặt hàng thành công!')
-            router.push('/profile') // Chuyển về trang profile để xem đơn hàng
+            if (response.data.payUrl) {
+                window.location.href = response.data.payUrl;
+            } else {
+                router.push({ 
+                    name: 'thank-you', 
+                    query: { 
+                        status: 'success', 
+                        order_id: response.data.order.id_dathang 
+                    } 
+                })
+            }
         }
     } catch (error) {
         const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt hàng.'
-        alert('❌ ' + msg)
+        swal.error('Lỗi đặt hàng', msg)
     } finally {
         isSubmitting.value = false
     }
@@ -95,7 +100,6 @@ const confirmOrder = async () => {
 
 <template>
 
-  <Header />
 
   <div class="checkout-page">
     <div class="container">
@@ -142,20 +146,11 @@ const confirmOrder = async () => {
               </div>
             </label>
 
-            <label class="pay-item" :class="{ active: payment === 'bank' }">
-              <input type="radio" value="bank" v-model="payment" />
-              <div class="radio"></div>
-              <div class="pay-text">
-                <b>Chuyển khoản ngân hàng</b>
-                <p>Nhận thông tin tài khoản sau khi đặt</p>
-              </div>
-            </label>
-
             <label class="pay-item" :class="{ active: payment === 'momo' }">
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
               <div class="pay-text">
-                <b>Ví điện tử (Momo / ZaloPay)</b>
+                <b>Ví điện tử VNPay</b>
                 <p>Thanh toán nhanh qua ví điện tử</p>
               </div>
             </label>
@@ -196,7 +191,7 @@ const confirmOrder = async () => {
           </div>
 
           <div class="total">
-            <span>TỔNG CỘNG</span>
+            <span>TỔNG CỘNG: </span>
             <b>{{ format(total) }}</b>
           </div>
 
@@ -217,7 +212,6 @@ const confirmOrder = async () => {
     </div>
   </div>
 
-  <Footer />
 
 </template>
 

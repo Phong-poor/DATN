@@ -174,11 +174,19 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { clearAuth } from '@/services/auth'
+import swal from '@/services/swal'
 
 const router = useRouter()
 
-function handleLogout() {
-  localStorage.removeItem('token')
+async function handleLogout() {
+  const isConfirmed = await swal.confirm(
+    'Xác nhận đăng xuất',
+    'Bạn có chắc chắn muốn thoát khỏi hệ thống quản trị?'
+  )
+  if (!isConfirmed) return
+
+  clearAuth()
   router.push('/login')
 }
 </script>
@@ -198,8 +206,8 @@ function handleLogout() {
 
 /* ─────────────── SIDEBAR ─────────────── */
 .sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 260px;
+  min-width: 260px;
   background: #071d52;
   padding: 20px 14px;
   height: 100vh;
@@ -233,23 +241,34 @@ function handleLogout() {
 }
 
 .logo-icon {
-  width: 34px;
-  height: 34px;
-  background: linear-gradient(135deg, #10b981, #059669);
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  animation: icon-pulse 2s infinite ease-in-out;
+}
+
+@keyframes icon-pulse {
+  0% { transform: scale(1); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+  50% { transform: scale(1.08); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5); }
+  100% { transform: scale(1); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
 }
 
 .logo-text {
-  color: #f1f5f9;
-  font-size: 16px;
+  background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
 }
 
 /* MENU SECTION */
@@ -260,7 +279,7 @@ function handleLogout() {
 }
 
 .menu-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #475569;
   letter-spacing: 1px;
@@ -276,12 +295,12 @@ a {
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 12px 14px;
   border-radius: 10px;
   color: #94a3b8;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 500;
   transition: all 0.18s ease;
 }
@@ -292,8 +311,8 @@ a {
 }
 
 .item-icon {
-  width: 17px;
-  height: 17px;
+  width: 19px;
+  height: 19px;
   stroke: currentColor;
   stroke-width: 1.8;
   fill: none;
@@ -356,14 +375,14 @@ a {
 
 .user-name {
   margin: 0;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
   color: #e2e8f0;
 }
 
 .user-role {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: #64748b;
 }
 

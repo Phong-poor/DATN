@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\DanhMuc;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DanhMucController extends Controller
 {
     public function index(){
-        $danhmuc = DanhMuc::all();
+        $danhmuc = Cache::remember('danhmuc_all', 3600, function () {
+            return DanhMuc::all();
+        });
         return response()->json(['thongbao' => 'thành công', 'data' => $danhmuc]);
     }
     public function store(Request $request){
@@ -18,6 +21,9 @@ class DanhMucController extends Controller
         ]);
 
         $danhmuc = DanhMuc::create($validated);
+        
+        Cache::forget('danhmuc_all');
+
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Thêm danh mục thành công',
@@ -26,7 +32,9 @@ class DanhMucController extends Controller
     }
     public function show($id)
     {
-        $danhMuc = DanhMuc::find($id);
+        $danhMuc = Cache::remember("danhmuc_show_{$id}", 3600, function () use ($id) {
+            return DanhMuc::find($id);
+        });
 
         if (!$danhMuc) {
             return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
@@ -50,6 +58,9 @@ class DanhMucController extends Controller
         
         $danhMuc->update($validated);
 
+        Cache::forget('danhmuc_all');
+        Cache::forget("danhmuc_show_{$id}");
+
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Cập nhật thành công',
@@ -65,6 +76,9 @@ class DanhMucController extends Controller
         }
 
         $danhMuc->delete();
+
+        Cache::forget('danhmuc_all');
+        Cache::forget("danhmuc_show_{$id}");
 
         return response()->json([
             'thongbao' => 'thành công',

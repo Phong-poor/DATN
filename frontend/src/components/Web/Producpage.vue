@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import Header from '../Layout/Header.vue'
 import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
+import { getToken } from '@/services/auth'
+import swal from '@/services/swal'
 
 const thongBao = ref('')
 const router = useRouter()
@@ -104,6 +106,8 @@ const mapProducts = (rawProducts) => {
                 weight: p.khoiluong,
                 priceNum: bt.gia || 0,
                 oldPriceNum: bt.gia_khuyen_mai || 0,
+                // Lưu sẵn thuộc tính để lọc nhanh phía Vue (không cần gọi API lại)
+                ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
@@ -213,51 +217,55 @@ const changePage = (page) => {
     }
 }
 
-const applyFilters = async () => {
-    try {
-        // backend filter (chỉ khi không search)
-        if (!route.query.q) {
-            const params = {}
+const applyFilters = () => {
+    // Lọc hoàn toàn phía Vue, không gọi API lại
+    let result = [...products.value]
 
-            if (selectedRAMs.value.length) params.ram = selectedRAMs.value.join(',')
-            if (selectedCPUs.value.length) params.cpu = selectedCPUs.value.join(',')
-            if (selectedGPUs.value.length) params.gpu = selectedGPUs.value.join(',')
-
-            const res = await api.get('/sanpham', { params })
-            const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
-            products.value = mapProducts(raw)
-        }
-
-        let result = [...products.value]
-
-        if (selectedCategories.value.length) {
-            result = result.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
-        }
-
-        if (selectedBrands.value.length) {
-            result = result.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
-        }
-
-        if (selectedPriceRange.value === 'under20') {
-            result = result.filter(p => p.priceNum < 20000000)
-        } else if (selectedPriceRange.value === '20to50') {
-            result = result.filter(p => p.priceNum <= 50000000)
-        } else if (selectedPriceRange.value === 'above50') {
-            result = result.filter(p => p.priceNum > 50000000)
-        }
-
-        if (selectedSort.value === 'price_asc') {
-            result.sort((a, b) => a.priceNum - b.priceNum)
-        } else if (selectedSort.value === 'price_desc') {
-            result.sort((a, b) => b.priceNum - a.priceNum)
-        }
-
-        filteredProducts.value = result
-        currentPage.value = 1
-
-    } catch (error) {
-        console.error(error)
+    if (selectedCategories.value.length) {
+        result = result.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
     }
+    if (selectedBrands.value.length) {
+        result = result.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
+    }
+    if (selectedRAMs.value.length) {
+        result = result.filter(p => selectedRAMs.value.includes(p.ram))
+    }
+    if (selectedCPUs.value.length) {
+        result = result.filter(p => selectedCPUs.value.includes(p.cpu))
+    }
+    if (selectedGPUs.value.length) {
+        result = result.filter(p => selectedGPUs.value.includes(p.gpu))
+    }
+    if (selectedKichThuoc.value.length) {
+        result = result.filter(p => selectedKichThuoc.value.includes(p.kichthuoc))
+    }
+    if (selectedDoPhanGiai.value.length) {
+        result = result.filter(p => selectedDoPhanGiai.value.includes(p.dophan))
+    }
+    if (selectedTamNen.value.length) {
+        result = result.filter(p => selectedTamNen.value.includes(p.tamnen))
+    }
+    if (selectedPin.value.length) {
+        result = result.filter(p => selectedPin.value.includes(p.pin))
+    }
+    if (selectedSac.value.length) {
+        result = result.filter(p => selectedSac.value.includes(p.sac))
+    }
+    if (selectedPriceRange.value === 'under20') {
+        result = result.filter(p => p.priceNum < 20000000)
+    } else if (selectedPriceRange.value === '20to50') {
+        result = result.filter(p => p.priceNum >= 20000000 && p.priceNum <= 50000000)
+    } else if (selectedPriceRange.value === 'above50') {
+        result = result.filter(p => p.priceNum > 50000000)
+    }
+    if (selectedSort.value === 'price_asc') {
+        result.sort((a, b) => a.priceNum - b.priceNum)
+    } else if (selectedSort.value === 'price_desc') {
+        result.sort((a, b) => b.priceNum - a.priceNum)
+    }
+
+    filteredProducts.value = result
+    currentPage.value = 1
 }
 
 // ===================== WATCH =====================
@@ -284,15 +292,14 @@ watch([
 ], applyFilters)
 
 const themVaoYeuThich = async (product) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
-        alert('Vui lòng đăng nhập!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập!')
         router.push('/login')
         return
     }
 
     try {
-
         await api.post('/yeu-thich/them', {
             id_bienthe: product.key_id,
             soluong: 1
@@ -300,13 +307,12 @@ const themVaoYeuThich = async (product) => {
             headers: { Authorization: `Bearer ${token}` }
         })
 
-        alert(`Đã thêm ${product.name} vào yêu thích`)
+        swal.success('Thành công', `Đã thêm ${product.name} vào yêu thích`)
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
-
         console.error('Lỗi thêm yêu thích:', err)
-        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào yêu thích!')
     }
 }
 
@@ -344,30 +350,27 @@ const toggleList = (listType, item) => {
 }
 // ===================== CART (GIỎ HÀNG) =====================
 const themVaoGioHang = async (product) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
         router.push('/login')
         return
     }
 
     try {
-       
         await api.post('/gio-hang/them', {
-            id_bienthe: product.key_id, 
+            id_bienthe: product.key_id,
             soluong: 1
         }, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
-        alert(`Đã thêm ${product.name} vào giỏ hàng!`)
-        
-        
+        swal.success('Thành công', `Đã thêm ${product.name} vào giỏ hàng!`)
         window.dispatchEvent(new Event('cart-updated'))
 
     } catch (err) {
         console.error('Lỗi thêm giỏ hàng:', err)
-        alert(err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
     }
 }
 const clearAll = () => {
@@ -387,7 +390,6 @@ const clearAll = () => {
 </script>
 
 <template>
-    <Header />
     <div class="page">
         <div class="container layout">
 
@@ -531,7 +533,7 @@ const clearAll = () => {
                         <div class="attr-tags">
                             <span v-for="r in attrOptions.dophan" :key="r" class="attr-tag"
                                 :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{
-                                r }}</span>
+                                    r }}</span>
                         </div>
                     </div>
                 </div>
@@ -680,7 +682,7 @@ const clearAll = () => {
                                 <span class="price" v-if="p.priceNum > 0">{{ formatPrice(p.priceNum) }}</span>
                                 <span class="price" v-else>Liên hệ</span>
                                 <span v-if="p.oldPriceNum > p.priceNum" class="old-price">{{ formatPrice(p.oldPriceNum)
-                                    }}</span>
+                                }}</span>
                             </div>
 
                             <div class="card-actions">
@@ -741,7 +743,6 @@ const clearAll = () => {
             </main>
         </div>
     </div>
-    <Footer />
 </template>
 
 <style scoped>
@@ -1446,35 +1447,36 @@ const clearAll = () => {
         gap: 12px;
     }
 }
+
 .card-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
 }
 
 .btn-cart {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .btn-cart:hover {
-  background: #5b5ef4;
-  border-color: #5b5ef4;
-  color: #fff;
+    background: #5b5ef4;
+    border-color: #5b5ef4;
+    color: #fff;
 }
 
 .btn-cart svg {
-  width: 18px;
-  height: 18px;
+    width: 18px;
+    height: 18px;
 }
 </style>

@@ -58,14 +58,14 @@
         <p class="stat-sub-label">Tổng liên hệ</p>
         <h2 class="stat-value">{{ contacts.length }}</h2>
       </div>
-      <div class="stat-card stat-card-gradient">
+     <!-- <div class="stat-card stat-card-gradient">
         <div class="stat-card-check">
           <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" /></svg>
         </div>
         <p class="stat-tag">URGENT</p>
         <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
         <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
-      </div>
+      </div>-->
       <div class="stat-card">
         <div class="stat-icon-wrap stat-icon-orange">
           <svg viewBox="0 0 24 24" fill="none">
@@ -74,7 +74,7 @@
           </svg>
         </div>
         <p class="stat-label">IN PROGRESS</p>
-        <p class="stat-sub-label">Đang xử lý</p>
+        <p class="stat-sub-label">Chờ sử lý </p>
         <h2 class="stat-value">{{ processingCount }}</h2>
       </div>
       <div class="stat-card">
@@ -360,7 +360,7 @@ const API = 'http://localhost:8000/api'   // ← đổi port nếu Laravel chạ
 
 const statusOptions = [
   { value: 'new',        label: 'Mới' },
-  { value: 'processing', label: 'Đang xử lý' },
+  { value: 'processing', label: 'Chờ xử lý' },
   { value: 'resolved',   label: 'Đã trả lời' },
 ]
 
@@ -427,8 +427,24 @@ function showToast(type, message) {
 }
 
 function statusLabel(s) {
-  return { new: '+ Mới', processing: 'Đang xử lý', resolved: 'Đã trả lời' }[s] || s
+  return {
+    new: '+ Mới',
+    processing: 'Chờ xử lý',
+    resolved: 'Đã trả lời'
+  }[s] || s
 }
+
+function getStatusClass(status) {
+  switch (status) {
+    case 'processing':
+      return 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
+    case 'resolved':
+      return 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
+    default:
+      return 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+  }
+}
+
 
 // ─── API calls ───────────────────────────────────────────
 async function fetchContacts() {
@@ -642,9 +658,23 @@ td { padding: 13px 16px; vertical-align: middle; }
 .time-hour { font-size: 13px; font-weight: 600; color: #1e293b; }
 .time-date { font-size: 11px; color: #94a3b8; margin-top: 1px; }
 .status-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-block; white-space: nowrap; }
-.status-new { color: #4f46e5; background: #eef2ff; }
-.status-processing { color: #d97706; background: #fffbeb; border: 1px solid #fde68a; }
-.status-resolved { color: #64748b; background: #f1f5f9; }
+.status-new {
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+.status-processing {
+  color: #b45309;          /* chữ vàng đậm */
+  background: #fef3c7;     /* nền vàng */
+  border: 1px solid #fcd34d;
+}
+
+.status-resolved {
+  color: #047857;          /* chữ xanh */
+  background: #d1fae5;     /* nền xanh */
+  border: 1px solid #6ee7b7;
+}
+
 .actions { display: flex; gap: 5px; }
 .action-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; }
 .action-btn svg { width: 12px; height: 12px; stroke: #64748b; stroke-width: 1.8; fill: none; }

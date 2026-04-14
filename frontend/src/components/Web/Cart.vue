@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
-import Header from '../Layout/Header.vue'
-import Footer from '../Layout/Footer.vue'
+import swal from '@/services/swal'
+
 
 // ===================== STATE =====================
 const cart = ref([])
@@ -69,7 +69,8 @@ const xoaSanPham = async (index) => {
 
 //  XÓA TOÀN BỘ 
 const xoaTatCa = async () => {
-    if (!confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return
+    const isConfirmed = await swal.confirm('Xóa giỏ hàng', 'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi giỏ hàng?')
+  if (!isConfirmed) return
     try {
         await api.delete('/gio-hang/xoa-tat')
         cart.value = []
@@ -101,7 +102,6 @@ onMounted(() => { fetchGioHang() })
 </script>
 
 <template>
-    <Header />
 
     <!-- TOAST -->
     <transition name="slide-down">
@@ -223,7 +223,6 @@ onMounted(() => { fetchGioHang() })
         </div>
     </div>
 
-    <Footer />
 </template>
 
 <style scoped>
