@@ -17,6 +17,7 @@ use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\DanhGiaController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
 
@@ -48,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+    Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
+    Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang', [GioHangController::class, 'index']);
@@ -205,3 +208,9 @@ Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::cla
 // ================= CHATBOT =================
 Route::post('/chat', [ChatbotController::class, 'chat']);
 
+    // ===== ADMIN REVIEWS =====
+    Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+    Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
+    Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
+
+});

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 
@@ -189,5 +189,69 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'Xóa người dùng thành công']);
+    }
+
+    /**
+     * POST /api/user/change-password/request-otp
+     * Request OTP to change password
+     */
+    public function requestPasswordOTP(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ], [
+            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        }
+
+        $otp = rand(100000, 999999);
+        $user->reset_otp = $otp;
+        $user->reset_otp_expires_at = Carbon::now()->addMinutes(10);
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SendResetOtpMail($otp));
+
+            return response()->json([
+                'message' => 'Mã OTP đã được gửi đến email của bạn',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/user/change-password/verify-otp
+     * Verify OTP and change password
+     */
+    public function changePasswordWithOTP(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'otp' => 'required',
+            'new_password' => 'required|min:8',
+        ]);
+
+        if ((int)$user->reset_otp !== (int)$request->otp || Carbon::now()->gt($user->reset_otp_expires_at)) {
+            return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->reset_otp = null;
+        $user->reset_otp_expires_at = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất sau vài giây.',
+        ]);
     }
 }

@@ -11,15 +11,15 @@
                 <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-label">TỔNG CỘNG</div>
-                        <div class="stat-value">{{ stats.total }}</div>
+                        <div class="stat-value">{{ statsData.total }}</div>
                     </div>
                     <div class="stat-card highlight">
                         <div class="stat-label">CHỜ DUYỆT</div>
-                        <div class="stat-value">{{ stats.pending }}</div>
+                        <div class="stat-value">{{ statsData.pending }}</div>
                     </div>
                     <div class="stat-card gold">
                         <div class="stat-label">ĐÁNH GIÁ TB</div>
-                        <div class="stat-value">{{ stats.avg }} <span class="star">★</span></div>
+                        <div class="stat-value">{{ statsData.avg }} <span class="star">★</span></div>
                     </div>
                 </div>
             </div>
@@ -125,15 +125,13 @@
                 </div>
 
                 <!-- Pagination -->
-                <div class="pagination">
-                    <span class="page-info">Hiển thị {{ filteredReviews.length }} đánh giá</span>
+                <div class="pagination" v-if="pagination.last_page > 1">
+                    <span class="page-info">Trang {{ pagination.current_page }} / {{ pagination.last_page }} (Tổng {{ pagination.total }} đánh giá)</span>
                     <div class="page-btns">
-                        <button class="page-btn arrow">&lt;</button>
-                        <button v-for="p in 4" :key="p" class="page-btn" :class="{ active: currentPage === p }"
+                        <button class="page-btn arrow" :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
+                        <button v-for="p in pagination.last_page" :key="p" class="page-btn" :class="{ active: currentPage === p }"
                             @click="currentPage = p">{{ p }}</button>
-                        <span class="page-dots">...</span>
-                        <button class="page-btn">42</button>
-                        <button class="page-btn arrow">&gt;</button>
+                        <button class="page-btn arrow" :disabled="currentPage === pagination.last_page" @click="currentPage++">&gt;</button>
                     </div>
                 </div>
             </div>
@@ -194,6 +192,16 @@ export default {
             ],
 
             reviews: [],
+            pagination: {
+                current_page: 1,
+                last_page: 1,
+                total: 0
+            },
+            statsData: {
+                total: 0,
+                pending: 0,
+                avg: 0
+            },
 
             toast: {
                 show: false,
@@ -207,17 +215,18 @@ export default {
 
     computed: {
         filteredReviews() {
-            if (this.activeTab === 'all') return this.reviews
-            return this.reviews.filter(r => r.trangthai === this.activeTab)
+            // Với server-side pagination, backend đã lo phần lọc theo activeTab
+            return this.reviews
+        }
+    },
+
+    watch: {
+        activeTab() {
+            this.currentPage = 1;
+            this.fetchReviews();
         },
-        stats() {
-            return {
-                total: this.reviews.length,
-                pending: this.reviews.filter(r => r.trangthai === 'pending').length,
-                avg: this.reviews.length > 0 
-                    ? (this.reviews.reduce((acc, r) => acc + r.danhgia, 0) / this.reviews.length).toFixed(1)
-                    : 0
-            }
+        currentPage() {
+            this.fetchReviews();
         }
     },
 
@@ -225,8 +234,15 @@ export default {
         async fetchReviews() {
             this.isLoading = true
             try {
-                const res = await api.get('/admin/reviews')
+                const res = await api.get('/admin/reviews', {
+                    params: {
+                        status: this.activeTab,
+                        page: this.currentPage
+                    }
+                })
                 this.reviews = res.data.reviews || []
+                this.pagination = res.data.pagination || this.pagination
+                this.statsData = res.data.stats || this.statsData
             } catch (err) {
                 console.error('Lỗi khi tải đánh giá:', err)
             } finally {
@@ -244,6 +260,7 @@ export default {
                 const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: newStatus })
                 if (res.data.success) {
                     review.trangthai = newStatus
+                    this.fetchReviews()
                 }
             } catch (err) {
                 alert('Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
@@ -255,6 +272,7 @@ export default {
                 const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: 'pending' })
                 if (res.data.success) {
                     review.trangthai = 'pending'
+                    this.fetchReviews()
                 }
             } catch (err) {
                 alert('Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
@@ -299,6 +317,7 @@ export default {
                 if (res.data.success) {
                     review.trangthai = 'approved'
                     alert('Duyệt đánh giá thành công!')
+                    this.fetchReviews()
                 }
             } catch (err) {
                 alert('Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
@@ -314,6 +333,7 @@ export default {
                 if (res.data.success) {
                     review.trangthai = 'spam'
                     this.showUndoToast(review, oldStatus);
+                    this.fetchReviews()
                 }
             } catch (err) {
                 alert('Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
@@ -326,8 +346,8 @@ export default {
             try {
                 const res = await api.delete(`/admin/reviews/${id}`)
                 if (res.data.success) {
-                    this.reviews = this.reviews.filter(r => r.id_danhgia !== id)
                     alert('Đã xóa đánh giá thành công!')
+                    this.fetchReviews()
                 }
             } catch (err) {
                 alert('Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
@@ -603,8 +623,15 @@ td {
 .review-text {
     font-size: 12.5px;
     color: #475569;
-    max-width: 220px;
+    max-width: 280px;
     line-height: 1.5;
+    /* Hiển thị tối đa 2 dòng và thêm dấu 3 chấm */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
 }
 
 .review-text.spam {
