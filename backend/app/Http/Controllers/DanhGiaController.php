@@ -31,15 +31,31 @@ class DanhGiaController extends Controller
     /**
      * Admin: Lấy toàn bộ danh sách đánh giá
      */
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
+        $status = $request->query('status');
+
         $reviews = DanhGia::with(['user', 'bienThe.sanPham'])
+            ->when($status && $status !== 'all', function ($q) use ($status) {
+                $q->where('trangthai', $status);
+            })
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(5);
 
         return response()->json([
             'success' => true,
-            'reviews' => $reviews
+            'reviews' => $reviews->items(),
+            'pagination' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page'    => $reviews->lastPage(),
+                'total'        => $reviews->total(),
+                'per_page'     => $reviews->perPage(),
+            ],
+            'stats' => [
+                'total' => DanhGia::count(),
+                'pending' => DanhGia::where('trangthai', 'pending')->count(),
+                'avg' => round(DanhGia::avg('danhgia') ?: 0, 1)
+            ]
         ]);
     }
 

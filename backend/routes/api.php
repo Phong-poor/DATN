@@ -16,6 +16,7 @@ use App\Http\Controllers\YeuThichController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\DanhGiaController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -42,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+    Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
+    Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang', [GioHangController::class, 'index']);
@@ -180,5 +183,10 @@ Route::middleware(['auth:sanctum', 'admin'])
     Route::get('/lien-he', [LienHeController::class, 'index']);
     Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
     Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
+
+    // ===== ADMIN REVIEWS =====
+    Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+    Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
+    Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
 
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
 
@@ -7,12 +7,6 @@ const activeTab = ref('all')
 const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
-
-// Cancellation state
-const showCancelModal = ref(false)
-const orderToCancel = ref(null)
-const cancelReason = ref('')
-const isSubmitting = ref(false)
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
@@ -31,20 +25,11 @@ const statusMap = {
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
-const fetchOrders = async () => {
-    isLoading.value = true
-    try {
-        const res = await api.get('/orders')
-        if (res.data.success) {
-            orders.value = res.data.orders
-        }
-    } catch (err) {
-        console.error('Lỗi lấy đơn hàng:', err)
-        alert('Không thể tải danh sách đơn hàng.')
-    } finally {
-        isLoading.value = false
-    }
-}
+// Cancellation state
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
 
 const openCancelModal = (order) => {
     orderToCancel.value = order
@@ -91,6 +76,21 @@ const handleReorder = async (order) => {
         }
     } catch (err) {
         alert('Lỗi khi mua lại sản phẩm.')
+    }
+}
+
+const fetchOrders = async () => {
+    isLoading.value = true
+    try {
+        const res = await api.get('/orders')
+        if (res.data.success) {
+            orders.value = res.data.orders
+        }
+    } catch (err) {
+        console.error('Lỗi lấy đơn hàng:', err)
+        alert('Không thể tải danh sách đơn hàng.')
+    } finally {
+        isLoading.value = false
     }
 }
 
