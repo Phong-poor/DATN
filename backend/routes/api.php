@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DatHangController;
+use App\Http\Controllers\VnpayController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DanhMucController;
 use App\Http\Controllers\ThuongHieuController;
@@ -28,6 +29,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
 // ================= QUÊN MẬT KHẨU =================
+Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
+Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
+
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
@@ -53,18 +57,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gio-hang/dem', [GioHangController::class, 'demSoLuong']);
 
     // ===== ĐẶT HÀNG =====
-    Route::post('/checkout',                    [DatHangController::class, 'checkout']);
-    Route::get('/orders',                       [DatHangController::class, 'orders']);
-    Route::post('/orders/{id}/cancel',          [DatHangController::class, 'cancelOrder']);
-    Route::post('/orders/{id}/reorder',         [DatHangController::class, 'reorder']);
+    Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
+    Route::get('/orders', [DatHangController::class, 'orders']);
+    Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
+    Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
     Route::post('/yeu-thich/them', [YeuThichController::class, 'them']);
     Route::put('/yeu-thich/cap-nhat/{id}', [YeuThichController::class, 'capNhat']);
     Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
+
+    // ===== ĐÁNH GIÁ =====
+    Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
 });
 
-// ================= DANH MỤC =================
+Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+
+
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
 Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
@@ -78,7 +89,8 @@ Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show'])
 Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
 Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
-// ================= USER =================
+
+Route::post('/register', [UserController::class, 'store']);
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}', [UserController::class, 'update']);
@@ -109,7 +121,8 @@ Route::get('/colors/{id}', [ColorController::class, 'show']);
 Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
-// ================= SẢN PHẨM =================
+
+// ===== SẢN PHẨM (search phải đặt TRƯỚC {id}) =====
 Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
@@ -133,6 +146,9 @@ Route::get('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'show']);
 Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
+
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
 // ================= TEST =================
 Route::get('/test', function () {
@@ -170,12 +186,8 @@ Route::middleware(['auth:sanctum', 'admin'])
     Route::get('/lien-he', [LienHeController::class, 'index']);
     Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
     Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
+    Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
+    Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
+    Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
 });
-
-Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
-Route::apiResource('promotions', PromotionController::class);
-Route::get('/promotions', [PromotionController::class, 'index']);
-Route::post('/promotions', [PromotionController::class, 'store']);
-Route::put('/promotions/{id}', [PromotionController::class, 'update']);
-Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);

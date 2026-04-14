@@ -10,17 +10,21 @@ use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class SanPhamController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SanPham::with([
-            'danhMuc',
-            'thuongHieu',
-            'bienThes',
-            'hinhAnhs'
-        ])->orderByDesc('id_sanpham');
+        $cacheKey = 'sanpham_index_' . md5(json_encode($request->all()));
+        
+        $sanphams = Cache::remember($cacheKey, 600, function () use ($request) {
+            $query = SanPham::with([
+                'danhMuc',
+                'thuongHieu',
+                'bienThes',
+                'hinhAnhs'
+            ])->orderByDesc('id_sanpham');
 
         $attributesToFilter = [
             'ram'      => 'ram',
@@ -46,7 +50,8 @@ class SanPhamController extends Controller
             }
         }
 
-        $sanphams = $query->get();
+            return $query->get();
+        });
 
         return response()->json($sanphams);
     }
@@ -54,17 +59,19 @@ class SanPhamController extends Controller
     // Trả về danh sách các giá trị thuộc tính có trong DB
     public function attributeOptions()
     {
-        $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
+        $options = Cache::remember('sanpham_attribute_options', 3600, function () {
+            $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
 
-        $options = \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
-            ->where('trangthai', 1)
-            ->orderBy('id_thuoctinh')
-            ->orderBy('giatri')
-            ->get()
-            ->groupBy('id_thuoctinh')
-            ->map(function ($items) {
-                return $items->pluck('giatri');
-            });
+            return \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
+                ->where('trangthai', 1)
+                ->orderBy('id_thuoctinh')
+                ->orderBy('giatri')
+                ->get()
+                ->groupBy('id_thuoctinh')
+                ->map(function ($items) {
+                    return $items->pluck('giatri');
+                });
+        });
 
         return response()->json([
             'ram'       => $options->get(1, []),
@@ -88,49 +95,43 @@ class SanPhamController extends Controller
             return response()->json([]);
         }
 
-        // Lấy id_sanpham từ bienthe có ten_bienthe chứa keyword
-        $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
-            ->pluck('id_sanpham')
-            ->toArray();
+        $sanphams = Cache::remember('sanpham_search_' . md5($keyword), 600, function () use ($keyword) {
+            $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
+                ->pluck('id_sanpham')
+                ->toArray();
 
-        // Tìm sản phẩm theo tên SP HOẶC có biến thể khớp, dùng whereIn + orWhere để không trùng
-        $sanphams = SanPham::with([
-            'danhMuc',
-            'thuongHieu',
-            'bienThes'
-        ])
-        ->where(function ($q) use ($keyword, $idsByBienThe) {
-            // Tìm theo tên sản phẩm
-            $q->where('tenSP', 'LIKE', "%{$keyword}%");
+            return SanPham::with([
+                'danhMuc',
+                'thuongHieu',
+                'bienThes'
+            ])
+            ->where(function ($q) use ($keyword, $idsByBienThe) {
+                $q->where('tenSP', 'LIKE', "%{$keyword}%");
 
-            // HOẶC tìm theo tên biến thể (nếu có)
-            if (!empty($idsByBienThe)) {
-                $q->orWhereIn('id_sanpham', $idsByBienThe);
-            }
-        })
-        ->orderByDesc('id_sanpham')
-        ->get();
+                if (!empty($idsByBienThe)) {
+                    $q->orWhereIn('id_sanpham', $idsByBienThe);
+                }
+            })
+            ->orderByDesc('id_sanpham')
+            ->get();
+        });
 
-        // distinct() không cần vì whereIn + orWhere trên cùng 1 bảng không tạo trùng
         return response()->json($sanphams);
     }
 
     public function show($id)
     {
-        $sanpham = SanPham::with([
-            'danhMuc',
-            'thuongHieu',
-            'hinhAnhs',
-            'bienThes'
-        ])->find($id);
+        $result = Cache::remember("sanpham_show_{$id}", 3600, function () use ($id) {
+            $sanpham = SanPham::with([
+                'danhMuc',
+                'thuongHieu',
+                'hinhAnhs',
+                'bienThes'
+            ])->find($id);
 
-        if (!$sanpham) {
-            return response()->json([
-                'message' => 'Không tìm thấy sản phẩm.'
-            ], 404);
-        }
+            if (!$sanpham) return null;
 
-        $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
+            $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
 
         $result = [
             'id_sanpham'     => $sanpham->id_sanpham,
@@ -187,7 +188,16 @@ class SanPhamController extends Controller
                     'thuoc_tinh'  => $thuocTinhJson,
                 ];
             })->values()
-        ];
+            ];
+
+            return $result;
+        });
+
+        if (!$result) {
+            return response()->json([
+                'message' => 'Không tìm thấy sản phẩm.'
+            ], 404);
+        }
 
         return response()->json($result);
     }
@@ -378,6 +388,8 @@ class SanPhamController extends Controller
             $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
                 ->find($sanpham->id_sanpham);
 
+            Cache::forget("sanpham_show_{$id}");
+
             return response()->json([
                 'message' => 'Cập nhật sản phẩm thành công.',
                 'data'    => $sanpham
@@ -401,6 +413,8 @@ class SanPhamController extends Controller
         }
 
         $sanpham->delete();
+
+        Cache::forget("sanpham_show_{$id}");
 
         return response()->json(['message' => 'Xóa sản phẩm thành công.']);
     }

@@ -81,8 +81,17 @@ const confirmOrder = async () => {
         })
 
         if (response.data.success) {
-            alert('🎉 Đặt hàng thành công!')
-            router.push('/profile') // Chuyển về trang profile để xem đơn hàng
+            if (response.data.payUrl) {
+                window.location.href = response.data.payUrl;
+            } else {
+                router.push({ 
+                    name: 'thank-you', 
+                    query: { 
+                        status: 'success', 
+                        order_id: response.data.order.id_dathang 
+                    } 
+                })
+            }
         }
     } catch (error) {
         const msg = error.response?.data?.message || 'Có lỗi xảy ra khi đặt hàng.'
@@ -142,20 +151,11 @@ const confirmOrder = async () => {
               </div>
             </label>
 
-            <label class="pay-item" :class="{ active: payment === 'bank' }">
-              <input type="radio" value="bank" v-model="payment" />
-              <div class="radio"></div>
-              <div class="pay-text">
-                <b>Chuyển khoản ngân hàng</b>
-                <p>Nhận thông tin tài khoản sau khi đặt</p>
-              </div>
-            </label>
-
             <label class="pay-item" :class="{ active: payment === 'momo' }">
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
               <div class="pay-text">
-                <b>Ví điện tử (Momo / ZaloPay)</b>
+                <b>Ví điện tử VNPay</b>
                 <p>Thanh toán nhanh qua ví điện tử</p>
               </div>
             </label>
@@ -196,7 +196,7 @@ const confirmOrder = async () => {
           </div>
 
           <div class="total">
-            <span>TỔNG CỘNG</span>
+            <span>TỔNG CỘNG: </span>
             <b>{{ format(total) }}</b>
           </div>
 

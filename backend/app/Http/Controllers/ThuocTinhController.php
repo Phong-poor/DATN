@@ -145,12 +145,12 @@ class ThuocTinhController extends Controller
     // lấy full data (phù hợp render 1 lần bên Vue)
     public function getAll()
     {
-        $nhoms = NhomThuocTinh::with([
-            'thuocTinhs.giatriThuocTinhs'
-        ])->get();
+        $data = \Illuminate\Support\Facades\Cache::remember('thuoctinh_getall', 600, function () {
+            $nhoms = NhomThuocTinh::with([
+                'thuocTinhs.giatriThuocTinhs'
+            ])->get();
 
-        return response()->json(
-            $nhoms->map(function ($group) {
+            return $nhoms->map(function ($group) {
                 return [
                     'id_nhom' => $group->id_nhom,
                     'ten_nhom' => $group->ten_nhom,
@@ -169,7 +169,9 @@ class ThuocTinhController extends Controller
                         ];
                     })->values(),
                 ];
-            })->values()
-        );
+            })->values();
+        });
+
+        return response()->json($data);
     }
 }

@@ -465,11 +465,11 @@ onMounted(() => {
 function exportVariants() {
   const today = new Date().toLocaleDateString('vi-VN')
   const title = [`DANH SÁCH BIẾN THỂ CẤU HÌNH (xuất ngày ${today})`]
-  const header = ['Tên biến thể', 'Loại thuộc tính', 'Trạng thái']
-  const rows = variants.value.map(v => [v.name, v.type, v.status])
+  const header = ['Tên biến thể', 'Loại thuộc tính', 'Trạng thái', 'Giá cộng thêm']
+  const rows = variants.value.map(v => [v.name, v.type, v.status, v.gia_cong_them || 0])
   const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows])
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }]
-  ws['!cols'] = [{ wch: 24 }, { wch: 20 }, { wch: 14 }]
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }]
+  ws['!cols'] = [{ wch: 24 }, { wch: 20 }, { wch: 14 }, { wch: 15 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Biến thể')
   XLSX.writeFile(wb, `bien-the-${Date.now()}.xlsx`)
@@ -545,11 +545,18 @@ async function handleImportFile(e) {
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
           const attrName = String(obj['Loại thuộc tính'] || '').trim()
+          const giaCongThem = Number(obj['Giá cộng thêm'] || 0)
+          
           if (!varName || !attrName) { skipCount++; continue }
           const attr = attrs.value.find(a => a.name === attrName)
           if (!attr) { skipCount++; continue }
           if (isDuplicateVariant(varName, attrName)) { skipCount++; continue }
-          await api.post('/giatrithuoctinh', { id_thuoctinh: attr.id, giatri: varName })
+          
+          await api.post('/giatrithuoctinh', { 
+            id_thuoctinh: attr.id, 
+            giatri: varName,
+            gia_cong_them: giaCongThem
+          })
         }
         successCount++
       } catch {
