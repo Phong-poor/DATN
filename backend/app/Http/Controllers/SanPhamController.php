@@ -18,7 +18,7 @@ class SanPhamController extends Controller
     {
         $cacheKey = 'sanpham_index_' . md5(json_encode($request->all()));
         
-        $sanphams = Cache::remember($cacheKey, 600, function () use ($request) {
+        $sanphams = Cache::remember($cacheKey, 120, function () use ($request) {
             $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
@@ -59,7 +59,7 @@ class SanPhamController extends Controller
     // Trả về danh sách các giá trị thuộc tính có trong DB
     public function attributeOptions()
     {
-        $options = Cache::remember('sanpham_attribute_options', 3600, function () {
+        $options = Cache::remember('sanpham_attribute_options', 120, function () {
             $attributeIds = [1, 2, 3, 4, 5, 6, 7, 8];
 
             return \App\Models\GiaTriThuocTinh::whereIn('id_thuoctinh', $attributeIds)
@@ -95,7 +95,7 @@ class SanPhamController extends Controller
             return response()->json([]);
         }
 
-        $sanphams = Cache::remember('sanpham_search_' . md5($keyword), 600, function () use ($keyword) {
+        $sanphams = Cache::remember('sanpham_search_' . md5($keyword), 120, function () use ($keyword) {
             $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
                 ->pluck('id_sanpham')
                 ->toArray();
@@ -121,7 +121,7 @@ class SanPhamController extends Controller
 
     public function show($id)
     {
-        $result = Cache::remember("sanpham_show_{$id}", 3600, function () use ($id) {
+        $result = Cache::remember("sanpham_show_{$id}", 120, function () use ($id) {
             $sanpham = SanPham::with([
                 'danhMuc',
                 'thuongHieu',

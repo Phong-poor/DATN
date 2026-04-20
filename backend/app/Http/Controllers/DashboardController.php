@@ -18,7 +18,7 @@ class DashboardController extends Controller
         try {
             $period = $request->query('period', 'all');
 
-            $data = Cache::remember("dashboard_data_{$period}", 600, function () use ($period) {
+            $data = Cache::remember("dashboard_data_{$period}", 120, function () use ($period) {
                 // ================= TIME =================
                 $dateFrom = match ($period) {
                 'month' => now()->startOfMonth(),

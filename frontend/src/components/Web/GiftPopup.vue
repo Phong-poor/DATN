@@ -101,6 +101,8 @@
 </template>
 <script>
 import api from '../../services/api'
+import { getToken } from '@/services/auth'
+
 
 export default {
     name: 'GiftPopup',
@@ -122,15 +124,23 @@ export default {
     },
     async mounted() {
         // Chỉ hiện cho thành viên
-        const token = localStorage.getItem('token')
+        const token = getToken()
+        console.log('[GiftPopup.vue] mounted. Token:', token ? 'Exists' : 'MISSING');
         if (!token) return
+
+
 
         // Đợi tải quà tặng về trước khi quyết định hiện popup
         await this.fetchGifts()
+        console.log('[GiftPopup.vue] fetchGifts complete. Promos count:', this.promos.length);
 
-        if (this.promos.length === 0) return 
+        if (this.promos.length === 0) {
+            console.log('[GiftPopup.vue] No promos available (already claimed or none exist). Popup EXIT.');
+            return 
+        }
 
         this.showTimer = setTimeout(() => {
+            console.log('GiftPopup.vue: Setting visible to true');
             this.visible = true
             this.$nextTick(() => {
                 setTimeout(() => { this.entered = true }, 30)
@@ -138,6 +148,8 @@ export default {
                 setTimeout(() => { this.launchConfetti() }, 250)
             })
         }, this.delay)
+
+
     },
     beforeUnmount() {
         cancelAnimationFrame(this.animFrame)

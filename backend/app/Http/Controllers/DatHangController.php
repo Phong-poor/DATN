@@ -13,9 +13,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use App\Mail\OrderSuccessMail;
 use App\Events\OrderStatusUpdated;
-use App\Events\NewOrderPlaced;
+use App\Events\OrderPlaced;
 
 
 class DatHangController extends Controller
@@ -245,6 +246,15 @@ class DatHangController extends Controller
             }
 
             DB::commit();
+
+            // Invalidate dashboard cache
+            Cache::forget('dashboard_data_all');
+            Cache::forget('dashboard_data_week');
+            Cache::forget('dashboard_data_month');
+            Cache::forget('dashboard_data_year');
+
+            // Broadcast new order event
+            broadcast(new OrderPlaced($donHang));
 
             $payUrl = null;
             if ($request->PTTT === 'Ví điện tử') {

@@ -7,6 +7,8 @@ import api from '../../services/api'
 import echo from '../../services/echo'
 import { onUnmounted } from 'vue'
 import swal from '../../services/swal'
+import echo from '../../services/echo'
+import { onUnmounted } from 'vue'
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
@@ -111,15 +113,43 @@ const confirmCancelOrder = async (id) => {
 onMounted(() => {
     fetchOrders()
 
-    echo.private('admin.orders')
+    echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
-            fetchOrders()
-            alert('Có đơn hàng mới vừa được đặt!')
+            console.log('New Order Received:', e.order)
+            
+            const newOrder = {
+                id_backend: e.order.id_dathang,
+                id: `#VT-2026-${String(e.order.id_dathang).padStart(3, '0')}`,
+                name: e.order.user?.name || 'Ẩn danh',
+                email: e.order.user?.email || '',
+                avatar: (e.order.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+                date: new Date(e.order.created_at).toLocaleDateString('vi-VN'),
+                total: new Intl.NumberFormat('vi-VN').format(e.order.tongtien) + 'đ',
+                status: e.order.trangthai,
+                phone: e.order.user?.phone || '',
+                address: e.order.diachi || '',
+                raw: e.order,
+                note: '',
+            }
+
+            // Thêm vào đầu danh sách
+            orders.value.unshift(newOrder)
+
+            // Thông báo
+            swal.toast(`🔔 Có đơn hàng mới từ ${newOrder.name}!`, 'info')
+            
+            // Nếu trình duyệt hỗ trợ âm thanh, có thể thêm ting ting ở đây
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3')
+                audio.play()
+            } catch (err) {
+                console.log('Audio play failed')
+            }
         })
 })
 
 onUnmounted(() => {
-    echo.leave('admin.orders')
+    echo.leaveChannel('admin-orders')
 })
 
 watch(searchQuery, () => {

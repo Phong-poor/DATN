@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import api from '@/services/api'
+import echo from '@/services/echo'
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const period = ref('all')          // all | week | month | year
@@ -35,7 +36,38 @@ function getColor(status) {
         cancelled: '#f87171'
     }[status] || '#ccc'
 }
-onMounted(fetchDashboard)
+onMounted(() => {
+    fetchDashboard()
+
+    echo.channel('admin-orders')
+        .listen('.order.placed', (e) => {
+            if (!data.value) return
+            
+            const newOrder = {
+                id: '#DH-' + String(e.order.id_dathang).padStart(4, '0'),
+                khach: e.order.user?.name ?? 'N/A',
+                tong: new Intl.NumberFormat('vi-VN').format(e.order.tongtien) + 'đ',
+                status: e.order.trangthai,
+                trangthai: 'Chờ xác nhận',
+            }
+
+            // Thêm vào đầu danh sách
+            if (!data.value.don_hang) data.value.don_hang = []
+            data.value.don_hang.unshift(newOrder)
+            if (data.value.don_hang.length > 5) {
+                data.value.don_hang.pop()
+            }
+            
+            // Cập nhật stats (count tổng đơn hàng chờ xác nhận)
+            const pendingStatus = data.value.trang_thai?.find(s => s.status === 'pending')
+            if (pendingStatus) {
+                pendingStatus.count++
+            }
+        })
+})
+onUnmounted(() => {
+    echo.leaveChannel('admin-orders')
+})
 watch(period, fetchDashboard)
 
 // ─── Stats cards ─────────────────────────────────────────────────────────────

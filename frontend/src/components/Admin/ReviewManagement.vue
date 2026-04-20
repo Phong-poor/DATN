@@ -172,193 +172,181 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '../../services/api'
 
-export default {
-    name: 'ReviewManagement',
+const activeTab = ref('all')
+const currentPage = ref(1)
+const isLoading = ref(false)
 
-    data() {
-        return {
-            activeTab: 'all',
-            currentPage: 1,
-            isLoading: false,
+const tabs = [
+    { key: 'all', label: 'Tất cả' },
+    { key: 'pending', label: 'Chờ duyệt' },
+    { key: 'approved', label: 'Đã duyệt' },
+    { key: 'spam', label: 'Spam' },
+]
 
-            tabs: [
-                { key: 'all', label: 'Tất cả' },
-                { key: 'pending', label: 'Chờ duyệt' },
-                { key: 'approved', label: 'Đã duyệt' },
-                { key: 'spam', label: 'Spam' },
-            ],
+const reviews = ref([])
+const pagination = ref({
+    current_page: 1,
+    last_page: 1,
+    total: 0
+})
+const statsData = ref({
+    total: 0,
+    pending: 0,
+    avg: 0
+})
 
-            reviews: [],
-            pagination: {
-                current_page: 1,
-                last_page: 1,
-                total: 0
-            },
-            statsData: {
-                total: 0,
-                pending: 0,
-                avg: 0
-            },
+const toast = ref({
+    show: false,
+    message: '',
+    reviewId: null,
+    oldStatus: null,
+    timeout: null
+})
 
-            toast: {
-                show: false,
-                message: '',
-                reviewId: null,
-                oldStatus: null,
-                timeout: null
+const filteredReviews = computed(() => {
+    return reviews.value
+})
+
+const fetchReviews = async () => {
+    isLoading.value = true
+    try {
+        const res = await api.get('/admin/reviews', {
+            params: {
+                status: activeTab.value,
+                page: currentPage.value
             }
-        }
-    },
-
-    computed: {
-        filteredReviews() {
-            // Với server-side pagination, backend đã lo phần lọc theo activeTab
-            return this.reviews
-        }
-    },
-
-    watch: {
-        activeTab() {
-            this.currentPage = 1;
-            this.fetchReviews();
-        },
-        currentPage() {
-            this.fetchReviews();
-        }
-    },
-
-    methods: {
-        async fetchReviews() {
-            this.isLoading = true
-            try {
-                const res = await api.get('/admin/reviews', {
-                    params: {
-                        status: this.activeTab,
-                        page: this.currentPage
-                    }
-                })
-                this.reviews = res.data.reviews || []
-                this.pagination = res.data.pagination || this.pagination
-                this.statsData = res.data.stats || this.statsData
-            } catch (err) {
-                console.error('Lỗi khi tải đánh giá:', err)
-            } finally {
-                this.isLoading = false
-            }
-        },
-
-        statusLabel(status) {
-            const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'SPAM' }
-            return map[status] || status
-        },
-
-        async updateStatusDropdown(review, newStatus) {
-            try {
-                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: newStatus })
-                if (res.data.success) {
-                    review.trangthai = newStatus
-                    this.fetchReviews()
-                }
-            } catch (err) {
-                alert('Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
-            }
-        },
-
-        async undoReview(review) {
-            try {
-                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: 'pending' })
-                if (res.data.success) {
-                    review.trangthai = 'pending'
-                    this.fetchReviews()
-                }
-            } catch (err) {
-                alert('Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
-            }
-        },
-
-        showUndoToast(review, oldStatus) {
-            if (this.toast.timeout) clearTimeout(this.toast.timeout);
-            this.toast.show = true;
-            this.toast.message = 'Đã chuyển bình luận vào mục SPAM.';
-            this.toast.reviewId = review.id_danhgia;
-            this.toast.oldStatus = oldStatus;
-
-            this.toast.timeout = setTimeout(() => {
-                this.toast.show = false;
-            }, 5000);
-        },
-
-        async triggerUndo() {
-            const reviewId = this.toast.reviewId;
-            const targetStatus = this.toast.oldStatus;
-            this.toast.show = false;
-
-            const review = this.reviews.find(r => r.id_danhgia === reviewId);
-            if (!review) return;
-
-            try {
-                const res = await api.put(`/admin/reviews/${reviewId}/status`, { trangthai: targetStatus });
-                if (res.data.success) review.trangthai = targetStatus;
-            } catch (err) {
-                alert('Lỗi hoàn tác: ' + err.message);
-            }
-        },
-
-        async approveReview(review) {
-            if (!confirm('Bạn có chắc chắn muốn duyệt đánh giá này không?')) return;
-
-            try {
-                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
-                    trangthai: 'approved'
-                })
-                if (res.data.success) {
-                    review.trangthai = 'approved'
-                    alert('Duyệt đánh giá thành công!')
-                    this.fetchReviews()
-                }
-            } catch (err) {
-                alert('Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
-            }
-        },
-
-        async markAsSpam(review) {
-            const oldStatus = review.trangthai;
-            try {
-                const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
-                    trangthai: 'spam'
-                })
-                if (res.data.success) {
-                    review.trangthai = 'spam'
-                    this.showUndoToast(review, oldStatus);
-                    this.fetchReviews()
-                }
-            } catch (err) {
-                alert('Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
-            }
-        },
-
-        async deleteReview(id) {
-            if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')) return;
-
-            try {
-                const res = await api.delete(`/admin/reviews/${id}`)
-                if (res.data.success) {
-                    alert('Đã xóa đánh giá thành công!')
-                    this.fetchReviews()
-                }
-            } catch (err) {
-                alert('Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
-            }
-        },
-    },
-
-    mounted() {
-        this.fetchReviews()
+        })
+        reviews.value = res.data.reviews || []
+        pagination.value = res.data.pagination || pagination.value
+        statsData.value = res.data.stats || statsData.value
+    } catch (err) {
+        console.error('Lỗi khi tải đánh giá:', err)
+    } finally {
+        isLoading.value = false
     }
 }
+
+const statusLabel = (status) => {
+    const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'SPAM' }
+    return map[status] || status
+}
+
+/* eslint-disable no-unused-vars */
+const updateStatusDropdown = async (review, newStatus) => {
+    try {
+        const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: newStatus })
+        if (res.data.success) {
+            review.trangthai = newStatus
+            fetchReviews()
+        }
+    } catch (err) {
+        alert('Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+const undoReview = async (review) => {
+    try {
+        const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, { trangthai: 'pending' })
+        if (res.data.success) {
+            review.trangthai = 'pending'
+            fetchReviews()
+        }
+    } catch (err) {
+        alert('Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+const showUndoToast = (review, oldStatus) => {
+    if (toast.value.timeout) clearTimeout(toast.value.timeout);
+    toast.value.show = true;
+    toast.value.message = 'Đã chuyển bình luận vào mục SPAM.';
+    toast.value.reviewId = review.id_danhgia;
+    toast.value.oldStatus = oldStatus;
+
+    toast.value.timeout = setTimeout(() => {
+        toast.value.show = false;
+    }, 5000);
+}
+
+const triggerUndo = async () => {
+    const reviewId = toast.value.reviewId;
+    const targetStatus = toast.value.oldStatus;
+    toast.value.show = false;
+
+    const review = reviews.value.find(r => r.id_danhgia === reviewId);
+    if (!review) return;
+
+    try {
+        const res = await api.put(`/admin/reviews/${reviewId}/status`, { trangthai: targetStatus });
+        if (res.data.success) review.trangthai = targetStatus;
+    } catch (err) {
+        alert('Lỗi hoàn tác: ' + err.message);
+    }
+}
+
+const approveReview = async (review) => {
+    if (!confirm('Bạn có chắc chắn muốn duyệt đánh giá này không?')) return;
+
+    try {
+        const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
+            trangthai: 'approved'
+        })
+        if (res.data.success) {
+            review.trangthai = 'approved'
+            alert('Duyệt đánh giá thành công!')
+            fetchReviews()
+        }
+    } catch (err) {
+        alert('Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+const markAsSpam = async (review) => {
+    const oldStatus = review.trangthai;
+    try {
+        const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
+            trangthai: 'spam'
+        })
+        if (res.data.success) {
+            review.trangthai = 'spam'
+            showUndoToast(review, oldStatus);
+            fetchReviews()
+        }
+    } catch (err) {
+        alert('Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+const deleteReview = async (id) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')) return;
+
+    try {
+        const res = await api.delete(`/admin/reviews/${id}`)
+        if (res.data.success) {
+            alert('Đã xóa đánh giá thành công!')
+            fetchReviews()
+        }
+    } catch (err) {
+        alert('Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+watch(activeTab, () => {
+    currentPage.value = 1;
+    fetchReviews();
+})
+
+watch(currentPage, () => {
+    fetchReviews();
+})
+
+onMounted(() => {
+    fetchReviews()
+})
 </script>
 
 <style scoped>
