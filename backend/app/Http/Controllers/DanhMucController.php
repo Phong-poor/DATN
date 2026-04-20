@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 class DanhMucController extends Controller
 {
     public function index(){
-        $danhmuc = Cache::remember('danhmuc_all', 3600, function () {
+        $danhmuc = Cache::remember('danhmuc_all', 120, function () {
             return DanhMuc::all();
         });
         return response()->json(['thongbao' => 'thành công', 'data' => $danhmuc]);
@@ -32,7 +32,7 @@ class DanhMucController extends Controller
     }
     public function show($id)
     {
-        $danhMuc = Cache::remember("danhmuc_show_{$id}", 3600, function () use ($id) {
+        $danhMuc = Cache::remember("danhmuc_show_{$id}", 120, function () use ($id) {
             return DanhMuc::find($id);
         });
 

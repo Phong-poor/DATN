@@ -10,7 +10,7 @@ class BienTheController extends Controller
 {
     public function index()
     {
-        $bienthes = Cache::remember('bienthe_all', 3600, function () {
+        $bienthes = Cache::remember('bienthe_all', 120, function () {
             return BienThe::with('sanPham')
                 ->orderByDesc('id_bienthe')
                 ->get();
@@ -21,7 +21,7 @@ class BienTheController extends Controller
 
     public function getBySanPham($id_sanpham)
     {
-        $bienthes = Cache::remember("bienthe_sp_{$id_sanpham}", 3600, function () use ($id_sanpham) {
+        $bienthes = Cache::remember("bienthe_sp_{$id_sanpham}", 120, function () use ($id_sanpham) {
             return BienThe::where('id_sanpham', $id_sanpham)
                 ->orderByDesc('id_bienthe')
                 ->get();
@@ -32,7 +32,7 @@ class BienTheController extends Controller
 
     public function show($id)
     {
-        $bienthe = Cache::remember("bienthe_{$id}", 3600, function () use ($id) {
+        $bienthe = Cache::remember("bienthe_{$id}", 120, function () use ($id) {
             return BienThe::with('sanPham')->find($id);
         });
 

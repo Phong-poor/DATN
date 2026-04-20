@@ -128,8 +128,11 @@ const mapProducts = (rawProducts) => {
 const featuredProducts = ref([])
 onMounted(async () => {
     setTimeout(() => {
+        console.log('[Home.vue] 5s timer reached. showGift = true');
         showGift.value = true
-    }, 10000)
+    }, 5000)
+
+
 
     try {
         const response = await api.get('/sanpham')

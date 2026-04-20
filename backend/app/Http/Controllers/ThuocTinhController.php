@@ -145,7 +145,7 @@ class ThuocTinhController extends Controller
     // lấy full data (phù hợp render 1 lần bên Vue)
     public function getAll()
     {
-        $data = \Illuminate\Support\Facades\Cache::remember('thuoctinh_getall', 600, function () {
+        $data = \Illuminate\Support\Facades\Cache::remember('thuoctinh_getall', 120, function () {
             $nhoms = NhomThuocTinh::with([
                 'thuocTinhs.giatriThuocTinhs'
             ])->get();

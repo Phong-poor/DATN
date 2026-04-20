@@ -10,7 +10,7 @@ class ThuongHieuController extends Controller
 {
     
     public function index(){
-        $thuonghieu = Cache::remember('thuonghieu_all', 3600, function () {
+        $thuonghieu = Cache::remember('thuonghieu_all', 120, function () {
             return ThuongHieu::all();
         });
         return response()->json(['thongbao' => 'thành công', 'data' => $thuonghieu]);
@@ -33,7 +33,7 @@ class ThuongHieuController extends Controller
     }
     public function show($id)
     {
-        $thuonghieu = Cache::remember("thuonghieu_show_{$id}", 3600, function () use ($id) {
+        $thuonghieu = Cache::remember("thuonghieu_show_{$id}", 120, function () use ($id) {
             return ThuongHieu::find($id);
         });
 

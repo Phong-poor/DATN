@@ -641,8 +641,6 @@ const clearAll = () => {
 
                 <div class="top-bar">
                     <div>
-
-                        <p>Tìm thấy <b>{{ products.length }}</b> sản phẩm phù hợp</p>
                         <h1>Danh sách Laptop</h1>
                         <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
                         <p v-else>Đang tìm kiếm sản phẩm...</p>

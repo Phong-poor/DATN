@@ -1,5 +1,7 @@
+import { getUser } from '@/services/auth';
+
 export default function adminGuard(to, from, next) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getUser();
 
   if (!user) {
     return next("/login");
@@ -10,4 +12,4 @@ export default function adminGuard(to, from, next) {
   }
 
   return next();
-}
+}

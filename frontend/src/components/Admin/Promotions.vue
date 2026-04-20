@@ -335,11 +335,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { getToken } from '@/services/auth'
+
 
 // ── Lấy token từ localStorage ──────────────────
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   return {
+
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
