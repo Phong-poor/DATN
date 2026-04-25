@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\DatHang;
+use App\Events\NewOrderPlaced;
 
 class VnpayController extends Controller
 {
@@ -92,6 +93,10 @@ class VnpayController extends Controller
             if ($order) {
                 if ($inputData['vnp_ResponseCode'] == '00') {
                     $order->update(['trangthai' => 'confirmed']);
+                    
+                    // Broadcast to Admin
+                    event(new NewOrderPlaced($order));
+
                     return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
                 }
                 return response()->json(['RspCode' => '00', 'Message' => 'Payment Failed']);

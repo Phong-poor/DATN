@@ -4,6 +4,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
   
 import api from '../../services/api'
+import echo from '../../services/echo'
+import { onUnmounted } from 'vue'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
 import { onUnmounted } from 'vue'

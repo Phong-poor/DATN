@@ -13,13 +13,36 @@ const echo = new Echo({
     wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
-    // Base URL for broadcasting auth (private channels)
     authEndpoint: (import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/broadcasting/auth',
-    auth: {
-        headers: {
-            Authorization: `Bearer ${getToken()}`,
-            Accept: 'application/json',
-        },
+    authorizer: (channel, options) => {
+        return {
+            authorize: (socketId, callback) => {
+                const token = localStorage.getItem('token');
+                fetch((import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/broadcasting/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        socket_id: socketId,
+                        channel_name: channel.name
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Auth failed: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => callback(false, data))
+                    .catch(error => {
+                        console.error('Lỗi xác thực Socket:', error);
+                        callback(true, error);
+                    });
+            }
+        };
     },
 });
 
