@@ -38,12 +38,12 @@
 
               <!-- Danh sách sản phẩm nếu có -->
               <div v-if="msg.products && msg.products.length" class="chatbot-products">
-                <div v-for="prod in msg.products" :key="prod.id_sanpham" class="bot-product-card"
-                  @click="goToProduct(prod.id_sanpham)">
-                  <img :src="getProductImage(prod)" :alt="prod.tenSP" class="bot-product-img" />
+                <div v-for="prod in msg.products" :key="prod.id_bienthe" class="bot-product-card"
+                  @click="goToProduct(prod)">
+                  <img :src="getProductImage(prod)" :alt="getDisplayName(prod)" class="bot-product-img" />
                   <div class="bot-product-info">
-                    <div class="bot-product-name">{{ prod.tenSP }}</div>
-                    <div class="bot-product-price">{{ getPrice(prod) }}</div>
+                    <div class="bot-product-name">{{ getDisplayName(prod) }}</div>
+                    <div class="bot-product-price">{{ formatPrice(prod.gia) }}</div>
                   </div>
                 </div>
               </div>
@@ -86,9 +86,31 @@ const newMessage = ref('');
 const chatBody = ref(null);
 const router = useRouter();
 
-const goToProduct = (id) => {
-  if (!id) return;
-  router.push(`/products/${id}`);
+const goToProduct = (bt) => {
+  if (!bt) return;
+  const spId = bt.id_sanpham || (bt.san_pham?.id_sanpham) || (bt.sanPham?.id_sanpham);
+  if (!spId) return;
+
+  router.push(`/products/${spId}?variant=${bt.id_bienthe}`);
+};
+
+const getDisplayName = (bt) => {
+  if (!bt) return '';
+  const sp = bt.san_pham || bt.sanPham;
+  const name = sp ? sp.tenSP : 'Sản phẩm';
+  
+  // Lấy vài thông số mẫu từ sản phẩm (nếu có)
+  let specPart = '';
+  if (sp && sp.thong_so_ky_thuat) {
+    const specs = sp.thong_so_ky_thuat;
+    const cpu = specs.CPU || specs.cpu;
+    const ram = specs.RAM || specs.ram;
+    if (cpu || ram) {
+      specPart = `(${cpu || ''}${cpu && ram ? ' / ' : ''}${ram || ''})`;
+    }
+  }
+
+  return `${name} ${specPart} - ${bt.ten_bienthe}`;
 };
 
 const formatPrice = (price) => {
@@ -96,16 +118,13 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
-const getPrice = (prod) => {
-  const bt = prod.bien_thes || prod.bienThes;
-  if (bt && bt.length > 0) return formatPrice(bt[0].gia);
-  return 'Liên hệ';
-};
-
-const getProductImage = (prod) => {
-  if (!prod.hinhanh) return 'https://via.placeholder.com/150';
-  if (prod.hinhanh.startsWith('http')) return prod.hinhanh;
-  return `http://localhost:8000/storage/${prod.hinhanh}`;
+const getProductImage = (bt) => {
+  const sp = bt.san_pham || bt.sanPham;
+  const image = sp ? sp.hinhanh : bt.hinhanh; // Ưu tiên hình ảnh sản phẩm chính
+  
+  if (!image) return 'https://via.placeholder.com/150';
+  if (image.startsWith('http')) return image;
+  return `http://localhost:8000/storage/${image}`;
 };
 
 const messages = ref([

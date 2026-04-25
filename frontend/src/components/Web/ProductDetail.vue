@@ -26,7 +26,8 @@ const product = ref({
     SKU: '',
     hinhanh: '',
     hinhAnhs: [],
-    bienThes: []
+    bienThes: [],
+    thong_so_ky_thuat: []
 })
 
 const selectedImage = ref('https://via.placeholder.com/600')
@@ -186,6 +187,23 @@ const allImages = computed(() => {
     return images.length > 0 ? images : ['https://via.placeholder.com/600']
 })
 
+// ===================== THUMB SLIDER =====================
+const thumbIndex = ref(0)
+const thumbLimit = 4
+const visibleThumbs = computed(() => {
+    return allImages.value.slice(thumbIndex.value, thumbIndex.value + thumbLimit)
+})
+const nextThumbs = () => {
+    if (thumbIndex.value + thumbLimit < allImages.value.length) {
+        thumbIndex.value++
+    }
+}
+const prevThumbs = () => {
+    if (thumbIndex.value > 0) {
+        thumbIndex.value--
+    }
+}
+
 // ===================== FETCH SẢN PHẨM =====================
 const fetchProductDetail = async () => {
     try {
@@ -219,6 +237,12 @@ const fetchProductDetail = async () => {
                 selectedImage.value = getImageUrl(targetVariant.hinhanh)
             }
         }
+
+        // Tải sản phẩm tương tự
+        if (data.id_danhmuc) {
+            fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
+        }
+
     } catch (error) {
         console.error('Lỗi khi tải chi tiết sản phẩm:', error)
     } finally {
@@ -226,17 +250,70 @@ const fetchProductDetail = async () => {
     }
 }
 
-onMounted(() => { 
+onMounted(() => {
     fetchProductDetail()
     fetchReviews()
 })
 
-const related = [
-    { name: 'Precision Air 14 Ultrabook', spec: 'Core i7 · 16GB RAM · 512GB SSD', price: '32.990.000đ', img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300' },
-    { name: 'Precision Studio 16 Pro', spec: 'Core i9 · 64GB RAM · 2TB SSD', price: '58.990.000đ', img: 'https://images.unsplash.com/photo-1511385348-a52b4a160dc2?w=300' },
-    { name: 'Workstation Go X7', spec: 'Core i7 · 32GB RAM · 1TB SSD', price: '39.490.000đ', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300' },
-    { name: 'Precision Slim 13 Ultra', spec: 'Core i5 · 16GB RAM · 512GB SSD', price: '26.990.000đ', img: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300' },
-]
+const relatedProducts = ref([])
+
+const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
+    try {
+        const res = await api.get('/sanpham')
+        const allProducts = res.data || []
+
+        // Lọc theo danh mục và loại bỏ sản phẩm hiện tại
+        const filtered = allProducts.filter(p =>
+            p.id_danhmuc === id_danhmuc &&
+            p.id_sanpham !== currentProductId
+        )
+
+        const variants = []
+        filtered.forEach(p => {
+            // Parse thông số chung để ghép tên
+            let generalSpecs = []
+            try {
+                const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
+                if (Array.isArray(tskt)) {
+                    generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
+                }
+            } catch (e) { }
+            const fullNameBase = [p.tenSP, ...generalSpecs].join(' ');
+
+            if (p.bien_thes && p.bien_thes.length > 0) {
+                p.bien_thes.forEach(bt => {
+                    let ram = '', cpu = '', mausac = '';
+                    let thuoc_tinh = [];
+                    try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
+
+                    if (Array.isArray(thuoc_tinh)) {
+                        thuoc_tinh.forEach(attr => {
+                            const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                            if (ten === 'ram') ram = attr.giatri;
+                            else if (ten === 'cpu') cpu = attr.giatri;
+                            else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
+                        });
+                    }
+
+                    const specText = [ram, cpu, mausac].filter(Boolean).join(' · ');
+
+                    variants.push({
+                        id: p.id_sanpham,
+                        key_id: bt.id_bienthe,
+                        fullName: fullNameBase,
+                        specText: specText,
+                        price: bt.gia,
+                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh)
+                    })
+                })
+            }
+        })
+
+        relatedProducts.value = variants.slice(0, 10)
+    } catch (error) {
+        console.error('Lỗi tải sản phẩm tương tự:', error)
+    }
+}
 const dangThemYeuThich = ref(false)
 
 const themVaoYeuThich = async () => {
@@ -304,9 +381,24 @@ const themVaoYeuThich = async () => {
                         <div class="main-img">
                             <img :src="selectedImage" />
                         </div>
-                        <div class="thumbs">
-                            <img v-for="(img, i) in allImages" :key="i" :src="img" @click="selectedImage = img"
-                                :class="{ active: selectedImage === img }" />
+                        <div class="thumb-wrapper">
+                            <button class="thumb-nav p-left" @click="prevThumbs" :disabled="thumbIndex === 0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16"
+                                    height="16">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <div class="thumbs">
+                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img"
+                                    :class="{ active: selectedImage === img }" />
+                            </div>
+                            <button class="thumb-nav p-right" @click="nextThumbs"
+                                :disabled="thumbIndex + thumbLimit >= allImages.length">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16"
+                                    height="16">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -406,6 +498,23 @@ const themVaoYeuThich = async () => {
                     </div>
                 </div>
 
+                <!-- THÔNG SỐ KỸ THUẬT -->
+                <div class="specifications" v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.length > 0">
+                    <div class="spec-header">
+                        <h2>Thông số kỹ thuật</h2>
+                    </div>
+                    <div class="spec-table-wrap">
+                        <table class="spec-table">
+                            <tbody>
+                                <tr v-for="(spec, idx) in product.thong_so_ky_thuat" :key="idx">
+                                    <td class="spec-label">{{ spec.ten_thuoctinh }}</td>
+                                    <td class="spec-value">{{ spec.giatri }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- ĐÁNH GIÁ -->
                 <div class="reviews" id="reviews-section">
                     <div class="review-header">
@@ -415,7 +524,7 @@ const themVaoYeuThich = async () => {
                             <p v-else>Sản phẩm này chưa có đánh giá. Hãy là người đầu tiên mua và đánh giá!</p>
                         </div>
                     </div>
-                    
+
                     <div class="review-list" v-if="reviews.length > 0">
                         <div class="review-card" v-for="review in reviews" :key="review.id_danhgia">
                             <div class="review-user-row">
@@ -427,11 +536,10 @@ const themVaoYeuThich = async () => {
                                     <p class="review-date">{{ formatDate(review.created_at) }}</p>
                                 </div>
                             </div>
-                            
+
                             <div class="stars-gold">
                                 <span v-for="s in 5" :key="s">
-                                    {{ s <= review.danhgia ? '★' : '☆' }}
-                                </span>
+                                    {{ s <= review.danhgia ? '★' : '☆' }} </span>
                             </div>
 
                             <p class="review-comment">{{ review.binhluan || 'Hài lòng với sản phẩm.' }}</p>
@@ -440,7 +548,8 @@ const themVaoYeuThich = async () => {
 
                     <div v-else class="empty-reviews">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M12 20.25c4.556 0 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75 3.75 7.444 3.75 12s3.694 8.25 8.25 8.25z" />
+                            <path
+                                d="M12 20.25c4.556 0 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75 3.75 7.444 3.75 12s3.694 8.25 8.25 8.25z" />
                             <path d="M12 8.25v7.5M15.75 12h-7.5" />
                         </svg>
                         <p>Chưa có bình luận nào cho sản phẩm này.</p>
@@ -451,18 +560,18 @@ const themVaoYeuThich = async () => {
         </div>
     </div>
 
-    <!-- SẢN PHẨM TƯƠNG TỰ -->
-    <div class="related">
+    <div class="related" v-if="relatedProducts.length > 0">
         <div class="related-header">
             <h2>Sản phẩm tương tự</h2>
-            <a href="#">Xem tất cả →</a>
+            <router-link to="/products">Xem tất cả →</router-link>
         </div>
         <div class="related-list">
-            <div class="product-card" v-for="(p, i) in related" :key="i">
-                <div class="img-box"><img :src="p.img" /></div>
-                <h4>{{ p.name }}</h4>
-                <p class="sub">{{ p.spec }}</p>
-                <p class="price">{{ p.price }}</p>
+            <div class="product-card" v-for="p in relatedProducts" :key="p.key_id"
+                @click="router.push(`/products/${p.id}?variant=${p.key_id}`).then(() => window.location.reload())">
+                <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
+                <h4>{{ p.fullName }}</h4>
+                <p class="sub">{{ p.specText }}</p>
+                <p class="price">{{ formatPrice(p.price) }}</p>
             </div>
         </div>
     </div>
@@ -494,6 +603,7 @@ const themVaoYeuThich = async () => {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
 .toast {
     position: fixed;
     top: 20px;
@@ -589,40 +699,85 @@ const themVaoYeuThich = async () => {
 
 .detail {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 40px;
+    align-items: start;
 }
 
 .main-img {
     background: #eef2ff;
-    padding: 30px;
+    padding: 24px;
     border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 420px;
+    overflow: hidden;
 }
 
 .main-img img {
     width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.thumb-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    width: 100%;
 }
 
 .thumbs {
-    display: flex;
-    gap: 12px;
-    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    flex: 1;
 }
 
 .thumbs img {
-    width: 90px;
-    height: 70px;
+    width: 100%;
+    aspect-ratio: 4 / 3;
     object-fit: cover;
     cursor: pointer;
     opacity: 0.7;
     border-radius: 6px;
-    border: 2px solid transparent;
+    border: 2px solid #f1f5f9;
     transition: 0.2s;
 }
 
 .thumbs img.active {
     border-color: #2563eb;
     opacity: 1;
+    background: #fff;
+}
+
+.thumb-nav {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #e2e8f0;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: 0.2s;
+    flex-shrink: 0;
+}
+
+.thumb-nav:hover:not(:disabled) {
+    background: #f8fafc;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.thumb-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .tag {
@@ -783,6 +938,77 @@ h1 {
     margin-top: 60px;
 }
 
+/* ===== THÔNG SỐ KỸ THUẬT ===== */
+.specifications {
+    margin-top: 60px;
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.spec-header {
+    margin-bottom: 24px;
+    border-left: 4px solid #2563eb;
+    padding-left: 16px;
+}
+
+.spec-header h2 {
+    font-size: 20px;
+    margin: 0;
+    color: #1e293b;
+}
+
+.spec-table-wrap {
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.spec-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.spec-table tr {
+    transition: background 0.2s;
+}
+
+.spec-table tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.spec-table tr:hover {
+    background: #f1f5f9;
+}
+
+.spec-table td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.spec-table tr:last-child td {
+    border-bottom: none;
+}
+
+.spec-label {
+    width: 30%;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+.spec-value {
+    color: #1e293b;
+}
+
+@media (max-width: 768px) {
+    .spec-label {
+        width: 40%;
+    }
+}
+
 .review-header {
     display: flex;
     justify-content: space-between;
@@ -817,55 +1043,97 @@ h1 {
 
 .related {
     padding: 0 150px;
-    margin-bottom: 60px;
+    margin: 60px 0;
 }
 
 .related-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+}
+
+.related-header h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.related-header a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 14px;
 }
 
 .related-list {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
 }
 
 .product-card {
-    background: #eef2ff;
-    padding: 15px;
-    border-radius: 12px;
-    transition: 0.25s;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    padding: 12px;
+    transition: all 0.25s ease;
     cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .product-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
+    border-color: #2563eb;
 }
 
 .img-box {
-    background: #c7d2fe;
-    padding: 15px;
+    background: #f8fafc;
+    padding: 10px;
     border-radius: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
 }
 
 .img-box img {
     width: 100%;
-    height: 120px;
+    height: 140px;
     object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.3s;
+}
+
+.product-card:hover .img-box img {
+    transform: scale(1.05);
 }
 
 .product-card h4 {
-    font-size: 14px;
-    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 36px;
+    line-height: 1.4;
 }
 
 .sub {
-    font-size: 12px;
+    font-size: 11px;
     color: #64748b;
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-card .price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #2563eb;
 }
 
 @media (max-width: 768px) {
@@ -885,20 +1153,116 @@ h1 {
 }
 
 /* REVIEW STYLES */
-.stars-gold { color: #f59e0b; font-size: 16px; margin-right: 5px; }
-.rating-count { font-size: 14px; color: #64748b; }
-.review-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
-.review-header h2 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
-.review-header p { font-size: 14px; color: #64748b; margin-top: 5px; }
-.review-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 16px; transition: transform 0.2s; }
-.review-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-.review-user-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.user-avatar-small { width: 36px; height: 36px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
-.user-name { font-size: 14px; color: #0f172a; }
-.review-date { font-size: 11px; color: #94a3b8; }
-.review-attr-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.attr-tag { font-size: 12px; color: #475569; background: #f8fafc; padding: 4px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 500; }
-.review-comment { font-size: 14px; color: #334155; line-height: 1.6; margin-top: 5px; }
-.empty-reviews { text-align: center; padding: 60px 0; color: #94a3b8; }
-.empty-reviews svg { width: 48px; height: 48px; margin-bottom: 15px; }
+.stars-gold {
+    color: #f59e0b;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+.rating-count {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.review-header h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+.review-header p {
+    font-size: 14px;
+    color: #64748b;
+    margin-top: 5px;
+}
+
+.review-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: transform 0.2s;
+}
+
+.review-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.review-user-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.user-avatar-small {
+    width: 36px;
+    height: 36px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.user-name {
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.review-date {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.review-attr-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.attr-tag {
+    font-size: 12px;
+    color: #475569;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    font-weight: 500;
+}
+
+.review-comment {
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.6;
+    margin-top: 5px;
+}
+
+.empty-reviews {
+    text-align: center;
+    padding: 60px 0;
+    color: #94a3b8;
+}
+
+.empty-reviews svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 15px;
+}
 </style>

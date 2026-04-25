@@ -45,12 +45,7 @@ const slides = [
     }
 ]
 
-const categories = [
-    { name: 'Gaming', desc: 'RTX mạnh mẽ, tản nhiệt tối ưu', icon: '🎮' },
-    { name: 'Văn phòng', desc: 'Mỏng nhẹ, pin lâu, bền bỉ', icon: '💼' },
-    { name: 'Đồ hoạ', desc: 'Màn đẹp, render nhanh, chuẩn màu', icon: '🎨' },
-    { name: 'Doanh nhân', desc: 'Thiết kế cao cấp, bảo mật tốt', icon: '👔' }
-]
+const categories = ref([])
 
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
@@ -59,19 +54,23 @@ const mapProducts = (rawProducts) => {
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
                 name: p.tenSP,
+                fullName: p.tenSP,
                 category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
-                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
-                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
-                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
+                id_danhmuc: String(p.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
-                price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(0),
+                priceNum: 0,
+                oldPriceNum: 0,
+                specs: [],
                 img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
-                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : '')
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
+                badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }];
         }
 
         return p.bien_thes.map(bt => {
-            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '';
+            let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '', mausac = '';
             let thuoc_tinh = [];
             try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
 
@@ -86,24 +85,44 @@ const mapProducts = (rawProducts) => {
                     else if (ten === 'tấm nền') tamnen = attr.giatri;
                     else if (ten === 'pin') pin = attr.giatri;
                     else if (ten === 'sạc') sac = attr.giatri;
+                    else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
                 });
             }
+
+            // Lấy thông số kỹ thuật chung của sản phẩm (không phải biến thể)
+            let generalSpecs = [];
+            try {
+                const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
+                if (Array.isArray(tskt)) {
+                    generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
+                }
+            } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e); }
+
+            const fullName = [p.tenSP, ...generalSpecs].join(' ');
             
-            const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
-            const fullName = nameExt ? `${p.tenSP} (${nameExt})` : p.tenSP;
+            const specs = [
+                { label: 'RAM', value: ram },
+                { label: 'CPU', value: cpu },
+                { label: 'Màu', value: mausac }
+            ].filter(s => s.value);
 
             return {
                 id: p.id_sanpham,
-                key_id: String(bt.id_bienthe || (p.id_sanpham + '_' + Math.random())),
-                name: fullName,
+                key_id: String(bt.id_bienthe),
+                name: p.tenSP,
+                fullName: fullName,
                 category: p.danh_muc?.ten_danhmuc || 'Sản phẩm',
-                id_danhmuc: String(p.id_danhmuc || p.danh_muc?.id_danhmuc || ''),
-                id_thuonghieu: String(p.id_thuonghieu || p.thuong_hieu?.id_thuonghieu || ''),
-                brandName: p.thuong_hieu?.ten_thuonghieu === 'Levono' ? 'Lenovo' : (p.thuong_hieu?.ten_thuonghieu || ''),
+                id_danhmuc: String(p.id_danhmuc || ''),
+                id_thuonghieu: String(p.id_thuonghieu || ''),
+                brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
+                priceNum: bt.gia || 0,
+                oldPriceNum: bt.gia_khuyen_mai || 0,
                 price: bt.gia > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bt.gia) : 'Liên hệ',
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
-                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : '')
+                specs: specs,
+                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300'),
+                badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
+                badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
         });
     });
@@ -135,11 +154,15 @@ onMounted(async () => {
 
 
     try {
-        const response = await api.get('/sanpham')
-        const allProducts = mapProducts(response.data)
+        const [spRes, catRes] = await Promise.all([
+            api.get('/sanpham'),
+            api.get('/danhmuc')
+        ])
+        const allProducts = mapProducts(spRes.data)
         featuredProducts.value = allProducts.slice(0, 20)
+        categories.value = (catRes.data?.data || catRes.data || []).slice(0, 4)
     } catch (error) {
-        console.error('Lỗi khi tải sản phẩm:', error)
+        console.error('Lỗi khi tải dữ liệu:', error)
     }
 })
 // === SLIDER LOGIC ===
@@ -175,14 +198,41 @@ const themVaoYeuThich = async (product) => {
 
     try {
         await api.post('/yeu-thich/them', {
-            id_bienthe: product.id_bienthe,
+            id_bienthe: product.key_id,
             soluong: 1
         })
-        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        swal.success('Thành công', `Đã thêm ${product.fullName || product.name} vào danh sách yêu thích! ❤️`)
         // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!')
+    }
+}
+
+const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'đ'
+
+const themVaoGioHang = async (product) => {
+    const token = getToken()
+    if (!token) {
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        router.push('/login')
+        return
+    }
+
+    try {
+        await api.post('/gio-hang/them', {
+            id_bienthe: product.key_id,
+            soluong: 1
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+
+        swal.success('Thành công', `Đã thêm ${product.fullName || product.name} vào giỏ hàng!`)
+        window.dispatchEvent(new Event('cart-updated'))
+
+    } catch (err) {
+        console.error('Lỗi thêm giỏ hàng:', err)
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra, không thể thêm vào giỏ hàng!')
     }
 }
 
@@ -342,14 +392,15 @@ onUnmounted(stop)
                         <h2>Lựa chọn đúng dòng laptop cho bạn</h2>
                         <p>Thiết kế tối giản, cấu hình mạnh mẽ, tối ưu theo từng nhu cầu sử dụng.</p>
                     </div>
-                    <a href="#" class="section-link">Xem tất cả →</a>
+                    <router-link to="/products" class="section-link">Xem tất cả →</router-link>
                 </div>
                 <div class="category-grid">
-                    <div class="category-card" v-for="(c, i) in categories" :key="i">
-                        <div class="category-icon">{{ c.icon }}</div>
-                        <h3>{{ c.name }}</h3>
-                        <p>{{ c.desc }}</p>
-                        <a href="#">Khám phá →</a>
+                    <div class="category-card" v-for="c in categories" :key="c.id_danhmuc" 
+                        @click="router.push(`/products?cat=${c.id_danhmuc}`)">
+                        <div class="category-icon">💻</div>
+                        <h3>{{ c.ten_danhmuc }}</h3>
+                        <p>{{ c.mota || 'Khám phá các sản phẩm thuộc danh mục ' + c.ten_danhmuc }}</p>
+                        <a href="javascript:void(0)">Khám phá →</a>
                     </div>
                 </div>
             </div>
@@ -365,35 +416,72 @@ onUnmounted(stop)
                         <p>Chọn lọc từ các dòng máy bán chạy với hiệu năng tốt, thiết kế đẹp và giá trị cao.</p>
                     </div>
                 </div>
-                
+
                 <div class="product-slider-container">
                     <button class="slider-btn prev" @click="prevFeaturedPage" :disabled="currentProductPage === 0">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
                     </button>
 
                     <Transition name="slider-fade" mode="out-in">
                         <div class="product-slider-grid" :key="currentProductPage">
                             <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
-                                <span class="product-badge" v-if="p.badge">{{ p.badge }}</span>
-                                <div class="product-thumb"><img :src="p.img" :alt="p.name" /></div>
+                                <span class="product-badge" v-if="p.badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
+                                <div class="product-thumb" @click="router.push(`/products/${p.id}`)">
+                                    <img :src="p.img" :alt="p.fullName" />
+                                </div>
                                 <div class="product-body">
-                                    <span class="product-category">{{ p.category }}</span>
-                                    <h3 :title="p.name">{{ p.name }}</h3>
-                                    <p class="product-price">{{ p.price }}</p>
-                                    
+                                    <h3 @click="router.push(`/products/${p.id}?variant=${p.key_id}`)" :title="p.fullName">
+                                        {{ p.fullName }}
+                                    </h3>
+                                    <p class="brand-txt">{{ p.brandName }} {{ p.weight ? '· ' + p.weight + 'kg' : '' }}</p>
+
+                                    <!-- KHUNG THÔNG SỐ -->
+                                    <div class="specs-box" v-if="p.specs && p.specs.length > 0">
+                                        <div class="spec-item" v-for="s in p.specs" :key="s.label">
+                                            <span class="spec-label">{{ s.label }}:</span>
+                                            <span class="spec-value">{{ s.value }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="price-row">
+                                        <span class="price" v-if="p.priceNum > 0">{{ formatPrice(p.priceNum) }}</span>
+                                        <span class="price" v-else>Liên hệ</span>
+                                        <span v-if="p.oldPriceNum > p.priceNum" class="old-price">{{ formatPrice(p.oldPriceNum) }}</span>
+                                    </div>
+
                                     <div class="product-actions">
-                                        <button class="btn btn-primary small">Mua ngay</button>
-                                        <router-link :to="`/products/${p.id}?variant=${p.key_id}`" class="btn btn-secondary small">
+                                        <router-link :to="`/products/${p.id}?variant=${p.key_id}`" class="btn-detail">
                                             Chi tiết
                                         </router-link>
+
+                                        <button class="btn-wishlist-circle" title="Yêu thích" @click="themVaoYeuThich(p)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                            </svg>
+                                        </button>
+
+                                        <button class="btn-cart-circle" title="Thêm vào giỏ hàng" @click.stop="themVaoGioHang(p)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="9" cy="21" r="1"></circle>
+                                                <circle cx="20" cy="21" r="1"></circle>
+                                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </article>
                         </div>
                     </Transition>
 
-                    <button class="slider-btn next" @click="nextFeaturedPage" :disabled="currentProductPage >= totalProductPages - 1">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    <button class="slider-btn next" @click="nextFeaturedPage"
+                        :disabled="currentProductPage >= totalProductPages - 1">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
                     </button>
                 </div>
 
@@ -514,40 +602,8 @@ onUnmounted(stop)
 *::after {
     box-sizing: border-box;
 }
-.product-actions {
-    display: flex;
-    gap: 8px;
-    align-items: stretch; /* Đảm bảo các nút cao bằng nhau */
-}
 
-.product-actions .btn {
-    flex: 1;
-    display: flex; /* Cần thiết cho thẻ <a> router-link canh giữa chữ */
-    align-items: center;
-    justify-content: center;
-}
-
-/* CSS riêng cho nút Yêu thích ở Home */
-.btn-wishlist {
-    flex: 0 0 auto !important; /* Không tự giãn như 2 nút kia */
-    width: 36px;
-    padding: 0 !important;
-    background: #fff;
-    border: 1px solid #ff4d4f;
-    color: #ff4d4f;
-    border-radius: 7px;
-}
-
-.btn-wishlist:hover {
-    background: #fff1f0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
-}
-
-.btn-wishlist svg {
-    width: 15px;
-    height: 15px;
-}
+/* Style cho thẻ sản phẩm đã được dời xuống phần dưới */
 
 /* ─── VARIABLES ─── */
 /* 
@@ -1223,12 +1279,14 @@ a.btn {
     align-items: center;
     gap: 15px;
 }
+
 .product-slider-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 14px;
     flex: 1;
 }
+
 .slider-btn {
     width: 48px;
     height: 48px;
@@ -1245,14 +1303,26 @@ a.btn {
     flex-shrink: 0;
     z-index: 10;
 }
-.slider-btn.prev svg { margin-right: 2px; width: 22px; height: 22px; }
-.slider-btn.next svg { margin-left: 2px; width: 22px; height: 22px; }
+
+.slider-btn.prev svg {
+    margin-right: 2px;
+    width: 22px;
+    height: 22px;
+}
+
+.slider-btn.next svg {
+    margin-left: 2px;
+    width: 22px;
+    height: 22px;
+}
+
 .slider-btn:hover:not(:disabled) {
     background: var(--blue);
     color: #fff;
     box-shadow: 0 8px 24px rgba(30, 107, 230, 0.3);
     transform: scale(1.1);
 }
+
 .slider-btn:disabled {
     opacity: 0.25;
     border-color: var(--border);
@@ -1266,16 +1336,19 @@ a.btn {
 .slider-fade-leave-active {
     transition: all 0.3s ease;
 }
+
 .slider-fade-enter-from,
 .slider-fade-leave-to {
     opacity: 0;
     transform: scale(0.96) translateY(10px);
 }
+
 .see-all-container {
     margin-top: 36px;
     display: flex;
     justify-content: center;
 }
+
 .see-all-btn {
     background: #fff;
     color: var(--navy);
@@ -1283,127 +1356,115 @@ a.btn {
     padding: 12px 28px;
     font-size: 14px;
 }
+
 .see-all-btn:hover {
     background: var(--bg-soft);
 }
-.product-price {
-    font-weight: 800;
-    color: var(--blue);
-    margin: 8px 0 16px;
-    font-size: 15px;
-}
-.product-body h3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    height: 40px;
-}
 
+/* ─── PRODUCT CARD (SYNC WITH PRODUCT PAGE) ─── */
 .product-card {
-    position: relative;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
     overflow: hidden;
-    border-radius: 12px;
-    background: var(--bg-white);
-    border: 1px solid var(--border);
-    transition: all 0.22s ease;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(15, 43, 91, 0.06);
+    position: relative;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .product-card:hover {
-    border-color: var(--blue);
     transform: translateY(-5px);
-    box-shadow: 0 14px 36px rgba(30, 107, 230, 0.14);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
 }
 
 .product-badge {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 2;
-    padding: 4px 9px;
-    border-radius: 4px;
-    background: var(--navy);
-    color: #fff;
+    color: white;
     font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    z-index: 1;
 }
 
 .product-thumb {
-    padding: 14px 14px 8px;
-    background: var(--bg-soft);
+    background: #f8fafc;
+    padding: 14px;
+    cursor: pointer;
 }
 
 .product-thumb img {
     width: 100%;
-    height: 170px;
+    height: 148px;
     object-fit: cover;
-    border-radius: 8px;
-    display: block;
-    transition: transform 0.28s;
-}
-
-.product-card:hover .product-thumb img {
-    transform: scale(1.05);
+    border-radius: 10px;
 }
 
 .product-body {
-    padding: 12px 14px 16px;
-}
-
-.product-category {
-    display: inline-block;
-    margin-bottom: 5px;
-    color: var(--blue);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    padding: 13px 15px 15px;
 }
 
 .product-body h3 {
-    margin: 0 0 10px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--text);
+    color: #0f172a;
+    margin: 0 0 4px;
+    cursor: pointer;
     line-height: 1.4;
 }
 
-.specs {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 11px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
+.brand-txt {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 10px;
 }
 
-.specs li {
+.specs-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.spec-item {
     padding: 3px 8px;
-    border-radius: 4px;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-size: 11px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.spec-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.spec-value {
+    font-size: 10px;
+    color: #0f172a;
+    font-weight: 700;
 }
 
 .price-row {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     margin-bottom: 12px;
 }
 
-.price-row strong {
-    font-size: 16px;
+.price {
+    font-size: 15px;
     font-weight: 800;
-    color: var(--blue);
+    color: #2563eb;
 }
 
-.price-row span {
-    color: var(--text3);
-    font-size: 12px;
+.old-price {
+    font-size: 11px;
+    color: #cbd5e1;
     text-decoration: line-through;
 }
 
@@ -1412,8 +1473,61 @@ a.btn {
     gap: 8px;
 }
 
-.product-actions .btn {
+.btn-detail {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #2563eb;
+    background: white;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+}
+
+.btn-detail:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-wishlist-circle, .btn-cart-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-cart-circle {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+}
+
+.btn-wishlist-circle {
+    background: white;
+    border: 1.5px solid #ff4d4f;
+    color: #ff4d4f;
+}
+
+.btn-wishlist-circle:hover, .btn-cart-circle:hover {
+    opacity: 0.9;
+    transform: scale(1.06);
+}
+
+.btn-wishlist-circle svg, .btn-cart-circle svg {
+    width: 14px;
+    height: 14px;
 }
 
 /* ─── PROMO ─── */

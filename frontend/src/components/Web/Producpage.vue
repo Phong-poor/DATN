@@ -54,23 +54,45 @@ const selectedSort = ref('newest')
 
 // ===================== MAP PRODUCTS =====================
 const mapProducts = (rawProducts) => {
-    const productVariants = rawProducts.map(p => {
+    const productGroups = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
             return [{
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
                 name: p.tenSP,
+                fullName: p.tenSP,
                 id_danhmuc: String(p.id_danhmuc || ''),
                 id_thuonghieu: String(p.id_thuonghieu || ''),
                 brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
                 priceNum: 0,
                 oldPriceNum: 0,
+                specs: [],
+                all_variants: [],
                 img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
         }
+
+        const all_vars_info = p.bien_thes.map(bt => {
+            let r = '', c = '', g = '', k = '', d = '', t = '', pi = '', s = '', m = '';
+            let tt = [];
+            try { tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
+            if (Array.isArray(tt)) {
+                tt.forEach(a => {
+                    const ten = (a.ten_thuoctinh || '').toLowerCase();
+                    if (ten === 'ram') r = a.giatri;
+                    else if (ten === 'cpu') c = a.giatri;
+                    else if (ten === 'gpu') g = a.giatri;
+                    else if (ten === 'màu sắc' || ten === 'màu') m = a.giatri;
+                });
+            }
+            return {
+                id_bienthe: bt.id_bienthe,
+                shortName: [r, c, g, m].filter(Boolean).join(' - ') || 'Mặc định'
+            };
+        });
 
         return p.bien_thes.map(bt => {
             let ram = '', cpu = '', gpu = '', kichthuoc = '', dophan = '', tamnen = '', pin = '', sac = '', mausac = '';
@@ -92,23 +114,39 @@ const mapProducts = (rawProducts) => {
                 });
             }
 
-            const nameExt = [ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac].filter(Boolean).join(' - ');
-            const tenKemMau = mausac ? `${p.tenSP} - ${mausac}` : p.tenSP;
-            const fullName = nameExt ? `${tenKemMau} (${nameExt})` : tenKemMau;
+            // Lấy thông số kỹ thuật chung của sản phẩm (không phải biến thể)
+            let generalSpecs = [];
+            try {
+                const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
+                if (Array.isArray(tskt)) {
+                    generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
+                }
+            } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e); }
+
+            // Title = Tên SP + Thông số kỹ thuật chung
+            const fullName = [p.tenSP, ...generalSpecs].join(' ');
+
+            const specs = [
+                { label: 'RAM', value: ram },
+                { label: 'CPU', value: cpu },
+                { label: 'Màu', value: mausac }
+            ].filter(s => s.value);
 
             return {
                 id: p.id_sanpham,
-                key_id: String(bt.id_bienthe || (p.id_sanpham + '_' + Math.random())),
-                name: fullName,
+                key_id: String(bt.id_bienthe),
+                name: p.tenSP,
+                fullName: fullName,
                 id_danhmuc: String(p.id_danhmuc || ''),
                 id_thuonghieu: String(p.id_thuonghieu || ''),
                 brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
                 priceNum: bt.gia || 0,
                 oldPriceNum: bt.gia_khuyen_mai || 0,
-                // Lưu sẵn thuộc tính để lọc nhanh phía Vue (không cần gọi API lại)
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                specs: specs,
+                all_variants: all_vars_info,
+                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : ''),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -120,9 +158,9 @@ const mapProducts = (rawProducts) => {
     let variantIndex = 0;
     while (hasMore) {
         hasMore = false;
-        for (let i = 0; i < productVariants.length; i++) {
-            if (productVariants[i].length > variantIndex) {
-                flatList.push(productVariants[i][variantIndex]);
+        for (let i = 0; i < productGroups.length; i++) {
+            if (productGroups[i].length > variantIndex) {
+                flatList.push(productGroups[i][variantIndex]);
                 hasMore = true;
             }
         }
@@ -319,6 +357,15 @@ const themVaoYeuThich = async (product) => {
 // ===================== INIT =====================
 onMounted(async () => {
     isLoading.value = true
+
+    // Xử lý query params từ trang khác (vd: Home) gửi qua
+    if (route.query.cat) {
+        selectedCategories.value = [String(route.query.cat)]
+    }
+    if (route.query.brand) {
+        selectedBrands.value = [String(route.query.brand)]
+    }
+
     await Promise.all([
         fetchProducts(),
         loadFilterData()
@@ -673,8 +720,16 @@ const clearAll = () => {
                         </div>
 
                         <div class="card-body">
-                            <h3 @click="router.push(`/products/${p.id}`)">{{ p.name }}</h3>
+                            <h3 @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">{{ p.fullName }}</h3>
                             <p class="brand-txt">{{ p.brandName }} {{ p.weight ? '· ' + p.weight + 'kg' : '' }}</p>
+
+                            <!-- KHUNG THÔNG SỐ -->
+                            <div class="specs-box" v-if="p.specs && p.specs.length > 0">
+                                <div class="spec-item" v-for="s in p.specs" :key="s.label">
+                                    <span class="spec-label">{{ s.label }}:</span>
+                                    <span class="spec-value">{{ s.value }}</span>
+                                </div>
+                            </div>
 
                             <div class="price-row">
                                 <span class="price" v-if="p.priceNum > 0">{{ formatPrice(p.priceNum) }}</span>
@@ -1476,5 +1531,67 @@ const clearAll = () => {
 .btn-cart svg {
     width: 18px;
     height: 18px;
+}
+
+.specs-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.spec-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.spec-value {
+    color: #0f172a;
+    font-weight: 600;
+    text-align: right;
+}
+
+
+.variant-chip {
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #475569;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.variant-chip:hover {
+    border-color: #5b5ef4;
+    color: #5b5ef4;
+}
+
+.variant-chip.active {
+    background: #ebf5ff;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+    cursor: pointer;
+    line-height: 1.5;
 }
 </style>

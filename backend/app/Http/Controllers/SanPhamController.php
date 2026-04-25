@@ -140,8 +140,9 @@ class SanPhamController extends Controller
             'hinhanh'        => $sanpham->hinhanh,
             'trangthai'      => $sanpham->trangthai,
             'khoiluong'      => $sanpham->khoiluong,
-            'id_danhmuc'     => $sanpham->id_danhmuc,
-            'id_thuonghieu'  => $sanpham->id_thuonghieu,
+            'id_danhmuc'        => $sanpham->id_danhmuc,
+            'id_thuonghieu'     => $sanpham->id_thuonghieu,
+            'thong_so_ky_thuat' => $sanpham->thong_so_ky_thuat,
 
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
@@ -209,8 +210,9 @@ class SanPhamController extends Controller
             'id_thuonghieu'  => 'required|integer|exists:thuonghieu,id_thuonghieu',
             'tenSP'          => 'required|string|max:255',
             'trangthai'      => 'required',
-            'hinhanh'        => 'nullable|string',
-            'khoiluong'      => 'nullable|numeric',
+            'hinhanh'           => 'nullable|string',
+            'khoiluong'         => 'nullable|numeric',
+            'thong_so_ky_thuat' => 'nullable|array',
 
             'bienthes'                => 'nullable|array',
             'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
@@ -238,9 +240,10 @@ class SanPhamController extends Controller
                 'id_thuonghieu' => $request->id_thuonghieu,
                 'tenSP'         => $request->tenSP,
                 'SKU'           => $sku,
-                'trangthai'     => $request->trangthai,
-                'hinhanh'       => $coverPath,
-                'khoiluong'     => $request->khoiluong,
+                'trangthai'         => $request->trangthai,
+                'hinhanh'           => $coverPath,
+                'khoiluong'         => $request->khoiluong,
+                'thong_so_ky_thuat' => $request->thong_so_ky_thuat,
             ]);
 
             if ($request->has('hinh_anhs') && is_array($request->hinh_anhs)) {
@@ -301,8 +304,9 @@ class SanPhamController extends Controller
             'id_thuonghieu'  => 'required|integer|exists:thuonghieu,id_thuonghieu',
             'tenSP'          => 'required|string|max:255',
             'trangthai'      => 'required',
-            'hinhanh'        => 'nullable|string',
-            'khoiluong'      => 'nullable|numeric',
+            'hinhanh'           => 'nullable|string',
+            'khoiluong'         => 'nullable|numeric',
+            'thong_so_ky_thuat' => 'nullable|array',
 
             'hinh_anhs'            => 'nullable|array',
             'hinh_anhs.*.duongdan' => 'required_with:hinh_anhs|string',
@@ -340,9 +344,10 @@ class SanPhamController extends Controller
                 'id_danhmuc'    => $request->id_danhmuc,
                 'id_thuonghieu' => $request->id_thuonghieu,
                 'tenSP'         => $request->tenSP,
-                'trangthai'     => $request->trangthai,
-                'hinhanh'       => $coverPath,
-                'khoiluong'     => $request->khoiluong,
+                'trangthai'         => $request->trangthai,
+                'hinhanh'           => $coverPath,
+                'khoiluong'         => $request->khoiluong,
+                'thong_so_ky_thuat' => $request->thong_so_ky_thuat,
             ]);
 
             BienTheHinhAnh::where('id_sanpham', $sanpham->id_sanpham)->delete();

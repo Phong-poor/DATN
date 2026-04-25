@@ -18,6 +18,11 @@ class SanPham extends Model
         'trangthai',
         'hinhanh',
         'khoiluong',
+        'thong_so_ky_thuat',
+    ];
+
+    protected $casts = [
+        'thong_so_ky_thuat' => 'array',
     ];
 
     public function danhMuc()

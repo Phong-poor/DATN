@@ -29,6 +29,21 @@ const form = ref({
 const payment = ref('cod')
 const cart = ref([])
 
+const getFullProductName = (item) => {
+    let name = item.ten_san_pham || ''
+    let specs = []
+    try {
+        const tskt = typeof item.thong_so_ky_thuat === 'string' 
+            ? JSON.parse(item.thong_so_ky_thuat || '[]') 
+            : (item.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+            specs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    
+    return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
 const fetchCart = async () => {
     try {
         isLoading.value = true
@@ -36,7 +51,7 @@ const fetchCart = async () => {
         if (response.data.success) {
             cart.value = response.data.gio_hang.map(item => ({
                 id_giohang: item.id_giohang,
-                name: item.ten_san_pham,
+                name: getFullProductName(item),
                 desc: item.ten_bienthe,
                 price: item.gia,
                 qty: item.soluong,

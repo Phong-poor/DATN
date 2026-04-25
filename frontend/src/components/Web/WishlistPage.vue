@@ -42,17 +42,15 @@
             </div>
 
             <div class="card-body">
-              <div class="card-name">{{ item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</div>
-              <div class="card-variant-name">
-                <span class="variant-label">Phân loại:</span>
+              <div class="card-name">{{ item.fullName || item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</div>
+              <p class="brand-txt">{{ item.brandName }} {{ item.weight ? '· ' + item.weight + 'kg' : '' }}</p>
 
-                <div v-if="item.bienthe?.ten_bienthe" class="variant-list">
-                  <span class="variant-item" v-for="(val, index) in item.bienthe.ten_bienthe.split('-')" :key="index">
-                    {{ val.trim() }}
-                  </span>
+              <!-- KHUNG THÔNG SỐ -->
+              <div class="specs-box" v-if="item.processedSpecs && item.processedSpecs.length > 0">
+                <div class="spec-item" v-for="s in item.processedSpecs" :key="s.label">
+                  <span class="spec-label">{{ s.label }}:</span>
+                  <span class="spec-value">{{ s.value }}</span>
                 </div>
-
-                <span v-else class="variant-item">Mặc định</span>
               </div>
 
               <div class="card-price" :class="{ out: item.bienthe?.soluong === 0 }">
@@ -87,35 +85,6 @@
           </div>
         </transition-group>
       </div>
-
-      <div class="suggest-header">
-        <h3 class="suggest-title">Gợi ý cho bạn</h3>
-        <div class="nav-btns">
-          <button class="nav-btn" @click="slideSuggest(-1)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button class="nav-btn" @click="slideSuggest(1)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="suggest-grid">
-        <div v-for="item in visibleSuggestions" :key="item.id" class="suggest-card">
-          <div class="suggest-img">
-            <img :src="item.image" :alt="item.name" @error="onImgError" />
-          </div>
-          <div class="suggest-body">
-            <div class="suggest-name">{{ item.name }}</div>
-            <div class="suggest-price">{{ formatPrice(item.price) }}</div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 </template>
@@ -162,7 +131,51 @@ const fetchWishlist = async () => {
   try {
     isLoading.value = true
     const res = await api.get('/yeu-thich')
-    wishlist.value = res.data.data || res.data
+    const rawData = res.data.data || res.data
+
+    wishlist.value = rawData.map(item => {
+      const p = item.bienthe?.sanpham || {}
+      const bt = item.bienthe || {}
+
+      // 1. Xử lý fullName: Tên SP + Thông số kỹ thuật chung
+      let generalSpecs = []
+      try {
+        const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+          generalSpecs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+      } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+
+      const fullName = [p.tenSP, ...generalSpecs].join(' ')
+
+      // 2. Xử lý processedSpecs: RAM, CPU, Màu từ biến thể
+      let ram = '', cpu = '', mausac = ''
+      try {
+        const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
+        if (Array.isArray(tt)) {
+          tt.forEach(attr => {
+            const ten = (attr.ten_thuoctinh || '').toLowerCase()
+            if (ten === 'ram') ram = attr.giatri
+            else if (ten === 'cpu') cpu = attr.giatri
+            else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri
+          })
+        }
+      } catch (e) { console.error('Lỗi parse thuoc_tinh_json:', e) }
+
+      const specs = [
+        { label: 'RAM', value: ram },
+        { label: 'CPU', value: cpu },
+        { label: 'Màu', value: mausac }
+      ].filter(s => s.value)
+
+      return {
+        ...item,
+        fullName,
+        processedSpecs: specs,
+        brandName: p.thuong_hieu?.ten_thuonghieu || '',
+        weight: p.khoiluong
+      }
+    })
   } catch (error) {
     console.error('Lỗi khi tải danh sách yêu thích:', error)
   } finally {
@@ -438,16 +451,47 @@ const onImgError = (e) => {
 }
 
 .card-name {
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-bottom: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-bottom: 4px;
+  color: #1e293b;
 }
 
-.card-variant-name {
+.brand-txt {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.specs-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spec-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 11.5px;
-  color: #6b7280;
-  margin-bottom: 6px;
+}
+
+.spec-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.spec-value {
+  color: #334155;
+  font-weight: 600;
+  text-align: right;
 }
 
 .card-price {
@@ -687,22 +731,5 @@ const onImgError = (e) => {
   transform: scale(.9);
 }
 
-.card-variant-name { 
-  margin-bottom: 10px;
-  display: flex; 
-  align-items: center; 
-  gap: 6px; 
-  flex-wrap: wrap; 
-}
-.variant-label { font-size: 11.5px; color: #6b7280; }
-.variant-list { display: flex; gap: 4px; flex-wrap: wrap; }
-.variant-item {
-  background: #f1f5f9; 
-  color: #334155; 
-  padding: 3px 8px; 
-  border-radius: 6px; 
-  border: 1px solid #e2e8f0; 
-  font-weight: 500;
-  font-size: 11px;
-}
+/* Đã xóa card-variant-name cũ */
 </style>
