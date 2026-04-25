@@ -348,9 +348,26 @@ const submitReview = async () => {
   }
 }
 
+const wishlistCount = ref(0)
+
+const fetchWishlistCount = async () => {
+  try {
+    const res = await api.get('/yeu-thich')
+    if (res.data && Array.isArray(res.data.data)) {
+      wishlistCount.value = res.data.data.length
+    } else if (res.data && Array.isArray(res.data)) {
+      wishlistCount.value = res.data.length
+    }
+  } catch (error) {
+    console.error('Lỗi tải danh sách yêu thích:', error)
+  }
+}
+
 onMounted(() => {
   loadUser()
   fetchOrders()
+  fetchWishlistCount()
+  fetchPromotions()
 
   const userData = getUser()
   if (userData && (userData.id || userData.id_user)) {
@@ -445,7 +462,7 @@ const saveProfile = async () => {
 
 const stats = computed(() => [
   { label: 'Đơn hàng', value: orders.value.length.toString(), icon: 'orders' },
-  { label: 'Yêu thích', value: '8', icon: 'heart' },
+  { label: 'Yêu thích', value: wishlistCount.value.toString(), icon: 'heart' },
   { label: 'Điểm thưởng', value: '1.250', icon: 'star' },
 ])
 

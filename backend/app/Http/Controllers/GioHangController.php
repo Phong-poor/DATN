@@ -38,6 +38,7 @@ class GioHangController extends Controller
                     'ton_kho'      => $bienThe?->soluong ?? 0,
                     'thuoc_tinh'   => $thuocTinh,
                     'ten_san_pham' => $sanPham?->tenSP ?? '',
+                    'thong_so_ky_thuat' => $sanPham?->thong_so_ky_thuat ?? [],
                     'hinh_anh'     => $sanPham?->hinhanh
                         ? asset('storage/' . $sanPham->hinhanh)
                         : null,

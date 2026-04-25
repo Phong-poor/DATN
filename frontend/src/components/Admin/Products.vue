@@ -718,6 +718,7 @@ const removeExtraImage = index => {
 const vsPhase = ref(1)
 const selectedGroupId = ref(null)
 const selectedOptions = ref({})
+const variationTierIds = ref(new Set()) // Lưu ID thuộc tính dùng làm Biến thể (max 2)
 const generatedRows = ref([])
 const editVariantHeaders = ref([])
 const VARIANTS_PER_PAGE = 15
@@ -725,6 +726,19 @@ const variantCurrentPage = ref(1)
 const selectedOptionsSnapshot = ref({})
 const basePrice = ref('')
 const baseStock = ref('')
+
+const toggleVariationTier = (typeId) => {
+  if (variationTierIds.value.has(typeId)) {
+    variationTierIds.value.delete(typeId)
+  } else {
+    if (variationTierIds.value.size >= 3) {
+      alert('Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
+      return
+    }
+    variationTierIds.value.add(typeId)
+  }
+}
+
 
 const variantTotalPages = computed(() =>
   Math.max(1, Math.ceil(generatedRows.value.length / VARIANTS_PER_PAGE))
@@ -734,6 +748,39 @@ const paginatedVariants = computed(() => {
   const start = (variantCurrentPage.value - 1) * VARIANTS_PER_PAGE
   return generatedRows.value.slice(start, start + VARIANTS_PER_PAGE)
 })
+
+const removeVariantRow = (index) => {
+  const actualIndex = (variantCurrentPage.value - 1) * VARIANTS_PER_PAGE + index
+  generatedRows.value.splice(actualIndex, 1)
+  if (paginatedVariants.value.length === 0 && variantCurrentPage.value > 1) {
+    variantCurrentPage.value--
+  }
+}
+
+const addManualVariant = () => {
+  const headers = [...tableHeaders.value]
+  if (!headers.length) {
+    alert('Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
+    return
+  }
+  
+  const attrs = {}
+  headers.forEach(h => {
+    // Lấy giá trị đầu tiên trong bộ chọn để làm mặc định
+    attrs[h.id] = Array.from(selectedOptions.value[h.id] || [])[0] || null
+  })
+
+  generatedRows.value.push({
+    id: `manual-${Date.now()}`,
+    attrs,
+    price: '',
+    stock: ''
+  })
+  
+  // Chuyển đến trang cuối
+  variantCurrentPage.value = variantTotalPages.value
+}
+
 
 const variantPageItems = computed(() => {
   const total = variantTotalPages.value
@@ -791,9 +838,17 @@ const allSelectedAttrTypes = computed(() => {
   )
 })
 
+const variationHeaders = computed(() => {
+  return allSelectedAttrTypes.value.filter(t => variationTierIds.value.has(t.id))
+})
+
+const specificationAttrs = computed(() => {
+  return allSelectedAttrTypes.value.filter(t => !variationTierIds.value.has(t.id))
+})
+
 const tableHeaders = computed(() => {
   if (isEditMode.value) return editVariantHeaders.value
-  return allSelectedAttrTypes.value
+  return variationHeaders.value
 })
 
 const comboCount = computed(() => {
@@ -866,8 +921,21 @@ const toggleOption = (typeId, value) => {
   if (!selectedOptions.value[typeId]) selectedOptions.value[typeId] = new Set()
   const set = selectedOptions.value[typeId]
 
-  if (set.has(value)) set.delete(value)
-  else set.add(value)
+  const isTier = variationTierIds.value.has(typeId)
+
+  if (isTier) {
+    // Chế độ chọn nhiều (Biến thể)
+    if (set.has(value)) set.delete(value)
+    else set.add(value)
+  } else {
+    // Chế độ chọn duy nhất (Thông số kỹ thuật)
+    if (set.has(value)) {
+      set.delete(value)
+    } else {
+      set.clear()
+      set.add(value)
+    }
+  }
 
   selectedOptions.value = { ...selectedOptions.value }
 
@@ -946,7 +1014,12 @@ const generateVariants = () => {
   const isValid = validateVariantSelections()
   if (!isValid) return
 
-  const headers = [...allSelectedAttrTypes.value]
+  const headers = [...tableHeaders.value]
+  if (!headers.length) {
+    alert('Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
+    return
+  }
+
   const arrays = headers.map(t => [...selectedOptions.value[t.id]])
   const combos = cartesian(arrays)
 
@@ -991,8 +1064,17 @@ const generateVariants = () => {
 const rebuildSelectedOptionsFromRows = () => {
   const nextSelectedOptions = {}
 
+  // 1. Bảo tồn các Thông số kỹ thuật hiện có (không phải Biến thể)
+  Object.keys(selectedOptions.value || {}).forEach(attrId => {
+    if (!variationTierIds.value.has(String(attrId))) {
+      nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
+    }
+  })
+
+  // 2. Nạp lại các Biến thể từ cấu hình bảng
   generatedRows.value.forEach((row) => {
     Object.entries(row.attrs || {}).forEach(([attrId, value]) => {
+      attrId = String(attrId)
       if (!nextSelectedOptions[attrId]) {
         nextSelectedOptions[attrId] = new Set()
       }
@@ -1173,6 +1255,44 @@ const openEditModal = async (id) => {
   }
 }
 
+const openCloneModal = async (id) => {
+  try {
+    formError.value = ''
+    resetForm()
+
+    if (!categories.value.length) {
+      await fetchCategories()
+    }
+    if (!brands.value.length) {
+      await fetchBrands()
+    }
+
+    const res = await api.get(`/sanpham/${id}`)
+    const product = res.data
+
+    // Chế độ tạo mới dựa trên dữ liệu cũ
+    isEditMode.value = false
+    editingProductId.value = null
+
+    mapProductToForm(product)
+
+    // Tùy chỉnh sau khi map: Thêm hậu tố và reset biến thể
+    form.value.name += ' (Bản sao)'
+    generatedRows.value = generatedRows.value.map((row, i) => ({
+      ...row,
+      id: `clone-${Date.now()}-${i}`,
+      isExisting: false,
+      _manualPrice: true,
+      _manualStock: true
+    }))
+
+    showModal.value = true
+  } catch (error) {
+    console.error(error)
+    alert(getErrorMessage(error, 'Không tải được thông tin sản phẩm để sao chép.'))
+  }
+}
+
 const mapProductToForm = (product) => {
   form.value = {
     name: product?.tenSP || '',
@@ -1203,7 +1323,7 @@ const mapProductToForm = (product) => {
         const attrId = matchedAttr?.id ?? item?.id_thuoctinh ?? item?.ten_thuoctinh ?? `attr_${attrIndex}`
 
         if (attrId) {
-          attrs[String(attrId)] = item.giatri
+          attrs[attrId] = item.giatri
         }
       })
     }
@@ -1227,7 +1347,7 @@ const mapProductToForm = (product) => {
       const matchedAttr = findAttrTypeByName(item?.ten_thuoctinh)
 
       return {
-        id: String(matchedAttr?.id ?? item.id_thuoctinh ?? item.ten_thuoctinh ?? `attr_${index}`),
+        id: matchedAttr?.id ?? item.id_thuoctinh ?? item.ten_thuoctinh ?? `attr_${index}`,
         label: item.ten_thuoctinh ?? `Thuộc tính ${index + 1}`,
         color: matchedAttr?.color ?? colorPool[index % colorPool.length],
       }
@@ -1236,7 +1356,41 @@ const mapProductToForm = (product) => {
     editVariantHeaders.value = []
   }
 
+  // 1. Phân biệt các thuộc tính đang làm Biến thể
+  variationTierIds.value = new Set(editVariantHeaders.value.map(h => String(h.id)))
+
+  // 2. Nạp giá trị biến thể vào selectedOptions
   rebuildSelectedOptionsFromRows()
+
+  // 3. Nạp Thông số kỹ thuật vào selectedOptions
+  let specs = []
+  if (Array.isArray(product?.thong_so_ky_thuat)) {
+    specs = product.thong_so_ky_thuat
+  } else if (typeof product?.thong_so_ky_thuat === 'string') {
+    try { specs = JSON.parse(product.thong_so_ky_thuat) } catch(e) {}
+  }
+  
+  if (specs && specs.length > 0) {
+    const nextSelected = { ...selectedOptions.value }
+    specs.forEach(spec => {
+      const matchedAttr = findAttrTypeByName(spec.ten_thuoctinh)
+      const attrId = String(matchedAttr?.id ?? spec.id_thuoctinh ?? spec.ten_thuoctinh)
+      
+      if (attrId && !variationTierIds.value.has(attrId)) {
+        if (!nextSelected[attrId]) {
+          nextSelected[attrId] = new Set()
+        }
+        String(spec.giatri).split(',').forEach(v => {
+          if (v.trim()) nextSelected[attrId].add(v.trim())
+        })
+      }
+    })
+    selectedOptions.value = nextSelected
+  }
+
+  // 4. Lưu Snapshot sau khi đã nạp đầy đủ Biến thể + Thông số
+  selectedOptionsSnapshot.value = cloneSelectedOptions(selectedOptions.value)
+
   variantCurrentPage.value = 1
   vsPhase.value = 2
 }
@@ -1283,6 +1437,15 @@ const submitForm = async () => {
         duongdan: img,
         thutu: index,
       })),
+
+      thong_so_ky_thuat: specificationAttrs.value.map(attr => {
+        const selectedVals = Array.from(selectedOptions.value[attr.id] || [])
+        return {
+          id_thuoctinh: attr.id,
+          ten_thuoctinh: attr.label,
+          giatri: selectedVals.join(', ')
+        }
+      }).filter(s => s.giatri),
 
       bienthes: generatedRows.value.map((row) => ({
         ten_bienthe: row.ten_bienthe || Object.values(row.attrs || {}).join(' - '),
@@ -1341,22 +1504,33 @@ onMounted(() => {
         <h1>Quản lý sản phẩm</h1>
         <p>Cập nhật và theo dõi danh mục thiết bị công nghệ 2026</p>
       </div>
-        <div class="excel-actions">
-          <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
-            <svg v-if="!isExporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span v-else class="spinner-sm"></span>
-            {{ isExporting ? 'Đang xuất...' : 'Xuất Excel' }}
-          </button>
-          
-          <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
-            <svg v-if="!isImporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <span v-else class="spinner-sm"></span>
-            {{ isImporting ? 'Đang nhập...' : 'Nhập Excel' }}
-          </button>
-          <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls" @change="handleImportExcel" />
+      <div class="excel-actions">
+        <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
+          <svg v-if="!isExporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
+            fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span v-else class="spinner-sm"></span>
+          {{ isExporting ? 'Đang xuất...' : 'Xuất Excel' }}
+        </button>
 
-          <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
-        </div>
+        <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
+          <svg v-if="!isImporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
+            fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span v-else class="spinner-sm"></span>
+          {{ isImporting ? 'Đang nhập...' : 'Nhập Excel' }}
+        </button>
+        <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls"
+          @change="handleImportExcel" />
+
+        <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
+      </div>
     </div>
 
     <div class="stats">
@@ -1444,6 +1618,12 @@ onMounted(() => {
             </td>
             <td>
               <div class="actions">
+                <button class="act-btn" title="Sao chép (Clone)" @click="openCloneModal(p.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
                 <button class="act-btn" title="Sửa" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -1459,6 +1639,7 @@ onMounted(() => {
                 </button>
               </div>
             </td>
+
           </tr>
         </tbody>
       </table>
@@ -1587,7 +1768,11 @@ onMounted(() => {
                 <div class="vs-title">
                   <span class="vs-bar"></span>
                   Biến thể sản phẩm
+                  <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
+                    Cấp biến thể: {{ variationTierIds.size }}/3
+                  </span>
                 </div>
+
                 <div class="vs-steps">
                   <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
                     <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
@@ -1620,10 +1805,21 @@ onMounted(() => {
                 <div v-if="displayAttrTypes.length" class="flat-select-table">
                   <div v-for="t in displayAttrTypes" :key="t.id" class="fst-row">
                     <div class="fst-label">
-                      <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                      <span v-if="selectedOptions[t.id]?.size" class="fst-count">
-                        {{ selectedOptions[t.id].size }}
-                      </span>
+                      <div class="fst-label-top">
+                        <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                        <span v-if="selectedOptions[t.id]?.size" class="fst-count">
+                          {{ selectedOptions[t.id].size }}
+                        </span>
+                      </div>
+                      <button class="tier-toggle-btn" :class="{ 'is-tier': variationTierIds.has(t.id) }"
+                        @click="toggleVariationTier(t.id)"
+                        title="Dùng thuộc tính này để tạo các phiên bản (SKU) khác nhau về giá/kho">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12"
+                          height="12">
+                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                        <span>{{ variationTierIds.has(t.id) ? 'Đang làm Biến thể' : 'Làm Biến thể?' }}</span>
+                      </button>
                     </div>
 
                     <div class="fst-options-wrap">
@@ -1692,8 +1888,7 @@ onMounted(() => {
                           <rect x="1" y="1" width="12" height="12" rx="2" />
                           <polyline points="3.5,7 5.5,9 10.5,4.5" />
                         </svg>
-                        {{ isEditMode ? 'Cập nhật tổ hợp biến thể' : `Tạo ${comboCount > 0 ? comboCount + ' ' : ''}biến
-                        thể` }}
+                        {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
                       </button>
                     </div>
                   </div>
@@ -1713,16 +1908,19 @@ onMounted(() => {
                   <div class="modal-excel-actions">
                     <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
                       @click="handleExportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                        fill="none">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
                       Xuất Excel
                     </button>
-                    <button class="btn-xl-sm btn-xl-import" title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
+                    <button class="btn-xl-sm btn-xl-import"
+                      title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
                       @click="triggerImportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                        fill="none">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
@@ -1732,14 +1930,24 @@ onMounted(() => {
                     <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
                       @change="handleImportVariantsExcel" />
                   </div>
+                </div>
+
+                <div class="p2-controls">
+                  <div class="p2-info">
+                    <template v-if="isEditMode">
+                      Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
+                    </template>
+                    <template v-else>
+                      Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
+                    </template>
+                  </div>
 
                   <div class="bulk-stack">
                     <div class="bulk-bar">
                       <span class="bulk-lbl">Giá/kho nền:</span>
-                      <input v-model="basePrice" class="bulk-in" placeholder="Giá nền" />
+                      <input v-model="basePrice" class="bulk-in" placeholder="Giá nền (₫)" />
                       <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho nền" />
                     </div>
-
                     <div class="bulk-actions">
                       <button class="btn-apply-outline" @click="applyRulesToAll(false)">
                         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
@@ -1760,16 +1968,9 @@ onMounted(() => {
                   </div>
                 </div>
 
-                <div class="p2-info">
-                  <template v-if="isEditMode">
-                    Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có của sản phẩm.
-                  </template>
-                  <template v-else>
-                    Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp từ
-                    <b>{{ allSelectedAttrTypes.length }}</b> loại thuộc tính — mỗi hàng là duy nhất, không trùng lặp.
-                  </template>
-                </div>
+
                 <div class="vt-scroll">
+
                   <table class="vt-table">
                     <thead>
                       <tr>
@@ -1779,6 +1980,7 @@ onMounted(() => {
                         </th>
                         <th class="th-price">Giá riêng (₫)</th>
                         <th class="th-stock">Kho</th>
+                        <th class="th-del"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1803,6 +2005,12 @@ onMounted(() => {
                         <td>
                           <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
                             @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
+                        </td>
+
+                        <td class="td-del">
+                          <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
+                            ×
+                          </button>
                         </td>
                       </tr>
                     </tbody>
@@ -1925,7 +2133,6 @@ onMounted(() => {
         </div>
       </div>
     </Teleport>
-
   </div>
 </template>
 
@@ -2064,7 +2271,9 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .stats {
@@ -2719,6 +2928,55 @@ tbody td {
   color: white;
 }
 
+.fst-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.fst-label-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tier-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: fit-content;
+}
+
+.tier-toggle-btn svg {
+  opacity: 0.6;
+}
+
+.tier-toggle-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.tier-toggle-btn.is-tier {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.tier-toggle-btn.is-tier svg {
+  opacity: 1;
+}
+
 .vss-line {
   width: 24px;
   height: 2px;
@@ -2751,6 +3009,64 @@ tbody td {
 .gtab:hover {
   border-color: #93c5fd;
   color: #2563eb;
+}
+
+.p2-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 4px;
+}
+
+.btn-add-manual {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-manual:hover {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.th-del {
+  width: 40px;
+}
+
+.td-del {
+  text-align: center;
+}
+
+.btn-row-del {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #fee2e2;
+  background: #fff1f2;
+  color: #ef4444;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-row-del:hover {
+  background: #ffe4e6;
+  border-color: #fecaca;
+  transform: scale(1.1);
 }
 
 .gtab-active {
@@ -3659,4 +3975,51 @@ tbody td {
     gap: 8px;
   }
 }
+
+.vs-tier-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 20px;
+  transition: all 0.3s;
+  margin-left: 10px;
+}
+
+.vs-tier-count.at-limit {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+}
+
+.p2-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 14px 0 10px;
+}
+
+.p2-controls .bulk-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.p2-controls .bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.p2-controls .bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+
+
 </style>

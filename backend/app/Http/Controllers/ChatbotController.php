@@ -15,219 +15,116 @@ class ChatbotController extends Controller
 
         $userMessage = trim(mb_strtolower($request->input('message')));
 
-        $reply = 'Dạ anh/chị đang cần laptop cho nhu cầu gì ạ: học tập, văn phòng, gaming hay đồ họa? Kèm ngân sách để em lọc nhanh cho mình nha.';
-        $products = collect();
+        // 1. Khởi tạo Query cho Biến thể (với quan hệ SanPham)
+        $variantsQuery = \App\Models\BienThe::with('sanPham');
+        $reply = 'Dạ em chào anh/chị ạ. Anh/chị đang cần laptop cho nhu cầu gì ạ: học tập, văn phòng, gaming hay đồ họa? Kèm ngân sách để em lọc nhanh cho mình nha.';
 
-        // Chào hỏi
-        if ($this->containsAny($userMessage, ['xin chào', 'chào', 'hello', 'hi', 'shop ơi', 'ad ơi'])) {
-            $reply = 'Dạ em chào anh/chị ạ. Anh/chị đang cần laptop cho học tập, văn phòng, gaming hay đồ họa ạ? Anh/chị nhắn thêm tầm giá, em lọc mẫu hợp nhất cho mình luôn nha.';
-        }
+        // 2. Trích xuất giá và hướng lọc
+        $prices = $this->extractPrices($userMessage);
+        $priceContext = '';
 
-        // Nhu cầu chung: mua laptop
-        elseif ($this->containsAny($userMessage, ['mua laptop', 'cần laptop', 'tư vấn laptop', 'tìm laptop'])) {
-            $reply = 'Dạ em tư vấn nhanh cho anh/chị nha. Anh/chị dùng máy chủ yếu để làm gì ạ: học tập, văn phòng, chơi game hay thiết kế? Ngân sách khoảng bao nhiêu để em gợi ý đúng mẫu dễ chốt hơn ạ.';
-        }
-
-        // Dưới 10 triệu
-        elseif ($this->containsAny($userMessage, ['dưới 10', 'dưới 10 triệu', '10tr dưới', 'tầm 10 triệu đổ xuống'])) {
-            $products = SanPham::with('bienThes')
-                ->whereHas('bienThes', function ($q) {
-                    $q->where('gia', '<=', 10000000);
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ với ngân sách dưới 10 triệu thì anh/chị tham khảo mấy mẫu này nha. Tầm này hợp học tập, làm việc cơ bản và dùng ổn định. Anh/chị thích máy mỏng nhẹ hay ưu tiên cấu hình hơn để em lọc tiếp ạ?'
-                : 'Dạ hiện em chưa thấy mẫu nào dưới 10 triệu trong kho ạ. Anh/chị có thể nâng nhẹ lên tầm 11 đến 13 triệu, lúc đó sẽ có nhiều mẫu ngon hơn nha.';
-        }
-
-        // Dưới 15 triệu
-        elseif ($this->containsAny($userMessage, ['dưới 15', 'dưới 15 triệu', '15tr dưới', 'tầm 15 triệu đổ xuống'])) {
-            $products = SanPham::with('bienThes')
-                ->whereHas('bienThes', function ($q) {
-                    $q->where('gia', '<=', 15000000);
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ tầm dưới 15 triệu là mức rất dễ chọn máy ngon cho học tập, văn phòng và làm việc lâu dài ạ. Em gửi anh/chị vài mẫu đáng tiền nhất bên dưới nha. Anh/chị thích hãng nào để em lọc sát hơn ạ?'
-                : 'Dạ hiện em chưa thấy mẫu nào đúng tầm dưới 15 triệu ạ. Anh/chị nhắn thêm nhu cầu, em sẽ tìm phương án gần nhất cho mình nha.';
-        }
-
-        // Dưới 20 triệu
-        elseif ($this->containsAny($userMessage, ['dưới 20', 'dưới 20 triệu', '20tr dưới', 'tầm 20 triệu đổ xuống'])) {
-            $products = SanPham::with('bienThes')
-                ->whereHas('bienThes', function ($q) {
-                    $q->where('gia', '<=', 20000000);
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ tầm dưới 20 triệu đang là phân khúc rất dễ chọn máy đẹp, cấu hình khỏe và dùng bền ạ. Em gửi anh/chị vài mẫu nổi bật bên dưới. Anh/chị ưu tiên pin, màn hình hay hiệu năng để em chốt mẫu hợp nhất cho mình nha?'
-                : 'Dạ hiện em chưa thấy mẫu nào đúng tầm dưới 20 triệu ạ. Anh/chị nhắn thêm hãng hoặc nhu cầu để em lọc kỹ hơn cho mình nha.';
-        }
-
-        // Trên 20 triệu
-        elseif ($this->containsAny($userMessage, ['trên 20', 'trên 20 triệu', 'hơn 20', '20tr trở lên'])) {
-            $products = SanPham::with('bienThes')
-                ->whereHas('bienThes', function ($q) {
-                    $q->where('gia', '>=', 20000000);
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ với ngân sách trên 20 triệu thì mình có khá nhiều lựa chọn ngon về hiệu năng, màn đẹp và build tốt ạ. Em gửi anh/chị vài mẫu đáng xuống tiền nhất bên dưới nha. Anh/chị đang thiên về sang mỏng nhẹ hay cấu hình mạnh ạ?'
-                : 'Dạ hiện em chưa thấy mẫu nào trên 20 triệu phù hợp ạ. Anh/chị thử nói thêm nhu cầu cụ thể giúp em nha.';
-        }
-
-        // Gaming
-        elseif ($this->containsAny($userMessage, ['gaming', 'chơi game', 'game', 'pubg', 'valorant', 'lol', 'cs2'])) {
-            $products = SanPham::with('bienThes')
-                ->where(function ($q) {
-                    $q->where('tenSP', 'like', '%gaming%')
-                      ->orWhereHas('bienThes', function ($sub) {
-                          $sub->where('ten_bienthe', 'like', '%rtx%')
-                              ->orWhere('ten_bienthe', 'like', '%gtx%')
-                              ->orWhere('thuoc_tinh_json', 'like', '%RTX%')
-                              ->orWhere('thuoc_tinh_json', 'like', '%GTX%');
-                      });
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ nếu anh/chị cần laptop gaming thì em gợi ý mấy mẫu này ạ. Mấy dòng này phù hợp chơi game, làm việc nặng và dùng lâu dài. Anh/chị đang chơi game nào nhiều để em lọc mức cấu hình vừa tiền nhất cho mình nha?'
-                : 'Dạ hiện em chưa lọc ra mẫu gaming thật sát ạ. Anh/chị nhắn thêm ngân sách và tựa game hay chơi, em chọn chuẩn hơn cho mình nha.';
-        }
-
-        // Học tập - văn phòng
-        elseif ($this->containsAny($userMessage, ['sinh viên', 'học tập', 'văn phòng', 'office', 'word', 'excel', 'online'])) {
-            $products = SanPham::with('bienThes')
-                ->where(function ($q) {
-                    $q->where('tenSP', 'like', '%vivobook%')
-                      ->orWhere('tenSP', 'like', '%zenbook%')
-                      ->orWhere('tenSP', 'like', '%book%')
-                      ->orWhereHas('bienThes', function ($sub) {
-                          $sub->where('ten_bienthe', 'like', '%intel core i3%')
-                              ->orWhere('ten_bienthe', 'like', '%intel core i5%')
-                              ->orWhere('ten_bienthe', 'like', '%8gb%')
-                              ->orWhere('ten_bienthe', 'like', '%16gb%');
-                      });
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ đây là vài mẫu hợp cho sinh viên và văn phòng ạ. Tập trung vào độ ổn định, pin ổn và dễ dùng lâu dài. Anh/chị thích máy mỏng nhẹ mang đi học đi làm hay muốn cấu hình khỏe hơn để dùng nhiều năm ạ?'
-                : 'Dạ anh/chị cần máy học tập hay văn phòng thì cho em thêm tầm giá, em lọc chuẩn hơn cho mình nha.';
-        }
-
-        // Đồ họa
-        elseif ($this->containsAny($userMessage, ['đồ họa', 'design', 'thiết kế', 'photoshop', 'illustrator', 'premiere', 'render'])) {
-            $products = SanPham::with('bienThes')
-                ->whereHas('bienThes', function ($sub) {
-                    $sub->where('ten_bienthe', 'like', '%rtx%')
-                        ->orWhere('ten_bienthe', 'like', '%i7%')
-                        ->orWhere('ten_bienthe', 'like', '%r7%')
-                        ->orWhere('thuoc_tinh_json', 'like', '%RTX%')
-                        ->orWhere('thuoc_tinh_json', 'like', '%Intel Core i7%')
-                        ->orWhere('thuoc_tinh_json', 'like', '%Ryzen 7%');
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ nếu anh/chị cần máy làm đồ họa thì em gợi ý mấy mẫu này ạ. Mấy dòng này sẽ hợp hơn cho Photoshop, Premiere, AI và làm việc nặng. Anh/chị làm 2D hay 3D để em lọc đúng cấu hình cần dùng nha?'
-                : 'Dạ máy đồ họa thì anh/chị cho em thêm ngân sách để em lọc đúng hơn nha.';
-        }
-
-        // Mỏng nhẹ / pin trâu
-        elseif ($this->containsAny($userMessage, ['mỏng nhẹ', 'nhẹ', 'pin trâu', 'pin lâu', 'mang đi học', 'mang đi làm'])) {
-            $products = SanPham::with('bienThes')
-                ->where(function ($q) {
-                    $q->where('tenSP', 'like', '%air%')
-                      ->orWhere('tenSP', 'like', '%zenbook%')
-                      ->orWhere('tenSP', 'like', '%vivobook%')
-                      ->orWhere('tenSP', 'like', '%inspiron%')
-                      ->orWhere('tenSP', 'like', '%swift%');
-                })
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ nếu anh/chị ưu tiên máy mỏng nhẹ, dễ mang theo và pin ổn thì em gợi ý các mẫu này ạ. Dòng này hợp sinh viên, dân văn phòng và người hay di chuyển. Anh/chị thích màn 14 inch hay 15.6 inch để em chốt mẫu dễ dùng nhất nha?'
-                : 'Dạ anh/chị cho em thêm tầm giá để em lọc đúng các mẫu mỏng nhẹ cho mình nha.';
-        }
-
-        // Theo hãng
-        elseif ($this->containsAny($userMessage, ['asus', 'acer', 'dell', 'hp', 'lenovo', 'msi', 'apple', 'macbook'])) {
-            $brand = $this->extractBrand($userMessage);
-
-            if ($brand) {
-                $products = SanPham::with('bienThes')
-                    ->where('tenSP', 'like', '%' . $brand . '%')
-                    ->latest('id_sanpham')
-                    ->take(4)
-                    ->get();
-
-                $reply = $products->isNotEmpty()
-                    ? 'Dạ em tìm được vài mẫu ' . strtoupper($brand) . ' cho anh/chị đây ạ. Nếu anh/chị muốn, em có thể lọc tiếp theo tầm giá hoặc nhu cầu để ra mẫu dễ chốt nhất cho mình nha.'
-                    : 'Dạ hiện em chưa thấy mẫu ' . strtoupper($brand) . ' phù hợp ạ. Anh/chị thử nhắn thêm ngân sách giúp em để em tìm mẫu gần nhất cho mình nha.';
+        if (!empty($prices)) {
+            if (count($prices) >= 2) {
+                // Khoảng giá
+                $min = $prices[0];
+                $max = $prices[1];
+                $variantsQuery->whereBetween('gia', [$min, $max]);
+                $priceContext = "tầm giá từ " . number_format($min / 1000000, 0, ',', '.') . "tr đến " . number_format($max / 1000000, 0, ',', '.') . "tr";
+            } else {
+                // Một mức giá
+                $price = $prices[0];
+                if ($this->containsAny($userMessage, ['trên', 'hơn', 'cao hơn', 'trở lên'])) {
+                    $variantsQuery->where('gia', '>=', $price);
+                    $priceContext = "tầm giá trên " . number_format($price / 1000000, 0, ',', '.') . "tr";
+                } else {
+                    $variantsQuery->where('gia', '<=', $price);
+                    $priceContext = "tầm giá dưới " . number_format($price / 1000000, 0, ',', '.') . "tr";
+                }
             }
         }
 
-        // Hỏi giá / ưu đãi
-        elseif ($this->containsAny($userMessage, ['giá bao nhiêu', 'bao nhiêu tiền', 'giá', 'sale', 'khuyến mãi', 'ưu đãi'])) {
-            $reply = 'Dạ anh/chị đang quan tâm mẫu nào hoặc tầm giá nào ạ? Em sẽ lọc nhanh mẫu phù hợp và báo mình mức giá dễ xuống tiền nhất nha.';
+        // 3. Lọc theo nhu cầu/keyword
+        $intent = 'general';
+        if ($this->containsAny($userMessage, ['gaming', 'chơi game', 'game', 'pubg', 'valorant', 'lol'])) {
+            $intent = 'gaming';
+            $variantsQuery->where(function ($q) {
+                $q->whereHas('sanPham', function ($sub) {
+                    $sub->where('tenSP', 'like', '%gaming%');
+                })
+                ->orWhere('ten_bienthe', 'like', '%rtx%')
+                ->orWhere('ten_bienthe', 'like', '%gtx%')
+                ->orWhere('thuoc_tinh_json', 'like', '%RTX%')
+                ->orWhere('thuoc_tinh_json', 'like', '%GTX%');
+            });
+        } elseif ($this->containsAny($userMessage, ['sinh viên', 'học tập', 'văn phòng', 'office', 'online'])) {
+            $intent = 'office';
+            $variantsQuery->where(function ($q) {
+                $q->whereHas('sanPham', function ($sub) {
+                    $sub->where('tenSP', 'like', '%vivobook%')
+                        ->orWhere('tenSP', 'like', '%zenbook%')
+                        ->orWhere('tenSP', 'like', '%book%');
+                })
+                ->orWhere('ten_bienthe', 'like', '%intel core i3%')
+                ->orWhere('ten_bienthe', 'like', '%intel core i5%')
+                ->orWhere('ten_bienthe', 'like', '%8gb%');
+            });
+        } elseif ($this->containsAny($userMessage, ['đồ họa', 'design', 'thiết kế', 'photoshop', 'illustrator'])) {
+            $intent = 'graphics';
+            $variantsQuery->where(function ($q) {
+                $q->whereHas('sanPham', function ($sub) {
+                    $sub->where('tenSP', 'like', '%proart%')
+                        ->orWhere('tenSP', 'like', '%macbook%');
+                })
+                ->orWhere('ten_bienthe', 'like', '%rtx%')
+                ->orWhere('ten_bienthe', 'like', '%i7%')
+                ->orWhere('ten_bienthe', 'like', '%r7%')
+                ->orWhere('thuoc_tinh_json', 'like', '%RTX%')
+                ->orWhere('thuoc_tinh_json', 'like', '%Intel Core i7%');
+            });
         }
 
-        // Muốn được tư vấn thêm
-        elseif ($this->containsAny($userMessage, ['tư vấn thêm', 'gợi ý thêm', 'mẫu khác', 'còn mẫu nào'])) {
-            $products = SanPham::with('bienThes')
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = $products->isNotEmpty()
-                ? 'Dạ em gửi anh/chị thêm vài mẫu đang được quan tâm nhiều ạ. Anh/chị thích em lọc theo giá, hãng hay nhu cầu để ra đúng mẫu hợp nhất không ạ?'
-                : 'Dạ hiện em chưa lấy được thêm mẫu ạ. Anh/chị nhắn em nhu cầu cụ thể hơn chút để em tư vấn sát hơn nha.';
+        // lọc theo hãng
+        $brand = $this->extractBrand($userMessage);
+        if ($brand) {
+            $variantsQuery->whereHas('sanPham', function ($q) use ($brand) {
+                $q->where('tenSP', 'like', '%' . $brand . '%');
+            });
         }
 
-        // Chốt mềm
-        elseif ($this->containsAny($userMessage, ['ok', 'ổn', 'được đó', 'ưng', 'thích mẫu này', 'mẫu này được'])) {
-            $reply = 'Dạ mẫu này khá ổn trong tầm giá đó ạ. Nếu anh/chị muốn, em có thể tư vấn thêm cấu hình chi tiết, khả năng dùng thực tế và mẫu nào đáng tiền hơn để mình chốt dễ hơn nha.';
-        }
+        // 4. Lấy ngẫu nhiên 5 kết quả (theo yêu cầu của người dùng)
+        $variants = $variantsQuery->inRandomOrder()->take(5)->get();
 
-        // Cảm ơn
-        elseif ($this->containsAny($userMessage, ['cảm ơn', 'thank', 'thanks'])) {
-            $reply = 'Dạ em cảm ơn anh/chị nhiều ạ. Khi nào cần tư vấn laptop cứ nhắn em, em lọc nhanh mẫu hợp nhu cầu và ngân sách cho mình nha.';
-        }
-
-        // Fallback: không hiểu nhưng vẫn giữ khách
-        else {
-            $products = SanPham::with('bienThes')
-                ->latest('id_sanpham')
-                ->take(4)
-                ->get();
-
-            $reply = 'Dạ em hiểu sơ nhu cầu của anh/chị rồi ạ. Anh/chị nhắn giúp em 2 ý là nhu cầu sử dụng và ngân sách, ví dụ như "văn phòng dưới 15 triệu" hoặc "gaming tầm 20 triệu", em sẽ gợi ý đúng mẫu dễ chọn nhất cho mình nha.';
+        // 5. Xây dựng câu trả lời
+        if ($variants->isNotEmpty()) {
+            if ($priceContext && $intent !== 'general') {
+                $intentText = $intent === 'gaming' ? 'Gaming' : ($intent === 'office' ? 'Văn phòng' : 'Đồ họa');
+                $reply = "Dạ em tìm được vài cấu hình laptop **{$intentText}** trong **{$priceContext}** cực tốt cho mình đây ạ:";
+            } elseif ($priceContext) {
+                $reply = "Dạ với **{$priceContext}**, đây là 5 lựa chọn cấu hình sịn sò nhất cho mình ạ:";
+            } elseif ($intent !== 'general') {
+                $intentText = $intent === 'gaming' ? 'Gaming' : ($intent === 'office' ? 'Văn phòng' : 'Đồ họa');
+                $reply = "Dạ gửi khách yêu các dòng laptop chuyên **{$intentText}** bên em đang có sẵn ạ. Anh/chị nhắn thêm tầm giá để em lọc sát hơn nha!";
+            } elseif ($brand) {
+                $reply = "Dạ gửi anh/chị các phiên bản laptop **" . strtoupper($brand) . "** hot nhất đây ạ. Anh/chị xem có cấu hình nào ưng ý không nha!";
+            } else {
+                // Chào hỏi/Fallback
+                if ($this->containsAny($userMessage, ['xin chào', 'chào', 'hello', 'hi'])) {
+                    $reply = 'Dạ em chào anh/chị ạ! Anh/chị muốn tìm laptop tầm giá bao nhiêu hoặc dùng cho công việc gì để em tư vấn các cấu hình sát nhất ạ?';
+                } else {
+                    $reply = 'Dạ em gửi anh/chị vài cấu hình laptop đang được ưa chuộng nhất đây ạ. Anh/chị cần lọc theo giá hay hãng nào thì nhắn em ngay nha!';
+                }
+            }
+        } else {
+            if ($priceContext) {
+                $reply = "Dạ hiện tại bên em chưa có cấu hình nào trong **{$priceContext}** phù hợp hoàn toàn ạ. Anh/chị có thể điều chỉnh ngân sách một chút hoặc nhắn nhu cầu để em tìm bản gần nhất nha.";
+            } else {
+                $reply = 'Dạ em chưa tìm thấy phiên bản laptop nào khớp hoàn toàn ạ. Anh/chị nhắn giúp em tầm giá hoặc dòng máy mình thích, em lọc lại ngay cho mình nha!';
+            }
         }
 
         return response()->json([
             'reply' => $reply,
-            'products' => $products->values(),
+            'products' => $variants->values(), // Trả về biến thể (frontend vẫn dùng key 'products' để tránh sửa nhiều)
         ]);
     }
 
@@ -252,5 +149,40 @@ class ChatbotController extends Controller
         }
 
         return null;
+    }
+
+    private function extractPrices(string $text): array
+    {
+        $prices = [];
+        // Pattern 1: Số + đơn vị (15tr, 15 triệu, 15.5tr)
+        // Chấp nhận số thập phân dấu phẩy hoặc dấu chấm
+        preg_match_all('/(\d+(?:[.,]\d+)?)\s*(?:tr|triệu|m|trđ|triệu đồng)/u', $text, $matches);
+        foreach ($matches[1] as $val) {
+            $prices[] = $this->normalizePrice($val);
+        }
+
+        // Pattern 2: Số thuần túy lớn (ví dụ 15000000)
+        if (empty($prices)) {
+            preg_match_all('/\b\d{6,}\b/', $text, $matches);
+            foreach ($matches[0] as $val) {
+                $prices[] = (int)$val;
+            }
+        }
+
+        sort($prices);
+        return array_unique($prices);
+    }
+
+    private function normalizePrice($val): int
+    {
+        // Thay dấu phẩy thành dấu chấm để xử lý số thực
+        $val = str_replace(',', '.', $val);
+        $num = (float)$val;
+
+        // Nếu số nhỏ (dưới 1000) thì coi là đơn vị Triệu
+        if ($num < 1000) {
+            return (int)($num * 1000000);
+        }
+        return (int)$num;
     }
 }

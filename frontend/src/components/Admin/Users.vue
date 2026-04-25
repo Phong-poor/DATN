@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { getUser } from '../../services/auth.js'
 
 // ─── API ─────────────────────────────
 const api = axios.create({
@@ -10,6 +11,8 @@ const api = axios.create({
 // ─── STATE ───────────────────────────
 const searchQuery = ref('')
 const activeTab = ref('Tất cả')
+
+const currentUser = ref(null)
 
 const showModal = ref(false)
 const showEditModal = ref(false)
@@ -24,11 +27,10 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = 7
 
-const tabs = ['Tất cả', 'Admin', 'Khách hàng', 'Hỗ trợ']
+const tabs = ['Tất cả', 'Admin', 'Khách hàng']
 
 const roleStyle = {
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'HỖ TRỢ': { bg: '#ede9fe', color: '#6d28d9' },
     'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' }
 }
 
@@ -40,13 +42,11 @@ const statusStyle = {
 // ─── MAPPING ─────────────────────────
 const roleMap = {
     admin: 'ADMIN',
-    support: 'HỖ TRỢ',
     user: 'KHÁCH HÀNG'
 }
 
 const roleReverseMap = {
     'ADMIN': 'admin',
-    'HỖ TRỢ': 'support',
     'KHÁCH HÀNG': 'user'
 }
 
@@ -82,15 +82,17 @@ const fetchUsers = async () => {
     }
 }
 
-onMounted(fetchUsers)
+onMounted(() => {
+    currentUser.value = getUser()
+    fetchUsers()
+})
 
 // ─── FILTER (reset page khi search/tab thay đổi) ──
 const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
     const map = {
         'Admin': 'ADMIN',
-        'Khách hàng': 'KHÁCH HÀNG',
-        'Hỗ trợ': 'HỖ TRỢ'
+        'Khách hàng': 'KHÁCH HÀNG'
     }
     return users.value.filter(u => {
         const matchSearch =
@@ -312,7 +314,8 @@ const submitEdit = async () => {
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                 </svg>
-                <input v-model="searchQuery" @input="onSearch" placeholder="Tìm kiếm người dùng, email hoặc vai trò..." />
+                <input v-model="searchQuery" @input="onSearch"
+                    placeholder="Tìm kiếm người dùng, email hoặc vai trò..." />
             </div>
             <div class="topbar-right">
                 <button class="icon-btn">🔔</button>
@@ -332,9 +335,10 @@ const submitEdit = async () => {
         <div class="page-header">
             <div>
                 <h1>Quản lý người dùng</h1>
-                <p>Theo dõi, điều chỉnh quyền hạn và trạng thái hoạt động của toàn bộ thành viên trong hệ thống VinaTech.</p>
+                <p>Theo dõi, điều chỉnh quyền hạn và trạng thái hoạt động của toàn bộ thành viên trong hệ thống
+                    VinaTech.</p>
             </div>
-            
+
         </div>
 
         <!-- STATS -->
@@ -352,7 +356,7 @@ const submitEdit = async () => {
                 <div class="stat-info">
                     <p>ĐANG HOẠT ĐỘNG</p>
                     <div class="stat-val-row">
-                        <b>{{ users.filter(u => u.status === 'Hoạt động').length }}</b>
+                        <b>{{users.filter(u => u.status === 'Hoạt động').length}}</b>
                         <span class="badge-neutral">Ổn định</span>
                     </div>
                 </div>
@@ -361,7 +365,7 @@ const submitEdit = async () => {
                 <div class="stat-info">
                     <p>BỊ KHÓA</p>
                     <div class="stat-val-row">
-                        <b>{{ users.filter(u => u.status === 'Bị khóa').length }}</b>
+                        <b>{{users.filter(u => u.status === 'Bị khóa').length}}</b>
                         <span class="badge-down">-5%</span>
                     </div>
                 </div>
@@ -464,7 +468,9 @@ const submitEdit = async () => {
                                 </button>
                                 <!-- Khóa / Mở khóa (có confirm) -->
                                 <button class="act-btn" :class="{ 'lock-active': u.status === 'Bị khóa' }"
-                                    :title="u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự khóa tài khoản' : (u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản')"
+                                    :disabled="u.id === currentUser?.id"
+                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
                                     @click="toggleStatus(u)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -474,7 +480,11 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger" title="Xóa" @click="removeUser(u.id)">
+                                <button class="act-btn danger"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : 'Xóa'"
+                                    :disabled="u.id === currentUser?.id"
+                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                                    @click="removeUser(u.id)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
                                         <polyline points="3 6 5 6 21 6" />
@@ -505,13 +515,13 @@ const submitEdit = async () => {
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
                 </template>
 
-                <button v-for="p in pageNumbers" :key="p"
-                    :class="{ active: currentPage === p }"
-                    @click="goToPage(p)">{{ p }}</button>
+                <button v-for="p in pageNumbers" :key="p" :class="{ active: currentPage === p }" @click="goToPage(p)">{{
+                    p }}</button>
 
                 <!-- Nút trang cuối nếu không hiển thị -->
                 <template v-if="pageNumbers[pageNumbers.length - 1] < totalPages">
-                    <button class="dots" v-if="pageNumbers[pageNumbers.length - 1] < totalPages - 1" disabled>...</button>
+                    <button class="dots" v-if="pageNumbers[pageNumbers.length - 1] < totalPages - 1"
+                        disabled>...</button>
                     <button @click="goToPage(totalPages)">{{ totalPages }}</button>
                 </template>
 
@@ -541,7 +551,8 @@ const submitEdit = async () => {
             </div>
             <div class="bottom-card security-card">
                 <div class="security-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                 </div>
@@ -587,7 +598,6 @@ const submitEdit = async () => {
                                 <select v-model="form.role">
                                     <option>KHÁCH HÀNG</option>
                                     <option>ADMIN</option>
-                                    <option>HỖ TRỢ</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -616,17 +626,20 @@ const submitEdit = async () => {
                         <!-- Icon vùng -->
                         <div class="confirm-icon-wrap" :class="`confirm-icon--${confirmModal.confirmColor}`">
                             <!-- Lock icon -->
-                            <svg v-if="confirmModal.icon === 'lock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <svg v-if="confirmModal.icon === 'lock'" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                             </svg>
                             <!-- Unlock icon -->
-                            <svg v-else-if="confirmModal.icon === 'unlock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <svg v-else-if="confirmModal.icon === 'unlock'" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                                 <path d="M7 11V7a5 5 0 0 1 9.9-1" />
                             </svg>
                             <!-- Trash icon -->
-                            <svg v-else-if="confirmModal.icon === 'trash'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <svg v-else-if="confirmModal.icon === 'trash'" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <polyline points="3 6 5 6 21 6" />
                                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                                 <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -637,7 +650,8 @@ const submitEdit = async () => {
                             <h4>{{ confirmModal.title }}</h4>
                             <p>{{ confirmModal.message }}</p>
                             <div v-if="confirmModal.subMessage" class="confirm-sub">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                     <circle cx="12" cy="7" r="4" />
                                 </svg>
@@ -647,7 +661,8 @@ const submitEdit = async () => {
 
                         <div class="confirm-actions">
                             <button class="confirm-cancel" @click="closeConfirm">Hủy bỏ</button>
-                            <button class="confirm-ok" :class="`confirm-ok--${confirmModal.confirmColor}`" @click="handleConfirm">
+                            <button class="confirm-ok" :class="`confirm-ok--${confirmModal.confirmColor}`"
+                                @click="handleConfirm">
                                 {{ confirmModal.confirmText }}
                             </button>
                         </div>
@@ -671,15 +686,16 @@ const submitEdit = async () => {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>VAI TRÒ / PHÂN QUYỀN</label>
-                                <select v-model="editForm.role">
+                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
                                     <option>KHÁCH HÀNG</option>
                                     <option>ADMIN</option>
-                                    <option>HỖ TRỢ</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>TRẠNG THÁI</label>
-                                <select v-model="editForm.status">
+                                <select v-model="editForm.status" :disabled="editingUser?.id === currentUser?.id"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự khóa tài khoản của chính mình' : ''">
                                     <option>Hoạt động</option>
                                     <option>Bị khóa</option>
                                 </select>
@@ -1385,6 +1401,7 @@ tbody td {
         opacity: 0;
         transform: translateY(16px) scale(0.97);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1568,7 +1585,7 @@ tbody td {
     width: 100%;
     max-width: 400px;
     padding: 32px 28px 24px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0,0,0,0.04);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1577,9 +1594,17 @@ tbody td {
 }
 
 /* Top accent border */
-.confirm-box--orange { border-top: 4px solid #f97316; }
-.confirm-box--red    { border-top: 4px solid #ef4444; }
-.confirm-box--blue   { border-top: 4px solid #2563eb; }
+.confirm-box--orange {
+    border-top: 4px solid #f97316;
+}
+
+.confirm-box--red {
+    border-top: 4px solid #ef4444;
+}
+
+.confirm-box--blue {
+    border-top: 4px solid #2563eb;
+}
 
 /* Icon */
 .confirm-icon-wrap {
@@ -1598,9 +1623,20 @@ tbody td {
     height: 28px;
 }
 
-.confirm-icon--orange { background: #fff7ed; color: #ea580c; }
-.confirm-icon--red    { background: #fef2f2; color: #dc2626; }
-.confirm-icon--blue   { background: #eff6ff; color: #2563eb; }
+.confirm-icon--orange {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.confirm-icon--red {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.confirm-icon--blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
 
 /* Content */
 .confirm-content {
@@ -1682,31 +1718,55 @@ tbody td {
     letter-spacing: 0.01em;
 }
 
-.confirm-ok--orange { background: linear-gradient(135deg, #f97316, #ea580c); }
-.confirm-ok--red    { background: linear-gradient(135deg, #f87171, #dc2626); }
-.confirm-ok--blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.confirm-ok--orange {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.confirm-ok--red {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+}
+
+.confirm-ok--blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
 
 .confirm-ok:hover {
     opacity: 0.88;
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 /* Transition */
 .confirm-fade-enter-active {
     animation: confirmIn 0.25s cubic-bezier(.22, 1, .36, 1);
 }
+
 .confirm-fade-leave-active {
     animation: confirmOut 0.18s ease-in forwards;
 }
 
 @keyframes confirmIn {
-    from { opacity: 0; transform: scale(0.88) translateY(20px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.88) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
+
 @keyframes confirmOut {
-    from { opacity: 1; transform: scale(1); }
-    to   { opacity: 0; transform: scale(0.93); }
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.93);
+    }
 }
 
 /* RESPONSIVE */
@@ -1714,6 +1774,7 @@ tbody td {
     .stats {
         grid-template-columns: 1fr 1fr;
     }
+
     .bottom-grid {
         grid-template-columns: 1fr;
     }
@@ -1725,31 +1786,39 @@ tbody td {
         gap: 14px;
         padding: 16px;
     }
+
     .stats {
         padding: 0 16px 16px;
         grid-template-columns: 1fr 1fr;
     }
+
     .filter-row {
         padding: 0 16px 12px;
     }
+
     .table-wrap {
         margin: 0 16px;
         overflow-x: auto;
     }
+
     table {
         min-width: 640px;
     }
+
     .table-footer {
         padding: 12px 16px;
         flex-direction: column;
         gap: 10px;
     }
+
     .bottom-grid {
         padding: 16px 16px 0;
     }
+
     .form-row {
         grid-template-columns: 1fr;
     }
+
     .topbar {
         padding: 12px 16px;
     }

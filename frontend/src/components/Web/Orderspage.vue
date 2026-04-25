@@ -112,6 +112,22 @@ const filtered = computed(() => {
 const openDetail = (order) => { selectedOrder.value = order }
 const closeDetail = () => { selectedOrder.value = null }
 
+const getFullProductName = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    let name = sp.tenSP || 'Sản phẩm'
+    let specs = []
+    try {
+        const tskt = typeof sp.thong_so_ky_thuat === 'string' 
+            ? JSON.parse(sp.thong_so_ky_thuat || '[]') 
+            : (sp.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+            specs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    
+    return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
 onMounted(() => {
     fetchOrders()
     
@@ -201,7 +217,8 @@ onUnmounted(() => {
                             <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                                 <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                                 <div class="modal-item-info">
-                                    <p class="modal-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
+                                    <p class="modal-item-name">{{ getFullProductName(item) }}</p>
+                                    <p class="modal-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                     <p class="modal-item-qty">Số lượng: {{ item.soluong }}</p>
                                 </div>
                                 <p class="modal-item-price">{{ formatPrice(item.gia) }}</p>
@@ -274,7 +291,8 @@ onUnmounted(() => {
                         <div class="order-item" v-for="item in (order.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
                             <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
                             <div class="order-item-info">
-                                <p class="order-item-name">{{ item.bien_the?.ten_bienthe || 'Sản phẩm' }}</p>
+                                <p class="order-item-name">{{ getFullProductName(item) }}</p>
+                                <p class="order-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                 <p class="order-item-qty">x{{ item.soluong }}</p>
                             </div>
                             <p class="order-item-price">{{ formatPrice(item.gia) }}</p>
@@ -470,9 +488,15 @@ onUnmounted(() => {
 
 .order-item-name {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     color: #1e293b;
-    margin: 0 0 3px;
+    margin: 0 0 2px;
+}
+
+.order-item-variant {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 4px;
 }
 
 .order-item-qty {
@@ -660,9 +684,15 @@ onUnmounted(() => {
 
 .modal-item-name {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: #1e293b;
-    margin: 0 0 3px;
+    margin: 0 0 2px;
+}
+
+.modal-item-variant {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0 0 4px;
 }
 
 .modal-item-qty {

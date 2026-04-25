@@ -272,6 +272,21 @@ watch([subtotal, allPromos], () => {
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ'
 
+const getFullProductName = (item) => {
+    let name = item.ten_san_pham || ''
+    let specs = []
+    try {
+        const tskt = typeof item.thong_so_ky_thuat === 'string' 
+            ? JSON.parse(item.thong_so_ky_thuat || '[]') 
+            : (item.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+            specs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    
+    return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
 onMounted(() => { 
     fetchGioHang()
     fetchPromotions()
@@ -318,7 +333,7 @@ onMounted(() => {
                     <div class="item" v-for="(item, i) in cart" :key="item.id_giohang">
                         <img :src="item.hinh_anh || 'https://via.placeholder.com/90'" />
                         <div class="info">
-                            <h3>{{ item.ten_san_pham }}</h3>
+                            <h3>{{ getFullProductName(item) }}</h3>
                             <p>{{ item.ten_bienthe }}</p>
                             <div class="attr-tags" v-if="item.thuoc_tinh && item.thuoc_tinh.length">
                                 <span v-for="attr in item.thuoc_tinh" :key="attr.ten_thuoctinh" class="attr-tag">
@@ -416,18 +431,6 @@ onMounted(() => {
                     <span class="icon">→</span>
                 </router-link>
 
-            </div>
-        </div>
-
-        <!-- ===== GỢI Ý ===== -->
-        <div class="suggest container">
-            <h3>Gợi ý cho bạn</h3>
-            <div class="grid">
-                <div class="card" v-for="(s, i) in suggest" :key="i">
-                    <img :src="s.img" />
-                    <p>{{ s.name }}</p>
-                    <span>{{ s.price }}</span>
-                </div>
             </div>
         </div>
     </div>
