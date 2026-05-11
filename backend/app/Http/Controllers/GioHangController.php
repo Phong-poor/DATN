@@ -85,16 +85,7 @@ class GioHangController extends Controller
             ->first();
 
         if ($existing) {
-            $soLuongMoi = $existing->soluong + $soLuong;
-
-            if ($soLuongMoi > $bienThe->soluong) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Giỏ hàng đã có {$existing->soluong} sản phẩm. Kho chỉ còn {$bienThe->soluong}.",
-                ], 422);
-            }
-
-            $existing->update(['soluong' => $soLuongMoi]);
+            $existing->update(['soluong' => $existing->soluong + $soLuong]);
             $item = $existing;
         } else {
             $item = GioHang::create([
@@ -104,9 +95,12 @@ class GioHangController extends Controller
             ]);
         }
 
+        // Trừ tồn kho ngay lập tức
+        $bienThe->decrement('soluong', $soLuong);
+
         return response()->json([
             'success' => true,
-            'message' => 'Đã thêm vào giỏ hàng!',
+            'message' => 'Đã thêm vào giỏ hàng và giữ chỗ sản phẩm!',
             'item'    => $item,
         ], 201);
     }
@@ -126,13 +120,21 @@ class GioHangController extends Controller
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        // Kiểm tra tồn kho
-        $bienThe = BienThe::findOrFail($item->id_bienthe);
-        if ($request->soluong > $bienThe->soluong) {
-            return response()->json([
-                'success' => false,
-                'message' => "Kho chỉ còn {$bienThe->soluong} sản phẩm.",
-            ], 422);
+        // Tính toán chênh lệch số lượng
+        $diff = $request->soluong - $item->soluong;
+
+        if ($diff > 0) {
+            // Nếu tăng số lượng -> kiểm tra kho
+            if ($bienThe->soluong < $diff) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Kho chỉ còn {$bienThe->soluong} sản phẩm.",
+                ], 422);
+            }
+            $bienThe->decrement('soluong', $diff);
+        } elseif ($diff < 0) {
+            // Nếu giảm số lượng -> cộng lại vào kho
+            $bienThe->increment('soluong', abs($diff));
         }
 
         $item->update(['soluong' => $request->soluong]);
@@ -156,11 +158,16 @@ class GioHangController extends Controller
             ->where('user_id', $userId)
             ->firstOrFail();
 
+        // Cộng lại số lượng vào kho trước khi xóa
+        if ($item->bienThe) {
+            $item->bienThe->increment('soluong', $item->soluong);
+        }
+
         $item->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.',
+            'message' => 'Đã xóa sản phẩm và trả lại số lượng vào kho.',
         ]);
     }
 
@@ -171,11 +178,18 @@ class GioHangController extends Controller
     {
         $userId = Auth::id();
 
-        GioHang::where('user_id', $userId)->delete();
+        $items = GioHang::where('user_id', $userId)->get();
+        
+        foreach ($items as $item) {
+            if ($item->bienThe) {
+                $item->bienThe->increment('soluong', $item->soluong);
+            }
+            $item->delete();
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa toàn bộ giỏ hàng.',
+            'message' => 'Đã xóa toàn bộ giỏ hàng và hoàn trả số lượng.',
         ]);
     }
 

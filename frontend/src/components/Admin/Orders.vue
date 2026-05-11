@@ -4,8 +4,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
   
 import api from '../../services/api'
-import echo from '../../services/echo'
-import { onUnmounted } from 'vue'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
 import { onUnmounted } from 'vue'
@@ -463,6 +461,14 @@ function exportExcel() {
                             </div>
                         </div>
 
+                        <!-- LÝ DO HỦY ĐƠN -->
+                        <div v-if="viewOrder.status === 'cancelled'" class="detail-section">
+                            <div class="section-title" style="color: #dc2626;">Lý do hủy đơn</div>
+                            <div class="cancel-reason-box">
+                                {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                            </div>
+                        </div>
+
                         <div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
@@ -796,4 +802,16 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .sum-row { display: flex; align-items: baseline; gap: 12px; }
 .sum-row span { font-size: 13px; color: #0369a1; font-weight: 500; }
 .final-total { font-size: 20px; font-weight: 800; color: #0369a1; }
+
+.cancel-reason-box {
+    margin-top: 8px;
+    padding: 12px 16px;
+    background: #fff1f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    color: #be123c;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+}
 </style>

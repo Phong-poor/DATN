@@ -208,7 +208,8 @@ const saveCategory = async () => {
     fetchCategories(); 
   } catch (error) {
     console.error('Lỗi khi lưu danh mục:', error);
-    swal.error('Lỗi', 'Có lỗi xảy ra, vui lòng kiểm tra lại!');
+    const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra, vui lòng kiểm tra lại!';
+    swal.error('Lỗi', errorMsg);
   }
 };
 

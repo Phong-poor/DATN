@@ -256,6 +256,14 @@ onMounted(() => {
 })
 
 const relatedProducts = ref([])
+const currentRelatedPage = ref(1)
+const relatedItemsPerPage = 5
+const paginatedRelatedProducts = computed(() => {
+    const start = (currentRelatedPage.value - 1) * relatedItemsPerPage
+    return relatedProducts.value.slice(start, start + relatedItemsPerPage)
+})
+
+const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
 
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
     try {
@@ -309,7 +317,8 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
             }
         })
 
-        relatedProducts.value = variants.slice(0, 10)
+        relatedProducts.value = variants
+        currentRelatedPage.value = 1
     } catch (error) {
         console.error('Lỗi tải sản phẩm tương tự:', error)
     }
@@ -566,13 +575,29 @@ const themVaoYeuThich = async () => {
             <router-link to="/products">Xem tất cả →</router-link>
         </div>
         <div class="related-list">
-            <div class="product-card" v-for="p in relatedProducts" :key="p.key_id"
+            <div class="product-card" v-for="p in paginatedRelatedProducts" :key="p.key_id"
                 @click="router.push(`/products/${p.id}?variant=${p.key_id}`).then(() => window.location.reload())">
                 <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
                 <h4>{{ p.fullName }}</h4>
                 <p class="sub">{{ p.specText }}</p>
                 <p class="price">{{ formatPrice(p.price) }}</p>
             </div>
+        </div>
+
+        <!-- PHÂN TRANG -->
+        <div class="related-pagination" v-if="totalRelatedPages > 1">
+            <button class="pag-btn" :disabled="currentRelatedPage === 1" @click="currentRelatedPage--">
+                &laquo; Trước
+            </button>
+            <div class="pag-numbers">
+                <button v-for="p in totalRelatedPages" :key="p" class="pag-num"
+                    :class="{ active: currentRelatedPage === p }" @click="currentRelatedPage = p">
+                    {{ p }}
+                </button>
+            </div>
+            <button class="pag-btn" :disabled="currentRelatedPage === totalRelatedPages" @click="currentRelatedPage++">
+                Sau &raquo;
+            </button>
         </div>
     </div>
 
@@ -1264,5 +1289,69 @@ h1 {
     width: 48px;
     height: 48px;
     margin-bottom: 15px;
+}
+
+/* PHÂN TRANG RELATED */
+.related-pagination {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.pag-btn {
+    padding: 8px 16px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pag-btn:hover:not(:disabled) {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.pag-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pag-numbers {
+    display: flex;
+    gap: 6px;
+}
+
+.pag-num {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pag-num:hover:not(.active) {
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.pag-num.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
 }
 </style>

@@ -13,6 +13,7 @@ class PromotionController extends Controller
     {
         $vouchers = UserVoucher::with('promotion')
             ->where('id_user', $request->user()->id)
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json([
@@ -31,6 +32,7 @@ class PromotionController extends Controller
 
         $available = Promotion::whereIn('status', ['running', 'open'])
             ->whereNotIn('id', $claimedIds)
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($available);
@@ -76,7 +78,7 @@ class PromotionController extends Controller
     // GET /api/promotions — public
     public function index()
     {
-        return response()->json(Promotion::orderBy('created_at', 'desc')->get());
+        return response()->json(Promotion::orderBy('id', 'desc')->get());
     }
 
     // POST /api/apply-promo — public, kiểm tra mã giảm giá

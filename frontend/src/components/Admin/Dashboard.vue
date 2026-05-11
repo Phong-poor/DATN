@@ -8,6 +8,7 @@ const period = ref('all')          // all | week | month | year
 const loading = ref(true)
 const data = ref(null)
 const searchQuery = ref('')
+const hoveredStatus = ref(null) // Để quản lý trạng thái đang hover
 
 const today = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: 'long', year: 'numeric' })
 
@@ -99,9 +100,13 @@ const segments = computed(() => {
     })
 })
 
-const completedPct = computed(() => {
-    const found = data.value?.trang_thai?.find(t => t.status === 'done')
-    return found?.pct ?? 0
+const centerStat = computed(() => {
+    const statusToShow = hoveredStatus.value || 'done'
+    const found = data.value?.trang_thai?.find(t => t.status === statusToShow)
+    return {
+        pct: found?.pct ?? 0,
+        label: found?.label?.toUpperCase() ?? 'THÀNH CÔNG'
+    }
 })
 
 // ─── Bar chart helpers ────────────────────────────────────────────────────────
@@ -221,11 +226,16 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <circle v-for="seg in segments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
                                 :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
                                 :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
-                                style="transform: rotate(-90deg); transform-origin: 50% 50%;" />
+                                @mouseenter="hoveredStatus = seg.status"
+                                @mouseleave="hoveredStatus = null"
+                                style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
+                                :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
                             <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
-                                {{ completedPct }}%
+                                {{ centerStat.pct }}%
                             </text>
-                            <text x="60" y="70" text-anchor="middle" font-size="7" fill="#94a3b8">THÀNH CÔNG</text>
+                            <text x="60" y="70" text-anchor="middle" font-size="7" fill="#94a3b8" font-weight="700">
+                                {{ centerStat.label }}
+                            </text>
                         </svg>
                     </div>
                     <div class="donut-legend">
