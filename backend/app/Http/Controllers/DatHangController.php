@@ -174,6 +174,16 @@ class DatHangController extends Controller
                     return response()->json(['success' => false, 'message' => 'Mã giảm giá đã hết hạn.'], 400);
                 }
 
+                // Block if subtotal < conditions
+                if ($promo->dieu_kien && $promo->dieu_kien > 0) {
+                    if ($tongTienGoc < $promo->dieu_kien) {
+                        return response()->json([
+                            'success' => false, 
+                            'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã này.'
+                        ], 400);
+                    }
+                }
+
                 if ($promo->type === 'percent') {
                     $giamGia = round($tongTienGoc * $promo->value / 100);
                 } elseif ($promo->type === 'fixed') {
@@ -195,6 +205,16 @@ class DatHangController extends Controller
                 if ($fpromo->end_date && now()->gt($fpromo->end_date)) {
                     return response()->json(['success' => false, 'message' => 'Mã freeship đã hết hạn.'], 400);
                 }
+
+                if ($fpromo->dieu_kien && $fpromo->dieu_kien > 0) {
+                    if ($tongTienGoc < $fpromo->dieu_kien) {
+                        return response()->json([
+                            'success' => false, 
+                            'message' => 'Đơn hàng chưa đạt tối thiểu ' . number_format($fpromo->dieu_kien, 0, ',', '.') . 'đ để dùng mã miễn phí vận chuyển.'
+                        ], 400);
+                    }
+                }
+
                 if ($fpromo->category === 'freeship') {
                     $giamGiaShip = $shippingFee;
                 } else {
@@ -334,7 +354,7 @@ class DatHangController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, $id) 
     {
         $request->validate([
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
@@ -359,7 +379,7 @@ class DatHangController extends Controller
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
-                    }
+                    } 
                 }
             }
 
