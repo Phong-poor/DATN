@@ -10,11 +10,6 @@ import api from '../../services/api'
 import swal from '@/services/swal'
 const router = useRouter()
 const showGift = ref(false)
-const thongBao = ref({ show: false, type: '', message: '' })
-const hienThiThongBao = (type, message) => {
-    thongBao.value = { show: true, type, message }
-    setTimeout(() => { thongBao.value.show = false }, 3000)
-}
 
 
 
@@ -191,14 +186,14 @@ const prevFeaturedPage = () => {
 const themVaoYeuThich = async (product) => {
     const token = getToken()
     if (!token) {
-        hienThiThongBao('error', 'Vui lòng đăng nhập để thêm vào yêu thích!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm vào yêu thích!')
         router.push('/login')
         return
     }
 
     const variantId = product.key_id || product.id_bienthe
     if (!variantId) {
-        hienThiThongBao('error', 'Không xác định được cấu hình sản phẩm, vui lòng thử lại!')
+        swal.error('Thông báo', 'Không xác định được cấu hình sản phẩm, vui lòng thử lại!')
         return
     }
 
@@ -207,11 +202,10 @@ const themVaoYeuThich = async (product) => {
             id_bienthe: variantId,
             soluong: 1
         })
-        hienThiThongBao('success', `❤️ Đã thêm ${product.fullName || product.name} vào danh sách yêu thích với cấu hình mặc định!`)
-        // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
+        swal.success('Thành công', `❤️ Đã thêm ${product.fullName || product.name} vào danh sách yêu thích với cấu hình mặc định!`)
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
-        hienThiThongBao('error', err.response?.data?.message || 'Có lỗi xảy ra!')
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!')
     }
 }
 
@@ -280,12 +274,6 @@ onUnmounted(stop)
 </script>
 
 <template>
-    <transition name="slide-down">
-        <div v-if="thongBao.show" :class="['toast', thongBao.type]">
-            {{ thongBao.message }}
-        </div>
-    </transition>
-
     <GiftPopup v-if="showGift" :delay="0" />
 
     <main class="home">
@@ -1861,41 +1849,5 @@ a.btn {
     .cta-box {
         padding: 24px;
     }
-}
-
-.toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-    color: white;
-}
-
-.toast.success {
-    background: #16a34a;
-}
-
-.toast.error {
-    background: #dc2626;
-}
-
-.slide-down-enter-active,
-.slide-down-leave-active {
-    transition: all 0.3s ease;
-}
-
-.slide-down-enter-from {
-    opacity: 0;
-    transform: translateY(-20px);
-}
-
-.slide-down-leave-to {
-    opacity: 0;
-    transform: translateY(-20px);
 }
 </style>
