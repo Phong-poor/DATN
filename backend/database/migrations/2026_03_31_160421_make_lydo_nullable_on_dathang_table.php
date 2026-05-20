@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dathang', function (Blueprint $table) {
-            $table->string('lydo')->nullable()->change();
+            // Xóa ->change() để biến đây thành lệnh TẠO MỚI cột lydo
+            $table->string('lydo')->nullable();
         });
     }
 
@@ -22,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('dathang', function (Blueprint $table) {
-            $table->string('lydo')->nullable(false)->change();
+            // Hàm down sẽ xóa cột này nếu rollback
+            $table->dropColumn('lydo');
         });
     }
 };
