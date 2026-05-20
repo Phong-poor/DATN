@@ -32,10 +32,7 @@ class PromotionController extends Controller
 
         $available = Promotion::whereIn('status', ['running', 'open'])
             ->whereNotIn('id', $claimedIds)
-<<<<<<< HEAD
-=======
             ->orderBy('id', 'desc')
->>>>>>> 5ee47b520ccf04fb393c034b6cd81450f2067428
             ->get();
 
         return response()->json($available);
