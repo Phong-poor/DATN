@@ -27,5 +27,5 @@ class Promotion extends Model
         'dieu_kien',
     ];
 
-    const UPDATED_AT = null;
+    public $timestamps = false;
 }

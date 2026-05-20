@@ -81,11 +81,10 @@ const subtotal = computed(() =>
   cart.value.reduce((sum, i) => sum + i.price * i.qty, 0)
 )
 
-const tax = computed(() => subtotal.value * 0.1)
 const total = computed(() => {
     const afterDiscount = Math.max(0, subtotal.value - discount.value)
     const afterShipping = Math.max(0, shippingFee.value - freeshipDiscount.value)
-    return afterDiscount + afterShipping + tax.value
+    return afterDiscount + afterShipping
 })
 
 const format = (n) => n.toLocaleString('vi-VN') + 'đ'
@@ -223,12 +222,6 @@ const confirmOrder = async () => {
             <span>Freeship (Mã {{ freeshipCode }})</span>
             <b style="color:#16a34a">-{{ format(freeshipDiscount) }}</b>
           </div>
-
-          <div class="row">
-            <span>Thuế VAT (10%)</span>
-            <b>{{ format(tax) }}</b>
-          </div>
-
           <div class="total">
             <span>TỔNG CỘNG: </span>
             <b>{{ format(total) }}</b>

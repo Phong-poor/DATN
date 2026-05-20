@@ -17,7 +17,7 @@ class ThuongHieuController extends Controller
     }
     public function store(Request $request){
         $validated = $request->validate([
-            'ten_thuonghieu' => 'required|string|max:255'
+            'ten_thuonghieu' => 'required|string|max:255|unique:thuonghieu,ten_thuonghieu'
             
         ]);
 
@@ -52,7 +52,7 @@ class ThuongHieuController extends Controller
         }
 
         $validated = $request->validate([
-            'ten_thuonghieu' => 'sometimes|required|string|max:255'
+            'ten_thuonghieu' => 'sometimes|required|string|max:255|unique:thuonghieu,ten_thuonghieu,' . $id . ',id_thuonghieu'
             
         ]);
 

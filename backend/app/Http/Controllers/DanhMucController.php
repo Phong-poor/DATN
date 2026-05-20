@@ -16,7 +16,7 @@ class DanhMucController extends Controller
     }
     public function store(Request $request){
         $validated = $request->validate([
-            'ten_danhmuc' => 'required|string|max:255',
+            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc',
             'trangthai'  => 'required|in:active,hidden'
         ]);
 
@@ -51,7 +51,7 @@ class DanhMucController extends Controller
         }
 
         $validated = $request->validate([
-            'ten_danhmuc' => 'required|string|max:255',
+            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc,' . $id . ',id_danhmuc',
             'trangthai'  => 'required|in:active,hidden'
         ]);
 
@@ -85,8 +85,4 @@ class DanhMucController extends Controller
             'message' => 'Đã xóa danh mục'
         ], 200);
     }
-
-    }
-
-    
-
+}

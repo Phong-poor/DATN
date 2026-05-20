@@ -13,6 +13,7 @@ class PromotionController extends Controller
     {
         $vouchers = UserVoucher::with('promotion')
             ->where('id_user', $request->user()->id)
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json([
@@ -31,6 +32,10 @@ class PromotionController extends Controller
 
         $available = Promotion::whereIn('status', ['running', 'open'])
             ->whereNotIn('id', $claimedIds)
+<<<<<<< HEAD
+=======
+            ->orderBy('id', 'desc')
+>>>>>>> 5ee47b520ccf04fb393c034b6cd81450f2067428
             ->get();
 
         return response()->json($available);
@@ -76,7 +81,11 @@ class PromotionController extends Controller
     // GET /api/promotions — public
     public function index()
     {
+<<<<<<< HEAD
         return response()->json(Promotion::orderBy('created_at', 'desc')->get());
+=======
+        return response()->json(Promotion::orderBy('id', 'desc')->get());
+>>>>>>> 5ee47b520ccf04fb393c034b6cd81450f2067428
     }
 
     // POST /api/apply-promo — public, kiểm tra mã giảm giá
@@ -114,6 +123,7 @@ class PromotionController extends Controller
             ], 422);
         }
 
+<<<<<<< HEAD
         $subtotal = $request->subtotal;
 
         // Kiểm tra điều kiện đơn hàng tối thiểu
@@ -127,6 +137,10 @@ class PromotionController extends Controller
         }
 
         // Tính số tiền giảm
+=======
+        // Tính số tiền giảm
+        $subtotal = $request->subtotal;
+>>>>>>> 5ee47b520ccf04fb393c034b6cd81450f2067428
         $discount = 0;
 
         if ($promo->type === 'percent') {

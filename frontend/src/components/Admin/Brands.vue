@@ -105,6 +105,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
+import swal from '@/services/swal';
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const thuonghieu = ref([]);
@@ -190,8 +191,9 @@ const saveBrand = async () => {
     closeModal();
     fetchBrands(); 
   } catch (error) {
-    console.error('Lỗi khi lưu danh mục:', error);
-    alert('Có lỗi xảy ra, vui lòng kiểm tra lại!');
+    console.error('Lỗi khi lưu thương hiệu:', error);
+    const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra, vui lòng kiểm tra lại!';
+    swal.error('Lỗi', errorMsg);
   }
 };
 
