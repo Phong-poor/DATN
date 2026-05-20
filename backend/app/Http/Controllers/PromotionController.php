@@ -116,8 +116,19 @@ class PromotionController extends Controller
             ], 422);
         }
 
-        // Tính số tiền giảm
         $subtotal = $request->subtotal;
+
+        // Kiểm tra điều kiện đơn hàng tối thiểu
+        if ($promo->dieu_kien && $promo->dieu_kien > 0) {
+            if ($subtotal < $promo->dieu_kien) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã này.'
+                ], 422);
+            }
+        }
+
+        // Tính số tiền giảm
         $discount = 0;
 
         if ($promo->type === 'percent') {

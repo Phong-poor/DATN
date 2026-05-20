@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('dathang', function (Blueprint $table) {
-            // Xóa ->change() để biến đây thành lệnh TẠO MỚI cột lydo
-            $table->string('lydo')->nullable();
+        Schema::table('giatri_thuoctinh', function (Blueprint $table) {
+            $table->json('danh_muc_ids')->nullable()->after('gia_cong_them');
         });
     }
 
@@ -22,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('dathang', function (Blueprint $table) {
-            // Hàm down sẽ xóa cột này nếu rollback
-            $table->dropColumn('lydo');
+        Schema::table('giatri_thuoctinh', function (Blueprint $table) {
+            $table->dropColumn('danh_muc_ids');
         });
     }
 };

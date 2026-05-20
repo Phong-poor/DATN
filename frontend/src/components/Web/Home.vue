@@ -202,7 +202,8 @@ const themVaoYeuThich = async (product) => {
             id_bienthe: variantId,
             soluong: 1
         })
-        swal.success('Thành công', `❤️ Đã thêm ${product.fullName || product.name} vào danh sách yêu thích với cấu hình mặc định!`)
+
+        swal.success('Thành công', `Đã thêm ${product.fullName || product.name} vào danh sách yêu thích! ❤️`)
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!')

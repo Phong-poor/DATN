@@ -256,6 +256,7 @@ onMounted(() => {
 })
 
 const relatedProducts = ref([])
+
 const currentRelatedPage = ref(1)
 const relatedItemsPerPage = 5
 const paginatedRelatedProducts = computed(() => {
@@ -264,6 +265,7 @@ const paginatedRelatedProducts = computed(() => {
 })
 
 const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
+
 
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
     try {
@@ -317,8 +319,12 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
             }
         })
 
+
+        relatedProducts.value = variants.slice(0, 10)
+
         relatedProducts.value = variants
         currentRelatedPage.value = 1
+
     } catch (error) {
         console.error('Lỗi tải sản phẩm tương tự:', error)
     }
@@ -351,7 +357,11 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
+
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
+
         hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
+
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
@@ -575,7 +585,11 @@ const themVaoYeuThich = async () => {
             <router-link to="/products">Xem tất cả →</router-link>
         </div>
         <div class="related-list">
+
+            
+
             <div class="product-card" v-for="p in paginatedRelatedProducts" :key="p.key_id"
+
                 @click="router.push(`/products/${p.id}?variant=${p.key_id}`).then(() => window.location.reload())">
                 <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
                 <h4>{{ p.fullName }}</h4>
@@ -583,6 +597,7 @@ const themVaoYeuThich = async () => {
                 <p class="price">{{ formatPrice(p.price) }}</p>
             </div>
         </div>
+
 
         <!-- PHÂN TRANG -->
         <div class="related-pagination" v-if="totalRelatedPages > 1">
@@ -599,6 +614,7 @@ const themVaoYeuThich = async () => {
                 Sau &raquo;
             </button>
         </div>
+>>>>>>> 5ee47b520ccf04fb393c034b6cd81450f2067428
     </div>
 
 </template>
@@ -1291,6 +1307,7 @@ h1 {
     margin-bottom: 15px;
 }
 
+
 /* PHÂN TRANG RELATED */
 .related-pagination {
     margin-top: 30px;
@@ -1354,4 +1371,5 @@ h1 {
     color: white;
     border-color: #2563eb;
 }
+
 </style>
