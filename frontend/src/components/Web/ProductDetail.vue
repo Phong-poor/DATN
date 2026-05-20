@@ -351,7 +351,7 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
-        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
