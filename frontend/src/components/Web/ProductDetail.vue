@@ -265,14 +265,6 @@ const paginatedRelatedProducts = computed(() => {
 
 const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
 
-const currentRelatedPage = ref(1)
-const relatedItemsPerPage = 5
-const paginatedRelatedProducts = computed(() => {
-    const start = (currentRelatedPage.value - 1) * relatedItemsPerPage
-    return relatedProducts.value.slice(start, start + relatedItemsPerPage)
-})
-
-const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
 
 
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {

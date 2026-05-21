@@ -37,6 +37,7 @@ const variants = ref([])
 const groups = ref([])
 const attrs = ref([])
 const colors = ref([])
+const categories = ref([])
 const selectedColor = ref(null)
 
 // ── Filter ──
@@ -100,7 +101,8 @@ const defaultVariantForm = () => ({
   name: '',
   type: variantTypeOptions.value[0] || '',
   status: 'Hoạt động',
-  gia_cong_them: 0
+  gia_cong_them: 0,
+  danh_muc_ids: []
 })
 const defaultColorForm = () => ({ name: '', hex: '#000000', stock: 'Khả dụng' })
 const defaultGroupForm = () => ({ name: '' })
@@ -180,6 +182,7 @@ const normalizeData = (payload) => {
           attrId: a.id_thuoctinh,
           status: Number(v.trangthai) === 1 ? 'Hoạt động' : 'Nháp',
           gia_cong_them: Number(v.gia_cong_them || 0),
+          danh_muc_ids: Array.isArray(v.danh_muc_ids) ? v.danh_muc_ids : []
         })
       })
     })
@@ -232,6 +235,15 @@ const fetchColors = async () => {
   }
 }
 
+const fetchCategories = async () => {
+  try {
+    const res = await api.get('/danhmuc')
+    categories.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+  } catch (error) {
+    console.error('Không tải được danh mục')
+  }
+}
+
 // ── Modal ──
 const openModal = (type, item = null) => {
   modalType.value = type
@@ -242,7 +254,8 @@ const openModal = (type, item = null) => {
   else if (type === 'editVariant' && item) {
     variantForm.value = {
       ...item,
-      gia_cong_them: item.gia_cong_them ?? 0
+      gia_cong_them: item.gia_cong_them ?? 0,
+      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
     }
   }
   else if (type === 'color') colorForm.value = defaultColorForm()
@@ -286,6 +299,7 @@ const submitVariant = async () => {
     giatri: variantForm.value.name,
     gia_cong_them: Number(variantForm.value.gia_cong_them || 0),
     trangthai: variantForm.value.status === 'Hoạt động' ? 1 : 0,
+    danh_muc_ids: variantForm.value.danh_muc_ids
   }
 
   try {
@@ -456,6 +470,7 @@ const modalBtnLabel = computed(() =>
 onMounted(() => {
   fetchAll()
   fetchColors()
+  fetchCategories()
 })
 
 // ══════════════════════════════════════════════════════
@@ -869,6 +884,7 @@ async function handleImportFile(e) {
               <tr>
                 <th>TÊN BIẾN THỂ</th>
                 <th>LOẠI THUỘC TÍNH</th>
+                <th>DANH MỤC ÁP DỤNG</th>
                 <th>TRẠNG THÁI</th>
                 <th>THAO TÁC</th>
               </tr>
@@ -882,6 +898,12 @@ async function handleImportFile(e) {
                 <td>
                   <span class="type-badge"
                     :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
+                </td>
+                <td>
+                  <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12px; color: #64748b;">
+                    {{ v.danh_muc_ids.length }} danh mục
+                  </span>
+                  <span v-else style="font-size: 12px; color: #64748b;">Tất cả</span>
                 </td>
                 <td>
                   <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status }}</span>
@@ -1158,6 +1180,12 @@ async function handleImportFile(e) {
                   <div class="form-group">
                     <label>GIÁ CỘNG THÊM (₫)</label>
                     <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
+                  </div>
+                  <div class="form-group">
+                    <label>DANH MỤC ÁP DỤNG (Bỏ trống để áp dụng cho tất cả)</label>
+                    <select v-model="variantForm.danh_muc_ids" multiple style="height: 100px; padding: 8px;">
+                      <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
+                    </select>
                   </div>
                   <div class="form-row">
                     <div class="form-group">
