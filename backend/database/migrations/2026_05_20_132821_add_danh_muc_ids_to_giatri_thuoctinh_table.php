@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('dathang', function (Blueprint $table) {
-            $table->string('lydo')->nullable()->change();
+        Schema::table('giatri_thuoctinh', function (Blueprint $table) {
+            $table->json('danh_muc_ids')->nullable()->after('gia_cong_them');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('dathang', function (Blueprint $table) {
-            $table->string('lydo')->nullable(false)->change();
+        Schema::table('giatri_thuoctinh', function (Blueprint $table) {
+            $table->dropColumn('danh_muc_ids');
         });
     }
 };

@@ -265,6 +265,16 @@ const paginatedRelatedProducts = computed(() => {
 
 const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
 
+const currentRelatedPage = ref(1)
+const relatedItemsPerPage = 5
+const paginatedRelatedProducts = computed(() => {
+    const start = (currentRelatedPage.value - 1) * relatedItemsPerPage
+    return relatedProducts.value.slice(start, start + relatedItemsPerPage)
+})
+
+const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
+
+
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
     try {
         const res = await api.get('/sanpham')
@@ -351,7 +361,11 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
+
         hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
+
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
+
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
