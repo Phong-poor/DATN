@@ -22,7 +22,7 @@ class VnpayController extends Controller
         $vnp_OrderType = "other";
         $vnp_Amount = (int)($order->tongtien * 100); 
         $vnp_Locale = "vn";
-        $vnp_IpAddr = request()->ip();
+        $vnp_IpAddr = $_SERVER['REMOTE_ADDR'];
 
         $inputData = array(
             "vnp_Version" => "2.1.0",
@@ -99,6 +99,11 @@ class VnpayController extends Controller
 
                     return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
                 }
+                
+                if ($order->trangthai == 'pending') {
+                    $this->restoreCartAndDeleteOrder($order);
+                }
+                
                 return response()->json(['RspCode' => '00', 'Message' => 'Payment Failed']);
             }
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
@@ -116,7 +121,21 @@ class VnpayController extends Controller
         if ($request->vnp_ResponseCode == '00') {
             return redirect($frontendUrl . '/thank-you?status=success&order_id=' . $orderId);
         } else {
-            return redirect($frontendUrl . '/thank-you?status=error&order_id=' . $orderId);
+            $order = DatHang::find($orderId);
+            if ($order && $order->trangthai == 'pending') {
+                $this->restoreCartAndDeleteOrder($order);
+            }
+            return redirect($frontendUrl . '/payment-failed');
+        }
+    }
+
+    private function restoreCartAndDeleteOrder($order)
+    {
+        $orderWithDetails = DatHang::with('chi_tiets')->find($order->id_dathang);
+        
+        if ($orderWithDetails) {
+            \App\Models\DatHangChiTiet::where('id_dathang', $orderWithDetails->id_dathang)->delete();
+            $orderWithDetails->delete();
         }
     }
 }

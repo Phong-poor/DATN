@@ -245,8 +245,6 @@ class DatHangController extends Controller
                     'soluong'    => $item->soluong,
                     'gia'        => $item->bienThe->gia,
                 ]);
-
-                $item->bienThe->decrement('soluong', $item->soluong);
             }
 
             GioHang::where('user_id', $userId)->delete();
