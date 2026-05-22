@@ -353,9 +353,6 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
-
-        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
-
         hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
 
         window.dispatchEvent(new Event('wishlist-updated'))
@@ -366,6 +363,102 @@ const themVaoYeuThich = async () => {
         dangThemYeuThich.value = false
     }
 }
+
+// ===================== SO SÁNH CẤU HÌNH =====================
+// Hàm trích xuất tất cả thuộc tính từ biến thể để so sánh
+const extractAllAttributes = (variant) => {
+    const attrs = {}
+    const thuocTinh = getVariantAttributes(variant)
+    thuocTinh.forEach(attr => {
+        const key = (attr.ten_thuoctinh || '').toLowerCase()
+        attrs[key] = attr.giatri
+    })
+    return attrs
+}
+
+// Lấy danh sách tất cả các thuộc tính để so sánh
+const allAttributeKeys = computed(() => {
+    const keys = new Set()
+    if (selectedVariant.value) {
+        const attrs = extractAllAttributes(selectedVariant.value)
+        Object.keys(attrs).forEach(k => keys.add(k))
+    }
+    // Thêm thuộc tính từ sản phẩm tương tự để hiển thị đầy đủ
+    relatedProducts.value.forEach(p => {
+        const variantAttrs = p.attributes || {}
+        Object.keys(variantAttrs).forEach(k => keys.add(k))
+    })
+    return Array.from(keys).sort()
+})
+
+// Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
+const comparisonData = computed(() => {
+    const data = []
+    
+    if (selectedVariant.value && relatedProducts.value.length > 0) {
+        const currentAttrs = extractAllAttributes(selectedVariant.value)
+        
+        relatedProducts.value.slice(0, 4).forEach(relatedProd => {
+            const relatedAttrs = relatedProd.attributes || {}
+            data.push({
+                id: relatedProd.id,
+                name: relatedProd.fullName,
+                price: relatedProd.price,
+                specText: relatedProd.specText,
+                img: relatedProd.img,
+                attributes: relatedAttrs
+            })
+        })
+    }
+    
+    return data
+})
+
+// ====== COMPARE MODAL STATE & HELPERS ======
+import { watch } from 'vue'
+const showCompareModal = ref(false)
+const compareSelection = ref([]) // array of key_id to compare
+const maxCompare = 3
+
+const toggleCompareSelection = (keyId) => {
+    const idx = compareSelection.value.indexOf(keyId)
+    if (idx === -1) {
+        if (compareSelection.value.length < maxCompare) compareSelection.value.push(keyId)
+    } else {
+        compareSelection.value.splice(idx, 1)
+    }
+}
+
+const openCompareModal = () => {
+    // preselect first related product if none
+    if (compareSelection.value.length === 0 && relatedProducts.value.length > 0) {
+        compareSelection.value = [relatedProducts.value[0].key_id]
+    }
+    showCompareModal.value = true
+}
+
+const closeCompareModal = () => { showCompareModal.value = false; compareSelection.value = [] }
+
+const compareProducts = computed(() => {
+    return relatedProducts.value.filter(p => compareSelection.value.includes(p.key_id)).slice(0, maxCompare)
+})
+
+const modalComparisonData = computed(() => {
+    const data = []
+    if (selectedVariant.value && compareProducts.value.length > 0) {
+        const currentAttrs = extractAllAttributes(selectedVariant.value)
+        compareProducts.value.forEach(p => {
+            data.push({
+                id: p.key_id,
+                name: p.fullName,
+                price: p.price,
+                img: p.img,
+                attributes: p.attributes || {}
+            })
+        })
+    }
+    return data
+})
 </script>
 
 <template>
@@ -498,11 +591,15 @@ const themVaoYeuThich = async () => {
                                 <span v-else> Thêm vào giỏ hàng</span>
                             </button>
                             <button class="install">Trả góp 0%</button>
-
+                            
                             <button class="wishlist-btn" :disabled="dangThemYeuThich" @click="themVaoYeuThich"
                                 title="Thêm vào yêu thích">
                                 <span v-if="dangThemYeuThich">⏳</span>
                                 <span v-else>❤️</span>
+                            </button>
+
+                            <button class="compare-btn" title="So sánh sản phẩm" @click="openCompareModal">
+                                🔁 So sánh
                             </button>
                         </div>
 
@@ -528,6 +625,91 @@ const themVaoYeuThich = async () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Popup so sánh: hiển thị khi người dùng nhấn nút So sánh -->
+                <div>
+                    <transition name="fade">
+                        <div class="compare-modal-overlay" v-if="showCompareModal">
+                            <div class="compare-modal">
+                                <div class="compare-modal-header">
+                                    <h3>Chọn sản phẩm để so sánh (tối đa {{ maxCompare }})</h3>
+                                    <button class="close" @click="closeCompareModal">✕</button>
+                                </div>
+
+                                <div class="compare-modal-body">
+                                    <div class="compare-left">
+                                        <div v-if="relatedProducts.length === 0">Không có sản phẩm tương tự để so sánh.</div>
+                                        <div class="compare-list">
+                                            <label v-for="p in relatedProducts" :key="p.key_id" class="compare-item">
+                                                <input type="checkbox" :value="p.key_id" v-model="compareSelection"
+                                                    :disabled="compareSelection.length >= maxCompare && !compareSelection.includes(p.key_id)" />
+                                                <img :src="p.img" :alt="p.fullName" />
+                                                <div class="meta">
+                                                    <div class="name">{{ p.fullName }}</div>
+                                                    <div class="spec">{{ p.specText }}</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="compare-right">
+                                        <div class="compare-actions">
+                                            <button class="btn" :disabled="compareSelection.length < 1"
+                                                @click.prevent>
+                                                Chọn xong ({{ compareSelection.length }})
+                                            </button>
+                                        </div>
+
+                                        <div class="compare-result" v-if="compareSelection.length > 0">
+                                            <table class="comparison-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="attr-col">Thông số</th>
+                                                        <th class="product-col">
+                                                            <div class="prod-header">
+                                                                <img :src="selectedImage" />
+                                                                <div class="prod-info">
+                                                                    <div class="prod-name">{{ product.tenSP }}</div>
+                                                                    <div class="prod-price">{{ formatPrice(selectedVariant.gia) }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </th>
+                                                        <th class="product-col" v-for="p in compareProducts" :key="p.key_id">
+                                                            <div class="prod-header">
+                                                                <img :src="p.img" />
+                                                                <div class="prod-info">
+                                                                    <div class="prod-name">{{ p.fullName }}</div>
+                                                                    <div class="prod-price">{{ formatPrice(p.price) }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="attr in allAttributeKeys" :key="attr">
+                                                        <td class="attr-col">{{ attr }}</td>
+                                                        <td class="product-col">
+                                                            <span v-if="extractAllAttributes(selectedVariant)[attr]" class="value">
+                                                                {{ extractAllAttributes(selectedVariant)[attr] }}
+                                                            </span>
+                                                            <span v-else class="no-value">—</span>
+                                                        </td>
+                                                        <td class="product-col" v-for="p in compareProducts" :key="p.key_id">
+                                                            <span v-if="(p.attributes || {})[attr]" class="value">
+                                                                {{ (p.attributes || {})[attr] }}
+                                                            </span>
+                                                            <span v-else class="no-value">—</span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
                 </div>
 
                 <!-- ĐÁNH GIÁ -->
@@ -1145,8 +1327,10 @@ h1 {
     color: #0f172a;
     margin-bottom: 6px;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    /* Standard fallback */
+    line-clamp: 2;
     overflow: hidden;
     height: 36px;
     line-height: 1.4;
@@ -1360,4 +1544,208 @@ h1 {
     color: white;
     border-color: #2563eb;
 }
+
+/* ===== COMPARISON STYLES ===== */
+.comparison {
+    margin-top: 40px;
+    padding: 30px 0;
+    border-top: 2px solid #f1f5f9;
+}
+
+.comparison h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 25px;
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 16px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.comparison-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.attr-col {
+    width: 180px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+    min-width: 180px;
+}
+
+.product-col {
+    min-width: 150px;
+}
+
+.prod-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.prod-header img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e2e8f0;
+}
+
+.prod-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.prod-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.prod-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.comparison-table tbody td.product-col {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.value {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #eff6ff;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #0c4a6e;
+    font-weight: 600;
+}
+
+.no-value {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+    .comparison-table {
+        font-size: 12px;
+    }
+    
+    .attr-col {
+        width: 140px;
+        min-width: 140px;
+    }
+    
+    .product-col {
+        min-width: 130px;
+    }
+    
+    .prod-header img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .prod-name {
+        font-size: 11px;
+    }
+}
+
+/* ===== MODAL & COMPARE STYLES (scoped to this component) ===== */
+.compare-btn {
+    margin-left: 10px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+.compare-btn:hover { background: #f1f5f9 }
+
+.compare-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 24px;
+}
+
+.compare-modal {
+    width: min(1100px, 100%);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(2,6,23,0.2);
+    overflow: hidden;
+}
+
+.compare-modal-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    border-bottom:1px solid #f1f5f9;
+}
+.compare-modal-header h3{ margin:0; }
+.compare-modal-header .close{ background:transparent;border:none;font-size:18px;cursor:pointer }
+
+.compare-modal-body{
+    display:flex;
+    gap:20px;
+}
+.compare-left{ width:320px; max-height:520px; overflow:auto; padding:16px }
+.compare-right{ flex:1; padding:16px; overflow:auto }
+.compare-list{ display:flex; flex-direction:column; gap:8px }
+.compare-item{ display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; border:1px solid #f1f5f9 }
+.compare-item img{ width:56px;height:56px;object-fit:cover;border-radius:6px }
+.compare-item .meta{ font-size:13px }
+.compare-item .name{ font-weight:700; color:#0f172a }
+.compare-item .spec{ color:#64748b; font-size:12px }
+
+.compare-actions{ padding-bottom:10px }
+.compare-result .comparison-table{ width:100%; border-collapse:collapse }
+
+@media (max-width: 768px){ .compare-modal{ width:100%; height:100%; border-radius:0 } .compare-left{ display:none } }
+
+
+
+@media (max-width: 768px) {
+    .comparison {
+        display: none;
+    }
+}
+
 </style>
