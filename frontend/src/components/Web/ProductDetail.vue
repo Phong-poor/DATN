@@ -353,9 +353,6 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
-
-        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
-
         hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
 
         window.dispatchEvent(new Event('wishlist-updated'))
@@ -366,6 +363,56 @@ const themVaoYeuThich = async () => {
         dangThemYeuThich.value = false
     }
 }
+
+// ===================== SO SÁNH CẤU HÌNH =====================
+// Hàm trích xuất tất cả thuộc tính từ biến thể để so sánh
+const extractAllAttributes = (variant) => {
+    const attrs = {}
+    const thuocTinh = getVariantAttributes(variant)
+    thuocTinh.forEach(attr => {
+        const key = (attr.ten_thuoctinh || '').toLowerCase()
+        attrs[key] = attr.giatri
+    })
+    return attrs
+}
+
+// Lấy danh sách tất cả các thuộc tính để so sánh
+const allAttributeKeys = computed(() => {
+    const keys = new Set()
+    if (selectedVariant.value) {
+        const attrs = extractAllAttributes(selectedVariant.value)
+        Object.keys(attrs).forEach(k => keys.add(k))
+    }
+    // Thêm thuộc tính từ sản phẩm tương tự để hiển thị đầy đủ
+    relatedProducts.value.forEach(p => {
+        const variantAttrs = p.attributes || {}
+        Object.keys(variantAttrs).forEach(k => keys.add(k))
+    })
+    return Array.from(keys).sort()
+})
+
+// Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
+const comparisonData = computed(() => {
+    const data = []
+    
+    if (selectedVariant.value && relatedProducts.value.length > 0) {
+        const currentAttrs = extractAllAttributes(selectedVariant.value)
+        
+        relatedProducts.value.slice(0, 4).forEach(relatedProd => {
+            const relatedAttrs = relatedProd.attributes || {}
+            data.push({
+                id: relatedProd.id,
+                name: relatedProd.fullName,
+                price: relatedProd.price,
+                specText: relatedProd.specText,
+                img: relatedProd.img,
+                attributes: relatedAttrs
+            })
+        })
+    }
+    
+    return data
+})
 </script>
 
 <template>
@@ -524,6 +571,55 @@ const themVaoYeuThich = async () => {
                                 <tr v-for="(spec, idx) in product.thong_so_ky_thuat" :key="idx">
                                     <td class="spec-label">{{ spec.ten_thuoctinh }}</td>
                                     <td class="spec-value">{{ spec.giatri }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SO SÁNH CẤU HÌNH VỚI SẢN PHẨM KHÁC -->
+                <div class="comparison" v-if="selectedVariant && relatedProducts.length > 0">
+                    <h2>So sánh cấu hình với sản phẩm khác</h2>
+                    <div class="comparison-table-wrapper">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="attr-col">Thông số kỹ thuật</th>
+                                    <th class="product-col">
+                                        <div class="prod-header">
+                                            <img :src="selectedImage" :alt="product.tenSP" />
+                                            <div class="prod-info">
+                                                <div class="prod-name">{{ product.tenSP }}</div>
+                                                <div class="prod-price">{{ formatPrice(selectedVariant.gia) }}</div>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th class="product-col" v-for="comp in comparisonData" :key="comp.id">
+                                        <div class="prod-header">
+                                            <img :src="comp.img" :alt="comp.name" />
+                                            <div class="prod-info">
+                                                <div class="prod-name">{{ comp.name }}</div>
+                                                <div class="prod-price">{{ comp.price }}</div>
+                                            </div>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="attr in allAttributeKeys" :key="attr">
+                                    <td class="attr-col">{{ attr }}</td>
+                                    <td class="product-col">
+                                        <span v-if="extractAllAttributes(selectedVariant)[attr]" class="value">
+                                            {{ extractAllAttributes(selectedVariant)[attr] }}
+                                        </span>
+                                        <span v-else class="no-value">—</span>
+                                    </td>
+                                    <td class="product-col" v-for="comp in comparisonData" :key="comp.id">
+                                        <span v-if="comp.attributes[attr]" class="value">
+                                            {{ comp.attributes[attr] }}
+                                        </span>
+                                        <span v-else class="no-value">—</span>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1361,3 +1457,143 @@ h1 {
     border-color: #2563eb;
 }
 </style>
+/* ===== COMPARISON STYLES ===== */
+.comparison {
+    margin-top: 40px;
+    padding: 30px 0;
+    border-top: 2px solid #f1f5f9;
+}
+
+.comparison h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 25px;
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 16px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.comparison-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.attr-col {
+    width: 180px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+    min-width: 180px;
+}
+
+.product-col {
+    min-width: 150px;
+}
+
+.prod-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.prod-header img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e2e8f0;
+}
+
+.prod-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.prod-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.prod-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.comparison-table tbody td.product-col {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.value {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #eff6ff;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #0c4a6e;
+    font-weight: 600;
+}
+
+.no-value {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+    .comparison-table {
+        font-size: 12px;
+    }
+    
+    .attr-col {
+        width: 140px;
+        min-width: 140px;
+    }
+    
+    .product-col {
+        min-width: 130px;
+    }
+    
+    .prod-header img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .prod-name {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+    .comparison {
+        display: none;
+    }
+}
