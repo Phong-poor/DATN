@@ -282,9 +282,11 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
         filtered.forEach(p => {
             // Parse thông số chung để ghép tên
             let generalSpecs = []
+            let tsktArray = []
             try {
                 const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
                 if (Array.isArray(tskt)) {
+                    tsktArray = tskt
                     generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
                 }
             } catch (e) { }
@@ -294,11 +296,13 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
                 p.bien_thes.forEach(bt => {
                     let ram = '', cpu = '', mausac = '';
                     let thuoc_tinh = [];
+                    let attributes = {}; // Store all variant attributes
                     try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
 
                     if (Array.isArray(thuoc_tinh)) {
                         thuoc_tinh.forEach(attr => {
                             const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                            attributes[ten] = attr.giatri; // Store normalized with lowercase key
                             if (ten === 'ram') ram = attr.giatri;
                             else if (ten === 'cpu') cpu = attr.giatri;
                             else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
@@ -313,7 +317,9 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
                         fullName: fullNameBase,
                         specText: specText,
                         price: bt.gia,
-                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh)
+                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                        attributes: attributes, // Add variant attributes
+                        thong_so_ky_thuat: tsktArray // Add product technical specs
                     })
                 })
             }
@@ -376,19 +382,52 @@ const extractAllAttributes = (variant) => {
     return attrs
 }
 
-// Lấy danh sách tất cả các thuộc tính để so sánh
+// Lấy danh sách tất cả các thuộc tính và thông số kỹ thuật để so sánh (normalize keys)
 const allAttributeKeys = computed(() => {
-    const keys = new Set()
+    const keysMap = new Map() // Use Map to normalize keys (case-insensitive)
+    
+    // Thêm thông số kỹ thuật sản phẩm hiện tại
+    if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
+        product.value.thong_so_ky_thuat.forEach(spec => {
+            if (spec.ten_thuoctinh) {
+                const normalizedKey = (spec.ten_thuoctinh || '').toLowerCase()
+                if (!keysMap.has(normalizedKey)) {
+                    keysMap.set(normalizedKey, spec.ten_thuoctinh)
+                }
+            }
+        })
+    }
+    
     if (selectedVariant.value) {
         const attrs = extractAllAttributes(selectedVariant.value)
-        Object.keys(attrs).forEach(k => keys.add(k))
+        Object.keys(attrs).forEach(k => {
+            if (!keysMap.has(k)) {
+                keysMap.set(k, k)
+            }
+        })
     }
-    // Thêm thuộc tính từ sản phẩm tương tự để hiển thị đầy đủ
+    // Thêm thuộc tính và thông số từ sản phẩm tương tự để hiển thị đầy đủ
     relatedProducts.value.forEach(p => {
         const variantAttrs = p.attributes || {}
-        Object.keys(variantAttrs).forEach(k => keys.add(k))
+        Object.keys(variantAttrs).forEach(k => {
+            const normalizedKey = k.toLowerCase()
+            if (!keysMap.has(normalizedKey)) {
+                keysMap.set(normalizedKey, k)
+            }
+        })
+        
+        if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
+            p.thong_so_ky_thuat.forEach(spec => {
+                if (spec.ten_thuoctinh) {
+                    const normalizedKey = spec.ten_thuoctinh.toLowerCase()
+                    if (!keysMap.has(normalizedKey)) {
+                        keysMap.set(normalizedKey, spec.ten_thuoctinh)
+                    }
+                }
+            })
+        }
     })
-    return Array.from(keys).sort()
+    return Array.from(keysMap.values()).sort()
 })
 
 // Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
@@ -447,13 +486,39 @@ const modalComparisonData = computed(() => {
     const data = []
     if (selectedVariant.value && compareProducts.value.length > 0) {
         const currentAttrs = extractAllAttributes(selectedVariant.value)
+        const currentSpecs = {}
+        
+        // Lấy thông số kỹ thuật sản phẩm hiện tại
+        if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
+            product.value.thong_so_ky_thuat.forEach(spec => {
+                if (spec.ten_thuoctinh) currentSpecs[spec.ten_thuoctinh] = spec.giatri
+            })
+        }
+        
         compareProducts.value.forEach(p => {
+            // Kết hợp thông số kỹ thuật và thuộc tính biến thể
+            const combinedSpecs = {}
+            
+            // Thêm thông số kỹ thuật sản phẩm
+            if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
+                p.thong_so_ky_thuat.forEach(spec => {
+                    if (spec.ten_thuoctinh) combinedSpecs[spec.ten_thuoctinh] = spec.giatri
+                })
+            }
+            
+            // Thêm thuộc tính biến thể
+            if (p.attributes) {
+                Object.assign(combinedSpecs, p.attributes)
+            }
+            
             data.push({
                 id: p.key_id,
                 name: p.fullName,
                 price: p.price,
                 img: p.img,
-                attributes: p.attributes || {}
+                attributes: p.attributes || {},
+                thong_so_ky_thuat: p.thong_so_ky_thuat || [],
+                combinedSpecs: combinedSpecs
             })
         })
     }
@@ -654,15 +719,11 @@ const modalComparisonData = computed(() => {
                                     </div>
 
                                     <div class="compare-right">
-                                        <div class="compare-actions">
-                                            <button class="btn" :disabled="compareSelection.length < 1"
-                                                @click.prevent>
-                                                Chọn xong ({{ compareSelection.length }})
-                                            </button>
-                                        </div>
+                                        
 
                                         <div class="compare-result" v-if="compareSelection.length > 0">
-                                            <table class="comparison-table">
+                                            <div class="comparison-table-wrapper">
+                                                <table class="comparison-table">
                                                 <thead>
                                                     <tr>
                                                         <th class="attr-col">Thông số</th>
@@ -679,7 +740,7 @@ const modalComparisonData = computed(() => {
                                                             <div class="prod-header">
                                                                 <img :src="p.img" />
                                                                 <div class="prod-info">
-                                                                    <div class="prod-name">{{ p.fullName }}</div>
+                                                                    <div class="prod-name">{{ product.tenSP }}</div>
                                                                     <div class="prod-price">{{ formatPrice(p.price) }}</div>
                                                                 </div>
                                                             </div>
@@ -690,20 +751,31 @@ const modalComparisonData = computed(() => {
                                                     <tr v-for="attr in allAttributeKeys" :key="attr">
                                                         <td class="attr-col">{{ attr }}</td>
                                                         <td class="product-col">
-                                                            <span v-if="extractAllAttributes(selectedVariant)[attr]" class="value">
-                                                                {{ extractAllAttributes(selectedVariant)[attr] }}
+                                                            <!-- Kiểm tra thông số kỹ thuật sản phẩm hiện tại trước (case-insensitive) -->
+                                                            <span v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
+                                                                {{ product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                            </span>
+                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
+                                                            <span v-else-if="extractAllAttributes(selectedVariant)[attr.toLowerCase()]" class="value">
+                                                                {{ extractAllAttributes(selectedVariant)[attr.toLowerCase()] }}
                                                             </span>
                                                             <span v-else class="no-value">—</span>
                                                         </td>
                                                         <td class="product-col" v-for="p in compareProducts" :key="p.key_id">
-                                                            <span v-if="(p.attributes || {})[attr]" class="value">
-                                                                {{ (p.attributes || {})[attr] }}
+                                                            <!-- Kiểm tra thông số kỹ thuật so sánh trước (case-insensitive) -->
+                                                            <span v-if="p.thong_so_ky_thuat && p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
+                                                                {{ p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                            </span>
+                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
+                                                            <span v-else-if="(p.attributes || {})[attr.toLowerCase()]" class="value">
+                                                                {{ (p.attributes || {})[attr.toLowerCase()] }}
                                                             </span>
                                                             <span v-else class="no-value">—</span>
                                                         </td>
                                                     </tr>
                                                 </tbody>
                                             </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1564,10 +1636,13 @@ h1 {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     background: #f8fafc;
+    max-height: 600px;
+    overflow-y: auto;
 }
 
 .comparison-table {
     width: 100%;
+    min-width: 600px;
     border-collapse: collapse;
     background: white;
 }
@@ -1727,7 +1802,7 @@ h1 {
     gap:20px;
 }
 .compare-left{ width:320px; max-height:520px; overflow:auto; padding:16px }
-.compare-right{ flex:1; padding:16px; overflow:auto }
+.compare-right{ flex:1; padding:16px; overflow:hidden; max-height:600px; display:flex; flex-direction:column }
 .compare-list{ display:flex; flex-direction:column; gap:8px }
 .compare-item{ display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; border:1px solid #f1f5f9 }
 .compare-item img{ width:56px;height:56px;object-fit:cover;border-radius:6px }
@@ -1736,6 +1811,7 @@ h1 {
 .compare-item .spec{ color:#64748b; font-size:12px }
 
 .compare-actions{ padding-bottom:10px }
+.compare-result { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .compare-result .comparison-table{ width:100%; border-collapse:collapse }
 
 @media (max-width: 768px){ .compare-modal{ width:100%; height:100%; border-radius:0 } .compare-left{ display:none } }
