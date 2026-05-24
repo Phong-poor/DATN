@@ -425,6 +425,22 @@ const getTypeColor = (name) => {
 }
 
 const buildAttributeGroups = () => {
+  const currentCategoryId = Number(form.value.category) || 0
+
+  const filteredBaseGroups = baseAttributeGroups.value.map(group => {
+    return {
+      ...group,
+      attrTypes: group.attrTypes.map(attr => ({
+        ...attr,
+        options: attr.options.filter(opt => {
+          if (!opt.danh_muc_ids || opt.danh_muc_ids.length === 0) return true
+          if (currentCategoryId === 0) return true
+          return opt.danh_muc_ids.includes(currentCategoryId)
+        })
+      }))
+    }
+  })
+
   const colorGroup =
     colors.value.length > 0
       ? {
@@ -447,13 +463,15 @@ const buildAttributeGroups = () => {
       : null
 
   attributeGroups.value = colorGroup
-    ? [...baseAttributeGroups.value, colorGroup]
-    : [...baseAttributeGroups.value]
+    ? [...filteredBaseGroups, colorGroup]
+    : [...filteredBaseGroups]
 
   if (!selectedGroupId.value && attributeGroups.value.length > 0) {
     selectedGroupId.value = attributeGroups.value[0].id
   }
 }
+
+
 
 const normalizeAttributeGroups = (payload) => {
   const nhoms = Array.isArray(payload) ? payload : []
@@ -483,7 +501,8 @@ const normalizeAttributeGroups = (payload) => {
           options: giaTris.map((item) => ({
             value: item.giatri,
             label: item.giatri,
-            gia_cong_them: item.gia_cong_them || 0
+            gia_cong_them: item.gia_cong_them || 0,
+            danh_muc_ids: item.danh_muc_ids || []
           }))
         }
       }),
@@ -534,6 +553,10 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm())
 const fieldErrors = ref({})
+
+watch(() => form.value.category, () => {
+  buildAttributeGroups()
+})
 
 const defaultFieldErrors = () => ({
   img: '',
@@ -1763,7 +1786,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="vs-wrapper">
+            <div class="vs-wrapper" v-if="form.category">
               <div class="vs-header">
                 <div class="vs-title">
                   <span class="vs-bar"></span>
@@ -2042,6 +2065,11 @@ onMounted(() => {
                 </div>
               </template>
             </div>
+            
+            <div v-else class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8;">
+              <p>Vui lòng chọn danh mục sản phẩm trước khi cấu hình biến thể.</p>
+            </div>
+
             <p v-if="fieldErrors.variantRows" class="field-error">
               {{ fieldErrors.variantRows }}
             </p>
