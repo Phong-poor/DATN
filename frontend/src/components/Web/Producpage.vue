@@ -56,6 +56,12 @@ const selectedSort = ref('newest')
 const showFilterModal = ref(false)
 
 // ===================== MAP PRODUCTS =====================
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/600'
+    if (path.startsWith('http') || path.startsWith('data:image')) return path
+    return `http://127.0.0.1:8000/storage/${path}`
+}
+
 const mapProducts = (rawProducts) => {
     const productGroups = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
@@ -72,7 +78,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: 0,
                 specs: [],
                 all_variants: [],
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                img: getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
@@ -149,7 +155,7 @@ const mapProducts = (rawProducts) => {
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 specs: specs,
                 all_variants: all_vars_info,
-                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : ''),
+                img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };

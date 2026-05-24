@@ -20,6 +20,7 @@ use App\Http\Controllers\LienHeController;
 use App\Http\Controllers\DanhGiaController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\SanPhamDaXemController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -84,6 +85,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/vouchers', [PromotionController::class, 'myVouchers']);
     Route::get('/user/vouchers/available', [PromotionController::class, 'availableGifts']);
     Route::post('/user/vouchers/claim', [PromotionController::class, 'claimVoucher']);
+
+    // ===== SẢN PHẨM ĐÃ XEM =====
+    Route::post('/sanpham-daxem/{id}', [SanPhamDaXemController::class, 'logView']);
+    Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
 });
 
 // Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
