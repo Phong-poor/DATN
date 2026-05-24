@@ -6,6 +6,7 @@ use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
 use App\Models\GioHang;
 use App\Models\BienThe;
+use App\Models\DiaChi;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
 use Illuminate\Http\Request;
@@ -133,11 +134,28 @@ class DatHangController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'diachi' => 'required|string',
+            'id_diachi' => 'nullable|integer',
+            'diachi' => 'required_without:id_diachi|string',
             'PTTT'   => 'required|string',
         ]);
 
         $userId = Auth::id();
+        $diaChiGiaoHang = $request->diachi;
+
+        if ($request->filled('id_diachi')) {
+            $diaChi = DiaChi::where('id_user', $userId)
+                ->where('id_diachi', $request->id_diachi)
+                ->first();
+
+            if (! $diaChi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vui lòng chọn địa chỉ'
+                ], 422);
+            }
+
+            $diaChiGiaoHang = $diaChi->dia_chi_day_du;
+        }
 
         $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
 
@@ -232,7 +250,7 @@ class DatHangController extends Controller
                 'user_id'     => $userId,
                 'tongtien'    => $tongTienSauGiam,
                 'trangthai'   => 'pending',
-                'diachi'      => $request->diachi,
+                'diachi'      => $diaChiGiaoHang,
                 'PTTT'        => $request->PTTT,
                 'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'promotion_id' => $promoId,      // lưu id promotion đã dùng
