@@ -7,6 +7,7 @@ import MainLayout from '../components/Layout/MainLayout.vue'
 import Home from '../components/Web/Home.vue'
 import Producpage from '../components/Web/Producpage.vue'
 import News from '../components/Web/News.vue'
+import NewsDetail from '../components/Web/NewsDetail.vue'
 import Cart from '../components/Web/Cart.vue'
 import Checkout from '../components/Web/Checkout.vue'
 import ProductDetail from '../components/Web/ProductDetail.vue'
@@ -42,6 +43,7 @@ const routes = [
       { path: 'products', name: 'products', component: Producpage },
       { path: 'products/:id', name: 'product-detail', component: ProductDetail },
       { path: 'news', name: 'news', component: News },
+      { path: 'news/:id', name: 'news-detail', component: NewsDetail },
       { path: 'contact', name: 'contact', component: Contact },
       { path: 'cart', name: 'cart', component: Cart },
       { path: 'checkout', name: 'checkout', component: Checkout },
@@ -113,7 +115,8 @@ router.beforeEach((to, from, next) => {
 
   const isPublic =
     publicPages.includes(to.path) ||
-    to.path.startsWith('/products/')
+    to.path.startsWith('/products/') ||
+    to.path.startsWith('/news/')
 
   if (!isPublic && !token) {
     return next('/login')

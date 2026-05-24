@@ -1,171 +1,216 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import api from '@/services/api'
+import { absoluteUrl, setSeo } from '@/services/seo'
 
+const posts = ref([])
+const popularPosts = ref([])
+const selectedCategory = ref('Mới nhất')
+const currentPage = ref(1)
+const lastPage = ref(1)
+const loading = ref(false)
+const errorMessage = ref('')
 
-const posts = [
-  {
-    title: "VinaBook Pro 2026: Kỷ nguyên mới của hiệu suất di động",
-    category: "ĐÁNH GIÁ",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
-    date: "12 Tháng 12, 2026"
-  },
-  {
-    title: "Trí tuệ nhân tạo VinaAI tích hợp sâu vào hệ sinh thái",
-    category: "TIN TỨC",
-    img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800",
-    date: "12 Tháng 12, 2026"
-  },
-  {
-    title: "5 cách tối ưu hóa không gian làm việc cho Designer",
-    category: "MẸO VẶT",
-    img: "https://images.unsplash.com/photo-1492724441997-5dc865305da7?w=800",
-    date: "12 Tháng 12, 2026"
-  },
-  {
-    title: "Sự trỗi dậy của công nghệ xanh tại thị trường Việt Nam",
-    category: "XU HƯỚNG",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800",
-    date: "08 Tháng 12, 2026"
-  },
-  {
-    title: "VinaPhone 18 Pro: Camera 200MP liệu có thực sự cần thiết?",
-    category: "ĐÁNH GIÁ",
-    img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800",
-    date: "07 Tháng 12, 2026"
-  },
-  {
-    title: "Hội nghị VinaDev 2026 chính thức mở đăng ký",
-    category: "TIN TỨC",
-    img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=800",
-    date: "05 Tháng 12, 2026"
+const defaultCategories = ['Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội bộ']
+const placeholderImage = 'https://via.placeholder.com/800x500?text=Tin+tuc'
+
+const categories = computed(() => {
+  const names = [...posts.value, ...popularPosts.value].map((item) => item.category).filter(Boolean)
+  return [...new Set([...defaultCategories, ...names])]
+})
+const tabs = computed(() => ['Mới nhất', ...categories.value.slice(0, 4)])
+
+const applyListSeo = () => {
+  const suffix = selectedCategory.value === 'Mới nhất' ? 'mới nhất' : selectedCategory.value.toLowerCase()
+  setSeo({
+    title: `Tin tức công nghệ ${suffix}`,
+    description:
+      'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.',
+    keywords:
+      'tin tức công nghệ, tư vấn laptop, laptop gaming, laptop văn phòng, laptop đồ họa, VinaTech',
+    url: '/news',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Tin tức công nghệ VinaTech',
+      description:
+        'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.',
+      url: absoluteUrl('/news'),
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'VinaTech',
+        url: absoluteUrl('/'),
+      },
+    },
+  })
+}
+
+const imageUrl = (path) => {
+  if (!path) return placeholderImage
+  if (path.startsWith('http')) return path
+  return `http://127.0.0.1:8000/storage/${path}`
+}
+
+const formatDate = (value) => {
+  if (!value) return ''
+  return new Date(value).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const fetchNews = async (page = 1) => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const params = { scope: 'public', per_page: 9, page }
+    if (selectedCategory.value !== 'Mới nhất') params.category = selectedCategory.value
+
+    const { data } = await api.get('/news', { params })
+    posts.value = data.data || []
+    currentPage.value = data.current_page || 1
+    lastPage.value = data.last_page || 1
+  } catch (error) {
+    console.error('Lỗi tải tin tức:', error)
+    posts.value = []
+    currentPage.value = 1
+    lastPage.value = 1
+    errorMessage.value = 'Không thể tải tin tức. Vui lòng thử lại sau.'
+  } finally {
+    loading.value = false
   }
-]
+}
+
+const fetchPopular = async () => {
+  try {
+    const { data } = await api.get('/news', {
+      params: { scope: 'public', per_page: 20 },
+    })
+    popularPosts.value = (data.data || [])
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 3)
+  } catch (error) {
+    console.error('Lỗi tải bài phổ biến:', error)
+    popularPosts.value = []
+  }
+}
+
+const selectTab = async (tab) => {
+  selectedCategory.value = tab
+  applyListSeo()
+  await fetchNews(1)
+}
+
+onMounted(async () => {
+  applyListSeo()
+  await Promise.all([fetchNews(), fetchPopular()])
+})
 </script>
 
 <template>
-
   <section class="news-page">
-
-    <!-- HEADER -->
     <div class="top">
-      <span class="badge">TẠP CHÍ CÔNG NGHỆ 2026</span>
+      <span class="badge">TẠP CHÍ CÔNG NGHỆ</span>
       <h1>Tin tức <span>công nghệ.</span></h1>
 
       <div class="tabs">
-        <span class="active">Mới nhất</span>
-        <span>Xu hướng</span>
-        <span>Đánh giá</span>
+        <button
+          v-for="tab in tabs"
+          :key="tab"
+          :class="{ active: selectedCategory === tab }"
+          @click="selectTab(tab)"
+        >
+          {{ tab }}
+        </button>
       </div>
     </div>
 
     <div class="container">
-
-      <!-- LEFT -->
       <div class="left">
+        <div v-if="loading" class="empty">Đang tải tin tức...</div>
+        <div v-else-if="errorMessage" class="empty">{{ errorMessage }}</div>
 
-        <div class="grid">
-          <div class="card" v-for="(p, i) in posts" :key="i">
-            <img :src="p.img" />
+        <div v-else class="grid">
+          <article v-for="post in posts" :key="post.id" class="card">
+            <img :src="imageUrl(post.image)" :alt="post.image_alt || post.title" />
+            <span class="category">{{ post.category }}</span>
+            <small>{{ formatDate(post.published_at || post.created_at) }}</small>
+            <h3>{{ post.title }}</h3>
+            <p v-if="post.excerpt">{{ post.excerpt }}</p>
+            <RouterLink :to="`/news/${post.id}`">XEM THÊM →</RouterLink>
+          </article>
 
-            <span class="category">{{ p.category }}</span>
-
-            <small>{{ p.date }}</small>
-
-            <h3>{{ p.title }}</h3>
-
-            <a href="#">XEM THÊM →</a>
-          </div>
+          <div v-if="posts.length === 0" class="empty">Chưa có bài viết nào.</div>
         </div>
 
-        <!-- PAGINATION -->
-        <div class="pagination">
-          <button>‹</button>
-          <button class="active">1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>›</button>
+        <div class="pagination" v-if="lastPage > 1">
+          <button :disabled="currentPage <= 1" @click="fetchNews(currentPage - 1)">‹</button>
+          <button class="active">{{ currentPage }}</button>
+          <button :disabled="currentPage >= lastPage" @click="fetchNews(currentPage + 1)">›</button>
         </div>
-
       </div>
 
-      <!-- RIGHT -->
-      <div class="right">
-
-        <!-- MOST READ -->
+      <aside class="right">
         <div class="box">
           <h4>• Bài viết phổ biến</h4>
-
           <div class="popular">
-            <div class="item">
-              <img src="https://randomuser.me/api/portraits/women/32.jpg" />
+            <RouterLink
+              v-for="item in popularPosts"
+              :key="item.id"
+              :to="`/news/${item.id}`"
+              class="item"
+            >
+              <img :src="imageUrl(item.image)" :alt="item.image_alt || item.title" />
               <div>
-                <p>Xu hướng AI trong thiết kế UI</p>
-                <span>36 lượt xem</span>
+                <p>{{ item.title }}</p>
+                <span>{{ item.views || 0 }} lượt xem</span>
               </div>
-            </div>
-
-            <div class="item">
-              <img src="https://randomuser.me/api/portraits/men/12.jpg" />
-              <div>
-                <p>Top 10 laptop đáng mua 2026</p>
-                <span>21 lượt xem</span>
-              </div>
-            </div>
-
-            <div class="item">
-              <img src="https://randomuser.me/api/portraits/men/44.jpg" />
-              <div>
-                <p>VinaTech và bảo mật dữ liệu</p>
-                <span>18 lượt xem</span>
-              </div>
-            </div>
+            </RouterLink>
+            <p v-if="popularPosts.length === 0" class="muted">Chưa có dữ liệu.</p>
           </div>
         </div>
 
-        <!-- CATEGORY -->
         <div class="box">
           <h4>• Chuyên mục</h4>
           <div class="tags">
-            <span>Đánh giá</span>
-            <span>Tin tức</span>
-            <span>Mẹo vặt</span>
-            <span>Xu hướng</span>
+            <button v-for="tag in categories" :key="tag" @click="selectTab(tag)">
+              {{ tag }}
+            </button>
           </div>
         </div>
 
-        <!-- CTA -->
         <div class="cta">
           <h3>Đăng ký nhận tin</h3>
           <p>Cập nhật công nghệ mới nhất từ VinaTech</p>
           <input placeholder="Email của bạn" />
           <button>THAM GIA NGAY</button>
         </div>
-
-      </div>
-
+      </aside>
     </div>
-
   </section>
-
 </template>
 
 <style scoped>
-/* PAGE */
 .news-page {
   background: #f5f7fb;
   padding: 40px 80px;
 }
 
-/* TOP */
 .top {
   margin-bottom: 30px;
 }
 
 .badge {
-  font-size: 11px;
   color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .top h1 {
+  color: #0f172a;
   font-size: 36px;
   font-weight: 800;
 }
@@ -175,40 +220,48 @@ const posts = [
 }
 
 .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   margin-top: 10px;
 }
 
-.tabs span {
-  margin-right: 20px;
-  font-size: 13px;
+.tabs button,
+.tags button {
+  background: transparent;
+  border: 0;
   cursor: pointer;
+  font: inherit;
+}
+
+.tabs button {
+  color: #334155;
+  font-size: 13px;
+  padding: 0;
 }
 
 .tabs .active {
-  font-weight: bold;
   color: #2563eb;
+  font-weight: 700;
 }
 
-/* LAYOUT */
 .container {
   display: grid;
-  grid-template-columns: 3fr 1fr;
   gap: 40px;
+  grid-template-columns: 3fr 1fr;
 }
 
-/* GRID */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
 }
 
-/* CARD */
 .card {
   background: white;
   border-radius: 16px;
   padding: 15px;
-  transition: 0.3s;
+  transition: transform 0.3s;
 }
 
 .card:hover {
@@ -216,39 +269,75 @@ const posts = [
 }
 
 .card img {
-  width: 100%;
+  border-radius: 12px;
   height: 140px;
   object-fit: cover;
-  border-radius: 12px;
+  width: 100%;
 }
 
 .category {
-  font-size: 10px;
   color: #2563eb;
-  font-weight: 600;
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.card small {
+  color: #64748b;
 }
 
 .card h3 {
+  color: #0f172a;
   font-size: 14px;
   margin: 8px 0;
 }
 
-.card a {
-  font-size: 12px;
-  color: #2563eb;
+.card p {
+  color: #64748b;
+  display: -webkit-box;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card a,
+.item {
+  color: inherit;
   text-decoration: none;
 }
 
-/* PAGINATION */
+.card a {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.empty {
+  background: white;
+  border-radius: 12px;
+  color: #64748b;
+  grid-column: 1 / -1;
+  padding: 24px;
+}
+
 .pagination {
   margin-top: 30px;
 }
 
 .pagination button {
+  background: #e2e8f0;
+  border: none;
+  cursor: pointer;
   margin-right: 6px;
   padding: 6px 10px;
-  border: none;
-  background: #e2e8f0;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .pagination .active {
@@ -256,67 +345,81 @@ const posts = [
   color: white;
 }
 
-/* RIGHT */
 .box {
   background: white;
-  padding: 20px;
   border-radius: 12px;
   margin-bottom: 20px;
+  padding: 20px;
 }
 
 .popular .item {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .popular img {
-  width: 40px;
-  height: 40px;
   border-radius: 50%;
+  height: 42px;
+  object-fit: cover;
+  width: 42px;
 }
 
-/* TAGS */
-.tags span {
-  background: #e2e8f0;
-  padding: 6px 10px;
-  margin: 4px;
-  display: inline-block;
+.popular p {
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.popular span,
+.muted {
+  color: #64748b;
   font-size: 12px;
-  border-radius: 6px;
 }
 
-/* CTA */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tags button {
+  background: #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
 .cta {
   background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border-radius: 16px;
   color: white;
   padding: 20px;
-  border-radius: 16px;
 }
 
 .cta input {
-  width: 95%;
-  padding: 8px;
-  margin: 10px 0;
   border: none;
   border-radius: 6px;
+  margin: 10px 0;
+  padding: 8px;
+  width: 95%;
 }
 
 .cta button {
-  width: 100%;
-  padding: 10px;
-  border: none;
   background: white;
-  color: #2563eb;
+  border: none;
   border-radius: 6px;
+  color: #2563eb;
+  padding: 10px;
+  width: 100%;
 }
 
-/* MOBILE */
-@media (max-width:768px) {
-  .container {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .news-page {
+    padding: 24px 16px;
   }
 
+  .container,
   .grid {
     grid-template-columns: 1fr;
   }

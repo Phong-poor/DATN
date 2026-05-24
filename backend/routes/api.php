@@ -20,6 +20,7 @@ use App\Http\Controllers\LienHeController;
 use App\Http\Controllers\DanhGiaController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\NewsController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -46,6 +47,8 @@ Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
 // ================= KHUYẾN MÃI (PUBLIC) =================
 Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{id}', [NewsController::class, 'show']);
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
@@ -214,6 +217,12 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
         Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
+        Route::get('/news', [NewsController::class, 'index']);
+        Route::get('/news-stats', [NewsController::class, 'stats']);
+        Route::post('/news/upload-image', [NewsController::class, 'uploadContentImage']);
+        Route::post('/news', [NewsController::class, 'store']);
+        Route::put('/news/{id}', [NewsController::class, 'update']);
+        Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
 
 
