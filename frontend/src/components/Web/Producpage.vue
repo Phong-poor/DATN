@@ -33,7 +33,9 @@ const attrOptions = ref({
     ram: [], cpu: [], gpu: [], kichthuoc: [],
     dophan: [], tamnen: [], pin: [], sac: []
 })
-
+onMounted(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 // Collapse
 const collapsed = ref({
     danhmuc: false,
@@ -407,6 +409,10 @@ const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        localStorage.setItem('pendingCartItem', JSON.stringify({
+            id_bienthe: product.key_id,
+            soluong: 1
+        }))
         router.push('/login')
         return
     }

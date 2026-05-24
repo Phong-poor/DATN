@@ -29,6 +29,22 @@ const fetchUser = async (token) => {
 
     saveAuth(token, user)
 
+    const pendingItemStr = localStorage.getItem('pendingCartItem')
+    if (pendingItemStr) {
+      try {
+        const pendingItem = JSON.parse(pendingItemStr)
+        await api.post('/gio-hang/them', pendingItem, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        localStorage.removeItem('pendingCartItem')
+        window.dispatchEvent(new Event('cart-updated'))
+        router.push('/cart')
+        return
+      } catch (err) {
+        console.error('Lỗi thêm pending item:', err)
+      }
+    }
+
     router.push('/')
   } catch (e) {
     console.error('Lỗi lấy profile sau login Google:', e)
