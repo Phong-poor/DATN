@@ -21,6 +21,7 @@ use App\Http\Controllers\DanhGiaController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\DiaChiController;
+use App\Http\Controllers\SanPhamDaXemController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -90,6 +91,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/vouchers', [PromotionController::class, 'myVouchers']);
     Route::get('/user/vouchers/available', [PromotionController::class, 'availableGifts']);
     Route::post('/user/vouchers/claim', [PromotionController::class, 'claimVoucher']);
+
+    // ===== SẢN PHẨM ĐÃ XEM =====
+    Route::post('/sanpham-daxem/{id}', [SanPhamDaXemController::class, 'logView']);
+    Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
 });
 
 // Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
@@ -97,6 +102,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
+Route::get('/danhmuc/parents', [DanhMucController::class, 'getParentCategories']);
+Route::get('/danhmuc/{id_danhmuc}/children', [DanhMucController::class, 'getChildrenCategories']);
+Route::get('/danhmuc/{id_danhmuc}/inherited-attributes', [DanhMucController::class, 'getCategoryWithInheritedAttributes']);
 Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
 Route::put('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'update']);
@@ -104,6 +112,7 @@ Route::delete('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'destroy']);
 
 // ================= THƯƠNG HIỆU =================
 Route::get('/thuonghieu', [ThuongHieuController::class, 'index']);
+Route::get('/thuonghieu/by-category/{categoryId}', [ThuongHieuController::class, 'getByCategory']);
 Route::post('/thuonghieu', [ThuongHieuController::class, 'store']);
 Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show']);
 Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);

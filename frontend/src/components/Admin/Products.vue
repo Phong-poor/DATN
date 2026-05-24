@@ -16,7 +16,10 @@ const PER_PAGE = 10
 
 const products = ref([])
 const categories = ref([])
-const brands = ref([])
+const parentCategories = ref([])
+const childCategories = ref([])
+const allBrands = ref([]) // Lưu toàn bộ brand
+const brands = ref([]) // Hiển thị trên select
 const colors = ref([])
 const readingExtraImages = ref(false)
 const variantLoading = ref(false)
@@ -352,13 +355,75 @@ const fetchCategories = async () => {
 const fetchBrands = async () => {
   try {
     const res = await api.get('/thuonghieu')
-    brands.value = Array.isArray(res.data)
+    allBrands.value = Array.isArray(res.data)
+      ? res.data
+      : Array.isArray(res.data?.data)
+        ? res.data.data
+        : []
+    brands.value = [...allBrands.value]
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+/**
+ * Fetch parent categories (danh mục cha)
+ */
+const fetchParentCategories = async () => {
+  try {
+    const res = await api.get('/danhmuc/parents')
+    parentCategories.value = Array.isArray(res.data)
       ? res.data
       : Array.isArray(res.data?.data)
         ? res.data.data
         : []
   } catch (error) {
     console.error(error)
+  }
+}
+
+/**
+ * Fetch child categories for a parent category
+ */
+const fetchChildCategories = async (parentId) => {
+  try {
+    if (!parentId) {
+      childCategories.value = []
+      return
+    }
+    const res = await api.get(`/danhmuc/${parentId}/children`)
+    childCategories.value = Array.isArray(res.data)
+      ? res.data
+      : Array.isArray(res.data?.data)
+        ? res.data.data
+        : []
+  } catch (error) {
+    console.error(error)
+    childCategories.value = []
+  }
+}
+
+/**
+ * Filter brands locally based on selected categories
+ */
+const filterBrandsLocally = () => {
+  const currentCategoryId = Number(form.value.category) || 0
+  const currentParentId = Number(form.value.parentCategory) || 0
+
+  if (!currentCategoryId && !currentParentId) {
+    brands.value = [...allBrands.value]
+    return
+  }
+
+  brands.value = allBrands.value.filter(brand => {
+    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Áp dụng tất cả
+    const ids = brand.danh_muc_ids.map(Number)
+    return ids.includes(currentCategoryId) || ids.includes(currentParentId)
+  })
+
+  // Check if selected brand is still valid
+  if (form.value.brand && !brands.value.find(b => b.id_thuonghieu == form.value.brand)) {
+    form.value.brand = ''
   }
 }
 
@@ -425,6 +490,38 @@ const getTypeColor = (name) => {
 }
 
 const buildAttributeGroups = () => {
+  const currentCategoryId = Number(form.value.category) || 0
+  const currentParentId = Number(form.value.parentCategory) || 0
+
+  const filteredBaseGroups = baseAttributeGroups.value.filter(group => {
+    let groupIds = group.danh_muc_ids || []
+    if (typeof groupIds === 'string') {
+      try { groupIds = JSON.parse(groupIds) } catch (e) { groupIds = [] }
+    }
+    if (!groupIds || groupIds.length === 0) return true
+    if (currentParentId === 0) return true
+    const ids = groupIds.map(Number)
+    return ids.includes(currentParentId)
+  }).map(group => {
+    return {
+      ...group,
+      attrTypes: group.attrTypes.map(attr => ({
+        ...attr,
+        options: attr.options.filter(opt => {
+          let optIds = opt.danh_muc_ids || []
+          if (typeof optIds === 'string') {
+            try { optIds = JSON.parse(optIds) } catch (e) { optIds = [] }
+          }
+          if (!optIds || optIds.length === 0) return true
+          if (currentCategoryId === 0 && currentParentId === 0) return true
+          
+          const ids = optIds.map(Number)
+          return ids.includes(currentCategoryId) || ids.includes(currentParentId)
+        })
+      })).filter(attr => attr.options.length > 0)
+    }
+  }).filter(group => group.attrTypes.length > 0)
+
   const colorGroup =
     colors.value.length > 0
       ? {
@@ -447,13 +544,15 @@ const buildAttributeGroups = () => {
       : null
 
   attributeGroups.value = colorGroup
-    ? [...baseAttributeGroups.value, colorGroup]
-    : [...baseAttributeGroups.value]
+    ? [...filteredBaseGroups, colorGroup]
+    : [...filteredBaseGroups]
 
   if (!selectedGroupId.value && attributeGroups.value.length > 0) {
     selectedGroupId.value = attributeGroups.value[0].id
   }
 }
+
+
 
 const normalizeAttributeGroups = (payload) => {
   const nhoms = Array.isArray(payload) ? payload : []
@@ -468,6 +567,7 @@ const normalizeAttributeGroups = (payload) => {
     return {
       id: group.id_nhom,
       name: group.ten_nhom,
+      danh_muc_ids: group.danh_muc_ids || [],
       icon: getGroupIcon(group.ten_nhom),
       attrTypes: thuocTinhs.map((attr) => {
         const giaTris = Array.isArray(attr.giatri_thuoc_tinhs)
@@ -483,7 +583,8 @@ const normalizeAttributeGroups = (payload) => {
           options: giaTris.map((item) => ({
             value: item.giatri,
             label: item.giatri,
-            gia_cong_them: item.gia_cong_them || 0
+            gia_cong_them: item.gia_cong_them || 0,
+            danh_muc_ids: item.danh_muc_ids || []
           }))
         }
       }),
@@ -524,6 +625,7 @@ const extraImagePreviews = ref([])
 
 const defaultForm = () => ({
   name: '',
+  parentCategory: '',
   category: '',
   brand: '',
   status: 'Đang bán',
@@ -534,6 +636,28 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm())
 const fieldErrors = ref({})
+
+/**
+ * Watch parent category change - load child categories and reset child category selection
+ */
+watch(() => form.value.parentCategory, async (newParentId) => {
+  if (newParentId) {
+    await fetchChildCategories(newParentId)
+  } else {
+    childCategories.value = []
+  }
+  // Reset child category and brand when parent changes
+  form.value.category = ''
+  filterBrandsLocally()
+})
+
+/**
+ * Watch child category change - filter brands and rebuild attribute groups
+ */
+watch(() => form.value.category, async (newCategoryId) => {
+  filterBrandsLocally()
+  buildAttributeGroups()
+})
 
 const defaultFieldErrors = () => ({
   img: '',
@@ -580,8 +704,12 @@ const validateTopForm = () => {
     errors.brand = 'Vui lòng chọn thương hiệu'
   }
 
+  if (!form.value.parentCategory) {
+    errors.parentCategory = 'Vui lòng chọn danh mục cha'
+  }
+
   if (!form.value.category) {
-    errors.category = 'Vui lòng chọn danh mục'
+    errors.category = 'Vui lòng chọn danh mục con'
   }
 
   if (!['Đang bán', 'Nháp'].includes(form.value.status)) {
@@ -1105,6 +1233,17 @@ const removeRow = (globalIndex) => {
 }
 
 // ===== BASE / RULE =====
+const formatCurrency = (val) => {
+  if (!val) return ''
+  const num = String(val).replace(/\D/g, '')
+  if (!num) return ''
+  return Number(num).toLocaleString('vi-VN')
+}
+
+const parseCurrency = (val) => {
+  if (!val) return ''
+  return String(val).replace(/\D/g, '')
+}
 const calculateVariantPrice = (row) => {
   if (basePrice.value === '' || basePrice.value === null) return null
 
@@ -1489,6 +1628,7 @@ const submitForm = async () => {
 
 onMounted(() => {
   fetchProducts()
+  fetchParentCategories()
   fetchCategories()
   fetchBrands()
   fetchAttributeGroups()
@@ -1733,15 +1873,33 @@ onMounted(() => {
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Danh mục <span class="required">*</span></label>
-                <select v-model="form.category" :class="{ 'input-error': fieldErrors.category }">
-                  <option value="">-- Chọn danh mục --</option>
-                  <option v-for="category in categories" :key="category.id_danhmuc"
+                <label>Danh mục Cha <span class="required">*</span></label>
+                <select v-model="form.parentCategory" :class="{ 'input-error': fieldErrors.parentCategory }">
+                  <option value="">-- Chọn danh mục cha --</option>
+                  <option v-for="parentCat in parentCategories" :key="parentCat.id_danhmuc"
+                    :value="String(parentCat.id_danhmuc)">
+                    {{ parentCat.ten_danhmuc }}
+                  </option>
+                </select>
+                <p v-if="fieldErrors.parentCategory" class="field-error">{{ fieldErrors.parentCategory }}</p>
+              </div>
+              <div class="form-group">
+                <label>Danh mục Con <span class="required">*</span></label>
+                <select v-model="form.category" :class="{ 'input-error': fieldErrors.category }"
+                  :disabled="!form.parentCategory">
+                  <option value="">-- Chọn danh mục con --</option>
+                  <option v-for="category in childCategories" :key="category.id_danhmuc"
                     :value="String(category.id_danhmuc)">
                     {{ category.ten_danhmuc }}
                   </option>
                 </select>
                 <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Khối lượng</label>
+                <input v-model="form.weight" type="number" min="0" step="0.01" placeholder="VD: 2.5" />
               </div>
               <div class="form-group">
                 <label>Trạng thái</label>
@@ -1752,18 +1910,8 @@ onMounted(() => {
                 <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Khối lượng</label>
-                <input v-model="form.weight" type="number" min="0" step="0.01" placeholder="VD: 2.5" />
-              </div>
-              <div class="form-group">
-                <label>&nbsp;</label>
-                <div></div>
-              </div>
-            </div>
 
-            <div class="vs-wrapper">
+            <div class="vs-wrapper" v-if="form.category">
               <div class="vs-header">
                 <div class="vs-title">
                   <span class="vs-bar"></span>
@@ -1944,9 +2092,9 @@ onMounted(() => {
 
                   <div class="bulk-stack">
                     <div class="bulk-bar">
-                      <span class="bulk-lbl">Giá/kho nền:</span>
-                      <input v-model="basePrice" class="bulk-in" placeholder="Giá nền (₫)" />
-                      <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho nền" />
+                      <span class="bulk-lbl">Giá/kho chung:</span>
+                      <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
+                      <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
                     </div>
                     <div class="bulk-actions">
                       <button class="btn-apply-outline" @click="applyRulesToAll(false)">
@@ -1998,8 +2146,8 @@ onMounted(() => {
                         </td>
 
                         <td>
-                          <input :value="row.price" type="number" class="vt-input"
-                            @input="(e) => { row.price = e.target.value; markManualPrice(row) }" />
+                          <input :value="formatCurrency(row.price)" type="text" class="vt-input"
+                            @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
                         </td>
 
                         <td>
@@ -2042,6 +2190,11 @@ onMounted(() => {
                 </div>
               </template>
             </div>
+            
+            <div v-else class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8;">
+              <p>Vui lòng chọn danh mục sản phẩm trước khi cấu hình biến thể.</p>
+            </div>
+
             <p v-if="fieldErrors.variantRows" class="field-error">
               {{ fieldErrors.variantRows }}
             </p>

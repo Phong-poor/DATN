@@ -33,7 +33,9 @@ const attrOptions = ref({
     ram: [], cpu: [], gpu: [], kichthuoc: [],
     dophan: [], tamnen: [], pin: [], sac: []
 })
-
+onMounted(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 // Collapse
 const collapsed = ref({
     danhmuc: false,
@@ -50,9 +52,14 @@ const collapsed = ref({
 })
 
 const selectedPriceRange = ref('')
-const selectedSort = ref('newest')
+const selectedSort = ref('')
+const showFilterModal = ref(false)
 
 // ===================== MAP PRODUCTS =====================
+const shuffleProducts = (items) => {
+    return [...items].sort(() => Math.random() - 0.5)
+}
+
 const mapProducts = (rawProducts) => {
     const productGroups = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
@@ -69,7 +76,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: 0,
                 specs: [],
                 all_variants: [],
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                img: getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
@@ -91,7 +98,7 @@ const mapProducts = (rawProducts) => {
             return {
                 id_bienthe: bt.id_bienthe,
                 shortName: [r, c, g, m].filter(Boolean).join(' - ') || 'Mặc định'
-            };
+            }
         });
 
         return p.bien_thes.map(bt => {
@@ -146,7 +153,7 @@ const mapProducts = (rawProducts) => {
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 specs: specs,
                 all_variants: all_vars_info,
-                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : ''),
+                img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -167,7 +174,7 @@ const mapProducts = (rawProducts) => {
         variantIndex++;
     }
 
-    return flatList;
+    return shuffleProducts(flatList);
 }
 
 // ===================== FETCH PRODUCTS =====================
@@ -296,10 +303,16 @@ const applyFilters = () => {
     } else if (selectedPriceRange.value === 'above50') {
         result = result.filter(p => p.priceNum > 50000000)
     }
-    if (selectedSort.value === 'price_asc') {
+    if (selectedSort.value === 'newest') {
+        result.sort((a, b) => b.id - a.id)
+    } else if (selectedSort.value === 'price_asc') {
         result.sort((a, b) => a.priceNum - b.priceNum)
     } else if (selectedSort.value === 'price_desc') {
         result.sort((a, b) => b.priceNum - a.priceNum)
+    } else if (selectedSort.value === 'name_asc') {
+        result.sort((a, b) => a.fullName.localeCompare(b.fullName))
+    } else if (selectedSort.value === 'name_desc') {
+        result.sort((a, b) => b.fullName.localeCompare(a.fullName))
     }
 
     filteredProducts.value = result
@@ -400,6 +413,10 @@ const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        localStorage.setItem('pendingCartItem', JSON.stringify({
+            id_bienthe: product.key_id,
+            soluong: 1
+        }))
         router.push('/login')
         return
     }
@@ -438,259 +455,161 @@ const clearAll = () => {
 
 <template>
     <div class="page">
-        <div class="container layout">
+        <div class="container">
 
-            <!-- SIDEBAR -->
-            <aside class="sidebar">
-                <div class="sidebar-header">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="4" y1="6" x2="20" y2="6" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                        <line x1="11" y1="18" x2="13" y2="18" />
-                    </svg>
-                    <h3>Bộ lọc sản phẩm</h3>
-                </div>
-
-                <!-- DANH MỤC -->
-                <div class="filter-group">
-                    <div class="filter-group-header" @click="collapsed.danhmuc = !collapsed.danhmuc">
-                        <p class="group-label">Danh mục</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.danhmuc }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.danhmuc }">
-                        <div v-if="categories.length === 0" class="loading-small">Đang tải...</div>
-                        <label class="check-label" v-for="c in categories" :key="c.id_danhmuc">
-                            <input type="checkbox" :checked="selectedCategories.includes(String(c.id_danhmuc))"
-                                @change="toggleList('cat', c.id_danhmuc)" />
-                            <span class="checkmark"></span>
-                            {{ c.ten_danhmuc }}
-                        </label>
-                    </div>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- THƯƠNG HIỆU -->
-                <div class="filter-group">
-                    <div class="filter-group-header" @click="collapsed.thuonghieu = !collapsed.thuonghieu">
-                        <p class="group-label">Thương hiệu</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.thuonghieu }" viewBox="0 0 20 20"
-                            fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.thuonghieu }">
-                        <div v-if="brands.length === 0" class="loading-small">Đang tải...</div>
-                        <div class="brands">
-                            <span v-for="b in brands" :key="b.id_thuonghieu" class="brand-tag"
-                                :class="{ active: selectedBrands.includes(String(b.id_thuonghieu)) }"
-                                @click="toggleList('brand', b.id_thuonghieu)">
-                                {{ b.ten_thuonghieu === 'Levono' ? 'Lenovo' : b.ten_thuonghieu }}
-                            </span>
+            <!-- FILTER MODAL OVERLAY -->
+            <transition name="modal-fade">
+                <div v-if="showFilterModal" class="filter-modal-overlay" @click.self="showFilterModal = false">
+                    <div class="filter-modal">
+                        <div class="modal-header">
+                            <h3>Tất cả bộ lọc</h3>
+                            <button class="close-modal" @click="showFilterModal = false">✕ Đóng</button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- DANH MỤC -->
+                            <div class="modal-section" v-if="categories.length > 0">
+                                <p class="modal-section-title">Danh mục</p>
+                                <div class="modal-chips">
+                                    <span v-for="c in categories" :key="c.id_danhmuc" class="modal-chip"
+                                        :class="{ active: selectedCategories.includes(String(c.id_danhmuc)) }"
+                                        @click="toggleList('cat', c.id_danhmuc)">
+                                        {{ c.ten_danhmuc }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- THƯƠNG HIỆU -->
+                            <div class="modal-section" v-if="brands.length > 0">
+                                <p class="modal-section-title">Hãng</p>
+                                <div class="modal-chips">
+                                    <span v-for="b in brands" :key="b.id_thuonghieu" class="modal-chip"
+                                        :class="{ active: selectedBrands.includes(String(b.id_thuonghieu)) }"
+                                        @click="toggleList('brand', b.id_thuonghieu)">
+                                        {{ b.ten_thuonghieu === 'Levono' ? 'Lenovo' : b.ten_thuonghieu }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- MỨC GIÁ -->
+                            <div class="modal-section">
+                                <p class="modal-section-title">Giá</p>
+                                <div class="modal-chips">
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '' }" @click="selectedPriceRange = ''">Tất cả</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'under20' }" @click="selectedPriceRange = 'under20'">Dưới 20 triệu</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '20to50' }" @click="selectedPriceRange = '20to50'">20 - 50 triệu</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'above50' }" @click="selectedPriceRange = 'above50'">Trên 50 triệu</span>
+                                </div>
+                            </div>
+                            <!-- RAM -->
+                            <div class="modal-section" v-if="attrOptions.ram.length > 0">
+                                <p class="modal-section-title">RAM</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.ram" :key="r" class="modal-chip"
+                                        :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- CPU -->
+                            <div class="modal-section" v-if="attrOptions.cpu.length > 0">
+                                <p class="modal-section-title">CPU</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.cpu" :key="r" class="modal-chip"
+                                        :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- GPU -->
+                            <div class="modal-section" v-if="attrOptions.gpu.length > 0">
+                                <p class="modal-section-title">GPU</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.gpu" :key="r" class="modal-chip"
+                                        :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- Kích thước -->
+                            <div class="modal-section" v-if="attrOptions.kichthuoc.length > 0">
+                                <p class="modal-section-title">Kích thước màn hình</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.kichthuoc" :key="r" class="modal-chip"
+                                        :class="{ active: selectedKichThuoc.includes(r) }" @click="toggleList('kichthuoc', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- Tấm nền -->
+                            <div class="modal-section" v-if="attrOptions.tamnen.length > 0">
+                                <p class="modal-section-title">Tấm nền</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.tamnen" :key="r" class="modal-chip"
+                                        :class="{ active: selectedTamNen.includes(r) }" @click="toggleList('tamnen', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- Độ phân giải -->
+                            <div class="modal-section" v-if="attrOptions.dophan.length > 0">
+                                <p class="modal-section-title">Độ phân giải</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.dophan" :key="r" class="modal-chip"
+                                        :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- Pin -->
+                            <div class="modal-section" v-if="attrOptions.pin.length > 0">
+                                <p class="modal-section-title">Pin</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.pin" :key="r" class="modal-chip"
+                                        :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                            <!-- Sạc -->
+                            <div class="modal-section" v-if="attrOptions.sac.length > 0">
+                                <p class="modal-section-title">Sạc</p>
+                                <div class="modal-chips">
+                                    <span v-for="r in attrOptions.sac" :key="r" class="modal-chip"
+                                        :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-btn-clear" @click="clearAll">Xóa bộ lọc</button>
+                            <button class="modal-btn-apply" @click="() => { applyFilters(); showFilterModal = false; }">Xác nhận</button>
                         </div>
                     </div>
                 </div>
-
-                <div class="divider"></div>
-
-                <!-- RAM -->
-                <div class="filter-group" v-if="attrOptions.ram.length > 0">
-                    <div class="filter-group-header" @click="collapsed.ram = !collapsed.ram">
-                        <p class="group-label">RAM</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.ram }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.ram }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.ram" :key="r" class="attr-tag"
-                                :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider"></div>
-
-                <!-- CPU -->
-                <div class="filter-group" v-if="attrOptions.cpu.length > 0">
-                    <div class="filter-group-header" @click="collapsed.cpu = !collapsed.cpu">
-                        <p class="group-label">CPU</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.cpu }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.cpu }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.cpu" :key="r" class="attr-tag"
-                                :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.cpu.length > 0"></div>
-
-                <!-- GPU -->
-                <div class="filter-group" v-if="attrOptions.gpu.length > 0">
-                    <div class="filter-group-header" @click="collapsed.gpu = !collapsed.gpu">
-                        <p class="group-label">GPU</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.gpu }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.gpu }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.gpu" :key="r" class="attr-tag"
-                                :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.gpu.length > 0"></div>
-
-                <!-- Kích thước -->
-                <div class="filter-group" v-if="attrOptions.kichthuoc.length > 0">
-                    <div class="filter-group-header" @click="collapsed.kichthuoc = !collapsed.kichthuoc">
-                        <p class="group-label">Kích thước</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.kichthuoc }" viewBox="0 0 20 20"
-                            fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.kichthuoc }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.kichthuoc" :key="r" class="attr-tag"
-                                :class="{ active: selectedKichThuoc.includes(r) }"
-                                @click="toggleList('kichthuoc', r)">{{ r }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.kichthuoc.length > 0"></div>
-
-                <!-- Độ phân giải -->
-                <div class="filter-group" v-if="attrOptions.dophan.length > 0">
-                    <div class="filter-group-header" @click="collapsed.dophan = !collapsed.dophan">
-                        <p class="group-label">Độ phân giải</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.dophan }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.dophan }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.dophan" :key="r" class="attr-tag"
-                                :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{
-                                    r }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.dophan.length > 0"></div>
-
-                <!-- Tấm nền -->
-                <div class="filter-group" v-if="attrOptions.tamnen.length > 0">
-                    <div class="filter-group-header" @click="collapsed.tamnen = !collapsed.tamnen">
-                        <p class="group-label">Tấm nền</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.tamnen }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.tamnen }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.tamnen" :key="r" class="attr-tag"
-                                :class="{ active: selectedTamNen.includes(r) }" @click="toggleList('tamnen', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.tamnen.length > 0"></div>
-
-                <!-- Pin -->
-                <div class="filter-group" v-if="attrOptions.pin.length > 0">
-                    <div class="filter-group-header" @click="collapsed.pin = !collapsed.pin">
-                        <p class="group-label">PIN</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.pin }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.pin }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.pin" :key="r" class="attr-tag"
-                                :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.pin.length > 0"></div>
-
-                <!-- Sạc -->
-                <div class="filter-group" v-if="attrOptions.sac.length > 0">
-                    <div class="filter-group-header" @click="collapsed.sac = !collapsed.sac">
-                        <p class="group-label">SẠC</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.sac }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.sac }">
-                        <div class="attr-tags">
-                            <span v-for="r in attrOptions.sac" :key="r" class="attr-tag"
-                                :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r
-                                }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="divider" v-if="attrOptions.sac.length > 0"></div>
-
-                <!-- Lọc Theo Giá -->
-                <div class="filter-group">
-                    <div class="filter-group-header" @click="collapsed.gia = !collapsed.gia">
-                        <p class="group-label">Mức giá</p>
-                        <svg class="arrow-icon" :class="{ rotated: collapsed.gia }" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <div class="collapse-body" :class="{ closed: collapsed.gia }">
-                        <label class="check-label">
-                            <input type="radio" name="price" value="" v-model="selectedPriceRange" />
-                            <span class="checkmark radio"></span> Tất cả
-                        </label>
-                        <label class="check-label">
-                            <input type="radio" name="price" value="under20" v-model="selectedPriceRange" />
-                            <span class="checkmark radio"></span> Dưới 20.000.000đ
-                        </label>
-                        <label class="check-label">
-                            <input type="radio" name="price" value="20to50" v-model="selectedPriceRange" />
-                            <span class="checkmark radio"></span> Từ 20 - 50.000.000đ
-                        </label>
-                        <label class="check-label">
-                            <input type="radio" name="price" value="above50" v-model="selectedPriceRange" />
-                            <span class="checkmark radio"></span> Trên 50.000.000đ
-                        </label>
-                    </div>
-                </div>
-
-                <div class="divider"></div>
-
-                <button class="apply-btn" @click="applyFilters">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Áp dụng bộ lọc
-                </button>
-
-                <button class="reset-link" @click="clearAll">
-                    Xóa tất cả bộ lọc
-                </button>
-            </aside>
+            </transition>
 
             <!-- CONTENT -->
             <main class="content">
 
+                <!-- TOP BAR -->
                 <div class="top-bar">
                     <div>
                         <h1>Danh sách Laptop</h1>
                         <p v-if="!isLoading">Tìm thấy <b>{{ filteredProducts.length }}</b> sản phẩm phù hợp</p>
                         <p v-else>Đang tìm kiếm sản phẩm...</p>
+                    </div>
+                </div>
+
+                <!-- FILTER + SORT BAR -->
+                <div class="filter-sort-bar">
+                    <!-- Nút Lọc -->
+                    <button class="btn-open-filter" @click="showFilterModal = true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        Lọc
+                        <span v-if="selectedCategories.length + selectedBrands.length + selectedRAMs.length + selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length + selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length + (selectedPriceRange ? 1 : 0) > 0" class="filter-count">
+                            {{ selectedCategories.length + selectedBrands.length + selectedRAMs.length + selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length + selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length + (selectedPriceRange ? 1 : 0) }}
+                        </span>
+                    </button>
+
+                    <button class="btn-tat-ca" @click="clearAll">Tất cả</button>
+
+                    <!-- Sắp xếp -->
+                    <div class="sort-wrap" style="margin-left: auto;">
+                        <select v-model="selectedSort" class="sort-select">
+                            <option value="newest">Mới nhất</option>
+                            <option value="price_asc">Giá tăng dần</option>
+                            <option value="price_desc">Giá giảm dần</option>
+                            <option value="name_asc">Tên A-Z</option>
+                            <option value="name_desc">Tên Z-A</option>
+                        </select>
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
                     </div>
                 </div>
 
@@ -818,22 +737,204 @@ const clearAll = () => {
 }
 
 .layout {
-    display: flex;
-    gap: 24px;
+    display: block;
+    gap: 0;
     align-items: flex-start;
 }
 
-/* ===== SIDEBAR ===== */
-.sidebar {
-    width: 248px;
-    flex-shrink: 0;
+/* ===== FILTER MODAL ===== */
+.filter-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 20px;
+    overflow-y: auto;
+}
+.filter-modal {
     background: white;
-    border-radius: 18px;
-    border: 1px solid #f1f5f9;
-    padding: 22px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    position: sticky;
-    top: 20px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 860px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+.modal-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+}
+.close-modal {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.close-modal:hover { background: #f1f5f9; }
+.modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.modal-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 0 0 10px;
+}
+.modal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.modal-chip {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    background: white;
+    transition: all 0.2s;
+}
+.modal-chip:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+.modal-chip.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    border-color: transparent;
+}
+.modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 0 0 14px 14px;
+    flex-shrink: 0;
+}
+.modal-btn-clear {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    padding: 10px 28px;
+    border-radius: 8px;
+    color: #ef4444;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.modal-btn-clear:hover { background: #fef2f2; border-color: #ef4444; }
+.modal-btn-apply {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    border: none;
+    padding: 10px 32px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.modal-btn-apply:hover { opacity: 0.9; }
+
+/* Modal transition */
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+
+/* ===== FILTER + SORT BAR ===== */
+.filter-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.btn-open-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: white;
+    border: 1.5px solid #2563eb;
+    border-radius: 8px;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.btn-open-filter svg { width: 15px; height: 15px; stroke: #2563eb; }
+.btn-open-filter:hover { background: #eff6ff; }
+.filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #2563eb;
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 2px;
+}
+.quick-brands {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+}
+.quick-brands::-webkit-scrollbar { height: 0; }
+.brand-pill {
+    padding: 8px 14px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    border: 1.5px solid transparent;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.brand-pill:hover { background: #e2e8f0; }
+.brand-pill.active {
+    background: white;
+    border-color: #2563eb;
+    color: #2563eb;
 }
 
 .sidebar-header {
@@ -1593,5 +1694,105 @@ const clearAll = () => {
     margin-bottom: 8px;
     cursor: pointer;
     line-height: 1.5;
+}
+
+/* ===== FILTER SORT BAR ===== */
+.filter-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-open-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: white;
+    border: 1.5px solid #2563eb;
+    border-radius: 8px;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-open-filter svg {
+    width: 15px;
+    height: 15px;
+}
+
+.btn-open-filter:hover {
+    background: #eff6ff;
+}
+
+.filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #2563eb;
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.btn-tat-ca {
+    padding: 8px 16px;
+    background: #f1f5f9;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-tat-ca:hover {
+    background: #e2e8f0;
+}
+
+.sort-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+}
+
+.sort-select {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    appearance: none;
+    min-width: 130px;
+    font-family: 'Inter', sans-serif;
+}
+
+.chevron {
+    width: 12px;
+    height: 12px;
+    color: #94a3b8;
+    flex-shrink: 0;
 }
 </style>

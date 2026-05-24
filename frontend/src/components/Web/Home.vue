@@ -191,18 +191,19 @@ const themVaoYeuThich = async (product) => {
         return
     }
 
-    if (!product.id_bienthe) {
-        swal.warning('Thông báo', 'Sản phẩm này chưa có cấu hình, không thể thêm!')
+    const variantId = product.key_id || product.id_bienthe
+    if (!variantId) {
+        swal.error('Thông báo', 'Không xác định được cấu hình sản phẩm, vui lòng thử lại!')
         return
     }
 
     try {
         await api.post('/yeu-thich/them', {
-            id_bienthe: product.key_id,
+            id_bienthe: variantId,
             soluong: 1
         })
+
         swal.success('Thành công', `Đã thêm ${product.fullName || product.name} vào danh sách yêu thích! ❤️`)
-        // Kích hoạt sự kiện để Header tự động cập nhật số lượng trái tim
         window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!')
@@ -215,6 +216,10 @@ const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        localStorage.setItem('pendingCartItem', JSON.stringify({
+            id_bienthe: product.key_id,
+            soluong: 1
+        }))
         router.push('/login')
         return
     }

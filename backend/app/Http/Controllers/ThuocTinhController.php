@@ -21,8 +21,12 @@ class ThuocTinhController extends Controller
     public function addNhom(Request $request)
     {
         $data = $request->validate([
-            'ten_nhom' => 'required|string|max:255'
+            'ten_nhom' => 'required|string|max:255',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json(
             NhomThuocTinh::create($data)
@@ -38,11 +42,15 @@ class ThuocTinhController extends Controller
     public function updateNhom(Request $request, $id)
     {
         $data = $request->validate([
-            'ten_nhom' => 'required|string|max:255'
+            'ten_nhom' => 'required|string|max:255',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
 
         $nhom = NhomThuocTinh::findOrFail($id);
         $nhom->update($data);
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json($nhom);
     }
@@ -106,10 +114,14 @@ class ThuocTinhController extends Controller
             'giatri'        => 'required|string|max:255',
             'gia_cong_them' => 'nullable|numeric|min:0',
             'trangthai'     => 'nullable|boolean',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
 
         $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
         $data['trangthai'] = $data['trangthai'] ?? 1;
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json(
             GiaTriThuocTinh::create($data)
@@ -119,6 +131,7 @@ class ThuocTinhController extends Controller
     public function deleteGiaTri($id)
     {
         GiaTriThuocTinh::destroy($id);
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json(['message' => 'Xóa giá trị thành công']);
     }
@@ -130,6 +143,8 @@ class ThuocTinhController extends Controller
             'giatri'        => 'required|string|max:255',
             'gia_cong_them' => 'nullable|numeric|min:0',
             'trangthai'     => 'nullable|boolean',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
 
         $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
@@ -137,6 +152,8 @@ class ThuocTinhController extends Controller
 
         $giaTri = GiaTriThuocTinh::findOrFail($id);
         $giaTri->update($data);
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json($giaTri);
     }
@@ -154,6 +171,7 @@ class ThuocTinhController extends Controller
                 return [
                     'id_nhom' => $group->id_nhom,
                     'ten_nhom' => $group->ten_nhom,
+                    'danh_muc_ids' => $group->danh_muc_ids,
                     'thuoc_tinhs' => $group->thuocTinhs->map(function ($attr) {
                         return [
                             'id_thuoctinh' => $attr->id_thuoctinh,
@@ -164,6 +182,7 @@ class ThuocTinhController extends Controller
                                     'giatri' => $gt->giatri,
                                     'gia_cong_them' => $gt->gia_cong_them ?? 0,
                                     'trangthai' => $gt->trangthai ?? 1,
+                                    'danh_muc_ids' => $gt->danh_muc_ids,
                                 ];
                             })->values(),
                         ];
