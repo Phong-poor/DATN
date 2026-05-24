@@ -145,11 +145,34 @@ const mapProducts = (rawProducts) => {
 }
 
 const featuredProducts = ref([])
+const latestNews = ref([])
+const newsPlaceholderImage = 'https://via.placeholder.com/800x500?text=Tin+tuc'
+
+const newsImageUrl = (path) => {
+    if (!path) return newsPlaceholderImage
+    if (path.startsWith('http')) return path
+    return `http://127.0.0.1:8000/storage/${path}`
+}
+
+const fetchLatestNews = async () => {
+    try {
+        const { data } = await api.get('/news', {
+            params: { scope: 'public', per_page: 3 }
+        })
+        latestNews.value = data.data || []
+    } catch (error) {
+        console.error('Lỗi khi tải tin tức:', error)
+        latestNews.value = []
+    }
+}
+
 onMounted(async () => {
     setTimeout(() => {
         console.log('[Home.vue] 5s timer reached. showGift = true');
         showGift.value = true
     }, 5000)
+
+    fetchLatestNews()
 
 
 
@@ -247,12 +270,6 @@ const benefits = [
     { icon: '🛡️', title: 'Bảo hành toàn diện', desc: 'Hỗ trợ bảo hành nhanh, chính sách đổi trả rõ ràng.' },
     { icon: '💳', title: 'Trả góp linh hoạt', desc: 'Trả góp 0%, hồ sơ đơn giản, duyệt nhanh chóng.' },
     { icon: '🚚', title: 'Giao hàng toàn quốc', desc: 'Đóng gói an toàn, giao nhanh, hỗ trợ kiểm tra hàng.' }
-]
-
-const news = [
-    { title: 'Top laptop gaming đáng mua nhất năm 2026', desc: 'Những lựa chọn cân bằng giữa hiệu năng, nhiệt độ và giá bán cho game thủ hiện đại.', img: 'https://images.unsplash.com/photo-1581092335397-9583eb92d232?w=800', tag: 'ĐÁNH GIÁ' },
-    { title: 'Laptop AI mới thay đổi trải nghiệm làm việc như thế nào?', desc: 'Khám phá các tính năng AI hỗ trợ xử lý văn bản, hình ảnh và tối ưu hiệu suất hệ thống.', img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800', tag: 'TIN TỨC' },
-    { title: 'Cách chọn laptop đồ hoạ phù hợp cho designer', desc: 'Từ màn hình, CPU, GPU đến RAM và tản nhiệt, đây là những yếu tố bạn không nên bỏ qua.', img: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?w=800', tag: 'HƯỚNG DẪN' }
 ]
 
 const reviews = [
@@ -542,18 +559,19 @@ onUnmounted(stop)
                         <h2>Cập nhật xu hướng công nghệ mới nhất</h2>
                         <p>Thông tin hữu ích giúp bạn chọn đúng laptop và khai thác hiệu quả hơn.</p>
                     </div>
-                    <a href="#" class="section-link">Xem thêm →</a>
+                    <RouterLink to="/news" class="section-link">Xem thêm →</RouterLink>
                 </div>
                 <div class="news-grid">
-                    <article class="news-card" v-for="(n, i) in news" :key="i">
-                        <div class="news-thumb"><img :src="n.img" :alt="n.title" /></div>
+                    <article class="news-card" v-for="n in latestNews" :key="n.id">
+                        <div class="news-thumb"><img :src="newsImageUrl(n.image)" :alt="n.image_alt || n.title" /></div>
                         <div class="news-body">
-                            <span class="news-tag">{{ n.tag }}</span>
+                            <span class="news-tag">{{ n.category }}</span>
                             <h3>{{ n.title }}</h3>
-                            <p>{{ n.desc }}</p>
-                            <a href="#">Đọc thêm →</a>
+                            <p>{{ n.excerpt || 'Đọc bài viết để xem nội dung chi tiết.' }}</p>
+                            <RouterLink :to="`/news/${n.id}`">Đọc thêm →</RouterLink>
                         </div>
                     </article>
+                    <div v-if="latestNews.length === 0" class="news-empty">Chưa có bài viết nào.</div>
                 </div>
             </div>
         </section>
@@ -1691,6 +1709,16 @@ a.btn {
     font-weight: 700;
 }
 
+.news-empty {
+    grid-column: 1 / -1;
+    padding: 24px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text2);
+    background: var(--bg-white);
+    text-align: center;
+}
+
 /* ─── REVIEWS ─── */
 .review-grid {
     display: grid;
@@ -1856,3 +1884,4 @@ a.btn {
     }
 }
 </style>
+
