@@ -33,7 +33,9 @@ const attrOptions = ref({
     ram: [], cpu: [], gpu: [], kichthuoc: [],
     dophan: [], tamnen: [], pin: [], sac: []
 })
-
+onMounted(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 // Collapse
 const collapsed = ref({
     danhmuc: false,
@@ -74,7 +76,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: 0,
                 specs: [],
                 all_variants: [],
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : '',
+                img: getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
@@ -151,7 +153,7 @@ const mapProducts = (rawProducts) => {
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 specs: specs,
                 all_variants: all_vars_info,
-                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : ''),
+                img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -411,6 +413,10 @@ const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        localStorage.setItem('pendingCartItem', JSON.stringify({
+            id_bienthe: product.key_id,
+            soluong: 1
+        }))
         router.push('/login')
         return
     }

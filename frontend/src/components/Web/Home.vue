@@ -216,6 +216,10 @@ const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        localStorage.setItem('pendingCartItem', JSON.stringify({
+            id_bienthe: product.key_id,
+            soluong: 1
+        }))
         router.push('/login')
         return
     }

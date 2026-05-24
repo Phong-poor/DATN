@@ -50,7 +50,26 @@ class SanPhamController extends Controller
             }
         }
 
-            return $query->get();
+            $products = $query->get();
+            
+            // Map to include thong_so_ky_thuat
+            return $products->map(function ($p) {
+                return [
+                    'id_sanpham' => $p->id_sanpham,
+                    'tenSP' => $p->tenSP,
+                    'SKU' => $p->SKU,
+                    'hinhanh' => $p->hinhanh,
+                    'trangthai' => $p->trangthai,
+                    'khoiluong' => $p->khoiluong,
+                    'id_danhmuc' => $p->id_danhmuc,
+                    'id_thuonghieu' => $p->id_thuonghieu,
+                    'thong_so_ky_thuat' => $p->thong_so_ky_thuat,
+                    'danh_muc' => $p->danhMuc,
+                    'thuong_hieu' => $p->thuongHieu,
+                    'hinh_anhs' => $p->hinhAnhs,
+                    'bien_thes' => $p->bienThes
+                ];
+            });
         });
 
         return response()->json($sanphams);
