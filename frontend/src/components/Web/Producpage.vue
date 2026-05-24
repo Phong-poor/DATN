@@ -50,10 +50,14 @@ const collapsed = ref({
 })
 
 const selectedPriceRange = ref('')
-const selectedSort = ref('newest')
+const selectedSort = ref('')
 const showFilterModal = ref(false)
 
 // ===================== MAP PRODUCTS =====================
+const shuffleProducts = (items) => {
+    return [...items].sort(() => Math.random() - 0.5)
+}
+
 const mapProducts = (rawProducts) => {
     const productGroups = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
@@ -92,7 +96,7 @@ const mapProducts = (rawProducts) => {
             return {
                 id_bienthe: bt.id_bienthe,
                 shortName: [r, c, g, m].filter(Boolean).join(' - ') || 'Mặc định'
-            };
+            }
         });
 
         return p.bien_thes.map(bt => {
@@ -168,7 +172,7 @@ const mapProducts = (rawProducts) => {
         variantIndex++;
     }
 
-    return flatList;
+    return shuffleProducts(flatList);
 }
 
 // ===================== FETCH PRODUCTS =====================
