@@ -20,6 +20,7 @@ use App\Http\Controllers\LienHeController;
 use App\Http\Controllers\DanhGiaController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\DiaChiController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -55,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
     Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
+    Route::get('/user/dia-chi', [DiaChiController::class, 'index']);
+    Route::post('/user/dia-chi', [DiaChiController::class, 'store']);
+    Route::put('/user/dia-chi/{id}', [DiaChiController::class, 'update']);
+    Route::delete('/user/dia-chi/{id}', [DiaChiController::class, 'destroy']);
+    Route::patch('/user/dia-chi/{id}/mac-dinh', [DiaChiController::class, 'setDefault']);
 
     // ===== GIỎ HÀNG =====
     Route::get('/gio-hang', [GioHangController::class, 'index']);

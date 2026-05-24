@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
 import echo from '@/services/echo'
-import { getUser } from '@/services/auth'
+import { getToken, getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
 import swal from '@/services/swal'
 
@@ -133,7 +133,7 @@ onMounted(() => {
     
     const user = getUser()
 
-    if (user && (user.id || user.id_user)) {
+    if (getToken() && user && (user.id || user.id_user)) {
         const userId = user.id || user.id_user
         
         echo.private(`user.${userId}`)

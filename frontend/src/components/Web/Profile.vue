@@ -5,6 +5,7 @@ import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
+import AddressMapPicker from './AddressMapPicker.vue'
 import { onUnmounted } from 'vue'
 
 // ── Active tab ────────────────────────────────────────────
@@ -368,9 +369,10 @@ onMounted(() => {
   fetchOrders()
   fetchWishlistCount()
   fetchPromotions()
+  fetchAddresses()
 
   const userData = getUser()
-  if (userData && (userData.id || userData.id_user)) {
+  if (getToken() && userData && (userData.id || userData.id_user)) {
     const userId = userData.id || userData.id_user
     
     echo.private(`user.${userId}`)
@@ -516,62 +518,269 @@ watch(orderTab, () => {
 const showAddrForm = ref(false)
 const editingAddrIdx = ref(null)
 const savingAddr = ref(false)
+const loadingAddresses = ref(false)
+const showMapPicker = ref(false)
+const loadingProvinces = ref(false)
+const loadingWards = ref(false)
+const locatingSelectedArea = ref(false)
+const selectedProvinceCode = ref('')
+const selectedWardCode = ref('')
+const provinces = ref([])
+const wards = ref([])
+const mapInitialPosition = ref(null)
 
 const defaultAddrForm = () => ({
-  name: '',
-  phone: '',
+  id: null,
   province: '',
   district: '',
   ward: '',
   detail: '',
+  fullAddress: '',
+  latitude: null,
+  longitude: null,
+  type: 'home',
   isDefault: false,
 })
 
 const addrForm = ref(defaultAddrForm())
 
-const provinces = [
-  'TP. Hồ Chí Minh',
-  'Hà Nội',
-  'Đà Nẵng',
-  'Cần Thơ',
-  'Hải Phòng',
-  'Biên Hòa',
-  'Buôn Ma Thuột',
-]
+const addresses = ref([])
 
-const addresses = ref([
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    phone: '0901 234 567',
-    province: 'TP. Hồ Chí Minh',
-    district: 'Quận 1',
-    ward: 'Phường Bến Nghé',
-    detail: '123 Lê Lợi',
-    isDefault: true,
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Văn A',
-    phone: '0912 345 678',
-    province: 'Hà Nội',
-    district: 'Quận Cầu Giấy',
-    ward: 'Phường Dịch Vọng',
-    detail: '45 Nguyễn Phong Sắc',
-    isDefault: false,
-  },
-])
+const addressApiBaseUrl = 'https://provinces.open-api.vn/api/v2'
 
-const openAddAddr = () => {
+const normalizeApiList = (data, keys = []) => {
+  if (Array.isArray(data)) return data
+
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) return data[key]
+  }
+
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.results)) return data.results
+  return []
+}
+
+const fetchProvinces = async () => {
+  if (provinces.value.length) return
+
+  loadingProvinces.value = true
+  try {
+    const res = await fetch(`${addressApiBaseUrl}/p/`)
+    const data = await res.json()
+    provinces.value = normalizeApiList(data, ['provinces'])
+  } catch (error) {
+    console.error('Lỗi tải tỉnh/thành:', error)
+    showToast('Không thể tải danh sách tỉnh/thành.')
+  } finally {
+    loadingProvinces.value = false
+  }
+}
+
+const fetchWardsByProvince = async (provinceCode) => {
+  if (!provinceCode) {
+    wards.value = []
+    return
+  }
+
+  loadingWards.value = true
+  try {
+    const res = await fetch(`${addressApiBaseUrl}/p/${provinceCode}?depth=2`)
+    const data = await res.json()
+    const districts = normalizeApiList(data, ['districts'])
+    const directWards = normalizeApiList(data, ['wards'])
+    wards.value = directWards.length
+      ? directWards
+      : districts.flatMap((district) => normalizeApiList(district, ['wards']).map((ward) => ({
+        ...ward,
+        districtName: district.name,
+      })))
+  } catch (error) {
+    console.error('Lỗi tải phường/xã:', error)
+    showToast('Không thể tải danh sách phường/xã.')
+  } finally {
+    loadingWards.value = false
+  }
+}
+
+const normalizeAddressName = (name = '') => name
+  .toString()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/^(tinh|thanh pho|tp|quan|huyen|thi xa|phuong|xa|thi tran)\s+/i, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase()
+
+const findAddressCodeByName = (items, name) => {
+  const normalizedName = normalizeAddressName(name)
+  if (!normalizedName) return ''
+
+  return items.find((item) => {
+    const itemName = normalizeAddressName(item.name)
+    return itemName === normalizedName
+      || itemName.includes(normalizedName)
+      || normalizedName.includes(itemName)
+  })?.code || ''
+}
+
+const findProvinceCodeByName = (name) => findAddressCodeByName(provinces.value, name)
+const findWardCodeByName = (name) => findAddressCodeByName(wards.value, name)
+
+const handleProvinceChange = async () => {
+  const province = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
+  addrForm.value.province = province?.name || ''
+  addrForm.value.district = ''
+  addrForm.value.ward = ''
+  addrForm.value.fullAddress = addrForm.value.province
+  selectedWardCode.value = ''
+  mapInitialPosition.value = null
+  await fetchWardsByProvince(selectedProvinceCode.value)
+  await prepareMapInitialPosition()
+}
+
+const handleWardChange = async () => {
+  const ward = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
+  addrForm.value.ward = ward?.name || ''
+  addrForm.value.district = ward?.districtName || ''
+  addrForm.value.fullAddress = [addrForm.value.province, addrForm.value.ward].filter(Boolean).join(', ')
+  mapInitialPosition.value = null
+  await prepareMapInitialPosition()
+}
+
+const prepareAddressSelectors = async (address = null) => {
+  await fetchProvinces()
+
+  selectedProvinceCode.value = address?.province ? findProvinceCodeByName(address.province) : ''
+  if (!selectedProvinceCode.value) {
+    selectedWardCode.value = ''
+    wards.value = []
+    return
+  }
+
+  await fetchWardsByProvince(selectedProvinceCode.value)
+  selectedWardCode.value = address?.ward ? findWardCodeByName(address.ward) : ''
+}
+
+const geocodeSelectedArea = async () => {
+  const parts = [addrForm.value.ward, addrForm.value.district, addrForm.value.province]
+    .filter((item) => item && item !== 'Không xác định')
+  const query = [...parts, 'Việt Nam'].join(', ')
+  if (!query.trim()) return null
+
+  locatingSelectedArea.value = true
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(query)}`)
+    const data = await res.json()
+    let location = data?.[0]
+    if (!location && addrForm.value.province) {
+      const provinceRes = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(`${addrForm.value.province}, Việt Nam`)}`)
+      const provinceData = await provinceRes.json()
+      location = provinceData?.[0]
+    }
+    if (!location) return null
+
+    return { lat: Number(location.lat), lng: Number(location.lon) }
+  } catch (error) {
+    console.error('Lỗi tìm vị trí khu vực:', error)
+    return null
+  } finally {
+    locatingSelectedArea.value = false
+  }
+}
+
+const prepareMapInitialPosition = async () => {
+  mapInitialPosition.value = await geocodeSelectedArea()
+}
+
+const openMapPicker = async () => {
+  if (!addrForm.value.province) {
+    showToast('Vui lòng chọn tỉnh/thành phố trước khi ghim vị trí.')
+    return
+  }
+
+  mapInitialPosition.value = await geocodeSelectedArea()
+  showMapPicker.value = true
+}
+
+
+const mapAddressFromApi = (addr) => ({
+  id: addr.id_diachi,
+  province: addr.tinh_thanhpho || '',
+  district: addr.quan_huyen || '',
+  ward: addr.phuong_xa || '',
+  detail: addr.diachi_cuthe || '',
+  fullAddress: [addr.phuong_xa, addr.quan_huyen, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
+  latitude: addr.latitude ?? null,
+  longitude: addr.longitude ?? null,
+  type: addr.loai_diachi || 'home',
+  isDefault: Boolean(addr.mac_dinh),
+})
+
+const mapAddressToApi = () => ({
+  tinh_thanhpho: addrForm.value.province || addrForm.value.fullAddress || 'Không xác định',
+  quan_huyen: addrForm.value.district || 'Không xác định',
+  phuong_xa: addrForm.value.ward || addrForm.value.fullAddress || 'Không xác định',
+  diachi_cuthe: addrForm.value.detail,
+  latitude: addrForm.value.latitude,
+  longitude: addrForm.value.longitude,
+  loai_diachi: addrForm.value.type,
+  mac_dinh: addrForm.value.isDefault,
+})
+
+const applyMapAddress = (address) => {
+  const selectedProvince = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
+  const selectedWard = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
+
+  addrForm.value.province = selectedProvince?.name || address.province || addrForm.value.province || ''
+  addrForm.value.district = address.district || addrForm.value.district || ''
+  addrForm.value.ward = selectedWard?.name || address.ward || addrForm.value.ward || ''
+  addrForm.value.fullAddress = [
+    addrForm.value.ward,
+    addrForm.value.district,
+    addrForm.value.province,
+  ].filter((item) => item && item !== 'Không xác định').join(', ') || address.fullAddress || ''
+  addrForm.value.latitude = address.latitude ?? addrForm.value.latitude
+  addrForm.value.longitude = address.longitude ?? addrForm.value.longitude
+  mapInitialPosition.value = address.latitude && address.longitude
+    ? { lat: Number(address.latitude), lng: Number(address.longitude) }
+    : mapInitialPosition.value
+
+  if (!addrForm.value.detail && address.detail) {
+    addrForm.value.detail = address.detail
+  }
+}
+
+const fetchAddresses = async () => {
+  loadingAddresses.value = true
+  try {
+    const res = await api.get('/user/dia-chi')
+    addresses.value = (res.data.data || []).map(mapAddressFromApi)
+  } catch (error) {
+    console.error('Lỗi tải địa chỉ:', error)
+    showToast(error.response?.data?.message || 'Không thể tải danh sách địa chỉ.')
+  } finally {
+    loadingAddresses.value = false
+  }
+}
+
+const openAddAddr = async () => {
   addrForm.value = defaultAddrForm()
   editingAddrIdx.value = null
   showAddrForm.value = true
+  await prepareAddressSelectors()
 }
 
-const openEditAddr = (i) => {
+const openEditAddr = async (i) => {
   addrForm.value = { ...addresses.value[i] }
   editingAddrIdx.value = i
+  mapInitialPosition.value = addrForm.value.latitude && addrForm.value.longitude
+    ? { lat: Number(addrForm.value.latitude), lng: Number(addrForm.value.longitude) }
+    : null
   showAddrForm.value = true
+  await prepareAddressSelectors(addrForm.value)
+  if (!mapInitialPosition.value) {
+    await prepareMapInitialPosition()
+  }
 }
 
 const cancelAddr = () => {
@@ -580,32 +789,50 @@ const cancelAddr = () => {
 
 const saveAddr = async () => {
   savingAddr.value = true
-  await new Promise((r) => setTimeout(r, 800))
+  try {
+    if (editingAddrIdx.value !== null) {
+      const id = addresses.value[editingAddrIdx.value].id
+      await api.put(`/user/dia-chi/${id}`, mapAddressToApi())
+    } else {
+      await api.post('/user/dia-chi', mapAddressToApi())
+    }
 
-  if (editingAddrIdx.value !== null) {
-    addresses.value[editingAddrIdx.value] = { ...addrForm.value }
-  } else {
-    addresses.value.push({
-      ...addrForm.value,
-      id: Date.now(),
-      isDefault: addresses.value.length === 0,
-    })
+    await fetchAddresses()
+    showAddrForm.value = false
+    showToast('Địa chỉ đã được cập nhật!')
+  } catch (error) {
+    const message = error.response?.data?.message
+      || Object.values(error.response?.data?.errors || {})?.[0]?.[0]
+      || 'Thao tác thất bại, vui lòng thử lại'
+    showToast(message)
+  } finally {
+    savingAddr.value = false
   }
-
-  savingAddr.value = false
-  showAddrForm.value = false
-  showToast('Địa chỉ đã được cập nhật!')
 }
 
 const setDefaultAddr = (i) => {
-  addresses.value = addresses.value.map((a, idx) => ({
-    ...a,
-    isDefault: idx === i,
-  }))
+  api.patch(`/user/dia-chi/${addresses.value[i].id}/mac-dinh`)
+    .then(async () => {
+      await fetchAddresses()
+      showToast('Đã cập nhật địa chỉ mặc định!')
+    })
+    .catch((error) => {
+      showToast(error.response?.data?.message || 'Thao tác thất bại, vui lòng thử lại')
+    })
 }
 
 const removeAddr = (i) => {
-  addresses.value.splice(i, 1)
+  swal.confirm('Xóa địa chỉ', 'Bạn có chắc chắn muốn xóa địa chỉ này?')
+    .then(async (isConfirmed) => {
+      if (!isConfirmed) return
+      try {
+        await api.delete(`/user/dia-chi/${addresses.value[i].id}`)
+        await fetchAddresses()
+        showToast('Đã xóa địa chỉ!')
+      } catch (error) {
+        showToast(error.response?.data?.message || 'Thao tác thất bại, vui lòng thử lại')
+      }
+    })
 }
 
 // ════════════════════════════════════════════════
@@ -862,6 +1089,63 @@ const promoStatusMap = {
       </div>
     </transition>
 
+    <transition name="fade">
+      <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
+        <div class="modal address-modal">
+          <div class="modal-head">
+            <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+            <button class="close-btn" @click="cancelAddr">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="saveAddr" class="address-modal-form">
+              <div class="form-group form-full">
+                <div class="region-picker-row">
+                  <div class="region-picker-field">
+                    <label>Tỉnh/Thành phố</label>
+                    <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required @change="handleProvinceChange">
+                      <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố' }}</option>
+                      <option v-for="province in provinces" :key="province.code" :value="province.code">{{ province.name }}</option>
+                    </select>
+                  </div>
+                  <div class="region-picker-field">
+                    <label>Phường/Xã</label>
+                    <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required @change="handleWardChange">
+                      <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}</option>
+                      <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group form-full"><label>Địa chỉ chi tiết</label><input v-model="addrForm.detail" type="text" placeholder="Số nhà, tên đường..." required /></div>
+              <div class="form-group form-full">
+                <label>Vị trí giao hàng</label>
+                <div class="inline-map-field">
+                  <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress" @open="openMapPicker" />
+                  <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
+                  <small v-else-if="addrForm.fullAddress">{{ addrForm.fullAddress }}</small>
+                </div>
+              </div>
+              <div class="form-group"><label>Loại địa chỉ</label><select v-model="addrForm.type" required><option value="home">Nhà riêng</option><option value="company">Công ty</option></select></div>
+              <div class="form-group form-full">
+                <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa chỉ mặc định</span></label>
+              </div>
+              <div class="form-actions form-full address-modal-actions">
+                <button type="button" class="btn-cancel" @click="cancelAddr">Hủy</button>
+                <button type="submit" class="btn-save" :disabled="savingAddr">
+                  <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
+
     <div class="container">
 
       <!-- ── SIDEBAR ── -->
@@ -1069,45 +1353,25 @@ const promoStatusMap = {
         <div v-else-if="activeTab === 'address'">
           <div class="page-header-inline" style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div><h1 class="card-title">Địa chỉ của tôi</h1><p class="card-sub">Quản lý địa chỉ giao hàng</p></div>
-            <button class="btn-add" @click="openAddAddr" v-if="!showAddrForm">
+            <button class="btn-add" @click="openAddAddr">
               <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14"/></svg>
               Thêm địa chỉ
             </button>
           </div>
-          <transition name="slide">
-            <div class="card form-card" v-if="showAddrForm">
-              <h2 class="form-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-              <form @submit.prevent="saveAddr" class="form-grid">
-                <div class="form-group"><label>Họ và tên người nhận</label><input v-model="addrForm.name" type="text" placeholder="Nhập họ tên" required /></div>
-                <div class="form-group"><label>Số điện thoại</label><input v-model="addrForm.phone" type="tel" placeholder="Nhập số điện thoại" required /></div>
-                <div class="form-group"><label>Tỉnh / Thành phố</label><select v-model="addrForm.province" required><option value="" disabled>Chọn tỉnh/thành</option><option v-for="p in provinces" :key="p" :value="p">{{ p }}</option></select></div>
-                <div class="form-group"><label>Quận / Huyện</label><input v-model="addrForm.district" type="text" placeholder="Nhập quận/huyện" required /></div>
-                <div class="form-group"><label>Phường / Xã</label><input v-model="addrForm.ward" type="text" placeholder="Nhập phường/xã" required /></div>
-                <div class="form-group form-full"><label>Địa chỉ chi tiết</label><input v-model="addrForm.detail" type="text" placeholder="Số nhà, tên đường..." required /></div>
-                <div class="form-group form-full">
-                  <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa chỉ mặc định</span></label>
-                </div>
-                <div class="form-actions form-full">
-                  <button type="button" class="btn-cancel" @click="cancelAddr">Hủy</button>
-                  <button type="submit" class="btn-save" :disabled="savingAddr">
-                    <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </transition>
           <div class="addr-list">
-            <div v-if="addresses.length === 0 && !showAddrForm" class="empty">
+            <div v-if="loadingAddresses" class="empty">
+              <p>Đang tải địa chỉ...</p>
+            </div>
+            <div v-else-if="addresses.length === 0" class="empty">
               <svg viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <p>Chưa có địa chỉ nào</p>
             </div>
             <div class="addr-card" v-for="(addr, i) in addresses" :key="addr.id" :class="{ 'is-default': addr.isDefault }">
               <div class="addr-head">
-                <div class="addr-name-wrap"><span class="addr-name">{{ addr.name }}</span><span class="addr-sep">|</span><span class="addr-phone">{{ addr.phone }}</span></div>
+                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name" style="line-height: 1.4; word-break: break-word;">{{ addr.detail }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}</span></div>
                 <span class="default-badge" v-if="addr.isDefault">Mặc định</span>
               </div>
-              <p class="addr-full">{{ addr.detail }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}</p>
+              <p class="addr-full" style="color: #64748b; font-weight: 500; margin-top: 4px;">{{ addr.type === 'company' ? 'Công ty' : 'Nhà riêng' }}</p>
               <div class="addr-actions">
                 <button class="addr-btn" @click="openEditAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Chỉnh sửa</button>
                 <button class="addr-btn addr-btn-default" v-if="!addr.isDefault" @click="setDefaultAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Đặt mặc định</button>
@@ -1488,6 +1752,21 @@ const promoStatusMap = {
 .close-btn svg { width:14px; height:14px; stroke:#64748b; stroke-width:2.5; }
 .modal-body { padding:18px 24px 24px; }
 .modal-status { display:inline-block; font-size:12px; font-weight:700; padding:5px 14px; border-radius:99px; margin-bottom:18px; }
+
+.address-modal { max-width:720px; }
+.address-modal-form { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.address-modal-form .form-group { margin:0; }
+.address-modal-form input,
+.address-modal-form select { width:100%; box-sizing:border-box; }
+.address-modal-actions { justify-content:flex-end; margin-top:6px; }
+.location-btn { height:42px; border:1px solid #bfdbfe; background:#eff6ff; color:#2563eb; border-radius:10px; font-weight:700; cursor:pointer; }
+.location-btn:disabled { opacity:0.65; cursor:not-allowed; }
+.region-picker-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.region-picker-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.inline-map-field small { display:block; margin-top:6px; color:#64748b; font-size:12px; }
+.map-placeholder { min-height:92px; width:100%; border:1px dashed #cbd5e1; border-radius:12px; background:linear-gradient(135deg,#f8fafc 25%,#f1f5f9 25%,#f1f5f9 50%,#f8fafc 50%,#f8fafc 75%,#f1f5f9 75%); background-size:32px 32px; color:#64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; font-weight:700; }
+.map-placeholder small { max-width:90%; color:#94a3b8; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.map-placeholder:disabled { opacity:.65; cursor:not-allowed; }
 
 /* TIMELINE */
 .timeline { display:flex; flex-direction:column; margin-bottom:22px; }
