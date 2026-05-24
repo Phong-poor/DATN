@@ -753,6 +753,7 @@ const modalComparisonData = computed(() => {
                                                         </th>
                                                     </tr>
                                                 </thead>
+                                                
                                                 <tbody>
                                                     <tr v-for="attr in allAttributeKeys" :key="attr">
                                                         <td class="attr-col">{{ attr }}</td>
@@ -1786,7 +1787,7 @@ h1 {
 }
 
 .compare-modal {
-    width: min(1100px, 100%);
+    width: min(1200px, 100%);
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 20px 50px rgba(2,6,23,0.2);
