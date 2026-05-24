@@ -6,7 +6,6 @@ import * as XLSX from 'xlsx'
 import api from '../../services/api'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
-import { onUnmounted } from 'vue'
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
