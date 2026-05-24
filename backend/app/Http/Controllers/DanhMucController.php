@@ -14,15 +14,57 @@ class DanhMucController extends Controller
         });
         return response()->json(['thongbao' => 'thành công', 'data' => $danhmuc]);
     }
+
+    /**
+     * Get all parent categories (top-level categories)
+     */
+    public function getParentCategories()
+    {
+        $parents = Cache::remember('danhmuc_parents', 120, function () {
+            return DanhMuc::whereNull('parent_id')->get();
+        });
+        return response()->json(['data' => $parents]);
+    }
+
+    /**
+     * Get children categories of a parent
+     */
+    public function getChildrenCategories($parentId)
+    {
+        $children = DanhMuc::where('parent_id', $parentId)->get();
+        return response()->json(['data' => $children]);
+    }
+
+    /**
+     * Get category with its inherited attributes
+     */
+    public function getCategoryWithInheritedAttributes($categoryId)
+    {
+        $category = DanhMuc::find($categoryId);
+        if (!$category) {
+            return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+        }
+
+        $inheritedAttrIds = $category->getInheritedAttributeIds();
+        
+        return response()->json([
+            'data' => [
+                'category' => $category,
+                'inherited_attribute_ids' => $inheritedAttrIds
+            ]
+        ]);
+    }
     public function store(Request $request){
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc',
-            'trangthai'  => 'required|in:active,hidden'
+            'trangthai'  => 'required|in:active,hidden',
+            'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
         ]);
 
         $danhmuc = DanhMuc::create($validated);
         
         Cache::forget('danhmuc_all');
+        Cache::forget('danhmuc_parents');
 
         return response()->json([
             'thongbao' => 'thành công',
@@ -52,13 +94,15 @@ class DanhMucController extends Controller
 
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc,' . $id . ',id_danhmuc',
-            'trangthai'  => 'required|in:active,hidden'
+            'trangthai'  => 'required|in:active,hidden',
+            'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
         ]);
 
         
         $danhMuc->update($validated);
 
         Cache::forget('danhmuc_all');
+        Cache::forget('danhmuc_parents');
         Cache::forget("danhmuc_show_{$id}");
 
         return response()->json([

@@ -21,8 +21,12 @@ class ThuocTinhController extends Controller
     public function addNhom(Request $request)
     {
         $data = $request->validate([
-            'ten_nhom' => 'required|string|max:255'
+            'ten_nhom' => 'required|string|max:255',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json(
             NhomThuocTinh::create($data)
@@ -38,11 +42,15 @@ class ThuocTinhController extends Controller
     public function updateNhom(Request $request, $id)
     {
         $data = $request->validate([
-            'ten_nhom' => 'required|string|max:255'
+            'ten_nhom' => 'required|string|max:255',
+            'danh_muc_ids'  => 'nullable|array',
+            'danh_muc_ids.*'=> 'integer'
         ]);
 
         $nhom = NhomThuocTinh::findOrFail($id);
         $nhom->update($data);
+
+        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
         return response()->json($nhom);
     }
@@ -163,6 +171,7 @@ class ThuocTinhController extends Controller
                 return [
                     'id_nhom' => $group->id_nhom,
                     'ten_nhom' => $group->ten_nhom,
+                    'danh_muc_ids' => $group->danh_muc_ids,
                     'thuoc_tinhs' => $group->thuocTinhs->map(function ($attr) {
                         return [
                             'id_thuoctinh' => $attr->id_thuoctinh,

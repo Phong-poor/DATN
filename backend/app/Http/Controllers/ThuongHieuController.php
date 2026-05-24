@@ -15,10 +15,24 @@ class ThuongHieuController extends Controller
         });
         return response()->json(['thongbao' => 'thành công', 'data' => $thuonghieu]);
     }
+
+    /**
+     * Get brands filtered by category ID(s)
+     */
+    public function getByCategory($categoryId)
+    {
+        $brands = ThuongHieu::where(function ($q) use ($categoryId) {
+            $q->whereNull('danh_muc_ids')
+              ->orWhereJsonContains('danh_muc_ids', (int)$categoryId);
+        })->get();
+
+        return response()->json(['data' => $brands]);
+    }
     public function store(Request $request){
         $validated = $request->validate([
-            'ten_thuonghieu' => 'required|string|max:255|unique:thuonghieu,ten_thuonghieu'
-            
+            'ten_thuonghieu' => 'required|string|max:255|unique:thuonghieu,ten_thuonghieu',
+            'danh_muc_ids'   => 'nullable|array',
+            'danh_muc_ids.*' => 'integer|exists:danhmuc,id_danhmuc'
         ]);
 
         $danhmuc = ThuongHieu::create($validated);
@@ -27,7 +41,7 @@ class ThuongHieuController extends Controller
 
         return response()->json([
             'thongbao' => 'thành công',
-            'message' => 'Thêm danh mục thành công',
+            'message' => 'Thêm thương hiệu thành công',
             'data' => $danhmuc
         ], 201);
     }
@@ -48,12 +62,13 @@ class ThuongHieuController extends Controller
         $thuonghieu = ThuongHieu::find($id);
 
         if (!$thuonghieu) {
-            return response()->json(['message' => 'Không tìm thấy danh mục để sửa'], 404);
+            return response()->json(['message' => 'Không tìm thấy thương hiệu để sửa'], 404);
         }
 
         $validated = $request->validate([
-            'ten_thuonghieu' => 'sometimes|required|string|max:255|unique:thuonghieu,ten_thuonghieu,' . $id . ',id_thuonghieu'
-            
+            'ten_thuonghieu' => 'sometimes|required|string|max:255|unique:thuonghieu,ten_thuonghieu,' . $id . ',id_thuonghieu',
+            'danh_muc_ids'   => 'nullable|array',
+            'danh_muc_ids.*' => 'integer|exists:danhmuc,id_danhmuc'
         ]);
 
         
