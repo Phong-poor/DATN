@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
   
 import api from '../../services/api'

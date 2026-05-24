@@ -126,6 +126,12 @@ const themVaoGioHang = async () => {
     const token = getToken()
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
+        if (selectedVariant.value) {
+            localStorage.setItem('pendingCartItem', JSON.stringify({
+                id_bienthe: selectedVariant.value.id_bienthe,
+                soluong: soLuongMua.value,
+            }));
+        }
         setTimeout(() => {
             router.push({
                 path: '/login',

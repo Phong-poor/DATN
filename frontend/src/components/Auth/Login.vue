@@ -11,14 +11,28 @@ const remember = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
 
-const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
+const modal = ref({
+  show: false,
+  type: 'error',
+  title: '',
+  message: '',
+  onConfirm: null
+})
 
 let autoCloseTimer = null
 
 const showModal = (type, title, message, onConfirm = null) => {
-  modal.value = { show: true, type, title, message, onConfirm }
+  modal.value = {
+    show: true,
+    type,
+    title,
+    message,
+    onConfirm
+  }
+
   if (type === 'success') {
     if (autoCloseTimer) clearTimeout(autoCloseTimer)
+
     autoCloseTimer = setTimeout(() => {
       closeModal()
     }, 2000)
@@ -38,20 +52,26 @@ const closeModal = () => {
     clearTimeout(autoCloseTimer)
     autoCloseTimer = null
   }
+
   const cb = modal.value.onConfirm
+
   modal.value.show = false
+
   if (cb) cb()
 }
 
 const router = useRouter()
 
-
 onMounted(() => {
   const user = getUser()
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const token =
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('token')
 
   if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    axios.defaults.headers.common[
+      'Authorization'
+    ] = `Bearer ${token}`
   }
 
   if (user && token) {
@@ -60,10 +80,12 @@ onMounted(() => {
     } else {
       router.push('/')
     }
+
     return
   }
 
   const savedEmail = localStorage.getItem('remember_email')
+
   if (savedEmail) {
     email.value = savedEmail
     remember.value = true
@@ -72,11 +94,16 @@ onMounted(() => {
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
-    showModal('error', 'Thiếu thông tin', 'Nhập email và password.')
+    showModal(
+      'error',
+      'Thiếu thông tin',
+      'Nhập email và password.'
+    )
     return
   }
 
   if (loading.value) return
+
   loading.value = true
 
   try {
@@ -90,16 +117,25 @@ const handleLogin = async () => {
     const token = res.data.token
 
     if (!token) {
-      showModal('error', 'Lỗi', 'Server không trả token')
+      showModal(
+        'error',
+        'Lỗi',
+        'Server không trả token'
+      )
       return
     }
 
     saveAuth(token, user, remember.value)
 
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    axios.defaults.headers.common[
+      'Authorization'
+    ] = `Bearer ${token}`
 
     if (remember.value) {
-      localStorage.setItem('remember_email', email.value)
+      localStorage.setItem(
+        'remember_email',
+        email.value
+      )
     } else {
       localStorage.removeItem('remember_email')
     }
@@ -108,10 +144,46 @@ const handleLogin = async () => {
       'success',
       'Đăng nhập thành công!',
       res.data.message,
-      () => {
+      async () => {
         if (user.role === 'admin') {
           router.push('/admin')
         } else {
+          const pendingItemStr =
+            localStorage.getItem('pendingCartItem')
+
+          if (pendingItemStr) {
+            try {
+              const pendingItem =
+                JSON.parse(pendingItemStr)
+
+              await api.post(
+                '/gio-hang/them',
+                pendingItem,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`
+                  }
+                }
+              )
+
+              localStorage.removeItem(
+                'pendingCartItem'
+              )
+
+              window.dispatchEvent(
+                new Event('cart-updated')
+              )
+
+              router.push('/cart')
+              return
+            } catch (err) {
+              console.error(
+                'Lỗi thêm pending item:',
+                err
+              )
+            }
+          }
+
           router.push('/')
         }
       }
@@ -120,9 +192,17 @@ const handleLogin = async () => {
     console.log(err)
 
     if (err.response?.data?.message) {
-      showModal('error', 'Lỗi', err.response.data.message)
+      showModal(
+        'error',
+        'Lỗi',
+        err.response.data.message
+      )
     } else {
-      showModal('error', 'Lỗi', 'Sai tài khoản hoặc mật khẩu')
+      showModal(
+        'error',
+        'Lỗi',
+        'Sai tài khoản hoặc mật khẩu'
+      )
     }
   } finally {
     loading.value = false
