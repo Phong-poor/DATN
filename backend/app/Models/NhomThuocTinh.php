@@ -11,7 +11,12 @@ class NhomThuocTinh extends Model
 
     protected $fillable = [
         'ten_nhom',
+        'danh_muc_ids',
         'trangthai',
+    ];
+
+    protected $casts = [
+        'danh_muc_ids' => 'array',
     ];
 
     // 1 nhóm có nhiều thuộc tính

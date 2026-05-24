@@ -6,6 +6,7 @@ use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
 use App\Models\GioHang;
 use App\Models\BienThe;
+use App\Models\DiaChi;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
 use Illuminate\Http\Request;
@@ -133,11 +134,28 @@ class DatHangController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'diachi' => 'required|string',
+            'id_diachi' => 'nullable|integer',
+            'diachi' => 'required_without:id_diachi|string',
             'PTTT'   => 'required|string',
         ]);
 
         $userId = Auth::id();
+        $diaChiGiaoHang = $request->diachi;
+
+        if ($request->filled('id_diachi')) {
+            $diaChi = DiaChi::where('id_user', $userId)
+                ->where('id_diachi', $request->id_diachi)
+                ->first();
+
+            if (! $diaChi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vui lòng chọn địa chỉ'
+                ], 422);
+            }
+
+            $diaChiGiaoHang = $diaChi->dia_chi_day_du;
+        }
 
         $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
 
@@ -174,6 +192,16 @@ class DatHangController extends Controller
                     return response()->json(['success' => false, 'message' => 'Mã giảm giá đã hết hạn.'], 400);
                 }
 
+                // Block if subtotal < conditions
+                if ($promo->dieu_kien && $promo->dieu_kien > 0) {
+                    if ($tongTienGoc < $promo->dieu_kien) {
+                        return response()->json([
+                            'success' => false, 
+                            'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã này.'
+                        ], 400);
+                    }
+                }
+
                 if ($promo->type === 'percent') {
                     $giamGia = round($tongTienGoc * $promo->value / 100);
                 } elseif ($promo->type === 'fixed') {
@@ -195,6 +223,16 @@ class DatHangController extends Controller
                 if ($fpromo->end_date && now()->gt($fpromo->end_date)) {
                     return response()->json(['success' => false, 'message' => 'Mã freeship đã hết hạn.'], 400);
                 }
+
+                if ($fpromo->dieu_kien && $fpromo->dieu_kien > 0) {
+                    if ($tongTienGoc < $fpromo->dieu_kien) {
+                        return response()->json([
+                            'success' => false, 
+                            'message' => 'Đơn hàng chưa đạt tối thiểu ' . number_format($fpromo->dieu_kien, 0, ',', '.') . 'đ để dùng mã miễn phí vận chuyển.'
+                        ], 400);
+                    }
+                }
+
                 if ($fpromo->category === 'freeship') {
                     $giamGiaShip = $shippingFee;
                 } else {
@@ -212,7 +250,7 @@ class DatHangController extends Controller
                 'user_id'     => $userId,
                 'tongtien'    => $tongTienSauGiam,
                 'trangthai'   => 'pending',
-                'diachi'      => $request->diachi,
+                'diachi'      => $diaChiGiaoHang,
                 'PTTT'        => $request->PTTT,
                 'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'promotion_id' => $promoId,      // lưu id promotion đã dùng
@@ -332,7 +370,7 @@ class DatHangController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, $id) 
     {
         $request->validate([
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
@@ -357,7 +395,7 @@ class DatHangController extends Controller
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
-                    }
+                    } 
                 }
             }
 

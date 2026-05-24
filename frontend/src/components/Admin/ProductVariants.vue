@@ -37,6 +37,8 @@ const variants = ref([])
 const groups = ref([])
 const attrs = ref([])
 const colors = ref([])
+const categories = ref([])
+const parentCategories = computed(() => categories.value.filter(c => !c.parent_id))
 const selectedColor = ref(null)
 
 // ── Filter ──
@@ -100,10 +102,11 @@ const defaultVariantForm = () => ({
   name: '',
   type: variantTypeOptions.value[0] || '',
   status: 'Hoạt động',
-  gia_cong_them: 0
+  gia_cong_them: 0,
+  danh_muc_ids: []
 })
 const defaultColorForm = () => ({ name: '', hex: '#000000', stock: 'Khả dụng' })
-const defaultGroupForm = () => ({ name: '' })
+const defaultGroupForm = () => ({ name: '', danh_muc_ids: [] })
 const defaultAttrForm = () => ({ name: '', group: groups.value[0]?.name || '', status: 'Hoạt động' })
 
 const variantForm = ref(defaultVariantForm())
@@ -161,7 +164,12 @@ const normalizeData = (payload) => {
 
   const normalizedGroups = nhoms.map((g) => {
     const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
-    return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length }
+    let dsId = g.danh_muc_ids || []
+    if (typeof dsId === 'string') {
+      try { dsId = JSON.parse(dsId) } catch(e) { dsId = [] }
+    }
+    dsId = Array.isArray(dsId) ? dsId : []
+    return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length, danh_muc_ids: dsId }
   })
 
   const normalizedAttrs = []
@@ -180,6 +188,7 @@ const normalizeData = (payload) => {
           attrId: a.id_thuoctinh,
           status: Number(v.trangthai) === 1 ? 'Hoạt động' : 'Nháp',
           gia_cong_them: Number(v.gia_cong_them || 0),
+          danh_muc_ids: Array.isArray(v.danh_muc_ids) ? v.danh_muc_ids : []
         })
       })
     })
@@ -232,6 +241,15 @@ const fetchColors = async () => {
   }
 }
 
+const fetchCategories = async () => {
+  try {
+    const res = await api.get('/danhmuc')
+    categories.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+  } catch (error) {
+    console.error('Không tải được danh mục')
+  }
+}
+
 // ── Modal ──
 const openModal = (type, item = null) => {
   modalType.value = type
@@ -242,13 +260,17 @@ const openModal = (type, item = null) => {
   else if (type === 'editVariant' && item) {
     variantForm.value = {
       ...item,
-      gia_cong_them: item.gia_cong_them ?? 0
+      gia_cong_them: item.gia_cong_them ?? 0,
+      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
     }
   }
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
   else if (type === 'group') groupForm.value = defaultGroupForm()
-  else if (type === 'editGroup' && item) groupForm.value = { name: item.name }
+  else if (type === 'editGroup' && item)    groupForm.value = { 
+      name: item.name,
+      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
+    }
   else if (type === 'attr') attrForm.value = defaultAttrForm()
   else if (type === 'editAttr' && item) attrForm.value = { name: item.name, group: item.group, status: item.status }
 
@@ -286,6 +308,7 @@ const submitVariant = async () => {
     giatri: variantForm.value.name,
     gia_cong_them: Number(variantForm.value.gia_cong_them || 0),
     trangthai: variantForm.value.status === 'Hoạt động' ? 1 : 0,
+    danh_muc_ids: variantForm.value.danh_muc_ids
   }
 
   try {
@@ -338,10 +361,14 @@ const submitGroup = async () => {
     return
   }
   try {
+    const payload = { 
+      ten_nhom: groupForm.value.name,
+      danh_muc_ids: groupForm.value.danh_muc_ids
+    }
     if (modalType.value === 'editGroup') {
-      await api.put(`/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
+      await api.put(`/nhomthuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/nhomthuoctinh', { ten_nhom: groupForm.value.name })
+      await api.post('/nhomthuoctinh', payload)
     }
     await fetchAll()
     groupPagination.goToPage(1)
@@ -456,6 +483,7 @@ const modalBtnLabel = computed(() =>
 onMounted(() => {
   fetchAll()
   fetchColors()
+  fetchCategories()
 })
 
 // ══════════════════════════════════════════════════════
@@ -677,6 +705,7 @@ async function handleImportFile(e) {
           <thead>
             <tr>
               <th>TÊN NHÓM</th>
+              <th>DANH MỤC CHA</th>
               <th>SỐ THUỘC TÍNH</th>
               <th>THAO TÁC</th>
             </tr>
@@ -697,6 +726,14 @@ async function handleImportFile(e) {
                     </svg>
                   </div>
                   <span class="variant-name">{{ g.name }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="badges">
+                  <span v-for="id in g.danh_muc_ids" :key="id" class="badge bg-blue">
+                    {{ parentCategories.find(c => String(c.id_danhmuc) === String(id))?.ten_danhmuc || 'N/A' }}
+                  </span>
+                  <span v-if="!g.danh_muc_ids || g.danh_muc_ids.length === 0" class="badge bg-gray">Tất cả</span>
                 </div>
               </td>
               <td><span class="count-badge">{{ g.attrCount }}</span></td>
@@ -869,6 +906,7 @@ async function handleImportFile(e) {
               <tr>
                 <th>TÊN BIẾN THỂ</th>
                 <th>LOẠI THUỘC TÍNH</th>
+                <th>DANH MỤC ÁP DỤNG</th>
                 <th>TRẠNG THÁI</th>
                 <th>THAO TÁC</th>
               </tr>
@@ -882,6 +920,12 @@ async function handleImportFile(e) {
                 <td>
                   <span class="type-badge"
                     :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
+                </td>
+                <td>
+                  <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12px; color: #64748b;">
+                    {{ v.danh_muc_ids.length }} danh mục
+                  </span>
+                  <span v-else style="font-size: 12px; color: #64748b;">Tất cả</span>
                 </td>
                 <td>
                   <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status }}</span>
@@ -1159,6 +1203,12 @@ async function handleImportFile(e) {
                     <label>GIÁ CỘNG THÊM (₫)</label>
                     <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
                   </div>
+                  <div class="form-group">
+                    <label>DANH MỤC ÁP DỤNG (Bỏ trống để áp dụng cho tất cả)</label>
+                    <select v-model="variantForm.danh_muc_ids" multiple style="height: 100px; padding: 8px;">
+                      <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
+                    </select>
+                  </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label>LOẠI THUỘC TÍNH <span class="req">*</span></label>
@@ -1235,6 +1285,13 @@ async function handleImportFile(e) {
                   <div class="form-group">
                     <label>TÊN NHÓM THUỘC TÍNH <span class="req">*</span></label>
                     <input v-model="groupForm.name" placeholder="VD: Cấu hình Laptop" />
+                  </div>
+                  <div class="form-group">
+                    <label>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></label>
+                    <select v-model="groupForm.danh_muc_ids" multiple class="custom-select" style="height: 100px;">
+                      <option v-for="cat in parentCategories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
+                    </select>
+                    <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">Giữ Ctrl/Cmd để chọn nhiều danh mục</p>
                   </div>
                 </template>
 

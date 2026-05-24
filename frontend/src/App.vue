@@ -1,12 +1,14 @@
 <template>
   <router-view />
   <ChatbotWidget v-if="showChatbot" />
+  <ZaloWidget v-if="showChatbot" />
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ChatbotWidget from '@/components/Web/ChatbotWidget.vue';
+import ZaloWidget from '@/components/Web/ZaloWidget.vue';
 
 const route = useRoute();
 

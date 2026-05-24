@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
@@ -126,6 +126,12 @@ const themVaoGioHang = async () => {
     const token = getToken()
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
+        if (selectedVariant.value) {
+            localStorage.setItem('pendingCartItem', JSON.stringify({
+                id_bienthe: selectedVariant.value.id_bienthe,
+                soluong: soLuongMua.value,
+            }));
+        }
         setTimeout(() => {
             router.push({
                 path: '/login',
@@ -207,7 +213,6 @@ const prevThumbs = () => {
 // ===================== FETCH SẢN PHẨM =====================
 const fetchProductDetail = async () => {
     try {
-        isLoading.value = true
         const productId = route.params.id || 1
         const response = await api.get(`/sanpham/${productId}`)
         const data = response.data
@@ -240,20 +245,117 @@ const fetchProductDetail = async () => {
 
         // Tải sản phẩm tương tự
         if (data.id_danhmuc) {
-            fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
+            await fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
+        }
+
+        // --- GHI NHẬN LƯỢT XEM SẢN PHẨM ---
+        if (getToken()) {
+            try {
+                await api.post(`/sanpham-daxem/${productId}`);
+            } catch (err) {
+                console.error('Lỗi khi ghi nhận lượt xem:', err);
+            }
         }
 
     } catch (error) {
         console.error('Lỗi khi tải chi tiết sản phẩm:', error)
+    }
+}
+
+const loadPageData = async () => {
+    isLoading.value = true;
+    try {
+        await Promise.all([
+            fetchProductDetail(),
+            fetchRecentlyViewed(),
+            fetchReviews()
+        ]);
     } finally {
-        isLoading.value = false
+        isLoading.value = false;
     }
 }
 
 onMounted(() => {
-    fetchProductDetail()
-    fetchReviews()
+    loadPageData()
 })
+
+watch(() => route.fullPath, (newPath, oldPath) => {
+    if (route.path.startsWith('/products/')) {
+        selectedVariant.value = null;
+        selectedOptions.value = {};
+        thumbIndex.value = 0;
+        loadPageData();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+})
+
+const recentlyViewedProducts = ref([])
+const currentRecentlyViewedPage = ref(1)
+const recentlyViewedItemsPerPage = 5
+
+const paginatedRecentlyViewedProducts = computed(() => {
+    const start = (currentRecentlyViewedPage.value - 1) * recentlyViewedItemsPerPage
+    return recentlyViewedProducts.value.slice(start, start + recentlyViewedItemsPerPage)
+})
+
+const totalRecentlyViewedPages = computed(() => Math.ceil(recentlyViewedProducts.value.length / recentlyViewedItemsPerPage))
+
+const fetchRecentlyViewed = async () => {
+    if (!getToken()) return; // Chỉ lấy cho user đăng nhập
+
+    try {
+        const res = await api.get('/sanpham-daxem')
+        const allProducts = res.data || []
+        
+        // Lọc để ẩn sản phẩm hiện đang xem
+        const currentProductId = route.params.id || 1;
+        const filtered = allProducts.filter(p => p.id_sanpham != currentProductId);
+
+        const variants = []
+        filtered.forEach(p => {
+            let generalSpecs = []
+            try {
+                const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
+                if (Array.isArray(tskt)) {
+                    generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
+                }
+            } catch (e) { }
+            const fullNameBase = [p.tenSP, ...generalSpecs].join(' ');
+
+            if (p.bien_thes && p.bien_thes.length > 0) {
+                // Lấy biến thể đầu tiên để đại diện cho SP đã xem
+                const bt = p.bien_thes[0];
+                let ram = '', cpu = '', mausac = '';
+                let thuoc_tinh = [];
+                try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
+
+                if (Array.isArray(thuoc_tinh)) {
+                    thuoc_tinh.forEach(attr => {
+                        const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                        if (ten === 'ram') ram = attr.giatri;
+                        else if (ten === 'cpu') cpu = attr.giatri;
+                        else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
+                    });
+                }
+
+                const specText = [ram, cpu, mausac].filter(Boolean).join(' · ');
+
+                variants.push({
+                    id: p.id_sanpham,
+                    key_id: bt.id_bienthe,
+                    fullName: fullNameBase,
+                    specText: specText,
+                    price: bt.gia,
+                    img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                })
+            }
+        })
+
+        recentlyViewedProducts.value = variants
+    } catch (error) {
+        console.error('Lỗi tải sản phẩm đã xem gần đây:', error)
+    }
+}
 
 const relatedProducts = ref([])
 const currentRelatedPage = ref(1)
@@ -264,6 +366,8 @@ const paginatedRelatedProducts = computed(() => {
 })
 
 const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
+
+
 
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
     try {
@@ -280,9 +384,11 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
         filtered.forEach(p => {
             // Parse thông số chung để ghép tên
             let generalSpecs = []
+            let tsktArray = []
             try {
                 const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
                 if (Array.isArray(tskt)) {
+                    tsktArray = tskt
                     generalSpecs = tskt.map(item => item.giatri).filter(Boolean);
                 }
             } catch (e) { }
@@ -292,11 +398,13 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
                 p.bien_thes.forEach(bt => {
                     let ram = '', cpu = '', mausac = '';
                     let thuoc_tinh = [];
+                    let attributes = {}; // Store all variant attributes
                     try { thuoc_tinh = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || []); } catch (e) { }
 
                     if (Array.isArray(thuoc_tinh)) {
                         thuoc_tinh.forEach(attr => {
                             const ten = (attr.ten_thuoctinh || '').toLowerCase();
+                            attributes[ten] = attr.giatri; // Store normalized with lowercase key
                             if (ten === 'ram') ram = attr.giatri;
                             else if (ten === 'cpu') cpu = attr.giatri;
                             else if (ten === 'màu sắc' || ten === 'màu') mausac = attr.giatri;
@@ -311,7 +419,9 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
                         fullName: fullNameBase,
                         specText: specText,
                         price: bt.gia,
-                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh)
+                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                        attributes: attributes, // Add variant attributes
+                        thong_so_ky_thuat: tsktArray // Add product technical specs
                     })
                 })
             }
@@ -351,7 +461,8 @@ const themVaoYeuThich = async () => {
         })
 
         // 4. Báo thành công và update Header
-        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
+
         window.dispatchEvent(new Event('wishlist-updated'))
 
     } catch (err) {
@@ -360,6 +471,160 @@ const themVaoYeuThich = async () => {
         dangThemYeuThich.value = false
     }
 }
+
+// ===================== SO SÁNH CẤU HÌNH =====================
+// Hàm trích xuất tất cả thuộc tính từ biến thể để so sánh
+const extractAllAttributes = (variant) => {
+    const attrs = {}
+    const thuocTinh = getVariantAttributes(variant)
+    thuocTinh.forEach(attr => {
+        const key = (attr.ten_thuoctinh || '').toLowerCase()
+        attrs[key] = attr.giatri
+    })
+    return attrs
+}
+
+// Lấy danh sách tất cả các thuộc tính và thông số kỹ thuật để so sánh (normalize keys)
+const allAttributeKeys = computed(() => {
+    const keysMap = new Map() // Use Map to normalize keys (case-insensitive)
+    
+    // Thêm thông số kỹ thuật sản phẩm hiện tại
+    if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
+        product.value.thong_so_ky_thuat.forEach(spec => {
+            if (spec.ten_thuoctinh) {
+                const normalizedKey = (spec.ten_thuoctinh || '').toLowerCase()
+                if (!keysMap.has(normalizedKey)) {
+                    keysMap.set(normalizedKey, spec.ten_thuoctinh)
+                }
+            }
+        })
+    }
+    
+    if (selectedVariant.value) {
+        const attrs = extractAllAttributes(selectedVariant.value)
+        Object.keys(attrs).forEach(k => {
+            if (!keysMap.has(k)) {
+                keysMap.set(k, k)
+            }
+        })
+    }
+    // Thêm thuộc tính và thông số từ sản phẩm tương tự để hiển thị đầy đủ
+    relatedProducts.value.forEach(p => {
+        const variantAttrs = p.attributes || {}
+        Object.keys(variantAttrs).forEach(k => {
+            const normalizedKey = k.toLowerCase()
+            if (!keysMap.has(normalizedKey)) {
+                keysMap.set(normalizedKey, k)
+            }
+        })
+        
+        if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
+            p.thong_so_ky_thuat.forEach(spec => {
+                if (spec.ten_thuoctinh) {
+                    const normalizedKey = spec.ten_thuoctinh.toLowerCase()
+                    if (!keysMap.has(normalizedKey)) {
+                        keysMap.set(normalizedKey, spec.ten_thuoctinh)
+                    }
+                }
+            })
+        }
+    })
+    return Array.from(keysMap.values()).sort()
+})
+
+// Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
+const comparisonData = computed(() => {
+    const data = []
+    
+    if (selectedVariant.value && relatedProducts.value.length > 0) {
+        const currentAttrs = extractAllAttributes(selectedVariant.value)
+        
+        relatedProducts.value.slice(0, 4).forEach(relatedProd => {
+            const relatedAttrs = relatedProd.attributes || {}
+            data.push({
+                id: relatedProd.id,
+                name: relatedProd.fullName,
+                price: relatedProd.price,
+                specText: relatedProd.specText,
+                img: relatedProd.img,
+                attributes: relatedAttrs
+            })
+        })
+    }
+    
+    return data
+})
+
+// ====== COMPARE MODAL STATE & HELPERS ======
+const showCompareModal = ref(false)
+const compareSelection = ref([]) // array of key_id to compare
+const maxCompare = 3
+
+const toggleCompareSelection = (keyId) => {
+    const idx = compareSelection.value.indexOf(keyId)
+    if (idx === -1) {
+        if (compareSelection.value.length < maxCompare) compareSelection.value.push(keyId)
+    } else {
+        compareSelection.value.splice(idx, 1)
+    }
+}
+
+const openCompareModal = () => {
+    // preselect first related product if none
+    if (compareSelection.value.length === 0 && relatedProducts.value.length > 0) {
+        compareSelection.value = [relatedProducts.value[0].key_id]
+    }
+    showCompareModal.value = true
+}
+
+const closeCompareModal = () => { showCompareModal.value = false; compareSelection.value = [] }
+
+const compareProducts = computed(() => {
+    return relatedProducts.value.filter(p => compareSelection.value.includes(p.key_id)).slice(0, maxCompare)
+})
+
+const modalComparisonData = computed(() => {
+    const data = []
+    if (selectedVariant.value && compareProducts.value.length > 0) {
+        const currentAttrs = extractAllAttributes(selectedVariant.value)
+        const currentSpecs = {}
+        
+        // Lấy thông số kỹ thuật sản phẩm hiện tại
+        if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
+            product.value.thong_so_ky_thuat.forEach(spec => {
+                if (spec.ten_thuoctinh) currentSpecs[spec.ten_thuoctinh] = spec.giatri
+            })
+        }
+        
+        compareProducts.value.forEach(p => {
+            // Kết hợp thông số kỹ thuật và thuộc tính biến thể
+            const combinedSpecs = {}
+            
+            // Thêm thông số kỹ thuật sản phẩm
+            if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
+                p.thong_so_ky_thuat.forEach(spec => {
+                    if (spec.ten_thuoctinh) combinedSpecs[spec.ten_thuoctinh] = spec.giatri
+                })
+            }
+            
+            // Thêm thuộc tính biến thể
+            if (p.attributes) {
+                Object.assign(combinedSpecs, p.attributes)
+            }
+            
+            data.push({
+                id: p.key_id,
+                name: p.fullName,
+                price: p.price,
+                img: p.img,
+                attributes: p.attributes || {},
+                thong_so_ky_thuat: p.thong_so_ky_thuat || [],
+                combinedSpecs: combinedSpecs
+            })
+        })
+    }
+    return data
+})
 </script>
 
 <template>
@@ -492,11 +757,15 @@ const themVaoYeuThich = async () => {
                                 <span v-else> Thêm vào giỏ hàng</span>
                             </button>
                             <button class="install">Trả góp 0%</button>
-
+                            
                             <button class="wishlist-btn" :disabled="dangThemYeuThich" @click="themVaoYeuThich"
                                 title="Thêm vào yêu thích">
                                 <span v-if="dangThemYeuThich">⏳</span>
                                 <span v-else>❤️</span>
+                            </button>
+
+                            <button class="compare-btn" title="So sánh sản phẩm" @click="openCompareModal">
+                                🔁 So sánh
                             </button>
                         </div>
 
@@ -522,6 +791,99 @@ const themVaoYeuThich = async () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Popup so sánh: hiển thị khi người dùng nhấn nút So sánh -->
+                <div>
+                    <transition name="fade">
+                        <div class="compare-modal-overlay" v-if="showCompareModal">
+                            <div class="compare-modal">
+                                <div class="compare-modal-header">
+                                    <h3>Chọn sản phẩm để so sánh (tối đa {{ maxCompare }})</h3>
+                                    <button class="close" @click="closeCompareModal">✕</button>
+                                </div>
+
+                                <div class="compare-modal-body">
+                                    <div class="compare-left">
+                                        <div v-if="relatedProducts.length === 0">Không có sản phẩm tương tự để so sánh.</div>
+                                        <div class="compare-list">
+                                            <label v-for="p in relatedProducts" :key="p.key_id" class="compare-item">
+                                                <input type="checkbox" :value="p.key_id" v-model="compareSelection"
+                                                    :disabled="compareSelection.length >= maxCompare && !compareSelection.includes(p.key_id)" />
+                                                <img :src="p.img" :alt="p.fullName" />
+                                                <div class="meta">
+                                                    <div class="name">{{ p.fullName }}</div>
+                                                    <div class="spec">{{ p.specText }}</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="compare-right">
+                                        
+
+                                        <div class="compare-result" v-if="compareSelection.length > 0">
+                                            <div class="comparison-table-wrapper">
+                                                <table class="comparison-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="attr-col">Thông số</th>
+                                                        <th class="product-col">
+                                                            <div class="prod-header">
+                                                                <img :src="selectedImage" />
+                                                                <div class="prod-info">
+                                                                    <div class="prod-name">{{ product.tenSP }}</div>
+                                                                    <div class="prod-price">{{ formatPrice(selectedVariant.gia) }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </th>
+                                                        <th class="product-col" v-for="p in compareProducts" :key="p.key_id">
+                                                            <div class="prod-header">
+                                                                <img :src="p.img" />
+                                                                <div class="prod-info">
+                                                                    <div class="prod-name">{{ product.tenSP }}</div>
+                                                                    <div class="prod-price">{{ formatPrice(p.price) }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                
+                                                <tbody>
+                                                    <tr v-for="attr in allAttributeKeys" :key="attr">
+                                                        <td class="attr-col">{{ attr }}</td>
+                                                        <td class="product-col">
+                                                            <!-- Kiểm tra thông số kỹ thuật sản phẩm hiện tại trước (case-insensitive) -->
+                                                            <span v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
+                                                                {{ product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                            </span>
+                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
+                                                            <span v-else-if="extractAllAttributes(selectedVariant)[attr.toLowerCase()]" class="value">
+                                                                {{ extractAllAttributes(selectedVariant)[attr.toLowerCase()] }}
+                                                            </span>
+                                                            <span v-else class="no-value">—</span>
+                                                        </td>
+                                                        <td class="product-col" v-for="p in compareProducts" :key="p.key_id">
+                                                            <!-- Kiểm tra thông số kỹ thuật so sánh trước (case-insensitive) -->
+                                                            <span v-if="p.thong_so_ky_thuat && p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
+                                                                {{ p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                            </span>
+                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
+                                                            <span v-else-if="(p.attributes || {})[attr.toLowerCase()]" class="value">
+                                                                {{ (p.attributes || {})[attr.toLowerCase()] }}
+                                                            </span>
+                                                            <span v-else class="no-value">—</span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
                 </div>
 
                 <!-- ĐÁNH GIÁ -->
@@ -569,14 +931,14 @@ const themVaoYeuThich = async () => {
         </div>
     </div>
 
-    <div class="related" v-if="relatedProducts.length > 0">
+    <div class="related" v-if="!isLoading && relatedProducts.length > 0">
         <div class="related-header">
             <h2>Sản phẩm tương tự</h2>
             <router-link to="/products">Xem tất cả →</router-link>
         </div>
         <div class="related-list">
             <div class="product-card" v-for="p in paginatedRelatedProducts" :key="p.key_id"
-                @click="router.push(`/products/${p.id}?variant=${p.key_id}`).then(() => window.location.reload())">
+                @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
                 <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
                 <h4>{{ p.fullName }}</h4>
                 <p class="sub">{{ p.specText }}</p>
@@ -596,6 +958,38 @@ const themVaoYeuThich = async () => {
                 </button>
             </div>
             <button class="pag-btn" :disabled="currentRelatedPage === totalRelatedPages" @click="currentRelatedPage++">
+                Sau &raquo;
+            </button>
+        </div>
+    </div>
+
+    <!-- SẢN PHẨM ĐÃ XEM GẦN ĐÂY -->
+    <div class="related" v-if="!isLoading && recentlyViewedProducts.length > 0">
+        <div class="related-header">
+            <h2>Sản phẩm đã xem gần đây</h2>
+        </div>
+        <div class="related-list">
+            <div class="product-card" v-for="p in paginatedRecentlyViewedProducts" :key="p.key_id"
+                @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
+                <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
+                <h4>{{ p.fullName }}</h4>
+                <p class="sub">{{ p.specText }}</p>
+                <p class="price">{{ formatPrice(p.price) }}</p>
+            </div>
+        </div>
+
+        <!-- PHÂN TRANG -->
+        <div class="related-pagination" v-if="totalRecentlyViewedPages > 1">
+            <button class="pag-btn" :disabled="currentRecentlyViewedPage === 1" @click="currentRecentlyViewedPage--">
+                &laquo; Trước
+            </button>
+            <div class="pag-numbers">
+                <button v-for="p in totalRecentlyViewedPages" :key="p" class="pag-num"
+                    :class="{ active: currentRecentlyViewedPage === p }" @click="currentRecentlyViewedPage = p">
+                    {{ p }}
+                </button>
+            </div>
+            <button class="pag-btn" :disabled="currentRecentlyViewedPage === totalRecentlyViewedPages" @click="currentRecentlyViewedPage++">
                 Sau &raquo;
             </button>
         </div>
@@ -1139,8 +1533,10 @@ h1 {
     color: #0f172a;
     margin-bottom: 6px;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    /* Standard fallback */
+    line-clamp: 2;
     overflow: hidden;
     height: 36px;
     line-height: 1.4;
@@ -1354,4 +1750,212 @@ h1 {
     color: white;
     border-color: #2563eb;
 }
+
+/* ===== COMPARISON STYLES ===== */
+.comparison {
+    margin-top: 40px;
+    padding: 30px 0;
+    border-top: 2px solid #f1f5f9;
+}
+
+.comparison h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 25px;
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.comparison-table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    background: white;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 16px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.comparison-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.attr-col {
+    width: 180px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 13px;
+    min-width: 180px;
+}
+
+.product-col {
+    min-width: 150px;
+}
+
+.prod-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.prod-header img {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e2e8f0;
+}
+
+.prod-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.prod-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.prod-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.comparison-table tbody td.product-col {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.value {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #eff6ff;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #0c4a6e;
+    font-weight: 600;
+}
+
+.no-value {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+    .comparison-table {
+        font-size: 12px;
+    }
+    
+    .attr-col {
+        width: 140px;
+        min-width: 140px;
+    }
+    
+    .product-col {
+        min-width: 130px;
+    }
+    
+    .prod-header img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .prod-name {
+        font-size: 11px;
+    }
+}
+
+/* ===== MODAL & COMPARE STYLES (scoped to this component) ===== */
+.compare-btn {
+    margin-left: 10px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+.compare-btn:hover { background: #f1f5f9 }
+
+.compare-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 24px;
+}
+
+.compare-modal {
+    width: min(1200px, 100%);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(2,6,23,0.2);
+    overflow: hidden;
+}
+
+.compare-modal-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    border-bottom:1px solid #f1f5f9;
+}
+.compare-modal-header h3{ margin:0; }
+.compare-modal-header .close{ background:transparent;border:none;font-size:18px;cursor:pointer }
+
+.compare-modal-body{
+    display:flex;
+    gap:20px;
+}
+.compare-left{ width:320px; max-height:520px; overflow:auto; padding:16px }
+.compare-right{ flex:1; padding:16px; overflow:hidden; max-height:600px; display:flex; flex-direction:column }
+.compare-list{ display:flex; flex-direction:column; gap:8px }
+.compare-item{ display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; border:1px solid #f1f5f9 }
+.compare-item img{ width:56px;height:56px;object-fit:cover;border-radius:6px }
+.compare-item .meta{ font-size:13px }
+.compare-item .name{ font-weight:700; color:#0f172a }
+.compare-item .spec{ color:#64748b; font-size:12px }
+
+.compare-actions{ padding-bottom:10px }
+.compare-result { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.compare-result .comparison-table{ width:100%; border-collapse:collapse }
+
+@media (max-width: 768px){ .compare-modal{ width:100%; height:100%; border-radius:0 } .compare-left{ display:none } }
+
+
+
+@media (max-width: 768px) {
+    .comparison {
+        display: none;
+    }
+}
+
 </style>

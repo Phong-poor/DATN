@@ -15,6 +15,11 @@ class GiaTriThuocTinh extends Model
         'giatri',
         'trangthai',
         'gia_cong_them',
+        'danh_muc_ids',
+    ];
+
+    protected $casts = [
+        'danh_muc_ids' => 'array',
     ];
 
     public function thuocTinh()

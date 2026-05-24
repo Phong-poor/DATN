@@ -49,4 +49,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserVoucher::class, 'id_user');
     }
+
+    public function diaChis()
+    {
+        return $this->hasMany(DiaChi::class, 'id_user');
+    }
 }

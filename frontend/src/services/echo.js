@@ -17,7 +17,13 @@ const echo = new Echo({
     authorizer: (channel, options) => {
         return {
             authorize: (socketId, callback) => {
-                const token = localStorage.getItem('token');
+                const token = getToken();
+
+                if (!token) {
+                    callback(true, new Error('Socket auth skipped: missing token'));
+                    return;
+                }
+
                 fetch((import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/broadcasting/auth', {
                     method: 'POST',
                     headers: {
@@ -38,7 +44,7 @@ const echo = new Echo({
                     })
                     .then(data => callback(false, data))
                     .catch(error => {
-                        console.error('Lỗi xác thực Socket:', error);
+                        console.warn('Không thể xác thực Socket:', error.message);
                         callback(true, error);
                     });
             }

@@ -39,7 +39,12 @@
             </td>
             <td>
               <p class="cat-name">{{ th.ten_thuonghieu }}</p>
-              
+              <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
+                <span v-if="!th.danh_muc_ids || th.danh_muc_ids.length === 0" style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">Tất cả danh mục</span>
+                <span v-else v-for="id in th.danh_muc_ids" :key="id" style="font-size: 11px; color: #4f46e5; background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">
+                  {{ getCategoryName(id) }}
+                </span>
+              </div>
             </td>
             
             <td>
@@ -84,9 +89,18 @@
             <div class="modal-body">
               <div class="form-group">
                 <label class="form-label">Tên thương hiệu <span class="required">*</span></label>
-                <input class="form-input" type="text" v-model="form.ten_thuonghieu" @input="autoSlug" placeholder="VD: Laptop Gaming, Văn phòng..." />
+                <input class="form-input" type="text" v-model="form.ten_thuonghieu" placeholder="VD: Asus, Logitech..." />
               </div>
-             
+              
+              <div class="form-group">
+                <label class="form-label">Danh mục áp dụng (Chọn nhiều)</label>
+                <select multiple class="form-input" v-model="form.danh_muc_ids" style="height: 120px;">
+                  <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">
+                    {{ cat.parent_id ? '↳ ' : '' }}{{ cat.ten_danhmuc }}
+                  </option>
+                </select>
+                <p style="font-size: 11px; color: #64748b; margin-top: 4px;">Giữ phím Ctrl (hoặc Cmd) để chọn nhiều. Bỏ trống để áp dụng cho tất cả danh mục.</p>
+              </div>
             </div>
 
             <div class="modal-footer">
@@ -109,6 +123,7 @@ import swal from '@/services/swal';
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const thuonghieu = ref([]);
+const categories = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 
@@ -120,7 +135,7 @@ const editId = ref(null);
 // Form mặc định
 const defaultForm = () => ({
   ten_thuonghieu: '',
-
+  danh_muc_ids: []
 });
 const form = ref(defaultForm());
 
@@ -137,9 +152,25 @@ const fetchBrands = async () => {
   }
 };
 
+const fetchCategories = async () => {
+  try {
+    const response = await api.get('/danhmuc'); 
+    categories.value = response.data.data || response.data;
+  } catch (error) {
+    console.error('Lỗi khi tải danh mục:', error);
+  }
+};
+
 onMounted(() => {
   fetchBrands();
+  fetchCategories();
 });
+
+// Lấy tên danh mục để hiển thị
+const getCategoryName = (id) => {
+  const cat = categories.value.find(c => c.id_danhmuc == id);
+  return cat ? cat.ten_danhmuc : 'Unknown';
+};
 
 // --- TÌM KIẾM ---
 const filteredBrands = computed(() => {
@@ -164,6 +195,7 @@ const openEdit = (th) => {
   editId.value = th.id_thuonghieu;
   form.value = { 
     ten_thuonghieu: th.ten_thuonghieu,
+    danh_muc_ids: Array.isArray(th.danh_muc_ids) ? [...th.danh_muc_ids] : []
   }; 
   showModal.value = true;
 };
@@ -181,11 +213,16 @@ const saveBrand = async () => {
   }
 
   try {
+    const payload = {
+      ...form.value,
+      danh_muc_ids: form.value.danh_muc_ids.length > 0 ? form.value.danh_muc_ids : null
+    };
+
     if (isEdit.value) {
-      await api.put(`/thuonghieu/${editId.value}`, form.value);
+      await api.put(`/thuonghieu/${editId.value}`, payload);
       alert('Cập nhật thành công!');
     } else {
-      await api.post('/thuonghieu', form.value);
+      await api.post('/thuonghieu', payload);
       alert('Thêm mới thành công!');
     }
     closeModal();
