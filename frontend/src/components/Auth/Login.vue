@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
 import { getUser, saveAuth } from '@/services/auth'
+import { formatAuthMessage } from '@/services/authMessages'
 
 const email = ref('')
 const password = ref('')
@@ -40,11 +41,15 @@ const showModal = (type, title, message, onConfirm = null) => {
 }
 
 const loginGoogle = () => {
-  window.location.href = 'http://127.0.0.1:8000/api/auth/google'
+  const refCode = localStorage.getItem('affiliate_ref') || ''
+  const endpoint = refCode ? `/auth/google?ref=${encodeURIComponent(refCode)}` : '/auth/google'
+  window.location.href = `${api.defaults.baseURL}${endpoint}`
 }
 
 const loginFacebook = () => {
-  window.location.href = 'http://127.0.0.1:8000/api/auth/facebook'
+  const refCode = localStorage.getItem('affiliate_ref') || ''
+  const endpoint = refCode ? `/auth/facebook?ref=${encodeURIComponent(refCode)}` : '/auth/facebook'
+  window.location.href = `${api.defaults.baseURL}${endpoint}`
 }
 
 const closeModal = () => {
@@ -61,8 +66,23 @@ const closeModal = () => {
 }
 
 const router = useRouter()
+const route = useRoute()
+
 
 onMounted(() => {
+  if (route.query.social_error) {
+    const messageByCode = {
+      google_callback_failed: 'Không thể xác thực Google. Vui lòng thử lại.',
+      google_create_failed: 'Đăng nhập Google thất bại do lỗi tạo tài khoản.',
+      google_user_not_found: 'Không tạo được tài khoản từ Google.',
+      facebook_callback_failed: 'Không thể xác thực Facebook. Vui lòng thử lại.',
+      facebook_create_failed: 'Đăng nhập Facebook thất bại do lỗi tạo tài khoản.',
+      facebook_user_not_found: 'Không tạo được tài khoản từ Facebook.',
+    }
+    const provider = String(route.query.social_error).startsWith('google') ? 'Google' : 'Facebook'
+    showModal('error', `Lỗi đăng nhập ${provider}`, messageByCode[route.query.social_error] || 'Đăng nhập mạng xã hội thất bại.')
+  }
+
   const user = getUser()
   const token =
     localStorage.getItem('token') ||
@@ -94,6 +114,7 @@ onMounted(() => {
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
+    showModal('error', 'Thiếu thông tin', 'Vui lòng nhập email và mật khẩu.')
     showModal(
       'error',
       'Thiếu thông tin',
@@ -108,7 +129,7 @@ const handleLogin = async () => {
 
   try {
     const res = await api.post('/login', {
-      email: email.value,
+      email: String(email.value).trim(),
       password: password.value,
       remember: remember.value
     })
@@ -117,6 +138,7 @@ const handleLogin = async () => {
     const token = res.data.token
 
     if (!token) {
+      showModal('error', 'Lỗi', 'Máy chủ không trả về token đăng nhập.')
       showModal(
         'error',
         'Lỗi',
@@ -143,61 +165,71 @@ const handleLogin = async () => {
     showModal(
       'success',
       'Đăng nhập thành công!',
-      res.data.message,
-      async () => {
-        if (user.role === 'admin') {
-          router.push('/admin')
-        } else {
-          const pendingItemStr =
-            localStorage.getItem('pendingCartItem')
+      formatAuthMessage(res.data.message, 'Đăng nhập thành công.'),
+      () => {
+        const redirectPath = sessionStorage.getItem('redirect_after_auth')
+        sessionStorage.removeItem('redirect_after_auth')
 
-          if (pendingItemStr) {
-            try {
-              const pendingItem =
-                JSON.parse(pendingItemStr)
+        res.data.message,
+          async () => {
+            if (user.role === 'admin') {
+              router.push('/admin')
+            } else if (redirectPath) {
+              router.push(redirectPath)
+            } else {
+              const pendingItemStr =
+                localStorage.getItem('pendingCartItem')
 
-              await api.post(
-                '/gio-hang/them',
-                pendingItem,
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`
-                  }
+              if (pendingItemStr) {
+                try {
+                  const pendingItem =
+                    JSON.parse(pendingItemStr)
+
+                  await api.post(
+                    '/gio-hang/them',
+                    pendingItem,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${token}`
+                      }
+                    }
+                  )
+
+                  localStorage.removeItem(
+                    'pendingCartItem'
+                  )
+
+                  window.dispatchEvent(
+                    new Event('cart-updated')
+                  )
+
+                  router.push('/cart')
+                  return
+                } catch (err) {
+                  console.error(
+                    'Lỗi thêm pending item:',
+                    err
+                  )
                 }
-              )
+              }
 
-              localStorage.removeItem(
-                'pendingCartItem'
-              )
-
-              window.dispatchEvent(
-                new Event('cart-updated')
-              )
-
-              router.push('/cart')
-              return
-            } catch (err) {
-              console.error(
-                'Lỗi thêm pending item:',
-                err
-              )
+              router.push('/')
             }
           }
-
-          router.push('/')
-        }
       }
     )
   } catch (err) {
     console.log(err)
 
     if (err.response?.data?.message) {
+      showModal('error', 'Lỗi', formatAuthMessage(err.response.data.message, 'Email hoặc mật khẩu không đúng.'))
       showModal(
         'error',
         'Lỗi',
         err.response.data.message
       )
     } else {
+      showModal('error', 'Lỗi', 'Email hoặc mật khẩu không đúng.')
       showModal(
         'error',
         'Lỗi',
@@ -222,9 +254,14 @@ const handleLogin = async () => {
           Tầm Cao Mới.
         </h1>
         <p>
-          Khám phá hệ sinh thái công nghệ cao cấp,
-          nơi hiệu năng gặp gỡ nghệ thuật chế tác tinh xảo.
+          Trở lại tài khoản để quản lý đơn hàng, lưu cấu hình laptop và nhận ưu đãi dành riêng cho bạn.
         </p>
+        <div class="left-highlights">
+          <span>✓ Đăng nhập nhanh</span>
+          <span>✓ Đồng bộ giỏ hàng</span>
+          <span>✓ Ưu đãi cá nhân</span>
+        </div>
+        <img class="left-laptop" src="/hero_3d_laptop.png" alt="NextGen laptop" />
       </div>
 
       <!-- RIGHT -->
@@ -367,25 +404,69 @@ const handleLogin = async () => {
 .left {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   color: white;
-  padding: 40px;
+  padding: 38px 44px 30px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
 }
 
 .left h1 {
-  font-size: 34px;
-  line-height: 1.3;
+  margin: 0;
+  color: #ffffff;
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-size: 33px;
+  line-height: 1.18;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-wrap: balance;
+  text-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
 }
 
 .left span {
-  color: #c4b5fd;
+  color: #e4dcff;
 }
 
 .left p {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.85;
+  max-width: 410px;
+  margin: 20px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.7;
+  font-weight: 500;
+}
+
+.left-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.left-highlights span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.left-laptop {
+  width: min(310px, 100%);
+  align-self: center;
+  margin-top: 0;
+  transform: translateX(8px) rotate(-4deg);
+  filter: drop-shadow(0 28px 36px rgba(15, 23, 42, 0.34));
+  user-select: none;
+  pointer-events: none;
 }
 
 .right {
@@ -564,6 +645,12 @@ h2 {
 
   .left {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .right {
+    padding: 24px 20px;
   }
 }
 

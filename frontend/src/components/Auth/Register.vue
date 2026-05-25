@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
+import { formatAuthMessage } from '@/services/authMessages'
 
 const name = ref('')
 const email = ref('')
@@ -37,10 +38,50 @@ const closeModal = () => {
 }
 
 const router = useRouter()
+const route = useRoute()
+const referralCode = ref((route.query.ref || localStorage.getItem('affiliate_ref') || '').toString().trim().toUpperCase())
+
+const normalizedPhone = computed(() => phone.value.replace(/[\s.-]/g, ''))
+
+const isValidPhone = computed(() => /^0[0-9]{9}$/.test(normalizedPhone.value))
+
+const passwordChecks = computed(() => ({
+  length: password.value.length >= 8,
+  upper: /[A-Z]/.test(password.value),
+  number: /[0-9]/.test(password.value),
+  special: /[^A-Za-z0-9]/.test(password.value),
+}))
+
+const passwordScore = computed(() => Object.values(passwordChecks.value).filter(Boolean).length)
+
+const passwordStrength = computed(() => {
+  if (!password.value) {
+    return { label: '', color: '#e2e8f0', width: '0%' }
+  }
+
+  return [
+    { label: 'Mật khẩu yếu', color: '#ef4444', width: '25%' },
+    { label: 'Mật khẩu trung bình', color: '#f59e0b', width: '50%' },
+    { label: 'Mật khẩu mạnh', color: '#2563eb', width: '75%' },
+    { label: 'Mật khẩu rất mạnh', color: '#16a34a', width: '100%' },
+  ][Math.max(passwordScore.value - 1, 0)]
+})
+
+const passwordRequirements = computed(() => [
+  { label: 'Ít nhất 8 ký tự', ok: passwordChecks.value.length },
+  { label: 'Có chữ hoa', ok: passwordChecks.value.upper },
+  { label: 'Có số', ok: passwordChecks.value.number },
+  { label: 'Có ký tự đặc biệt', ok: passwordChecks.value.special },
+])
 
 const handleRegister = async () => {
   if (!name.value || !email.value || !phone.value || !password.value || !confirm.value) {
     showModal('error', 'Thiếu thông tin', 'Vui lòng nhập đầy đủ thông tin.')
+    return
+  }
+
+  if (!isValidPhone.value) {
+    showModal('error', 'Số điện thoại không hợp lệ', 'Vui lòng nhập số điện thoại gồm 10 chữ số và bắt đầu bằng số 0.')
     return
   }
 
@@ -56,11 +97,12 @@ const handleRegister = async () => {
     const res = await api.post('/register', {
       name: name.value,
       email: email.value,
-      phone: phone.value,
+      phone: normalizedPhone.value,
       password: password.value,
-      password_confirmation: confirm.value
+      password_confirmation: confirm.value,
+      referral_code: referralCode.value || null,
     })
-    showModal('success', 'Đăng ký thành công!', res.data.message, () => {
+    showModal('success', 'Đăng ký thành công!', formatAuthMessage(res.data.message, 'Đăng ký thành công!'), () => {
       name.value = ''
       email.value = ''
       phone.value = ''
@@ -75,15 +117,29 @@ const handleRegister = async () => {
 
     if (err.response?.data?.errors) {
       const firstError = Object.values(err.response.data.errors)[0][0]
-      showModal('error', 'Lỗi', firstError)
+      showModal('error', 'Lỗi', formatAuthMessage(firstError))
+    } else if (err.response?.data?.message) {
+      showModal('error', 'Lỗi', formatAuthMessage(err.response.data.message))
     } else {
-      showModal('error', 'Lỗi', 'Có lỗi xảy ra!')
+      showModal('error', 'Lỗi', 'Có lỗi xảy ra. Vui lòng thử lại.')
     }
 
   } finally {
     loading.value = false
   
   }
+}
+
+const loginGoogle = () => {
+  const refCode = localStorage.getItem('affiliate_ref') || ''
+  const endpoint = refCode ? `/auth/google?ref=${encodeURIComponent(refCode)}` : '/auth/google'
+  window.location.href = `${api.defaults.baseURL}${endpoint}`
+}
+
+const loginFacebook = () => {
+  const refCode = localStorage.getItem('affiliate_ref') || ''
+  const endpoint = refCode ? `/auth/facebook?ref=${encodeURIComponent(refCode)}` : '/auth/facebook'
+  window.location.href = `${api.defaults.baseURL}${endpoint}`
 }
 </script>
 
@@ -100,10 +156,14 @@ const handleRegister = async () => {
           <span>Chinh Phục Tầm Cao</span>
         </h1>
         <p>
-          Khám phá hệ sinh thái công nghệ đỉnh cao,
-          nơi hiệu năng gặp gỡ thiết kế tinh xảo.
+          Tạo tài khoản để lưu cấu hình laptop yêu thích, nhận ưu đãi riêng và theo dõi đơn hàng nhanh hơn.
         </p>
-        <img src="https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=500" />
+        <div class="left-highlights">
+          <span>✓ Ưu đãi thành viên</span>
+          <span>✓ Theo dõi bảo hành</span>
+          <span>✓ Gợi ý phụ kiện phù hợp</span>
+        </div>
+        <img class="left-accessories" src="/elite_accessories.png" alt="Phụ kiện laptop NextGen" />
       </div>
 
       <!-- RIGHT -->
@@ -132,7 +192,15 @@ const handleRegister = async () => {
         <!-- PHONE -->
         <div class="input-box">
           <span>📞</span>
-          <input v-model="phone" placeholder="0123 456 789" />
+          <input v-model="phone" inputmode="numeric" maxlength="12" placeholder="0123 456 789" />
+        </div>
+        <p v-if="phone && !isValidPhone" class="field-hint error">
+          Số điện thoại phải có 10 chữ số và bắt đầu bằng 0.
+        </p>
+
+        <div class="input-box" v-if="referralCode">
+          <span>🎯</span>
+          <input :value="referralCode" readonly />
         </div>
 
         <!-- PASSWORD -->
@@ -152,6 +220,20 @@ const handleRegister = async () => {
               <line x1="1" y1="1" x2="23" y2="23" />
             </svg>
           </button>
+        </div>
+        <div v-if="password" class="password-strength">
+          <div class="strength-head">
+            <span :style="{ color: passwordStrength.color }">{{ passwordStrength.label }}</span>
+            <small>{{ passwordScore }}/4</small>
+          </div>
+          <div class="strength-track">
+            <div class="strength-fill" :style="{ width: passwordStrength.width, background: passwordStrength.color }"></div>
+          </div>
+          <div class="strength-requirements">
+            <span v-for="item in passwordRequirements" :key="item.label" :class="{ ok: item.ok }">
+              {{ item.ok ? '✓' : '•' }} {{ item.label }}
+            </span>
+          </div>
         </div>
 
         <!-- CONFIRM -->
@@ -193,7 +275,7 @@ const handleRegister = async () => {
             </svg>
             Google
           </button>
-          <button class="btn-facebook">
+          <button @click="loginFacebook" class="btn-facebook">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#fff">
               <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
             </svg>
@@ -262,28 +344,65 @@ const handleRegister = async () => {
 .left {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   color: white;
-  padding: 40px;
+  padding: 38px 44px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .left h1 {
-  font-size: 28px;
+  margin: 0;
+  color: #ffffff;
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-size: 31px;
+  line-height: 1.22;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
 }
 
 .left span {
-  color: #c4b5fd;
+  color: #e4dcff;
 }
 
 .left p {
-  font-size: 13px;
-  opacity: 0.85;
+  max-width: 410px;
+  margin: 22px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.7;
+  font-weight: 500;
 }
 
-.left img {
+.left-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 24px;
+}
+
+.left-highlights span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.left-accessories {
   width: 100%;
-  border-radius: 12px;
+  height: 286px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 14px;
+  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.28);
 }
 
 .right {
@@ -337,6 +456,72 @@ h2 {
   background: transparent;
   outline: none;
   flex: 1;
+}
+
+.field-hint {
+  margin: -6px 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.field-hint.error {
+  color: #ef4444;
+}
+
+.password-strength {
+  margin: -4px 0 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e8edf5;
+  border-radius: 14px;
+}
+
+.strength-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.strength-head small {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.strength-track {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.strength-requirements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin-top: 10px;
+}
+
+.strength-requirements span {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.strength-requirements span.ok {
+  color: #16a34a;
 }
 
 .eye-btn {
@@ -440,6 +625,12 @@ h2 {
 
   .left {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .right {
+    padding: 24px 20px;
   }
 }
 

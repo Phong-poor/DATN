@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
+use App\Models\DatHang;
 
 class PromotionController extends Controller
 {
@@ -220,7 +221,15 @@ class PromotionController extends Controller
     // DELETE /api/admin/promotions/{id}
     public function destroy($id)
     {
+        // 1. Xóa tất cả các voucher liên kết của người dùng để tránh lỗi khóa ngoại
+        UserVoucher::where('id_promotion', $id)->delete();
+
+        // 2. Set null trường promotion_id của các đơn đặt hàng liên kết
+        DatHang::where('promotion_id', $id)->update(['promotion_id' => null]);
+
+        // 3. Tiến hành xóa khuyến mãi
         Promotion::destroy($id);
+
         return response()->json([
             'success' => true,
             'message' => 'Xóa khuyến mãi thành công!'

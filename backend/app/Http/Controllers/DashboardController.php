@@ -66,13 +66,34 @@ class DashboardController extends Controller
                 ];
             })->values();
 
-            // ================= BIỂU ĐỒ =================
+            // ================= BIỂU ĐỒ DOANH THU =================
             $bieuDo = DatHang::selectRaw("
                     DATE(created_at) as label,
                     SUM(tongtien) as total
                 ")
                 ->where('trangthai', 'done')
                 ->whereBetween('created_at', [$dateFrom, now()])
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+
+            // ================= BIỂU ĐỒ KHÁCH HÀNG =================
+            $bieuDoKhachHang = User::where('role', 'user')
+                ->selectRaw("DATE(created_at) as label, COUNT(*) as total")
+                ->whereBetween('created_at', [$dateFrom, now()])
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+
+            // ================= BIỂU ĐỒ SẢN PHẨM =================
+            $bieuDoSanPham = DatHangChiTiet::selectRaw("
+                    DATE(created_at) as label,
+                    SUM(soluong) as total
+                ")
+                ->whereHas('datHang', function ($q) use ($dateFrom) {
+                    $q->where('trangthai', 'done')
+                      ->whereBetween('created_at', [$dateFrom, now()]);
+                })
                 ->groupBy('label')
                 ->orderBy('label')
                 ->get();
@@ -138,14 +159,16 @@ class DashboardController extends Controller
                 });
 
                 return [
-                    'period'      => $period,
-                    'doanh_thu'   => $tongDoanhThu,
-                    'khach_hang'  => $tongKhachHang,
-                    'bien_the'    => $tongBienThe,
-                    'trang_thai'  => $trangThai,
-                    'bieu_do'     => $bieuDo,
-                    'don_hang'    => $donHang,
-                    'san_pham'    => $sanPham,
+                    'period'              => $period,
+                    'doanh_thu'           => $tongDoanhThu,
+                    'khach_hang'          => $tongKhachHang,
+                    'bien_the'            => $tongBienThe,
+                    'trang_thai'          => $trangThai,
+                    'bieu_do'             => $bieuDo,
+                    'bieu_do_khach_hang'  => $bieuDoKhachHang,
+                    'bieu_do_san_pham'    => $bieuDoSanPham,
+                    'don_hang'            => $donHang,
+                    'san_pham'            => $sanPham,
                 ];
             });
 

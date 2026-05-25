@@ -6,6 +6,7 @@ import echo from '@/services/echo'
 import { getToken, getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 const activeTab = ref('all')
 const selectedOrder = ref(null)
@@ -94,7 +95,7 @@ const fetchOrders = async () => {
         }
     } catch (err) {
         console.error('Lỗi lấy đơn hàng:', err)
-        alert('Không thể tải danh sách đơn hàng.')
+        swal.error('Lỗi', 'Không thể tải danh sách đơn hàng.')
     } finally {
         isLoading.value = false
     }
@@ -126,6 +127,11 @@ const getFullProductName = (item) => {
     } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
     
     return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
+const getProductImage = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    return sp.hinhanh ? storageUrl(sp.hinhanh) : 'https://via.placeholder.com/200'
 }
 
 onMounted(() => {
@@ -215,7 +221,7 @@ onUnmounted(() => {
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
                             <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
-                                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
+                                <img :src="getProductImage(item)" alt="product" />
                                 <div class="modal-item-info">
                                     <p class="modal-item-name">{{ getFullProductName(item) }}</p>
                                     <p class="modal-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
@@ -289,7 +295,7 @@ onUnmounted(() => {
 
                     <div class="order-items">
                         <div class="order-item" v-for="item in (order.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
-                            <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" alt="product" />
+                            <img :src="getProductImage(item)" alt="product" />
                             <div class="order-item-info">
                                 <p class="order-item-name">{{ getFullProductName(item) }}</p>
                                 <p class="order-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
@@ -755,5 +761,93 @@ onUnmounted(() => {
 .btn-danger {
     background: #dc2626;
     color: #fff;
+}
+
+/* ===================== RESPONSIVE STYLES ===================== */
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 16px;
+  }
+  .tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px;
+  }
+  .tab {
+    justify-content: center;
+  }
+  .order-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .order-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .order-items {
+    padding: 10px 16px;
+  }
+  .order-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .order-item img {
+    width: 60px;
+    height: 60px;
+  }
+  .order-item-price {
+    align-self: flex-end;
+    margin-top: -24px;
+  }
+  .order-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .order-foot .d-flex {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn-detail, .btn-reorder, .btn-cancel {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal {
+    width: calc(100% - 24px);
+    margin: 12px;
+  }
+  .modal-head {
+    padding: 18px 18px 0;
+  }
+  .modal-body {
+    padding: 16px 18px 18px;
+  }
+  .modal-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .modal-item img {
+    width: 60px;
+    height: 60px;
+  }
+  .modal-item-price {
+    align-self: flex-end;
+    margin-top: -24px;
+  }
+  .modal-total {
+    font-size: 13px;
+  }
+  .total-val {
+    font-size: 16px;
+  }
 }
 </style>

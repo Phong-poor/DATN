@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { getUser, updateUser } from '@/services/auth'
@@ -10,6 +10,27 @@ const selectedCategory = ref('all')
 const selectedStatus = ref('all')
 const showModal = ref(false)
 const formError = ref('')
+
+const isOpenCategoryDropdown = ref(false)
+const isOpenStatusDropdown = ref(false)
+
+const closeDropdowns = (e) => {
+    if (!e.target.closest('.custom-dropdown')) {
+        isOpenCategoryDropdown.value = false
+        isOpenStatusDropdown.value = false
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', closeDropdowns)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeDropdowns)
+})
+
+const categories = ['Tất cả danh mục', 'Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội bộ']
+const statuses = ['Mọi trạng thái', 'Đã xuất bản', 'Sắp xuất bản', 'Bản nháp']
 const loading = ref(false)
 const submitting = ref(false)
 const editingPost = ref(null)
@@ -401,46 +422,107 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div class="stats">
-      <div class="stat-card">
-        <div><p>TỔNG BÀI VIẾT</p><b>{{ formatNumber(stats.total) }}</b></div>
-        <div class="stat-icon blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-          </svg>
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat-card stat-blue">
+                <div>
+                    <p>TỔNG BÀI VIẾT</p>
+                    <b>{{ formatNumber(stats.total) }}</b>
+                </div>
+                <div class="stat-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-card stat-green">
+                <div>
+                    <p>ĐÃ XUẤT BẢN</p>
+                    <b>{{ formatNumber(stats.published) }}</b>
+                </div>
+                <div class="stat-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-card stat-purple">
+                <div>
+                    <p>LƯỢT XEM</p>
+                    <b>{{ formatNumber(stats.views) }}</b>
+                </div>
+                <div class="stat-icon purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-card stat-amber">
+                <div>
+                    <p>BẢN NHÁP</p>
+                    <b>{{ formatNumber(stats.draft) }}</b>
+                </div>
+                <div class="stat-icon amber">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="stat-card">
-        <div><p>ĐÃ XUẤT BẢN</p><b>{{ formatNumber(stats.published) }}</b></div>
-        <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg></div>
-      </div>
-      <div class="stat-card">
-        <div><p>LƯỢT XEM</p><b>{{ formatNumber(stats.views) }}</b></div>
-        <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg></div>
-      </div>
-      <div class="stat-card">
-        <div><p>BẢN NHÁP</p><b>{{ formatNumber(stats.draft) }}</b></div>
-        <div class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg></div>
-      </div>
-    </div>
 
-    <div class="filter-bar">
-      <div class="filter-left">
-        <select v-model="selectedCategory">
-          <option v-for="category in categoryOptions" :key="category.value" :value="category.value">{{ category.label }}</option>
-        </select>
-        <select v-model="selectedStatus">
-          <option v-for="status in statusOptions" :key="status.value" :value="status.value">{{ status.label }}</option>
-        </select>
-        <button class="btn-advanced" @click="reload(1)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-          </svg>
-          Làm mới
-        </button>
-      </div>
-      <span class="showing-count">HIỂN THỊ {{ posts.length }}/{{ totalPosts }} BÀI VIẾT</span>
-    </div>
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+            <div class="filter-left">
+                <!-- Custom Category Dropdown -->
+                <div class="custom-dropdown">
+                    <div class="dropdown-trigger" @click.stop="isOpenCategoryDropdown = !isOpenCategoryDropdown; isOpenStatusDropdown = false">
+                        <span>{{ categoryOptions.find(o => o.value === selectedCategory)?.label || 'Tất cả danh mục' }}</span>
+                        <svg class="chevron" :class="{ open: isOpenCategoryDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <transition name="fade-slide">
+                        <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
+                            <li v-for="c in categoryOptions" :key="c.value"
+                                :class="{ active: selectedCategory === c.value }"
+                                @click="selectedCategory = c.value; isOpenCategoryDropdown = false">
+                                {{ c.label }}
+                            </li>
+                        </ul>
+                    </transition>
+                </div>
+
+                <!-- Custom Status Dropdown -->
+                <div class="custom-dropdown">
+                    <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown; isOpenCategoryDropdown = false">
+                        <span>{{ statusOptions.find(o => o.value === selectedStatus)?.label || 'Mọi trạng thái' }}</span>
+                        <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <transition name="fade-slide">
+                        <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
+                            <li v-for="s in statusOptions" :key="s.value"
+                                :class="{ active: selectedStatus === s.value }"
+                                @click="selectedStatus = s.value; isOpenStatusDropdown = false">
+                                {{ s.label }}
+                            </li>
+                        </ul>
+                    </transition>
+                </div>
+                <button class="btn-advanced" @click="reload(1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/>
+                        <line x1="11" y1="18" x2="13" y2="18"/>
+                    </svg>
+                    Làm mới
+                </button>
+            </div>
+            <span class="showing-count">HIỂN THỊ {{ posts.length }}/{{ totalPosts }} BÀI VIẾT</span>
+        </div>
 
     <div class="table-wrap">
       <table>
@@ -603,6 +685,24 @@ onMounted(async () => {
 
 <style scoped>
 * { box-sizing: border-box; }
+
+.page {
+    background: #f5f7fb; min-height: 100vh;
+    font-family: sans-serif; padding-bottom: 0;
+}
+
+/* TOPBAR */
+.topbar {
+    display: flex; align-items: center; justify-content: flex-start;
+    padding: 12px 32px; background: white; border-bottom: 1px solid #f1f5f9;
+}
+.search-box { position: relative; width: 240px; }
+.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #94a3b8; pointer-events: none; }
+.search-box input { width: 100%; padding: 8px 12px 8px 32px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a; outline: none; background: #f8fafc; }
+.search-box input:focus { border-color: #2563eb; background: white; }
+
+.topbar-right { display: none !important; }
+.icon-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 6px 8px; border-radius: 8px; }
 .page { background: #f5f7fb; min-height: 100vh; font-family: sans-serif; }
 .topbar { align-items: center; background: white; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; padding: 12px 32px; }
 .search-box { position: relative; width: 260px; }
@@ -616,6 +716,180 @@ onMounted(async () => {
 .avatar-circle { align-items: center; background: linear-gradient(135deg,#2563eb,#4f46e5); border-radius: 50%; color: white; display: flex; font-size: 11px; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
 .breadcrumb { align-items: center; color: #94a3b8; display: flex; font-size: 12px; gap: 6px; padding: 16px 32px 0; }
 .crumb-active { color: #2563eb; font-weight: 500; }
+
+/* PAGE HEADER */
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 32px 20px; }
+.page-header h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 6px; letter-spacing: -0.02em; }
+.page-header p { font-size: 13px; color: #64748b; margin: 0; max-width: 460px; line-height: 1.5; }
+
+.btn-new {
+    display: flex; align-items: center; gap: 7px; white-space: nowrap;
+    padding: 11px 20px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg,#2563eb,#4f46e5);
+    color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.2s;
+}
+.btn-new svg { width: 14px; height: 14px; }
+.btn-new:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; padding: 0 32px 20px; }
+.stat-card {
+    border-radius: 14px;
+    border: none;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+.stat-card::after {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 999px;
+    right: -28px;
+    top: -28px;
+    background: rgba(255, 255, 255, 0.12);
+}
+.stat-card.stat-blue { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
+.stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
+.stat-card.stat-purple { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); }
+.stat-card.stat-amber { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+.stat-card p { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.82); letter-spacing: 0.08em; margin: 0 0 6px; }
+.stat-card b { font-size: 24px; font-weight: 800; color: #fff; }
+.stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon svg { width: 20px; height: 20px; }
+.stat-icon.blue,
+.stat-icon.green,
+.stat-icon.purple,
+.stat-icon.amber { background: rgba(255,255,255,.18); color: #fff; }
+
+/* FILTER */
+.filter-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 32px 14px; }
+.filter-left { display: flex; gap: 8px; align-items: center; }
+/* ── Custom Premium Dropdown ── */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 175px;
+    user-select: none;
+}
+
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dropdown-trigger:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.dropdown-trigger .chevron {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    transition: transform .2s ease;
+}
+
+.dropdown-trigger .chevron.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 6px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.dropdown-menu li {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.dropdown-menu li:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.dropdown-menu li.active {
+    background: #475569;
+    color: white;
+    font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+.btn-advanced {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
+    background: white; font-size: 13px; color: #334155; cursor: pointer; transition: all 0.2s;
+}
+.btn-advanced svg { width: 14px; height: 14px; }
+.btn-advanced:hover { border-color: #2563eb; color: #2563eb; }
+.showing-count { font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.06em; }
+
+/* TABLE */
+.table-wrap { margin: 0 32px; background: white; border-radius: 14px; border: 1px solid #f1f5f9; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
 .page-header { align-items: flex-start; display: flex; justify-content: space-between; padding: 12px 32px 20px; }
 .page-header h1 { color: #0f172a; font-size: 28px; font-weight: 800; margin: 0 0 6px; }
 .page-header p { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0; max-width: 470px; }
@@ -712,3 +986,5 @@ button:disabled { cursor: not-allowed; opacity: .65; }
   .content-image-tools { grid-template-columns: 1fr; }
 }
 </style>
+
+

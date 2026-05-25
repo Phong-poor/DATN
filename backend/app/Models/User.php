@@ -54,4 +54,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(DiaChi::class, 'id_user');
     }
+
+    public function affiliateProfile()
+    {
+        return $this->hasOne(AffiliateProfile::class, 'user_id');
+    }
+
+    public function affiliateReferrals()
+    {
+        return $this->hasMany(AffiliateReferral::class, 'affiliate_user_id');
+    }
+
+    public function referredByAffiliate()
+    {
+        return $this->hasOne(AffiliateReferral::class, 'referred_user_id');
+    }
+
+    public function affiliateWithdrawRequests()
+    {
+        return $this->hasMany(AffiliateWithdrawRequest::class, 'affiliate_user_id');
+    }
 }

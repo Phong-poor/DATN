@@ -16,7 +16,7 @@ const defaultCategories = ['Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội
 const placeholderImage = 'https://via.placeholder.com/800x500?text=Tin+tuc'
 
 const categories = computed(() => {
-  const names = [...posts.value, ...popularPosts.value].map((item) => item.category).filter(Boolean)
+  const names = [...posts.value, ...popularPosts.value].map((item) => item?.category).filter(Boolean)
   return [...new Set([...defaultCategories, ...names])]
 })
 const tabs = computed(() => ['Mới nhất', ...categories.value.slice(0, 4)])
@@ -62,7 +62,9 @@ const formatDate = (value) => {
 }
 
 const fetchNews = async (page = 1) => {
-  loading.value = true
+  if (posts.value.length === 0) {
+    loading.value = true
+  }
   errorMessage.value = ''
 
   try {
@@ -104,9 +106,39 @@ const selectTab = async (tab) => {
   await fetchNews(1)
 }
 
+const loadCache = () => {
+  try {
+    const cached = localStorage.getItem('nextgen_news_cache')
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      if (parsed.posts) posts.value = parsed.posts
+      if (parsed.popularPosts) popularPosts.value = parsed.popularPosts
+    }
+  } catch (e) {
+    console.error('Lỗi load cache tin tức:', e)
+  }
+}
+
+const saveCache = () => {
+  try {
+    localStorage.setItem('nextgen_news_cache', JSON.stringify({
+      posts: posts.value,
+      popularPosts: popularPosts.value
+    }))
+  } catch (e) {
+    console.error('Lỗi save cache tin tức:', e)
+  }
+}
+
 onMounted(async () => {
   applyListSeo()
-  await Promise.all([fetchNews(), fetchPopular()])
+  loadCache()
+  try {
+    await Promise.all([fetchNews(), fetchPopular()])
+    saveCache()
+  } catch (error) {
+    console.error('Lỗi tải tin tức:', error)
+  }
 })
 </script>
 
@@ -414,12 +446,24 @@ onMounted(async () => {
   width: 100%;
 }
 
-@media (max-width: 768px) {
+/* RESPONSIVE */
+@media (max-width: 1024px) {
   .news-page {
-    padding: 24px 16px;
+    padding: 30px 24px;
   }
+  .container {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
-  .container,
+@media (max-width: 640px) {
+  .news-page {
+    padding: 20px 16px;
+  }
   .grid {
     grid-template-columns: 1fr;
   }

@@ -60,10 +60,21 @@ npm run dev
 - MySQL
 
 ## ⚙️ Cách chạy dự án
++ DATN:
+ngrok http 8000 (để chạy thanh toán online bằng vnpay)
 
 + Backend:
 cd backend
 php artisan serve
+php artisan reverb:start
+php artisan queue:work
+
+* Lưu ý: Trước khi chạy backend thì phải có reverb, cài trong backend và frontend như sau:
+cd backend
+composer require laravel/reverb
+php artisan reverb:install
+cd frontend
+npm install --save-dev laravel-echo pusher-js
 
 + Frontend
 cd frontend

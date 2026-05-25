@@ -1,11 +1,17 @@
 <template>
-  <div class="chatbot-container">
+  <div :class="['chatbot-container', supportPanelOpen ? 'support-open' : '']">
     <!-- Bubble Button -->
-    <button class="chatbot-bubble glow-effect" @click="toggleChat"
+    <div class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
+      @keydown.enter.prevent="toggleChat" @keydown.space.prevent="toggleChat"
       :class="{ 'pulse-animation': !isOpen && messages.length === 1 }">
       <i v-if="!isOpen" class="chat-icon">💬</i>
       <i v-else class="close-icon">❌</i>
-    </button>
+
+      <!-- small support action inside bubble -->
+      <button class="bubble-support-action" type="button" @click.stop="dispatchToggleSupport" aria-label="Hỗ trợ">
+        ✨
+      </button>
+    </div>
 
     <!-- Chat Window -->
     <transition name="slide-fade">
@@ -19,8 +25,8 @@
               <span class="status-dot"></span>
             </div>
             <div class="title-wrap">
-              <h4 class="title">NetGen Laptop</h4>
-              <p class="subtitle">Chuyên gia tư vấn Laptop</p>
+              <h4 class="title">Chatbot hỗ trợ</h4>
+              <p class="subtitle">Trợ lý tự động tư vấn sản phẩm</p>
             </div>
           </div>
         </div>
@@ -76,9 +82,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import api from '@/services/api';
+import { storageUrl } from '@/services/urls';
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -124,7 +131,7 @@ const getProductImage = (bt) => {
   
   if (!image) return 'https://via.placeholder.com/150';
   if (image.startsWith('http')) return image;
-  return `http://localhost:8000/storage/${image}`;
+  return storageUrl(image);
 };
 
 const messages = ref([
@@ -139,6 +146,10 @@ const toggleChat = () => {
   if (isOpen.value) {
     scrollToBottom();
   }
+};
+
+const dispatchToggleSupport = () => {
+  window.dispatchEvent(new CustomEvent('toggle-support'));
 };
 
 const formatMessage = (text) => {
@@ -165,14 +176,7 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    const response = await axios.post('http://localhost:8000/api/chat', {
-      message: userText
-    }, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
+    const response = await api.post('/chat', { message: userText });
 
     if (response.data.reply) {
       messages.value.push({
@@ -188,8 +192,6 @@ const sendMessage = async () => {
     }
   } catch (error) {
     console.error('Chat error full:', error);
-    console.log('Status:', error?.response?.status);
-    console.log('Data:', error?.response?.data);
 
     if (error?.response?.data?.reply) {
       messages.value.push({
@@ -212,6 +214,28 @@ const sendMessage = async () => {
     await scrollToBottom();
   }
 };
+
+// Listen for global 'open-chatbot' events dispatched by other widgets
+const handleOpenChatEvent = () => {
+  isOpen.value = true;
+  scrollToBottom();
+};
+
+onMounted(() => {
+  window.addEventListener('open-chatbot', handleOpenChatEvent);
+  window.addEventListener('support-opened', handleSupportOpenedEvent);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('open-chatbot', handleOpenChatEvent);
+  window.removeEventListener('support-opened', handleSupportOpenedEvent);
+});
+
+// shift bubble when support panel opens to avoid overlap
+const supportPanelOpen = ref(false);
+const handleSupportOpenedEvent = (e) => {
+  supportPanelOpen.value = !!(e && e.detail && e.detail.open);
+};
 </script>
 
 <style scoped>
@@ -221,6 +245,11 @@ const sendMessage = async () => {
   right: 30px;
   z-index: 9999;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.chatbot-container.support-open {
+  right: 170px; /* shift left to avoid overlapping the support card */
+  transition: right 0.18s ease;
 }
 
 /* ===== BUBBLE BUTTON ===== */
@@ -259,6 +288,27 @@ const sendMessage = async () => {
   background: rgba(37, 99, 235, 0.35);
   z-index: -1;
   animation: pulse 2s infinite;
+}
+
+.bubble-support-action {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.12);
+  color: white;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bubble-support-action:hover {
+  background: rgba(255,255,255,0.18);
 }
 
 @keyframes pulse {
@@ -315,6 +365,50 @@ const sendMessage = async () => {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.chat-support-bar {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.support-agent {
+  display: flex;
+  flex-direction: column;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+}
+
+.agent-label {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.whatsapp-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(24, 119, 74, 0.15);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.whatsapp-contact-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(37, 211, 102, 0.18);
+  border-color: rgba(37, 211, 102, 0.3);
 }
 
 .avatar-wrap {

@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import api from '@/services/api'
 
 
 const name = ref('')
@@ -15,13 +16,7 @@ import { getToken } from '@/services/auth'
 
 onMounted(async () => {
     try {
-        const res = await fetch('http://localhost:8000/api/user/profile', {
-            headers: {
-                Authorization: 'Bearer ' + getToken()
-            }
-        })
-
-        const data = await res.json()
+        const data = (await api.get('/user/profile')).data
 
         name.value = data.name
         email.value = data.email
@@ -46,20 +41,12 @@ async function submitForm() {
         success.value = false
         loading.value = true
 
-        const res = await fetch('http://localhost:8000/api/lien-he', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name: name.value,
-                email: email.value,
-                phone: phone.value,
-                message: message.value,
-            }),
-        })
-
-        const data = await res.json()
+        const data = (await api.post('/lien-he', {
+            name: name.value,
+            email: email.value,
+            phone: phone.value,
+            message: message.value,
+        })).data
 
         if (data.status) {
             success.value = true
@@ -84,20 +71,50 @@ async function submitForm() {
     }
 }
 
-const mapLink =
-    'https://www.google.com/maps?q=123+Đường+Công+Nghệ+Quận+1+TPHCM'
+import { computed } from 'vue'
 
-const infos = [
+const showrooms = ref([
+    {
+        id: 1,
+        name: 'Trụ sở chính (Nhà Bè)',
+        address: 'Số 18/7 Huỳnh Tấn Phát, Thị trấn Nhà Bè, Huyện Nhà Bè, TP. Hồ Chí Minh',
+        query: 'Công Ty Cổ Phần Công Nghệ Đại Dương Huỳnh Tấn Phát',
+        mapUrl: 'https://www.google.com/maps?q=Công+Ty+Cổ+Phần+Công+Nghệ+Đại+Dương+Huỳnh+Tấn+Phát',
+        phone: '1900 8888 (Phím 1)'
+    },
+    {
+        id: 2,
+        name: 'Chi nhánh Quận 1 (TP. HCM)',
+        address: 'Số 135 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+        query: '135 Nguyễn Huệ, Bến Nghé, Quận 1, Thành phố Hồ Chí Minh',
+        mapUrl: 'https://www.google.com/maps?q=135+Nguyễn+Huệ,+Bến+Nghé,+Quận+1,+TP+Hồ+Chí+Minh',
+        phone: '1900 8888 (Phím 2)'
+    },
+    {
+        id: 3,
+        name: 'Chi nhánh Cầu Giấy (Hà Nội)',
+        address: 'Số 26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
+        query: '26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
+        mapUrl: 'https://www.google.com/maps?q=26+Trần+Thái+Tông,+Dịch+Vọng+Hậu,+Cầu+Giấy,+Hà+Nội',
+        phone: '1900 8888 (Phím 3)'
+    }
+])
+
+const selectedShowroom = ref(showrooms.value[0])
+
+const mapLink = computed(() => selectedShowroom.value.mapUrl)
+
+const infos = computed(() => [
     {
         icon: '📍',
         label: 'Địa chỉ',
-        value: 'Tòa nhà VinaTech, 123 Đường Công Nghệ, Quận 1, TP. Hồ Chí Minh',
+        value: selectedShowroom.value.address,
         color: '#dbeafe',
     },
     {
         icon: '📞',
         label: 'Hotline',
-        value: '1900 8888',
+        value: selectedShowroom.value.phone,
         bold: true,
         color: '#dcfce7',
     },
@@ -113,7 +130,7 @@ const infos = [
         value: 'T2 – T6: 8:00 – 18:00 | T7: 8:00 – 12:00',
         color: '#fef9c3',
     },
-]
+])
 </script>
 
 <template>
@@ -229,17 +246,36 @@ const infos = [
                             </div>
                         </div>
 
-                        <!-- MAP -->
-                        <a :href="mapLink" target="_blank" class="map-card">
+                        <!-- SHOWROOM SELECTOR -->
+                        <div class="showroom-selector-card">
+                            <h4>Hệ thống Showroom VinaTech:</h4>
+                            <div class="showroom-tabs">
+                                <button 
+                                    v-for="store in showrooms" 
+                                    :key="store.id" 
+                                    @click="selectedShowroom = store"
+                                    :class="{ active: selectedShowroom.id === store.id }"
+                                    class="showroom-tab-btn"
+                                >
+                                    <span class="store-dot"></span>
+                                    {{ store.name }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- INTERACTIVE MAP -->
+                        <div class="map-card interactive-map">
                             <iframe
-                                src="https://www.google.com/maps?q=123+Đường+Công+Nghệ+Quận+1+TPHCM&output=embed"
+                                :src="'https://www.google.com/maps?q=' + encodeURIComponent(selectedShowroom.query) + '&output=embed'"
                                 loading="lazy"
                             ></iframe>
 
-                            <div class="map-overlay">
-                                <span>Xem bản đồ chi tiết →</span>
+                            <div class="map-overlay-actions">
+                                <a :href="selectedShowroom.mapUrl" target="_blank" class="btn-open-maps">
+                                    🧭 Xem bản đồ vệ tinh / Chỉ đường →
+                                </a>
                             </div>
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -398,15 +434,117 @@ const infos = [
   font-weight: 700;
 }
 
-.map-card iframe {
-  width: 100%;
-  height: 180px;
-  border: none;
+.showroom-selector-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  padding: 24px;
 }
 
-.map-overlay {
-  padding: 14px;
-  text-align: center;
+.showroom-selector-card h4 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.showroom-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.showroom-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.showroom-tab-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  transform: translateX(4px);
+}
+
+.showroom-tab-btn.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+.store-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+  transition: all 0.25s ease;
+}
+
+.showroom-tab-btn.active .store-dot {
+  background-color: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6;
+}
+
+.map-card.interactive-map {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.map-card iframe {
+  width: 100%;
+  height: 240px;
+  border: none;
+  pointer-events: auto; /* Allow map panning & zooming */
+  transition: opacity 0.3s ease;
+}
+
+.map-overlay-actions {
+  padding: 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+.btn-open-maps {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.btn-open-maps:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

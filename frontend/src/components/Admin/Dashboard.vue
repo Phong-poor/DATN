@@ -3,16 +3,17 @@ import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import api from '@/services/api'
 import echo from '@/services/echo'
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// State
 const period = ref('all')          // all | week | month | year
 const loading = ref(true)
 const data = ref(null)
 const searchQuery = ref('')
 const hoveredStatus = ref(null) // Để quản lý trạng thái đang hover
+const chartTab = ref('sales')   // sales | customers | products
 
 const today = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: 'long', year: 'numeric' })
 
-// ─── Fetch ────────────────────────────────────────────────────────────────────
+// Fetch
 async function fetchDashboard() {
     loading.value = true
     try {
@@ -20,7 +21,7 @@ async function fetchDashboard() {
             params: { period: period.value } 
         })
 
-        data.value = res.data.data   // ✅ QUAN TRỌNG
+        data.value = res.data.data
 
     } catch (e) {
         console.error('Dashboard fetch error:', e)
@@ -37,8 +38,16 @@ function getColor(status) {
         cancelled: '#f87171'
     }[status] || '#ccc'
 }
+const isOpenPeriodDropdown = ref(false)
+const closePeriodDropdown = (e) => {
+    if (!e.target.closest('.chart-period-dropdown')) {
+        isOpenPeriodDropdown.value = false
+    }
+}
+
 onMounted(() => {
     fetchDashboard()
+    document.addEventListener('click', closePeriodDropdown)
 
     echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
@@ -68,22 +77,46 @@ onMounted(() => {
 })
 onUnmounted(() => {
     echo.leaveChannel('admin-orders')
+    document.removeEventListener('click', closePeriodDropdown)
 })
 watch(period, fetchDashboard)
 
-// ─── Stats cards ─────────────────────────────────────────────────────────────
+// Stats cards
 const stats = computed(() => {
     if (!data.value) return []
     // Debug: mở DevTools > Console để xem API trả về key nào
-    console.log('[Dashboard] API data:', JSON.stringify(data.value))
     return [
-        { label: 'Doanh thu tổng', value: data.value.doanh_thu ?? '0đ', icon: '💰', color: '#dbeafe' },
-        { label: 'Khách hàng', value: data.value.khach_hang ?? 0, icon: '👥', color: '#ede9fe' },
-        { label: 'Sản phẩm kho', value: data.value.bien_the ?? 0, icon: '🗃️', color: '#f1f5f9' },
+        {
+            label: 'Doanh thu tổng',
+            value: data.value.doanh_thu ?? '0đ',
+            icon: '💰',
+            iconBg: 'rgba(255,255,255,.16)',
+            cardBg: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            borderColor: 'transparent',
+            labelColor: 'rgba(255,255,255,.88)'
+        },
+        {
+            label: 'Khách hàng',
+            value: data.value.khach_hang ?? 0,
+            icon: '👥',
+            iconBg: 'rgba(255,255,255,.16)',
+            cardBg: 'linear-gradient(135deg, #c2410c 0%, #f97316 100%)',
+            borderColor: 'transparent',
+            labelColor: 'rgba(255,255,255,.88)'
+        },
+        {
+            label: 'Sản phẩm kho',
+            value: data.value.bien_the ?? 0,
+            icon: '🗃️',
+            iconBg: 'rgba(255,255,255,.16)',
+            cardBg: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+            borderColor: 'transparent',
+            labelColor: 'rgba(255,255,255,.88)'
+        },
     ]
 })
 
-// ─── Donut chart helpers ──────────────────────────────────────────────────────
+// Donut chart helpers
 const cx = 60, cy = 60, r = 46
 const circumference = 2 * Math.PI * r
 
@@ -109,7 +142,7 @@ const centerStat = computed(() => {
     }
 })
 
-// ─── Bar chart helpers ────────────────────────────────────────────────────────
+// Bar chart helpers
 const barChartData = computed(() => {
     if (!data.value?.bieu_do?.length) return []
     const maxVal = Math.max(...data.value.bieu_do.map(d => d.total), 1)
@@ -117,18 +150,150 @@ const barChartData = computed(() => {
     const maxIdx = arr.reduce((mi, d, i) => d.total > arr[mi].total ? i : mi, 0)
     return arr.map((d, i) => ({
         label: d.label,
-        val: Math.round((d.total / maxVal) * 95) + 5,   // 5–100 %
+        val: Math.round((d.total / maxVal) * 95) + 5,   // 5-100 %
         total: d.total,
         highlight: i === maxIdx,
     }))
 })
 
-// ─── Status badge class ───────────────────────────────────────────────────────
+const revenueChart = computed(() => {
+    if (!data.value?.bieu_do?.length) return null
+
+    const items = data.value.bieu_do.map((d) => ({
+        label: d.label,
+        revenue: Number(d.total) || 0,
+    }))
+    const itemCount = items.length
+
+    const width = 760
+    const height = 280
+    const left = 75 // Increased from 54 to prevent label clipping
+    const right = 55 // Adjusted slightly
+    const top = 24
+    const bottom = 44
+    const innerW = width - left - right
+    const innerH = height - top - bottom
+    const maxRevenue = Math.max(...items.map((i) => i.revenue), 1)
+    const avgTicket = 2000000
+    const orders = items.map((i) => Math.max(1, Math.round(i.revenue / avgTicket)))
+    const maxOrders = Math.max(...orders, 1)
+
+    // Add horizontal padding inside the chart area so the first and last bars don't touch the axes
+    const paddingX = itemCount === 1 ? 0 : 40
+    const plotW = innerW - 2 * paddingX
+
+    const colWidth = itemCount === 1
+        ? 24
+        : Math.max(8, Math.min(18, (innerW / itemCount) * 0.48))
+
+    const points = items.map((item, idx) => {
+        const x = itemCount === 1
+            ? left + innerW / 2
+            : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
+        const yRevenue = top + innerH - (item.revenue / maxRevenue) * innerH
+        const yOrders = top + innerH - (orders[idx] / maxOrders) * innerH
+        return { ...item, orders: orders[idx], x, yRevenue, yOrders }
+    })
+
+    const line = points.map((p) => `${p.x},${p.yOrders}`).join(' ')
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+        y: top + innerH - ratio * innerH,
+        revenueValue: Math.round(maxRevenue * ratio),
+        orderValue: Math.round(maxOrders * ratio),
+    }))
+
+    return { width, height, left, right, top, innerW, innerH, colWidth, points, line, yTicks }
+})
+
+const customerChart = computed(() => {
+    if (!data.value?.bieu_do_khach_hang?.length) return null
+
+    const items = data.value.bieu_do_khach_hang.map((d) => ({
+        label: d.label,
+        total: Number(d.total) || 0,
+    }))
+    const itemCount = items.length
+
+    const width = 760
+    const height = 280
+    const left = 75
+    const right = 55
+    const top = 24
+    const bottom = 44
+    const innerW = width - left - right
+    const innerH = height - top - bottom
+    const maxVal = Math.max(...items.map((i) => i.total), 1)
+
+    const paddingX = itemCount === 1 ? 0 : 40
+    const plotW = innerW - 2 * paddingX
+
+    const points = items.map((item, idx) => {
+        const x = itemCount === 1
+            ? left + innerW / 2
+            : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
+        const y = top + innerH - (item.total / maxVal) * innerH
+        return { ...item, x, y }
+    })
+
+    const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+    const areaPath = points.length ? `${linePath} L ${points[points.length - 1].x} ${top + innerH} L ${points[0].x} ${top + innerH} Z` : ''
+
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+        y: top + innerH - ratio * innerH,
+        val: Math.round(maxVal * ratio),
+    }))
+
+    return { width, height, left, right, top, innerW, innerH, points, linePath, areaPath, yTicks }
+})
+
+const productChart = computed(() => {
+    if (!data.value?.bieu_do_san_pham?.length) return null
+
+    const items = data.value.bieu_do_san_pham.map((d) => ({
+        label: d.label,
+        total: Number(d.total) || 0,
+    }))
+    const itemCount = items.length
+
+    const width = 760
+    const height = 280
+    const left = 75
+    const right = 55
+    const top = 24
+    const bottom = 44
+    const innerW = width - left - right
+    const innerH = height - top - bottom
+    const maxVal = Math.max(...items.map((i) => i.total), 1)
+
+    const paddingX = itemCount === 1 ? 0 : 40
+    const plotW = innerW - 2 * paddingX
+
+    const colWidth = itemCount === 1
+        ? 24
+        : Math.max(8, Math.min(18, (innerW / itemCount) * 0.48))
+
+    const points = items.map((item, idx) => {
+        const x = itemCount === 1
+            ? left + innerW / 2
+            : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
+        const y = top + innerH - (item.total / maxVal) * innerH
+        return { ...item, x, y }
+    })
+
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+        y: top + innerH - ratio * innerH,
+        val: Math.round(maxVal * ratio),
+    }))
+
+    return { width, height, left, right, top, innerW, innerH, colWidth, points, yTicks }
+})
+
+// Status badge class
 function statusClass(s) {
     return { pending: 'warn', confirmed: 'confirmed', shipping: 'info', done: 'ok', cancelled: 'out' }[s] ?? 'warn'
 }
 
-// ─── Period label ─────────────────────────────────────────────────────────────
+// Period label
 const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tuần này', month: 'Tháng này', year: 'Năm nay' }[period.value]))
 </script>
 
@@ -150,24 +315,19 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
                 </div>
                 <button class="icon-btn">🔔</button>
-                <router-link to="/" class="btn-home">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
-                    Trang chủ
-                </router-link>
             </div>
         </div>
 
-        <!-- Loading skeleton -->
-        <div v-if="loading" class="loading-wrap">
+        <!-- Subtle background loader (top of the page) -->
+        <div v-if="loading && data" class="background-loader-bar"></div>
+
+        <!-- Loading skeleton (only on initial load) -->
+        <div v-if="loading && !data" class="loading-wrap">
             <div class="spinner"></div>
             <span>Đang tải dữ liệu...</span>
         </div>
 
-        <template v-else-if="data">
+        <template v-if="data">
 
             <!-- PERIOD SELECTOR (global) -->
             <div class="period-bar">
@@ -182,11 +342,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
             <!-- STAT CARDS -->
             <div class="stats-grid">
-                <div class="stat-card" v-for="s in stats" :key="s.label">
+                <div class="stat-card" v-for="s in stats" :key="s.label" :style="{ background: s.cardBg, borderColor: s.borderColor }">
                     <div class="stat-top">
-                        <div class="stat-icon-wrap" :style="{ background: s.color }">{{ s.icon }}</div>
+                        <div class="stat-icon-wrap" :style="{ background: s.iconBg }">{{ s.icon }}</div>
                     </div>
-                    <p class="stat-label">{{ s.label }}</p>
+                    <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                     <b class="stat-value">{{ s.value }}</b>
                 </div>
             </div>
@@ -197,22 +357,177 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <!-- BAR CHART -->
                 <div class="card chart-card">
                     <div class="chart-header">
-                        <span class="chart-title">Biểu đồ doanh thu ({{ periodLabel }})</span>
-                    </div>
-                    <div class="bar-chart">
-                        <div v-if="barChartData.length" class="bars">
-                            <div class="bar-col" v-for="d in barChartData" :key="d.label">
-                                <div class="bar-wrap">
-                                    <span v-if="d.highlight" class="bar-tooltip">
-                                        {{ Number(d.total).toLocaleString('vi-VN') }}đ
-                                    </span>
-                                    <div class="bar-fill"
-                                        :style="{ height: d.val + '%', background: d.highlight ? '#2563eb' : '#bfdbfe' }">
-                                    </div>
-                                </div>
-                                <span class="bar-label">{{ d.label }}</span>
-                            </div>
+                        <div class="chart-tabs-nav">
+                            <button :class="['chart-nav-btn', { active: chartTab === 'sales' }]" @click="chartTab = 'sales'">
+                                📊 Doanh thu & Đơn hàng
+                            </button>
+                            <button :class="['chart-nav-btn', { active: chartTab === 'customers' }]" @click="chartTab = 'customers'">
+                                👥 Khách hàng mới
+                            </button>
+                            <button :class="['chart-nav-btn', { active: chartTab === 'products' }]" @click="chartTab = 'products'">
+                                📦 Lượng sản phẩm bán
+                            </button>
                         </div>
+                        <div class="custom-dropdown chart-period-dropdown">
+                            <div class="dropdown-trigger chart-period-trigger" @click.stop="isOpenPeriodDropdown = !isOpenPeriodDropdown">
+                                <span>{{ periodLabel }}</span>
+                                <svg class="chevron" :class="{ open: isOpenPeriodDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <transition name="fade-slide">
+                                <ul v-if="isOpenPeriodDropdown" class="dropdown-menu">
+                                    <li :class="{ active: period === 'all' }" @click="period = 'all'; isOpenPeriodDropdown = false">
+                                        Tất cả thời gian
+                                    </li>
+                                    <li :class="{ active: period === 'week' }" @click="period = 'week'; isOpenPeriodDropdown = false">
+                                        Tuần này
+                                    </li>
+                                    <li :class="{ active: period === 'month' }" @click="period = 'month'; isOpenPeriodDropdown = false">
+                                        Tháng này
+                                    </li>
+                                    <li :class="{ active: period === 'year' }" @click="period = 'year'; isOpenPeriodDropdown = false">
+                                        Năm nay
+                                    </li>
+                                </ul>
+                            </transition>
+                        </div>
+                    </div>
+
+                    <div class="bar-chart">
+                        <!-- CHART 1: SALES & ORDERS -->
+                        <div v-if="chartTab === 'sales' && revenueChart" class="revenue-chart-wrap">
+                            <div class="revenue-legend">
+                                <span><i class="dot revenue"></i>Revenue</span>
+                                <span><i class="dot orders"></i>Orders</span>
+                            </div>
+                            <svg class="revenue-svg" :viewBox="`0 0 ${revenueChart.width} ${revenueChart.height}`" preserveAspectRatio="none">
+                                <defs>
+                                    <!-- Gradient for Revenue Bars -->
+                                    <linearGradient id="revenueBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#4f46e5" />
+                                        <stop offset="100%" stop-color="#818cf8" />
+                                    </linearGradient>
+                                    <!-- Soft Glow Filter for Line Chart -->
+                                    <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#10b981" flood-opacity="0.3" />
+                                    </filter>
+                                </defs>
+
+                                <line v-for="tick in revenueChart.yTicks" :key="`grid-${tick.y}`" :x1="revenueChart.left"
+                                    :x2="revenueChart.left + revenueChart.innerW" :y1="tick.y" :y2="tick.y" class="revenue-grid" />
+                                
+                                <!-- Revenue Bars with Gradients and Tooltips -->
+                                <rect v-for="p in revenueChart.points" :key="`bar-${p.label}`"
+                                    :x="p.x - revenueChart.colWidth / 2"
+                                    :y="p.yRevenue"
+                                    :width="revenueChart.colWidth"
+                                    :height="revenueChart.top + revenueChart.innerH - p.yRevenue"
+                                    class="revenue-bar">
+                                    <title>Doanh thu {{ p.label }}: {{ new Intl.NumberFormat('vi-VN').format(p.revenue) }}đ</title>
+                                </rect>
+
+                                <!-- Orders Line and Points with Glow and Tooltips -->
+                                <polyline :points="revenueChart.line" class="orders-line" />
+                                <circle v-for="p in revenueChart.points" :key="`pt-${p.label}`" 
+                                    :cx="p.x" :cy="p.yOrders" r="5" 
+                                    class="orders-point">
+                                    <title>Đơn hàng {{ p.label }}: {{ p.orders }} đơn</title>
+                                </circle>
+
+                                <!-- Left Y-Axis: Revenue (formatted in Million 'M' or Thousand 'k') -->
+                                <text v-for="tick in revenueChart.yTicks" :key="`left-${tick.y}`" :x="revenueChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
+                                    {{ tick.revenueValue === 0 ? '0đ' : (tick.revenueValue >= 1000000 ? (tick.revenueValue / 1000000).toFixed(1) + 'Mđ' : (tick.revenueValue / 1000).toFixed(0) + 'kđ') }}
+                                </text>
+
+                                <!-- Right Y-Axis: Orders Count -->
+                                <text v-for="tick in revenueChart.yTicks" :key="`right-${tick.y}`" :x="revenueChart.left + revenueChart.innerW + 12" :y="tick.y + 4" text-anchor="start" class="axis-label">
+                                    {{ tick.orderValue }} đơn
+                                </text>
+
+                                <!-- X-Axis Labels: Aligned perfectly inside SVG -->
+                                <text v-for="p in revenueChart.points" :key="`x-lbl-${p.label}`" :x="p.x" :y="revenueChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
+                                    {{ p.label }}
+                                </text>
+                            </svg>
+                        </div>
+
+                        <!-- CHART 2: NEW CUSTOMERS -->
+                        <div v-else-if="chartTab === 'customers' && customerChart" class="revenue-chart-wrap">
+                            <div class="revenue-legend">
+                                <span><i class="dot customer-legend-dot"></i>Khách hàng mới đăng ký</span>
+                            </div>
+                            <svg class="revenue-svg" :viewBox="`0 0 ${customerChart.width} ${customerChart.height}`" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="customerAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#f97316" stop-opacity="0.4" />
+                                        <stop offset="100%" stop-color="#f97316" stop-opacity="0.0" />
+                                    </linearGradient>
+                                    <filter id="customerGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#f97316" flood-opacity="0.3" />
+                                    </filter>
+                                </defs>
+                                <line v-for="tick in customerChart.yTicks" :key="`grid-cust-${tick.y}`" :x1="customerChart.left"
+                                    :x2="customerChart.left + customerChart.innerW" :y1="tick.y" :y2="tick.y" class="revenue-grid" />
+                                
+                                <!-- Area under the curve -->
+                                <path :d="customerChart.areaPath" fill="url(#customerAreaGradient)" />
+                                <!-- Line chart -->
+                                <path :d="customerChart.linePath" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" filter="url(#customerGlow)" />
+                                
+                                <!-- Customer points -->
+                                <circle v-for="p in customerChart.points" :key="`pt-cust-${p.label}`" 
+                                    :cx="p.x" :cy="p.y" r="5" class="customer-point">
+                                    <title>Khách hàng mới {{ p.label }}: {{ p.total }} người</title>
+                                </circle>
+
+                                <!-- Left Axis: Customer Count -->
+                                <text v-for="tick in customerChart.yTicks" :key="`left-cust-${tick.y}`" :x="customerChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
+                                    {{ tick.val }} người
+                                </text>
+
+                                <!-- X-Axis Labels -->
+                                <text v-for="p in customerChart.points" :key="`x-lbl-cust-${p.label}`" :x="p.x" :y="customerChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
+                                    {{ p.label }}
+                                </text>
+                            </svg>
+                        </div>
+
+                        <!-- CHART 3: PRODUCT SALES -->
+                        <div v-else-if="chartTab === 'products' && productChart" class="revenue-chart-wrap">
+                            <div class="revenue-legend">
+                                <span><i class="dot product-legend-dot"></i>Số sản phẩm bán ra</span>
+                            </div>
+                            <svg class="revenue-svg" :viewBox="`0 0 ${productChart.width} ${productChart.height}`" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="productBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#14b8a6" />
+                                        <stop offset="100%" stop-color="#0f766e" />
+                                    </linearGradient>
+                                </defs>
+                                <line v-for="tick in productChart.yTicks" :key="`grid-prod-${tick.y}`" :x1="productChart.left"
+                                    :x2="productChart.left + productChart.innerW" :y1="tick.y" :y2="tick.y" class="revenue-grid" />
+                                
+                                <!-- Product Bars -->
+                                <rect v-for="p in productChart.points" :key="`bar-prod-${p.label}`"
+                                    :x="p.x - productChart.colWidth / 2" :y="p.y"
+                                    :width="productChart.colWidth" :height="productChart.top + productChart.innerH - p.y"
+                                    class="product-bar">
+                                    <title>Sản phẩm bán {{ p.label }}: {{ p.total }} cái</title>
+                                </rect>
+
+                                <!-- Left Axis: Product Count -->
+                                <text v-for="tick in productChart.yTicks" :key="`left-prod-${tick.y}`" :x="productChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
+                                    {{ tick.val }} cái
+                                </text>
+
+                                <!-- X-Axis Labels -->
+                                <text v-for="p in productChart.points" :key="`x-lbl-prod-${p.label}`" :x="p.x" :y="productChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
+                                    {{ p.label }}
+                                </text>
+                            </svg>
+                        </div>
+
                         <div v-else class="empty-chart">Chưa có dữ liệu trong kỳ này</div>
                     </div>
                 </div>
@@ -324,6 +639,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     min-height: 100vh;
     font-family: sans-serif;
     padding: 0 0 40px;
+    position: relative;
+}
+
+.background-loader-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #14b8a6, #7c3aed);
+    background-size: 200% 100%;
+    animation: background-slide 1.2s infinite linear;
+    z-index: 99999;
+}
+
+@keyframes background-slide {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* TOPBAR */
@@ -395,34 +728,6 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .icon-btn:hover {
     background: #e2e8f0;
-}
-
-.btn-home {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 9px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    font-size: 13px;
-    font-weight: 600;
-    color: #334155;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-
-.btn-home svg {
-    width: 14px;
-    height: 14px;
-}
-
-.btn-home:hover {
-    border-color: #2563eb;
-    color: #2563eb;
-    background: #f0f6ff;
 }
 
 /* LOADING */
@@ -500,10 +805,30 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .stat-card {
-    background: white;
     border-radius: 14px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid transparent;
     padding: 16px 18px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    right: -26px;
+    top: -26px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
 }
 
 .stat-top {
@@ -520,18 +845,22 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     align-items: center;
     justify-content: center;
     font-size: 18px;
+    color: #fff;
+    backdrop-filter: blur(6px);
 }
 
 .stat-label {
     font-size: 11px;
-    color: #94a3b8;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     margin: 0 0 4px;
+    text-transform: uppercase;
 }
 
 .stat-value {
     font-size: 22px;
     font-weight: 800;
-    color: #0f172a;
+    color: #fff;
 }
 
 /* CHARTS ROW */
@@ -563,10 +892,20 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     color: #0f172a;
 }
 
+.chart-period {
+    font-size: 12px;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px 10px;
+    background: #fff;
+}
+
 .bar-chart {
-    height: 160px;
+    min-height: 220px;
     display: flex;
-    align-items: flex-end;
+    align-items: stretch;
+    padding: 8px 2px 0;
 }
 
 .bars {
@@ -634,6 +973,102 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     transform: translateX(-50%);
     border: 4px solid transparent;
     border-top-color: #0f172a;
+}
+
+.revenue-chart-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.revenue-svg {
+    width: 100%;
+    height: 262px;
+}
+
+.revenue-grid {
+    stroke: #e2e8f0;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+}
+
+.revenue-legend {
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+    font-size: 12px;
+    color: #334155;
+}
+
+.revenue-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot.revenue {
+    background: #4f46e5;
+}
+
+.dot.orders {
+    background: #10b981;
+}
+
+.revenue-bar {
+    fill: url(#revenueBarGradient);
+    opacity: 0.88;
+    rx: 6px;
+    filter: drop-shadow(0 4px 10px rgba(79, 70, 229, 0.15));
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.revenue-bar:hover {
+    opacity: 1;
+    fill: #4f46e5;
+    filter: drop-shadow(0 6px 15px rgba(79, 70, 229, 0.35));
+}
+
+.orders-line {
+    fill: none;
+    stroke: #10b981;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: url(#emeraldGlow);
+}
+
+.orders-point {
+    fill: #ffffff;
+    stroke: #10b981;
+    stroke-width: 3;
+    r: 5;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.orders-point:hover {
+    r: 7;
+    fill: #10b981;
+    stroke: #ffffff;
+}
+
+.axis-label {
+    font-size: 11px;
+    fill: #64748b;
+    font-weight: 600;
+}
+
+.x-axis-label {
+    fill: #475569;
+    font-weight: 700;
 }
 
 .empty-chart {
@@ -913,4 +1348,170 @@ tbody td {
         padding-right: 16px;
     }
 }
+
+/* Navigation tabs inside the chart card */
+.chart-tabs-nav {
+    display: flex;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 8px;
+}
+
+.chart-nav-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.chart-nav-btn:hover {
+    color: #0f172a;
+    background: rgba(255,255,255,0.4);
+}
+
+.chart-nav-btn.active {
+    background: white;
+    color: #2563eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Customer Chart Specific Elements */
+.dot.customer-legend-dot {
+    background: #f97316;
+}
+
+.customer-point {
+    fill: #ffffff;
+    stroke: #f97316;
+    stroke-width: 3;
+    r: 5;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.customer-point:hover {
+    r: 7;
+    fill: #f97316;
+    stroke: #ffffff;
+}
+
+/* Product Chart Specific Elements */
+.dot.product-legend-dot {
+    background: #14b8a6;
+}
+
+.product-bar {
+    fill: url(#productBarGradient);
+    opacity: 0.88;
+    rx: 6px;
+    filter: drop-shadow(0 4px 10px rgba(20, 184, 166, 0.15));
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.product-bar:hover {
+    opacity: 1;
+    fill: #14b8a6;
+    filter: drop-shadow(0 6px 15px rgba(20, 184, 166, 0.35));
+}
+
+/* Custom Dropdown for Statistical Period */
+.chart-period-dropdown {
+    position: relative;
+    user-select: none;
+    min-width: 145px;
+}
+
+.chart-period-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: #475569;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 5px 12px;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.chart-period-trigger:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.06);
+}
+
+.chart-period-trigger .chevron {
+    width: 12px;
+    height: 12px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.chart-period-trigger .chevron.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 5px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    min-width: 145px;
+}
+
+.dropdown-menu li {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.dropdown-menu li:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.dropdown-menu li.active {
+    background: #475569;
+    color: white;
+    font-weight: 700;
+}
+
+/* Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
 </style>
+

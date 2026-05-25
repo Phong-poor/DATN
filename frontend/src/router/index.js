@@ -20,6 +20,8 @@ import LoginSuccess from '../components/Web/LoginSuccess.vue'
 import WishlistPage from '../components/Web/WishlistPage.vue'
 import ThankYou from '../components/Web/ThankYou.vue'
 import PaymentFailed from '../components/Web/PaymentFailed.vue'
+import InteractiveLabs from '../components/Web/InteractiveLabs.vue'
+import AffiliateCenter from '../components/Web/AffiliateCenter.vue'
 
 // ── Auth ──
 import Login from '../components/Auth/Login.vue'
@@ -55,6 +57,8 @@ const routes = [
       { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
       { path: 'thank-you', name: 'thank-you', component: ThankYou },
       { path: 'payment-failed', name: 'payment-failed', component: PaymentFailed },
+      { path: 'interactive-labs', name: 'interactive-labs', component: InteractiveLabs },
+      { path: 'affiliate', name: 'affiliate', component: AffiliateCenter },
     ],
   },
 
@@ -72,18 +76,23 @@ const routes = [
     component: AdminLayout,
     meta: { requiresAdmin: true },
     children: [
-      { path: '', name: 'admin-dashboard', component: AdminDashboard },
-      { path: 'products', name: 'admin-products', component: () => import('../components/Admin/Products.vue') },
-      { path: 'orders', name: 'admin-orders', component: () => import('../components/Admin/Orders.vue') },
-      { path: 'users', name: 'admin-users', component: () => import('../components/Admin/Users.vue') },
-      { path: 'news', name: 'admin-news', component: () => import('../components/Admin/News.vue') },
-      { path: 'settings', name: 'admin-settings', component: () => import('../components/Admin/Settings.vue') },
-      { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue') },
-      { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue') },
-      { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue') },
-      { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue') },
-      { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue') },
-      { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue') },
+      { path: '', name: 'admin-dashboard', component: AdminDashboard, meta: { title: 'Tổng quan hệ thống' } },
+      { path: 'products', name: 'admin-products', component: () => import('../components/Admin/Products.vue'), meta: { title: 'Quản lý sản phẩm' } },
+      { path: 'orders', name: 'admin-orders', component: () => import('../components/Admin/Orders.vue'), meta: { title: 'Quản lý đơn hàng' } },
+      { path: 'users', name: 'admin-users', component: () => import('../components/Admin/Users.vue'), meta: { title: 'Quản lý người dùng' } },
+      { path: 'news', name: 'admin-news', component: () => import('../components/Admin/News.vue'), meta: { title: 'Quản lý bài viết' } },
+      { path: 'settings', name: 'admin-settings', component: () => import('../components/Admin/Settings.vue'), meta: { title: 'Cài đặt hệ thống' } },
+      { path: 'profile', name: 'admin-profile', component: () => import('../components/Admin/AdminProfile.vue'), meta: { title: 'Hồ sơ quản trị' } },
+      { path: 'activity-log', name: 'admin-activity-log', component: () => import('../components/Admin/AdminActivityLog.vue'), meta: { title: 'Nhật ký hoạt động' } },
+      { path: 'billing', name: 'admin-billing', component: () => import('../components/Admin/AdminBilling.vue'), meta: { title: 'Billing quản trị' } },
+      { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue'), meta: { title: 'Quản lý biến thể' } },
+      { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue'), meta: { title: 'Quản lý danh mục' } },
+      { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue'), meta: { title: 'Quản lý khuyến mãi' } },
+      { path: 'banners', name: 'admin-banners', component: () => import('../components/Admin/Banners.vue'), meta: { title: 'Quản lý banner' } },
+      { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue'), meta: { title: 'Quản lý liên hệ' } },
+      { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue'), meta: { title: 'Quản lý thương hiệu' } },
+      { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue'), meta: { title: 'Quản lý bình luận' } },
+      { path: 'affiliates', name: 'admin-affiliates', component: () => import('../components/Admin/Affiliates.vue'), meta: { title: 'Quản lý affiliate' } },
     ],
   },
 
@@ -96,7 +105,14 @@ const router = createRouter({
   routes,
 })
 
+router.afterEach(() => {
+  setTimeout(() => {
+    window.dispatchEvent(new Event('global-loader-hide'))
+  }, 120)
+})
+
 router.beforeEach((to, from, next) => {
+  window.dispatchEvent(new Event('global-loader-show'))
   const user = getUser()
   const token = getToken()
 
@@ -114,6 +130,7 @@ router.beforeEach((to, from, next) => {
     '/cart',
     '/thank-you',
     '/payment-failed',
+    '/interactive-labs',
   ]
 
   const isPublic =

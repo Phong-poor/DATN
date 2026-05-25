@@ -1,63 +1,96 @@
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+﻿import Echo from 'laravel-echo'
+import Pusher from 'pusher-js'
 
-import { getToken } from './auth';
+import { getToken } from './auth'
+import { backendBaseUrl } from './urls'
 
-window.Pusher = Pusher;
+const noopChannel = {
+    listen: () => noopChannel,
+    stopListening: () => noopChannel,
+    notification: () => noopChannel,
+    subscribed: () => noopChannel,
+    error: () => noopChannel,
+    here: () => noopChannel,
+    joining: () => noopChannel,
+    leaving: () => noopChannel,
+    listenForWhisper: () => noopChannel,
+    whisper: () => noopChannel,
+}
 
-const echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-    authEndpoint: (import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/broadcasting/auth',
-    authorizer: (channel, options) => {
-        return {
+const disabledEcho = {
+    channel: () => noopChannel,
+    private: () => noopChannel,
+    encryptedPrivate: () => noopChannel,
+    join: () => noopChannel,
+    leave: () => {},
+    leaveChannel: () => {},
+    disconnect: () => {},
+    connector: null,
+    disabled: true,
+}
+
+const reverbKey = import.meta.env.VITE_REVERB_APP_KEY
+const reverbHost = import.meta.env.VITE_REVERB_HOST || window.location.hostname
+const reverbPort = import.meta.env.VITE_REVERB_PORT || 8080
+const reverbScheme = import.meta.env.VITE_REVERB_SCHEME || 'http'
+
+let echo = disabledEcho
+
+if (reverbKey) {
+    window.Pusher = Pusher
+
+    echo = new Echo({
+        broadcaster: 'reverb',
+        key: reverbKey,
+        wsHost: reverbHost,
+        wsPort: reverbPort,
+        wssPort: reverbPort,
+        forceTLS: reverbScheme === 'https',
+        enabledTransports: ['ws', 'wss'],
+        authEndpoint: `${backendBaseUrl}/api/broadcasting/auth`,
+        authorizer: (channel) => ({
             authorize: (socketId, callback) => {
-                const token = getToken();
+                const token = getToken()
 
                 if (!token) {
-                    callback(true, new Error('Socket auth skipped: missing token'));
-                    return;
+                    callback(true, new Error('Socket auth skipped: missing token'))
+                    return
                 }
 
-                fetch((import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/broadcasting/auth', {
+                fetch(`${backendBaseUrl}/api/broadcasting/auth`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        Accept: 'application/json',
+                        Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         socket_id: socketId,
-                        channel_name: channel.name
-                    })
+                        channel_name: channel.name,
+                    }),
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Auth failed: ${response.status}`);
-                        }
-                        return response.json();
+                    .then((response) => {
+                        if (!response.ok) throw new Error(`Auth failed: ${response.status}`)
+                        return response.json()
                     })
-                    .then(data => callback(false, data))
-                    .catch(error => {
-                        console.warn('Không thể xác thực Socket:', error.message);
-                        callback(true, error);
-                    });
-            }
-        };
-    },
-});
+                    .then((data) => callback(false, data))
+                    .catch((error) => {
+                        console.warn('Không thể xác thực Socket:', error.message)
+                        callback(true, error)
+                    })
+            },
+        }),
+    })
 
-echo.connector.pusher.connection.bind('connected', () => {
-    console.log('✅ Socket connected to Reverb!');
-});
+    echo.connector?.pusher?.connection?.bind('connected', () => {
+        console.log('Socket connected to Reverb!')
+    })
 
-echo.connector.pusher.connection.bind('error', (err) => {
-    console.error('❌ Socket connection error:', err);
-});
+    echo.connector?.pusher?.connection?.bind('error', (err) => {
+        console.warn('Socket connection error:', err)
+    })
+} else {
+    console.warn('Reverb socket disabled: missing VITE_REVERB_APP_KEY. App will continue without realtime updates.')
+}
 
-export default echo;
+export default echo

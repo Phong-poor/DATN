@@ -6,6 +6,8 @@ import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
+import { getPrefetchedProductsData, prefetchProductsPage } from '@/services/productsPrefetch'
 
 const thongBao = ref('')
 const router = useRouter()
@@ -55,9 +57,43 @@ const selectedPriceRange = ref('')
 const selectedSort = ref('')
 const showFilterModal = ref(false)
 
+const applyPrefetchedData = (warm) => {
+    if (!warm) return false
+    products.value = mapProducts(warm.productsRaw || [])
+    categories.value = warm.categories || []
+    brands.value = warm.brands || []
+    attrOptions.value = warm.attrOptions || attrOptions.value
+    applyFilters()
+    return true
+}
+
 // ===================== MAP PRODUCTS =====================
-const shuffleProducts = (items) => {
-    return [...items].sort(() => Math.random() - 0.5)
+const interleaveProductVariants = (items) => {
+    const groups = new Map()
+
+    items.forEach((item) => {
+        const groupKey = item.id
+        if (!groups.has(groupKey)) groups.set(groupKey, [])
+        groups.get(groupKey).push(item)
+    })
+
+    const productGroups = [...groups.values()]
+    const result = []
+    let hasMore = true
+    let variantIndex = 0
+
+    while (hasMore) {
+        hasMore = false
+        productGroups.forEach((group) => {
+            if (group.length > variantIndex) {
+                result.push(group[variantIndex])
+                hasMore = true
+            }
+        })
+        variantIndex++
+    }
+
+    return result
 }
 
 const mapProducts = (rawProducts) => {
@@ -76,7 +112,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: 0,
                 specs: [],
                 all_variants: [],
-                img: getImageUrl(p.hinhanh),
+                img: p.hinhanh ? storageUrl(p.hinhanh) : '',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
@@ -153,7 +189,7 @@ const mapProducts = (rawProducts) => {
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 specs: specs,
                 all_variants: all_vars_info,
-                img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : ''),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -174,7 +210,7 @@ const mapProducts = (rawProducts) => {
         variantIndex++;
     }
 
-    return shuffleProducts(flatList);
+    return interleaveProductVariants(flatList);
 }
 
 // ===================== FETCH PRODUCTS =====================
@@ -185,7 +221,7 @@ const fetchProducts = async () => {
             ? `/sanpham/search?q=${encodeURIComponent(q)}`
             : '/sanpham'
 
-        const res = await api.get(url)
+        const res = await api.get(url, { skipGlobalLoader: true })
         const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
         products.value = mapProducts(raw)
 
@@ -198,9 +234,9 @@ const fetchProducts = async () => {
 const loadFilterData = async () => {
     try {
         const [catRes, brandRes, attrRes] = await Promise.all([
-            api.get('/danhmuc'),
-            api.get('/thuonghieu'),
-            api.get('/sanpham/attribute-options')
+            api.get('/danhmuc', { skipGlobalLoader: true }),
+            api.get('/thuonghieu', { skipGlobalLoader: true }),
+            api.get('/sanpham/attribute-options', { skipGlobalLoader: true })
         ])
 
         categories.value = catRes.data?.data || catRes.data || []
@@ -303,7 +339,9 @@ const applyFilters = () => {
     } else if (selectedPriceRange.value === 'above50') {
         result = result.filter(p => p.priceNum > 50000000)
     }
-    if (selectedSort.value === 'newest') {
+    if (!selectedSort.value) {
+        result = interleaveProductVariants(result)
+    } else if (selectedSort.value === 'newest') {
         result.sort((a, b) => b.id - a.id)
     } else if (selectedSort.value === 'price_asc') {
         result.sort((a, b) => a.priceNum - b.priceNum)
@@ -367,9 +405,46 @@ const themVaoYeuThich = async (product) => {
     }
 }
 
+const loadCache = () => {
+    try {
+        const cached = localStorage.getItem('nextgen_products_cache')
+        if (cached) {
+            const parsed = JSON.parse(cached)
+            if (parsed.productsRaw) products.value = mapProducts(parsed.productsRaw)
+            if (parsed.categories) categories.value = parsed.categories
+            if (parsed.brands) brands.value = parsed.brands
+            if (parsed.attrOptions) attrOptions.value = parsed.attrOptions
+            applyFilters()
+            return true
+        }
+    } catch (e) {
+        console.error('Lỗi load cache sản phẩm:', e)
+    }
+    return false
+}
+
+const saveCache = (productsRaw, categoriesData, brandsData, attrOptionsData) => {
+    try {
+        localStorage.setItem('nextgen_products_cache', JSON.stringify({
+            productsRaw,
+            categories: categoriesData,
+            brands: brandsData,
+            attrOptions: attrOptionsData
+        }))
+    } catch (e) {
+        console.error('Lỗi save cache sản phẩm:', e)
+    }
+}
+
 // ===================== INIT =====================
 onMounted(async () => {
-    isLoading.value = true
+    // 1. Tải cache ngay lập tức để hiển thị tức thì
+    const hasCache = loadCache()
+    if (hasCache) {
+        isLoading.value = false
+    } else {
+        isLoading.value = true
+    }
 
     // Xử lý query params từ trang khác (vd: Home) gửi qua
     if (route.query.cat) {
@@ -379,12 +454,41 @@ onMounted(async () => {
         selectedBrands.value = [String(route.query.brand)]
     }
 
-    await Promise.all([
-        fetchProducts(),
-        loadFilterData()
-    ])
-    applyFilters()
-    isLoading.value = false
+    // 2. Chạy ngầm tải dữ liệu mới từ API máy chủ
+    try {
+        const q = route.query.q
+        const url = q
+            ? `/sanpham/search?q=${encodeURIComponent(q)}`
+            : '/sanpham'
+
+        const [spRes, catRes, brandRes, attrRes] = await Promise.all([
+            api.get(url, { skipGlobalLoader: true }),
+            api.get('/danhmuc', { skipGlobalLoader: true }),
+            api.get('/thuonghieu', { skipGlobalLoader: true }),
+            api.get('/sanpham/attribute-options', { skipGlobalLoader: true })
+        ])
+
+        const rawProducts = Array.isArray(spRes.data) ? spRes.data : (spRes.data.data || [])
+        const categoriesData = catRes.data?.data || catRes.data || []
+        const brandsData = brandRes.data?.data || brandRes.data || []
+        const attrOptionsData = attrRes.data || attrOptions.value
+
+        products.value = mapProducts(rawProducts)
+        categories.value = categoriesData
+        brands.value = brandsData
+        attrOptions.value = attrOptionsData
+
+        applyFilters()
+        isLoading.value = false
+
+        // Lưu cache mới nhất (chỉ lưu nếu không tìm kiếm để tránh đè cache chung bằng kết quả tìm kiếm hẹp)
+        if (!q) {
+            saveCache(rawProducts, categoriesData, brandsData, attrOptionsData)
+        }
+    } catch (error) {
+        console.error('Lỗi khi tải dữ liệu sản phẩm:', error)
+        isLoading.value = false
+    }
 })
 
 // ===================== HELPERS =====================
@@ -634,7 +738,7 @@ const clearAll = () => {
 
                         <span v-if="p.badge" class="badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
 
-                        <div class="img-box" @click="router.push(`/products/${p.id}`)">
+                        <div class="img-box" @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
                             <img :src="p.img" :alt="p.name" />
                         </div>
 
@@ -1232,59 +1336,91 @@ const clearAll = () => {
     border: 1px solid #f1f5f9;
     overflow: hidden;
     position: relative;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
 }
 
 .badge {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 12px;
+    left: 12px;
     color: white;
     font-size: 10px;
     font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
     z-index: 1;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .img-box {
     background: #f8fafc;
     padding: 14px;
     cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .img-box img {
     width: 100%;
-    height: 148px;
-    object-fit: cover;
+    height: 100%;
+    object-fit: contain;
     border-radius: 10px;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover .img-box img {
+    transform: scale(1.06);
 }
 
 .card-body {
-    padding: 13px 15px 15px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 .card-body h3 {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #0f172a;
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     cursor: pointer;
+    line-height: 1.45;
+    min-height: 58px;
+    transition: color 0.2s ease;
+}
+
+.card-body h3:hover {
+    color: #2563eb;
 }
 
 .brand-txt {
     font-size: 11px;
     color: #94a3b8;
     margin: 0 0 10px;
+    height: 16px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 500;
 }
 
 .price-row {
+    margin-top: auto; /* Pin to bottom */
     display: flex;
     align-items: baseline;
     gap: 8px;
@@ -1292,52 +1428,17 @@ const clearAll = () => {
 }
 
 .price {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 800;
     color: #2563eb;
+    letter-spacing: -0.3px;
 }
 
 .old-price {
-    font-size: 11px;
+    font-size: 12px;
     color: #cbd5e1;
     text-decoration: line-through;
-}
-
-.card-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.card-body h3 {
-    font-size: 14px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 4px;
-}
-
-.brand-txt {
-    font-size: 11px;
-    color: #94a3b8;
-    margin: 0 0 10px;
-}
-
-.price-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.price {
-    font-size: 15px;
-    font-weight: 800;
-    color: #2563eb;
-}
-
-.old-price {
-    font-size: 11px;
-    color: #cbd5e1;
-    text-decoration: line-through;
+    font-weight: 500;
 }
 
 .card-actions {
@@ -1360,11 +1461,14 @@ const clearAll = () => {
     cursor: pointer;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-detail:hover {
     background: #2563eb;
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .btn-cart {
@@ -1378,18 +1482,18 @@ const clearAll = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+}
+
+.btn-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-cart svg {
     width: 14px;
     height: 14px;
-}
-
-.btn-cart:hover {
-    opacity: 0.9;
-    transform: scale(1.06);
 }
 
 /* EMPTY SEARCH */
@@ -1599,6 +1703,12 @@ const clearAll = () => {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid {
+        grid-template-columns: 1fr;
     }
 }
 

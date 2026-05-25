@@ -9,6 +9,9 @@ use App\Models\BienThe;
 use App\Models\DiaChi;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
+use App\Models\AffiliateCommission;
+use App\Models\AffiliateProfile;
+use App\Models\AffiliateReferral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -416,6 +419,18 @@ class DatHangController extends Controller
             }
             $order->update($updateData);
 
+            if ($newStatus === 'done' && $oldStatus !== 'done') {
+                $this->createAffiliateCommissionForOrder($order);
+            }
+
+            if ($newStatus === 'cancelled') {
+                AffiliateCommission::where('order_id', $order->id_dathang)->update([
+                    'status' => 'cancelled',
+                    'approved_at' => null,
+                    'paid_at' => null,
+                ]);
+            }
+
             DB::commit();
 
             // Broadcast the status update
@@ -435,5 +450,74 @@ class DatHangController extends Controller
                 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function destroy($id)
+    {
+        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            if (!in_array($order->trangthai, ['done', 'cancelled'])) {
+                foreach ($order->chi_tiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                    }
+                }
+            }
+
+            $order->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Da xoa don hang thanh cong.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Khong the xoa don hang: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function createAffiliateCommissionForOrder(DatHang $order): void
+    {
+        $referral = AffiliateReferral::where('referred_user_id', $order->user_id)->first();
+        if (!$referral) {
+            return;
+        }
+
+        $profile = AffiliateProfile::where('user_id', $referral->affiliate_user_id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$profile) {
+            return;
+        }
+
+        $exists = AffiliateCommission::where('order_id', $order->id_dathang)->exists();
+        if ($exists) {
+            return;
+        }
+
+        $rate = (float) ($profile->commission_rate ?? 5);
+        $amount = round(((float) $order->tongtien * $rate) / 100, 2);
+
+        if ($amount <= 0) {
+            return;
+        }
+
+        AffiliateCommission::create([
+            'affiliate_user_id' => $profile->user_id,
+            'referred_user_id' => $order->user_id,
+            'order_id' => $order->id_dathang,
+            'amount' => $amount,
+            'status' => 'pending',
+        ]);
     }
 }

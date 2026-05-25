@@ -154,38 +154,80 @@ const newsImageUrl = (path) => {
     return `http://127.0.0.1:8000/storage/${path}`
 }
 
-const fetchLatestNews = async () => {
+const loadCache = () => {
     try {
-        const { data } = await api.get('/news', {
-            params: { scope: 'public', per_page: 3 }
-        })
-        latestNews.value = data.data || []
-    } catch (error) {
-        console.error('Lỗi khi tải tin tức:', error)
-        latestNews.value = []
+        const cached = localStorage.getItem('nextgen_home_cache')
+        if (cached) {
+            const parsed = JSON.parse(cached)
+            if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
+            if (parsed.categories) categories.value = parsed.categories
+            if (parsed.latestNews) latestNews.value = parsed.latestNews
+        }
+    } catch (e) {
+        console.error('Lỗi load cache trang chủ:', e)
     }
 }
 
+const saveCache = () => {
+    try {
+        localStorage.setItem('nextgen_home_cache', JSON.stringify({
+            featuredProducts: featuredProducts.value,
+            categories: categories.value,
+            latestNews: latestNews.value
+        }))
+    } catch (e) {
+        console.error('Lỗi save cache trang chủ:', e)
+    }
+}
+
+const initScrollReveal = () => {
+    const reveals = document.querySelectorAll('.scroll-reveal')
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active')
+                observer.unobserve(entry.target)
+            }
+        })
+    }, {
+        threshold: 0.05,
+        rootMargin: '0px 0px -30px 0px'
+    })
+    reveals.forEach(el => observer.observe(el))
+}
+
 onMounted(async () => {
+    // Tải cache ngay lập tức để hiển thị tức thì cho người dùng
+    loadCache()
+
+    // Khởi chạy scroll reveal sớm với dữ liệu cache đã kết xuất
+    setTimeout(initScrollReveal, 120)
+
     setTimeout(() => {
         console.log('[Home.vue] 5s timer reached. showGift = true');
         showGift.value = true
     }, 5000)
 
-    fetchLatestNews()
-
-
-
     try {
-        const [spRes, catRes] = await Promise.all([
+        // Gọi song song toàn bộ API lấy dữ liệu ngầm
+        const [newsRes, spRes, catRes] = await Promise.all([
+            api.get('/news', { params: { scope: 'public', per_page: 3 } }),
             api.get('/sanpham'),
             api.get('/danhmuc')
         ])
+
+        latestNews.value = newsRes.data?.data || []
         const allProducts = mapProducts(spRes.data)
         featuredProducts.value = allProducts.slice(0, 20)
         categories.value = (catRes.data?.data || catRes.data || []).slice(0, 4)
+
+        // Lưu cache mới nhất để dùng cho lần chuyển trang sau
+        saveCache()
+
+        // Khởi chạy lại scroll reveal để lắng nghe các phần tử mới từ API
+        setTimeout(initScrollReveal, 180)
     } catch (error) {
-        console.error('Lỗi khi tải dữ liệu:', error)
+        console.error('Lỗi khi tải dữ liệu trang chủ:', error)
     }
 })
 // === SLIDER LOGIC ===
@@ -286,6 +328,7 @@ const stats = [
 ]
 
 const current = ref(0)
+const activeSlide = computed(() => slides[current.value] || {})
 let interval = null
 const nextSlide = () => { current.value = (current.value + 1) % slides.length }
 const prevSlide = () => { current.value = (current.value - 1 + slides.length) % slides.length }
@@ -328,7 +371,7 @@ onUnmounted(stop)
             <section class="hero" @mouseenter="stop" @mouseleave="start">
                 <transition name="bg-fade" mode="out-in">
                     <div class="hero-slide-bg" :key="'bg-' + current">
-                        <img :src="slides[current].img" alt="" />
+                        <img :src="activeSlide.img" alt="" />
                         <div class="hero-slide-overlay"></div>
                     </div>
                 </transition>
@@ -339,16 +382,16 @@ onUnmounted(stop)
                             <div class="hero-left">
                                 <span class="hero-eyebrow">
                                     <span class="eyebrow-dot"></span>
-                                    {{ slides[current].eyebrow }}
+                                    {{ activeSlide.eyebrow }}
                                 </span>
                                 <h1>
-                                    {{ slides[current].title }}
-                                    <span>{{ slides[current].highlight }}</span>
+                                    {{ activeSlide.title }}
+                                    <span>{{ activeSlide.highlight }}</span>
                                 </h1>
-                                <p>{{ slides[current].desc }}</p>
+                                <p>{{ activeSlide.desc }}</p>
                                 <div class="hero-actions">
-                                    <button class="btn btn-primary">{{ slides[current].primary }}</button>
-                                    <button class="btn btn-secondary">{{ slides[current].secondary }}</button>
+                                    <button class="btn btn-primary">{{ activeSlide.primary }}</button>
+                                    <button class="btn btn-secondary">{{ activeSlide.secondary }}</button>
                                 </div>
                                 <div class="hero-metrics">
                                     <div class="metric">
@@ -369,7 +412,7 @@ onUnmounted(stop)
                             </div>
                             <div class="hero-right">
                                 <div class="hero-image-card">
-                                    <img :src="slides[current].img" :alt="slides[current].title" />
+                                    <img :src="activeSlide.img" :alt="activeSlide.title" />
                                 </div>
                                 <div class="floating-card top">
                                     <span>Xu hướng</span>
@@ -397,7 +440,7 @@ onUnmounted(stop)
 
         <!-- STATS -->
         <section class="stats">
-            <div class="container stats-grid">
+            <div class="container stats-grid scroll-reveal reveal-stagger">
                 <div class="stat-card" v-for="(item, i) in stats" :key="i">
                     <h3>{{ item.value }}</h3>
                     <p>{{ item.label }}</p>
@@ -408,7 +451,7 @@ onUnmounted(stop)
         <!-- CATEGORY -->
         <section class="section">
             <div class="container">
-                <div class="section-head">
+                <div class="section-head scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">DANH MỤC</span>
                         <h2>Lựa chọn đúng dòng laptop cho bạn</h2>
@@ -416,7 +459,7 @@ onUnmounted(stop)
                     </div>
                     <router-link to="/products" class="section-link">Xem tất cả →</router-link>
                 </div>
-                <div class="category-grid">
+                <div class="category-grid scroll-reveal reveal-stagger">
                     <div class="category-card" v-for="c in categories" :key="c.id_danhmuc" 
                         @click="router.push(`/products?cat=${c.id_danhmuc}`)">
                         <div class="category-icon">💻</div>
@@ -431,7 +474,7 @@ onUnmounted(stop)
         <!-- FEATURED — 20 sản phẩm slider chia 5 cột -->
         <section class="section featured-section">
             <div class="container">
-                <div class="section-head center">
+                <div class="section-head center scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">SẢN PHẨM NỔI BẬT</span>
                         <h2>Những mẫu laptop bán chạy nhất nhất</h2>
@@ -439,7 +482,7 @@ onUnmounted(stop)
                     </div>
                 </div>
 
-                <div class="product-slider-container">
+                <div class="product-slider-container scroll-reveal reveal-scale">
                     <button class="slider-btn prev" @click="prevFeaturedPage" :disabled="currentProductPage === 0">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             stroke-linecap="round">
@@ -451,7 +494,7 @@ onUnmounted(stop)
                         <div class="product-slider-grid" :key="currentProductPage">
                             <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
                                 <span class="product-badge" v-if="p.badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
-                                <div class="product-thumb" @click="router.push(`/products/${p.id}`)">
+                                <div class="product-thumb" @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
                                     <img :src="p.img" :alt="p.fullName" />
                                 </div>
                                 <div class="product-body">
@@ -517,7 +560,7 @@ onUnmounted(stop)
 
         <!-- PROMO -->
         <section class="promo">
-            <div class="container promo-box">
+            <div class="container promo-box scroll-reveal reveal-scale">
                 <div class="promo-text">
                     <span class="section-label light">ƯU ĐÃI ĐẶC BIỆT</span>
                     <h2>Nâng cấp trải nghiệm làm việc và giải trí ngay hôm nay</h2>
@@ -534,13 +577,13 @@ onUnmounted(stop)
         <!-- BENEFITS -->
         <section class="section">
             <div class="container">
-                <div class="section-head center">
+                <div class="section-head center scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">LÝ DO CHỌN CHÚNG TÔI</span>
                         <h2>Dịch vụ xứng tầm một hệ thống bán laptop chuyên nghiệp</h2>
                     </div>
                 </div>
-                <div class="benefits-grid">
+                <div class="benefits-grid scroll-reveal reveal-stagger">
                     <div class="benefit-card" v-for="(b, i) in benefits" :key="i">
                         <div class="benefit-icon">{{ b.icon }}</div>
                         <h3>{{ b.title }}</h3>
@@ -553,7 +596,7 @@ onUnmounted(stop)
         <!-- NEWS -->
         <section class="section soft-bg">
             <div class="container">
-                <div class="section-head">
+                <div class="section-head scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">BLOG & TIN TỨC</span>
                         <h2>Cập nhật xu hướng công nghệ mới nhất</h2>
@@ -561,7 +604,7 @@ onUnmounted(stop)
                     </div>
                     <RouterLink to="/news" class="section-link">Xem thêm →</RouterLink>
                 </div>
-                <div class="news-grid">
+                <div class="news-grid scroll-reveal reveal-stagger">
                     <article class="news-card" v-for="n in latestNews" :key="n.id">
                         <div class="news-thumb"><img :src="newsImageUrl(n.image)" :alt="n.image_alt || n.title" /></div>
                         <div class="news-body">
@@ -579,14 +622,14 @@ onUnmounted(stop)
         <!-- REVIEWS -->
         <section class="section">
             <div class="container">
-                <div class="section-head center">
+                <div class="section-head center scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">KHÁCH HÀNG NÓI GÌ</span>
                         <h2>Niềm tin của khách hàng là giá trị lớn nhất</h2>
                         <p>Trải nghiệm mua sắm cao cấp, tư vấn tận tâm và dịch vụ hậu mãi chuyên nghiệp.</p>
                     </div>
                 </div>
-                <div class="review-grid">
+                <div class="review-grid scroll-reveal reveal-stagger">
                     <article class="review-card" v-for="(r, i) in reviews" :key="i">
                         <div class="stars">★★★★★</div>
                         <p class="review-content">"{{ r.content }}"</p>
@@ -601,7 +644,7 @@ onUnmounted(stop)
 
         <!-- CTA -->
         <section class="cta">
-            <div class="container cta-box">
+            <div class="container cta-box scroll-reveal reveal-scale">
                 <div>
                     <span class="section-label light">SẴN SÀNG NÂNG CẤP?</span>
                     <h2>Tìm chiếc laptop hoàn hảo cho công việc và phong cách của bạn</h2>
@@ -1393,6 +1436,9 @@ a.btn {
     position: relative;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .product-card:hover {
@@ -1427,21 +1473,33 @@ a.btn {
 
 .product-body {
     padding: 13px 15px 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 .product-body h3 {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #0f172a;
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     cursor: pointer;
-    line-height: 1.4;
+    line-height: 1.45;
+    height: 58px; /* Fits exactly 3 lines of text */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .brand-txt {
     font-size: 11px;
     color: #94a3b8;
     margin: 0 0 10px;
+    height: 16px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .specs-box {
@@ -1449,6 +1507,9 @@ a.btn {
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 12px;
+    height: 48px; /* Fixed height for two rows of badges */
+    align-content: flex-start;
+    overflow: hidden;
 }
 
 .spec-item {
@@ -1473,6 +1534,7 @@ a.btn {
 }
 
 .price-row {
+    margin-top: auto; /* Push price and action buttons to the absolute bottom of the card */
     display: flex;
     align-items: baseline;
     gap: 8px;
@@ -1883,5 +1945,45 @@ a.btn {
         padding: 24px;
     }
 }
+
+/* ─── SCROLL REVEAL EFFECTS ─── */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, opacity;
+}
+
+.scroll-reveal.reveal-fade-up {
+    transform: translateY(60px);
+}
+
+.scroll-reveal.reveal-scale {
+    transform: scale(0.96) translateY(30px);
+}
+
+.scroll-reveal.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Stagger delay for grid items */
+.reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(35px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.reveal-stagger.active > * {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.scroll-reveal.reveal-stagger.active > *:nth-child(1) { transition-delay: 0.08s; }
+.reveal-stagger.active > *:nth-child(2) { transition-delay: 0.16s; }
+.reveal-stagger.active > *:nth-child(3) { transition-delay: 0.24s; }
+.reveal-stagger.active > *:nth-child(4) { transition-delay: 0.32s; }
+.reveal-stagger.active > *:nth-child(5) { transition-delay: 0.40s; }
+.reveal-stagger.active > *:nth-child(6) { transition-delay: 0.48s; }
 </style>
 

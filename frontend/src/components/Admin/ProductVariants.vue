@@ -1,13 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import api from '@/services/api'
 import * as XLSX from 'xlsx'
-
-const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
-})
+import swal from '@/services/swal'
 
 const activeTab = ref('Biến thể cấu hình')
+const isOpenAttributeDropdown = ref(false)
 
 const showModal = ref(false)
 const modalType = ref('variant')
@@ -178,7 +176,13 @@ const normalizeData = (payload) => {
   nhoms.forEach((g) => {
     const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
     thuocTinhs.forEach((a) => {
-      normalizedAttrs.push({ id: a.id_thuoctinh, name: a.ten_thuoctinh, group: g.ten_nhom, groupId: g.id_nhom, status: 'Hoạt động' })
+      normalizedAttrs.push({
+        id: a.id_thuoctinh,
+        name: a.ten_thuoctinh,
+        group: g.ten_nhom,
+        groupId: g.id_nhom,
+        status: Number(a.trangthai) === 1 ? 'Hoạt động' : 'Nháp'
+      })
       const giaTris = Array.isArray(a.giatri_thuoc_tinhs) ? a.giatri_thuoc_tinhs : Array.isArray(a.giatriThuocTinhs) ? a.giatriThuocTinhs : []
       giaTris.forEach((v) => {
         normalizedVariants.push({
@@ -317,9 +321,9 @@ const submitVariant = async () => {
         formError.value = 'Không tìm thấy ID biến thể để cập nhật.'
         return
       }
-      await api.put(`/giatrithuoctinh/${editingId}`, payload)
+      await api.put(`/admin/giatrithuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/giatrithuoctinh', payload)
+      await api.post('/admin/giatrithuoctinh', payload)
     }
     await fetchAll()
     variantPagination.goToPage(1)
@@ -340,9 +344,9 @@ const submitColor = async () => {
   }
   try {
     if (modalType.value === 'editColor') {
-      await api.put(`/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.put(`/admin/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
     } else {
-      await api.post('/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.post('/admin/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
     }
     await fetchColors()
     closeModal()
@@ -366,8 +370,10 @@ const submitGroup = async () => {
       danh_muc_ids: groupForm.value.danh_muc_ids
     }
     if (modalType.value === 'editGroup') {
+      await api.put(`/admin/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
       await api.put(`/nhomthuoctinh/${editingId}`, payload)
     } else {
+      await api.post('/admin/nhomthuoctinh', { ten_nhom: groupForm.value.name })
       await api.post('/nhomthuoctinh', payload)
     }
     await fetchAll()
@@ -396,11 +402,18 @@ const submitAttr = async () => {
     formError.value = `Thuộc tính "${attrForm.value.name}" đã tồn tại trong nhóm "${attrForm.value.group}".`
     return
   }
+
+  const payload = {
+    ten_thuoctinh: attrForm.value.name,
+    id_nhom: selectedGroup.id,
+    trangthai: attrForm.value.status === 'Hoạt động' ? 1 : 0
+  }
+
   try {
     if (modalType.value === 'editAttr') {
-      await api.put(`/thuoctinh/${editingId}`, { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
+      await api.put(`/admin/thuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/thuoctinh', { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
+      await api.post('/admin/thuoctinh', payload)
     }
     await fetchAll()
     attrPagination.goToPage(1)
@@ -419,42 +432,82 @@ const handleSubmit = () => {
 
 // ── Delete ──
 const removeVariant = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa biến thể này không? Thao tác này không thể hoàn tác.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/giatrithuoctinh/${id}`)
+    await api.delete(`/admin/giatrithuoctinh/${id}`)
     await fetchAll()
     variantPagination.goToPage(variantPage.value)
+    swal.success('Xóa biến thể thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được biến thể.')
+    const msg = getErrorMessage(error, 'Không xóa được biến thể.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeColor = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa màu sắc này không? Thao tác này không thể hoàn tác.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/colors/${id}`)
+    await api.delete(`/admin/colors/${id}`)
     if (selectedColor.value?.id === id) selectedColor.value = colors.value.find(c => c.id !== id) || null
     await fetchColors()
+    swal.success('Xóa màu sắc thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được màu.')
+    const msg = getErrorMessage(error, 'Không xóa được màu.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeGroup = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa nhóm thuộc tính này không? Tất cả thuộc tính con thuộc nhóm này cũng sẽ bị ảnh hưởng.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/nhomthuoctinh/${id}`)
+    await api.delete(`/admin/nhomthuoctinh/${id}`)
     await fetchAll()
     groupPagination.goToPage(groupPage.value)
+    swal.success('Xóa nhóm thuộc tính thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được nhóm thuộc tính.')
+    const msg = getErrorMessage(error, 'Không xóa được nhóm thuộc tính.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeAttr = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa loại thuộc tính này không? Các giá trị biến thể thuộc về loại thuộc tính này cũng sẽ bị xóa.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/thuoctinh/${id}`)
+    await api.delete(`/admin/thuoctinh/${id}`)
     await fetchAll()
     attrPagination.goToPage(attrPage.value)
+    swal.success('Xóa loại thuộc tính thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được loại thuộc tính.')
+    const msg = getErrorMessage(error, 'Không xóa được loại thuộc tính.')
+    swal.error('Lỗi', msg)
   }
 }
 
@@ -480,9 +533,20 @@ const modalBtnLabel = computed(() =>
   })[modalType.value] || 'Lưu'
 )
 
+const closeAttributeDropdown = (e) => {
+  if (!e.target.closest('.attribute-filter-dropdown')) {
+    isOpenAttributeDropdown.value = false
+  }
+}
+
 onMounted(() => {
   fetchAll()
   fetchColors()
+  document.addEventListener('click', closeAttributeDropdown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeAttributeDropdown)
   fetchCategories()
 })
 
@@ -570,10 +634,10 @@ async function handleImportFile(e) {
           const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
           if (existingColor) {
             // Cập nhật màu hiện có
-            await api.put(`/colors/${existingColor.id}`, { name, hex_code: hex })
+            await api.put(`/admin/colors/${existingColor.id}`, { name, hex_code: hex })
           } else {
             // Thêm màu mới
-            await api.post('/colors', { name, hex_code: hex })
+            await api.post('/admin/colors', { name, hex_code: hex })
           }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
@@ -593,7 +657,7 @@ async function handleImportFile(e) {
 
           if (existingVar) {
             // Cập nhật biến thể hiện có
-            await api.put(`/giatrithuoctinh/${existingVar.id}`, {
+            await api.put(`/admin/giatrithuoctinh/${existingVar.id}`, {
               id_thuoctinh: attr.id,
               giatri: varName,
               gia_cong_them: giaCongThem,
@@ -601,7 +665,7 @@ async function handleImportFile(e) {
             })
           } else {
             // Thêm biến thể mới
-            await api.post('/giatrithuoctinh', { 
+            await api.post('/admin/giatrithuoctinh', { 
               id_thuoctinh: attr.id, 
               giatri: varName,
               gia_cong_them: giaCongThem,
@@ -622,8 +686,10 @@ async function handleImportFile(e) {
     if (skipCount) parts.push(`bỏ qua ${skipCount} dòng`)
     if (failCount) parts.push(`thất bại ${failCount} dòng`)
     importSuccess.value = parts.join(', ') + '.'
+    await swal.success('Nhập dữ liệu thành công', importSuccess.value)
   } catch (err) {
     importError.value = err.message || 'Đọc file thất bại. Hãy dùng file xuất từ hệ thống.'
+    await swal.error('Nhập dữ liệu thất bại', importError.value)
   } finally {
     importLoading.value = false
   }
@@ -682,7 +748,7 @@ async function handleImportFile(e) {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Thêm biến thể mới
+          {{ activeTab === 'Biến thể cấu hình' ? 'Thêm biến thể mới' : 'Thêm màu sắc mới' }}
         </button>
       </div>
     </div>
@@ -876,14 +942,28 @@ async function handleImportFile(e) {
             <div class="card-title"><span class="bar blue"></span>Danh sách biến thể</div>
             <div class="card-header-right">
               <!-- ── FILTER SELECT ── -->
-              <div class="filter-wrap">
-                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                </svg>
-                <select v-model="selectedAttribute" class="filter-select">
-                  <option value="">Tất cả loại</option>
-                  <option v-for="opt in variantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
-                </select>
+              <div class="filter-wrap attribute-filter-dropdown">
+                <div class="dropdown-trigger" @click.stop="isOpenAttributeDropdown = !isOpenAttributeDropdown">
+                  <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                  </svg>
+                  <span class="selected-val">{{ selectedAttribute || 'Tất cả loại' }}</span>
+                  <svg class="chevron" :class="{ open: isOpenAttributeDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+                <transition name="fade-slide">
+                  <ul v-if="isOpenAttributeDropdown" class="dropdown-menu">
+                    <li :class="{ active: selectedAttribute === '' }" @click="selectedAttribute = ''; isOpenAttributeDropdown = false">
+                      Tất cả loại
+                    </li>
+                    <li v-for="opt in variantTypeOptions" :key="opt"
+                      :class="{ active: selectedAttribute === opt }"
+                      @click="selectedAttribute = opt; isOpenAttributeDropdown = false">
+                      {{ opt }}
+                    </li>
+                  </ul>
+                </transition>
               </div>
               <div class="card-tools">
                 <button class="tool-btn">
@@ -1121,7 +1201,11 @@ async function handleImportFile(e) {
           <p>Import biến thể hoặc màu từ file Excel</p>
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
             <button class="export-sm-btn green-sm" :disabled="importLoading" @click="triggerImport">
-              {{ importLoading ? 'Đang nhập...' : 'Chọn file Excel' }}
+              <span v-if="importLoading" class="btn-loading-wrap">
+                <span class="btn-spinner"></span>
+                Đang nhập...
+              </span>
+              <span v-else>Chọn file Excel</span>
             </button>
             <span v-if="importSuccess" style="font-size:11px;color:#16a34a;font-weight:600">✓ {{ importSuccess }}</span>
             <span v-if="importError" style="font-size:11px;color:#dc2626;font-weight:600">✗ {{ importError }}</span>
@@ -1407,11 +1491,7 @@ async function handleImportFile(e) {
   font-family: inherit;
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.topbar-right { display: none !important; }
 
 .nav-link {
   font-size: 13px;
@@ -1621,15 +1701,40 @@ async function handleImportFile(e) {
 }
 
 /* ── FILTER SELECT ── */
-.filter-wrap {
+.attribute-filter-dropdown {
   position: relative;
-  display: flex;
-  align-items: center;
+  display: inline-block;
+  min-width: 140px;
+  user-select: none;
 }
 
-.filter-icon {
+.attribute-filter-dropdown .dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px 7px 28px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.attribute-filter-dropdown .dropdown-trigger:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.attribute-filter-dropdown .filter-icon {
   position: absolute;
-  left: 9px;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 12px;
   height: 12px;
   color: #64748b;
@@ -1637,31 +1742,82 @@ async function handleImportFile(e) {
   z-index: 1;
 }
 
-.filter-select {
-  padding: 7px 30px 7px 28px;
+.attribute-filter-dropdown .dropdown-trigger .chevron {
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+  transition: transform .2s ease;
+}
+
+.attribute-filter-dropdown .dropdown-trigger .chevron.open {
+  transform: rotate(180deg);
+}
+
+.attribute-filter-dropdown .dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.attribute-filter-dropdown .dropdown-menu li {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-  background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
-  appearance: none;
-  -webkit-appearance: none;
   cursor: pointer;
-  font-family: inherit;
-  outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  min-width: 140px;
+  transition: all 0.12s ease;
+  text-align: left;
 }
 
-.filter-select:focus {
-  border-color: #2563eb;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+.attribute-filter-dropdown .dropdown-menu li:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
-.filter-select:hover {
-  border-color: #cbd5e1;
+.attribute-filter-dropdown .dropdown-menu li.active {
+  background: #475569;
+  color: white;
+  font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 .card-title {
@@ -2236,6 +2392,19 @@ tbody td {
 .export-sm-btn.purple-sm:hover { background: #7c3aed; color: #fff; }
 .export-sm-btn.green-sm { border-color: #16a34a; color: #16a34a; }
 .export-sm-btn.green-sm:hover:not(:disabled) { background: #16a34a; color: #fff; }
+.btn-loading-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .75s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .modal-overlay {
   position: fixed;

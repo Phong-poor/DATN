@@ -120,6 +120,8 @@ class GioHangController extends Controller
             ->where('user_id', $userId)
             ->firstOrFail();
 
+        $bienThe = BienThe::findOrFail($item->id_bienthe);
+
         // Tính toán chênh lệch số lượng
         $diff = $request->soluong - $item->soluong;
 

@@ -90,10 +90,9 @@
             <span>Nhận ngay</span>
             <span class="btn-primary__shine"></span>
           </button>
-
-          <button class="btn-ghost" @click="dismiss">
-            Bỏ qua
-          </button>
+                    <button class="btn-secondary" @click="dismiss">
+                        Bỏ qua
+                    </button>
         </div>
       </div>
     </div>
@@ -125,22 +124,18 @@ export default {
     async mounted() {
         // Chỉ hiện cho thành viên
         const token = getToken()
-        console.log('[GiftPopup.vue] mounted. Token:', token ? 'Exists' : 'MISSING');
         if (!token) return
 
 
 
         // Đợi tải quà tặng về trước khi quyết định hiện popup
         await this.fetchGifts()
-        console.log('[GiftPopup.vue] fetchGifts complete. Promos count:', this.promos.length);
 
         if (this.promos.length === 0) {
-            console.log('[GiftPopup.vue] No promos available (already claimed or none exist). Popup EXIT.');
             return 
         }
 
         this.showTimer = setTimeout(() => {
-            console.log('GiftPopup.vue: Setting visible to true');
             this.visible = true
             this.$nextTick(() => {
                 setTimeout(() => { this.entered = true }, 30)
@@ -623,6 +618,30 @@ export default {
     transform: scale(0.97)
 }
 
+.btn-secondary {
+    padding: 11px 28px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+    transform: translateY(-2px)
+}
+
+.btn-secondary:active {
+    transform: scale(0.97)
+}
+
 @keyframes grad-shift {
     0% {
         background-position: 0% 50%
@@ -676,14 +695,108 @@ export default {
     background: rgba(255, 255, 255, 0.06)
 }
 
-@media(max-width:400px) {
+@media (max-width: 576px) {
     .modal {
-        padding: 26px 16px 20px
+        width: 94vw;
+        padding: 22px 16px 16px;
+        border-radius: 20px;
     }
-
+    
+    .gift-badge {
+        width: 42px;
+        height: 42px;
+        margin: 0 auto 10px;
+    }
+    
+    .gift-icon-wrap {
+        width: 42px;
+        height: 42px;
+    }
+    
+    .gift-icon-wrap svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .title {
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+    
+    .label-top {
+        font-size: 10px;
+        margin-bottom: 4px;
+    }
+    
+    .subtitle {
+        font-size: 11.5px;
+        margin-bottom: 12px;
+    }
+    
     .cards {
         grid-template-columns: 1fr;
-        gap: 10px
+        gap: 8px;
+        max-height: 175px;
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-bottom: 14px;
+    }
+    
+    .cards::-webkit-scrollbar {
+        width: 4px;
+    }
+    .cards::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+    }
+    .cards::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+    }
+    
+    .card {
+        padding: 10px 12px 8px;
+    }
+    
+    .card__header {
+        margin-bottom: 4px;
+    }
+    
+    .card__tag {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+        border-radius: 5px;
+    }
+    
+    .card__code {
+        font-size: 11px;
+        margin-bottom: 3px;
+    }
+    
+    .card__desc {
+        font-size: 9px;
+        margin-bottom: 6px;
+    }
+    
+    .card__copy {
+        padding: 4px 0;
+        font-size: 9.5px;
+    }
+    
+    .actions {
+        gap: 10px;
+    }
+    
+    .btn-primary {
+        padding: 9px 24px;
+        font-size: 12.5px;
+        box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+    }
+    
+    .btn-ghost {
+        font-size: 11.5px;
+        padding: 5px 8px;
     }
 }
 </style>

@@ -27,6 +27,16 @@
       </div>
     </div>
 
+    <BulkDeleteToolbar
+      :selected-count="selectedIds.length"
+      :total-count="filteredCategories.length"
+      label="danh mục"
+      :loading="isBulkDeleting"
+      @clear="clearSelection"
+      @delete-selected="removeSelected"
+      @delete-all="removeAllFiltered"
+    />
+
     <div class="category-tabs">
       <button :class="['cat-tab', { active: activeTab === 'child' }]" @click="activeTab = 'child'">
         Danh mục Con (Cấp 2)
@@ -40,6 +50,9 @@
       <table>
         <thead>
           <tr>
+            <th class="select-col">
+              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredCategories.length" @change="toggleCurrentPageSelection" />
+            </th>
             <th>ID</th>
             <th>TÊN DANH MỤC</th>
             <th>TRẠNG THÁI</th>
@@ -47,7 +60,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="dm in filteredCategories" :key="dm.id_danhmuc">
+          <tr v-for="dm in filteredCategories" :key="dm.id_danhmuc" :class="{ 'row-selected': selectedIds.includes(dm.id_danhmuc) }">
+            <td class="select-col">
+              <input type="checkbox" :checked="selectedIds.includes(dm.id_danhmuc)" @change="toggleItemSelection(dm.id_danhmuc)" />
+            </td>
             <td class="cat-name">
               #{{ dm.id_danhmuc }}
             </td>
@@ -78,16 +94,16 @@
           </tr>
           
           <tr v-if="!isLoading && filteredCategories.length === 0">
-            <td colspan="4" class="empty-row">Không tìm thấy danh mục nào phù hợp.</td>
+            <td colspan="5" class="empty-row">Không tìm thấy danh mục nào phù hợp.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <transition name="fade">
-      <div class="overlay" v-if="showModal" @click.self="closeModal">
+      <div class="overlay" v-if="showModal">
         <transition name="slide-up">
-          <div class="modal" v-if="showModal">
+          <div class="modal" v-if="showModal" @click.stop @mousedown.stop>
             <div class="modal-header">
               <div class="modal-header-left">
                 <div class="modal-icon" :class="isEdit ? 'modal-icon-edit' : 'modal-icon-create'">
@@ -146,6 +162,8 @@
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 import swal from '@/services/swal';
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue';
+import { useAdminBulkDelete } from '@/services/adminBulkDelete';
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const categories = ref([]);
@@ -164,6 +182,7 @@ const defaultForm = () => ({
   ten_danhmuc: '',
   slug: '',
   mo_ta: '',
+  trangthai: 'active', // 'active' hoặc 'hidden'
   trang_thai: 'active', // 'active' hoặc 'hidden'
   trangthai: 'active',
   parent_id: '',
@@ -202,8 +221,27 @@ const filteredCategories = computed(() => {
   if (!searchQuery.value) return list;
   return list.filter(c =>
     c.ten_danhmuc.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    c.slug.toLowerCase().includes(searchQuery.value.toLowerCase())
+    (c.slug || '').toLowerCase().includes(searchQuery.value.toLowerCase())
   );
+});
+
+const {
+  selectedIds,
+  isBulkDeleting,
+  allCurrentPageSelected,
+  toggleItemSelection,
+  toggleCurrentPageSelection,
+  clearSelection,
+  removeSelected,
+  removeAllFiltered,
+} = useAdminBulkDelete({
+  items: categories,
+  filteredItems: filteredCategories,
+  getId: item => item.id_danhmuc,
+  endpoint: id => `/admin/danhmuc/${id}`,
+  entityLabel: 'danh mục',
+  fetchItems: fetchCategories,
+  cannotDeleteMessage: 'Một số danh mục có thể đang được sản phẩm sử dụng.',
 });
 
 // Lọc danh mục gốc (không có cha)
@@ -246,8 +284,8 @@ const openEdit = (dm) => {
   editId.value = dm.id_danhmuc;
   form.value = { 
     ten_danhmuc: dm.ten_danhmuc,
-    slug: dm.slug,
-    mo_ta: dm.mo_ta,
+    slug: dm.slug || '',
+    mo_ta: dm.mo_ta || '',
     trang_thai: dm.trang_thai,
     trangthai: dm.trangthai || dm.trang_thai,
     parent_id: dm.parent_id || '',
@@ -261,12 +299,24 @@ const closeModal = () => {
   showModal.value = false;
 };
 
+const autoSlug = () => {
+  form.value.slug = (form.value.ten_danhmuc || '')
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
 // --- LƯU DỮ LIỆU (CREATE / UPDATE) ---
 const saveCategory = async () => {
-  if(!form.value.ten_danhmuc || !form.value.trangthai) {
+  if(!form.value.ten_danhmuc) {
     swal.error("Thiếu thông tin", "Vui lòng nhập Tên danh mục!");
     return;
   }
+  if (!form.value.trangthai) form.value.trangthai = 'active';
 
   try {
     const payload = { ...form.value };
@@ -280,9 +330,11 @@ const saveCategory = async () => {
     }
 
     if (isEdit.value) {
+      await api.put(`/admin/danhmuc/${editId.value}`, form.value);
       await api.put(`/danhmuc/${editId.value}`, payload);
       swal.success('Thành công', 'Cập nhật danh mục thành công!');
     } else {
+      await api.post('/admin/danhmuc', form.value);
       await api.post('/danhmuc', payload);
       swal.success('Thành công', 'Thêm mới danh mục thành công!');
     }
@@ -300,7 +352,7 @@ const deleteCategory = async (id) => {
   const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa danh mục này? Thao tác không thể hoàn tác!')
   if (isConfirmed) {
     try {
-      await api.delete(`/danhmuc/${id}`);
+      await api.delete(`/admin/danhmuc/${id}`);
       swal.success('Đã xóa', 'Xóa danh mục thành công!');
       fetchCategories();
     } catch (error) {
@@ -346,12 +398,28 @@ thead tr { background: #f8faff; border-bottom: 1px solid #e8edf5; }
 th { padding: 13px 20px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.6px; text-align: left; }
 tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
 tbody tr:hover { background: #fafbff; }
+tbody tr.row-selected { background: #eff6ff; }
 td { padding: 16px 20px; vertical-align: middle; }
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
 .cat-name { font-size: 14px; font-weight: 600; color: #1e293b; }
 .cat-count { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 .status-badge { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; display: inline-block; }
-.status-active { color: #16a34a; background: #dcfce7; }
-.status-hidden { color: #9333ea; background: #f3e8ff; }
+.status-active,
+.status-hidden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.status-active { color: #15803d; background: #dcfce7; border-color: #86efac; }
+.status-hidden { color: #7e22ce; background: #f3e8ff; border-color: #d8b4fe; }
 .actions { display: flex; gap: 6px; }
 .action-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
 .action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }

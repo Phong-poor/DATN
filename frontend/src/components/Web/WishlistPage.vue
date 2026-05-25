@@ -93,6 +93,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 // --- STATE ---
 const wishlist = ref([])
@@ -232,7 +233,7 @@ const formatPrice = (value) => {
 const getImage = (item) => {
   // Ưu tiên ảnh của biến thể, nếu không có thì lấy ảnh mặc định của sản phẩm
   const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
-  return imgPath ? `http://127.0.0.1:8000/storage/${imgPath}` : ''
+  return imgPath ? storageUrl(imgPath) : ''
 }
 
 const slideSuggest = (dir) => {
@@ -356,6 +357,16 @@ const onImgError = (e) => {
 
   .suggest-grid {
     grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .wishlist-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .suggest-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
