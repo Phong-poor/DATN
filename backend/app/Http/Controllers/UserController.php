@@ -85,7 +85,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
-            'role' => 'nullable|in:admin,support,user',
+            'role' => 'nullable|in:admin,user',
             'status' => 'nullable|in:active,locked',
         ]);
 
@@ -112,7 +112,7 @@ class UserController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => ['sometimes', 'required', 'email', Rule::unique('users', 'email')->ignore($id)],
             'phone' => 'nullable|string|max:20',
-            'role' => 'nullable|in:admin,support,user',
+            'role' => 'nullable|in:admin,user',
             'status' => 'nullable|in:active,locked',
             'password' => 'nullable|string|min:8',
         ]);
@@ -252,6 +252,43 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất sau vài giây.',
+        ]);
+    }
+
+    /**
+     * PUT /api/user/change-password
+     * Change password directly from user settings profile
+     */
+    public function changePasswordDirect(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            \Log::warning("Direct password change failed: User is unauthenticated");
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        \Log::info("Direct password change requested for User ID: {$user->id}, Email: {$user->email}");
+
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:8|confirmed',
+        ], [
+            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            \Log::warning("Direct password change failed for User ID: {$user->id}: Current password check failed.");
+            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        \Log::info("Direct password change succeeded for User ID: {$user->id}");
+
+        return response()->json([
+            'message' => 'Đổi mật khẩu thành công!'
         ]);
     }
 }

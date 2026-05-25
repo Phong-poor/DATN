@@ -23,19 +23,42 @@
       </div>
     </div>
 
+    <BulkDeleteToolbar
+      :selected-count="selectedIds.length"
+      :total-count="filteredBrands.length"
+      label="thương hiệu"
+      :loading="isBulkDeleting"
+      @clear="clearSelection"
+      @delete-selected="removeSelected"
+      @delete-all="removeAllFiltered"
+    />
+
     <div class="table-card">
       <table>
         <thead>
           <tr>
+            <th class="select-col">
+              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredBrands.length" @change="toggleCurrentPageSelection" />
+            </th>
             <th>ID</th>
+            <th>LOGO</th>
             <th>TÊN THƯƠNG HIỆU</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="th in filteredBrands" :key="th.id_thuonghieu">
+          <tr v-for="th in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
+            <td class="select-col">
+              <input type="checkbox" :checked="selectedIds.includes(th.id_thuonghieu)" @change="toggleItemSelection(th.id_thuonghieu)" />
+            </td>
             <td class="cat-name">
               #{{ th.id_thuonghieu }}
+            </td>
+            <td>
+              <div class="brand-logo-cell">
+                <img v-if="th.logo" :src="storageUrl(th.logo)" alt="logo" class="brand-logo-img" />
+                <div v-else class="brand-logo-placeholder" :style="getPlaceholderStyle(th.ten_thuonghieu)">{{ th.ten_thuonghieu.charAt(0) }}</div>
+              </div>
             </td>
             <td>
               <p class="cat-name">{{ th.ten_thuonghieu }}</p>
@@ -46,7 +69,6 @@
                 </span>
               </div>
             </td>
-            
             <td>
               <div class="actions">
                  <button class="action-btn edit-btn" @click="openEdit(th)" title="Chỉnh sửa">
@@ -60,7 +82,7 @@
           </tr>
           
           <tr v-if="!isLoading && filteredBrands.length === 0">
-            <td colspan="4" class="empty-row">Không tìm thấy danh mục nào phù hợp.</td>
+            <td colspan="5" class="empty-row">Không tìm thấy thương hiệu nào phù hợp.</td>
           </tr>
         </tbody>
       </table>
@@ -78,7 +100,7 @@
                 </div>
                 <div>
                   <h3 class="modal-title">{{ isEdit ? 'Chỉnh sửa thương hiệu' : 'Tạo thương hiệu mới' }}</h3>
-                  <p class="modal-subtitle">{{ isEdit ? 'Cập nhật thông tin phân khúc sản phẩm' : 'Thêm mới một phân khúc sản phẩm vào hệ thống' }}</p>
+                  <p class="modal-subtitle">{{ isEdit ? 'Cập nhật thông tin phân khúc thương hiệu sản phẩm' : 'Thêm mới một thương hiệu sản phẩm vào hệ thống' }}</p>
                 </div>
               </div>
               <button class="modal-close" @click="closeModal" title="Đóng">
@@ -90,6 +112,7 @@
               <div class="form-group">
                 <label class="form-label">Tên thương hiệu <span class="required">*</span></label>
                 <input class="form-input" type="text" v-model="form.ten_thuonghieu" placeholder="VD: Asus, Logitech..." />
+                <input class="form-input" type="text" v-model="form.ten_thuonghieu" placeholder="VD: Asus, HP, Lenovo, Apple..." />
               </div>
               
               <div class="form-group">
@@ -100,6 +123,24 @@
                   </option>
                 </select>
                 <p style="font-size: 11px; color: #64748b; margin-top: 4px;">Giữ phím Ctrl (hoặc Cmd) để chọn nhiều. Bỏ trống để áp dụng cho tất cả danh mục.</p>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Logo thương hiệu</label>
+                <div class="logo-upload-wrap">
+                  <div class="logo-preview-box">
+                    <img v-if="logoPreview" :src="logoPreview" alt="logo preview" class="logo-preview-img" />
+                    <div v-else class="logo-placeholder-text">Chưa có logo</div>
+                  </div>
+                  <div class="upload-btn-wrap">
+                    <button type="button" class="btn-upload-file" @click="$refs.fileInputRef.click()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Chọn ảnh logo
+                    </button>
+                    <input type="file" ref="fileInputRef" style="display: none" accept="image/*" @change="handleFileChange" />
+                    <span class="file-info-text" v-if="logoFile">{{ logoFile.name }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -120,6 +161,26 @@
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 import swal from '@/services/swal';
+import { storageUrl } from '@/services/urls';
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue';
+import { useAdminBulkDelete } from '@/services/adminBulkDelete';
+
+const getPlaceholderStyle = (name) => {
+  const colors = [
+    { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', text: '#0369a1' },
+    { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', text: '#15803d' },
+    { bg: 'linear-gradient(135deg, #fef9c3, #fef08a)', text: '#a16207' },
+    { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', text: '#b91c1c' },
+    { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', text: '#7e22ce' },
+    { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', text: '#6d28d9' }
+  ];
+  const charCode = name ? name.charCodeAt(0) : 65;
+  const index = charCode % colors.length;
+  return {
+    background: colors[index].bg,
+    color: colors[index].text
+  };
+};
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const thuonghieu = ref([]);
@@ -132,12 +193,22 @@ const showModal = ref(false);
 const isEdit = ref(false);
 const editId = ref(null);
 
-// Form mặc định
+// Form & Logo states
 const defaultForm = () => ({
   ten_thuonghieu: '',
   danh_muc_ids: []
 });
 const form = ref(defaultForm());
+const logoPreview = ref('');
+const logoFile = ref(null);
+const fileInputRef = ref(null);
+
+const handleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  logoFile.value = file;
+  logoPreview.value = URL.createObjectURL(file);
+};
 
 // --- LẤY DỮ LIỆU TỪ DB ---
 const fetchBrands = async () => {
@@ -176,9 +247,27 @@ const getCategoryName = (id) => {
 const filteredBrands = computed(() => {
   if (!searchQuery.value) return thuonghieu.value;
   return thuonghieu.value.filter(c =>
-    c.ten_thuonghieu.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    c.slug.toLowerCase().includes(searchQuery.value.toLowerCase())
+    c.ten_thuonghieu.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
+});
+
+const {
+  selectedIds,
+  isBulkDeleting,
+  allCurrentPageSelected,
+  toggleItemSelection,
+  toggleCurrentPageSelection,
+  clearSelection,
+  removeSelected,
+  removeAllFiltered,
+} = useAdminBulkDelete({
+  items: thuonghieu,
+  filteredItems: filteredBrands,
+  getId: item => item.id_thuonghieu,
+  endpoint: id => `/admin/thuonghieu/${id}`,
+  entityLabel: 'thương hiệu',
+  fetchItems: fetchBrands,
+  cannotDeleteMessage: 'Một số thương hiệu có thể đang được sản phẩm sử dụng.',
 });
 
 // --- MỞ FORM THÊM MỚI ---
@@ -186,6 +275,9 @@ const openCreate = () => {
   isEdit.value = false;
   editId.value = null;
   form.value = defaultForm();
+  logoPreview.value = '';
+  logoFile.value = null;
+  if (fileInputRef.value) fileInputRef.value.value = '';
   showModal.value = true;
 };
 
@@ -197,6 +289,9 @@ const openEdit = (th) => {
     ten_thuonghieu: th.ten_thuonghieu,
     danh_muc_ids: Array.isArray(th.danh_muc_ids) ? [...th.danh_muc_ids] : []
   }; 
+  logoPreview.value = th.logo ? storageUrl(th.logo) : '';
+  logoFile.value = null;
+  if (fileInputRef.value) fileInputRef.value.value = '';
   showModal.value = true;
 };
 
@@ -208,7 +303,7 @@ const closeModal = () => {
 // --- LƯU DỮ LIỆU (CREATE / UPDATE) ---
 const saveBrand = async () => {
   if(!form.value.ten_thuonghieu) {
-    alert("Vui lòng nhập Tên thương hiệu!");
+    swal.warning('Thiếu thông tin', 'Vui lòng nhập Tên thương hiệu!')
     return;
   }
 
@@ -218,12 +313,25 @@ const saveBrand = async () => {
       danh_muc_ids: form.value.danh_muc_ids.length > 0 ? form.value.danh_muc_ids : null
     };
 
+    const fd = new FormData();
+    fd.append('ten_thuonghieu', form.value.ten_thuonghieu);
+    if (logoFile.value) {
+      fd.append('logo', logoFile.value);
+    }
+
+    const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
     if (isEdit.value) {
       await api.put(`/thuonghieu/${editId.value}`, payload);
       alert('Cập nhật thành công!');
+      fd.append('_method', 'PUT');
+      await api.post(`/admin/thuonghieu/${editId.value}`, fd, config);
+      swal.success('Thành công', 'Cập nhật thương hiệu thành công!');
     } else {
       await api.post('/thuonghieu', payload);
       alert('Thêm mới thành công!');
+      await api.post('/admin/thuonghieu', fd, config);
+      swal.success('Thành công', 'Thêm mới thương hiệu thành công!');
     }
     closeModal();
     fetchBrands(); 
@@ -236,18 +344,18 @@ const saveBrand = async () => {
 
 // --- XÓA (DELETE) ---
 const deleteBrand = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa danh mục này? Thao tác không thể hoàn tác!')) {
+  const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa thương hiệu này? Thao tác không thể hoàn tác!')
+  if (isConfirmed) {
     try {
-      await api.delete(`/thuonghieu/${id}`);
-      alert('Đã xóa thành công!');
+      await api.delete(`/admin/thuonghieu/${id}`);
+      swal.success('Đã xóa', 'Xóa thương hiệu thành công!')
       fetchBrands();
     } catch (error) {
       console.error('Lỗi khi xóa:', error);
-      alert('Không thể xóa danh mục này!');
+      swal.error('Lỗi', 'Không thể xóa thương hiệu này!')
     }
   }
 };
-
 </script>
 
 <style scoped>
@@ -273,12 +381,28 @@ thead tr { background: #f8faff; border-bottom: 1px solid #e8edf5; }
 th { padding: 13px 20px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.6px; text-align: left; }
 tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
 tbody tr:hover { background: #fafbff; }
+tbody tr.row-selected { background: #eff6ff; }
 td { padding: 16px 20px; vertical-align: middle; }
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
 .cat-name { font-size: 14px; font-weight: 600; color: #1e293b; }
 .cat-count { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 .status-badge { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; display: inline-block; }
-.status-active { color: #16a34a; background: #dcfce7; }
-.status-hidden { color: #9333ea; background: #f3e8ff; }
+.status-active,
+.status-hidden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.status-active { color: #15803d; background: #dcfce7; border-color: #86efac; }
+.status-hidden { color: #7e22ce; background: #f3e8ff; border-color: #d8b4fe; }
 .actions { display: flex; gap: 6px; }
 .action-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
 .action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
@@ -320,4 +444,121 @@ td { padding: 16px 20px; vertical-align: middle; }
 .slide-up-leave-active { transition: all 0.2s ease; }
 .slide-up-enter-from { opacity: 0; transform: translateY(30px) scale(0.97); }
 .slide-up-leave-to { opacity: 0; transform: translateY(10px) scale(0.98); }
+
+/* Logo Table Cell Styling */
+.brand-logo-cell {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 1px solid #e8edf5;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+
+.brand-logo-placeholder {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6366f1;
+  text-transform: uppercase;
+}
+
+/* Logo Upload Section in Modal */
+.logo-upload-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: border-color 0.2s;
+}
+
+.logo-upload-wrap:hover {
+  border-color: #6366f1;
+}
+
+.logo-preview-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.logo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+
+.logo-placeholder-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+.upload-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-upload-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.btn-upload-file svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.btn-upload-file:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f5f3ff;
+}
+
+.file-info-text {
+  font-size: 11px;
+  color: #64748b;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
 </style>

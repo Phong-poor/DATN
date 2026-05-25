@@ -1185,6 +1185,21 @@ textarea {
 @media (max-width: 768px) {
   .container {
     grid-template-columns: 1fr;
+    padding: 24px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .container {
+    padding: 16px 10px;
+    gap: 16px;
+  }
+  .box {
+    padding: 16px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 </style>

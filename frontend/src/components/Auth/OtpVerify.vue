@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/services/api'
 import swal from '@/services/swal'
+import { formatAuthMessage } from '@/services/authMessages'
 
 const route = useRoute()
 const router = useRouter()
@@ -119,7 +120,7 @@ async function verify() {
   errorMessage.value = ''
 
   try {
-    await axios.post('http://127.0.0.1:8000/api/forgot-password/verify-otp', {
+    await api.post('/forgot-password/verify-otp', {
       email: email.value,
       otp: otpCode
     })
@@ -135,9 +136,12 @@ async function verify() {
     console.log(err)
     hasError.value = true
     errorMessage.value =
-      err.response?.data?.errors?.otp?.[0] ||
-      err.response?.data?.message ||
-      'Mã OTP không đúng hoặc đã hết hạn.'
+      formatAuthMessage(
+        err.response?.data?.errors?.otp?.[0] ||
+        err.response?.data?.message ||
+        'Mã OTP không đúng hoặc đã hết hạn.',
+        'Mã OTP không đúng hoặc đã hết hạn.'
+      )
 
     clearOtp()
     focusInput(0)
@@ -154,7 +158,7 @@ async function resend() {
   errorMessage.value = ''
 
   try {
-    await axios.post('http://127.0.0.1:8000/api/forgot-password/send-otp', {
+    await api.post('/forgot-password/send-otp', {
       email: email.value
     })
 
@@ -164,10 +168,13 @@ async function resend() {
     swal.toast('Đã gửi lại mã OTP.')
   } catch (err) {
     console.log(err)
-    swal.error('Lỗi', 
-      err.response?.data?.errors?.email?.[0] ||
-      err.response?.data?.message ||
-      'Không thể gửi lại OTP.'
+    swal.error('Lỗi',
+      formatAuthMessage(
+        err.response?.data?.errors?.email?.[0] ||
+        err.response?.data?.message ||
+        'Không thể gửi lại OTP.',
+        'Không thể gửi lại OTP.'
+      )
     )
   } finally {
     isResending.value = false

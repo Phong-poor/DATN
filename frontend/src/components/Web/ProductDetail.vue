@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
+import { storageUrl } from '@/services/urls'
 
 
 
@@ -39,7 +40,7 @@ const reviews = ref([])
 const fetchReviews = async () => {
     try {
         const productId = route.params.id || 1
-        const res = await api.get(`/sanpham/${productId}/reviews`)
+        const res = await api.get(`/sanpham/${productId}/reviews`, { skipGlobalLoader: true })
         reviews.value = res.data.reviews || []
     } catch (error) {
         console.error('Lỗi khi tải đánh giá:', error)
@@ -103,7 +104,13 @@ const findMatchingVariant = () => {
 const handleSelectOption = (groupName, value) => {
     selectedOptions.value = { ...selectedOptions.value, [groupName]: value }
     const matched = findMatchingVariant()
-    if (matched) selectedVariant.value = matched
+    if (matched) {
+        selectedVariant.value = matched
+        if (matched.hinhanh) {
+            selectedImage.value = getImageUrl(matched.hinhanh)
+        }
+        router.replace({ query: { ...route.query, variant: matched.id_bienthe } })
+    }
 }
 
 // Reset số lượng khi đổi biến thể
@@ -181,7 +188,7 @@ const formatPrice = (price) => {
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/600'
     if (path.startsWith('http') || path.startsWith('data:image')) return path
-    return `http://127.0.0.1:8000/storage/${path}`
+    return storageUrl(path)
 }
 
 const allImages = computed(() => {
@@ -211,13 +218,71 @@ const prevThumbs = () => {
 }
 
 // ===================== FETCH SẢN PHẨM =====================
+const loadCache = (productId) => {
+    try {
+        const cached = localStorage.getItem(`nextgen_product_detail_cache_${productId}`)
+        if (cached) {
+            const parsed = JSON.parse(cached)
+            if (parsed.product) product.value = parsed.product
+            if (parsed.reviews) reviews.value = parsed.reviews
+            if (parsed.recentlyViewedProducts) recentlyViewedProducts.value = parsed.recentlyViewedProducts
+            if (parsed.relatedProducts) relatedProducts.value = parsed.relatedProducts
+            if (product.value && product.value.tenSP) {
+                window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
+            }
+            
+            // Cập nhật ảnh đại diện và biến thể từ cache
+            if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
+            const variants = product.value.bienThes || []
+            if (variants.length > 0) {
+                const variantId = route.query.variant
+                let targetVariant = variants[0]
+                if (variantId) {
+                    const found = variants.find(v => String(v.id_bienthe) === String(variantId))
+                    if (found) targetVariant = found
+                }
+                selectedVariant.value = targetVariant
+                const options = {}
+                getVariantAttributes(targetVariant).forEach(attr => {
+                    options[attr.ten_thuoctinh] = attr.giatri
+                })
+                selectedOptions.value = options
+                if (targetVariant.hinhanh) {
+                    selectedImage.value = getImageUrl(targetVariant.hinhanh)
+                }
+            }
+            return true
+        }
+    } catch (e) {
+        console.error('Lỗi load cache chi tiết sản phẩm:', e)
+    }
+    return false
+}
+
+const saveCache = (productId) => {
+    try {
+        localStorage.setItem(`nextgen_product_detail_cache_${productId}`, JSON.stringify({
+            product: product.value,
+            reviews: reviews.value,
+            recentlyViewedProducts: recentlyViewedProducts.value,
+            relatedProducts: relatedProducts.value
+        }))
+    } catch (e) {
+        console.error('Lỗi save cache chi tiết sản phẩm:', e)
+    }
+}
+
 const fetchProductDetail = async () => {
     try {
         const productId = route.params.id || 1
-        const response = await api.get(`/sanpham/${productId}`)
+        const response = await api.get(`/sanpham/${productId}`, { skipGlobalLoader: true })
         const data = response.data
         const variants = data.bien_thes || data.bienThes || []
         product.value = { ...data, bienThes: variants }
+
+        if (product.value && product.value.tenSP) {
+            window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
+        }
 
         if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
 
@@ -237,7 +302,6 @@ const fetchProductDetail = async () => {
             })
             selectedOptions.value = options
 
-            // Cập nhật ảnh đại diện nếu biến thể có ảnh (optional - nếu có field hinhanh trong biến thể)
             if (targetVariant.hinhanh) {
                 selectedImage.value = getImageUrl(targetVariant.hinhanh)
             }
@@ -251,7 +315,7 @@ const fetchProductDetail = async () => {
         // --- GHI NHẬN LƯỢT XEM SẢN PHẨM ---
         if (getToken()) {
             try {
-                await api.post(`/sanpham-daxem/${productId}`);
+                await api.post(`/sanpham-daxem/${productId}`, {}, { skipGlobalLoader: true });
             } catch (err) {
                 console.error('Lỗi khi ghi nhận lượt xem:', err);
             }
@@ -263,19 +327,31 @@ const fetchProductDetail = async () => {
 }
 
 const loadPageData = async () => {
-    isLoading.value = true;
+    const productId = route.params.id || 1
+    // Tải cache ngay lập tức để hiển thị tức thì
+    const hasCache = loadCache(productId)
+    if (hasCache) {
+        isLoading.value = false
+    } else {
+        isLoading.value = true
+    }
+
     try {
         await Promise.all([
             fetchProductDetail(),
             fetchRecentlyViewed(),
             fetchReviews()
         ]);
-    } finally {
-        isLoading.value = false;
+        saveCache(productId)
+        isLoading.value = false
+    } catch (e) {
+        console.error('Lỗi khi tải dữ liệu chi tiết sản phẩm:', e)
+        isLoading.value = false
     }
 }
 
 onMounted(() => {
+    window.scrollTo(0, 0)
     loadPageData()
 })
 
@@ -285,7 +361,7 @@ watch(() => route.fullPath, (newPath, oldPath) => {
         selectedOptions.value = {};
         thumbIndex.value = 0;
         loadPageData();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(0, 0);
     }
 })
 
@@ -304,7 +380,7 @@ const fetchRecentlyViewed = async () => {
     if (!getToken()) return; // Chỉ lấy cho user đăng nhập
 
     try {
-        const res = await api.get('/sanpham-daxem')
+        const res = await api.get('/sanpham-daxem', { skipGlobalLoader: true })
         const allProducts = res.data || []
         
         // Lọc để ẩn sản phẩm hiện đang xem
@@ -371,7 +447,7 @@ const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length 
 
 const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
     try {
-        const res = await api.get('/sanpham')
+        const res = await api.get('/sanpham', { skipGlobalLoader: true })
         const allProducts = res.data || []
 
         // Lọc theo danh mục và loại bỏ sản phẩm hiện tại
@@ -644,10 +720,6 @@ const modalComparisonData = computed(() => {
             </div>
 
             <div v-else>
-                <div class="breadcrumb">
-                    Trang chủ / Laptop / {{ product.tenSP }}
-                </div>
-
                 <div class="detail">
 
                     <!-- ẢNH -->
@@ -841,7 +913,7 @@ const modalComparisonData = computed(() => {
                                                             <div class="prod-header">
                                                                 <img :src="p.img" />
                                                                 <div class="prod-info">
-                                                                    <div class="prod-name">{{ product.tenSP }}</div>
+                                                                    <div class="prod-name">{{ p.fullName }}</div>
                                                                     <div class="prod-price">{{ formatPrice(p.price) }}</div>
                                                                 </div>
                                                             </div>
@@ -1461,8 +1533,9 @@ h1 {
 }
 
 .related {
-    padding: 0 150px;
-    margin: 60px 0;
+    max-width: 1200px;
+    margin: 60px auto;
+    padding: 0 24px;
 }
 
 .related-header {
@@ -1557,7 +1630,7 @@ h1 {
     color: #2563eb;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 
     .detail,
     .review-list {
@@ -1570,6 +1643,29 @@ h1 {
 
     .related-list {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px 12px;
+    }
+    .main-img {
+        height: 320px;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 12px 8px;
+    }
+    .main-img {
+        height: 240px;
+        padding: 8px;
+    }
+    .related-list {
+        grid-template-columns: 1fr;
     }
 }
 

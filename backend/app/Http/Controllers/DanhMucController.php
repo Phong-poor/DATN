@@ -61,6 +61,8 @@ class DanhMucController extends Controller
             'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
         ]);
 
+        $validated['trangthai'] = in_array((string) $validated['trangthai'], ['active', '1', 'true'], true) ? 'active' : 'hidden';
+
         $danhmuc = DanhMuc::create($validated);
         
         Cache::forget('danhmuc_all');
@@ -98,6 +100,8 @@ class DanhMucController extends Controller
             'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
         ]);
 
+        $validated['trangthai'] = in_array((string) $validated['trangthai'], ['active', '1', 'true'], true) ? 'active' : 'hidden';
+
         
         $danhMuc->update($validated);
 
@@ -130,3 +134,4 @@ class DanhMucController extends Controller
         ], 200);
     }
 }
+

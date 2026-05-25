@@ -1,12 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 
 import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
-import { onUnmounted } from 'vue'
+import { storageUrl } from '@/services/urls'
 
 // ── Active tab ────────────────────────────────────────────
 const activeTab = ref('profile')
@@ -60,10 +60,12 @@ const user = ref({
   joinDate: '',
 })
 
+const tempAvatarUrl = ref('')
+
 const sidebarAvatarUrl = computed(() => {
   if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
   if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return `http://127.0.0.1:8000/storage/${user.value.avatar}`
+  return storageUrl(user.value.avatar)
 })
 
 const formAvatarUrl = computed(() => {
@@ -79,8 +81,10 @@ const updateUserData = (apiUser) => {
     birthday: apiUser.date_of_birth || '',
     gender: apiUser.gender || '',
     avatar: apiUser.avatar || user.value.avatar,
-    memberSince: apiUser.memberSince || 'Thành viên',
-    joinDate: apiUser.joinDate || user.value.joinDate,
+    memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+    joinDate: apiUser.created_at
+      ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
+      : user.value.joinDate,
   }
 }
 
@@ -107,6 +111,16 @@ const handleAvatarUpload = async (event) => {
     return
   }
 
+  // Thu hồi ảnh xem trước cũ nếu có
+  if (tempAvatarUrl.value) {
+    URL.revokeObjectURL(tempAvatarUrl.value)
+    tempAvatarUrl.value = ''
+  }
+
+  // Tạo ảnh xem trước cục bộ ngay lập tức
+  const previewUrl = URL.createObjectURL(file)
+  tempAvatarUrl.value = previewUrl
+
   isUploadingAvatar.value = true
   try {
     const formData = new FormData()
@@ -123,10 +137,16 @@ const handleAvatarUpload = async (event) => {
       updateUser(user.value)
       window.dispatchEvent(new Event('user-updated'))
       showToast('Cập nhật ảnh đại diện thành công!')
+      // Không thu hồi tempAvatarUrl ngay để giữ giao diện xem trước mượt mà, tức thời
     }
   } catch (error) {
     console.error('Lỗi upload avatar:', error)
     showToast('Lỗi cập nhật ảnh đại diện!')
+    // Nếu lỗi thì thu hồi và reset ảnh xem trước
+    if (tempAvatarUrl.value) {
+      URL.revokeObjectURL(tempAvatarUrl.value)
+      tempAvatarUrl.value = ''
+    }
   } finally {
     isUploadingAvatar.value = false
     if (fileInput.value) fileInput.value.value = ''
@@ -150,8 +170,10 @@ const loadUser = async () => {
           phone: parsed.phone || '',
           birthday: parsed.birthday || '',
           gender: parsed.gender || '',
-          memberSince: parsed.memberSince || 'Thành viên',
-          joinDate: parsed.joinDate || '',
+          memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+          joinDate: parsed.created_at
+            ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
+            : (parsed.joinDate || ''),
           avatar: parsed.avatar || user.value.avatar,
         }
       }
@@ -173,8 +195,10 @@ const loadUser = async () => {
         phone: parsed.phone || '',
         birthday: parsed.birthday || '',
         gender: parsed.gender || '',
-        memberSince: parsed.memberSince || 'Thành viên',
-        joinDate: parsed.joinDate || '',
+        memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+        joinDate: parsed.created_at
+          ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
+          : (parsed.joinDate || ''),
         avatar: parsed.avatar || user.value.avatar,
       }
     }
@@ -237,7 +261,7 @@ const fetchOrders = async () => {
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
-              img: item.bien_the?.san_pham?.hinhanh ? `http://127.0.0.1:8000/storage/${item.bien_the.san_pham.hinhanh}` : 'https://via.placeholder.com/200'
+              img: item.bien_the?.san_pham?.hinhanh ? storageUrl(item.bien_the.san_pham.hinhanh) : 'https://via.placeholder.com/200'
             }
           }),
           steps: [
@@ -398,6 +422,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (tempAvatarUrl.value) {
+    URL.revokeObjectURL(tempAvatarUrl.value)
+  }
   const userData = getUser()
   const userId = userData?.id || userData?.id_user
   if (userId) {
@@ -462,10 +489,21 @@ const saveProfile = async () => {
   }
 }
 
+const rewardPoints = computed(() => {
+  // Tính tổng tiền từ các đơn hàng hoàn thành (done hoặc completed)
+  const completedOrders = orders.value.filter(o => o.status === 'done' || o.trangthai === 'completed' || o.trangthai === 'done')
+  const totalSpent = completedOrders.reduce((sum, o) => sum + (o.tongtien || 0), 0)
+
+  // Quy đổi: 10.000đ = 1 điểm thưởng
+  const points = Math.floor(totalSpent / 10000)
+
+  return new Intl.NumberFormat('vi-VN').format(points)
+})
+
 const stats = computed(() => [
   { label: 'Đơn hàng', value: orders.value.length.toString(), icon: 'orders' },
   { label: 'Yêu thích', value: wishlistCount.value.toString(), icon: 'heart' },
-  { label: 'Điểm thưởng', value: '1.250', icon: 'star' },
+  { label: 'Điểm thưởng', value: rewardPoints.value, icon: 'star' },
 ])
 
 // ════════════════════════════════════════════════
@@ -889,10 +927,42 @@ const savePw = async () => {
   if (Object.keys(pwErrors.value).length) return
 
   savingPw.value = true
-  await new Promise((r) => setTimeout(r, 1000))
-  savingPw.value = false
-  pwForm.value = { current: '', newPass: '', confirm: '' }
-  showToast('Đổi mật khẩu thành công!')
+  try {
+    const res = await api.put('/user/change-password', {
+      current_password: pwForm.value.current,
+      new_password: pwForm.value.newPass,
+      new_password_confirmation: pwForm.value.confirm,
+    })
+
+    pwForm.value = { current: '', newPass: '', confirm: '' }
+    showToast(res.data?.message || 'Đổi mật khẩu thành công!')
+  } catch (error) {
+    const data = error.response?.data || {}
+
+    if (error.response?.status === 422) {
+      if (data.errors?.current_password?.[0]) {
+        pwErrors.value.current = data.errors.current_password[0]
+      }
+
+      if (data.errors?.new_password?.[0]) {
+        pwErrors.value.newPass = data.errors.new_password[0]
+      }
+
+      if (!Object.keys(pwErrors.value).length && data.message) {
+        const message = data.message
+        if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
+          pwErrors.value.current = message
+        } else {
+          pwErrors.value.newPass = message
+        }
+      }
+      return
+    }
+
+    showToast(data.message || 'Có lỗi xảy ra khi đổi mật khẩu!')
+  } finally {
+    savingPw.value = false
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -1162,7 +1232,7 @@ const promoStatusMap = {
         <div class="avatar-section">
           <div class="avatar-sidebar-container">
             <div class="avatar-circle" @click="triggerAvatarUpload" style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
-              <img :src="sidebarAvatarUrl" :alt="user.name" class="profile-avatar" />
+              <img :src="formAvatarUrl" :alt="user.name" class="profile-avatar" />
               <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
                 <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               </div>
@@ -1241,7 +1311,7 @@ const promoStatusMap = {
             <div class="form-avatar-section">
               <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
                 <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
-                  <img :src="sidebarAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
                   <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
                     <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                   </div>
@@ -1251,13 +1321,6 @@ const promoStatusMap = {
                 </div>
               </div>
               <p class="form-avatar-upload-text">Tải ảnh lên</p>
-              <input
-                type="file"
-                ref="fileInput"
-                class="d-none"
-                accept="image/jpeg, image/png"
-                @change="handleAvatarUpload"
-              />
             </div>
 
             <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
@@ -2018,4 +2081,115 @@ const promoStatusMap = {
 }
 
 .w-100 { width: 100%; }
+
+/* ===================== RESPONSIVE STYLES ===================== */
+@media (max-width: 1024px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 16px;
+  }
+  .card {
+    padding: 24px 20px;
+  }
+  .form-row, .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .pw-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .order-data-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 576px) {
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 0;
+  }
+  .info-lbl {
+    width: auto;
+  }
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .btn-edit {
+    width: 100%;
+    justify-content: center;
+  }
+  .order-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px;
+  }
+  .order-tab {
+    width: 100%;
+    justify-content: center;
+  }
+  .modal {
+    width: calc(100% - 24px);
+    margin: 12px;
+  }
+  .modal-head {
+    padding: 18px 18px 0;
+  }
+  .modal-body {
+    padding: 16px 18px 18px;
+  }
+  .modal-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .modal-item img {
+    width: 60px;
+    height: 60px;
+  }
+  .modal-item-right {
+    width: 100%;
+    text-align: left !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .modal-btns {
+    flex-direction: column;
+  }
+  .btn-modal-huy, .btn-modal-mua {
+    width: 100%;
+    text-align: center;
+  }
+  .modal-total-wrap {
+    text-align: left;
+  }
+}
 </style>

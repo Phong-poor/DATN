@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
 
 class SanPhamController extends Controller
 {
@@ -296,6 +297,8 @@ class SanPhamController extends Controller
             $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
                 ->find($sanpham->id_sanpham);
 
+            $this->clearSanPhamCaches($sanpham->id_sanpham);
+
             return response()->json([
                 'message' => 'Thêm sản phẩm thành công.',
                 'data'    => $sanpham
@@ -354,8 +357,7 @@ class SanPhamController extends Controller
             if ($request->filled('hinhanh') && !str_starts_with($request->hinhanh, 'data:image')) {
                 $incoming = $request->hinhanh;
                 if (str_contains($incoming, '/storage/')) {
-                    $coverPath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $incoming), '/');
-                    $coverPath = ltrim(str_replace('/storage/', '', $coverPath), '/');
+                    $coverPath = ltrim(preg_replace('#^.*?/storage/#', '', $incoming), '/');
                 }
             }
 
@@ -379,8 +381,9 @@ class SanPhamController extends Controller
                     if (str_starts_with($imagePath, 'data:image')) {
                         $imagePath = ImageHelper::saveBase64Image($imagePath, 'uploads/sanpham');
                     } else {
-                        $imagePath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $imagePath), '/');
-                        $imagePath = ltrim(str_replace('/storage/', '', $imagePath), '/');
+                        if (str_contains($imagePath, '/storage/')) {
+                            $imagePath = ltrim(preg_replace('#^.*?/storage/#', '', $imagePath), '/');
+                        }
                     }
 
                     if ($imagePath) {
@@ -411,8 +414,7 @@ class SanPhamController extends Controller
 
             $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
                 ->find($sanpham->id_sanpham);
-
-            Cache::forget("sanpham_show_{$id}");
+            $this->clearSanPhamCaches($id);
 
             return response()->json([
                 'message' => 'Cập nhật sản phẩm thành công.',
@@ -436,11 +438,47 @@ class SanPhamController extends Controller
             return response()->json(['message' => 'Không tìm thấy sản phẩm.'], 404);
         }
 
-        $sanpham->delete();
+        DB::beginTransaction();
+        try {
+            // Xóa dữ liệu phụ thuộc trước để tránh lỗi ràng buộc khóa ngoại
+            BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            BienTheHinhAnh::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            $sanpham->delete();
 
-        Cache::forget("sanpham_show_{$id}");
+            DB::commit();
+            $this->clearSanPhamCaches($id);
 
-        return response()->json(['message' => 'Xóa sản phẩm thành công.']);
+            return response()->json(['message' => 'Xóa sản phẩm thành công.']);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            // SQLSTATE 23000: lỗi ràng buộc khóa ngoại
+            if (($e->errorInfo[0] ?? null) === '23000') {
+                return response()->json([
+                    'message' => 'Không thể xóa sản phẩm vì đang có dữ liệu liên quan (đơn hàng/chi tiết khác).'
+                ], 409);
+            }
+            return response()->json([
+                'message' => 'Không xóa được sản phẩm.',
+                'error' => $e->getMessage()
+            ], 500);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Không xóa được sản phẩm.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function clearSanPhamCaches(?int $id = null): void
+    {
+        if ($id) {
+            Cache::forget("sanpham_show_{$id}");
+        }
+
+        // Danh sách admin/frontend thường gọi /sanpham không query
+        Cache::forget('sanpham_index_' . md5(json_encode([])));
+        Cache::forget('sanpham_attribute_options');
     }
 
     private function generateUniqueSKU($id_thuonghieu)

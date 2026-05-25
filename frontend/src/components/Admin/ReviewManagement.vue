@@ -148,14 +148,20 @@
                     <h4>Tất cả đã sẵn sàng!</h4>
                     <p>Hiện không có bình luận nào cần kiểm duyệt gấp. Hệ thống AI đang tự động lọc các nội dung spam
                         thô tục.</p>
-                    <button class="banner-btn outline">KIỂM TRA BỘ LỌC AI</button>
+                    <button class="banner-btn outline" @click="activeTab = 'spam'">KIỂM TRA BỘ LỌC AI</button>
                 </div>
 
                 <div class="banner-card smart-reply">
                     <div class="banner-badge">✦ AI</div>
                     <h4>Trợ lý AI<br />Smart Reply</h4>
                     <p>Tự động soạn thảo câu trả lời dựa trên nội dung khách hàng bình luận.</p>
-                    <button class="banner-btn primary">KÍCH HOẠT NGAY</button>
+                    <button 
+                        class="banner-btn" 
+                        :class="isAiActive ? 'active-btn' : 'primary'"
+                        @click="toggleAiStatus"
+                    >
+                        {{ isAiActive ? 'HỦY KÍCH HOẠT' : 'KÍCH HOẠT NGAY' }}
+                    </button>
                 </div>
             </div>
 
@@ -175,6 +181,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import api from '../../services/api'
+import swal from '@/services/swal'
 
 const activeTab = ref('all')
 const currentPage = ref(1)
@@ -244,7 +251,7 @@ const updateStatusDropdown = async (review, newStatus) => {
             fetchReviews()
         }
     } catch (err) {
-        alert('Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -256,7 +263,7 @@ const undoReview = async (review) => {
             fetchReviews()
         }
     } catch (err) {
-        alert('Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -284,12 +291,13 @@ const triggerUndo = async () => {
         const res = await api.put(`/admin/reviews/${reviewId}/status`, { trangthai: targetStatus });
         if (res.data.success) review.trangthai = targetStatus;
     } catch (err) {
-        alert('Lỗi hoàn tác: ' + err.message);
+        swal.error('Lỗi', 'Lỗi hoàn tác: ' + err.message);
     }
 }
 
 const approveReview = async (review) => {
-    if (!confirm('Bạn có chắc chắn muốn duyệt đánh giá này không?')) return;
+    const isConfirmed = await swal.confirm('Xác nhận duyệt', 'Bạn có chắc chắn muốn duyệt đánh giá này không?')
+    if (!isConfirmed) return;
 
     try {
         const res = await api.put(`/admin/reviews/${review.id_danhgia}/status`, {
@@ -297,11 +305,11 @@ const approveReview = async (review) => {
         })
         if (res.data.success) {
             review.trangthai = 'approved'
-            alert('Duyệt đánh giá thành công!')
+            swal.success('Thành công', 'Duyệt đánh giá thành công!')
             fetchReviews()
         }
     } catch (err) {
-        alert('Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -317,21 +325,56 @@ const markAsSpam = async (review) => {
             fetchReviews()
         }
     } catch (err) {
-        alert('Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
     }
 }
 
 const deleteReview = async (id) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')) return;
+    const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')
+    if (!isConfirmed) return;
 
     try {
         const res = await api.delete(`/admin/reviews/${id}`)
         if (res.data.success) {
-            alert('Đã xóa đánh giá thành công!')
+            swal.success('Đã xóa', 'Đã xóa đánh giá thành công!')
             fetchReviews()
         }
     } catch (err) {
-        alert('Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
+    }
+}
+
+const isAiActive = ref(false)
+
+const fetchAiStatus = async () => {
+    try {
+        const res = await api.get('/admin/reviews/ai-status')
+        if (res.data.success) {
+            isAiActive.value = res.data.active
+        }
+    } catch (err) {
+        console.error('Lỗi khi tải trạng thái AI:', err)
+    }
+}
+
+const toggleAiStatus = async () => {
+    const nextState = !isAiActive.value
+    const confirmTitle = nextState ? 'Kích hoạt Trợ lý AI' : 'Hủy kích hoạt Trợ lý AI'
+    const confirmMsg = nextState 
+        ? 'Bạn có chắc muốn kích hoạt Trợ lý AI Smart Reply để tự động phê duyệt và trả lời cảm ơn khách hàng đã mua sắm?' 
+        : 'Bạn có chắc muốn hủy kích hoạt Trợ lý AI Smart Reply? Các bình luận mới sẽ phải duyệt thủ công.'
+    
+    const isConfirmed = await swal.confirm(confirmTitle, confirmMsg)
+    if (!isConfirmed) return
+
+    try {
+        const res = await api.post('/admin/reviews/ai-status', { active: nextState })
+        if (res.data.success) {
+            isAiActive.value = res.data.active
+            swal.success('Thành công', res.data.message)
+        }
+    } catch (err) {
+        swal.error('Lỗi', 'Lỗi thiết lập AI: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -346,6 +389,7 @@ watch(currentPage, () => {
 
 onMounted(() => {
     fetchReviews()
+    fetchAiStatus()
 })
 </script>
 
@@ -885,6 +929,17 @@ td {
 
 .banner-btn.primary:hover {
     background: #2563eb;
+    transform: scale(1.03);
+}
+
+.banner-btn.active-btn {
+    border: none;
+    background: #10b981;
+    color: #fff;
+}
+
+.banner-btn.active-btn:hover {
+    background: #059669;
     transform: scale(1.03);
 }
 

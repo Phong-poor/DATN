@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as XLSX from 'xlsx'
 import api from '@/services/api'
+import { storageUrl } from '@/services/urls'
+import swal from '@/services/swal'
 
 /* ═══════════════════════════════════════
    DANH SÁCH SẢN PHẨM
@@ -10,6 +11,30 @@ import api from '@/services/api'
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
+
+const isOpenStatusDropdown = ref(false)
+const isOpenCategoryDropdown = ref(false)
+
+const getSelectedCategoryLabel = () => {
+  if (!selectedCategory.value) return 'Tất cả danh mục'
+  const found = categories.value.find(c => String(c.id_danhmuc) === String(selectedCategory.value))
+  return found ? found.ten_danhmuc : 'Tất cả danh mục'
+}
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    isOpenStatusDropdown.value = false
+    isOpenCategoryDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeDropdowns)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdowns)
+})
 
 const currentPage = ref(1)
 const PER_PAGE = 10
@@ -25,6 +50,8 @@ const readingExtraImages = ref(false)
 const variantLoading = ref(false)
 const isExporting = ref(false)
 const isImporting = ref(false)
+const isBulkDeleting = ref(false)
+const selectedProductIds = ref([])
 const importExcelRef = ref(null)
 const importVariantsExcelRef = ref(null)
 
@@ -87,6 +114,11 @@ const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(start, start + PER_PAGE)
 })
 
+const allCurrentPageSelected = computed(() =>
+  paginatedProducts.value.length > 0 &&
+  paginatedProducts.value.every(p => selectedProductIds.value.includes(p.id))
+)
+
 const pageItems = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
@@ -118,6 +150,27 @@ const goToPage = (page) => {
   currentPage.value = page
 }
 
+const toggleProductSelection = (id) => {
+  selectedProductIds.value = selectedProductIds.value.includes(id)
+    ? selectedProductIds.value.filter(item => item !== id)
+    : [...selectedProductIds.value, id]
+}
+
+const toggleCurrentPageSelection = () => {
+  const pageIds = paginatedProducts.value.map(p => p.id)
+
+  if (allCurrentPageSelected.value) {
+    selectedProductIds.value = selectedProductIds.value.filter(id => !pageIds.includes(id))
+    return
+  }
+
+  selectedProductIds.value = Array.from(new Set([...selectedProductIds.value, ...pageIds]))
+}
+
+const clearProductSelection = () => {
+  selectedProductIds.value = []
+}
+
 watch([searchQuery, selectedStatus, selectedCategory], () => {
   currentPage.value = 1
 })
@@ -147,7 +200,7 @@ const handleExportExcel = async () => {
     const data = res.data
 
     if (!data || data.length === 0) {
-      alert("Không có dữ liệu để xuất")
+      swal.warning('Không có dữ liệu', 'Không có dữ liệu để xuất')
       return
     }
 
@@ -168,7 +221,7 @@ const handleExportExcel = async () => {
     XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
-    alert("Lỗi khi xuất file Excel")
+    swal.error('Lỗi', 'Lỗi khi xuất file Excel')
   } finally {
     isExporting.value = false
   }
@@ -200,20 +253,21 @@ const handleImportExcel = async (e) => {
       })).filter(item => item.id_bienthe)
 
       if (updates.length === 0) {
-        alert("Không tìm thấy dữ liệu hợp lệ trong file Excel (Hãy đảm bảo cột 'ID Biến Thể' không bị thay đổi)")
+        swal.warning('Không hợp lệ', "Không tìm thấy dữ liệu hợp lệ trong file Excel")
         return
       }
 
-      if (!confirm(`Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)) {
+      const isConfirmed = await swal.confirm('Xác nhận cập nhật', `Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)
+      if (!isConfirmed) {
         return
       }
 
       const res = await api.post('/admin/sanpham/import-stock', { updates })
-      alert(res.data.message)
+      swal.success('Thành công', res.data.message || 'Cập nhật tồn kho thành công')
       await fetchProducts()
     } catch (error) {
       console.error(error)
-      alert("Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.")
+      swal.error('Lỗi', 'Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.')
     } finally {
       isImporting.value = false
       e.target.value = ''
@@ -229,7 +283,7 @@ const handleImportExcel = async (e) => {
 const handleExportVariantsExcel = () => {
   const headers = tableHeaders.value
   if (!headers.length) {
-    alert("Không có thuộc tính để xuất")
+    swal.warning('Không có dữ liệu', 'Không có thuộc tính để xuất')
     return
   }
 
@@ -300,10 +354,10 @@ const handleImportVariantsExcel = (e) => {
         }
       })
 
-      alert(`Đã kiểm tra check trùng: Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
+      swal.success('Nhập biến thể', `Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
     } catch (err) {
       console.error(err)
-      alert("Lỗi khi đọc file Excel biến thể")
+      swal.error('Lỗi', 'Lỗi khi đọc file Excel biến thể')
     } finally {
       e.target.value = ''
     }
@@ -330,7 +384,9 @@ const fetchProducts = async () => {
         bienThes,
         status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
         img: p.hinhanh
-          ? `http://127.0.0.1:8000/storage/${p.hinhanh}`
+        ? storageUrl(p.hinhanh)
+        : Array.isArray(p.hinh_anhs || p.hinhAnhs) && (p.hinh_anhs || p.hinhAnhs)[0]?.duongdan
+          ? storageUrl((p.hinh_anhs || p.hinhAnhs)[0].duongdan)
           : 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200',
       }
     })
@@ -443,18 +499,84 @@ const fetchColors = async () => {
 }
 
 const removeProduct = async (id, name = '') => {
-  const confirmed = window.confirm(
+  const confirmed = await swal.confirm(
+    'Xác nhận xóa',
     `Bạn có chắc muốn xóa sản phẩm${name ? ` "${name}"` : ''} không?`
   )
 
   if (!confirmed) return
 
   try {
-    await api.delete(`/sanpham/${id}`)
-    alert('Xóa sản phẩm thành công')
+    await api.delete(`/admin/sanpham/${id}`)
+    swal.success('Thành công', 'Xóa sản phẩm thành công')
     await fetchProducts()
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được sản phẩm.')
+    const msg = getErrorMessage(error, 'Không xóa được sản phẩm.')
+    formError.value = msg
+    swal.error('Xóa thất bại', msg)
+  }
+}
+
+const deleteProductsByIds = async (ids) => {
+  const uniqueIds = Array.from(new Set(ids))
+  const results = await Promise.allSettled(
+    uniqueIds.map(id => api.delete(`/admin/sanpham/${id}`))
+  )
+
+  const failed = results.filter(result => result.status === 'rejected')
+
+  await fetchProducts()
+  selectedProductIds.value = selectedProductIds.value.filter(id =>
+    products.value.some(p => p.id === id)
+  )
+
+  if (failed.length) {
+    swal.warning(
+      'Xóa chưa hoàn tất',
+      `Đã xóa ${uniqueIds.length - failed.length}/${uniqueIds.length} sản phẩm. Một số sản phẩm có thể đang có dữ liệu liên quan.`
+    )
+    return
+  }
+
+  swal.success('Thành công', `Đã xóa ${uniqueIds.length} sản phẩm.`)
+}
+
+const removeSelectedProducts = async () => {
+  if (!selectedProductIds.value.length || isBulkDeleting.value) return
+
+  const confirmed = await swal.confirm(
+    'Xóa sản phẩm đã chọn',
+    `Bạn có chắc muốn xóa ${selectedProductIds.value.length} sản phẩm đã chọn không?`
+  )
+
+  if (!confirmed) return
+
+  isBulkDeleting.value = true
+  try {
+    await deleteProductsByIds(selectedProductIds.value)
+  } finally {
+    isBulkDeleting.value = false
+  }
+}
+
+const removeAllFilteredProducts = async () => {
+  if (!filteredProducts.value.length || isBulkDeleting.value) return
+
+  const total = filteredProducts.value.length
+  const confirmed = await swal.confirm(
+    'Xóa toàn bộ sản phẩm',
+    selectedStatus.value || selectedCategory.value || searchQuery.value
+      ? `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm đang lọc không?`
+      : `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm trong danh sách không?`
+  )
+
+  if (!confirmed) return
+
+  isBulkDeleting.value = true
+  try {
+    await deleteProductsByIds(filteredProducts.value.map(p => p.id))
+  } finally {
+    isBulkDeleting.value = false
   }
 }
 
@@ -860,7 +982,7 @@ const toggleVariationTier = (typeId) => {
     variationTierIds.value.delete(typeId)
   } else {
     if (variationTierIds.value.size >= 3) {
-      alert('Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
     variationTierIds.value.add(typeId)
@@ -886,9 +1008,19 @@ const removeVariantRow = (index) => {
 }
 
 const addManualVariant = () => {
-  const headers = [...tableHeaders.value]
+  let headers = [...tableHeaders.value]
   if (!headers.length) {
-    alert('Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
+    const selectedTypes = allSelectedAttrTypes.value
+    if (selectedTypes.length > 0) {
+      selectedTypes.slice(0, 3).forEach(t => {
+        variationTierIds.value.add(t.id)
+      })
+      headers = allSelectedAttrTypes.value.filter(t => variationTierIds.value.has(t.id))
+    }
+  }
+
+  if (!headers.length) {
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
     return
   }
   
@@ -1142,9 +1274,19 @@ const generateVariants = () => {
   const isValid = validateVariantSelections()
   if (!isValid) return
 
-  const headers = [...tableHeaders.value]
+  let headers = [...tableHeaders.value]
   if (!headers.length) {
-    alert('Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
+    const selectedTypes = allSelectedAttrTypes.value
+    if (selectedTypes.length > 0) {
+      selectedTypes.slice(0, 3).forEach(t => {
+        variationTierIds.value.add(t.id)
+      })
+      headers = allSelectedAttrTypes.value.filter(t => variationTierIds.value.has(t.id))
+    }
+  }
+
+  if (!headers.length) {
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
     return
   }
 
@@ -1390,45 +1532,7 @@ const openEditModal = async (id) => {
     showModal.value = true
   } catch (error) {
     console.error(error)
-    alert(getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
-  }
-}
-
-const openCloneModal = async (id) => {
-  try {
-    formError.value = ''
-    resetForm()
-
-    if (!categories.value.length) {
-      await fetchCategories()
-    }
-    if (!brands.value.length) {
-      await fetchBrands()
-    }
-
-    const res = await api.get(`/sanpham/${id}`)
-    const product = res.data
-
-    // Chế độ tạo mới dựa trên dữ liệu cũ
-    isEditMode.value = false
-    editingProductId.value = null
-
-    mapProductToForm(product)
-
-    // Tùy chỉnh sau khi map: Thêm hậu tố và reset biến thể
-    form.value.name += ' (Bản sao)'
-    generatedRows.value = generatedRows.value.map((row, i) => ({
-      ...row,
-      id: `clone-${Date.now()}-${i}`,
-      isExisting: false,
-      _manualPrice: true,
-      _manualStock: true
-    }))
-
-    showModal.value = true
-  } catch (error) {
-    console.error(error)
-    alert(getErrorMessage(error, 'Không tải được thông tin sản phẩm để sao chép.'))
+    swal.error('Lỗi', getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
   }
 }
 
@@ -1437,26 +1541,34 @@ const mapProductToForm = (product) => {
     name: product?.tenSP || '',
     category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
     brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
-    status: String(product?.trangthai) === '1' ? 'Đang bán' : 'Nháp',
+    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Đang bán' : 'Nháp',
     img: '',
     images: [],
     weight: product?.khoiluong ?? '',
   }
 
-  imgPreview.value = product?.hinhanh
-    ? `http://127.0.0.1:8000/storage/${product.hinhanh}`
-    : ''
+  const productImages = Array.isArray(product?.hinh_anhs)
+    ? product.hinh_anhs
+    : Array.isArray(product?.hinhAnhs)
+      ? product.hinhAnhs
+      : []
 
-  extraImagePreviews.value = Array.isArray(product?.hinh_anhs)
-    ? product.hinh_anhs.map(img => `http://127.0.0.1:8000/storage/${img.duongdan}`)
-    : []
+  imgPreview.value = product?.hinhanh
+    ? storageUrl(product.hinhanh)
+    : productImages[0]?.duongdan
+      ? storageUrl(productImages[0].duongdan)
+      : ''
+
+  extraImagePreviews.value = productImages
+    .map(img => img?.duongdan ? storageUrl(img.duongdan) : '')
+    .filter(Boolean)
 
   const bienThes = Array.isArray(product?.bien_thes) ? product.bien_thes : []
 
   generatedRows.value = bienThes.map((row, i) => {
     const attrs = {}
 
-    if (Array.isArray(row.thuoc_tinh) && row.thuoc_tinh.length) {
+    if (Array.isArray(row?.thuoc_tinh)) {
       row.thuoc_tinh.forEach((item, attrIndex) => {
         const matchedAttr = findAttrTypeByName(item?.ten_thuoctinh)
         const attrId = matchedAttr?.id ?? item?.id_thuoctinh ?? item?.ten_thuoctinh ?? `attr_${attrIndex}`
@@ -1555,9 +1667,6 @@ const submitForm = async () => {
 
   const isTopFormValid = validateTopForm()
   const isVariantRowsValid = validateVariantRows()
-  console.log('fieldErrors:', JSON.parse(JSON.stringify(fieldErrors.value)))
-  console.log('isTopFormValid:', isTopFormValid)
-  console.log('isVariantRowsValid:', isVariantRowsValid)
   if (!isTopFormValid || !isVariantRowsValid) {
     formError.value = 'Vui lòng kiểm tra lại thông tin sản phẩm'
     return
@@ -1608,11 +1717,11 @@ const submitForm = async () => {
     }
 
     if (isEditMode.value && editingProductId.value) {
-      await api.put(`/sanpham/${editingProductId.value}`, payload)
-      alert('Cập nhật sản phẩm thành công')
+      await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
+      swal.success('Thành công', 'Cập nhật sản phẩm thành công')
     } else {
-      await api.post('/sanpham', payload)
-      alert('Thêm sản phẩm thành công')
+      await api.post('/admin/sanpham', payload)
+      swal.success('Thành công', 'Thêm sản phẩm thành công')
     }
 
     await fetchProducts()
@@ -1620,7 +1729,7 @@ const submitForm = async () => {
     closeModal()
   } catch (error) {
     console.error(error)
-    alert(getErrorMessage(error, isEditMode.value
+    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
       ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
       : 'Có lỗi xảy ra khi thêm sản phẩm'))
   }
@@ -1674,14 +1783,14 @@ onMounted(() => {
     </div>
 
     <div class="stats">
-      <div class="stat-card">
+      <div class="stat-card stat-blue">
         <span class="stat-icon blue">📦</span>
         <div>
           <p>Tổng sản phẩm</p>
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
-      <div class="stat-card clickable-stat" @click="openLowStockModal">
+      <div class="stat-card stat-orange clickable-stat" @click="openLowStockModal">
         <span class="stat-icon red">⚠️</span>
         <div>
           <p>Sắp hết hàng</p>
@@ -1689,7 +1798,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card stat-teal">
         <span class="stat-icon purple">🏭</span>
         <div>
           <p>Kho lưu trữ</p>
@@ -1707,23 +1816,72 @@ onMounted(() => {
         </svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm tên sản phẩm, SKU..." />
       </div>
-      <select v-model="selectedStatus">
-        <option value="">Tất cả trạng thái</option>
-        <option>Đang bán</option>
-        <option>Nháp</option>
-      </select>
-      <select v-model="selectedCategory">
-        <option value="">Tất cả danh mục</option>
-        <option v-for="category in categories" :key="category.id_danhmuc" :value="category.id_danhmuc">
-          {{ category.ten_danhmuc }}
-        </option>
-      </select>
+      <!-- Custom Status Dropdown -->
+      <div class="custom-dropdown">
+        <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown; isOpenCategoryDropdown = false">
+          <span>{{ selectedStatus || 'Tất cả trạng thái' }}</span>
+          <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <transition name="fade-slide">
+          <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
+            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Tất cả trạng thái</li>
+            <li :class="{ active: selectedStatus === 'Đang bán' }" @click="selectedStatus = 'Đang bán'; isOpenStatusDropdown = false">Đang bán</li>
+            <li :class="{ active: selectedStatus === 'Nháp' }" @click="selectedStatus = 'Nháp'; isOpenStatusDropdown = false">Nháp</li>
+          </ul>
+        </transition>
+      </div>
+
+      <!-- Custom Category Dropdown -->
+      <div class="custom-dropdown">
+        <div class="dropdown-trigger" @click.stop="isOpenCategoryDropdown = !isOpenCategoryDropdown; isOpenStatusDropdown = false">
+          <span>{{ getSelectedCategoryLabel() }}</span>
+          <svg class="chevron" :class="{ open: isOpenCategoryDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <transition name="fade-slide">
+          <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
+            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Tất cả danh mục</li>
+            <li v-for="category in categories" :key="category.id_danhmuc" 
+                :class="{ active: String(selectedCategory) === String(category.id_danhmuc) }" 
+                @click="selectedCategory = category.id_danhmuc; isOpenCategoryDropdown = false">
+              {{ category.ten_danhmuc }}
+            </li>
+          </ul>
+        </transition>
+      </div>
+    </div>
+
+    <div class="product-bulk-toolbar">
+      <div class="bulk-summary">
+        <span class="bulk-summary-icon">✓</span>
+        <div>
+          <b>{{ selectedProductIds.length }} sản phẩm đã chọn</b>
+          <p>Tick từng dòng hoặc chọn toàn bộ {{ paginatedProducts.length }} sản phẩm trên trang hiện tại.</p>
+        </div>
+      </div>
+      <div class="bulk-toolbar-actions">
+        <button class="bulk-btn ghost" :disabled="!selectedProductIds.length || isBulkDeleting" @click="clearProductSelection">
+          Bỏ chọn
+        </button>
+        <button class="bulk-btn danger" :disabled="!selectedProductIds.length || isBulkDeleting" @click="removeSelectedProducts">
+          {{ isBulkDeleting ? 'Đang xóa...' : `Xóa đã chọn (${selectedProductIds.length})` }}
+        </button>
+        <button class="bulk-btn danger-outline" :disabled="!filteredProducts.length || isBulkDeleting" @click="removeAllFilteredProducts">
+          Xóa toàn bộ
+        </button>
+      </div>
     </div>
 
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th class="select-col">
+              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedProducts.length" @change="toggleCurrentPageSelection" />
+            </th>
             <th>STT</th>
             <th>Sản phẩm</th>
             <th>Danh mục</th>
@@ -1735,9 +1893,12 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-if="!paginatedProducts.length">
-            <td colspan="7" class="empty">Không tìm thấy sản phẩm nào.</td>
+            <td colspan="8" class="empty">Không tìm thấy sản phẩm nào.</td>
           </tr>
-          <tr v-for="(p, i) in paginatedProducts" :key="p.id">
+          <tr v-for="(p, i) in paginatedProducts" :key="p.id" :class="{ 'row-selected': selectedProductIds.includes(p.id) }">
+            <td class="select-col">
+              <input type="checkbox" :checked="selectedProductIds.includes(p.id)" @change="toggleProductSelection(p.id)" />
+            </td>
             <td>
               {{ (currentPage - 1) * PER_PAGE + i + 1 }}
             </td>
@@ -1758,19 +1919,13 @@ onMounted(() => {
             </td>
             <td>
               <div class="actions">
-                <button class="act-btn" title="Sao chép (Clone)" @click="openCloneModal(p.id)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                </button>
                 <button class="act-btn" title="Sửa" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
-                <button class="act-btn danger" title="Xóa" @click="removeProduct(p.id)">
+                <button class="act-btn danger" title="Xóa" @click="removeProduct(p.id, p.name)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -2431,7 +2586,7 @@ onMounted(() => {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -2443,7 +2598,36 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 999px;
+  right: -24px;
+  top: -24px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.stat-card.stat-blue {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: #fff;
+}
+
+.stat-card.stat-orange {
+  background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
+  color: #fff;
+}
+
+.stat-card.stat-teal {
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  color: #fff;
 }
 
 .clickable-stat {
@@ -2453,19 +2637,19 @@ onMounted(() => {
 
 .clickable-stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
 }
 
 .stat-card p {
   font-size: 12px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.88);
   margin: 0 0 4px;
 }
 
 .stat-card b {
   font-size: 22px;
   font-weight: 700;
-  color: #0f172a;
+  color: #fff;
 }
 
 .stat-icon {
@@ -2480,7 +2664,7 @@ onMounted(() => {
 }
 
 .stat-icon.blue {
-  background: #dbeafe
+  background: rgba(255, 255, 255, 0.18)
 }
 
 .stat-icon.green {
@@ -2488,11 +2672,11 @@ onMounted(() => {
 }
 
 .stat-icon.red {
-  background: #fee2e2
+  background: rgba(255, 255, 255, 0.18)
 }
 
 .stat-icon.purple {
-  background: #ede9fe
+  background: rgba(255, 255, 255, 0.18)
 }
 
 .filter-bar {
@@ -2534,16 +2718,218 @@ onMounted(() => {
   border-color: #2563eb;
 }
 
-.filter-bar select {
+/* ── Custom Premium Dropdown ── */
+.custom-dropdown {
+  position: relative;
+  min-width: 170px;
+  user-select: none;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
   background: white;
   font-size: 13px;
   color: #334155;
-  outline: none;
   cursor: pointer;
-  min-width: 160px;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dropdown-trigger:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.dropdown-trigger .chevron {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+  transition: transform .2s ease;
+}
+
+.dropdown-trigger .chevron.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.dropdown-menu li {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.dropdown-menu li:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dropdown-menu li.active {
+  background: #475569;
+  color: white;
+  font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.product-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.bulk-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bulk-summary-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.bulk-summary b {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.bulk-summary p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.bulk-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bulk-btn {
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .18s;
+  border: 1px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.bulk-btn:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.bulk-btn.ghost {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+
+.bulk-btn.ghost:hover:not(:disabled) {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.bulk-btn.danger {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.bulk-btn.danger:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.bulk-btn.danger-outline {
+  background: #fff1f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.bulk-btn.danger-outline:hover:not(:disabled) {
+  background: #ffe4e6;
+  border-color: #fca5a5;
 }
 
 .table-wrap {
@@ -2585,11 +2971,27 @@ tbody tr:hover {
   background: #fafbff;
 }
 
+tbody tr.row-selected {
+  background: #eff6ff;
+}
+
 tbody td {
   padding: 14px 16px;
   font-size: 13px;
   color: #334155;
   vertical-align: middle;
+}
+
+.select-col {
+  width: 44px;
+  text-align: center;
+}
+
+.select-col input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
 }
 
 .empty {

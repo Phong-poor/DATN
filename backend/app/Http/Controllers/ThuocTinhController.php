@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\NhomThuocTinh;
 use App\Models\ThuocTinh;
 use App\Models\GiaTriThuocTinh;
+use Illuminate\Support\Facades\Cache;
 
 class ThuocTinhController extends Controller
 {
@@ -26,7 +27,7 @@ class ThuocTinhController extends Controller
             'danh_muc_ids.*'=> 'integer'
         ]);
 
-        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
+        Cache::forget('thuoctinh_getall');
 
         return response()->json(
             NhomThuocTinh::create($data)
@@ -35,10 +36,12 @@ class ThuocTinhController extends Controller
 
     public function deleteNhom($id)
     {
+        Cache::forget('thuoctinh_getall');
         NhomThuocTinh::destroy($id);
 
         return response()->json(['message' => 'Xóa nhóm thành công']);
     }
+
     public function updateNhom(Request $request, $id)
     {
         $data = $request->validate([
@@ -47,6 +50,7 @@ class ThuocTinhController extends Controller
             'danh_muc_ids.*'=> 'integer'
         ]);
 
+        Cache::forget('thuoctinh_getall');
         $nhom = NhomThuocTinh::findOrFail($id);
         $nhom->update($data);
 
@@ -71,8 +75,13 @@ class ThuocTinhController extends Controller
     {
         $data = $request->validate([
             'ten_thuoctinh' => 'required|string|max:255',
-            'id_nhom'       => 'required|exists:nhom_thuoctinh,id_nhom'
+            'id_nhom'       => 'required|exists:nhom_thuoctinh,id_nhom',
+            'trangthai'     => 'nullable|boolean',
         ]);
+
+        $data['trangthai'] = $data['trangthai'] ?? 1;
+
+        Cache::forget('thuoctinh_getall');
 
         return response()->json(
             ThuocTinh::create($data)
@@ -81,17 +90,23 @@ class ThuocTinhController extends Controller
 
     public function deleteThuocTinh($id)
     {
+        Cache::forget('thuoctinh_getall');
         ThuocTinh::destroy($id);
 
         return response()->json(['message' => 'Xóa thuộc tính thành công']);
     }
+
     public function updateThuocTinh(Request $request, $id)
     {
         $data = $request->validate([
             'ten_thuoctinh' => 'required|string|max:255',
-            'id_nhom'       => 'required|exists:nhom_thuoctinh,id_nhom'
+            'id_nhom'       => 'required|exists:nhom_thuoctinh,id_nhom',
+            'trangthai'     => 'nullable|boolean',
         ]);
 
+        $data['trangthai'] = $data['trangthai'] ?? 1;
+
+        Cache::forget('thuoctinh_getall');
         $thuocTinh = ThuocTinh::findOrFail($id);
         $thuocTinh->update($data);
 
@@ -121,7 +136,7 @@ class ThuocTinhController extends Controller
         $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
         $data['trangthai'] = $data['trangthai'] ?? 1;
 
-        \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
+        Cache::forget('thuoctinh_getall');
 
         return response()->json(
             GiaTriThuocTinh::create($data)
@@ -130,6 +145,7 @@ class ThuocTinhController extends Controller
 
     public function deleteGiaTri($id)
     {
+        Cache::forget('thuoctinh_getall');
         GiaTriThuocTinh::destroy($id);
         \Illuminate\Support\Facades\Cache::forget('thuoctinh_getall');
 
@@ -150,6 +166,7 @@ class ThuocTinhController extends Controller
         $data['gia_cong_them'] = $data['gia_cong_them'] ?? 0;
         $data['trangthai'] = $data['trangthai'] ?? 1;
 
+        Cache::forget('thuoctinh_getall');
         $giaTri = GiaTriThuocTinh::findOrFail($id);
         $giaTri->update($data);
 
@@ -162,7 +179,7 @@ class ThuocTinhController extends Controller
     // lấy full data (phù hợp render 1 lần bên Vue)
     public function getAll()
     {
-        $data = \Illuminate\Support\Facades\Cache::remember('thuoctinh_getall', 120, function () {
+        $data = Cache::remember('thuoctinh_getall', 120, function () {
             $nhoms = NhomThuocTinh::with([
                 'thuocTinhs.giatriThuocTinhs'
             ])->get();
@@ -176,6 +193,7 @@ class ThuocTinhController extends Controller
                         return [
                             'id_thuoctinh' => $attr->id_thuoctinh,
                             'ten_thuoctinh' => $attr->ten_thuoctinh,
+                            'trangthai' => $attr->trangthai ?? 1,
                             'giatri_thuoc_tinhs' => $attr->giatriThuocTinhs->map(function ($gt) {
                                 return [
                                     'id_giatri' => $gt->id_giatri,

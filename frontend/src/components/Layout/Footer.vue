@@ -78,7 +78,7 @@
       <!-- BOTTOM BAR -->
       <div class="bottom-bar">
         <div class="bottom-inner">
-          <p class="copyright">© 2026 <strong>NextGen Laptop</strong> Premium. Thiết kế bởi Antigravity.</p>
+          <p class="copyright">© 2026 <strong>NextGen Laptop</strong> Premium.</p>
           <div class="bottom-links">
             <a href="#">Chính sách bảo mật</a>
             <span class="dot"></span>

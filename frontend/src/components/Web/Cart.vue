@@ -542,4 +542,45 @@ onMounted(() => {
     .right { position: static; }
     .grid { grid-template-columns: 1fr 1fr; }
 }
+
+@media (max-width: 576px) {
+    .item {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 12px;
+        position: relative;
+        padding: 12px;
+    }
+    .item img {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+    }
+    .info {
+        grid-column: 2;
+        grid-row: 1;
+        padding-right: 24px;
+    }
+    .price-col {
+        grid-column: 2;
+        grid-row: 2;
+        text-align: left;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .unit-price {
+        margin-top: 0;
+    }
+    .remove {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 28px;
+        height: 28px;
+    }
+}
 </style>

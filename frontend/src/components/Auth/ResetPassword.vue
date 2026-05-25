@@ -2,8 +2,9 @@
 import { ref, computed } from 'vue'
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/services/api'
 import swal from '@/services/swal'
+import { formatAuthMessage } from '@/services/authMessages'
 
 const route = useRoute()
 const router = useRouter()
@@ -60,15 +61,16 @@ async function submit() {
   isLoading.value = true
 
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/forgot-password/reset-password', {
+    const res = await api.post('/forgot-password/reset-password', {
       email: email,
       otp: otp,
       password: form.value.password,
       password_confirmation: form.value.confirm
     })
 
-    swal.success('Thành công', res.data.message || 'Đổi mật khẩu thành công!')
+    swal.success('Thành công', formatAuthMessage(res.data.message, 'Đổi mật khẩu thành công!'))
 
+    sessionStorage.removeItem('redirect_after_auth')
     router.push('/login')
 
   } catch (err) {
@@ -76,9 +78,9 @@ async function submit() {
 
     if (err.response?.data?.errors) {
       const firstError = Object.values(err.response.data.errors)[0][0]
-      swal.error('Lỗi', firstError)
+      swal.error('Lỗi', formatAuthMessage(firstError))
     } else {
-      swal.error('Lỗi', err.response?.data?.message || 'Lỗi đổi mật khẩu')
+      swal.error('Lỗi', formatAuthMessage(err.response?.data?.message, 'Không thể đổi mật khẩu. Vui lòng thử lại.'))
     }
 
   } finally {

@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
+import api from '@/services/api'
+import swal from '@/services/swal'
 
 const form = ref({ current: '', newPass: '', confirm: '' })
 const showCurrent = ref(false)
@@ -42,11 +44,42 @@ const validate = () => {
 const save = async () => {
     if (!validate()) return
     saving.value = true
-    await new Promise(r => setTimeout(r, 1000))
-    saving.value = false
-    saved.value = true
-    form.value = { current: '', newPass: '', confirm: '' }
-    setTimeout(() => saved.value = false, 3000)
+    errors.value = {}
+    try {
+        const res = await api.put('/user/change-password', {
+            current_password: form.value.current,
+            new_password: form.value.newPass,
+            new_password_confirmation: form.value.confirm
+        })
+        saved.value = true
+        form.value = { current: '', newPass: '', confirm: '' }
+        setTimeout(() => saved.value = false, 3000)
+        swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } catch (err) {
+        console.error('Lỗi đổi mật khẩu:', err)
+        if (err.response?.status === 422) {
+            const data = err.response.data
+            if (data.errors) {
+                if (data.errors.current_password) {
+                    errors.value.current = data.errors.current_password[0]
+                }
+                if (data.errors.new_password) {
+                    errors.value.newPass = data.errors.new_password[0]
+                }
+            } else if (data.message) {
+                if (data.message.includes('hiện tại') || data.message.includes('current')) {
+                    errors.value.current = data.message
+                } else {
+                    swal.error('Thất bại', data.message)
+                }
+            }
+        } else {
+            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu!'
+            swal.error('Lỗi', msg)
+        }
+    } finally {
+        saving.value = false
+    }
 }
 </script>
 
@@ -550,5 +583,28 @@ const save = async () => {
 .toast-leave-to {
     opacity: 0;
     transform: translateY(-8px);
+}
+
+/* ===================== RESPONSIVE STYLES ===================== */
+@media (max-width: 992px) {
+  .two-col {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .card {
+    padding: 20px 16px;
+  }
+  .page-title {
+    font-size: 20px;
+  }
 }
 </style>

@@ -51,7 +51,7 @@ onMounted(async () => {
         </p>
 
         <div class="actions">
-          <button @click="router.push('/profile')" class="btn secondary">Xem đơn hàng</button>
+          <button @click="router.push('/orderspage')" class="btn secondary">Xem đơn hàng</button>
           <button @click="router.push('/')" class="btn primary">Tiếp tục mua sắm</button>
         </div>
       </div>

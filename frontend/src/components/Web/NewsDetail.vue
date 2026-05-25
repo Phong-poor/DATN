@@ -180,33 +180,76 @@ const fetchRelated = async (currentPost) => {
   }
 }
 
+const loadCache = (id) => {
+  try {
+    const cached = localStorage.getItem(`nextgen_news_detail_cache_${id}`)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      if (parsed.post) post.value = parsed.post
+      if (parsed.relatedPosts) relatedPosts.value = parsed.relatedPosts
+      return true
+    }
+  } catch (e) {
+    console.error('Lỗi load cache chi tiết tin tức:', e)
+  }
+  return false
+}
+
+const saveCache = (id) => {
+  try {
+    localStorage.setItem(`nextgen_news_detail_cache_${id}`, JSON.stringify({
+      post: post.value,
+      relatedPosts: relatedPosts.value
+    }))
+  } catch (e) {
+    console.error('Lỗi save cache chi tiết tin tức:', e)
+  }
+}
+
 const fetchPost = async () => {
-  loading.value = true
+  const articleId = route.params.id
+  if (!articleId) return
+
+  const hasCache = loadCache(articleId)
+  if (hasCache) {
+    loading.value = false
+  } else {
+    loading.value = true
+  }
   errorMessage.value = ''
 
   try {
-    const { data } = await api.get(`/news/${route.params.id}`)
+    const { data } = await api.get(`/news/${articleId}`, { skipGlobalLoader: true })
     post.value = data
     applyArticleSeo(data)
-    await fetchRelated(data)
+    
+    // Tải bài viết liên quan
+    if (data?.category) {
+      await fetchRelated(data)
+    }
+    
+    saveCache(articleId)
+    loading.value = false
   } catch (error) {
     console.error('Lỗi tải chi tiết tin tức:', error)
-    post.value = null
-    relatedPosts.value = []
-    errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
-    setSeo({
-      title: 'Không tìm thấy bài viết',
-      description: 'Bài viết không tồn tại hoặc chưa được xuất bản trên VinaTech.',
-      robots: 'noindex, follow',
-      url: `/news/${route.params.id}`,
-    })
-  } finally {
+    if (!post.value) {
+      post.value = null
+      relatedPosts.value = []
+      errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
+    }
     loading.value = false
   }
 }
 
-watch(() => route.params.id, fetchPost)
-onMounted(fetchPost)
+watch(() => route.params.id, () => {
+  window.scrollTo(0, 0)
+  fetchPost()
+})
+
+onMounted(() => {
+  window.scrollTo(0, 0)
+  fetchPost()
+})
 </script>
 
 <template>

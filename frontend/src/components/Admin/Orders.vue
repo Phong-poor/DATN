@@ -6,12 +6,39 @@ import * as XLSX from 'xlsx'
 import api from '../../services/api'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
+import { storageUrl } from '@/services/urls'
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
+import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+
+const getOrderItemImage = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  const sp = bt?.san_pham || bt?.sanPham
+  return sp?.hinhanh ? storageUrl(sp.hinhanh) : 'https://via.placeholder.com/60'
+}
+
+const getOrderItemName = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  const sp = bt?.san_pham || bt?.sanPham
+  return sp?.tenSP || 'Sản phẩm'
+}
+
+const getOrderItemVariant = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  return parseAttr(bt?.thuoc_tinh_json)
+}
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
 const showViewModal = ref(false)
 const viewOrder = ref(null)
 const selectedMonthYear = ref('Tất cả')
+const isOpenDateDropdown = ref(false)
+
+const closeDateDropdown = (e) => {
+    if (!e.target.closest('.date-filter-dropdown')) {
+        isOpenDateDropdown.value = false
+    }
+}
 
 // Pagination
 const currentPage = ref(1)
@@ -107,13 +134,26 @@ const confirmCancelOrder = async (id) => {
     }
 }
 
+const deleteOrder = async (id) => {
+    const confirmed = await swal.confirm('Xoa don hang', 'Ban co chac muon xoa don hang nay khong?')
+    if (!confirmed) return
+
+    try {
+        await api.delete(`/admin/orders/${id}`)
+        await fetchOrders()
+        selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
+        swal.success('Thanh cong', 'Da xoa don hang.')
+    } catch (error) {
+        swal.error('Loi', error.response?.data?.message || 'Khong the xoa don hang')
+    }
+}
+
 onMounted(() => {
     fetchOrders()
+    document.addEventListener('click', closeDateDropdown)
 
     echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
-            console.log('New Order Received:', e.order)
-            
             const newOrder = {
                 id_backend: e.order.id_dathang,
                 id: `#VT-2026-${String(e.order.id_dathang).padStart(3, '0')}`,
@@ -129,24 +169,25 @@ onMounted(() => {
                 note: '',
             }
 
-            // Thêm vào đầu danh sách
+            // Th�m v�o đầu danh s�ch
             orders.value.unshift(newOrder)
 
-            // Thông báo
-            swal.toast(`🔔 Có đơn hàng mới từ ${newOrder.name}!`, 'info')
+            // Th�ng b�o
+            swal.toast(`�� C� đơn h�ng mới từ ${newOrder.name}!`, 'info')
             
-            // Nếu trình duyệt hỗ trợ âm thanh, có thể thêm ting ting ở đây
+            // Nếu tr�nh duyệt hỗ trợ �m thanh, c� thể th�m ting ting ở đ�y
             try {
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3')
                 audio.play()
             } catch (err) {
-                console.log('Audio play failed')
+                console.warn('Order notification audio could not be played')
             }
         })
 })
 
 onUnmounted(() => {
     echo.leaveChannel('admin-orders')
+    document.removeEventListener('click', closeDateDropdown)
 })
 
 watch(searchQuery, () => {
@@ -199,7 +240,24 @@ const paginatedOrders = computed(() => {
 
 const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
 
-
+const {
+    selectedIds,
+    isBulkDeleting,
+    allCurrentPageSelected,
+    toggleItemSelection,
+    toggleCurrentPageSelection,
+    clearSelection,
+    removeSelected,
+    removeAllFiltered,
+} = useAdminBulkDelete({
+    items: orders,
+    filteredItems: filteredOrders,
+    pageItems: paginatedOrders,
+    getId: item => item.id_backend,
+    endpoint: id => `/admin/orders/${id}`,
+    entityLabel: 'don hang',
+    fetchItems: fetchOrders,
+})
 
 const openViewDetail = (order) => {
     viewOrder.value = order
@@ -236,9 +294,9 @@ function exportExcel() {
     const today = new Date().toLocaleDateString('vi-VN')
     const tabLabel = activeTab.value
 
-    const titleRow = [`BÁO CÁO ĐƠN HÀNG – ${tabLabel.toUpperCase()} (xuất ngày ${today})`]
+    const titleRow = [`B�O C�O ĐƠN H�NG � ${tabLabel.toUpperCase()} (xuất ng�y ${today})`]
     const blankRow = []
-    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
+    const header = ['M� đơn h�ng', 'Kh�ch h�ng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ng�y đặt h�ng', 'Tổng tiền', 'Trạng th�i', 'Ghi ch�']
 
     const dataRows = filteredOrders.value.map(o => [
         o.id,
@@ -312,24 +370,54 @@ function exportExcel() {
             </div>
 
             <div class="date-filter-wrap">
-                <div class="date-filter shadow-sm">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                    <select v-model="selectedMonthYear" class="month-select" @change="currentPage = 1">
-                        <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
-                    </select>
+                <div class="custom-dropdown date-filter-dropdown">
+                    <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
+                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span>{{ selectedMonthYear || 'Tất cả' }}</span>
+                        <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <transition name="fade-slide">
+                        <ul v-if="isOpenDateDropdown" class="dropdown-menu">
+                            <li v-for="m in availableMonths" :key="m" 
+                                :class="{ active: selectedMonthYear === m }" 
+                                @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
+                                {{ m }}
+                            </li>
+                        </ul>
+                    </transition>
                 </div>
             </div>
         </div>
 
         <!-- TABLE -->
+        <BulkDeleteToolbar
+            :selected-count="selectedIds.length"
+            :total-count="filteredOrders.length"
+            label="don hang"
+            :loading="isBulkDeleting"
+            @clear="clearSelection"
+            @delete-selected="removeSelected"
+            @delete-all="removeAllFiltered"
+        />
+
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
+                        <th class="select-col">
+                            <input
+                                type="checkbox"
+                                :checked="allCurrentPageSelected"
+                                :disabled="!paginatedOrders.length"
+                                @change="toggleCurrentPageSelection"
+                            />
+                        </th>
                         <th>MÃ ĐƠN HÀNG</th>
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
@@ -340,9 +428,17 @@ function exportExcel() {
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="6" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td colspan="7" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
-                    <tr v-for="(o, i) in paginatedOrders" :key="o.id">
+                    <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
+
+                        <td class="select-col">
+                            <input
+                                type="checkbox"
+                                :checked="selectedIds.includes(o.id_backend)"
+                                @change="toggleItemSelection(o.id_backend)"
+                            />
+                        </td>
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
@@ -382,6 +478,18 @@ function exportExcel() {
                                         title="Chuyển trạng thái tiếp theo">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+
+                                <button
+                                    class="act-btn danger"
+                                    @click="deleteOrder(o.id_backend)"
+                                    title="Xóa đơn hàng"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M3 6h18"/>
+                                        <path d="M8 6V4h8v2"/>
+                                        <path d="M19 6l-1 14H6L5 6"/>
                                     </svg>
                                 </button>
                             </div>
@@ -438,24 +546,24 @@ function exportExcel() {
                             <div class="section-title">Thông tin giao hàng</div>
                             <div class="info-grid">
                                 <div class="info-item">
-                                    <label>Khách hàng:</label>
-                                    <span>{{ viewOrder.name }}</span>
+                                    <span class="info-label">👤 Khách hàng</span>
+                                    <span class="info-value">{{ viewOrder.name }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Số điện thoại:</label>
-                                    <span>{{ viewOrder.phone }}</span>
+                                    <span class="info-label">📞 Số điện thoại</span>
+                                    <span class="info-value">{{ viewOrder.phone }}</span>
                                 </div>
                                 <div class="info-item" style="grid-column: span 2;">
-                                    <label>Địa chỉ:</label>
-                                    <span>{{ viewOrder.address }}</span>
+                                    <span class="info-label">📍 Địa chỉ giao hàng</span>
+                                    <span class="info-value">{{ viewOrder.address }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Ngày đặt:</label>
-                                    <span>{{ viewOrder.date }}</span>
+                                    <span class="info-label">📅 Ngày đặt hàng</span>
+                                    <span class="info-value">{{ viewOrder.date }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Thanh toán:</label>
-                                    <span>{{ viewOrder.raw.PTTT }}</span>
+                                    <span class="info-label">💳 Thanh toán</span>
+                                    <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
                                 </div>
                             </div>
                         </div>
@@ -464,18 +572,18 @@ function exportExcel() {
                         <div v-if="viewOrder.status === 'cancelled'" class="detail-section">
                             <div class="section-title" style="color: #dc2626;">Lý do hủy đơn</div>
                             <div class="cancel-reason-box">
-                                {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                                ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
                         </div>
 
                         <div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
-                                <div v-for="item in viewOrder.raw.chi_tiets" :key="item.id_chitiet" class="order-item">
-                                    <img :src="item.bien_the?.san_pham?.hinhanh ? 'http://127.0.0.1:8000/storage/' + item.bien_the.san_pham.hinhanh : 'https://via.placeholder.com/60'" class="item-img" />
+                                <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
+                                    <img :src="getOrderItemImage(item)" class="item-img" />
                                     <div class="item-info">
-                                        <p class="item-name">{{ item.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</p>
-                                        <p class="item-variant">{{ parseAttr(item.bien_the?.thuoc_tinh_json) }}</p>
+                                        <p class="item-name">{{ getOrderItemName(item) }}</p>
+                                        <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
                                     <div class="item-price-qty">
                                         <span class="iq-price">{{ new Intl.NumberFormat('vi-VN').format(item.gia) }}đ</span>
@@ -576,18 +684,118 @@ function exportExcel() {
 .tab:hover { background: #f1f5f9; color: #334155; }
 .tab.active { background: #2563eb; color: white; }
 
-.date-filter {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e8f0;
-    background: white; transition: all 0.2s;
+/* ── Custom Premium Dropdown ── */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 185px;
+    user-select: none;
 }
-.date-filter:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.06); }
-.date-filter svg { width: 14px; height: 14px; color: #64748b; }
 
-.month-select {
-    border: none; background: transparent; font-size: 13px; font-weight: 600;
-    color: #334155; outline: none; cursor: pointer; font-family: inherit;
-    padding: 2px 0;
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 16px;
+    border-radius: 12px;
+    border: 1.5px solid #3b82f6; /* Premium brand blue outline */
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dropdown-trigger:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.dropdown-trigger .calendar-icon {
+    width: 15px;
+    height: 15px;
+    color: #3b82f6;
+}
+
+.dropdown-trigger .chevron {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    transition: transform .2s ease;
+}
+
+.dropdown-trigger .chevron.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 6px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.dropdown-menu li {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.dropdown-menu li:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.dropdown-menu li.active {
+    background: #475569;
+    color: white;
+    font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
 }
 
 /* TABLE */
@@ -602,8 +810,13 @@ thead th {
 tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
+tbody tr.row-selected { background: #eff6ff; }
 tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: middle; }
 .empty { text-align: center; color: #94a3b8; padding: 50px !important; }
+
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
+.select-col input:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .order-id { color: #2563eb; font-weight: 700; font-size: 13px; }
 
@@ -766,27 +979,58 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 /* ORDER DETAIL */
 .detail-modal { max-width: 650px; }
-.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
+.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 24px; }
 .scrollable::-webkit-scrollbar { width: 6px; }
 .scrollable::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
 .detail-section { margin-bottom: 24px; }
 .info-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-    background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
 }
-.info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-item label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-.info-item span { font-size: 13px; font-weight: 600; color: #334155; }
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.info-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.info-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+}
 
 .items-list { display: flex; flex-direction: column; gap: 12px; }
 .order-item {
-    display: flex; align-items: center; gap: 15px; padding: 12px;
-    background: white; border: 1px solid #f1f5f9; border-radius: 12px;
-    transition: transform 0.2s;
+    display: flex; align-items: center; gap: 16px; padding: 14px;
+    background: white; border: 1px solid #edf2f7; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
 }
-.order-item:hover { transform: translateX(4px); border-color: #cbd5e1; }
-.item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #f1f5f9; }
+.order-item:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.item-img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid #edf2f7; background: #f8fafc; }
 .item-info { flex: 1; }
 .item-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
 .item-variant { font-size: 12px; color: #64748b; margin: 0; }
@@ -795,22 +1039,27 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .iq-qty { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
 .order-summary-box {
-    margin-top: 10px; padding: 16px; background: #f0f9ff; border-radius: 12px;
-    border: 1px solid #e0f2fe; display: flex; justify-content: flex-end;
+    margin-top: 14px; padding: 16px 20px; background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border-radius: 14px; border: 1px solid #bae6fd; display: flex; justify-content: flex-end;
+    align-items: center;
 }
 .sum-row { display: flex; align-items: baseline; gap: 12px; }
-.sum-row span { font-size: 13px; color: #0369a1; font-weight: 500; }
+.sum-row span { font-size: 13px; color: #0369a1; font-weight: 600; }
 .final-total { font-size: 20px; font-weight: 800; color: #0369a1; }
 
 .cancel-reason-box {
     margin-top: 8px;
-    padding: 12px 16px;
-    background: #fff1f2;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    color: #be123c;
+    padding: 14px 18px;
+    background: #fff5f5;
+    border: 1.5px dashed #fecaca;
+    border-radius: 12px;
+    color: #e11d48;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 </style>
+

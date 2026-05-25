@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/services/api'
+import { formatAuthMessage } from '@/services/authMessages'
 
 const email = ref('')
 const loading = ref(false)
@@ -42,17 +43,14 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    const res = await axios.post(
-      'http://127.0.0.1:8000/api/forgot-password/send-otp',
-      {
-        email: email.value.trim()
-      }
-    )
+    const res = await api.post('/forgot-password/send-otp', {
+      email: email.value.trim()
+    })
 
     showModal(
       'success',
       'Gửi OTP thành công!',
-      res.data.message || `Mã OTP đã được gửi đến ${email.value}. Vui lòng kiểm tra email.`,
+      formatAuthMessage(res.data.message, `Mã OTP đã được gửi đến ${email.value}. Vui lòng kiểm tra email.`),
       () => {
         router.push({
           name: 'otp-verify',
@@ -68,7 +66,7 @@ const handleSubmit = async () => {
       err.response?.data?.message ||
       'Không gửi được OTP'
 
-    showModal('error', 'Lỗi', errorMsg)
+    showModal('error', 'Lỗi', formatAuthMessage(errorMsg, 'Không gửi được OTP. Vui lòng thử lại.'))
   } finally {
     loading.value = false
   }
@@ -380,5 +378,17 @@ h2 {
 .modal-enter-from .modal-card,
 .modal-leave-to .modal-card {
   transform: scale(0.92) translateY(10px);
+}
+
+@media (max-width: 480px) {
+  .card {
+    width: 100%;
+    max-width: 340px;
+    padding: 24px 20px;
+  }
+  .modal-card {
+    width: min(320px, 90%);
+    padding: 24px 20px;
+  }
 }
 </style>

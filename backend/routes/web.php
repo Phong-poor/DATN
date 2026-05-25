@@ -57,5 +57,3 @@ Route::get('/test-mail', function () {
 
     return 'Gửi mail thành công';
 });
-
-require __DIR__.'/settings.php';

@@ -10,28 +10,6 @@
         </svg>
         <input type="text" placeholder="Tìm kiếm nhanh..." v-model="searchQuery" />
       </div>
-      <div class="topbar-right">
-        <button class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span class="notif-dot"></span>
-        </button>
-        <button class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14" />
-          </svg>
-        </button>
-        <div class="admin-info">
-          <div>
-            <p class="admin-name">VinaTech Admin</p>
-            <p class="admin-role">ADMINISTRATOR</p>
-          </div>
-          <div class="admin-avatar">VA</div>
-        </div>
-      </div>
     </div>
 
     <!-- BREADCRUMB + TITLE -->
@@ -48,7 +26,7 @@
 
     <!-- STAT CARDS -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card stat-blue">
         <div class="stat-icon-wrap stat-icon-blue">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -66,7 +44,7 @@
         <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
         <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
       </div>-->
-      <div class="stat-card">
+      <div class="stat-card stat-orange">
         <div class="stat-icon-wrap stat-icon-orange">
           <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" />
@@ -77,7 +55,7 @@
         <p class="stat-sub-label">Chờ sử lý </p>
         <h2 class="stat-value">{{ processingCount }}</h2>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-teal">
         <div class="stat-icon-wrap stat-icon-green">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -141,11 +119,25 @@
       <button class="btn-retry" @click="fetchContacts">Thử lại</button>
     </div>
 
+    <BulkDeleteToolbar
+      v-else
+      :selected-count="selectedIds.length"
+      :total-count="filteredContacts.length"
+      label="liên hệ"
+      :loading="isBulkDeleting"
+      @clear="clearSelection"
+      @delete-selected="removeSelected"
+      @delete-all="removeAllFiltered"
+    />
+
     <!-- TABLE -->
-    <div v-else class="table-card">
+    <div v-if="!loading && !errorMsg" class="table-card">
       <table>
         <thead>
           <tr>
+            <th class="select-col">
+              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredContacts.length" @change="toggleCurrentPageSelection" />
+            </th>
             <th>KHÁCH HÀNG</th>
             <th>NỘI DUNG YÊU CẦU</th>
             <th>PHÂN LOẠI</th>
@@ -155,7 +147,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="c in filteredContacts" :key="c.id" @click="openDetail(c)" class="table-row">
+          <tr v-for="c in filteredContacts" :key="c.id" @click="openDetail(c)" class="table-row" :class="{ 'row-selected': selectedIds.includes(c.id) }">
+            <td class="select-col" @click.stop>
+              <input type="checkbox" :checked="selectedIds.includes(c.id)" @change="toggleItemSelection(c.id)" />
+            </td>
             <td>
               <div class="customer-cell">
                 <div class="customer-avatar" :style="{ background: c.avatarBg }">{{ c.initials }}</div>
@@ -194,7 +189,7 @@
             </td>
           </tr>
           <tr v-if="filteredContacts.length === 0">
-            <td colspan="6" class="empty-row">Không tìm thấy liên hệ nào.</td>
+            <td colspan="7" class="empty-row">Không tìm thấy liên hệ nào.</td>
           </tr>
         </tbody>
       </table>
@@ -335,7 +330,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/services/api'
+import swal from '@/services/swal'
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
+import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
 // ─── State ───────────────────────────────────────────────
 const searchQuery   = ref('')
@@ -356,7 +354,6 @@ const emailForm   = ref({ cc: '', subject: '', body: '' })
 const emailErrors = ref({})
 
 // ─── Constants ───────────────────────────────────────────
-const API = 'http://localhost:8000/api'   // ← đổi port nếu Laravel chạy khác
 
 const statusOptions = [
   { value: 'new',        label: 'Mới' },
@@ -452,7 +449,7 @@ async function fetchContacts() {
   errorMsg.value = ''
   try {
     // ✅ Gọi đúng route: GET /api/contacts (đã thêm vào api.php)
-    const res = await axios.get(`${API}/contacts`)
+    const res = await api.get('/admin/lien-he')
     contacts.value = res.data.map(mapItem)
   } catch (err) {
     console.error('Lỗi load contacts:', err)
@@ -467,30 +464,30 @@ async function sendEmail() {
   sending.value = true
   try {
     // ✅ Gọi đúng route: POST /api/contacts/{id}/reply
-    await axios.post(`${API}/contacts/${emailTarget.value.id}/reply`, {
+    await api.post(`/admin/lien-he/reply/${emailTarget.value.id}`, {
       reply: emailForm.value.body
     })
     const idx = contacts.value.findIndex(c => c.id === emailTarget.value.id)
     if (idx !== -1) contacts.value[idx].status = 'resolved'
     showEmail.value = false
-    showToast('success', `Đã gửi email đến ${emailTarget.value.email} thành công!`)
+    swal.success(`Đã gửi email đến ${emailTarget.value.email} thành công!`)
   } catch (err) {
-    showToast('error', 'Gửi email thất bại. Kiểm tra lại cấu hình Gmail SMTP!')
+    swal.error('Lỗi', 'Gửi email thất bại. Kiểm tra lại cấu hình Gmail SMTP!')
   } finally {
     sending.value = false
   }
 }
 
 async function deleteContact(id) {
-  if (!confirm('Xóa liên hệ này khỏi hệ thống?')) return
+  const isConfirmed = await swal.confirm('Xác nhận xóa', 'Xóa liên hệ này khỏi hệ thống?')
+  if (!isConfirmed) return
   try {
-    await axios.delete(`${API}/contacts/${id}`)
+    await api.delete(`/admin/contacts/${id}`)
     contacts.value = contacts.value.filter(c => c.id !== id)
-    showToast('success', 'Đã xóa liên hệ thành công.')
-  } catch {
-    // Nếu chưa có route delete thì xóa local tạm
-    contacts.value = contacts.value.filter(c => c.id !== id)
-    showToast('success', 'Đã xóa liên hệ thành công.')
+    swal.success('Đã xóa liên hệ thành công.')
+  } catch (err) {
+    const msg = err?.response?.data?.message || 'Xóa liên hệ thất bại. Vui lòng thử lại.'
+    swal.error('Lỗi', msg)
   }
 }
 
@@ -514,6 +511,24 @@ const filteredContacts = computed(() => {
     })
     return matchQ && matchStatus && matchCat
   })
+})
+
+const {
+  selectedIds,
+  isBulkDeleting,
+  allCurrentPageSelected,
+  toggleItemSelection,
+  toggleCurrentPageSelection,
+  clearSelection,
+  removeSelected,
+  removeAllFiltered,
+} = useAdminBulkDelete({
+  items: contacts,
+  filteredItems: filteredContacts,
+  getId: item => item.id,
+  endpoint: id => `/admin/contacts/${id}`,
+  entityLabel: 'liên hệ',
+  fetchItems: fetchContacts,
 })
 
 // ─── Actions ─────────────────────────────────────────────
@@ -576,20 +591,14 @@ onMounted(fetchContacts)
 }
 
 /* TOPBAR */
-.topbar { display: flex; align-items: center; justify-content: space-between; }
+.topbar { display: flex; align-items: center; justify-content: flex-start; }
 .search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; width: 250px; }
 .search-box svg { width: 14px; height: 14px; stroke: #94a3b8; stroke-width: 2; fill: none; flex-shrink: 0; }
 .search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; font-family: inherit; }
 .search-box input::placeholder { color: #94a3b8; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
 .icon-btn { position: relative; width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
 .icon-btn:hover { background: #f1f5f9; }
 .icon-btn svg { width: 15px; height: 15px; stroke: #64748b; stroke-width: 1.8; fill: none; }
-.notif-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: #ef4444; border-radius: 50%; border: 1.5px solid #fff; }
-.admin-info { display: flex; align-items: center; gap: 8px; }
-.admin-name { font-size: 13px; font-weight: 700; color: #1e293b; text-align: right; }
-.admin-role { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: #94a3b8; text-align: right; }
-.admin-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 0 0 2px #6366f1; }
 
 /* HEADING */
 .breadcrumb { font-size: 11px; font-weight: 600; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px; }
@@ -604,16 +613,50 @@ onMounted(fetchContacts)
 .btn-export svg { width: 15px; height: 15px; stroke: #475569; stroke-width: 2; fill: none; }
 
 /* STATS */
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.stat-card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,.04); display: flex; flex-direction: column; gap: 4px; }
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  align-items: stretch;
+}
+.stat-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  border: 1px solid transparent;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 999px;
+  right: -22px;
+  top: -22px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.stat-card.stat-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+.stat-card.stat-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
+.stat-card.stat-teal { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); }
 .stat-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
 .stat-icon-wrap svg { width: 18px; height: 18px; stroke-width: 2; fill: none; }
-.stat-icon-blue { background: #dbeafe; } .stat-icon-blue svg { stroke: #2563eb; }
-.stat-icon-orange { background: #ffedd5; } .stat-icon-orange svg { stroke: #ea580c; }
-.stat-icon-green { background: #d1fae5; } .stat-icon-green svg { stroke: #059669; }
-.stat-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; color: #94a3b8; }
-.stat-sub-label { font-size: 12px; color: #64748b; }
-.stat-value { font-size: 28px; font-weight: 800; color: #0f172a; }
+.stat-icon-blue,
+.stat-icon-orange,
+.stat-icon-green { background: rgba(255,255,255,.18); }
+.stat-icon-blue svg,
+.stat-icon-orange svg,
+.stat-icon-green svg { stroke: #fff; }
+.stat-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,.82); }
+.stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
+.stat-value { font-size: 28px; font-weight: 800; color: #fff; }
 .stat-card-gradient { background: linear-gradient(135deg, #818cf8, #6366f1, #4f46e5); border: none; justify-content: flex-end; min-height: 120px; }
 .stat-card-gradient .stat-value { color: #fff; font-size: 36px; }
 .stat-card-check { width: 28px; height: 28px; background: rgba(255,255,255,.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: auto; }
@@ -644,7 +687,10 @@ th { padding: 11px 16px; font-size: 10.5px; font-weight: 700; color: #94a3b8; le
 .table-row { border-bottom: 1px solid #f1f5f9; transition: background .15s; cursor: pointer; }
 .table-row:last-child { border-bottom: none; }
 .table-row:hover { background: #fafbff; }
+.table-row.row-selected { background: #eff6ff; }
 td { padding: 13px 16px; vertical-align: middle; }
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
 .customer-cell { display: flex; align-items: center; gap: 10px; }
 .customer-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #334155; flex-shrink: 0; }
 .customer-avatar.lg { width: 44px; height: 44px; font-size: 14px; }

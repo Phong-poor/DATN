@@ -34,12 +34,12 @@
 
     <!-- STATS ROW -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card stat-active">
         <p class="stat-label">ĐANG HOẠT ĐỘNG</p>
         <h2 class="stat-value">{{ activeCount }}</h2>
         <p class="stat-sub green">↑ Tổng khuyến mãi: {{ promos.length }}</p>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-budget">
         <p class="stat-label">TỔNG NGÂN SÁCH SALE</p>
         <h2 class="stat-value">2.4B <span class="stat-unit">VNĐ</span></h2>
         <div class="stat-bar"><div class="stat-bar-fill" style="width:72%"></div></div>
@@ -69,11 +69,24 @@
       </div>
     </div>
 
+    <BulkDeleteToolbar
+      :selected-count="selectedIds.length"
+      :total-count="filteredPromos.length"
+      label="khuyến mãi"
+      :loading="isBulkDeleting"
+      @clear="clearSelection"
+      @delete-selected="removeSelected"
+      @delete-all="removeAllFiltered"
+    />
+
     <!-- TABLE -->
     <div class="table-card">
       <table>
         <thead>
           <tr>
+            <th class="select-col">
+              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredPromos.length" @change="toggleCurrentPageSelection" />
+            </th>
             <th>CHƯƠNG TRÌNH</th>
             <th>LOẠI ƯU ĐÃI</th>
             <th>BẮT ĐẦU</th>
@@ -84,15 +97,18 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="6" class="empty-row">
+            <td colspan="7" class="empty-row">
               <div class="loading-spinner"></div>
               Đang tải...
             </td>
           </tr>
           <tr v-else-if="filteredPromos.length === 0">
-            <td colspan="6" class="empty-row">Không tìm thấy chương trình nào.</td>
+            <td colspan="7" class="empty-row">Không tìm thấy chương trình nào.</td>
           </tr>
-          <tr v-else v-for="p in filteredPromos" :key="p.id">
+          <tr v-else v-for="p in filteredPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
+            <td class="select-col">
+              <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleItemSelection(p.id)" />
+            </td>
             <td>
               <div class="promo-name-cell">
                 <div class="promo-icon" :style="{ background: p.iconBg }">
@@ -334,22 +350,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-import { getToken } from '@/services/auth'
+import api from '@/services/api'
+import swal from '@/services/swal'
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
+import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
 
-// ── Lấy token từ localStorage ──────────────────
-const getAuthHeaders = () => {
-  const token = getToken()
-  return {
-
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  }
-}
-
-const BASE_URL = 'http://localhost:8000/api'
 
 const searchQuery = ref('')
 const showModal = ref(false)
@@ -397,7 +403,7 @@ const fetchPromos = async () => {
   loading.value = true
   try {
     // GET /promotions là public — không cần token
-    const res = await axios.get(`${BASE_URL}/promotions`)
+    const res = await api.get('/promotions')
     promos.value = res.data.map(p => ({
       ...p,
       startDate: formatDate(p.start_date),
@@ -409,7 +415,7 @@ const fetchPromos = async () => {
       roi: 20
     }))
   } catch (err) {
-    showToast('Lỗi tải danh sách khuyến mãi!', 'error')
+    swal.error('Lỗi', 'Lỗi tải danh sách khuyến mãi!')
     console.error(err)
   } finally {
     loading.value = false
@@ -426,6 +432,24 @@ const filteredPromos = computed(() => {
     p.name.toLowerCase().includes(q) ||
     p.code.toLowerCase().includes(q)
   )
+})
+
+const {
+  selectedIds,
+  isBulkDeleting,
+  allCurrentPageSelected,
+  toggleItemSelection,
+  toggleCurrentPageSelection,
+  clearSelection,
+  removeSelected,
+  removeAllFiltered,
+} = useAdminBulkDelete({
+  items: promos,
+  filteredItems: filteredPromos,
+  getId: item => item.id,
+  endpoint: id => `/admin/promotions/${id}`,
+  entityLabel: 'khuyến mãi',
+  fetchItems: fetchPromos,
 })
 
 const activeCount = computed(() =>
@@ -573,20 +597,12 @@ async function savePromo() {
   try {
     if (isEdit.value) {
       // PUT /api/admin/promotions/{id} — cần token admin
-      await axios.put(
-        `${BASE_URL}/admin/promotions/${editId.value}`,
-        data,
-        { headers: getAuthHeaders() }
-      )
-      showToast('Cập nhật khuyến mãi thành công!')
+      await api.put(`/admin/promotions/${editId.value}`, data)
+      swal.success('Cập nhật khuyến mãi thành công!')
     } else {
       // POST /api/admin/promotions — cần token admin
-      await axios.post(
-        `${BASE_URL}/admin/promotions`,
-        data,
-        { headers: getAuthHeaders() }
-      )
-      showToast('Tạo khuyến mãi thành công!')
+      await api.post('/admin/promotions', data)
+      swal.success('Tạo khuyến mãi thành công!')
     }
 
     await fetchPromos()
@@ -594,7 +610,7 @@ async function savePromo() {
 
   } catch (err) {
     const msg = err.response?.data?.message || 'Lỗi khi lưu khuyến mãi!'
-    showToast(msg, 'error')
+    swal.error('Lỗi', msg)
     console.error(err.response?.data)
   } finally {
     saving.value = false
@@ -602,18 +618,16 @@ async function savePromo() {
 }
 
 async function deletePromo(id) {
-  if (!confirm('Bạn chắc chắn muốn xóa khuyến mãi này?')) return
+  const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn chắc chắn muốn xóa khuyến mãi này?')
+  if (!isConfirmed) return
 
   try {
     // DELETE /api/admin/promotions/{id} — cần token admin
-    await axios.delete(
-      `${BASE_URL}/admin/promotions/${id}`,
-      { headers: getAuthHeaders() }
-    )
-    showToast('Xóa khuyến mãi thành công!')
+    await api.delete(`/admin/promotions/${id}`)
+    swal.success('Xóa khuyến mãi thành công!')
     await fetchPromos()
   } catch (err) {
-    showToast('Lỗi khi xóa khuyến mãi!', 'error')
+    swal.error('Lỗi', 'Lỗi khi xóa khuyến mãi!')
     console.error(err)
   }
 }
@@ -635,7 +649,7 @@ async function deletePromo(id) {
 .search-box svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; fill: none; flex-shrink: 0; }
 .search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; }
 .search-box input::placeholder { color: #94a3b8; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-right { display: none !important; }
 .icon-btn { position: relative; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .icon-btn svg { width: 16px; height: 16px; stroke: #64748b; stroke-width: 1.8; fill: none; }
 .notif-dot { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; background: #ef4444; border-radius: 50%; border: 1.5px solid #fff; }
@@ -659,6 +673,41 @@ async function deletePromo(id) {
 /* STATS */
 .stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
 .stat-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 6px; }
+.stat-card.stat-active {
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  border: none;
+  box-shadow: 0 10px 24px rgba(20, 184, 166, 0.28);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card.stat-active::after,
+.stat-card.stat-budget::after,
+.stat-card-gradient::after {
+  content: '';
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  top: -28px;
+  right: -26px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.stat-card.stat-active .stat-label { color: rgba(255, 255, 255, 0.88); }
+.stat-card.stat-active .stat-value { color: #fff; }
+.stat-card.stat-active .stat-sub.green { color: #ecfeff; }
+
+.stat-card.stat-budget {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  border: none;
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.28);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card.stat-budget .stat-label { color: rgba(255, 255, 255, 0.88); }
+.stat-card.stat-budget .stat-value { color: #fff; }
+.stat-card.stat-budget .stat-unit { color: #dbeafe; }
+.stat-card.stat-budget .stat-bar { background: rgba(255, 255, 255, 0.22); }
+.stat-card.stat-budget .stat-bar-fill { background: linear-gradient(90deg, #bfdbfe, #ffffff); }
 .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: #94a3b8; }
 .stat-value { font-size: 30px; font-weight: 800; color: #0f172a; }
 .stat-unit { font-size: 14px; font-weight: 600; color: #64748b; }
@@ -666,7 +715,7 @@ async function deletePromo(id) {
 .stat-sub.green { color: #16a34a; font-weight: 600; }
 .stat-bar { height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
 .stat-bar-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, #6366f1); border-radius: 99px; }
-.stat-card-gradient { background: linear-gradient(135deg, #818cf8, #6366f1, #4f46e5); border: none; justify-content: space-between; }
+.stat-card-gradient { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%); border: none; justify-content: space-between; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.28); position: relative; overflow: hidden; }
 .stat-card-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,0.7); }
 .stat-card-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.6; }
 .stat-card-desc strong { color: #fff; }
@@ -692,7 +741,10 @@ th { padding: 12px 18px; font-size: 11px; font-weight: 700; color: #94a3b8; lett
 tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
+tbody tr.row-selected { background: #eff6ff; }
 td { padding: 14px 18px; vertical-align: middle; }
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
 .promo-name-cell { display: flex; align-items: center; gap: 12px; }
 .promo-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .promo-name { font-size: 13.5px; font-weight: 700; color: #1e293b; }

@@ -13,6 +13,7 @@ class ThuongHieu extends Model
     protected $fillable = 
     [
         'ten_thuonghieu',
+        'logo',
         'danh_muc_ids'
     ];
 

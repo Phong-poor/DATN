@@ -16,13 +16,16 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'email' => ['required', 'email'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'email' => ['Email không tồn tại'],
+                'email' => ['Email không tồn tại.'],
             ]);
         }
 
@@ -36,11 +39,11 @@ class ForgotPasswordController extends Controller
             Mail::to($user->email)->send(new SendResetOtpMail($otp));
 
             return response()->json([
-                'message' => 'OTP đã được gửi về email',
+                'message' => 'Mã OTP đã được gửi về email.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+                'message' => 'Gửi email thất bại: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -50,6 +53,10 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
         ]);
 
         $user = User::where('email', $request->email)
@@ -58,18 +65,18 @@ class ForgotPasswordController extends Controller
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP không đúng'],
+                'otp' => ['Mã OTP không đúng.'],
             ]);
         }
 
         if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP đã hết hạn'],
+                'otp' => ['Mã OTP đã hết hạn.'],
             ]);
         }
 
         return response()->json([
-            'message' => 'OTP hợp lệ',
+            'message' => 'Mã OTP hợp lệ.',
         ]);
     }
 
@@ -79,6 +86,13 @@ class ForgotPasswordController extends Controller
             'email' => ['required', 'email'],
             'otp' => ['required'],
             'password' => ['required', 'min:6', 'confirmed'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ]);
 
         $user = User::where('email', $request->email)
@@ -87,13 +101,13 @@ class ForgotPasswordController extends Controller
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP không đúng'],
+                'otp' => ['Mã OTP không đúng.'],
             ]);
         }
 
         if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP đã hết hạn'],
+                'otp' => ['Mã OTP đã hết hạn.'],
             ]);
         }
 
@@ -103,7 +117,7 @@ class ForgotPasswordController extends Controller
         $user->save();
 
         return response()->json([
-            'message' => 'Đổi mật khẩu thành công',
+            'message' => 'Đổi mật khẩu thành công.',
         ]);
     }
 }
