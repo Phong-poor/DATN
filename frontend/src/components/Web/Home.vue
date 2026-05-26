@@ -8,6 +8,7 @@ import { getToken } from '@/services/auth'
 import GiftPopup from './GiftPopup.vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 const router = useRouter()
 const showGift = ref(false)
 
@@ -21,7 +22,7 @@ const slides = [
         title: 'Laptop cao cấp cho',
         highlight: 'mọi nhu cầu chuyên sâu',
         desc: 'Từ gaming, văn phòng đến đồ hoạ chuyên nghiệp. Chọn đúng cấu hình, đúng trải nghiệm, đúng đẳng cấp.',
-        img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200',
+        img: 'https://storage-asset.msi.com/global/picture/banner/banner_1717400300a84dfc29c5b29db468165d70b55ec6b0.jpg',
         primary: 'Mua ngay',
         secondary: 'Xem bộ sưu tập'
     },
@@ -30,7 +31,7 @@ const slides = [
         title: 'Hiệu năng mạnh mẽ',
         highlight: 'thiết kế dẫn đầu',
         desc: 'Sở hữu các dòng laptop mới nhất với màn hình sắc nét, pin bền bỉ và hiệu suất vượt trội.',
-        img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200',
+        img: 'https://storage-asset.msi.com/global/picture/banner/banner_1714115162a4d3fcb62d888f4e2f69e6b3eb900d70.jpeg',
         primary: 'Khám phá ngay',
         secondary: 'Tư vấn cấu hình'
     },
@@ -39,13 +40,24 @@ const slides = [
         title: 'Công nghệ mới cho',
         highlight: 'trải nghiệm không giới hạn',
         desc: 'Cân mọi tác vụ từ chơi game AAA, dựng video 4K đến làm việc doanh nghiệp với độ ổn định tối ưu.',
-        img: 'https://images.unsplash.com/photo-1511385348-a52b4a160dc2?w=1200',
+        img: 'https://storage-asset.msi.com/global/picture/banner/banner_1713254924c871587595c25cfbb28f73b64c0527ea.jpg',
         primary: 'Xem ưu đãi',
         secondary: 'So sánh sản phẩm'
     }
 ]
 
 const categories = ref([])
+
+const getCategoryFallbackImage = (catName) => {
+    const name = catName.toLowerCase();
+    if (name.includes('gaming')) return 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600';
+    if (name.includes('văn phòng') || name.includes('office')) return 'https://images.unsplash.com/photo-1497215848906-c405a3c48a73?w=600';
+    if (name.includes('macbook') || name.includes('apple')) return 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600';
+    if (name.includes('đồ họa') || name.includes('design')) return 'https://images.unsplash.com/photo-1626218174358-7769486c4b79?w=600';
+    if (name.includes('sinh viên') || name.includes('học sinh')) return 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600';
+    return 'https://images.unsplash.com/photo-1531297172864-d6211832077e?w=600';
+};
+
 
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
@@ -63,7 +75,7 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300',
+                img: p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }];
@@ -120,7 +132,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 price: bt.gia > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bt.gia) : 'Liên hệ',
                 specs: specs,
-                img: bt.hinhanh ? 'http://127.0.0.1:8000/storage/' + bt.hinhanh : (p.hinhanh ? 'http://127.0.0.1:8000/storage/' + p.hinhanh : 'https://via.placeholder.com/300'),
+                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -144,9 +156,47 @@ const mapProducts = (rawProducts) => {
     return flatList;
 }
 
-const featuredProducts = ref([])
+
+const INITIAL_MOCK_PRODUCTS = [
+    {
+        id: 1, key_id: 'mock1', fullName: "Laptop ASUS Vivobook S16 S3607VA-RP056W",
+        priceNum: 22800000, price: '22.800.000 ₫',
+        img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500",
+        brandName: "Asus", weight: 2.5,
+        specs: [{label: 'RAM', value: '32GB'}]
+    },
+    {
+        id: 2, key_id: 'mock2', fullName: "Laptop ASUS TUF Gaming F16 FX608JHR-RV037W",
+        priceNum: 19700000, price: '19.700.000 ₫',
+        img: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500",
+        brandName: "Asus", weight: 2.5,
+        specs: [{label: 'RAM', value: '64GB'}, {label: 'CPU', value: 'Ryzen 7 7800X3D'}]
+    },
+    {
+        id: 3, key_id: 'mock3', fullName: "MacBook Pro 14 M5 Pro Apple M3 GPU 1TB 14 inch",
+        priceNum: 33800000, price: '33.800.000 ₫',
+        img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500",
+        brandName: "Apple", weight: 2.5,
+        specs: [{label: 'RAM', value: '32GB'}, {label: 'CPU', value: 'Apple M2 Ultra'}]
+    },
+    {
+        id: 4, key_id: 'mock4', fullName: "Laptop HP 15 RTX 4080 512GB 14 inch 2K OLED",
+        priceNum: 22800000, price: '22.800.000 ₫',
+        img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500",
+        brandName: "HP", weight: 2.5,
+        specs: [{label: 'RAM', value: '8GB'}, {label: 'CPU', value: 'Intel Core i5'}]
+    },
+    {
+        id: 5, key_id: 'mock5', fullName: "MacBook Air M4 RX 7800 XT 512GB 16 inch 2K",
+        priceNum: 32800000, price: '32.800.000 ₫',
+        img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500",
+        brandName: "Apple", weight: 2.07,
+        specs: [{label: 'RAM', value: '16GB'}, {label: 'CPU', value: 'Apple M2 Ultra'}]
+    }
+];
+const featuredProducts = ref([...INITIAL_MOCK_PRODUCTS])
 const latestNews = ref([])
-const newsPlaceholderImage = 'https://via.placeholder.com/800x500?text=Tin+tuc'
+const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800'
 
 const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
@@ -412,7 +462,7 @@ onUnmounted(stop)
                             </div>
                             <div class="hero-right">
                                 <div class="hero-image-card">
-                                    <img :src="activeSlide.img" :alt="activeSlide.title" />
+                                    <img :src="activeSlide.img" :alt="activeSlide.title" @error="$event.target.src='https://images.unsplash.com/photo-1497215848906-c405a3c48a73?w=800'" />
                                 </div>
                                 <div class="floating-card top">
                                     <span>Xu hướng</span>
@@ -448,6 +498,7 @@ onUnmounted(stop)
             </div>
         </section>
 
+        
         <!-- CATEGORY -->
         <section class="section">
             <div class="container">
@@ -459,19 +510,111 @@ onUnmounted(stop)
                     </div>
                     <router-link to="/products" class="section-link">Xem tất cả →</router-link>
                 </div>
-                <div class="category-grid scroll-reveal reveal-stagger">
-                    <div class="category-card" v-for="c in categories" :key="c.id_danhmuc" 
-                        @click="router.push(`/products?cat=${c.id_danhmuc}`)">
-                        <div class="category-icon">💻</div>
-                        <h3>{{ c.ten_danhmuc }}</h3>
-                        <p>{{ c.mota || 'Khám phá các sản phẩm thuộc danh mục ' + c.ten_danhmuc }}</p>
-                        <a href="javascript:void(0)">Khám phá →</a>
+                
+            <div class="container">
+                <div class="category-slider-wrapper scroll-reveal reveal-fade-up">
+                    <div class="category-slider">
+                        <div class="cat-img-card" v-for="(c, idx) in categories" :key="c.id_danhmuc" 
+                            @click="router.push(`/products?cat=${c.id_danhmuc}`)"
+                            :style="{ backgroundImage: 'url(' + (c.hinhanh ? storageUrl(c.hinhanh) : getCategoryFallbackImage(c.ten_danhmuc)) + ')' }">
+                            <div class="cat-img-overlay"></div>
+                            <div class="cat-img-content">
+                                <h3>{{ c.ten_danhmuc }}</h3>
+                                <p>{{ c.mota || 'Khám phá ngay' }}</p>
+                                <span class="btn-explore">Xem thêm ➔</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </section>
+
+        
+        
+        <!-- COMPARE MODELS -->
+        <section class="section compare-section">
+            <div class="container">
+                <div class="section-head center scroll-reveal reveal-fade-up">
+                    <div>
+                        <span class="section-label">TÌM KIẾM THEO NHU CẦU</span>
+                        <h2>Lựa chọn cấu hình phù hợp với bạn</h2>
+                        <p>Từ xử lý văn bản, sáng tạo nội dung đến đắm chìm trong thế giới ảo.</p>
+                    </div>
+                </div>
+                <div class="compare-grid scroll-reveal reveal-stagger">
+                    <div class="compare-card">
+                        <img src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400" alt="Office Laptop" class="compare-img" />
+                        <h3>Office & Student</h3>
+                        <p class="compare-desc">Gọn nhẹ, pin trâu, bền bỉ.</p>
+                        <ul class="compare-specs">
+                            <li>Intel Core i5 / AMD Ryzen 5</li>
+                            <li>RAM 8GB - 16GB</li>
+                            <li>Trọng lượng < 1.5kg</li>
+                        </ul>
+                        <button class="btn btn-outline">Xem ngay</button>
+                    </div>
+                    <div class="compare-card highlight">
+                        <div class="compare-badge">Bán chạy nhất</div>
+                        <img src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400" alt="Gaming Laptop" class="compare-img" />
+                        <h3>Gaming Series</h3>
+                        <p class="compare-desc">Tản nhiệt tối ưu, tần số quét cao.</p>
+                        <ul class="compare-specs">
+                            <li>RTX 4050 - RTX 4090</li>
+                            <li>Màn hình 144Hz - 240Hz</li>
+                            <li>Tản nhiệt chất lỏng / buồng hơi</li>
+                        </ul>
+                        <button class="btn btn-primary">Khám phá</button>
+                    </div>
+                    <div class="compare-card">
+                        
+                        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400" alt="Creator Laptop" class="compare-img" />\n                        <h3>Creator Pro</h3>
+                        <p class="compare-desc">Chuẩn màu tuyệt đối, hiệu năng render.</p>
+                        <ul class="compare-specs">
+                            <li>Màn hình OLED / 100% DCI-P3</li>
+                            <li>RAM 32GB - 64GB</li>
+                            <li>Card đồ họa Studio</li>
+                        </ul>
+                        <button class="btn btn-outline">Xem ngay</button>
                     </div>
                 </div>
             </div>
         </section>
-
-        <!-- FEATURED — 20 sản phẩm slider chia 5 cột -->
+<!-- SETUP SHOWCASE GALLERY -->
+        <section class="section showcase-section">
+            <div class="container">
+                <div class="section-head center scroll-reveal reveal-fade-up">
+                    <div>
+                        <span class="section-label">INSPIRATION</span>
+                        <h2>Góc Làm Việc Thực Tế</h2>
+                        <p>Lấy cảm hứng từ những góc setup công nghệ cao cấp nhất của cộng đồng.</p>
+                    </div>
+                </div>
+                <div class="showcase-grid scroll-reveal reveal-stagger">
+                    <div class="showcase-item large">
+                        <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=800" alt="Setup 1" />
+                        <div class="showcase-overlay">
+                            <h4>Minimalist Workspace</h4>
+                            <p>Không gian tối giản, hiệu năng tối đa</p>
+                        </div>
+                    </div>
+                    <div class="showcase-item">
+                        <img src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=600" alt="Setup 2" />
+                        <div class="showcase-overlay">
+                            <h4>Macbook Pro Setup</h4>
+                        </div>
+                    </div>
+                    <div class="showcase-item">
+                        <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600" alt="Setup 3" />
+                        <div class="showcase-overlay">
+                            <h4>Dual Monitor Gaming</h4>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </section>
+<!-- FEATURED — 20 sản phẩm slider chia 5 cột -->
         <section class="section featured-section">
             <div class="container">
                 <div class="section-head center scroll-reveal reveal-fade-up">
@@ -495,7 +638,7 @@ onUnmounted(stop)
                             <article class="product-card" v-for="p in visibleFeaturedProducts" :key="p.key_id">
                                 <span class="product-badge" v-if="p.badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
                                 <div class="product-thumb" @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
-                                    <img :src="p.img" :alt="p.fullName" />
+                                    <img :src="p.img" :alt="p.fullName" @error="$event.target.src='https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'" />
                                 </div>
                                 <div class="product-body">
                                     <h3 @click="router.push(`/products/${p.id}?variant=${p.key_id}`)" :title="p.fullName">
@@ -558,7 +701,72 @@ onUnmounted(stop)
             </div>
         </section>
 
-        <!-- PROMO -->
+        
+        <!-- ACCESSORIES SPOTLIGHT -->
+        <section class="section accessories-section">
+            <div class="container">
+                <div class="split-layout scroll-reveal reveal-fade-up">
+                    <div class="split-image">
+                        <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?w=800" alt="Mechanical Keyboard" />
+                    </div>
+                    <div class="split-content">
+                        <span class="section-label">PHỤ KIỆN CAO CẤP</span>
+                        <h2>Trang bị hoàn hảo cho cỗ máy của bạn</h2>
+                        <p>Từ bàn phím cơ độ nhạy cao, chuột gaming siêu nhẹ đến tai nghe chuẩn studio. Tối đa hóa trải nghiệm của bạn với các phụ kiện thiết yếu.</p>
+                        <ul class="acc-list">
+                            <li><strong>Bàn phím cơ:</strong> Phản hồi xúc giác cực nhạy, RGB đa sắc.</li>
+                            <li><strong>Chuột không dây:</strong> Trọng lượng siêu nhẹ, mắt đọc chính xác cao.</li>
+                            <li><strong>Giá đỡ laptop:</strong> Tản nhiệt hiệu quả, nâng tầm góc nhìn.</li>
+                        </ul>
+                        <button class="btn btn-primary" style="margin-top:20px;">Khám phá Phụ kiện</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+        <!-- INTERACTIVE HOTSPOT -->
+        <section class="section hotspot-section scroll-reveal reveal-fade-up">
+            <div class="container">
+                <div class="hotspot-container">
+                    <img src="https://images.unsplash.com/photo-1547394765-185e1e68f34e?w=1200" alt="Interactive Setup" class="hotspot-main-img" />
+                    
+                    <div class="hotspot-point" style="top: 35%; left: 45%;">
+                        <div class="hotspot-pulse"></div>
+                        <div class="hotspot-tooltip">
+                            <strong>Màn hình UltraWide</strong>
+                            <p>Độ cong 1500R, 144Hz</p>
+                        </div>
+                    </div>
+                    
+                    <div class="hotspot-point" style="top: 70%; left: 35%;">
+                        <div class="hotspot-pulse"></div>
+                        <div class="hotspot-tooltip">
+                            <strong>Bàn phím Cơ Custom</strong>
+                            <p>Switch Linear, RGB 16.8M</p>
+                        </div>
+                    </div>
+
+                    <div class="hotspot-point" style="top: 65%; left: 60%;">
+                        <div class="hotspot-pulse"></div>
+                        <div class="hotspot-tooltip">
+                            <strong>Chuột Gaming Siêu nhẹ</strong>
+                            <p>Cảm biến 26.000 DPI</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+<!-- HARDWARE PARALLAX -->
+        <section class="hardware-parallax scroll-reveal reveal-scale">
+            <div class="hw-bg"></div>
+            <div class="hw-content container">
+                <h2>Sức Mạnh Ẩn Giấu Bên Trong</h2>
+                <p>Khám phá công nghệ lõi và cấu trúc tản nhiệt làm nên sức mạnh thực sự của các siêu phẩm.</p>
+                <button class="btn btn-light" style="margin-top:20px;">Tìm hiểu thêm</button>
+            </div>
+        </section>
+<!-- PROMO -->
         <section class="promo">
             <div class="container promo-box scroll-reveal reveal-scale">
                 <div class="promo-text">
@@ -574,26 +782,72 @@ onUnmounted(stop)
             </div>
         </section>
 
-        <!-- BENEFITS -->
-        <section class="section">
+        
+        <!-- BENTO GRID BENEFITS -->
+        <section class="section bento-section">
             <div class="container">
                 <div class="section-head center scroll-reveal reveal-fade-up">
                     <div>
                         <span class="section-label">LÝ DO CHỌN CHÚNG TÔI</span>
-                        <h2>Dịch vụ xứng tầm một hệ thống bán laptop chuyên nghiệp</h2>
+                        <h2>Dịch vụ xứng tầm một hệ thống cao cấp</h2>
                     </div>
                 </div>
-                <div class="benefits-grid scroll-reveal reveal-stagger">
-                    <div class="benefit-card" v-for="(b, i) in benefits" :key="i">
-                        <div class="benefit-icon">{{ b.icon }}</div>
-                        <h3>{{ b.title }}</h3>
-                        <p>{{ b.desc }}</p>
+                
+                <div class="bento-grid scroll-reveal reveal-stagger">
+                    <div class="bento-card bento-large bento-shipping">
+                        <div class="bento-content">
+                            <h3>Giao hàng hỏa tốc 2H</h3>
+                            <p>Nhận máy ngay trong ngày tại nội thành. An toàn, nguyên seal, kiểm tra trực tiếp.</p>
+                        </div>
+                        <img src="https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=600" alt="Shipping" />
+                    </div>
+                    
+                    <div class="bento-card bento-small bento-warranty">
+                        <div class="bento-icon">🛡️</div>
+                        <div class="bento-content">
+                            <h3>Bảo hành 24 Tháng</h3>
+                            <p>Đổi mới 30 ngày đầu.</p>
+                        </div>
+                    </div>
+
+                    <div class="bento-card bento-small bento-finance">
+                        <div class="bento-icon">💳</div>
+                        <div class="bento-content">
+                            <h3>Trả góp 0%</h3>
+                            <p>Không phí ẩn, duyệt hồ sơ online.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bento-card bento-medium bento-trade">
+                        <div class="bento-content">
+                            <h3>Thu cũ đổi mới - Trợ giá 2 Triệu</h3>
+                            <p>Lên đời siêu phẩm với mức giá tiết kiệm nhất.</p>
+                        </div>\n                        <img src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=600" alt="Trade In" />
+                        
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- NEWS -->
+
+        
+        <!-- CINEMATIC VIDEO TEASER -->
+        <section class="section video-teaser scroll-reveal reveal-scale">
+            <div class="container">
+                <div class="video-container">
+                    <video class="video-bg" autoplay loop muted playsinline>
+                          <source src="https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-41695-large.mp4" type="video/mp4" />
+                          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+                      </video>
+                    <div class="video-overlay">
+                        
+                        <h2>NextGen Laptop Experience 2026</h2>
+                        <p>Xem video để khám phá không gian mua sắm tương lai</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+<!-- NEWS -->
         <section class="section soft-bg">
             <div class="container">
                 <div class="section-head scroll-reveal reveal-fade-up">
@@ -751,7 +1005,7 @@ a.btn {
 
 /* ─── HERO WRAPPER (thụt lề 2 bên) ─── */
 .hero-wrapper {
-    padding: 24px 32px;
+    padding: 0;
     background: var(--bg);
 }
 
@@ -762,15 +1016,15 @@ a.btn {
     display: flex;
     align-items: center;
     overflow: hidden;
-    padding: 64px 48px 44px;
-    border-radius: 20px;
+    padding: 84px 48px 64px;
+    border-radius: 0;
 }
 
 .hero-slide-bg {
     position: absolute;
     inset: 0;
     z-index: 0;
-    border-radius: 20px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -781,7 +1035,7 @@ a.btn {
     object-position: center;
     display: block;
     animation: kenburn 8s ease-out forwards;
-    border-radius: 20px;
+    border-radius: 0;
 }
 
 @keyframes kenburn {
@@ -802,7 +1056,7 @@ a.btn {
             rgba(9, 30, 64, 0.84) 38%,
             rgba(9, 30, 64, 0.52) 62%,
             rgba(9, 30, 64, 0.20) 100%);
-    border-radius: 20px;
+    border-radius: 0;
 }
 
 .hero-inner {
@@ -1985,5 +2239,693 @@ a.btn {
 .reveal-stagger.active > *:nth-child(4) { transition-delay: 0.32s; }
 .reveal-stagger.active > *:nth-child(5) { transition-delay: 0.40s; }
 .reveal-stagger.active > *:nth-child(6) { transition-delay: 0.48s; }
+
+/* PC BUILD BANNER */
+.pc-float-img:hover {
+    transform: rotate(0deg) scale(1.05);
+}
+
+/* BENTO GRID ACCESSORIES */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 280px 280px;
+    gap: 24px;
+}
+.bento-item {
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-color: #1e293b;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.bento-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0) 100%);
+    transition: 0.4s;
+}
+.bento-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+.bento-item:hover::before {
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 100%);
+}
+.bento-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 32px;
+    z-index: 2;
+    transform: translateY(10px);
+    transition: 0.4s;
+}
+.bento-item:hover .bento-content {
+    transform: translateY(0);
+}
+.bento-content h3 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: white;
+}
+.bento-content p {
+    font-size: 15px;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+    opacity: 0.8;
+}
+.bento-link {
+    display: inline-block;
+    color: #60a5fa;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: 0.4s;
+}
+.bento-item:hover .bento-link {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Grid Layouts */
+.bento-item.large {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+.bento-item.wide {
+    grid-column: span 2;
+}
+
+/* Background Images */
+.b-keyboard { background-image: url('https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800'); }
+.b-mouse { background-image: url('https://images.unsplash.com/photo-1625842268584-8f3296236761?w=600'); }
+.b-headset { background-image: url('https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600'); }
+.b-monitor { background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600'); }
+
+@media (max-width: 991px) {
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+    .bento-item { height: 280px; }
+    .bento-item.large { grid-column: span 2; grid-row: span 1; }
+    .bento-item.wide { grid-column: span 2; }
+    .bento-content { transform: translateY(0); }
+    .bento-link { opacity: 1; transform: translateX(0); }
+}
+
+
+/* EXPANDED BENTO GRID STYLES */
+.bento-grid {
+    grid-template-rows: 280px 280px 280px; /* 3 rows now */
+}
+.b-desk { background-image: url('https://images.unsplash.com/photo-1518444065439-e93166278d10?w=800'); }
+.b-backpack { background-image: url('https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=600'); }
+.b-gamepad { background-image: url('https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=600'); }
+.b-speaker { background-image: url('https://images.unsplash.com/photo-1545454675-3531b543be5d?w=600'); }
+
+
+/* CATEGORY SLIDER */
+.category-slider-wrapper {
+    width: 100%;
+    position: relative;
+    padding: 10px 0;
+}
+.category-slider {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    padding-bottom: 10px;
+}
+
+
+.category-slider .cat-img-card {
+    height: 220px; /* Width handled by CSS Grid */
+    border-radius: 20px;
+    background-size: contain; background-repeat: no-repeat; background-color: #0f172a;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    
+}
+
+@media (max-width: 1024px) {
+    .category-slider { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+    .category-slider { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+    .category-slider { grid-template-columns: repeat(1, 1fr); }
+}
+
+.category-slider .cat-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15,23,42,0.8) 0%, rgba(15,23,42,0.1) 40%, rgba(15,23,42,0) 100%);
+    transition: 0.4s;
+}
+.category-slider .cat-img-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(59,130,246,0.2);
+    border: 1px solid rgba(59,130,246,0.3);
+}
+.category-slider .cat-img-card:hover .cat-img-overlay {
+    background: linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(59,130,246,0.3) 100%);
+}
+.category-slider .cat-img-content {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 20px 24px;
+    z-index: 2;
+    color: white;
+    transform: translateY(20px);
+    transition: 0.4s ease-out;
+}
+.category-slider .cat-img-card:hover .cat-img-content {
+    transform: translateY(0);
+}
+.category-slider .cat-img-content h3 {
+    font-size: 20px; font-weight: 800; margin-bottom: 8px; color: white;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+.category-slider .cat-img-content p {
+    font-size: 14px; color: #cbd5e1; margin-bottom: 12px; opacity: 0; transition: 0.4s;
+}
+.category-slider .cat-img-card:hover .cat-img-content p {
+    opacity: 1;
+}
+.category-slider .btn-explore {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #0f172a;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: 0.4s delay-100ms;
+}
+.category-slider .cat-img-card:hover .btn-explore {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+/* PREMIUM PRODUCT CARD STYLES */
+.product-card {
+    border-radius: 20px !important;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: #ffffff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.product-card:hover {
+    transform: translateY(-8px) !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08) !important;
+    border-color: #e2e8f0;
+}
+.product-thumb {
+    height: 180px;
+    padding: 0;
+    background: #ffffff;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.product-thumb img {
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+.product-card:hover .product-thumb img {
+    transform: scale(1.1) !important;
+}
+.product-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.btn-detail {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border-radius: 12px !important;
+    transition: 0.3s !important;
+}
+.btn-detail:hover {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
+.price-row { margin-top: auto !important; }
+
+/* ─── NEW LANDING PAGE SECTIONS ─── */
+.showcase-section { padding-bottom: 20px; }
+.showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 250px;
+    gap: 20px;
+}
+.showcase-item {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+.showcase-item.large {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+.showcase-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.showcase-item:hover img {
+    transform: scale(1.05);
+}
+.showcase-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 30px 20px 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    color: white;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+.showcase-item:hover .showcase-overlay {
+    opacity: 1;
+    transform: translateY(0);
+}
+.showcase-overlay h4 { margin: 0 0 5px; font-size: 18px; font-weight: 700; }
+.showcase-overlay p { margin: 0; font-size: 14px; opacity: 0.8; }
+
+.split-layout {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.03);
+}
+.split-image { flex: 1; border-radius: 16px; overflow: hidden; }
+.split-image img { width: 100%; height: auto; display: block; transition: transform 0.5s ease; }
+.split-image:hover img { transform: scale(1.03); }
+.split-content { flex: 1; }
+.split-content h2 { margin-bottom: 20px; font-size: 32px; font-weight: 800; color: var(--navy); }
+.split-content p { color: var(--text2); line-height: 1.7; margin-bottom: 20px; font-size: 16px; }
+.acc-list { list-style: none; padding: 0; margin: 0; }
+.acc-list li { margin-bottom: 12px; padding-left: 24px; position: relative; color: var(--text); }
+.acc-list li::before { content: '✓'; position: absolute; left: 0; color: var(--blue); font-weight: bold; }
+
+.hardware-parallax {
+    position: relative;
+    padding: 120px 0;
+    margin: 60px 0;
+    overflow: hidden;
+    border-radius: 0;
+    text-align: center;
+    color: white;
+}
+.hw-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    z-index: 0;
+}
+.hw-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 43, 91, 0.75); /* Navy overlay */
+}
+.hw-content {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+}
+.hw-content h2 { font-size: 36px; font-weight: 800; margin-bottom: 20px; color: white; }
+.hw-content p { font-size: 18px; line-height: 1.6; opacity: 0.9; color: white; }
+
+@media (max-width: 992px) {
+    .showcase-grid { grid-template-columns: repeat(2, 1fr); }
+    .showcase-item.large { grid-column: span 2; }
+    .split-layout { flex-direction: column; padding: 30px; gap: 30px; }
+}
+@media (max-width: 768px) {
+    .showcase-grid { grid-template-columns: 1fr; }
+    .showcase-item.large { grid-column: 1; grid-row: auto; height: 300px; }
+    .hardware-parallax { padding: 80px 20px; }
+    .hw-bg { background-attachment: scroll; }
+}
+\n
+/* ─── MARQUEE ─── */
+.brand-marquee {
+    width: 100%;
+    overflow: hidden;
+    background: #ffffff;
+    padding: 30px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+.marquee-track {
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    width: max-content;
+    animation: marquee-scroll 40s linear infinite;
+}
+.marquee-track img {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    transition: all 0.3s;
+}
+.marquee-track img:hover {
+    opacity: 1;
+    filter: grayscale(0%);
+}
+@keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ─── COMPARE MODELS ─── */
+.compare-grid {
+    display: flex;
+    gap: 30px;
+    margin-top: 40px;
+    align-items: flex-end;
+}
+.compare-card {
+    flex: 1;
+    background: white;
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+    position: relative;
+}
+.compare-card:hover {
+    box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+    transform: translateY(-10px);
+}
+.compare-card.highlight {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 60px 30px;
+    box-shadow: 0 20px 40px rgba(15, 43, 91, 0.2);
+}
+.compare-badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #eab308;
+    color: #1a1f36;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(234, 179, 8, 0.3);
+}
+.compare-img {
+    width: 80%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.compare-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+.compare-desc { font-size: 14px; opacity: 0.7; margin-bottom: 20px; }
+.compare-specs { list-style: none; padding: 0; margin: 0 0 30px; text-align: left; }
+.compare-specs li { margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px; opacity: 0.9; }
+.compare-specs li::before { content: '✓'; color: var(--blue); font-weight: bold; }
+.compare-card.highlight .compare-specs li::before { color: #60a5fa; }
+.compare-card.highlight h3 { color: #ffffff; }
+.compare-card.highlight .compare-desc { color: rgba(255, 255, 255, 0.85); }
+.compare-card.highlight .compare-specs li { color: rgba(255, 255, 255, 0.9); }
+
+.compare-card .btn { width: 100%; }
+
+/* ─── INTERACTIVE HOTSPOT ─── */
+.hotspot-container {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+}
+.hotspot-main-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.hotspot-point {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.3);
+}
+.hotspot-point::after {
+    content: '+';
+    font-size: 20px;
+    color: var(--navy);
+    font-weight: bold;
+}
+.hotspot-pulse {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+@keyframes pulse-ring {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+.hotspot-tooltip {
+    position: absolute;
+    bottom: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--navy);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    width: 200px;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    pointer-events: none;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.hotspot-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--navy) transparent transparent transparent;
+}
+.hotspot-point:hover .hotspot-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+.hotspot-tooltip strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.hotspot-tooltip p { margin: 0; font-size: 12px; color: #94a3b8; }
+
+/* ─── BENTO GRID ─── */
+.bento-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 200px 200px;
+    gap: 20px;
+}
+.bento-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.bento-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.06);
+}
+.bento-content {
+    padding: 30px;
+    position: relative;
+    z-index: 2;
+}
+.bento-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--navy); }
+.bento-card p { font-size: 14.5px; color: var(--text2); line-height: 1.6; }
+.bento-large {
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+}
+.bento-large img {
+    margin-top: auto;
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+.bento-medium {
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+}
+.bento-medium .bento-content { width: 50%; }
+.bento-medium img {
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    width: 55%;
+    height: 120%;
+    object-fit: contain;
+}
+.bento-icon {
+    font-size: 32px;
+    padding: 30px 30px 0;
+}
+.bento-small .bento-content { padding-top: 15px; }
+
+/* ─── VIDEO TEASER ─── */
+.video-container {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    aspect-ratio: 21/9;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+}
+.video-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.7);
+    transition: filter 0.5s;
+}
+.yt-bg {
+    pointer-events: none;
+    transform: scale(1.35);
+}
+.video-container:hover .video-bg { filter: brightness(0.5); }
+.video-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+}
+.play-btn {
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 24px;
+}
+.play-btn svg { width: 32px; height: 32px; margin-left: 4px; }
+.play-btn:hover {
+    background: white;
+    color: var(--navy);
+    transform: scale(1.1);
+}
+.video-overlay h2 { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: white; }
+.video-overlay p { font-size: 16px; opacity: 0.8; color: white; }
+
+@media (max-width: 992px) {
+    .compare-grid { flex-direction: column; align-items: stretch; }
+    .compare-card.highlight { padding: 40px 30px; }
+    .bento-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+    .bento-large { grid-column: span 2; }
+    .bento-medium { grid-column: span 2; }
+}
+@media (max-width: 768px) {
+    .bento-grid { grid-template-columns: 1fr; }
+    .bento-medium img { position: static; width: 100%; height: 200px; object-fit: cover; }
+    .bento-medium .bento-content { width: 100%; }
+    .video-container { aspect-ratio: 16/9; }
+    .video-overlay h2 { font-size: 24px; }
+}
+
+
+.video-teaser .video-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+}
+.video-teaser .video-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    height: 500px; /* Force height so video fits nicely */
+}
 </style>
 

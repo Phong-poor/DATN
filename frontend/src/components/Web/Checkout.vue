@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
-import { getUser } from '@/services/auth'
+import { getUser, updateUser } from '@/services/auth'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 
@@ -374,17 +374,34 @@ const fetchCart = async () => {
     }
 }
 
+const fillUserForm = (user = {}) => {
+    form.value.name = user.name || user.ten || form.value.name || ''
+    form.value.email = user.email || form.value.email || ''
+    form.value.phone = user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
+}
+
+const fetchUserProfile = async () => {
+    const cachedUser = getUser()
+    if (cachedUser) {
+        fillUserForm(cachedUser)
+    }
+
+    try {
+        const response = await api.get('/user/profile')
+        const profile = response.data?.user || response.data?.data || response.data
+        if (profile) {
+            fillUserForm(profile)
+            updateUser({ ...(cachedUser || {}), ...profile })
+        }
+    } catch (error) {
+        console.error('Lỗi tải thông tin người dùng:', error)
+    }
+}
+
 onMounted(() => {
     fetchCart()
     fetchAddresses()
-
-    // Tự động điền thông tin người dùng nếu đã đăng nhập
-    const user = getUser()
-    if (user) {
-        form.value.name = user.name || user.ten || ''
-        form.value.email = user.email || ''
-        form.value.phone = user.phone || user.sdt || ''
-    }
+    fetchUserProfile()
 })
 
 const subtotal = computed(() =>
@@ -399,7 +416,18 @@ const total = computed(() => {
 
 const format = (n) => n.toLocaleString('vi-VN') + 'đ'
 
+const normalizePhone = () => {
+    form.value.phone = String(form.value.phone || '').replace(/\D/g, '').slice(0, 10)
+}
+
 const confirmOrder = async () => {
+    normalizePhone()
+
+    if (!/^0\d{9}$/.test(form.value.phone)) {
+        swal.warning('Thiếu thông tin', 'Vui lòng nhập số điện thoại 10 số và bắt đầu bằng số 0.')
+        return
+    }
+
     if (!selectedAddressId.value && !form.value.address) {
         swal.warning('Thiếu thông tin', 'Vui lòng chọn địa chỉ')
         return
@@ -415,6 +443,8 @@ const confirmOrder = async () => {
         const response = await api.post('/checkout', {
             id_diachi: selectedAddressId.value,
             diachi: form.value.address,
+            name: form.value.name,
+            phone: form.value.phone,
             PTTT: payment.value === 'cod' ? 'COD' : (payment.value === 'bank' ? 'Chuyển khoản' : 'Ví điện tử'),
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value
@@ -463,8 +493,17 @@ const confirmOrder = async () => {
           </div>
 
           <div class="form-grid">
-            <input v-model="form.name" placeholder="Họ và tên" readonly class="readonly-input" />
-            <input v-model="form.phone" placeholder="Số điện thoại" readonly class="readonly-input" />
+            <input v-model="form.name" placeholder="Họ và tên" class="checkout-input" />
+            <input
+              v-model="form.phone"
+              placeholder="Số điện thoại"
+              type="tel"
+              inputmode="numeric"
+              autocomplete="tel"
+              maxlength="10"
+              class="checkout-input"
+              @input="normalizePhone"
+            />
           </div>
 
           <input v-model="form.email" placeholder="Email" readonly class="readonly-input" />

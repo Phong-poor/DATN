@@ -96,7 +96,7 @@ const routes = [
     ],
   },
 
-  // ── 404 fallback ──
+  // 404 fallback
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
@@ -112,42 +112,42 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
-  window.dispatchEvent(new Event('global-loader-show'))
-  const user = getUser()
-  const token = getToken()
+    window.dispatchEvent(new Event('global-loader-show'))
+    const user = getUser()
+    const token = getToken()
 
-  const publicPages = [
-    '/',
-    '/products',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/otp-verify',
-    '/reset-password',
-    '/login-success',
-    '/news',
-    '/contact',
-    '/cart',
-    '/thank-you',
-    '/payment-failed',
-    '/interactive-labs',
-  ]
+    const publicPages = [
+      '/',
+      '/products',
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/otp-verify',
+      '/reset-password',
+      '/login-success',
+      '/news',
+      '/contact',
+      '/cart',
+      '/thank-you',
+      '/payment-failed',
+      '/interactive-labs',
+    ]
 
-  const isPublic =
-    publicPages.includes(to.path) ||
-    to.path.startsWith('/products/') ||
-    to.path.startsWith('/news/')
+    const isPublic =
+      publicPages.includes(to.path) ||
+      to.path.startsWith('/products/') ||
+      to.path.startsWith('/news/')
 
-  if (!isPublic && !token) {
-    return next('/login')
-  }
+    if (!isPublic && !token) {
+      return next('/login')
+    }
 
-  if (to.matched.some(route => route.meta.requiresAdmin)) {
-    if (!user || !token) return next('/login')
-    if (user.role !== 'admin') return next('/')
-  }
+    if (to.matched.some(route => route.meta.requiresAdmin)) {
+      if (!user || !token) return next('/login')
+      if (user.role !== 'admin') return next('/')
+    }
 
-  next()
+    next()
 })
 
 export default router
