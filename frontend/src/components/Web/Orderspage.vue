@@ -9,6 +9,35 @@ import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
 
 const activeTab = ref('all')
+const pageMode = ref('orders')
+
+const orderSteps = computed(() => {
+    const o = selectedOrder.value
+    if (!o) return null
+    const statusKey = o.trangthai
+    return [
+        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
+        { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
+        { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
+    ]
+})
+
+const refundSteps = computed(() => {
+    const o = selectedOrder.value
+    if (!o) return null
+    const statusKey = o.trangthai
+    if (!statusKey.startsWith('refund')) return null
+    const keys = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    return [
+        { label: 'Yêu cầu hoàn trả', date: null, done: keys.indexOf(statusKey) >= 0 },
+        { label: 'Chờ lấy hàng hoàn', date: null, done: keys.indexOf(statusKey) >= 1 },
+        { label: 'Đang giao hoàn', date: null, done: keys.indexOf(statusKey) >= 2 },
+        { label: 'Đã nhận hoàn', date: null, done: keys.indexOf(statusKey) >= 3 },
+        { label: 'Đã hoàn tiền', date: null, done: keys.indexOf(statusKey) >= 4 },
+    ]
+})
+
 const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
@@ -338,7 +367,67 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <!-- Products -->
+                        
+              <div class="timeline" v-if="orderSteps">
+                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
+                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
+                <div class="timeline refund-timeline">
+                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
+                    <div class="tl-col">
+                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    </div>
+                    <div class="tl-content">
+                      <p class="tl-label refund-label">{{ step.label }}</p>
+                      <p class="tl-date">{{ step.date || '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="timeline" v-if="orderSteps">
+                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
+                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
+                <div class="timeline refund-timeline">
+                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
+                    <div class="tl-col">
+                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    </div>
+                    <div class="tl-content">
+                      <p class="tl-label refund-label">{{ step.label }}</p>
+                      <p class="tl-date">{{ step.date || '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+<!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
                             <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
@@ -384,7 +473,7 @@ onUnmounted(() => {
               <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
                 <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 14px;">Mua:</div>
                 <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in tabs_mua" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                    <button v-for="tab in (pageMode === 'orders' ? tabs_mua : [{key: 'all', label: 'Tất cả'}, ...tabs_hoantra])" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
                         @click="activeTab = tab.key">
                         {{ tab.label }}
                         <span class="tab-count" v-if="tab.key !== 'all'">
@@ -392,19 +481,19 @@ onUnmounted(() => {
                         </span>
                     </button>
                 </div>
-              </div>
+            </div>
               <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
                 <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 14px;">Hoàn trả:</div>
                 <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in tabs_hoantra" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                    <button v-for="tab in (pageMode === 'orders' ? tabs_mua : [{key: 'all', label: 'Tất cả'}, ...tabs_hoantra])" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
                         @click="activeTab = tab.key">
                         {{ tab.label }}
-                        <span class="tab-count">
+                        <span class="tab-count" v-if="tab.key !== 'all'">
                             {{orders.filter(o => o.trangthai === tab.key).length}}
                         </span>
                     </button>
                 </div>
-              </div>
+            </div>
             </div>
 
             <!-- Order list -->
@@ -1006,4 +1095,27 @@ onUnmounted(() => {
     font-size: 16px;
   }
 }
+</style>
+
+<style scoped>
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #4f46e5; }
+.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+</style>
+<style scoped>
+.timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
+.tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
+.tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
+.tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.tl-dot svg { width: 16px; height: 16px; }
+.tl-item.done .tl-dot { background: #10b981; border-color: #10b981; }
+.tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
+.tl-line.done { background: #10b981; }
+.tl-content { padding: 0 10px; }
+.tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
+.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
+.refund-dot { border-color: #fdba74; }
+.refund-label { color: #c2410c; }
 </style>

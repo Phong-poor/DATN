@@ -44,8 +44,38 @@ const closeDateDropdown = (e) => {
 const currentPage = ref(1)
 const itemsPerPage = 5
 
+const pageMode = ref('orders')
+
+const orderSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    return [
+        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
+        { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
+        { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
+    ]
+})
+
+const refundSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    if (!statusKey.startsWith('refund')) return null
+    const keys = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    return [
+        { label: 'Yêu cầu hoàn trả', date: null, done: keys.indexOf(statusKey) >= 0 },
+        { label: 'Chờ lấy hàng hoàn', date: null, done: keys.indexOf(statusKey) >= 1 },
+        { label: 'Đang giao hoàn', date: null, done: keys.indexOf(statusKey) >= 2 },
+        { label: 'Đã nhận hoàn', date: null, done: keys.indexOf(statusKey) >= 3 },
+        { label: 'Đã hoàn tiền', date: null, done: keys.indexOf(statusKey) >= 4 },
+    ]
+})
+
 const tabs_mua = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
-const tabs_hoantra = ['Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
+const tabs_hoantra = ['Tất cả', 'Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
+const currentTabs = computed(() => pageMode.value === 'orders' ? tabs_mua : tabs_hoantra)
 
 const statusMap = {
     'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
@@ -160,16 +190,16 @@ const confirmRejectRefund = async (id) => {
 }
 
 const deleteOrder = async (id) => {
-    const confirmed = await swal.confirm('Xoa don hang', 'Ban co chac muon xoa don hang nay khong?')
+    const confirmed = await swal.confirm('Xóa đơn hàng', 'Bạn có chắc muốn xóa đơn hàng này không?')
     if (!confirmed) return
 
     try {
         await api.delete(`/admin/orders/${id}`)
         await fetchOrders()
         selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
-        swal.success('Thanh cong', 'Da xoa don hang.')
+        swal.success('Thành công', 'Đã xóa đơn hàng.')
     } catch (error) {
-        swal.error('Loi', error.response?.data?.message || 'Khong the xoa don hang')
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể xóa đơn hàng')
     }
 }
 
@@ -243,9 +273,18 @@ const availableMonths = computed(() => {
 
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
-        // Find the status key that matches the active tab's label
         const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === activeTab.value)
-        const matchTab = activeTab.value === 'Tất cả' || o.status === activeStatusKey
+        
+        let matchTab = false;
+        if (pageMode.value === 'orders') {
+            matchTab = activeTab.value === 'Tất cả' 
+                ? !o.status.startsWith('refund') 
+                : o.status === activeStatusKey
+        } else {
+            matchTab = activeTab.value === 'Tất cả'
+                ? o.status.startsWith('refund')
+                : o.status === activeStatusKey
+        }
         
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -300,7 +339,10 @@ const changeTab = (tab) => {
 }
 
 const getTabCount = (tabLabel) => {
-    if (tabLabel === 'Tất cả') return orders.value.length
+    if (tabLabel === 'Tất cả') {
+        if (pageMode.value === 'orders') return orders.value.filter(o => !o.status.startsWith('refund')).length;
+        return orders.value.filter(o => o.status.startsWith('refund')).length;
+    }
     const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === tabLabel)
     return orders.value.filter(o => o.status === activeStatusKey).length
 }
@@ -381,6 +423,18 @@ function exportExcel() {
             </div>
         </div>
 
+        <!-- CATEGORY TABS -->
+        <div class="category-tabs" style="margin-bottom: 20px;">
+            <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
+                Đơn mua hàng
+            </button>
+            <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
+                Đơn hoàn trả
+            </button>
+        </div>
+
+      
+        
         <!-- FILTER -->
         <div class="filter-wrap">
             <div class="search-row">
@@ -391,27 +445,12 @@ function exportExcel() {
                     <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng (#VT-2026..." />
                 </div>
 
-                <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
-                    <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                        <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 13px;">Mua:</div>
-                        <div class="tabs">
-                            <button
-                                v-for="tab in tabs_mua" :key="tab"
-                                class="tab" :class="{ active: activeTab === tab }"
-                                @click="changeTab(tab)"
-                            >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
-                        </div>
-                    </div>
-                    <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                        <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 13px;">Hoàn trả:</div>
-                        <div class="tabs">
-                            <button
-                                v-for="tab in tabs_hoantra" :key="tab"
-                                class="tab" :class="{ active: activeTab === tab }"
-                                @click="changeTab(tab)"
-                            >{{ tab }} <span class="tab-count">{{ getTabCount(tab) }}</span></button>
-                        </div>
-                    </div>
+                <div class="tabs">
+                    <button
+                        v-for="tab in currentTabs" :key="tab"
+                        class="tab" :class="{ active: activeTab === tab }"
+                        @click="changeTab(tab)"
+                    >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
                 </div>
             </div>
 
@@ -653,7 +692,37 @@ function exportExcel() {
                             </div>
                         </div>
 
-                        <div class="detail-section">
+                        
+              <div class="timeline" v-if="orderSteps">
+                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
+                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
+                <div class="timeline refund-timeline">
+                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
+                    <div class="tl-col">
+                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    </div>
+                    <div class="tl-content">
+                      <p class="tl-label refund-label">{{ step.label }}</p>
+                      <p class="tl-date">{{ step.date || '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+<div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
                                 <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
@@ -1155,3 +1224,29 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 }
 </style>
 
+
+<style scoped>
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #4f46e5; }
+.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+</style>
+
+<style scoped>
+.timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
+.tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
+.tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
+
+.tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: white; }
+
+.tl-dot svg { width: 16px; height: 16px; }
+.tl-item.done .tl-dot { background: #10b981; border-color: #10b981; }
+.tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
+.tl-line.done { background: #10b981; }
+.tl-content { padding: 0 10px; }
+.tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
+.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
+.refund-dot { border-color: #fdba74; }
+.refund-label { color: #c2410c; }
+</style>

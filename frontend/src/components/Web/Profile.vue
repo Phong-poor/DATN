@@ -630,11 +630,19 @@ const statusMap = {
 
 const orders = ref([])
 
-const filteredOrders = computed(() =>
-  orderTab.value === 'all'
-    ? orders.value
-    : orders.value.filter((o) => o.status === orderTab.value)
-)
+const orderMode = ref('mua')
+
+const filteredOrders = computed(() => {
+  if (orderMode.value === 'mua') {
+    return orderTab.value === 'all'
+      ? orders.value.filter((o) => !o.status.startsWith('refund'))
+      : orders.value.filter((o) => o.status === orderTab.value)
+  } else {
+    return orderTab.value === 'all'
+      ? orders.value.filter((o) => o.status.startsWith('refund'))
+      : orders.value.filter((o) => o.status === orderTab.value)
+  }
+})
 
 const currentPage = ref(1)
 const itemsPerPage = 8
@@ -1509,24 +1517,22 @@ const promoStatusMap = {
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Lịch Sử Đơn Hàng</h1>
           </div>
+          
+          <div class="category-tabs" style="margin-bottom: 20px;">
+            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'">
+              Đơn mua hàng
+            </button>
+            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]" @click="orderMode = 'hoantra'; orderTab = 'all'">
+              Đơn hoàn trả
+            </button>
+          </div>
+
           <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
-            <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-              <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 13px;">Mua:</div>
-              <div class="order-tabs" style="margin-bottom: 0;">
-                <button v-for="t in orderTabs_mua" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
-                  {{ t.label }}
-                  <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
-                </button>
-              </div>
-            </div>
-            <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-              <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 13px;">Hoàn trả:</div>
-              <div class="order-tabs" style="margin-bottom: 0;">
-                <button v-for="t in orderTabs_hoantra" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
-                  {{ t.label }}
-                  <span class="otab-count">{{ orders.filter(o => o.status === t.key).length }}</span>
-                </button>
-              </div>
+            <div class="order-tabs" style="margin-bottom: 0;">
+              <button v-for="t in (orderMode === 'mua' ? orderTabs_mua : [{key: 'all', label: 'Tất cả'}, ...orderTabs_hoantra])" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
+                {{ t.label }}
+                <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
+              </button>
             </div>
           </div>
 
@@ -2370,4 +2376,11 @@ const promoStatusMap = {
     text-align: left;
   }
 }
+</style>
+
+<style scoped>
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #4f46e5; }
+.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 </style>
