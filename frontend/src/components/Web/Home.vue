@@ -211,14 +211,17 @@ onMounted(async () => {
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
         const [newsRes, spRes, catRes] = await Promise.all([
-            api.get('/news', { params: { scope: 'public', per_page: 3 } }),
-            api.get('/sanpham'),
-            api.get('/danhmuc')
+            api.get('/news', { params: { scope: 'public', per_page: 3 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
+            api.get('/sanpham').catch(e => { console.error('Sanpham API failed', e); return { data: [] }; }),
+            api.get('/danhmuc').catch(e => { console.error('Danhmuc API failed', e); return { data: { data: [] } }; })
         ])
 
         latestNews.value = newsRes.data?.data || []
-        const allProducts = mapProducts(spRes.data)
+        
+        const rawProducts = Array.isArray(spRes.data) ? spRes.data : (spRes.data?.data || [])
+        const allProducts = mapProducts(rawProducts)
         featuredProducts.value = allProducts.slice(0, 20)
+        
         categories.value = (catRes.data?.data || catRes.data || []).slice(0, 4)
 
         // Lưu cache mới nhất để dùng cho lần chuyển trang sau

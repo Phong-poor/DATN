@@ -13,7 +13,7 @@ const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
 
-const tabs = [
+const tabs_mua = [
     { key: 'all', label: 'Tất cả' },
     { key: 'pending', label: 'Chờ xác nhận' },
     { key: 'confirmed', label: 'Đã xác nhận' },
@@ -22,11 +22,24 @@ const tabs = [
     { key: 'cancelled', label: 'Đã hủy' },
 ]
 
+const tabs_hoantra = [
+    { key: 'refund_pending', label: 'Yêu cầu hoàn trả' },
+    { key: 'refund_pickup', label: 'Chờ lấy hàng hoàn' },
+    { key: 'refund_delivering', label: 'Đang giao hoàn' },
+    { key: 'refund_received', label: 'Đã nhận hoàn' },
+    { key: 'refunded', label: 'Đã hoàn tiền' },
+]
+
 const statusMap = {
     pending: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
     confirmed: { label: 'Đã xác nhận', color: '#0ea5e9', bg: '#e0f2fe' },
     shipping: { label: 'Đang giao', color: '#2563eb', bg: '#dbeafe' },
     done: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
+    refund_pending: { label: 'Yêu cầu hoàn trả', color: '#f97316', bg: '#ffedd5' },
+    refund_pickup: { label: 'Chờ lấy hàng hoàn', color: '#d97706', bg: '#fef3c7' },
+    refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
+    refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
+    refunded: { label: 'Đã hoàn tiền', color: '#8b5cf6', bg: '#ede9fe' },
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
@@ -67,6 +80,78 @@ const confirmCancel = async () => {
     } finally {
         isSubmitting.value = false
     }
+}
+
+// Refund state
+const showRefundModal = ref(false)
+const orderToRefund = ref(null)
+const refundReason = ref('')
+const refundProof = ref(null)
+const refundProofUrl = ref(null)
+
+const handleProofUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+        refundProof.value = file
+        if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+        refundProofUrl.value = URL.createObjectURL(file)
+    } else {
+        refundProof.value = null
+        if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+        refundProofUrl.value = null
+    }
+}
+
+const openRefundModal = (order) => {
+    orderToRefund.value = order
+    refundReason.value = ''
+    refundProof.value = null
+    if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+    refundProofUrl.value = null
+    showRefundModal.value = true
+}
+
+const confirmRefund = async () => {
+    if (!refundReason.value.trim()) {
+        swal.warning('Thông báo', 'Vui lòng nhập lý do hoàn trả.')
+        return
+    }
+    if (!refundProof.value) {
+        swal.warning('Thông báo', 'Vui lòng tải lên ảnh/video bằng chứng.')
+        return
+    }
+
+    isSubmitting.value = true
+    try {
+        const formData = new FormData()
+        formData.append('lydo', refundReason.value)
+        formData.append('proof', refundProof.value)
+
+        const res = await api.post(`/orders/${orderToRefund.value.id_dathang}/refund`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        if (res.data.success) {
+            swal.success('Thành công', 'Đã gửi yêu cầu hoàn trả!')
+            showRefundModal.value = false
+            await fetchOrders()
+            if (selectedOrder.value && selectedOrder.value.id_dathang === orderToRefund.value.id_dathang) {
+                closeDetail()
+            }
+        }
+    } catch (err) {
+        swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
+    } finally {
+        isSubmitting.value = false
+    }
+}
+
+const isRefundable = (order) => {
+    if (order.trangthai !== 'done') return false;
+    const updated = new Date(order.updated_at).getTime();
+    const now = new Date().getTime();
+    const diffHours = (now - updated) / (1000 * 60 * 60);
+    return diffHours <= 42;
 }
 
 const handleReorder = async (order) => {
@@ -189,6 +274,39 @@ onUnmounted(() => {
             </div>
         </transition>
 
+        <!-- Refund Modal -->
+        <transition name="fade">
+            <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false">
+                <div class="modal mini-modal">
+                    <div class="modal-head">
+                        <h2 class="modal-title">Yêu cầu hoàn trả</h2>
+                        <button class="close-btn" @click="showRefundModal = false">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea v-model="refundReason" class="form-control mb-3" rows="3" placeholder="Nhập lý do hoàn trả..."></textarea>
+                        
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size: 13px; font-weight: 600;">Hình ảnh / Video bằng chứng</label>
+                            <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
+                            <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
+                            
+                            <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
+                                <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                                <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-3">
+                            <button class="btn btn-secondary" @click="showRefundModal = false">Đóng</button>
+                            <button class="btn btn-warning" style="color: white; font-weight: bold;" @click="confirmRefund" :disabled="isSubmitting">
+                                {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
         <!-- Detail Modal -->
         <transition name="fade">
             <div class="overlay" v-if="selectedOrder" @click.self="closeDetail">
@@ -213,8 +331,11 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Cancellation info if cancelled -->
-                        <div v-if="selectedOrder.trangthai === 'cancelled' && selectedOrder.lydo" class="alert alert-danger py-2 px-3 mb-4" style="font-size: 13px;">
-                            <strong>Lý do hủy:</strong> {{ selectedOrder.lydo }}
+                        <div v-if="(selectedOrder.trangthai === 'cancelled' || selectedOrder.trangthai.startsWith('refund')) && selectedOrder.lydo" class="alert py-2 px-3 mb-4" :class="{'alert-danger': selectedOrder.trangthai === 'cancelled', 'alert-warning': selectedOrder.trangthai !== 'cancelled'}" style="font-size: 13px;">
+                            <strong>Lý do:</strong> {{ selectedOrder.lydo }}
+                            <div v-if="selectedOrder.refund_proof" class="mt-2">
+                                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
+                            </div>
                         </div>
 
                         <!-- Products -->
@@ -241,7 +362,10 @@ onUnmounted(() => {
                             <button v-if="['pending', 'confirmed'].includes(selectedOrder.trangthai)" 
                                 class="btn-cancel w-100" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
                             
-                            <button v-if="['done', 'cancelled'].includes(selectedOrder.trangthai)" 
+                            <button v-if="isRefundable(selectedOrder)" 
+                                class="btn-refund w-100" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
+
+                            <button v-if="['done', 'cancelled', 'refunded'].includes(selectedOrder.trangthai)" 
                                 class="btn-reorder w-100" @click="handleReorder(selectedOrder)">Mua lại</button>
                         </div>
                     </div>
@@ -255,15 +379,32 @@ onUnmounted(() => {
                 <p class="page-sub">Theo dõi và quản lý đơn hàng</p>
             </div>
 
-            <!-- Tabs -->
-            <div class="tabs">
-                <button v-for="tab in tabs" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
-                    @click="activeTab = tab.key">
-                    {{ tab.label }}
-                    <span class="tab-count" v-if="tab.key !== 'all'">
-                        {{orders.filter(o => o.trangthai === tab.key).length}}
-                    </span>
-                </button>
+            <!-- Tabs Group -->
+            <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
+              <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
+                <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 14px;">Mua:</div>
+                <div class="tabs" style="margin-bottom: 0;">
+                    <button v-for="tab in tabs_mua" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                        @click="activeTab = tab.key">
+                        {{ tab.label }}
+                        <span class="tab-count" v-if="tab.key !== 'all'">
+                            {{orders.filter(o => o.trangthai === tab.key).length}}
+                        </span>
+                    </button>
+                </div>
+              </div>
+              <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
+                <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 14px;">Hoàn trả:</div>
+                <div class="tabs" style="margin-bottom: 0;">
+                    <button v-for="tab in tabs_hoantra" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                        @click="activeTab = tab.key">
+                        {{ tab.label }}
+                        <span class="tab-count">
+                            {{orders.filter(o => o.trangthai === tab.key).length}}
+                        </span>
+                    </button>
+                </div>
+              </div>
             </div>
 
             <!-- Order list -->
@@ -311,7 +452,10 @@ onUnmounted(() => {
                             <button v-if="['pending', 'confirmed'].includes(order.trangthai)" 
                                 class="btn-cancel" @click="openCancelModal(order)">Hủy đơn</button>
                             
-                            <button v-if="['done', 'cancelled'].includes(order.trangthai)" 
+                            <button v-if="isRefundable(order)" 
+                                class="btn-refund" @click="openRefundModal(order)">Hoàn trả</button>
+
+                            <button v-if="['done', 'cancelled', 'refunded'].includes(order.trangthai)" 
                                 class="btn-reorder" @click="handleReorder(order)">Mua lại</button>
 
                             <button class="btn-detail" @click="openDetail(order)">Chi tiết</button>
@@ -575,6 +719,18 @@ onUnmounted(() => {
 
 .btn-cancel:hover {
     background: #dc2626;
+    color: #fff;
+}
+
+.btn-refund {
+    background: #fff;
+    border-color: #f97316;
+    color: #f97316;
+    border: 1.5px solid #f97316;
+}
+
+.btn-refund:hover {
+    background: #f97316;
     color: #fff;
 }
 

@@ -44,13 +44,19 @@ const closeDateDropdown = (e) => {
 const currentPage = ref(1)
 const itemsPerPage = 5
 
-const tabs = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const tabs_mua = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const tabs_hoantra = ['Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
 
 const statusMap = {
     'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     'confirmed': { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     'shipping':  { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
     'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#16a34a' },
+    'refund_pending': { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
+    'refund_pickup': { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
+    'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
+    'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
+    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#8b5cf6' },
     'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
 
@@ -58,7 +64,7 @@ const getStatusLabel = (s) => statusMap[s]?.label || s
 const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
-const terminalStatuses = ['done', 'cancelled']
+const terminalStatuses = ['done', 'cancelled', 'refunded']
 
 const getAllowedStatuses = (current) => {
     if (terminalStatuses.includes(current)) return [current]
@@ -70,8 +76,13 @@ const getAllowedStatuses = (current) => {
 }
 
 const getNextStatus = (current) => {
-    const idx = statusSequence.indexOf(current)
+    let idx = statusSequence.indexOf(current)
     if (idx !== -1 && idx < statusSequence.length - 1) return statusSequence[idx + 1]
+    
+    const returnSequence = ['refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    idx = returnSequence.indexOf(current)
+    if (idx !== -1 && idx < returnSequence.length - 1) return returnSequence[idx + 1]
+    
     return current
 }
 
@@ -131,6 +142,20 @@ const confirmCancelOrder = async (id) => {
     const isConfirmed = await swal.confirm('Xác nhận HỦY', 'Bạn có chắc chắn muốn HỦY đơn hàng này?')
     if (isConfirmed) {
         updateOrderStatus(id, 'cancelled')
+    }
+}
+
+const confirmApproveRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Xác nhận hoàn trả', 'Bạn có chắc chắn chấp nhận yêu cầu hoàn trả này (Đơn sẽ chuyển sang Chờ lấy hàng hoàn)?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'refund_pickup')
+    }
+}
+
+const confirmRejectRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái Hoàn thành?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'done')
     }
 }
 
@@ -274,6 +299,12 @@ const changeTab = (tab) => {
     currentPage.value = 1
 }
 
+const getTabCount = (tabLabel) => {
+    if (tabLabel === 'Tất cả') return orders.value.length
+    const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === tabLabel)
+    return orders.value.filter(o => o.status === activeStatusKey).length
+}
+
 const parseAttr = (json) => {
     try {
         const attr = JSON.parse(json)
@@ -360,12 +391,27 @@ function exportExcel() {
                     <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng (#VT-2026..." />
                 </div>
 
-                <div class="tabs">
-                    <button
-                        v-for="tab in tabs" :key="tab"
-                        class="tab" :class="{ active: activeTab === tab }"
-                        @click="changeTab(tab)"
-                    >{{ tab }}</button>
+                <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 13px;">Mua:</div>
+                        <div class="tabs">
+                            <button
+                                v-for="tab in tabs_mua" :key="tab"
+                                class="tab" :class="{ active: activeTab === tab }"
+                                @click="changeTab(tab)"
+                            >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
+                        </div>
+                    </div>
+                    <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 13px;">Hoàn trả:</div>
+                        <div class="tabs">
+                            <button
+                                v-for="tab in tabs_hoantra" :key="tab"
+                                class="tab" :class="{ active: activeTab === tab }"
+                                @click="changeTab(tab)"
+                            >{{ tab }} <span class="tab-count">{{ getTabCount(tab) }}</span></button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -472,13 +518,28 @@ function exportExcel() {
                                     </svg>
                                 </button>
                                 
-                                <button v-if="!terminalStatuses.includes(o.status)" 
+                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
+                                </button>
+
+                                <!-- Nút xử lý hoàn trả -->
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #16a34a;"
+                                        @click="confirmApproveRefund(o.id_backend)" 
+                                        title="Chấp nhận hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </button>
+
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #dc2626;"
+                                        @click="confirmRejectRefund(o.id_backend)" 
+                                        title="Từ chối hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
 
                                 <button
@@ -568,11 +629,27 @@ function exportExcel() {
                             </div>
                         </div>
 
-                        <!-- LÝ DO HỦY ĐƠN -->
-                        <div v-if="viewOrder.status === 'cancelled'" class="detail-section">
-                            <div class="section-title" style="color: #dc2626;">Lý do hủy đơn</div>
-                            <div class="cancel-reason-box">
+                        <!-- LÝ DO HỦY ĐƠN HOẶC HOÀN TRẢ -->
+                        <div v-if="['cancelled', 'refund_pending', 'refunded'].includes(viewOrder.status)" class="detail-section">
+                            <div class="section-title" :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}</div>
+                            <div class="cancel-reason-box" style="margin-bottom: 10px;">
                                 ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                            </div>
+                            <div v-if="viewOrder.raw.refund_proof" class="cancel-reason-box" style="margin-top: 10px;">
+                                <strong>Bằng chứng hoàn trả:</strong>
+                                <div class="proof-preview" style="margin-top: 8px;">
+                                    <template v-if="viewOrder.raw.refund_proof.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
+                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" title="Nhấn để xem ảnh lớn">
+                                            <img :src="storageUrl(viewOrder.raw.refund_proof)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
+                                        </a>
+                                    </template>
+                                    <template v-else-if="viewOrder.raw.refund_proof.match(/\.(mp4|mov|avi|wmv)$/i)">
+                                        <video :src="storageUrl(viewOrder.raw.refund_proof)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
+                                    </template>
+                                    <template v-else>
+                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
@@ -675,14 +752,29 @@ function exportExcel() {
 }
 .search-box input:focus { border-color: #2563eb; }
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
     padding: 8px 14px; border-radius: 8px; border: none;
     background: transparent; font-size: 13px; font-weight: 500;
     color: #64748b; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
 }
 .tab:hover { background: #f1f5f9; color: #334155; }
 .tab.active { background: #2563eb; color: white; }
+
+.tab-count {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+.tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
 
 /* ── Custom Premium Dropdown ── */
 .custom-dropdown {

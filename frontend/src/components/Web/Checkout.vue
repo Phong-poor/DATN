@@ -463,11 +463,11 @@ const confirmOrder = async () => {
           </div>
 
           <div class="form-grid">
-            <input v-model="form.name" placeholder="Họ và tên" readonly class="readonly-input" />
-            <input v-model="form.phone" placeholder="Số điện thoại" readonly class="readonly-input" />
+            <input v-model="form.name" placeholder="Họ và tên" />
+            <input v-model="form.phone" placeholder="Số điện thoại" />
           </div>
 
-          <input v-model="form.email" placeholder="Email" readonly class="readonly-input" />
+          <input v-model="form.email" placeholder="Email" />
 
           <div class="address-list" v-if="addresses.length || loadingAddresses">
             <div class="address-header">
