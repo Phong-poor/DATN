@@ -134,6 +134,69 @@ class DatHangController extends Controller
         }
     }
 
+    public function requestRefund(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::where('id_dathang', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        if ($order->trangthai !== 'done') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể hoàn trả đơn hàng đã giao thành công.'
+            ], 400);
+        }
+
+        if (now()->diffInHours($order->updated_at) > 42) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đã quá hạn 42 giờ để yêu cầu hoàn trả.'
+            ], 400);
+        }
+
+        $request->validate([
+            'lydo' => 'required|string',
+            'proof' => 'required|file|mimes:jpeg,png,jpg,mp4,mov,avi|max:20480',
+        ], [
+            'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
+            'proof.required' => 'Vui lòng tải lên hình ảnh hoặc video bằng chứng.',
+            'proof.mimes' => 'Định dạng file không hợp lệ.',
+            'proof.max' => 'File bằng chứng không được vượt quá 20MB.',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $proofPath = null;
+            if ($request->hasFile('proof')) {
+                $proofPath = $request->file('proof')->store('refunds', 'public');
+            }
+
+            $order->update([
+                'trangthai' => 'refund_pending',
+                'lydo' => $request->lydo,
+                'refund_proof' => $proofPath
+            ]);
+
+            DB::commit();
+
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gửi yêu cầu hoàn trả thành công!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function checkout(Request $request)
     {
         $request->validate([
@@ -376,7 +439,7 @@ class DatHangController extends Controller
     public function updateStatus(Request $request, $id) 
     {
         $request->validate([
-            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
+            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded'
         ]);
 
         $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
@@ -394,7 +457,7 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+            if (in_array($newStatus, ['cancelled', 'refunded']) && !in_array($oldStatus, ['cancelled', 'refunded'])) {
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
@@ -402,7 +465,7 @@ class DatHangController extends Controller
                 }
             }
 
-            if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+            if (in_array($oldStatus, ['cancelled', 'refunded']) && !in_array($newStatus, ['cancelled', 'refunded'])) {
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         if ($chiTiet->bienThe->soluong < $chiTiet->soluong) {
@@ -423,7 +486,7 @@ class DatHangController extends Controller
                 $this->createAffiliateCommissionForOrder($order);
             }
 
-            if ($newStatus === 'cancelled') {
+            if (in_array($newStatus, ['cancelled', 'refunded'])) {
                 AffiliateCommission::where('order_id', $order->id_dathang)->update([
                     'status' => 'cancelled',
                     'approved_at' => null,

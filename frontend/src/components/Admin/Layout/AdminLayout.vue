@@ -178,6 +178,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  RotateCcw,
   Newspaper,
   FolderTree,
   Tag,
@@ -224,6 +225,7 @@ const menuItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/products', label: 'Sản phẩm', icon: Package },
   { path: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
+  
   { path: '/admin/news', label: 'Bài viết', icon: Newspaper },
   { path: '/admin/categories', label: 'Danh mục', icon: FolderTree },
   { path: '/admin/brands', label: 'Thương hiệu', icon: Tag },
