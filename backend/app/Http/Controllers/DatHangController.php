@@ -9,15 +9,13 @@ use App\Models\BienThe;
 use App\Models\DiaChi;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
-use App\Models\AffiliateCommission;
-use App\Models\AffiliateProfile;
-use App\Models\AffiliateReferral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use App\Mail\OrderSuccessMail;
 use App\Events\OrderStatusUpdated;
 use App\Events\OrderPlaced;
@@ -123,69 +121,6 @@ class DatHangController extends Controller
                 'success' => true,
                 'message' => "Đã thêm $addedItemsCount sản phẩm vào giỏ hàng.",
                 'skipped' => $skippedItems
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function requestRefund(Request $request, $id)
-    {
-        $userId = Auth::id();
-        $order = DatHang::where('id_dathang', $id)
-            ->where('user_id', $userId)
-            ->firstOrFail();
-
-        if ($order->trangthai !== 'done') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Chỉ có thể hoàn trả đơn hàng đã giao thành công.'
-            ], 400);
-        }
-
-        if (now()->diffInHours($order->updated_at) > 42) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Đã quá hạn 42 giờ để yêu cầu hoàn trả.'
-            ], 400);
-        }
-
-        $request->validate([
-            'lydo' => 'required|string',
-            'proof' => 'required|file|mimes:jpeg,png,jpg,mp4,mov,avi|max:20480',
-        ], [
-            'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
-            'proof.required' => 'Vui lòng tải lên hình ảnh hoặc video bằng chứng.',
-            'proof.mimes' => 'Định dạng file không hợp lệ.',
-            'proof.max' => 'File bằng chứng không được vượt quá 20MB.',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $proofPath = null;
-            if ($request->hasFile('proof')) {
-                $proofPath = $request->file('proof')->store('refunds', 'public');
-            }
-
-            $order->update([
-                'trangthai' => 'refund_pending',
-                'lydo' => $request->lydo,
-                'refund_proof' => $proofPath
-            ]);
-
-            DB::commit();
-
-            event(new OrderStatusUpdated($order));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Gửi yêu cầu hoàn trả thành công!'
             ]);
 
         } catch (\Exception $e) {
@@ -309,10 +244,34 @@ class DatHangController extends Controller
 
         $tongTienSauGiam = max(0, $tongTienGoc - $giamGia) + max(0, $shippingFee - $giamGiaShip);
 
+        $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
+        $isMomoPayment = $paymentProvider === 'momo';
+        $hasPaymentTracking = Schema::hasColumn('dathang', 'payment_provider');
+        $freeshipPromotionId = isset($fpromo) && $fpromo ? $fpromo->id : null;
+
+        if ($isMomoPayment) {
+            if (!env('MOMO_PARTNER_CODE') || !env('MOMO_ACCESS_KEY') || !env('MOMO_SECRET_KEY')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MoMo sandbox chưa được cấu hình partnerCode/accessKey/secretKey trong file .env.'
+                ], 422);
+            }
+
+            if ($tongTienSauGiam < 1000 || $tongTienSauGiam > 50000000) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MoMo chỉ hỗ trợ thanh toán từ 1.000đ đến 50.000.000đ.'
+                ], 422);
+            }
+
+        }
+
+        $donHang = null;
+
         try {
             DB::beginTransaction();
 
-            $donHang = DatHang::create([
+            $orderData = [
                 'user_id'     => $userId,
                 'tongtien'    => $tongTienSauGiam,
                 'trangthai'   => 'pending',
@@ -320,7 +279,22 @@ class DatHangController extends Controller
                 'PTTT'        => $request->PTTT,
                 'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'promotion_id' => $promoId,      // lưu id promotion đã dùng
-            ]);
+            ];
+
+            if ($hasPaymentTracking) {
+                $orderData['payment_provider'] = $paymentProvider;
+                $orderData['payment_status'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
+                $orderData['payment_payload'] = [
+                    'checkout' => [
+                        'promo_id' => $promoId,
+                        'freeship_promotion_id' => $freeshipPromotionId,
+                        'promo_code' => $request->promo_code,
+                        'freeship_code' => $request->freeship_code,
+                    ],
+                ];
+            }
+
+            $donHang = DatHang::create($orderData);
 
             foreach ($gioHangItems as $item) {
                 DatHangChiTiet::create([
@@ -331,20 +305,22 @@ class DatHangController extends Controller
                 ]);
             }
 
-            GioHang::where('user_id', $userId)->delete();
+            if (!$isMomoPayment) {
+                GioHang::where('user_id', $userId)->delete();
 
-            // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
-            if ($promoId) {
-                UserVoucher::where('id_user', $userId)
-                    ->where('id_promotion', $promoId)
-                    ->update(['trang_thai' => 1]);
-            }
+                // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
+                if ($promoId) {
+                    UserVoucher::where('id_user', $userId)
+                        ->where('id_promotion', $promoId)
+                        ->update(['trang_thai' => 1]);
+                }
 
-            // Nếu có dùng thêm mã freeship
-            if (isset($fpromo) && $fpromo) {
-                UserVoucher::where('id_user', $userId)
-                    ->where('id_promotion', $fpromo->id)
-                    ->update(['trang_thai' => 1]);
+                // Nếu có dùng thêm mã freeship
+                if ($freeshipPromotionId) {
+                    UserVoucher::where('id_user', $userId)
+                        ->where('id_promotion', $freeshipPromotionId)
+                        ->update(['trang_thai' => 1]);
+                }
             }
 
             DB::commit();
@@ -355,13 +331,21 @@ class DatHangController extends Controller
             Cache::forget('dashboard_data_month');
             Cache::forget('dashboard_data_year');
 
-            // Broadcast new order event
-            broadcast(new OrderPlaced($donHang));
+            // MoMo chỉ thông báo đơn mới cho admin sau khi thanh toán thành công.
+            if (!$isMomoPayment) {
+                broadcast(new OrderPlaced($donHang));
+            }
 
             $payUrl = null;
             if ($request->PTTT === 'Ví điện tử') {
                 $vnpay = new VnpayController();
                 $payUrl = $vnpay->createPaymentUrl($donHang);
+            }
+            if ($isMomoPayment) {
+                $momo = new MomoController();
+                $momoPayment = $momo->createPayment($donHang, $this->resolveMomoRequestType($paymentProvider));
+                $payUrl = $momoPayment['payUrl'];
+                $donHang = $donHang->fresh();
             }
 
             return response()->json([
@@ -373,7 +357,15 @@ class DatHangController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::connection()->transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            if ($isMomoPayment && $donHang) {
+                DatHangChiTiet::where('id_dathang', $donHang->id_dathang)->delete();
+                $donHang->delete();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi đặt hàng: ' . $e->getMessage()
@@ -439,7 +431,7 @@ class DatHangController extends Controller
     public function updateStatus(Request $request, $id) 
     {
         $request->validate([
-            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded'
+            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
         ]);
 
         $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
@@ -457,7 +449,7 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            if (in_array($newStatus, ['cancelled', 'refunded']) && !in_array($oldStatus, ['cancelled', 'refunded'])) {
+            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
@@ -465,7 +457,7 @@ class DatHangController extends Controller
                 }
             }
 
-            if (in_array($oldStatus, ['cancelled', 'refunded']) && !in_array($newStatus, ['cancelled', 'refunded'])) {
+            if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         if ($chiTiet->bienThe->soluong < $chiTiet->soluong) {
@@ -481,18 +473,6 @@ class DatHangController extends Controller
                 $updateData['lydo'] = $request->lydo;
             }
             $order->update($updateData);
-
-            if ($newStatus === 'done' && $oldStatus !== 'done') {
-                $this->createAffiliateCommissionForOrder($order);
-            }
-
-            if (in_array($newStatus, ['cancelled', 'refunded'])) {
-                AffiliateCommission::where('order_id', $order->id_dathang)->update([
-                    'status' => 'cancelled',
-                    'approved_at' => null,
-                    'paid_at' => null,
-                ]);
-            }
 
             DB::commit();
 
@@ -515,72 +495,19 @@ class DatHangController extends Controller
         }
     }
 
-    public function destroy($id)
+    private function resolvePaymentProvider(?string $method): ?string
     {
-        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
-
-        try {
-            DB::beginTransaction();
-
-            if (!in_array($order->trangthai, ['done', 'cancelled'])) {
-                foreach ($order->chi_tiets as $chiTiet) {
-                    if ($chiTiet->bienThe) {
-                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
-                    }
-                }
-            }
-
-            $order->delete();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Da xoa don hang thanh cong.'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Khong the xoa don hang: ' . $e->getMessage()
-            ], 500);
-        }
+        return match ($method) {
+            'MoMo' => 'momo',
+            'Ví điện tử', 'VNPAY', 'VNPay' => 'vnpay',
+            'COD' => 'cod',
+            'Chuyển khoản' => 'bank',
+            default => null,
+        };
     }
 
-    private function createAffiliateCommissionForOrder(DatHang $order): void
+    private function resolveMomoRequestType(?string $provider): string
     {
-        $referral = AffiliateReferral::where('referred_user_id', $order->user_id)->first();
-        if (!$referral) {
-            return;
-        }
-
-        $profile = AffiliateProfile::where('user_id', $referral->affiliate_user_id)
-            ->where('status', 'active')
-            ->first();
-
-        if (!$profile) {
-            return;
-        }
-
-        $exists = AffiliateCommission::where('order_id', $order->id_dathang)->exists();
-        if ($exists) {
-            return;
-        }
-
-        $rate = (float) ($profile->commission_rate ?? 5);
-        $amount = round(((float) $order->tongtien * $rate) / 100, 2);
-
-        if ($amount <= 0) {
-            return;
-        }
-
-        AffiliateCommission::create([
-            'affiliate_user_id' => $profile->user_id,
-            'referred_user_id' => $order->user_id,
-            'order_id' => $order->id_dathang,
-            'amount' => $amount,
-            'status' => 'pending',
-        ]);
+        return 'payWithMethod';
     }
 }
