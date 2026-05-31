@@ -53,6 +53,11 @@ class DashboardController extends Controller
                 'shipping'  => 'Đang giao',
                 'done'      => 'Hoàn thành',
                 'cancelled' => 'Hủy đơn',
+                'refund_pending' => 'Yêu cầu hoàn trả',
+                'refund_pickup' => 'Chờ lấy hàng hoàn',
+                'refund_delivering' => 'Đang giao hoàn',
+                'refund_received' => 'Đã nhận hoàn',
+                'refunded'  => 'Đã hoàn tiền',
             ];
 
             $trangThai = collect($statusLabels)->map(function ($label, $status) use ($trangThaiRaw, $tongDonHang) {
@@ -115,6 +120,11 @@ class DashboardController extends Controller
                         'shipping'  => 'Đang giao',
                         'done'      => 'Hoàn thành',
                         'cancelled' => 'Hủy đơn',
+                        'refund_pending' => 'Yêu cầu hoàn trả',
+                        'refund_pickup' => 'Chờ lấy hàng hoàn',
+                        'refund_delivering' => 'Đang giao hoàn',
+                        'refund_received' => 'Đã nhận hoàn',
+                        'refunded'  => 'Đã hoàn tiền',
                     ];
                     return [
                         'id'       => '#DH-' . str_pad($o->id_dathang, 4, '0', STR_PAD_LEFT),

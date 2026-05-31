@@ -59,6 +59,11 @@ const form = ref({
 })
 
 const payment = ref('cod')
+const paymentMethodMap = {
+    cod: 'COD',
+    vnpay: 'VNPay',
+    momo: 'MoMo'
+}
 const cart = ref([])
 
 const isKnownAddressPart = (value) => value && value !== 'Không xác định'
@@ -415,7 +420,7 @@ const confirmOrder = async () => {
         const response = await api.post('/checkout', {
             id_diachi: selectedAddressId.value,
             diachi: form.value.address,
-            PTTT: payment.value === 'cod' ? 'COD' : (payment.value === 'bank' ? 'Chuyển khoản' : 'Ví điện tử'),
+            PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value
         })
@@ -463,11 +468,11 @@ const confirmOrder = async () => {
           </div>
 
           <div class="form-grid">
-            <input v-model="form.name" placeholder="Họ và tên" readonly class="readonly-input" />
-            <input v-model="form.phone" placeholder="Số điện thoại" readonly class="readonly-input" />
+            <input v-model="form.name" placeholder="Họ và tên" />
+            <input v-model="form.phone" placeholder="Số điện thoại" />
           </div>
 
-          <input v-model="form.email" placeholder="Email" readonly class="readonly-input" />
+          <input v-model="form.email" placeholder="Email" />
 
           <div class="address-list" v-if="addresses.length || loadingAddresses">
             <div class="address-header">
@@ -503,18 +508,30 @@ const confirmOrder = async () => {
             <label class="pay-item" :class="{ active: payment === 'cod' }">
               <input type="radio" value="cod" v-model="payment" />
               <div class="radio"></div>
+              <div class="pay-logo cod-logo">COD</div>
               <div class="pay-text">
                 <b>COD (Thanh toán khi nhận hàng)</b>
                 <p>Thanh toán tiền mặt khi nhận hàng</p>
               </div>
             </label>
 
+            <label class="pay-item" :class="{ active: payment === 'vnpay' }">
+              <input type="radio" value="vnpay" v-model="payment" />
+              <div class="radio"></div>
+              <div class="pay-logo vnpay-logo">VN</div>
+              <div class="pay-text">
+                <b>Ví điện tử VNPay</b>
+                <p>Thanh toán nhanh qua cổng VNPay sandbox</p>
+              </div>
+            </label>
+
             <label class="pay-item" :class="{ active: payment === 'momo' }">
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
+              <div class="pay-logo momo-logo">M</div>
               <div class="pay-text">
-                <b>Ví điện tử VNPay</b>
-                <p>Thanh toán nhanh qua ví điện tử</p>
+                <b>MoMo Sandbox</b>
+                <p>Chuyển sang MoMo để chọn QR, ATM/Napas hoặc Visa/Mastercard/JCB</p>
               </div>
             </label>
 
@@ -1072,7 +1089,7 @@ textarea {
 
 .pay-item {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px 44px 1fr;
   align-items: center;
   gap: 14px;
   padding: 16px;
@@ -1116,6 +1133,41 @@ textarea {
 .pay-text p {
   font-size: 12px;
   color: #64748b;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.pay-text {
+  min-width: 0;
+}
+
+.pay-text b {
+  line-height: 1.35;
+}
+
+.pay-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.cod-logo {
+  background: linear-gradient(135deg, #0f172a, #475569);
+}
+
+.vnpay-logo {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+}
+
+.momo-logo {
+  background: linear-gradient(135deg, #d1007f, #a50064);
 }
 
 /* RIGHT */
@@ -1200,6 +1252,16 @@ textarea {
   .form-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+  .pay-item {
+    grid-template-columns: 24px 38px 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+  .pay-logo {
+    width: 38px;
+    height: 38px;
+    font-size: 11px;
   }
 }
 </style>

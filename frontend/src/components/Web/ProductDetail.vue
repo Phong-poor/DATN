@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
@@ -217,6 +217,32 @@ const prevThumbs = () => {
     }
 }
 
+// ===================== AUTO SLIDER =====================
+let autoSlideInterval = null
+
+const startAutoSlide = () => {
+    stopAutoSlide()
+    autoSlideInterval = setInterval(() => {
+        if (allImages.value.length > 1) {
+            const currentIndex = allImages.value.indexOf(selectedImage.value)
+            const nextIndex = (currentIndex + 1) % allImages.value.length
+            selectedImage.value = allImages.value[nextIndex]
+            
+            // Sync thumb slider
+            if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
+                thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
+            }
+        }
+    }, 2000)
+}
+
+const stopAutoSlide = () => {
+    if (autoSlideInterval) {
+        clearInterval(autoSlideInterval)
+        autoSlideInterval = null
+    }
+}
+
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
@@ -353,6 +379,11 @@ const loadPageData = async () => {
 onMounted(() => {
     window.scrollTo(0, 0)
     loadPageData()
+    startAutoSlide()
+})
+
+onUnmounted(() => {
+    stopAutoSlide()
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -724,8 +755,10 @@ const modalComparisonData = computed(() => {
 
                     <!-- ẢNH -->
                     <div>
-                        <div class="main-img">
-                            <img :src="selectedImage" />
+                        <div class="main-img" @mouseenter="stopAutoSlide" @mouseleave="startAutoSlide">
+                            <transition name="slide-left" mode="out-in">
+                                <img :key="selectedImage" :src="selectedImage" />
+                            </transition>
                         </div>
                         <div class="thumb-wrapper">
                             <button class="thumb-nav p-left" @click="prevThumbs" :disabled="thumbIndex === 0">
@@ -735,7 +768,7 @@ const modalComparisonData = computed(() => {
                                 </svg>
                             </button>
                             <div class="thumbs">
-                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img"
+                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img; startAutoSlide()"
                                     :class="{ active: selectedImage === img }" />
                             </div>
                             <button class="thumb-nav p-right" @click="nextThumbs"
@@ -2054,4 +2087,17 @@ h1 {
     }
 }
 
+/* ===== IMAGE SLIDE TRANSITION ===== */
+.slide-left-enter-active,
+.slide-left-leave-active {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.slide-left-enter-from {
+    opacity: 0;
+    transform: translateX(40px);
+}
+.slide-left-leave-to {
+    opacity: 0;
+    transform: translateX(-40px);
+}
 </style>

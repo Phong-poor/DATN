@@ -44,13 +44,50 @@ const closeDateDropdown = (e) => {
 const currentPage = ref(1)
 const itemsPerPage = 5
 
-const tabs = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const pageMode = ref('orders')
+
+const orderSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    return [
+        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
+        { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
+        { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
+    ]
+})
+
+const refundSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    if (!statusKey.startsWith('refund')) return null
+    const keys = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    return [
+        { label: 'Yêu cầu hoàn trả', date: null, done: keys.indexOf(statusKey) >= 0 },
+        { label: 'Chờ lấy hàng hoàn', date: null, done: keys.indexOf(statusKey) >= 1 },
+        { label: 'Đang giao hoàn', date: null, done: keys.indexOf(statusKey) >= 2 },
+        { label: 'Đã nhận hoàn', date: null, done: keys.indexOf(statusKey) >= 3 },
+        { label: 'Đã hoàn tiền', date: null, done: keys.indexOf(statusKey) >= 4 },
+    ]
+})
+
+const tabs_mua = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const tabs_hoantra = ['Tất cả', 'Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
+const currentTabs = computed(() => pageMode.value === 'orders' ? tabs_mua : tabs_hoantra)
 
 const statusMap = {
     'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     'confirmed': { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     'shipping':  { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
     'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#16a34a' },
+    'refund_pending': { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
+    'refund_pickup': { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
+    'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
+    'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
+    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#8b5cf6' },
+    'refund_rejected': { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
     'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
 
@@ -58,7 +95,7 @@ const getStatusLabel = (s) => statusMap[s]?.label || s
 const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
-const terminalStatuses = ['done', 'cancelled']
+const terminalStatuses = ['done', 'cancelled', 'refunded', 'refund_rejected']
 
 const getAllowedStatuses = (current) => {
     if (terminalStatuses.includes(current)) return [current]
@@ -70,8 +107,13 @@ const getAllowedStatuses = (current) => {
 }
 
 const getNextStatus = (current) => {
-    const idx = statusSequence.indexOf(current)
+    let idx = statusSequence.indexOf(current)
     if (idx !== -1 && idx < statusSequence.length - 1) return statusSequence[idx + 1]
+    
+    const returnSequence = ['refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    idx = returnSequence.indexOf(current)
+    if (idx !== -1 && idx < returnSequence.length - 1) return returnSequence[idx + 1]
+    
     return current
 }
 
@@ -134,17 +176,31 @@ const confirmCancelOrder = async (id) => {
     }
 }
 
+const confirmApproveRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Xác nhận hoàn trả', 'Bạn có chắc chắn chấp nhận yêu cầu hoàn trả này (Đơn sẽ chuyển sang Chờ lấy hàng hoàn)?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'refund_pickup')
+    }
+}
+
+const confirmRejectRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái Hoàn thành?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'refund_rejected')
+    }
+}
+
 const deleteOrder = async (id) => {
-    const confirmed = await swal.confirm('Xoa don hang', 'Ban co chac muon xoa don hang nay khong?')
+    const confirmed = await swal.confirm('Xóa đơn hàng', 'Bạn có chắc muốn xóa đơn hàng này không?')
     if (!confirmed) return
 
     try {
         await api.delete(`/admin/orders/${id}`)
         await fetchOrders()
         selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
-        swal.success('Thanh cong', 'Da xoa don hang.')
+        swal.success('Thành công', 'Đã xóa đơn hàng.')
     } catch (error) {
-        swal.error('Loi', error.response?.data?.message || 'Khong the xoa don hang')
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể xóa đơn hàng')
     }
 }
 
@@ -218,9 +274,18 @@ const availableMonths = computed(() => {
 
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
-        // Find the status key that matches the active tab's label
         const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === activeTab.value)
-        const matchTab = activeTab.value === 'Tất cả' || o.status === activeStatusKey
+        
+        let matchTab = false;
+        if (pageMode.value === 'orders') {
+            matchTab = activeTab.value === 'Tất cả' 
+                ? !o.status.startsWith('refund') 
+                : o.status === activeStatusKey
+        } else {
+            matchTab = activeTab.value === 'Tất cả'
+                ? o.status.startsWith('refund')
+                : o.status === activeStatusKey
+        }
         
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -272,6 +337,15 @@ const closeViewModal = () => {
 const changeTab = (tab) => {
     activeTab.value = tab
     currentPage.value = 1
+}
+
+const getTabCount = (tabLabel) => {
+    if (tabLabel === 'Tất cả') {
+        if (pageMode.value === 'orders') return orders.value.filter(o => !o.status.startsWith('refund')).length;
+        return orders.value.filter(o => o.status.startsWith('refund')).length;
+    }
+    const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === tabLabel)
+    return orders.value.filter(o => o.status === activeStatusKey).length
 }
 
 const parseAttr = (json) => {
@@ -350,6 +424,18 @@ function exportExcel() {
             </div>
         </div>
 
+        <!-- CATEGORY TABS -->
+        <div class="category-tabs" style="margin-bottom: 20px;">
+            <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
+                Đơn mua hàng
+            </button>
+            <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
+                Đơn hoàn trả
+            </button>
+        </div>
+
+      
+        
         <!-- FILTER -->
         <div class="filter-wrap">
             <div class="search-row">
@@ -362,10 +448,10 @@ function exportExcel() {
 
                 <div class="tabs">
                     <button
-                        v-for="tab in tabs" :key="tab"
+                        v-for="tab in currentTabs" :key="tab"
                         class="tab" :class="{ active: activeTab === tab }"
                         @click="changeTab(tab)"
-                    >{{ tab }}</button>
+                    >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
                 </div>
             </div>
 
@@ -472,13 +558,28 @@ function exportExcel() {
                                     </svg>
                                 </button>
                                 
-                                <button v-if="!terminalStatuses.includes(o.status)" 
+                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
+                                </button>
+
+                                <!-- Nút xử lý hoàn trả -->
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #16a34a;"
+                                        @click="confirmApproveRefund(o.id_backend)" 
+                                        title="Chấp nhận hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </button>
+
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #dc2626;"
+                                        @click="confirmRejectRefund(o.id_backend)" 
+                                        title="Từ chối hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
 
                                 <button
@@ -568,15 +669,61 @@ function exportExcel() {
                             </div>
                         </div>
 
-                        <!-- LÝ DO HỦY ĐƠN -->
-                        <div v-if="viewOrder.status === 'cancelled'" class="detail-section">
-                            <div class="section-title" style="color: #dc2626;">Lý do hủy đơn</div>
-                            <div class="cancel-reason-box">
+                        <!-- LÝ DO HỦY ĐƠN HOẶC HOÀN TRẢ -->
+                        <div v-if="['cancelled', 'refund_pending', 'refunded'].includes(viewOrder.status)" class="detail-section">
+                            <div class="section-title" :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}</div>
+                            <div class="cancel-reason-box" style="margin-bottom: 10px;">
                                 ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                            </div>
+                            <div v-if="viewOrder.raw.refund_proof" class="cancel-reason-box" style="margin-top: 10px;">
+                                <strong>Bằng chứng hoàn trả:</strong>
+                                <div class="proof-preview" style="margin-top: 8px;">
+                                    <template v-if="viewOrder.raw.refund_proof.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
+                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" title="Nhấn để xem ảnh lớn">
+                                            <img :src="storageUrl(viewOrder.raw.refund_proof)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
+                                        </a>
+                                    </template>
+                                    <template v-else-if="viewOrder.raw.refund_proof.match(/\.(mp4|mov|avi|wmv)$/i)">
+                                        <video :src="storageUrl(viewOrder.raw.refund_proof)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
+                                    </template>
+                                    <template v-else>
+                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="detail-section">
+                        
+              <div class="timeline" v-if="orderSteps">
+                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
+                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
+                <div class="timeline refund-timeline">
+                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
+                    <div class="tl-col">
+                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    </div>
+                    <div class="tl-content">
+                      <p class="tl-label refund-label">{{ step.label }}</p>
+                      <p class="tl-date">{{ step.date || '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+<div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
                                 <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
@@ -675,14 +822,29 @@ function exportExcel() {
 }
 .search-box input:focus { border-color: #2563eb; }
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
     padding: 8px 14px; border-radius: 8px; border: none;
     background: transparent; font-size: 13px; font-weight: 500;
     color: #64748b; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
 }
 .tab:hover { background: #f1f5f9; color: #334155; }
 .tab.active { background: #2563eb; color: white; }
+
+.tab-count {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+.tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
 
 /* ── Custom Premium Dropdown ── */
 .custom-dropdown {
@@ -1063,3 +1225,29 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 }
 </style>
 
+
+<style scoped>
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #4f46e5; }
+.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+</style>
+
+<style scoped>
+.timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
+.tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
+.tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
+
+.tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: white; }
+
+.tl-dot svg { width: 16px; height: 16px; }
+.tl-item.done .tl-dot { background: #10b981; border-color: #10b981; }
+.tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
+.tl-line.done { background: #10b981; }
+.tl-content { padding: 0 10px; }
+.tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
+.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
+.refund-dot { border-color: #fdba74; }
+.refund-label { color: #c2410c; }
+</style>
