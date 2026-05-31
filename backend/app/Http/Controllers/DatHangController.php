@@ -337,7 +337,7 @@ class DatHangController extends Controller
             }
 
             $payUrl = null;
-            if ($request->PTTT === 'Ví điện tử') {
+            if ($paymentProvider === 'vnpay') {
                 $vnpay = new VnpayController();
                 $payUrl = $vnpay->createPaymentUrl($donHang);
             }
@@ -497,9 +497,11 @@ class DatHangController extends Controller
 
     private function resolvePaymentProvider(?string $method): ?string
     {
+        $method = trim((string) $method);
+
         return match ($method) {
-            'MoMo' => 'momo',
-            'Ví điện tử', 'VNPAY', 'VNPay' => 'vnpay',
+            'MoMo', 'MOMO', 'momo' => 'momo',
+            'Ví điện tử', 'VNPAY', 'VNPay', 'vnpay' => 'vnpay',
             'COD' => 'cod',
             'Chuyển khoản' => 'bank',
             default => null,
@@ -508,6 +510,6 @@ class DatHangController extends Controller
 
     private function resolveMomoRequestType(?string $provider): string
     {
-        return 'payWithMethod';
+        return env('MOMO_REQUEST_TYPE', 'payWithMethod') ?: 'payWithMethod';
     }
 }
