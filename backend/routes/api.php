@@ -27,6 +27,7 @@ use App\Http\Controllers\AffiliateController;
 use App\Http\Controllers\AdminAffiliateController;
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\ChatController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
@@ -54,6 +55,10 @@ Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
+
+// Ảnh chat (phục vụ qua API, không phụ thuộc symlink storage/public)
+Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
+    ->where('filename', '[A-Za-z0-9._-]+');
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
@@ -112,10 +117,13 @@ Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::cla
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
-});
 
-// Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
-// Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+    // ===== CHAT (USER) =====
+    Route::get('/chat/me', [ChatController::class, 'getUserConversation']);
+    Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+    Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
+    Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
+});
 
 
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
@@ -132,7 +140,6 @@ Route::post('/thuonghieu', [ThuongHieuController::class, 'store']);
 Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show']);
 
 
-// Route::post('/register', [UserController::class, 'store']);
 
 // ================= THUỘC TÍNH =================
 Route::get('/nhomthuoctinh', [ThuocTinhController::class, 'getNhom']);
@@ -163,8 +170,6 @@ Route::get('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'index']);
 Route::get('/bienthe-hinhanh/sanpham/{id_sanpham}', [BienTheHinhAnhController::class, 'getBySanPham']);
 Route::get('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'show']);
 
-// Route::post('/login', [AuthController::class, 'login']);
-// Route::post('/register', [AuthController::class, 'register']);
 
 // ================= TEST =================
 Route::get('/test', function () {
@@ -274,5 +279,13 @@ Route::middleware(['auth:sanctum', 'admin', 'update_admin_activity'])
         Route::get('/account/billing', [AdminAccountController::class, 'billing']);
         Route::get('/account/settings', [AdminAccountController::class, 'settings']);
         Route::put('/account/settings', [AdminAccountController::class, 'updateSettings']);
+
+        // ===== ADMIN CHAT =====
+        Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
+        Route::get('/chat/conversations/{id}/messages', [ChatController::class, 'getMessages']);
+        Route::delete('/chat/conversations', [ChatController::class, 'destroyConversations']);
+        Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+        Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
+        Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
 
 });

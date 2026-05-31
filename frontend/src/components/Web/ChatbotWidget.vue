@@ -3,9 +3,10 @@
     <!-- Bubble Button -->
     <div class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
       @keydown.enter.prevent="toggleChat" @keydown.space.prevent="toggleChat"
-      :class="{ 'pulse-animation': !isOpen && messages.length === 1 }">
-      <i v-if="!isOpen" class="chat-icon">💬</i>
+      :class="{ 'pulse-animation': !isOpen && !isAdminOpen && messages.length === 1 }">
+      <i v-if="!isOpen && !isAdminOpen" class="chat-icon">💬</i>
       <i v-else class="close-icon">❌</i>
+
 
       <!-- small support action inside bubble -->
       <button class="bubble-support-action" type="button" @click.stop="dispatchToggleSupport" aria-label="Hỗ trợ">
@@ -28,6 +29,11 @@
               <h4 class="title">Chatbot hỗ trợ</h4>
               <p class="subtitle">Trợ lý tự động tư vấn sản phẩm</p>
             </div>
+
+            <!-- Button to open Admin Chat -->
+            <button class="mode-toggle-btn" @click="switchToAdmin" title="Nhắn cho Admin">
+              Nhắn Admin
+            </button>
           </div>
         </div>
 
@@ -89,6 +95,8 @@ import { storageUrl } from '@/services/urls';
 
 const isOpen = ref(false);
 const isLoading = ref(false);
+const currentChatMode = ref('ai'); // 'ai' or 'admin'
+const isAdminOpen = ref(false);
 const newMessage = ref('');
 const chatBody = ref(null);
 const router = useRouter();
@@ -142,10 +150,21 @@ const messages = ref([
 ]);
 
 const toggleChat = () => {
+  if (currentChatMode.value === 'admin') {
+    window.dispatchEvent(new CustomEvent('toggle-admin-chat'));
+    return;
+  }
+  
   isOpen.value = !isOpen.value;
   if (isOpen.value) {
     scrollToBottom();
   }
+};
+
+const switchToAdmin = () => {
+  isOpen.value = false; // Close AI Chat
+  currentChatMode.value = 'admin';
+  window.dispatchEvent(new CustomEvent('open-admin-chat')); // Trigger Admin Chat
 };
 
 const dispatchToggleSupport = () => {
@@ -215,19 +234,36 @@ const sendMessage = async () => {
   }
 };
 
-// Listen for global 'open-chatbot' events dispatched by other widgets
+// Listen for global interaction events
 const handleOpenChatEvent = () => {
+  currentChatMode.value = 'ai';
   isOpen.value = true;
   scrollToBottom();
 };
 
+const handleOpenAdminChatEvent = () => {
+  currentChatMode.value = 'admin';
+  isOpen.value = false; // Ensure AI is closed
+};
+
+const handleAdminStateEvent = (e) => {
+  isAdminOpen.value = !!(e && e.detail && e.detail.open);
+  if (isAdminOpen.value) {
+    currentChatMode.value = 'admin';
+  }
+};
+
 onMounted(() => {
   window.addEventListener('open-chatbot', handleOpenChatEvent);
+  window.addEventListener('open-admin-chat', handleOpenAdminChatEvent);
+  window.addEventListener('admin-chat-state', handleAdminStateEvent);
   window.addEventListener('support-opened', handleSupportOpenedEvent);
 });
 
 onUnmounted(() => {
   window.removeEventListener('open-chatbot', handleOpenChatEvent);
+  window.removeEventListener('open-admin-chat', handleOpenAdminChatEvent);
+  window.removeEventListener('admin-chat-state', handleAdminStateEvent);
   window.removeEventListener('support-opened', handleSupportOpenedEvent);
 });
 
@@ -359,56 +395,30 @@ const handleSupportOpenedEvent = (e) => {
   background: linear-gradient(135deg, #1a2744 0%, #1e3a8a 60%, #2563eb 100%);
   padding: 15px 20px;
   color: white;
+  position: relative;
+}
+
+.mode-toggle-btn {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  color: white;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .header-info {
   display: flex;
   align-items: center;
   gap: 15px;
-}
-
-.chat-support-bar {
-  margin-top: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 12px 14px;
-}
-
-.support-agent {
-  display: flex;
-  flex-direction: column;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 13px;
-}
-
-.agent-label {
-  font-size: 11px;
-  opacity: 0.75;
-  margin-bottom: 2px;
-}
-
-.whatsapp-contact-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(24, 119, 74, 0.15);
-  color: #ffffff;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.whatsapp-contact-btn:hover {
-  transform: translateY(-1px);
-  background: rgba(37, 211, 102, 0.18);
-  border-color: rgba(37, 211, 102, 0.3);
 }
 
 .avatar-wrap {
