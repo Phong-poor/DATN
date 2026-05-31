@@ -23,6 +23,11 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\DiaChiController;
 use App\Http\Controllers\SanPhamDaXemController;
+use App\Http\Controllers\AffiliateController;
+use App\Http\Controllers\AdminAffiliateController;
+use App\Http\Controllers\AdminAccountController;
+use App\Http\Controllers\BannerController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -54,6 +59,10 @@ Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
+
+// Ảnh chat (phục vụ qua API, không phụ thuộc symlink storage/public)
+Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
+    ->where('filename', '[A-Za-z0-9._-]+');
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
@@ -103,10 +112,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== SẢN PHẨM ĐÃ XEM =====
     Route::post('/sanpham-daxem/{id}', [SanPhamDaXemController::class, 'logView']);
     Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
+
+    // ===== AFFILIATE =====
+    Route::get('/affiliate/me', [AffiliateController::class, 'me']);
+    Route::post('/affiliate/activate', [AffiliateController::class, 'activate']);
+    Route::get('/affiliate/referrals', [AffiliateController::class, 'referrals']);
+    Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
+    Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
+    Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
 });
 
-// Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
-// Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
+    // ===== CHAT (USER) =====
+    Route::get('/chat/me', [ChatController::class, 'getUserConversation']);
+    Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+    Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
+    Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
+});
 
 
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
@@ -183,8 +204,6 @@ Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
 Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
-// Route::post('/login', [AuthController::class, 'login']);
-// Route::post('/register', [AuthController::class, 'register']);
 
 // ================= TEST =================
 Route::get('/test', function () {
@@ -250,5 +269,28 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
         Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
+
+        // ===== AFFILIATE ADMIN =====
+        Route::get('/affiliates', [AdminAffiliateController::class, 'index']);
+        Route::put('/affiliate-commissions/{id}/status', [AdminAffiliateController::class, 'updateCommissionStatus']);
+        Route::put('/affiliate-withdraws/{id}/status', [AdminAffiliateController::class, 'updateWithdrawStatus']);
+
+        // ===== ADMIN ACCOUNT =====
+        Route::get('/account/profile', [AdminAccountController::class, 'profile']);
+        Route::put('/account/profile', [AdminAccountController::class, 'updateProfile']);
+        Route::get('/account/activity-log', [AdminAccountController::class, 'activityLog']);
+        Route::get('/account/active-admins', [AdminAccountController::class, 'activeAdmins']);
+        Route::get('/account/system-activity-logs', [AdminAccountController::class, 'systemActivityLogs']);
+        Route::get('/account/billing', [AdminAccountController::class, 'billing']);
+        Route::get('/account/settings', [AdminAccountController::class, 'settings']);
+        Route::put('/account/settings', [AdminAccountController::class, 'updateSettings']);
+
+        // ===== ADMIN CHAT =====
+        Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
+        Route::get('/chat/conversations/{id}/messages', [ChatController::class, 'getMessages']);
+        Route::delete('/chat/conversations', [ChatController::class, 'destroyConversations']);
+        Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+        Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
+        Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
 
 });
