@@ -88,6 +88,7 @@ const routes = [
       { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue'), meta: { title: 'Quản lý biến thể' } },
       { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue'), meta: { title: 'Quản lý danh mục' } },
       { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue'), meta: { title: 'Quản lý khuyến mãi' } },
+      { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/ComboManagement.vue'), meta: { title: 'Quản lý Combo' } },
       { path: 'banners', name: 'admin-banners', component: () => import('../components/Admin/Banners.vue'), meta: { title: 'Quản lý banner' } },
       { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue'), meta: { title: 'Quản lý liên hệ' } },
       { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue'), meta: { title: 'Quản lý thương hiệu' } },

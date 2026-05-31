@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { absoluteUrl, setSeo, truncateText } from '@/services/seo'
+import { storageUrl } from '@/services/urls'
 
 const route = useRoute()
 const post = ref(null)
@@ -15,7 +16,7 @@ const placeholderImage = 'https://via.placeholder.com/1200x650?text=Tin+tuc'
 const imageUrl = (path) => {
   if (!path) return placeholderImage
   if (path.startsWith('http')) return path
-  return `http://127.0.0.1:8000/storage/${path}`
+  return storageUrl(path)
 }
 
 const formatDate = (value) => {

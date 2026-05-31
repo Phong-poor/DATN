@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { absoluteUrl, setSeo } from '@/services/seo'
+import { storageUrl } from '@/services/urls'
 
 const posts = ref([])
 const popularPosts = ref([])
@@ -49,7 +50,7 @@ const applyListSeo = () => {
 const imageUrl = (path) => {
   if (!path) return placeholderImage
   if (path.startsWith('http')) return path
-  return `http://127.0.0.1:8000/storage/${path}`
+  return storageUrl(path)
 }
 
 const formatDate = (value) => {

@@ -158,7 +158,7 @@ class DatHangController extends Controller
             $diaChiGiaoHang = $diaChi->dia_chi_day_du;
         }
 
-        $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
+        $gioHangItems = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId)->get();
 
         if ($gioHangItems->isEmpty()) {
             return response()->json([
@@ -167,10 +167,79 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        // Tính tổng tiền gốc
+        // Nhóm các items theo combo_group_id để tính giá phân bổ cho combo
+        $groupedCombos = $gioHangItems->filter(fn($item) => $item->id_combo && $item->combo_group_id)
+            ->groupBy('combo_group_id');
+
+        $allocatedPrices = [];
+
+        // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
+        $cartVariantIds = $gioHangItems->pluck('id_bienthe')->toArray();
+        $freeComboOffers = DB::table('bienthe_combo_offers')
+            ->whereIn('id_bienthe', $cartVariantIds)
+            ->where('trangthai', 1)
+            ->get()
+            ->filter(function ($offer) {
+                return \App\Http\Controllers\ComboController::isOfferValid($offer);
+            })
+            ->keyBy('id_combo');
+
+        foreach ($groupedCombos as $groupId => $comboItems) {
+            if ($comboItems->isEmpty()) continue;
+            
+            $first = $comboItems->first();
+            $combo = $first->combo;
+            if (!$combo) continue;
+
+            // Xác định giá bán của combo (miễn phí nếu có biến thể kích hoạt ưu đãi, hoặc lấy giá gốc combo)
+            $totalComboPrice = (float) $combo->giakhuyenmai;
+            if (isset($freeComboOffers[$combo->id_combo])) {
+                $offer = $freeComboOffers[$combo->id_combo];
+                if ($offer->loai_uudai === 'free') {
+                    $totalComboPrice = 0.00;
+                } else {
+                    $totalComboPrice = (float) ($offer->giakhuyenmai_override ?? $combo->giakhuyenmai);
+                }
+            }
+            
+            // Tính tổng giá gốc của các biến thể được chọn trong combo
+            $sumOriginalPrice = 0;
+            foreach ($comboItems as $item) {
+                $sumOriginalPrice += $item->bienThe ? (float)$item->bienThe->gia : 0;
+            }
+
+            if ($sumOriginalPrice <= 0) continue;
+
+            // Phân bổ tỷ lệ giá
+            $tempSum = 0;
+            $itemsCount = $comboItems->count();
+            
+            foreach ($comboItems as $index => $item) {
+                if (!$item->bienThe) continue;
+                
+                $originalPrice = (float)$item->bienThe->gia;
+                
+                if ($index === $itemsCount - 1) {
+                    $allocatedPrice = $totalComboPrice - $tempSum;
+                } else {
+                    $allocatedPrice = $totalComboPrice > 0 
+                        ? round($originalPrice * ($totalComboPrice / $sumOriginalPrice))
+                        : 0.00;
+                    $tempSum += $allocatedPrice;
+                }
+                
+                $allocatedPrices[$item->id_giohang] = $allocatedPrice;
+            }
+        }
+
+        // Tính tổng tiền gốc (đã bao gồm giảm giá combo!)
         $tongTienGoc = 0;
         foreach ($gioHangItems as $item) {
-            $tongTienGoc += $item->soluong * $item->bienThe->gia;
+            $unitPrice = isset($allocatedPrices[$item->id_giohang])
+                ? $allocatedPrices[$item->id_giohang]
+                : ($item->bienThe?->gia ?? 0);
+            
+            $tongTienGoc += $item->soluong * $unitPrice;
         }
 
         $shippingFee = 30000;
@@ -297,11 +366,17 @@ class DatHangController extends Controller
             $donHang = DatHang::create($orderData);
 
             foreach ($gioHangItems as $item) {
+                $unitPrice = isset($allocatedPrices[$item->id_giohang])
+                    ? $allocatedPrices[$item->id_giohang]
+                    : ($item->bienThe?->gia ?? 0);
+
                 DatHangChiTiet::create([
                     'id_dathang' => $donHang->id_dathang,
                     'id_bienthe' => $item->id_bienthe,
                     'soluong'    => $item->soluong,
-                    'gia'        => $item->bienThe->gia,
+                    'gia'        => $unitPrice,
+                    'id_combo'   => $item->id_combo,
+                    'combo_group_id' => $item->combo_group_id,
                 ]);
             }
 
@@ -321,6 +396,23 @@ class DatHangController extends Controller
                         ->where('id_promotion', $freeshipPromotionId)
                         ->update(['trang_thai' => 1]);
                 }
+            }
+
+            // Increment the usage of applied combo offers
+            $appliedOfferIds = [];
+            foreach ($groupedCombos as $groupId => $comboItems) {
+                $first = $comboItems->first();
+                $combo = $first->combo;
+                if ($combo && isset($freeComboOffers[$combo->id_combo])) {
+                    $offer = $freeComboOffers[$combo->id_combo];
+                    $appliedOfferIds[] = $offer->id;
+                }
+            }
+
+            if (!empty($appliedOfferIds)) {
+                DB::table('bienthe_combo_offers')
+                    ->whereIn('id', $appliedOfferIds)
+                    ->increment('da_su_dung');
             }
 
             DB::commit();

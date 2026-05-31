@@ -190,6 +190,7 @@ import {
   Handshake,
   Mail,
   Activity,
+  Gift,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -230,6 +231,7 @@ const menuItems = [
   { path: '/admin/categories', label: 'Danh mục', icon: FolderTree },
   { path: '/admin/brands', label: 'Thương hiệu', icon: Tag },
   { path: '/admin/promotions', label: 'Khuyến mãi', icon: TicketPercent },
+  { path: '/admin/combos', label: 'Quản lý Combo', icon: Gift },
   { path: '/admin/banners', label: 'Banner', icon: Image },
   { path: '/admin/variants', label: 'Màu & biến thể', icon: Palette },
   { path: '/admin/users', label: 'User', icon: Users },
