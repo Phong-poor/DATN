@@ -220,6 +220,7 @@ const fetchOrders = async () => {
         if (order.trangthai === 'refund_delivering') statusKey = 'refund_delivering'
         if (order.trangthai === 'refund_received') statusKey = 'refund_received'
         if (order.trangthai === 'refunded') statusKey = 'refunded'
+        if (order.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
         if (order.trangthai === 'cancelled') statusKey = 'cancelled'
 
         return {
@@ -495,6 +496,12 @@ onMounted(() => {
           if (e.trangthai === 'confirmed') statusKey = 'confirmed'
           if (e.trangthai === 'shipping') statusKey = 'shipping'
           if (e.trangthai === 'done' || e.trangthai === 'completed') statusKey = 'done'
+          if (e.trangthai === 'refund_pending') statusKey = 'refund_pending'
+          if (e.trangthai === 'refund_pickup') statusKey = 'refund_pickup'
+          if (e.trangthai === 'refund_delivering') statusKey = 'refund_delivering'
+          if (e.trangthai === 'refund_received') statusKey = 'refund_received'
+          if (e.trangthai === 'refunded') statusKey = 'refunded'
+          if (e.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
           if (e.trangthai === 'cancelled') statusKey = 'cancelled'
           orders.value[index].status = statusKey
 
@@ -625,6 +632,7 @@ const statusMap = {
   refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
   refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
   refunded: { label: 'Đã hoàn tiền', color: '#8b5cf6', bg: '#ede9fe' },
+  refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
   cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
@@ -1193,9 +1201,10 @@ const promoStatusMap = {
                   class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
                 <button v-if="isRefundable(selectedOrder)"
                   class="btn-modal-hoantra" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
-                <button v-if="['done', 'cancelled', 'refunded'].includes(selectedOrder.status)"
+                <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
                   class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
               </div>
+              
               <div class="modal-total-wrap">
                 <span class="total-label">Tổng cộng</span>
                 <span class="total-value">{{ selectedOrder.total }}</span>
@@ -1519,11 +1528,13 @@ const promoStatusMap = {
           </div>
           
           <div class="category-tabs" style="margin-bottom: 20px;">
-            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'">
+            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'" style="position: relative;">
               Đơn mua hàng
+              <span class="badge-cart-like">{{ orders.filter(o => !o.status.startsWith('refund')).length }}</span>
             </button>
-            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]" @click="orderMode = 'hoantra'; orderTab = 'all'">
+            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]" @click="orderMode = 'hoantra'; orderTab = 'all'" style="position: relative;">
               Đơn hoàn trả
+              <span class="badge-cart-like">{{ orders.filter(o => o.status.startsWith('refund')).length }}</span>
             </button>
           </div>
 
@@ -1569,9 +1580,10 @@ const promoStatusMap = {
                     <div class="btn-group">
                       <button v-if="isRefundable(order)" class="btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
                       <button class="btn-xem" @click="selectedOrder = order">Xem</button>
-                      <button v-if="['done', 'cancelled', 'refunded'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
                       <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
                     </div>
+                    
                   </td>
                 </tr>
               </tbody>
@@ -1902,6 +1914,22 @@ const promoStatusMap = {
 .btn-mua-lai:hover { background: #059669; }
 .btn-huy-don { background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
 .btn-huy-don:hover { background: #ef4444; color: #fff; }
+
+.badge-cart-like {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  background-color: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  min-width: 20px;
+  text-align: center;
+}
 
 .pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; }
 .pagination-info { font-size: 13px; color: #64748b; margin: 0; }

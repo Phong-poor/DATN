@@ -69,6 +69,7 @@ const statusMap = {
     refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
     refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
     refunded: { label: 'Đã hoàn tiền', color: '#8b5cf6', bg: '#ede9fe' },
+    refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
@@ -220,8 +221,13 @@ const formatPrice = (val) => {
 }
 
 const filtered = computed(() => {
-    if (activeTab.value === 'all') return orders.value
-    return orders.value.filter(o => o.trangthai === activeTab.value)
+    if (pageMode.value === 'orders') {
+        if (activeTab.value === 'all') return orders.value.filter(o => !o.trangthai.startsWith('refund'))
+        return orders.value.filter(o => o.trangthai === activeTab.value)
+    } else {
+        if (activeTab.value === 'all_refund') return orders.value.filter(o => o.trangthai.startsWith('refund'))
+        return orders.value.filter(o => o.trangthai === activeTab.value)
+    }
 })
 
 const openDetail = (order) => { selectedOrder.value = order }
@@ -454,8 +460,11 @@ onUnmounted(() => {
                             <button v-if="isRefundable(selectedOrder)" 
                                 class="btn-refund w-100" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
 
-                            <button v-if="['done', 'cancelled', 'refunded'].includes(selectedOrder.trangthai)" 
+                            <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.trangthai)" 
                                 class="btn-reorder w-100" @click="handleReorder(selectedOrder)">Mua lại</button>
+                        </div>
+                        <div v-if="selectedOrder.trangthai === 'refund_rejected'" class="mt-2 w-100">
+                            <button class="btn-refund w-100" disabled style="opacity: 0.6; cursor: not-allowed; background: #e5e7eb; color: #9ca3af; border-color: #d1d5db; white-space: nowrap;">Bị từ chối</button>
                         </div>
                     </div>
                 </div>
@@ -471,10 +480,12 @@ onUnmounted(() => {
             <!-- Tabs Group -->
             <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
               <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 70px; font-size: 14px;">Mua:</div>
+                <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 100px; font-size: 14px;">
+                    Mua ({{ orders.filter(o => !o.trangthai.startsWith('refund')).length }}):
+                </div>
                 <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in (pageMode === 'orders' ? tabs_mua : [{key: 'all', label: 'Tất cả'}, ...tabs_hoantra])" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
-                        @click="activeTab = tab.key">
+                    <button v-for="tab in tabs_mua" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                        @click="activeTab = tab.key; pageMode = 'orders'">
                         {{ tab.label }}
                         <span class="tab-count" v-if="tab.key !== 'all'">
                             {{orders.filter(o => o.trangthai === tab.key).length}}
@@ -483,12 +494,14 @@ onUnmounted(() => {
                 </div>
             </div>
               <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 70px; font-size: 14px;">Hoàn trả:</div>
+                <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 100px; font-size: 14px;">
+                    Hoàn trả ({{ orders.filter(o => o.trangthai.startsWith('refund')).length }}):
+                </div>
                 <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in (pageMode === 'orders' ? tabs_mua : [{key: 'all', label: 'Tất cả'}, ...tabs_hoantra])" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
-                        @click="activeTab = tab.key">
+                    <button v-for="tab in [{key: 'all_refund', label: 'Tất cả'}, ...tabs_hoantra]" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
+                        @click="activeTab = tab.key; pageMode = 'refund'">
                         {{ tab.label }}
-                        <span class="tab-count" v-if="tab.key !== 'all'">
+                        <span class="tab-count" v-if="tab.key !== 'all_refund'">
                             {{orders.filter(o => o.trangthai === tab.key).length}}
                         </span>
                     </button>
@@ -544,11 +557,14 @@ onUnmounted(() => {
                             <button v-if="isRefundable(order)" 
                                 class="btn-refund" @click="openRefundModal(order)">Hoàn trả</button>
 
-                            <button v-if="['done', 'cancelled', 'refunded'].includes(order.trangthai)" 
+                            <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.trangthai)" 
                                 class="btn-reorder" @click="handleReorder(order)">Mua lại</button>
 
                             <button class="btn-detail" @click="openDetail(order)">Chi tiết</button>
                         </div>
+                    </div>
+                    <div v-if="order.trangthai === 'refund_rejected'" style="padding: 0 20px 20px 20px;">
+                        <button class="btn-refund w-100" disabled style="opacity: 0.6; cursor: not-allowed; background: #e5e7eb; color: #9ca3af; border-color: #d1d5db; white-space: nowrap;">Bị từ chối</button>
                     </div>
                 </div>
             </div>
