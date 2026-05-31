@@ -87,6 +87,7 @@ const statusMap = {
     'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
     'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
     'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#8b5cf6' },
+    'refund_rejected': { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
     'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
 
@@ -94,7 +95,7 @@ const getStatusLabel = (s) => statusMap[s]?.label || s
 const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
-const terminalStatuses = ['done', 'cancelled', 'refunded']
+const terminalStatuses = ['done', 'cancelled', 'refunded', 'refund_rejected']
 
 const getAllowedStatuses = (current) => {
     if (terminalStatuses.includes(current)) return [current]
@@ -185,7 +186,7 @@ const confirmApproveRefund = async (id) => {
 const confirmRejectRefund = async (id) => {
     const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái Hoàn thành?')
     if (isConfirmed) {
-        updateOrderStatus(id, 'done')
+        updateOrderStatus(id, 'refund_rejected')
     }
 }
 

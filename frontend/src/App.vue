@@ -5,6 +5,7 @@
 
   <SupportWidget v-if="showChatbot && widgetsReady" />
   <ChatbotWidget v-if="showChatbot && widgetsReady" />
+  <AdminChatWidget v-if="showChatbot && widgetsReady" />
   <GlobalLoader />
   <ZaloWidget v-if="showChatbot" />
 </template>
@@ -14,9 +15,12 @@ import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import GlobalLoader from '@/components/Layout/GlobalLoader.vue'
 import ChatbotWidget from '@/components/Web/ChatbotWidget.vue'
+import AdminChatWidget from '@/components/Web/AdminChatWidget.vue'
 import ZaloWidget from '@/components/Web/ZaloWidget.vue'
 
 const SupportWidget = defineAsyncComponent(() => import('@/components/Web/SupportWidget.vue'))
+
+
 const route = useRoute()
 const widgetsReady = ref(false)
 

@@ -506,6 +506,60 @@ class DatHangController extends Controller
         ]);
     }
 
+    public function refund(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::where('id_dathang', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        if ($order->trangthai !== 'done') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể yêu cầu hoàn trả khi đơn hàng đã hoàn thành.'
+            ], 400);
+        }
+
+        $request->validate([
+            'lydo' => 'required|string',
+            'proof' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $proofPath = null;
+            if ($request->hasFile('proof')) {
+                $file = $request->file('proof');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $proofPath = $file->storeAs('refund_proofs', $filename, 'public');
+            }
+
+            $order->update([
+                'trangthai' => 'refund_pending',
+                'lydo' => $request->lydo,
+                'refund_proof' => $proofPath
+            ]);
+
+            DB::commit();
+
+            // Broadcast the status update
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gửi yêu cầu hoàn trả thành công!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ===== ADMIN METHODS =====
 
     public function allOrders()
@@ -523,7 +577,7 @@ class DatHangController extends Controller
     public function updateStatus(Request $request, $id) 
     {
         $request->validate([
-            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
+            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded,refund_rejected'
         ]);
 
         $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
