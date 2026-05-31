@@ -76,6 +76,26 @@ class SanPhamController extends Controller
         return response()->json($sanphams);
     }
 
+    // Gộp 4 API làm 1 để tăng tốc độ load trên môi trường Windows
+    public function init(Request $request)
+    {
+        if ($request->has('q')) {
+            $sanphams = $this->search($request)->getData(true);
+        } else {
+            $sanphams = $this->index($request)->getData(true);
+        }
+        $danhmucs = app(\App\Http\Controllers\DanhMucController::class)->index()->getData(true);
+        $thuonghieus = app(\App\Http\Controllers\ThuongHieuController::class)->index()->getData(true);
+        $attributes = $this->attributeOptions()->getData(true);
+
+        return response()->json([
+            'products' => $sanphams,
+            'categories' => $danhmucs['data'] ?? $danhmucs,
+            'brands' => $thuonghieus['data'] ?? $thuonghieus,
+            'attributes' => $attributes
+        ]);
+    }
+
     // Trả về danh sách các giá trị thuộc tính có trong DB
     public function attributeOptions()
     {
@@ -146,7 +166,7 @@ class SanPhamController extends Controller
                 'danhMuc',
                 'thuongHieu',
                 'hinhAnhs',
-                'bienThes'
+                'bienThes.comboOffers.sanPhams.bienThes'
             ])->find($id);
 
             if (!$sanpham) return null;
@@ -207,6 +227,40 @@ class SanPhamController extends Controller
                     'gia'         => $bt->gia,
                     'soluong'     => $bt->soluong,
                     'thuoc_tinh'  => $thuocTinhJson,
+                    'combo_offers' => $bt->comboOffers->filter(function ($combo) {
+                        $offer = (object)[
+                            'id_combo' => $combo->id_combo,
+                            'trangthai' => $combo->pivot->trangthai,
+                            'gioi_han_soluong' => $combo->pivot->gioi_han_soluong,
+                            'da_su_dung' => $combo->pivot->da_su_dung,
+                            'ngay_het_han' => $combo->pivot->ngay_het_han
+                        ];
+                        return \App\Http\Controllers\ComboController::isOfferValid($offer);
+                    })->map(function ($combo) {
+                        return [
+                            'id_combo' => $combo->id_combo,
+                            'ten_combo' => $combo->ten_combo,
+                            'giakhuyenmai' => $combo->pivot->loai_uudai === 'free' ? 0.00 : ($combo->pivot->giakhuyenmai_override ?? $combo->giakhuyenmai),
+                            'mota_uudai' => $combo->pivot->mota_uudai,
+                            'loai_uudai' => $combo->pivot->loai_uudai,
+                            'hinhanh' => $combo->hinhanh ? asset('storage/' . $combo->hinhanh) : null,
+                            'products' => $combo->sanPhams->map(function ($p) {
+                                return [
+                                    'id_sanpham' => $p->id_sanpham,
+                                    'tenSP' => $p->tenSP,
+                                    'hinhanh' => $p->hinhanh ? asset('storage/' . $p->hinhanh) : null,
+                                    'bien_thes' => $p->bienThes->map(function ($v) {
+                                        return [
+                                            'id_bienthe' => $v->id_bienthe,
+                                            'ten_bienthe' => $v->ten_bienthe,
+                                            'gia' => $v->gia,
+                                            'soluong' => $v->soluong,
+                                        ];
+                                    })
+                                ];
+                            })
+                        ];
+                    })
                 ];
             })->values()
             ];

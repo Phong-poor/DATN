@@ -38,4 +38,11 @@ class BienThe extends Model
             'id_giatri'
         );
     }
+
+    public function comboOffers()
+    {
+        return $this->belongsToMany(Combo::class, 'bienthe_combo_offers', 'id_bienthe', 'id_combo')
+            ->withPivot(['loai_uudai', 'giakhuyenmai_override', 'mota_uudai', 'trangthai'])
+            ->wherePivot('trangthai', 1);
+    }
 }

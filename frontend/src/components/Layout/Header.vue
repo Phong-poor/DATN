@@ -93,14 +93,17 @@ const handleCartUpdated = () => { fetchCart() }
 const handleWishlistUpdated = () => { fetchWishlist() }
 
 onMounted(() => {
-  fetchCart()
-  fetchWishlist()
+  fetchUser()
+  if (!getToken()) {
+    cartCount.value = 0
+    cartItems.value = []
+    cartTotal.value = 0
+    wishlistItems.value = []
+  }
 
   window.addEventListener('cart-updated', handleCartUpdated)
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
   window.addEventListener('user-updated', fetchUser)
-
-  fetchUser()
 
   const warmProductsPage = () => {
     import('../Web/Producpage.vue')

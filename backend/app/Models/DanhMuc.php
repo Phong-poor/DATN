@@ -14,23 +14,15 @@ class DanhMuc extends Model
     [
         'ten_danhmuc',
         'trangthai',
-        'parent_id'
+        'id_danhmuc_cha'
     ];
 
     /**
      * Relationship: Danh mục cha
      */
-    public function parent()
+    public function danhMucCha()
     {
-        return $this->belongsTo(DanhMuc::class, 'parent_id', 'id_danhmuc');
-    }
-
-    /**
-     * Relationship: Danh mục con
-     */
-    public function children()
-    {
-        return $this->hasMany(DanhMuc::class, 'parent_id', 'id_danhmuc');
+        return $this->belongsTo(DanhMucCha::class, 'id_danhmuc_cha', 'id_danhmuc_cha');
     }
 
     /**
@@ -45,8 +37,8 @@ class DanhMuc extends Model
             ->toArray();
 
         $idsFromParent = [];
-        if ($this->parent_id) {
-            $idsFromParent = $this->parent->getInheritedAttributeIds();
+        if ($this->id_danhmuc_cha) {
+            $idsFromParent = $this->danhMucCha->getInheritedAttributeIds();
         }
 
         return array_merge($idsFromSelf, $idsFromParent);

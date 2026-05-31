@@ -14,6 +14,8 @@ class GioHang extends Model
         'user_id',
         'id_bienthe',
         'soluong',
+        'id_combo',
+        'combo_group_id',
     ];
 
     // Quan hệ với biến thể
@@ -26,5 +28,11 @@ class GioHang extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    // Quan hệ với combo
+    public function combo()
+    {
+        return $this->belongsTo(Combo::class, 'id_combo', 'id_combo');
     }
 }
