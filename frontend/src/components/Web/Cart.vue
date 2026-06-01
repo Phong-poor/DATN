@@ -15,7 +15,30 @@ const freeshipCoupon = ref('')
 const freeshipDiscount = ref(0)
 const appliedFreeshipPromo = ref(null)
 
-const MIN_ORDER_FOR_FREESHIP = 30000000 // Đơn hàng tối thiểu để dùng freeship (30 triệu)
+// Lấy điều kiện tối thiểu từ promotion freeship được chọn (dạng computed)
+const freeshipMinOrder = computed(() => {
+    // Nếu đang áp mã freeship thì lấy dieu_kien của mã đó
+    if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
+        return appliedFreeshipPromo.value.dieu_kien
+    }
+    // Nếu đang chọn mã từ select (chưa apply) thì lấy dieu_kien của mã đó
+    if (freeshipCoupon.value) {
+        const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
+        if (p && p.dieu_kien > 0) return p.dieu_kien
+    }
+    // Nếu chưa chọn mã nào, lấy dieu_kien nhỏ nhất trong danh sách freeship
+    const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
+    if (withCondition.length > 0) {
+        return Math.min(...withCondition.map(p => p.dieu_kien))
+    }
+    return 0 // Không có điều kiện = miễn phí ship tất cả đơn
+})
+
+// Lấy điều kiện riêng cho từng mã freeship (dùng khi chọn mã cụ thể)
+const getFreeshipMinOrder = (promo) => {
+    if (!promo) return 0
+    return promo.dieu_kien > 0 ? promo.dieu_kien : 0
+}
 
 const shippingFee = ref(30000)
 
@@ -118,6 +141,7 @@ const deleteCombo = async (group) => {
     try {
         await api.delete(`/gio-hang/xoa-combo/${group.combo_group_id}`)
         hienThiThongBao('success', 'Đã xóa combo khỏi giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi khi xóa combo!')
         fetchGioHang()
@@ -132,6 +156,14 @@ const capNhatSoLuong = async (item, delta) => {
         return
     }
 
+    // Cập nhật state gốc trong cart.value để kích hoạt tính toán lại subtotal/total
+    const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
+    if (originalItem) {
+        originalItem.soluong = soLuongMoi
+        originalItem.thanh_tien = originalItem.gia * soLuongMoi
+    }
+    
+    // Cập nhật bản sao (item) để fallback
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
@@ -160,6 +192,7 @@ const xoaSanPham = async (idGioHang) => {
     try {
         await api.delete(`/gio-hang/xoa/${item.id_giohang}`)
         hienThiThongBao('success', 'Đã xóa sản phẩm khỏi giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi xóa sản phẩm!')
         fetchGioHang()
@@ -179,6 +212,7 @@ const xoaTatCa = async () => {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
         hienThiThongBao('success', 'Đã xóa toàn bộ giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi xóa giỏ hàng!')
     }
@@ -211,8 +245,9 @@ const tinhDiscount = (promo) => {
 
 const tinhFreeshipDiscount = (promo) => {
     if (!promo) { freeshipDiscount.value = 0; return }
+    const minOrder = getFreeshipMinOrder(promo)
     // Kiểm tra lại điều kiện khi tính lại (ví dụ sau khi xóa sản phẩm)
-    if (subtotal.value < MIN_ORDER_FOR_FREESHIP) {
+    if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
         freeshipCoupon.value = ''
@@ -237,8 +272,23 @@ const validPromosList = computed(() => {
     })
 })
 
-const discountPromosList = computed(() => validPromosList.value.filter(p => p.category === 'product'))
-const freeshipPromosList = computed(() => validPromosList.value.filter(p => p.category === 'freeship'))
+const discountPromosList = computed(() => validPromosList.value.filter(p => {
+    if (p.category !== 'product') return false
+    if (p.dieu_kien > 0) {
+        const dk = Number(p.dieu_kien)
+        if (p.loai_dieu_kien === '>=' && subtotal.value < dk) return false
+        if (p.loai_dieu_kien === '>' && subtotal.value <= dk) return false
+        if (p.loai_dieu_kien === '=' && subtotal.value !== dk) return false
+    }
+    return true
+}))
+
+const freeshipPromosList = computed(() => validPromosList.value.filter(p => {
+    if (p.category !== 'freeship') return false
+    const minOrder = p.dieu_kien > 0 ? p.dieu_kien : 0
+    if (minOrder > 0 && subtotal.value < minOrder) return false
+    return true
+}))
 
 const apDungMaTuSelect = () => {
     if (!coupon.value) {
@@ -260,18 +310,18 @@ const apDungFreeshipTuSelect = () => {
         hienThiThongBao('success', 'Đã hủy mã freeship.')
         return
     }
-    // Kiểm tra điều kiện đơn hàng tối thiểu
-    if (subtotal.value < MIN_ORDER_FOR_FREESHIP) {
+    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
+    if (!promo) return
+    const minOrder = getFreeshipMinOrder(promo)
+    // Kiểm tra điều kiện đơn hàng tối thiểu của mã này
+    if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipCoupon.value = ''
-        hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(MIN_ORDER_FOR_FREESHIP)} để dùng mã miễn phí vận chuyển!`)
+        hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(minOrder)} để dùng mã miễn phí vận chuyển này!`)
         return
     }
-    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
-    if (promo) {
-        appliedFreeshipPromo.value = promo
-        tinhFreeshipDiscount(promo)
-        hienThiThongBao('success', `Đã chọn mã freeship ${promo.code}`)
-    }
+    appliedFreeshipPromo.value = promo
+    tinhFreeshipDiscount(promo)
+    hienThiThongBao('success', `Đã chọn mã freeship ${promo.code}`)
 }
 
 const autoApplyPromo = () => {
@@ -315,32 +365,32 @@ const autoApplyPromo = () => {
         }
     }
 
-    // 2. FREESHIP DISCOUNT (chỉ áp dụng nếu đơn hàng >= MIN_ORDER_FOR_FREESHIP)
-    if (sub >= MIN_ORDER_FOR_FREESHIP) {
-        let bestF = null
-        let maxDF = 0
-        freeshipPromosList.value.forEach(p => {
-            let d = shippingFee.value
-            if (d > maxDF) {
-                maxDF = d
-                bestF = p
-            }
-        })
+    // 2. FREESHIP DISCOUNT (áp dụng dựa trên dieu_kien của từng mã)
+    let bestF = null
+    let maxDF = 0
+    freeshipPromosList.value.forEach(p => {
+        const minOrder = getFreeshipMinOrder(p)
+        if (minOrder > 0 && sub < minOrder) return // Chưa đủ điều kiện
+        let d = shippingFee.value
+        if (d > maxDF) {
+            maxDF = d
+            bestF = p
+        }
+    })
 
-        if (bestF) {
-            let currentDF = appliedFreeshipPromo.value ? shippingFee.value : 0
-            if (appliedFreeshipPromo.value) {
-               if (appliedFreeshipPromo.value.code !== bestF.code && maxDF > currentDF) {
-                   appliedFreeshipPromo.value = bestF
-                   tinhFreeshipDiscount(bestF)
-                   freeshipCoupon.value = bestF.code
-                   hienThiThongBao('success', ` Tự động chọn mã freeship tốt nhất!`)
-               }
-            } else if (freeshipCoupon.value === '') {
-                appliedFreeshipPromo.value = bestF
-                tinhFreeshipDiscount(bestF)
-                freeshipCoupon.value = bestF.code
-            }
+    if (bestF) {
+        let currentDF = appliedFreeshipPromo.value ? shippingFee.value : 0
+        if (appliedFreeshipPromo.value) {
+           if (appliedFreeshipPromo.value.code !== bestF.code && maxDF > currentDF) {
+               appliedFreeshipPromo.value = bestF
+               tinhFreeshipDiscount(bestF)
+               freeshipCoupon.value = bestF.code
+               hienThiThongBao('success', ` Tự động chọn mã freeship tốt nhất!`)
+           }
+        } else if (freeshipCoupon.value === '') {
+            appliedFreeshipPromo.value = bestF
+            tinhFreeshipDiscount(bestF)
+            freeshipCoupon.value = bestF.code
         }
     }
 
@@ -526,23 +576,26 @@ onMounted(() => {
 
                 <!-- CHỌN MÃ FREESHIP -->
                 <div class="promo-select-box" style="margin-top:0">
-                    <div v-if="freeshipPromosList.length > 0" class="freeship-condition-hint" :class="{ 'condition-met': subtotal >= MIN_ORDER_FOR_FREESHIP }">
-                        <span v-if="subtotal < MIN_ORDER_FOR_FREESHIP">
-                            🚚 Mua thêm <b>{{ formatPrice(MIN_ORDER_FOR_FREESHIP - subtotal) }}</b> để dùng mã miễn phí ship
+                    <!-- <div v-if="freeshipPromosList.length > 0" class="freeship-condition-hint" :class="{ 'condition-met': freeshipMinOrder === 0 || subtotal >= freeshipMinOrder }">
+                        <span v-if="freeshipMinOrder > 0 && subtotal < freeshipMinOrder">
+                            🚚 Mua thêm <b>{{ formatPrice(freeshipMinOrder - subtotal) }}</b> để dùng mã miễn phí ship
                         </span>
-                        <span v-else>
+                        <span v-else-if="freeshipMinOrder > 0">
                             ✅ Đủ điều kiện dùng mã miễn phí vận chuyển!
                         </span>
-                    </div>
+                        <span v-else>
+                            🚚 Áp dụng mã miễn phí vận chuyển ngay!
+                        </span>
+                    </div> -->
                     <select
                         v-model="freeshipCoupon"
                         @change="apDungFreeshipTuSelect"
                         class="promo-select freeship-select"
-                        :disabled="subtotal < MIN_ORDER_FOR_FREESHIP"
                     >
                         <option value="">không dùng mã vận chuyển</option>
-                        <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code">
-                            {{ p.name }} - Giảm 100%
+                        <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code"
+                            :disabled="p.dieu_kien > 0 && subtotal < p.dieu_kien">
+                            {{ p.name }} - Miễn phí ship{{ p.dieu_kien > 0 ? ` (đơn từ ${formatPrice(p.dieu_kien)})` : '' }}
                         </option>
                     </select>
                 </div>

@@ -20,6 +20,7 @@ class Promotion extends Model
         'code',
         'type',
         'value',
+        'start_date',
         'end_date',
         'status',
         'mota',
