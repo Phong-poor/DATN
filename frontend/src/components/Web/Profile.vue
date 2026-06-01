@@ -266,6 +266,7 @@ const fetchOrders = async () => {
             return {
               id_bienthe: item.id_bienthe,
               is_reviewed: item.is_reviewed,
+              is_refund: item.is_refund,
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
@@ -332,18 +333,18 @@ const orderToRefund = ref(null)
 const refundReason = ref('')
 const refundProof = ref(null)
 const refundProofUrl = ref(null)
+const refundSelectedItems = ref([])
 
 const handleProofUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-        refundProof.value = file
-        if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-        refundProofUrl.value = URL.createObjectURL(file)
-    } else {
-        refundProof.value = null
-        if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-        refundProofUrl.value = null
-    }
+  const file = e.target.files[0]
+  if (!file) return
+  if (file.size > 20 * 1024 * 1024) {
+    showToast('Kích thước file không được vượt quá 20MB')
+    return
+  }
+  refundProof.value = file
+  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+  refundProofUrl.value = URL.createObjectURL(file)
 }
 
 const openRefundModal = (order) => {
@@ -352,10 +353,15 @@ const openRefundModal = (order) => {
     refundProof.value = null
     if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
     refundProofUrl.value = null
+    refundSelectedItems.value = []
     showRefundModal.value = true
 }
 
 const confirmRefund = async () => {
+    if (refundSelectedItems.value.length === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
+        return
+    }
     if (!refundReason.value.trim()) {
         showToast('Vui lòng nhập lý do hoàn trả.')
         return
@@ -370,6 +376,9 @@ const confirmRefund = async () => {
         const formData = new FormData()
         formData.append('lydo', refundReason.value)
         formData.append('proof', refundProof.value)
+        refundSelectedItems.value.forEach(id => {
+            formData.append('item_ids[]', id)
+        })
 
         const res = await api.post(`/orders/${orderToRefund.value.id_dathang}/refund`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -1152,7 +1161,7 @@ const promoStatusMap = {
               </div>
             </div>
 
-            <div class="timeline" v-if="selectedOrder.steps">
+            <div class="timeline" v-if="selectedOrder.steps && !selectedOrder.status.startsWith('refund')">
               <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                 <div class="tl-col">
                   <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -1182,10 +1191,13 @@ const promoStatusMap = {
             </div>
 
             <h3 class="section-title">Sản phẩm</h3>
-            <div class="modal-item" v-for="item in selectedOrder.items" :key="item.id_bienthe">
+            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.is_refund == 1)" :key="item.id_bienthe">
               <img :src="item.img" :alt="item.name" />
               <div class="modal-item-info">
-                <p class="modal-item-name">{{ item.name }}</p>
+                <p class="modal-item-name">
+                  {{ item.name }}
+                  <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                </p>
                 <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
               </div>
               <div class="modal-item-right" style="text-align: right;">
@@ -1250,6 +1262,23 @@ const promoStatusMap = {
             </button>
           </div>
           <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
+                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
+                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
+                            <div class="d-flex align-items-center gap-2">
+                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                <div>
+                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
+                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
+                                </div>
+                            </div>
+                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
+                        </label>
+                    </div>
+                </div>
+            </div>
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
             <textarea v-model="refundReason" class="form-control cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
             
@@ -1578,10 +1607,10 @@ const promoStatusMap = {
                   </td>
                   <td>
                     <div class="btn-group">
-                      <button v-if="isRefundable(order)" class="btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
                       <button class="btn-xem" @click="selectedOrder = order">Xem</button>
                       <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
                       <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
+                      <button v-if="isRefundable(order)" class="btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
                     </div>
                     
                   </td>

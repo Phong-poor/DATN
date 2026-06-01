@@ -523,6 +523,8 @@ class DatHangController extends Controller
         $request->validate([
             'lydo' => 'required|string',
             'proof' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer',
         ]);
 
         try {
@@ -540,6 +542,11 @@ class DatHangController extends Controller
                 'lydo' => $request->lydo,
                 'refund_proof' => $proofPath
             ]);
+
+            // Cập nhật các sản phẩm được chọn hoàn trả
+            \App\Models\DatHangChiTiet::where('id_dathang', $id)
+                ->whereIn('id_bienthe', $request->item_ids)
+                ->update(['is_refund' => 1]);
 
             DB::commit();
 

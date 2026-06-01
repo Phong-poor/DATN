@@ -729,7 +729,10 @@ function exportExcel() {
                                 <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
                                     <img :src="getOrderItemImage(item)" class="item-img" />
                                     <div class="item-info">
-                                        <p class="item-name">{{ getOrderItemName(item) }}</p>
+                                        <p class="item-name">
+                                            {{ getOrderItemName(item) }}
+                                            <span v-if="item.is_refund == 1" style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã chọn hoàn trả</span>
+                                        </p>
                                         <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
                                     <div class="item-price-qty">
