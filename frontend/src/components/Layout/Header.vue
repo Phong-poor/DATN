@@ -44,7 +44,21 @@ const fetchCart = async () => {
     const res = await api.get('/gio-hang', { skipGlobalLoader: true })
     if (res.data?.success) {
       cartItems.value = res.data.gio_hang || []
-      cartCount.value = cartItems.value.reduce((acc, item) => acc + item.soluong, 0)
+      
+      const comboGroups = new Set()
+      let count = 0
+      cartItems.value.forEach(item => {
+        if (item.id_combo && item.combo_group_id) {
+            if (!comboGroups.has(item.combo_group_id)) {
+                comboGroups.add(item.combo_group_id)
+                count++
+            }
+        } else {
+            count++
+        }
+      })
+      cartCount.value = count
+      
       cartTotal.value = res.data.tong_tien || 0
     }
   } catch {

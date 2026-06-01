@@ -68,6 +68,9 @@
             <h2 class="card__code">{{ promo.code }}</h2>
 
             <p class="card__desc">
+              <template v-if="promo.category === 'freeship' && promo.dieu_kien > 0">
+                🛒 Đơn tối thiểu {{ formatPrice(promo.dieu_kien) }}<br/>
+              </template>
               {{ promo.mota || 'Không có mô tả' }}
             </p>
 

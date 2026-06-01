@@ -123,8 +123,8 @@
             <td>
               <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount }}</span>
             </td>
-            <td class="date-cell">{{ p.startDate }}</td>
-            <td class="date-cell">{{ p.endDate }}</td>
+            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.startDate || '—') }}</td>
+            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.endDate || '—') }}</td>
             <td>
               <span :class="['status-badge', statusClass(p.status)]">
                 {{ statusLabel(p.status) }}
@@ -261,9 +261,9 @@
                 </div>
               </div>
 
-              <!-- ĐIỀU KIỆN ĐƠN HÀNG: chỉ hiện với category = product -->
-              <div class="form-row condition-row" v-if="form.category === 'product'">
-                <div class="form-group">
+              <!-- ĐIỀU KIỆN ĐƠN HÀNG: hiện với category = product hoặc freeship -->
+              <div class="form-row condition-row" :class="{ 'freeship-row': form.category === 'freeship' }" v-if="form.category === 'product' || form.category === 'freeship'">
+                <div class="form-group" v-if="form.category === 'product'">
                   <label class="form-label">
                     <span class="condition-badge">🎯 Điều kiện đơn hàng</span>
                   </label>
@@ -273,40 +273,51 @@
                     <option value="=">＝ Tạm tính bằng đúng</option>
                   </select>
                 </div>
+                <div class="form-group" v-if="form.category === 'freeship'">
+                  <label class="form-label">
+                    <span class="condition-badge freeship-badge">🚚 Điều kiện miễn phí ship</span>
+                  </label>
+                  <p class="form-hint" style="margin-bottom:4px">Khách hàng phải đạt tạm tính tối thiểu mới dùng được mã freeship này.</p>
+                </div>
                 <div class="form-group">
-                  <label class="form-label">Giá trị điều kiện (VNĐ)</label>
+                  <label class="form-label">
+                    {{ form.category === 'freeship' ? 'Đơn hàng tối thiểu (VNĐ)' : 'Giá trị điều kiện (VNĐ)' }}
+                  </label>
                   <div class="input-suffix-wrap">
                     <input
                       class="form-input condition-input"
-                      :class="{ err: errors.dieu_kien }"
+                      :class="{ err: errors.dieu_kien, 'freeship-input': form.category === 'freeship' }"
                       v-model.number="form.dieu_kien"
                       type="number" min="0"
-                      placeholder="VD: 500000"
+                      :placeholder="form.category === 'freeship' ? 'VD: 30000000' : 'VD: 500000'"
                     />
                     <span class="input-suffix">đ</span>
                   </div>
                   <p class="err-msg" v-if="errors.dieu_kien">{{ errors.dieu_kien }}</p>
-                  <p class="form-hint">Để trống nếu không cần điều kiện tạm tính.</p>
+                  <p class="form-hint">
+                    {{ form.category === 'freeship'
+                      ? 'Để trống = freeship cho mọi đơn hàng. Nhập số để giới hạn điều kiện tối thiểu.'
+                      : 'Để trống nếu không cần điều kiện tạm tính.' }}
+                  </p>
                 </div>
               </div>
 
+              <!-- Ngày bắt đầu & Ngày kết thúc: chỉ hiện cho freeship/product, birthday luôn mở -->
+              <div class="form-row" v-if="form.category !== 'birthday'">
                 <div class="form-group">
-                <label class="form-label">Trạng thái</label>
-                <div class="toggle-group">
-                  <button v-for="s in statusOptions" :key="s.value"
-                    class="toggle-btn"
-                    :class="{ 'toggle-active': form.status === s.value }"
-                    :style="form.status === s.value ? { borderColor: s.color, background: s.bg, color: s.color } : {}"
-                    @click="form.status = s.value; if(s.value === 'open') form.endDate = ''">
-                    <span class="toggle-dot" :style="form.status === s.value ? { background: s.color } : {}"></span>
-                    {{ s.label }}
-                  </button>
+                  <label class="form-label">Ngày bắt đầu</label>
+                  <input class="form-input" type="date" v-model="form.startDate"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ngày kết thúc</label>
+                  <input class="form-input" type="date" v-model="form.endDate"/>
                 </div>
               </div>
-
-              <div class="form-group" v-if="form.status !== 'open'">
-                <label class="form-label">Ngày kết thúc</label>
-                <input class="form-input" type="date" v-model="form.endDate"/>
+              <div class="form-group" v-if="form.category === 'birthday'">
+                <div class="birthday-status-info">
+                  <span class="birthday-icon">🎂</span>
+                  <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
+                </div>
               </div>
 
 
@@ -389,7 +400,7 @@ const iconOptions = [
 
 const defaultForm = () => ({
   name: '', category: 'product', code: '', type: 'percent', value: '',
-  endDate: '', status: 'running',
+  startDate: '', endDate: '', status: 'running',
   mota: '', icon: '🏮', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
 })
@@ -498,9 +509,15 @@ function onCategoryChange() {
   if (form.value.category === 'freeship') {
      form.value.type = 'percent'
      form.value.value = 100
+     form.value.status = 'running'
   } else if (form.value.category === 'birthday') {
      form.value.type = 'fixed'
      form.value.code = 'BIRTHDAY'
+     form.value.status = 'open'
+     form.value.startDate = ''
+     form.value.endDate = ''
+  } else {
+     form.value.status = 'running'
   }
 }
 
@@ -564,6 +581,7 @@ function openEdit(p) {
   form.value = {
     ...p,
     category: p.category || 'product',
+    startDate: toInputDate(p.startDate),
     endDate: toInputDate(p.endDate),
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
@@ -581,17 +599,20 @@ async function savePromo() {
 
   saving.value = true
 
+  // Birthday luôn mở, freeship/product dùng ngày
+  const isBirthday = form.value.category === 'birthday'
   const data = {
     name:           form.value.name,
     category:       form.value.category,
     code:           form.value.code.toUpperCase(),
     type:           form.value.type,
     value:          form.value.value,
-    end_date:       form.value.endDate || null,
-    status:         form.value.status,
+    start_date:     isBirthday ? null : (form.value.startDate || null),
+    end_date:       isBirthday ? null : (form.value.endDate || null),
+    status:         isBirthday ? 'open' : 'running',
     mota:           form.value.mota,
     loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
-    dieu_kien:      form.value.category === 'product' ? (form.value.dieu_kien || null) : null,
+    dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
   }
 
   try {
@@ -830,10 +851,14 @@ select.form-input { cursor: pointer; }
 
 /* CONDITION ROW */
 .condition-row { margin-top: 2px; background: #f5f3ff; border: 1.5px dashed #a5b4fc; border-radius: 12px; padding: 12px 14px; grid-template-columns: 1.3fr 1fr; }
+.condition-row.freeship-row { background: #f0fdf4; border-color: #86efac; }
 .condition-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #4f46e5; background: #ede9fe; padding: 3px 10px; border-radius: 20px; }
+.freeship-badge { color: #047857; background: #d1fae5; }
 .condition-select option { font-size: 12.5px; }
 .condition-input { border-color: #c4b5fd !important; }
 .condition-input:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important; }
+.condition-input.freeship-input { border-color: #6ee7b7 !important; }
+.condition-input.freeship-input:focus { border-color: #059669 !important; box-shadow: 0 0 0 3px rgba(5,150,105,0.12) !important; }
 .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
@@ -854,4 +879,7 @@ select.form-input { cursor: pointer; }
 .slide-up-leave-active { transition: all 0.2s ease; }
 .slide-up-enter-from { opacity: 0; transform: translateY(28px) scale(0.97); }
 .slide-up-leave-to { opacity: 0; transform: translateY(8px) scale(0.98); }
+.birthday-status-info { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1.5px solid #f59e0b; border-radius: 12px; font-size: 13px; color: #92400e; }
+.birthday-icon { font-size: 22px; flex-shrink: 0; }
+.birthday-status-info strong { color: #b45309; }
 </style>

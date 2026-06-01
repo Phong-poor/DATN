@@ -30,10 +30,10 @@ use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
-use App\Http\Controllers\AffiliateController;
-use App\Http\Controllers\AdminAffiliateController;
-use App\Http\Controllers\AdminAccountController;
-use App\Http\Controllers\BannerController;
+// use App\Http\Controllers\AffiliateController;
+// use App\Http\Controllers\AdminAffiliateController;
+// use App\Http\Controllers\AdminAccountController;
+// use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -129,7 +129,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
-});
 
     // ===== CHAT (USER) =====
     Route::get('/chat/me', [ChatController::class, 'getUserConversation']);

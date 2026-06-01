@@ -119,12 +119,13 @@ class PromotionController extends Controller
 
         $subtotal = $request->subtotal;
 
-        // Kiểm tra điều kiện đơn hàng tối thiểu
+        // Kiểm tra điều kiện đơn hàng tối thiểu (cho cả product và freeship)
         if ($promo->dieu_kien && $promo->dieu_kien > 0) {
             if ($subtotal < $promo->dieu_kien) {
+                $type = $promo->category === 'freeship' ? 'miễn phí vận chuyển' : 'này';
                 return response()->json([
                     'success' => false,
-                    'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã này.'
+                    'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã ' . $type . '.'
                 ], 422);
             }
         }
@@ -132,7 +133,10 @@ class PromotionController extends Controller
         // Tính số tiền giảm
         $discount = 0;
 
-        if ($promo->type === 'percent') {
+        if ($promo->category === 'freeship') {
+            // Freeship: không giảm giá sản phẩm, giảm phí vận chuyển (frontend tự xử lý)
+            $message = "Áp dụng mã {$promo->code} – Miễn phí vận chuyển!";
+        } elseif ($promo->type === 'percent') {
             $discount = round($subtotal * $promo->value / 100);
             $message  = "Áp dụng mã {$promo->code} – giảm {$promo->value}%!";
         } elseif ($promo->type === 'fixed') {
@@ -159,6 +163,8 @@ class PromotionController extends Controller
             'code'           => 'required|string|max:50|unique:promotions,code',
             'type'           => 'required|in:percent,fixed,maxprice',
             'value'          => 'required|numeric|min:0',
+            'start_date'     => 'nullable|date',
+            'end_date'       => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien'      => 'nullable|numeric|min:0',
         ]);
@@ -169,11 +175,12 @@ class PromotionController extends Controller
             'code'           => strtoupper($request->code),
             'type'           => $request->type,
             'value'          => $request->value,
+            'start_date'     => $request->start_date,
             'end_date'       => $request->end_date,
             'status'         => $request->status ?? 'open',
             'mota'           => $request->mota,
-            'loai_dieu_kien' => $request->loai_dieu_kien,
-            'dieu_kien'      => $request->dieu_kien,
+            'loai_dieu_kien' => $request->category === 'product' ? $request->loai_dieu_kien : null,
+            'dieu_kien'      => in_array($request->category, ['product', 'freeship']) ? $request->dieu_kien : null,
         ]);
 
         return response()->json([
@@ -194,6 +201,8 @@ class PromotionController extends Controller
             'code'           => 'required|string|max:50|unique:promotions,code,' . $id,
             'type'           => 'required|in:percent,fixed,maxprice',
             'value'          => 'required|numeric|min:0',
+            'start_date'     => 'nullable|date',
+            'end_date'       => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien'      => 'nullable|numeric|min:0',
         ]);
@@ -204,11 +213,12 @@ class PromotionController extends Controller
             'code'           => strtoupper($request->code),
             'type'           => $request->type,
             'value'          => $request->value,
+            'start_date'     => $request->start_date,
             'end_date'       => $request->end_date,
             'status'         => $request->status ?? $promo->status,
             'mota'           => $request->mota,
-            'loai_dieu_kien' => $request->loai_dieu_kien,
-            'dieu_kien'      => $request->dieu_kien,
+            'loai_dieu_kien' => $request->category === 'product' ? $request->loai_dieu_kien : null,
+            'dieu_kien'      => in_array($request->category, ['product', 'freeship']) ? $request->dieu_kien : null,
         ]);
 
         return response()->json([
@@ -221,18 +231,30 @@ class PromotionController extends Controller
     // DELETE /api/admin/promotions/{id}
     public function destroy($id)
     {
-        // 1. Xóa tất cả các voucher liên kết của người dùng để tránh lỗi khóa ngoại
-        UserVoucher::where('id_promotion', $id)->delete();
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
 
-        // 2. Set null trường promotion_id của các đơn đặt hàng liên kết
-        DatHang::where('promotion_id', $id)->update(['promotion_id' => null]);
+            // 1. Xóa các bản ghi liên quan trong bảng users_voucher trước để tránh lỗi khóa ngoại
+            UserVoucher::where('id_promotion', $id)->delete();
 
-        // 3. Tiến hành xóa khuyến mãi
-        Promotion::destroy($id);
+            // 2. Cập nhật các đơn hàng sử dụng mã này thành null để tránh lỗi khóa ngoại mà vẫn giữ được đơn hàng
+            \App\Models\DatHang::where('promotion_id', $id)->update(['promotion_id' => null]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Xóa khuyến mãi thành công!'
-        ]);
+            // 3. Xóa khuyến mãi
+            Promotion::destroy($id);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa khuyến mãi thành công!'
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi xóa khuyến mãi: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
