@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
 // 1. Live player/user counter simulator (WOW factor for tech sites)
@@ -59,11 +59,11 @@ onUnmounted(() => {
         <!-- COLUMN 1: BRAND HUB & LIVE STATUS -->
         <div class="dir-col brand-hub">
           <div class="footer-brand">
-            <img src="/netgen_logo.png" alt="NetGen Logo" class="footer-logo" />
+            <img src="/predator_logo.svg" alt="Predator Logo" class="footer-logo" />
             <span class="cyber-badge-glow">TECH</span>
           </div>
           <p class="brand-slogan">
-            Đại lộ công nghệ tối tân. Chúng tôi cung cấp những cỗ máy chiến đấu mạnh mẽ bậc nhất thế giới, định nghĩa lại giới hạn phần cứng số 2026.
+            Đại lý công nghệ tiên phong. Chúng tôi cung cấp những cỗ máy hiệu năng mạnh mẽ, tối ưu cho gaming, sáng tạo nội dung và làm việc chuyên nghiệp.
           </p>
           
           <!-- Live server dashboard widget -->
@@ -73,7 +73,7 @@ onUnmounted(() => {
               <span class="live-label">CORE SERVER: <span class="green-text">ONLINE</span></span>
             </div>
             <div class="widget-details">
-              <span class="stat-item">Gamers trực tuyến: <strong>{{ liveUserCount }}</strong></span>
+              <span class="stat-item">Gamers tr?c tuy?n: <strong>{{ liveUserCount }}</strong></span>
               <span class="stat-divider">|</span>
               <span class="stat-item">Ping: <strong class="cyan-text">14ms</strong></span>
             </div>
@@ -99,9 +99,9 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- COLUMN 2: CỬA HÀNG CÔNG NGHỆ -->
+        <!-- COLUMN 2: C?A H�NG C�NG NGH? -->
         <div class="dir-col">
-          <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
+          <h4 class="col-title">C?a H?ng C?ng Ngh?</h4>
           <ul class="footer-links">
             <li><router-link to="/products?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
             <li><router-link to="/products?category=macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
@@ -111,11 +111,11 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 3: HỆ SINH THÁI VINATECH -->
+        <!-- COLUMN 3: H? SINH TH�I VINATECH -->
         <div class="dir-col">
-          <h4 class="col-title">Hệ Sinh Thái</h4>
+          <h4 class="col-title">H? Sinh Th?i</h4>
           <ul class="footer-links">
-            <li><router-link to="/interactive-labs" class="link-item">NextGen Interactive Labs</router-link></li>
+            <li><router-link to="/interactive-labs" class="link-item">Predator Interactive Labs</router-link></li>
             <li><router-link to="/interactive-labs" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
             <li><router-link to="/news" class="link-item">Tin Tức Công Nghệ AI & Review</router-link></li>
             <li><router-link to="/products" class="link-item">Góc Setup VIP Cộng Đồng</router-link></li>
@@ -123,11 +123,11 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 4: HỖ TRỢ KỸ THUẬT & HẬU MÃI -->
+        <!-- COLUMN 4: H? TR? K? THU?T & H?U M�I -->
         <div class="dir-col">
-          <h4 class="col-title">Hỗ Trợ Kỹ Thuật</h4>
+          <h4 class="col-title">H? Tr? K? Thu?t</h4>
           <ul class="footer-links">
-            <li><router-link to="/contact" class="link-item">Liên Hệ & Gửi Yêu Cầu Support</router-link></li>
+            <li><router-link to="/contact" class="link-item">Liên Hệ & Gửi Yêu Cầu Hỗ Trợ</router-link></li>
             <li><a href="#" class="link-item">Chính Sách Bảo Hành Ultimate Care</a></li>
             <li><a href="#" class="link-item">Tra Cứu Bảo Hành Điện Tử VIP</a></li>
             <li><a href="#" class="link-item">Tải Driver & Firmware Mới Nhất</a></li>
@@ -137,14 +137,14 @@ onUnmounted(() => {
 
         <!-- COLUMN 5: NEWSLETTER & NEWS SOUNDWAVE HOTLINE -->
         <div class="dir-col newsletter-col">
-          <h4 class="col-title">Bản Tin Cyber-Tech</h4>
+          <h4 class="col-title">B?n Tin Cyber-Tech</h4>
           <p class="news-desc">Đăng ký ngay để nhận sớm voucher giảm giá 10% và cập nhật công nghệ AI mới nhất.</p>
           
           <div class="subscribe-box-glass">
-            <span class="sub-mail-icon">✉</span>
-            <input type="email" placeholder="Địa chỉ Email của bạn..." class="subscribe-input" />
+            <span class="sub-mail-icon">@</span>
+            <input type="email" placeholder="Địa chỉ email của bạn..." class="subscribe-input" />
             <button class="subscribe-btn">
-              <span>ĐĂNG KÝ</span>
+              <span>??NG K?</span>
               <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
@@ -158,7 +158,7 @@ onUnmounted(() => {
               <div class="hotline-number">
                 <span>1800 9999</span>
                 <!-- Soundwave dynamic animation bars -->
-                <div class="soundwave-container" title="Tổng đài trực tuyến hoạt động">
+                <div class="soundwave-container" title="T?ng ??i tr?c tuy?n ho?t ??ng">
                   <div class="soundwave-bar"></div>
                   <div class="soundwave-bar"></div>
                   <div class="soundwave-bar"></div>
@@ -166,7 +166,7 @@ onUnmounted(() => {
                   <div class="soundwave-bar"></div>
                 </div>
               </div>
-              <p class="hotline-note">Hỗ trợ kỹ thuật chuyên sâu (Miễn phí cuộc gọi)</p>
+              <p class="hotline-note">H? tr? k? thu?t chuy?n s?u (mi?n ph? cu?c g?i)</p>
             </div>
           </div>
 
@@ -183,7 +183,7 @@ onUnmounted(() => {
         <div class="bottom-inner">
           <div class="b-left">
             <p class="copyright">
-              © 2026 <strong>VinaTech NextGen Laptop</strong>. Thiết kế & phát triển với công nghệ tối thượng.
+              © 2026 <strong>VinaTech Predator</strong>. Thiết kế & phát triển với công nghệ tối ưu.
             </p>
             <div class="bottom-links">
               <a href="#">Chính Sách Bảo Mật</a>
@@ -196,7 +196,7 @@ onUnmounted(() => {
 
           <div class="b-right">
             <!-- Payment gateway logos (Vivid glowing SVGs on hover) -->
-            <div class="payment-suite" aria-label="Cổng thanh toán hỗ trợ">
+            <div class="payment-suite" aria-label="C?ng thanh to?n h? tr?">
               <!-- VISA -->
               <div class="pay-logo visa" title="Visa Card">
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -215,11 +215,11 @@ onUnmounted(() => {
                 <span class="jcb-text">JCB</span>
               </div>
               <!-- MOMO -->
-              <div class="pay-logo momo" title="Ví MoMo">
+              <div class="pay-logo momo" title="V? MoMo">
                 <span class="momo-text">MoMo</span>
               </div>
               <!-- VNPAY -->
-              <div class="pay-logo vnpay" title="VNPAY Cổng thanh toán">
+              <div class="pay-logo vnpay" title="VNPAY C?ng thanh to?n">
                 <span class="vnpay-text">VNPAY</span>
               </div>
             </div>
@@ -233,7 +233,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Ministry of Industry and Trade Badge -->
-              <a href="#" class="gov-bct-badge" title="Website Đã Thông Báo với Bộ Công Thương Việt Nam">
+              <a href="#" class="gov-bct-badge" title="Website đã thông báo với Bộ Công Thương Việt Nam">
                 <div class="gov-content">
                   <span class="gov-small">ĐÃ THÔNG BÁO</span>
                   <span class="gov-bold">BỘ CÔNG THƯƠNG</span>

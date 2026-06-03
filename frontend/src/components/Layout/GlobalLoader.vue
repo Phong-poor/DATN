@@ -26,7 +26,7 @@ const startLoading = () => {
   clearTimers()
   showTimeout = setTimeout(() => {
     isVisible.value = true
-  }, 180)
+  }, 450)
 
   // Limit loading to 8s max to avoid stuck overlays
   maxTimeout = setTimeout(resetLoading, 8000)
@@ -40,7 +40,7 @@ const stopLoading = () => {
   hideTimeout = setTimeout(() => {
     isVisible.value = false
     clearTimers()
-  }, 120)
+  }, 40)
 }
 
 onMounted(() => {
@@ -74,7 +74,7 @@ onUnmounted(() => {
           <div class="ring-inner"></div>
           
           <div class="logo-center">
-            <span class="logo-text">NextGen</span>
+            <span class="logo-text">Predator</span>
           </div>
         </div>
 

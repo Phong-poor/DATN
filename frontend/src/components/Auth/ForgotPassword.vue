@@ -119,7 +119,7 @@ const handleSubmit = async () => {
 
     <div class="card">
 
-      <h3 class="brand">NextGen Laptop</h3>
+      <h3 class="brand">Predator</h3>
 
       <div class="icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb"
@@ -159,21 +159,21 @@ const handleSubmit = async () => {
           <strong>CLOUDFLARE</strong>
           <small>Quyền riêng tư · Giúp đỡ</small>
           <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading">
-            ↻
+            ?
           </button>
         </div>
       </div>
 
       <!-- BUTTON -->
       <button class="btn" @click="handleSubmit" :disabled="loading">
-        {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu →' }}
+        {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu' }}
       </button>
 
       <div class="divider"></div>
 
       <!-- BACK -->
       <p class="back" @click="router.push('/login')">
-        ← Quay lại đăng nhập
+        Quay lại đăng nhập
       </p>
 
       <p class="register-link">

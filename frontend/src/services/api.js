@@ -11,9 +11,24 @@ const api = axios.create({
   },
 })
 
+const GET_CACHE_TTL_MS = 60 * 1000
+const getCache = new Map()
+const inFlightGetRequests = new Map()
+
 const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
+const shouldCacheGet = (config = {}) => config.method?.toLowerCase?.() === 'get' && config.cache !== false
+const getCacheKey = (url, config = {}) => {
+  const params = config.params ? JSON.stringify(config.params) : ''
+  return `${url || ''}?${params}`
+}
 
 api.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase?.()
+  if (method && method !== 'get') {
+    getCache.clear()
+    inFlightGetRequests.clear()
+  }
+
   if (shouldShowGlobalLoader(config)) {
     window.dispatchEvent(new Event('global-loader-show'))
   }
@@ -50,5 +65,32 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+const rawGet = api.get.bind(api)
+api.get = (url, config = {}) => {
+  const requestConfig = { ...config, method: 'get' }
+  if (!shouldCacheGet(requestConfig)) return rawGet(url, config)
+
+  const key = getCacheKey(url, requestConfig)
+  const cached = getCache.get(key)
+  if (cached && Date.now() - cached.cachedAt < GET_CACHE_TTL_MS) {
+    return Promise.resolve(cached.response)
+  }
+
+  const inFlight = inFlightGetRequests.get(key)
+  if (inFlight) return inFlight
+
+  const request = rawGet(url, config)
+    .then((response) => {
+      getCache.set(key, { cachedAt: Date.now(), response })
+      return response
+    })
+    .finally(() => {
+      inFlightGetRequests.delete(key)
+    })
+
+  inFlightGetRequests.set(key, request)
+  return request
+}
 
 export default api

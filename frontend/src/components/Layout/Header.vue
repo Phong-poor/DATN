@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
+const route = useRoute()
 
 const getSwal = async () => {
   const module = await import('@/services/swal')
@@ -274,6 +275,18 @@ const mobileMenuTarget = (key) => {
   return { path: '/products', query: { category: menuCategoryMap[key] || key } }
 }
 
+const isMenuCurrent = (key) => {
+  if (key === 'sale') return route.path === '/khuyen-mai'
+  if (key === 'workstation') {
+    return route.path === '/workstation' ||
+      (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
+  }
+
+  if (!['gaming', 'macbook'].includes(key)) return false
+  const currentCategory = String(route.query.category || '').toLowerCase()
+  return route.path === '/products' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
+}
+
 // ===================== TÌM KIẾM =====================
 const searchQuery = ref('')
 const searchFocused = ref(false)
@@ -393,9 +406,9 @@ onMounted(() => {
     prefetchProductsPage().catch(() => {})
   }
   if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(warmProductsPage, { timeout: 3000 })
+    window.requestIdleCallback(warmProductsPage, { timeout: 900 })
   } else {
-    setTimeout(warmProductsPage, 2500)
+    setTimeout(warmProductsPage, 500)
   }
 
   document.addEventListener('click', handleOutside)
@@ -531,7 +544,7 @@ const warmProductsPageNow = () => {
         >
           <button
             class="nav-btn"
-            :class="{ active: activeMegaMenu === key }"
+            :class="{ active: activeMegaMenu === key, current: isMenuCurrent(key) }"
             @click="navToCategory(key)"
           >
             {{ menu.label }}
@@ -716,7 +729,7 @@ const warmProductsPageNow = () => {
                 <div class="user-card-info">
                   <p class="uc-name">{{ user?.name || 'Khách hàng' }}</p>
                   <p class="uc-email">{{ user?.email }}</p>
-                  <span class="uc-badge">NetGen Member</span>
+                  <span class="uc-badge">Predator Member</span>
                 </div>
               </div>
               <div class="user-menu">
@@ -799,7 +812,7 @@ const warmProductsPageNow = () => {
       <nav class="mob-nav">
         <div class="mob-nav-label">Danh mục</div>
         <router-link v-for="(menu, key) in megaMenuData" :key="key"
-          :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link">
+          :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link" :class="{ current: isMenuCurrent(key) }">
           {{ menu.label }}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </router-link>
@@ -939,9 +952,25 @@ const warmProductsPageNow = () => {
   transition: all 0.2s;
   white-space: nowrap;
 }
-.nav-btn:hover, .nav-btn.active {
+.nav-btn:hover, .nav-btn.active, .nav-btn.current {
   background: rgba(37, 99, 235, 0.12);
   color: #60a5fa;
+}
+.nav-btn.current {
+  background: rgba(37, 99, 235, 0.18);
+  color: #60a5fa;
+  font-weight: 700;
+  position: relative;
+}
+.nav-btn.current::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 999px;
 }
 .nav-chevron {
   width: 12px; height: 12px;
@@ -1580,7 +1609,14 @@ const warmProductsPageNow = () => {
   text-decoration: none; margin-bottom: 2px; transition: all 0.2s;
 }
 .mob-link svg { width: 14px; height: 14px; color: #94a3b8; }
-.mob-link:hover { background: #eef2ff; color: #6366f1; }
+.mob-link:hover,
+.mob-link.router-link-active,
+.mob-link.router-link-exact-active,
+.mob-link.current {
+  background: #eef2ff;
+  color: #2563eb;
+  font-weight: 700;
+}
 .mob-link.labs { color: #6366f1; }
 
 .mob-footer {

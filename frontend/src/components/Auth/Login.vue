@@ -226,7 +226,7 @@ const handleLogin = async () => {
       <!-- LEFT -->
       <div class="left">
         <h1>
-          NextGen <br />
+          Predator <br />
           <span>Chinh Phục</span> <br />
           Tầm Cao Mới.
         </h1>
@@ -234,11 +234,11 @@ const handleLogin = async () => {
           Trở lại tài khoản để quản lý đơn hàng, lưu cấu hình laptop và nhận ưu đãi dành riêng cho bạn.
         </p>
         <div class="left-highlights">
-          <span>✓ Đăng nhập nhanh</span>
-          <span>✓ Đồng bộ giỏ hàng</span>
-          <span>✓ Ưu đãi cá nhân</span>
+          <span>Đăng nhập nhanh</span>
+          <span>Đồng bộ giỏ hàng</span>
+          <span>Ưu đãi cá nhân</span>
         </div>
-        <img class="left-laptop" src="/hero_3d_laptop.png" alt="NextGen laptop" />
+        <img class="left-laptop" src="/hero_3d_laptop.png" alt="Predator laptop" />
       </div>
 
       <!-- RIGHT -->
@@ -261,7 +261,7 @@ const handleLogin = async () => {
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
             autocomplete="current-password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">

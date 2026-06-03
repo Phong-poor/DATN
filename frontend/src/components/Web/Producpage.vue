@@ -404,7 +404,7 @@ const themVaoYeuThich = async (product) => {
 
 const loadCache = () => {
     try {
-        const cached = localStorage.getItem('nextgen_products_cache')
+        const cached = localStorage.getItem('predator_products_cache')
         if (cached) {
             const parsed = JSON.parse(cached)
             if (parsed.productsRaw) products.value = mapProducts(parsed.productsRaw)
@@ -422,7 +422,7 @@ const loadCache = () => {
 
 const saveCache = (productsRaw, categoriesData, brandsData, attrOptionsData) => {
     try {
-        localStorage.setItem('nextgen_products_cache', JSON.stringify({
+        localStorage.setItem('predator_products_cache', JSON.stringify({
             productsRaw,
             categories: categoriesData,
             brands: brandsData,

@@ -51,7 +51,7 @@ class LienHeController extends Controller
 
             Mail::send([], [], function ($mail) use ($contact, $request) {
                 $mail->to($contact->email, $contact->name)
-                    ->subject('💻 NextGen Laptop | Phản hồi liên hệ #' . $contact->id)
+                    ->subject('💻 Predator | Phản hồi liên hệ #' . $contact->id)
                     ->html("
             <!DOCTYPE html>
             <html>
@@ -65,7 +65,7 @@ class LienHeController extends Controller
 
                 <!-- HEADER -->
                 <div style='background:linear-gradient(135deg,#6366f1,#2563eb,#06b6d4);padding:30px;text-align:center;color:white'>
-                    <h1 style='margin:0;font-size:26px'>💻 NextGen Laptop</h1>
+                    <h1 style='margin:0;font-size:26px'>💻 Predator</h1>
                     <p style='margin-top:8px;font-size:13px;opacity:0.9'>
                         Công nghệ dẫn đầu – Phục vụ tận tâm
                     </p>
@@ -79,7 +79,7 @@ class LienHeController extends Controller
                     </h2>
 
                     <p style='color:#374151;font-size:14px;line-height:1.6'>
-                        Cảm ơn bạn đã liên hệ với <strong>NextGen Laptop</strong>. 
+                        Cảm ơn bạn đã liên hệ với <strong>Predator</strong>.
                         Đội ngũ của chúng tôi đã tiếp nhận và phản hồi như sau:
                     </p>
 
@@ -105,7 +105,7 @@ class LienHeController extends Controller
                         font-size:14px;
                         font-weight:600;
                         box-shadow:0 6px 18px rgba(37,99,235,0.4)'>
-                        🚀 Truy cập NextGen Laptop
+                        🚀 Truy cập Predator
                         </a>
                     </div>
 
@@ -117,9 +117,9 @@ class LienHeController extends Controller
 
                 <!-- FOOTER -->
                 <div style='background:#0f172a;color:#94a3b8;text-align:center;padding:18px;font-size:12px'>
-                    <p style='margin:0'>© 2026 NextGen Laptop</p>
+                    <p style='margin:0'>© 2026 Predator</p>
                     <p style='margin:5px 0'>📞 Hotline: 1900 8888</p>
-                    <p style='margin:0'>📧 support@nextgen.vn</p>
+                    <p style='margin:0'>📧 support@predator.vn</p>
                 </div>
 
             </div>

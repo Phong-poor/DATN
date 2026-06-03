@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { storageUrl } from '@/services/urls'
 
-const PRODUCTS_CACHE_KEY = 'nextgen_admin_products_cache'
+const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
 let xlsxModulePromise = null
 let swalModulePromise = null
@@ -252,7 +252,7 @@ const handleExportExcel = async () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory")
 
     // Download file
-    XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
+    XLSX.writeFile(workbook, `Kho_Hang_Predator_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
     swal.error('Lỗi', 'Lỗi khi xuất file Excel')

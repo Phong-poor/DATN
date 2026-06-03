@@ -156,7 +156,7 @@ const loginFacebook = () => {
       <!-- LEFT -->
       <div class="left">
         <h1>
-          NextGen <br />
+          Predator <br />
           Thế hệ mới 2026 <br />
           <span>Chinh Phục Tầm Cao</span>
         </h1>
@@ -164,11 +164,11 @@ const loginFacebook = () => {
           Tạo tài khoản để lưu cấu hình laptop yêu thích, nhận ưu đãi riêng và theo dõi đơn hàng nhanh hơn.
         </p>
         <div class="left-highlights">
-          <span>✓ Ưu đãi thành viên</span>
-          <span>✓ Theo dõi bảo hành</span>
-          <span>✓ Gợi ý phụ kiện phù hợp</span>
+          <span>Ưu đãi thành viên</span>
+          <span>Theo dõi bảo hành</span>
+          <span>Gợi ý phụ kiện phù hợp</span>
         </div>
-        <img class="left-accessories" src="/elite_accessories.png" alt="Phụ kiện laptop NextGen" />
+        <img class="left-accessories" src="/elite_accessories.png" alt="Phụ kiện laptop Predator" />
       </div>
 
       <!-- RIGHT -->
@@ -184,7 +184,7 @@ const loginFacebook = () => {
 
         <!-- NAME -->
         <div class="input-box">
-          <span>👤</span>
+          <span>??</span>
           <input v-model="name" placeholder="Nguyễn Văn A" />
         </div>
 
@@ -196,7 +196,7 @@ const loginFacebook = () => {
 
         <!-- PHONE -->
         <div class="input-box">
-          <span>📞</span>
+          <span>??</span>
           <input v-model="phone" inputmode="numeric" maxlength="12" placeholder="0123 456 789" />
         </div>
         <p v-if="phone && !isValidPhone" class="field-hint error">
@@ -204,13 +204,13 @@ const loginFacebook = () => {
         </p>
 
         <div class="input-box" v-if="referralCode">
-          <span>🎯</span>
+          <span>??</span>
           <input :value="referralCode" readonly />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -243,7 +243,7 @@ const loginFacebook = () => {
 
         <!-- CONFIRM -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showConfirm ? 'text' : 'password'" v-model="confirm" placeholder="Xác nhận mật khẩu" />
           <button class="eye-btn" @click="showConfirm = !showConfirm" type="button">
             <svg v-if="!showConfirm" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"

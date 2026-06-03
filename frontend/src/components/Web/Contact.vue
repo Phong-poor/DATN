@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
@@ -43,7 +43,7 @@ const suggestionTags = computed(() => {
     return ['Tra cứu thời hạn bảo hành', 'Chi phí thay pin chính hãng', 'Quy trình đổi trả 1-1', 'Nâng cấp RAM tại showroom']
   }
   if (subject.value === 'Hợp tác kinh doanh') {
-    return ['Báo giá số lượng lớn doanh nghiệp', 'Chính sách đại lý NetGen', 'Yêu cầu làm đối tác cung ứng']
+    return ['Báo giá số lượng lớn doanh nghiệp', 'Chính sách đại lý Predator', 'Yêu cầu làm đối tác cung ứng']
   }
   return ['Yêu cầu hỗ trợ khẩn cấp', 'Góp ý chất lượng dịch vụ']
 })
@@ -235,7 +235,7 @@ const faqs = ref([
   },
   {
     q: 'Chính sách bảo hành của VinaTech như thế nào?',
-    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách NetGen Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
+    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách Predator Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
     open: false,
     category: 'warranty'
   },
@@ -247,7 +247,7 @@ const faqs = ref([
   },
   {
     q: 'Thời gian phản hồi sau khi gửi form liên hệ là bao lâu?',
-    a: 'Đội ngũ chuyên viên NetGen cam kết phản hồi tất cả các yêu cầu tư vấn bằng văn bản hoặc liên hệ trực tiếp trong vòng tối đa 2 giờ làm việc kể từ lúc nhận được guided form.',
+    a: 'Đội ngũ chuyên viên Predator cam kết phản hồi tất cả các yêu cầu tư vấn bằng văn bản hoặc liên hệ trực tiếp trong vòng tối đa 2 giờ làm việc kể từ lúc nhận được guided form.',
     open: false,
     category: 'technical'
   },
@@ -311,7 +311,7 @@ const toggleFaq = (index) => {
       <div class="glow-sphere-2"></div>
       
       <div class="hero-container">
-        <span class="support-badge">📡 NETGEN GLOBAL SUPPORT</span>
+        <span class="support-badge">📡 PREDATOR GLOBAL SUPPORT</span>
         <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Workstation dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
@@ -352,7 +352,7 @@ const toggleFaq = (index) => {
         <div class="section-magazine-title">
           <span class="sub-label">GUIDED SUPPORT CENTER</span>
           <h2>Trung Tâm Khởi Tạo <span>Yêu Cầu Hỗ Trợ.</span></h2>
-          <p>Điền thông tin hội thoại từng bước dưới đây, kỹ sư NetGen sẽ liên hệ giải đáp nhanh chóng.</p>
+          <p>Điền thông tin hội thoại từng bước dưới đây, kỹ sư Predator sẽ liên hệ giải đáp nhanh chóng.</p>
         </div>
 
         <div class="guided-grid-layout">
@@ -409,7 +409,7 @@ const toggleFaq = (index) => {
             <!-- STEP 2: CUSTOMER INFO -->
             <div v-if="currentFormStep === 2" class="step-view-content fade-in">
               <h3 class="step-view-title">Bước 2: Thông tin liên hệ của bạn</h3>
-              <p class="step-view-subtitle">Nhập chính xác để chuyên gia NetGen có thể kết nối ngay lập tức.</p>
+              <p class="step-view-subtitle">Nhập chính xác để chuyên gia Predator có thể kết nối ngay lập tức.</p>
               
               <div class="guided-inputs-wrapper">
                 <div class="floating-input-field">
@@ -529,7 +529,7 @@ const toggleFaq = (index) => {
           <div class="showroom-guided-panel">
             <div class="showroom-brand-header">
               <span class="pill-badge">🏬 HỆ THỐNG TRẢI NGHIỆM</span>
-              <h3>Bản Đồ Showroom NetGen</h3>
+              <h3>Bản Đồ Showroom Predator</h3>
               <p>Chọn địa điểm showroom để cập nhật thông tin liên hệ và đặt lịch trực tiếp.</p>
             </div>
 
@@ -597,7 +597,7 @@ const toggleFaq = (index) => {
         <div class="section-magazine-title text-center">
           <span class="sub-label">HUMANIZING SUPPORT</span>
           <h2>Đồng Hành Cùng <span>Các Chuyên Gia.</span></h2>
-          <p>NetGen mang đến dịch vụ tư vấn trực tiếp bởi những kỹ sư, chuyên gia phần cứng hàng đầu.</p>
+          <p>Predator mang đến dịch vụ tư vấn trực tiếp bởi những kỹ sư, chuyên gia phần cứng hàng đầu.</p>
         </div>
 
         <div class="experts-grid">
@@ -626,7 +626,7 @@ const toggleFaq = (index) => {
     <!-- ===== TECHNOLOGY PARTNERS TRUST BAR ===== -->
     <section class="tech-trust-banner">
       <div class="tech-trust-inner">
-        <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của NetGen</h4>
+        <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của Predator</h4>
         <div class="partners-logos-row">
           <span>Intel</span>
           <span>AMD</span>
@@ -734,7 +734,7 @@ const toggleFaq = (index) => {
             <span class="cta-emoji-box">💬</span>
             <div class="cta-text-details">
               <h3>Bạn có yêu cầu đặc biệt khác?</h3>
-              <p>Đội ngũ chuyên viên NetGen luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
+              <p>Đội ngũ chuyên viên Predator luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
             </div>
             <div class="cta-actions-group">
               <a href="tel:19008888" class="cta-phone-btn">📞 Gọi 1900 8888</a>
@@ -771,7 +771,7 @@ const toggleFaq = (index) => {
   --font-body: 'Inter', sans-serif;
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  background-color: #ffffff;
+  background-color: var(--tn-bg);
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
@@ -1944,19 +1944,19 @@ const toggleFaq = (index) => {
 /* Bottom CTA Card */
 .support-footer-cta-card {
   position: relative;
-  background: #f8fafc;
+  background: #061A3A; /* Primary Navy */
   border-radius: 24px;
-  border: 1px solid #e6eef6;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 32px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
-  color: #0f172a;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  color: #ffffff;
 }
 .support-footer-cta-card .glow-accent-overlay {
   position: absolute;
   top: -50%; right: -20%;
   width: 80%; height: 180%;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 60%);
   pointer-events: none;
 }
 .cta-card-content {
@@ -1970,8 +1970,8 @@ const toggleFaq = (index) => {
 .cta-emoji-box {
   width: 52px; height: 52px;
   border-radius: 14px;
-  background: #f8fafc;
-  border: 1px solid #e6eef6;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1984,13 +1984,14 @@ const toggleFaq = (index) => {
 }
 .cta-text-details h3 {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
+  color: #ffffff !important;
 }
 .cta-text-details p {
-  font-size: 12.5px;
-  color: #94a3b8;
+  font-size: 13.5px;
+  color: #cbd5e1 !important;
   line-height: 1.5;
   margin: 0;
 }
@@ -2001,35 +2002,38 @@ const toggleFaq = (index) => {
   flex-wrap: wrap;
 }
 .cta-phone-btn {
-  padding: 11px 20px;
+  padding: 12px 24px;
   border-radius: 10px;
-  background: #0f172a;
-  color: #f8fafc;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #ffffff !important;
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   text-decoration: none;
   transition: var(--transition);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
 }
 .cta-phone-btn:hover {
-  background: #111f35;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 }
 .cta-form-btn {
-  padding: 11px 20px;
+  padding: 12px 24px;
   border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #e6eef6;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff !important;
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   transition: var(--transition);
 }
 .cta-form-btn:hover {
-  background: #f1f5f9;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
 }
 
 /* ==================== RESPONSIVE RULES ==================== */

@@ -28,7 +28,7 @@ const fetchProductCombos = async (productId) => {
     try {
         const res = await api.get('/combos', { skipGlobalLoader: true })
         const allCombos = res.data?.data || []
-        combos.value = allCombos.filter(combo => 
+        combos.value = allCombos.filter(combo =>
             combo.products.some(p => String(p.id_sanpham) === String(productId))
         )
     } catch (e) {
@@ -260,7 +260,7 @@ const startAutoSlide = () => {
             const currentIndex = allImages.value.indexOf(selectedImage.value)
             const nextIndex = (currentIndex + 1) % allImages.value.length
             selectedImage.value = allImages.value[nextIndex]
-            
+
             // Sync thumb slider
             if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
                 thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
@@ -279,7 +279,7 @@ const stopAutoSlide = () => {
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
-        const cached = localStorage.getItem(`nextgen_product_detail_cache_${productId}`)
+        const cached = localStorage.getItem(`predator_product_detail_cache_${productId}`)
         if (cached) {
             const parsed = JSON.parse(cached)
             if (parsed.product) product.value = parsed.product
@@ -290,7 +290,7 @@ const loadCache = (productId) => {
             if (product.value && product.value.tenSP) {
                 window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
             }
-            
+
             // Cập nhật ảnh đại diện và biến thể từ cache
             if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
             const variants = product.value.bienThes || []
@@ -321,7 +321,7 @@ const loadCache = (productId) => {
 
 const saveCache = (productId) => {
     try {
-        localStorage.setItem(`nextgen_product_detail_cache_${productId}`, JSON.stringify({
+        localStorage.setItem(`predator_product_detail_cache_${productId}`, JSON.stringify({
             product: product.value,
             reviews: reviews.value,
             recentlyViewedProducts: recentlyViewedProducts.value,
@@ -412,14 +412,70 @@ const loadPageData = async () => {
     }
 }
 
+const showStickyBar = ref(false)
+const activeSpecTab = ref(0)
+const handleScrollSticky = () => {
+    showStickyBar.value = window.scrollY > 600
+}
+
+const categorizedSpecs = computed(() => {
+    const categories = {
+        performance: { title: 'Hiệu năng', icon: '⚡', items: [] },
+        screen: { title: 'Màn hình', icon: '🖥️', items: [] },
+        storage: { title: 'Lưu trữ & RAM', icon: '💾', items: [] },
+        connectivity: { title: 'Kết nối', icon: '🔌', items: [] },
+        warranty: { title: 'Bảo hành & Khác', icon: '🛡️', items: [] }
+    }
+
+    const rows = [...machineInfoRows.value]
+    rows.forEach(row => {
+        const labelLower = row.label.toLowerCase()
+        if (labelLower.includes('cpu') || labelLower.includes('gpu') || labelLower.includes('card') || labelLower.includes('bộ vi xử lý') || labelLower.includes('vi xử lý') || labelLower.includes('đồ họa') || labelLower.includes('hiệu năng') || labelLower.includes('bộ nhớ đệm') || labelLower.includes('chipset')) {
+            categories.performance.items.push(row)
+        } else if (labelLower.includes('màn hình') || labelLower.includes('độ phân giải') || labelLower.includes('tần số quét') || labelLower.includes('hz') || labelLower.includes('oled') || labelLower.includes('ips') || labelLower.includes('hiển thị')) {
+            categories.screen.items.push(row)
+        } else if (labelLower.includes('ssd') || labelLower.includes('ổ cứng') || labelLower.includes('dung lượng') || labelLower.includes('lưu trữ') || labelLower.includes('hdd') || labelLower.includes('ram') || labelLower.includes('bộ nhớ trong')) {
+            categories.storage.items.push(row)
+        } else if (labelLower.includes('cổng') || labelLower.includes('kết nối') || labelLower.includes('giao tiếp') || labelLower.includes('usb') || labelLower.includes('hdmi') || labelLower.includes('wi-fi') || labelLower.includes('wifi') || labelLower.includes('bluetooth') || labelLower.includes('mạng') || labelLower.includes('thunderbolt')) {
+            categories.connectivity.items.push(row)
+        } else {
+            categories.warranty.items.push(row)
+        }
+    })
+
+    return Object.values(categories).filter(c => c.items.length > 0)
+})
+
+const whyBuyThisSpecs = computed(() => {
+    return [
+        { icon: '🚀', title: 'Hiệu năng đỉnh cao', desc: 'Trang bị cấu hình phần cứng mới nhất giúp vận hành mọi tác vụ cực độ mà không có độ trễ.' },
+        { icon: '🖥️', title: 'Màn hình chuẩn màu', desc: 'Đáp ứng 100% không gian màu thiết kế, tần số quét mượt mà cho trải nghiệm thị giác vô tận.' },
+        { icon: '❄️', title: 'Tản nhiệt buồng hơi kép', desc: 'Hệ thống cánh quạt tản nhiệt siêu mỏng giúp giảm nhiệt độ máy đến 15°C khi chịu tải nặng liên tục.' },
+        { icon: '💾', title: 'Nâng cấp dễ dàng', desc: 'Thiết kế bo mạch linh hoạt hỗ trợ mở rộng thêm ổ cứng SSD và RAM dung lượng lớn để lưu trữ không giới hạn.' },
+        { icon: '💼', title: 'Đa nhiệm hoàn hảo', desc: 'Phù hợp hoàn toàn cho các lập trình viên chuyên nghiệp, designer sáng tạo và game thủ chiến mọi tựa game.' },
+        { icon: '🛡️', title: 'Hậu mãi chuẩn 5 sao', desc: 'Bảo hành chính hãng 24 tháng, cam kết 1 đổi 1 trong vòng 7 ngày đầu nếu có lỗi phần cứng.' }
+    ]
+})
+
+const benchmarkData = computed(() => {
+    return [
+        { label: 'Gaming (FPS trung bình ở Ultra 1080p)', score: 85, color: '#f97316', desc: 'CS2: 240+ FPS | Cyberpunk 2077: 75+ FPS' },
+        { label: 'Render 3D (Blender / V-Ray Cycles)', score: 92, color: '#2563eb', desc: 'Render thời gian thực cực mượt với nhân Ray Tracing' },
+        { label: 'Đồ họa & Dựng Phim (Premiere Pro / DaVinci)', score: 88, color: '#00e5ff', desc: 'Xử lý video RAW 4K 10-bit không cần proxy' },
+        { label: 'AI & Lập trình (PyTorch / Xcode compiler)', score: 90, color: '#10b981', desc: 'Gia tốc NPU riêng biệt chạy mô hình LLM local' }
+    ]
+})
+
 onMounted(() => {
     window.scrollTo(0, 0)
     loadPageData()
     startAutoSlide()
+    window.addEventListener('scroll', handleScrollSticky, { passive: true })
 })
 
 onUnmounted(() => {
     stopAutoSlide()
+    window.removeEventListener('scroll', handleScrollSticky)
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -449,7 +505,7 @@ const fetchRecentlyViewed = async () => {
     try {
         const res = await api.get('/sanpham-daxem', { skipGlobalLoader: true })
         const allProducts = res.data || []
-        
+
         // Lọc để ẩn sản phẩm hiện đang xem
         const currentProductId = route.params.id || 1;
         const filtered = allProducts.filter(p => p.id_sanpham != currentProductId);
@@ -677,7 +733,7 @@ const extractAllAttributes = (variant) => {
 // Lấy danh sách tất cả các thuộc tính và thông số kỹ thuật để so sánh (normalize keys)
 const allAttributeKeys = computed(() => {
     const keysMap = new Map() // Use Map to normalize keys (case-insensitive)
-    
+
     // Thêm thông số kỹ thuật sản phẩm hiện tại
     if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
         product.value.thong_so_ky_thuat.forEach(spec => {
@@ -689,7 +745,7 @@ const allAttributeKeys = computed(() => {
             }
         })
     }
-    
+
     if (selectedVariant.value) {
         const attrs = extractAllAttributes(selectedVariant.value)
         Object.keys(attrs).forEach(k => {
@@ -707,7 +763,7 @@ const allAttributeKeys = computed(() => {
                 keysMap.set(normalizedKey, k)
             }
         })
-        
+
         if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
             p.thong_so_ky_thuat.forEach(spec => {
                 if (spec.ten_thuoctinh) {
@@ -775,10 +831,10 @@ const machineInfoGridRows = computed(() => {
 // Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
 const comparisonData = computed(() => {
     const data = []
-    
+
     if (selectedVariant.value && relatedProducts.value.length > 0) {
         const currentAttrs = extractAllAttributes(selectedVariant.value)
-        
+
         relatedProducts.value.slice(0, 4).forEach(relatedProd => {
             const relatedAttrs = relatedProd.attributes || {}
             data.push({
@@ -791,7 +847,7 @@ const comparisonData = computed(() => {
             })
         })
     }
-    
+
     return data
 })
 
@@ -830,30 +886,30 @@ const modalComparisonData = computed(() => {
     if (selectedVariant.value && compareProducts.value.length > 0) {
         const currentAttrs = extractAllAttributes(selectedVariant.value)
         const currentSpecs = {}
-        
+
         // Lấy thông số kỹ thuật sản phẩm hiện tại
         if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
             product.value.thong_so_ky_thuat.forEach(spec => {
                 if (spec.ten_thuoctinh) currentSpecs[spec.ten_thuoctinh] = spec.giatri
             })
         }
-        
+
         compareProducts.value.forEach(p => {
             // Kết hợp thông số kỹ thuật và thuộc tính biến thể
             const combinedSpecs = {}
-            
+
             // Thêm thông số kỹ thuật sản phẩm
             if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
                 p.thong_so_ky_thuat.forEach(spec => {
                     if (spec.ten_thuoctinh) combinedSpecs[spec.ten_thuoctinh] = spec.giatri
                 })
             }
-            
+
             // Thêm thuộc tính biến thể
             if (p.attributes) {
                 Object.assign(combinedSpecs, p.attributes)
             }
-            
+
             data.push({
                 id: p.key_id,
                 name: p.fullName,
@@ -911,6 +967,32 @@ const handleSelectVariantById = (idBienThe) => {
 
 <template>
 
+    <!-- STICKY BUY BAR FOR HIGH CONVERSIONS -->
+    <transition name="fade-slide-bar">
+        <div v-show="showStickyBar" class="sticky-buy-bar">
+            <div class="container sticky-bar-flex">
+                <div class="sticky-info-left">
+                    <img :src="selectedImage" :alt="product.tenSP" class="sticky-thumb" />
+                    <div class="sticky-meta">
+                        <h4 class="sticky-title">{{ product.tenSP }}</h4>
+                        <span class="sticky-variant-name" v-if="selectedVariant">{{ selectedVariant.ten_bienthe }}</span>
+                    </div>
+                </div>
+                <div class="sticky-actions-right">
+                    <div class="sticky-price-glow">
+                        {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
+                    </div>
+                    <button class="btn btn-premium-glass" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                        Thêm vào giỏ
+                    </button>
+                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                        Mua ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
     <transition name="slide-down">
         <div v-if="thongBao.show" :class="['toast', thongBao.type]">
             {{ thongBao.message }}
@@ -938,7 +1020,7 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="gallery-column">
                         <div class="main-image-viewport">
                             <div class="neon-glow-backdrop"></div>
-                            
+
                             <!-- Badges Overlay -->
                             <div class="gallery-badges">
                                 <span class="badge badge-glow" v-if="product.thuong_hieu">{{ product.thuong_hieu.ten_thuonghieu }}</span>
@@ -946,7 +1028,7 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
 
                             <img :src="selectedImage" :alt="product.tenSP" class="main-showcase-image" />
-                            
+
                             <div v-if="selectedVariant && selectedVariant.soluong === 0" class="premium-out-of-stock-badge">
                                 HẾT HÀNG
                             </div>
@@ -966,7 +1048,7 @@ const handleSelectVariantById = (idBienThe) => {
 
                             <!-- Slide Indicator Dots -->
                             <div class="slide-dots">
-                                <span v-for="(img, idx) in allImages" :key="idx" 
+                                <span v-for="(img, idx) in allImages" :key="idx"
                                       :class="['dot', { active: selectedImage === img }]"
                                       @click="selectedImage = img"></span>
                             </div>
@@ -982,7 +1064,7 @@ const handleSelectVariantById = (idBienThe) => {
                             </button>
 
                             <div class="premium-thumbs-scroll">
-                                <div v-for="(img, i) in visibleThumbs" :key="i" 
+                                <div v-for="(img, i) in visibleThumbs" :key="i"
                                      :class="['thumb-card', { active: selectedImage === img }]"
                                      @click="selectedImage = img; startAutoSlide ? startAutoSlide() : null">
                                     <img :src="img" alt="Thumbnail" />
@@ -1011,7 +1093,7 @@ const handleSelectVariantById = (idBienThe) => {
                         <div class="brand-subtitle" v-if="product.thuong_hieu">
                             {{ product.thuong_hieu.ten_thuonghieu.toUpperCase() }} WORKSTATION
                         </div>
-                        
+
                         <h1 class="premium-product-title">{{ product.tenSP }}</h1>
 
                         <!-- Star Rating Interactive Link -->
@@ -1038,23 +1120,62 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
-                        <!-- Trust signals block -->
-                        <div class="premium-trust-signals-grid">
-                            <div class="signal-item">
-                                <span class="signal-icon">🛡️</span>
-                                <span class="signal-text">Chính hãng 100%</span>
+                        <!-- BOX ƯU ĐÃI ĐI KÈM (VIP Bundles Up-sell) -->
+                        <div class="product-benefits-box">
+                            <h4 class="benefits-title">🎁 ƯU ĐÃI ĐI KÈM ĐẶC BIỆT:</h4>
+                            <ul class="benefits-list">
+                                <li>
+                                    <span class="benefit-icon">🎒</span>
+                                    <span class="benefit-text">Tặng ngay Balo Predator chống nước cao cấp trị giá 850.000đ.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💳</span>
+                                    <span class="benefit-text">Giảm thêm <b>500.000đ</b> khi thanh toán online qua VNPay/Momo.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💸</span>
+                                    <span class="benefit-text">Trả góp <b>0% lãi suất</b> bằng thẻ tín dụng (kỳ hạn đến 12 tháng).</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💿</span>
+                                    <span class="benefit-text">Miễn phí trọn đời dịch vụ cài đặt Windows, Office bản quyền & vệ sinh máy định kỳ.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">🚀</span>
+                                    <span class="benefit-text">Miễn phí giao hàng toàn quốc hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- BOX CAM KẾT CHẤT LƯỢNG (Trust Badges) -->
+                        <div class="product-guarantees-box">
+                            <div class="guarantee-card">
+                                <span class="g-icon">🛡️</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">100% Chính Hãng</span>
+                                    <span class="g-desc">Đầy đủ VAT & xuất xứ</span>
+                                </div>
                             </div>
-                            <div class="signal-item">
-                                <span class="signal-icon">⚡</span>
-                                <span class="signal-text">Giao siêu tốc 2h</span>
+                            <div class="guarantee-card">
+                                <span class="g-icon">⚙️</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">Bảo Hành 24T</span>
+                                    <span class="g-desc">Chính hãng tại trung tâm</span>
+                                </div>
                             </div>
-                            <div class="signal-item">
-                                <span class="signal-icon">🛠️</span>
-                                <span class="signal-text">Bảo hành 24 tháng</span>
+                            <div class="guarantee-card">
+                                <span class="g-icon">🔁</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">1 Đổi 1 7 Ngày</span>
+                                    <span class="g-desc">Nếu phát sinh lỗi NSX</span>
+                                </div>
                             </div>
-                            <div class="signal-item">
-                                <span class="signal-icon">💎</span>
-                                <span class="signal-text">Hỗ trợ trọn đời</span>
+                            <div class="guarantee-card">
+                                <span class="g-icon">💎</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">Hỗ Trợ 24/7</span>
+                                    <span class="g-desc">Trọn đời từ Predator</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1068,7 +1189,7 @@ const handleSelectVariantById = (idBienThe) => {
 
                                 <!-- Color Dot Custom Buttons -->
                                 <div v-if="group.name === 'Màu sắc'" class="premium-color-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri" 
+                                    <button v-for="item in group.values" :key="item.giatri"
                                             :class="['color-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
                                             @click="handleSelectOptionWithReset(group.name, item.giatri)"
                                             :title="item.giatri">
@@ -1079,7 +1200,7 @@ const handleSelectVariantById = (idBienThe) => {
 
                                 <!-- Custom Pill Buttons for RAM / SSD / Specs -->
                                 <div v-else class="premium-pill-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri" 
+                                    <button v-for="item in group.values" :key="item.giatri"
                                             :class="['pill-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
                                             @click="handleSelectOptionWithReset(group.name, item.giatri)">
                                         <span class="pill-text">{{ item.giatri }}</span>
@@ -1153,7 +1274,7 @@ const handleSelectVariantById = (idBienThe) => {
                                     <span class="icon">{{ dangThemYeuThich ? '⏳' : '❤️' }}</span>
                                     <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
                                 </button>
-                                
+
                                 <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
                                     <span class="icon">🔁</span>
                                     <span>So sánh specs</span>
@@ -1194,12 +1315,12 @@ const handleSelectVariantById = (idBienThe) => {
                             <span class="teaser-icon">💡</span>
                             <div class="teaser-content">
                                 <p class="teaser-text">
-                                    <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản 
+                                    <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản
                                     <span class="highlight-variant" @click="handleSelectVariantById(otherVariantsWithOffers[0].id_bienthe)" title="Click để chọn phiên bản này ngay">
                                         "{{ otherVariantsWithOffers[0].ten_bienthe }}"
-                                    </span> 
-                                    để nhận ngay Quà Tặng 
-                                    <span class="free-text-badge">MIỄN PHÍ 0đ</span>: 
+                                    </span>
+                                    để nhận ngay Quà Tặng
+                                    <span class="free-text-badge">MIỄN PHÍ 0đ</span>:
                                     <b>{{ otherVariantsWithOffers[0].offers[0].ten_combo }}</b>!
                                 </p>
                             </div>
@@ -1266,14 +1387,24 @@ const handleSelectVariantById = (idBienThe) => {
                         </div>
                     </div>
 
-                    <div v-if="specsPanelMode === 'info'" class="machine-info-matrix">
-                        <div
-                            v-for="(spec, idx) in machineInfoGridRows"
-                            :key="`${spec.group}-${spec.label}-${idx}`"
-                            :class="['machine-info-cell', { 'is-placeholder': spec.label === 'Đang cập nhật' }]">
-                            <span class="machine-spec-group">{{ spec.group }}</span>
-                            <span class="machine-spec-name">{{ spec.label }}</span>
-                            <strong class="machine-spec-value">{{ spec.value }}</strong>
+                    <!-- TABBED SPECIFICATIONS CARDS -->
+                    <div v-if="specsPanelMode === 'info'" class="tabbed-specs-layout">
+                        <!-- Tab Headers -->
+                        <div class="specs-category-tabs">
+                            <button v-for="(cat, cIdx) in categorizedSpecs" :key="cIdx"
+                                    :class="['spec-tab-btn', { active: activeSpecTab === cIdx }]"
+                                    @click="activeSpecTab = cIdx">
+                                <span class="tab-icon">{{ cat.icon }}</span>
+                                <span class="tab-text">{{ cat.title }}</span>
+                            </button>
+                        </div>
+
+                        <!-- Selected Category Grid -->
+                        <div class="spec-tab-content-grid" v-if="categorizedSpecs[activeSpecTab]">
+                            <div v-for="(item, idx) in categorizedSpecs[activeSpecTab].items" :key="idx" class="spec-detail-card">
+                                <span class="spec-row-label">{{ item.label }}</span>
+                                <strong class="spec-row-value">{{ item.value }}</strong>
+                            </div>
                         </div>
                     </div>
 
@@ -1403,6 +1534,30 @@ const handleSelectVariantById = (idBienThe) => {
             </div>
         </div>
 
+        <!-- BENCHMARK SYSTEM SECTION -->
+        <div class="premium-benchmark-section">
+            <div class="container">
+                <div class="premium-section-header text-center">
+                    <span class="section-label">Performance Core</span>
+                    <h2>Kiểm Tra Hiệu Năng Thực Tế</h2>
+                    <p class="section-description-text text-center">Điểm số benchmark đo đạc trực tiếp trên cấu hình phần cứng tối tân của máy.</p>
+                </div>
+
+                <div class="benchmark-container-grid">
+                    <div v-for="(bench, idx) in benchmarkData" :key="idx" class="benchmark-progress-card">
+                        <div class="bench-meta-row">
+                            <span class="bench-label">{{ bench.label }}</span>
+                            <span class="bench-score" :style="{ color: bench.color }">{{ bench.score }}%</span>
+                        </div>
+                        <div class="bench-progress-track">
+                            <div class="bench-progress-fill" :style="{ width: bench.score + '%', backgroundColor: bench.color }"></div>
+                        </div>
+                        <p class="bench-desc">{{ bench.desc }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- NEW PRODUCT STORYTELLING BLOCK SECTIONS (Apple Style) -->
         <div class="premium-storytelling-section">
             <!-- Story Block 1 -->
@@ -1435,12 +1590,12 @@ const handleSelectVariantById = (idBienThe) => {
 
 
                 <!-- Modal Chọn Biến Thể Combo -->
-                <ComboSelectionModal 
-                    v-if="selectedCombo" 
-                    :combo="selectedCombo" 
+                <ComboSelectionModal
+                    v-if="selectedCombo"
+                    :combo="selectedCombo"
                     :show="showComboModal"
                     :triggerVariant="selectedTriggerVariant"
-                    @close="showComboModal = false; selectedTriggerVariant = null" 
+                    @close="showComboModal = false; selectedTriggerVariant = null"
                 />
 
             <!-- Story Block 2 -->
@@ -1452,7 +1607,7 @@ const handleSelectVariantById = (idBienThe) => {
                         </div>
                     </div>
                     <div class="story-content">
-                        <span class="story-tag">NEXT GEN INTELLIGENCE</span>
+                        <span class="story-tag">PREDATOR INTELLIGENCE</span>
                         <h2 class="story-title">Kỷ nguyên trí tuệ nhân tạo local dẫn đầu xu hướng.</h2>
                         <p class="story-p">
                             Khởi động và vận hành các tác vụ trí tuệ nhân tạo AI cực nhanh mà không cần kết nối đám mây nhờ bộ vi xử lý được thiết kế chuyên biệt. Cho dù bạn đang xử lý thuật toán học sâu phức tạp hay tối ưu hình ảnh, bộ nhân NPU thế hệ mới sẽ giải quyết mọi thứ trong tích tắc với mức tiêu thụ điện năng tối thiểu nhất.
@@ -1498,7 +1653,7 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Center distribution meters -->
                     <div class="rating-meters-card">
                         <div class="meters-title">Phân tích sao đánh giá</div>
-                        
+
                         <div class="rating-meters-wrapper" v-if="reviews.length > 0">
                             <div v-for="stars in [5,4,3,2,1]" :key="stars" class="meter-bar-row">
                                 <span class="stars-label">{{ stars }} ★</span>
@@ -1580,7 +1735,7 @@ const handleSelectVariantById = (idBienThe) => {
                         <div class="badge-row">
                             <span class="tag-badge badge-glow">HOT PROMO</span>
                         </div>
-                        
+
                         <div class="product-image-box">
                             <img :src="p.img" :alt="p.fullName" class="card-main-image" />
                         </div>
@@ -1588,7 +1743,7 @@ const handleSelectVariantById = (idBienThe) => {
                         <div class="product-info-box">
                             <h4 class="product-card-title">{{ p.fullName }}</h4>
                             <p class="product-card-specs">{{ p.specText }}</p>
-                            
+
                             <!-- Rating stars for small related card -->
                             <div class="product-card-rating">
                                 <span class="stars">⭐⭐⭐⭐⭐</span>
@@ -1616,8 +1771,8 @@ const handleSelectVariantById = (idBienThe) => {
                         &laquo; Trước
                     </button>
                     <div class="pag-numbers-box">
-                        <button v-for="p in totalRelatedPages" :key="p" 
-                                :class="['pag-number-btn', { active: currentRelatedPage === p }]" 
+                        <button v-for="p in totalRelatedPages" :key="p"
+                                :class="['pag-number-btn', { active: currentRelatedPage === p }]"
                                 @click="currentRelatedPage = p">
                             {{ p }}
                         </button>
@@ -1651,7 +1806,7 @@ const handleSelectVariantById = (idBienThe) => {
                         <div class="product-info-box">
                             <h4 class="product-card-title">{{ p.fullName }}</h4>
                             <p class="product-card-specs">{{ p.specText }}</p>
-                            
+
                             <div class="product-card-bottom-row">
                                 <div class="price-side">
                                     <span class="price-title">Giá từ</span>
@@ -1673,8 +1828,8 @@ const handleSelectVariantById = (idBienThe) => {
                         &laquo; Trước
                     </button>
                     <div class="pag-numbers-box">
-                        <button v-for="p in totalRecentlyViewedPages" :key="p" 
-                                :class="['pag-number-btn', { active: currentRecentlyViewedPage === p }]" 
+                        <button v-for="p in totalRecentlyViewedPages" :key="p"
+                                :class="['pag-number-btn', { active: currentRecentlyViewedPage === p }]"
                                 @click="currentRecentlyViewedPage = p">
                             {{ p }}
                         </button>
@@ -1692,7 +1847,7 @@ const handleSelectVariantById = (idBienThe) => {
                 <div class="compare-modal-overlay" v-if="showCompareModal">
                     <div class="compare-modal-card">
                         <div class="modal-glow-boundary"></div>
-                        
+
                         <div class="compare-modal-header">
                             <div class="header-titles">
                                 <h3>📊 So Sánh Hiệu Năng & Chi Tiết Phần Cứng</h3>
@@ -1706,7 +1861,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="compare-products-picker-panel">
                                 <div class="panel-section-title">Danh sách sản phẩm tương đồng:</div>
                                 <div class="no-related-msg" v-if="relatedProducts.length === 0">Không tìm thấy máy tương đương cấu hình.</div>
-                                
+
                                 <div class="picker-list-wrapper" v-else>
                                     <label v-for="p in relatedProducts" :key="p.key_id" class="picker-item-row">
                                         <input type="checkbox" :value="p.key_id" v-model="compareSelection"
@@ -1751,7 +1906,7 @@ const handleSelectVariantById = (idBienThe) => {
                                                 </th>
                                             </tr>
                                         </thead>
-                                        
+
                                         <tbody>
                                             <tr v-for="attr in allAttributeKeys" :key="attr">
                                                 <td class="attribute-col">{{ attr.toUpperCase() }}</td>
@@ -1804,6 +1959,295 @@ const handleSelectVariantById = (idBienThe) => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
+.sticky-buy-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid #E2E8F0;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    z-index: 1000;
+    padding: 12px 0;
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sticky-bar-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.sticky-info-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sticky-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+}
+
+.sticky-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.sticky-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+}
+
+.sticky-variant-name {
+    font-size: 12px;
+    color: #64748B;
+}
+
+.sticky-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.sticky-price-glow {
+    font-size: 18px;
+    font-weight: 800;
+    color: #2563EB;
+}
+
+/* Benefits Box */
+.product-benefits-box {
+    background: #f8fafc;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.benefits-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 12px 0;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    color: #475569;
+}
+
+.benefit-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Guarantees Box */
+.product-guarantees-box {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.guarantee-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.g-icon {
+    font-size: 22px;
+}
+
+.g-text-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.g-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.g-desc {
+    font-size: 11px;
+    color: #64748B;
+}
+
+/* Categorized Specs Tabs */
+.tabbed-specs-layout {
+    margin-top: 30px;
+}
+
+.specs-category-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+.spec-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748B;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.spec-tab-btn:hover {
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.spec-tab-btn.active {
+    color: #ffffff;
+    background: #2563EB;
+    border-color: #2563EB;
+}
+
+.spec-tab-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.spec-detail-card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.spec-row-label {
+    font-size: 12px;
+    color: #64748B;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.spec-row-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Benchmark system styling */
+.premium-benchmark-section {
+    padding: 80px 0;
+    background: #ffffff;
+    border-top: 1px solid #E2E8F0;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.benchmark-container-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    margin-top: 40px;
+}
+
+@media (max-width: 768px) {
+    .benchmark-container-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.benchmark-progress-card {
+    background: #f8fafc;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.bench-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.bench-label {
+    font-weight: 700;
+    color: #0F172A;
+    font-size: 14.5px;
+}
+
+.bench-score {
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.bench-progress-track {
+    height: 10px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.bench-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 1s ease-in-out;
+}
+
+.bench-desc {
+    font-size: 12.5px;
+    color: #64748B;
+    margin: 0;
+}
+
+/* Fade Slide transition for Sticky Bar */
+.fade-slide-bar-enter-active,
+.fade-slide-bar-leave-active {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-bar-enter-from,
+.fade-slide-bar-leave-to {
+    opacity: 0;
+    transform: translateY(-100%);
+}
+
+
+
 /* ==================== GLOBAL PREMIUM VARIABLES ==================== */
 .page {
     --primary: #2563EB;
@@ -1822,7 +2266,7 @@ const handleSelectVariantById = (idBienThe) => {
     --font-heading: 'Outfit', 'Inter', sans-serif;
     --font-body: 'Inter', sans-serif;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     background-color: #ffffff;
     color: var(--text-primary);
     font-family: var(--font-body);
@@ -2558,11 +3002,11 @@ const handleSelectVariantById = (idBienThe) => {
     flex: 1;
     height: 44px;
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: #111f35;
+    border: 1px solid #E2E8F0;
+    background: #f8fafc;
     font-size: 13px;
     font-weight: 800;
-    color: #e2e8f0;
+    color: #475569;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2572,8 +3016,8 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .shortcut-action-btn:hover {
     border-color: var(--primary);
-    color: #ffffff;
-    background: #1d4ed8;
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.05);
 }
 
 /* ==================== SPECIFICATIONS SECTION ==================== */

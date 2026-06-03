@@ -1,7 +1,8 @@
 import api from '@/services/api'
 
-const TTL_MS = 2 * 60 * 1000
-const STORAGE_KEY = 'nextgen_products_prefetch_cache'
+const TTL_MS = 30 * 60 * 1000
+const STALE_TTL_MS = 24 * 60 * 60 * 1000
+const STORAGE_KEY = 'predator_products_prefetch_cache'
 
 let cache = null
 let inFlight = null
@@ -12,14 +13,31 @@ const normalizeList = (payload) => {
   return []
 }
 
-export const prefetchProductsPage = async () => {
+export const prefetchProductsPage = async ({ forceRefresh = false } = {}) => {
   if (cache && Date.now() - cache.fetchedAt < TTL_MS) return cache
-  if (inFlight) return inFlight
 
   const stored = getPrefetchedProductsData()
-  if (stored) return stored
+  if (stored && !forceRefresh) {
+    if (Date.now() - stored.fetchedAt < TTL_MS) return stored
+    if (!inFlight) {
+      inFlight = fetchProductsBundle().finally(() => {
+        inFlight = null
+      })
+    }
+    return stored
+  }
 
-  inFlight = Promise.all([
+  if (inFlight) return inFlight
+
+  inFlight = fetchProductsBundle().finally(() => {
+    inFlight = null
+  })
+
+  return inFlight
+}
+
+const fetchProductsBundle = () => {
+  return Promise.all([
     api.get('/sanpham', { skipGlobalLoader: true }),
     api.get('/danhmuc', { skipGlobalLoader: true }),
     api.get('/thuonghieu', { skipGlobalLoader: true }),
@@ -40,11 +58,6 @@ export const prefetchProductsPage = async () => {
       }
       return cache
     })
-    .finally(() => {
-      inFlight = null
-    })
-
-  return inFlight
 }
 
 export const getPrefetchedProductsData = () => {
@@ -58,7 +71,7 @@ export const getPrefetchedProductsData = () => {
   }
 
   if (!cache) return null
-  if (Date.now() - cache.fetchedAt > TTL_MS) return null
+  if (Date.now() - cache.fetchedAt > STALE_TTL_MS) return null
   return cache
 }
 

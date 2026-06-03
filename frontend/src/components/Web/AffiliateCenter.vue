@@ -58,7 +58,7 @@ const fetchShopProducts = async () => {
     const raw = Array.isArray(res.data) ? res.data : (res.data.data || [])
     shopProducts.value = raw
   } catch (err) {
-    console.error('Không thể tải danh sách sản phẩm tiếp thị', err)
+    console.error('Không th? t?i danh sách s?n ph?m tiếp thị', err)
   }
 }
 
@@ -120,16 +120,16 @@ const copyGeneratedLink = async () => {
       genCopied.value = false
     }, 2000)
   } catch (e) {
-    swal.error('Lỗi sao chép', 'Không thể tự động copy vào bộ nhớ tạm.')
+    swal.error('L?i sao chép', 'Không th? t? d?ng copy vào b? nh? t?m.')
   }
 }
 
-const formatMoney = (value) => Number(value || 0).toLocaleString('vi-VN') + 'đ'
+const formatMoney = (value) => Number(value || 0).toLocaleString('vi-VN') + 'd'
 
 const summaryCards = computed(() => [
   { label: 'Người được giới thiệu', value: data.value.stats.total_referrals },
   { label: 'Hoa hồng chờ duyệt', value: formatMoney(data.value.stats.pending_commission) },
-  { label: 'Hoa hồng đã duyệt', value: formatMoney(data.value.stats.approved_commission) },
+  { label: 'Hoa h?ng dã duy?t', value: formatMoney(data.value.stats.approved_commission) },
   { label: 'Đã thanh toán', value: formatMoney(data.value.stats.paid_commission) },
 ])
 
@@ -152,7 +152,7 @@ const loadAll = async () => {
       fetchShopProducts()
     }
   } catch (e) {
-    error.value = e?.response?.data?.message || 'Không tải được dữ liệu affiliate.'
+    error.value = e?.response?.data?.message || 'Không t?i được dữ liệu affiliate.'
   } finally {
     loading.value = false
   }
@@ -213,7 +213,7 @@ const submitWithdraw = async () => {
 const activate = async () => {
   const isConfirmed = await swal.confirm(
     'Kích hoạt Affiliate',
-    'Bạn muốn tham gia chương trình tiếp thị liên kết để bắt đầu gia tăng thu nhập thụ động cùng NextGen Laptop?'
+    'B?n mu?n tham gia chuong trình tiếp thị liên k?t d? b?t d?u gia tang thu nh?p th? d?ng cùng Predator?'
   )
   if (!isConfirmed) return
 
@@ -221,7 +221,7 @@ const activate = async () => {
   try {
     await api.post('/affiliate/activate')
     await loadAll()
-    swal.success('Kích hoạt thành công', 'Chào mừng bạn đến với mạng lưới đối tác của NextGen Laptop!')
+    swal.success('Kích hoạt thành công', 'Chào mừng bạn đến với mạng lưới đối tác của Predator!')
   } catch (e) {
     swal.error('Lỗi kích hoạt', e?.response?.data?.message || 'Kích hoạt tiếp thị liên kết thất bại.')
   } finally {
@@ -239,7 +239,7 @@ const copyLink = async () => {
       copied.value = false
     }, 2000)
   } catch (e) {
-    swal.error('Lỗi sao chép', 'Không thể tự động copy vào bộ nhớ tạm.')
+    swal.error('L?i sao chép', 'Không th? t? d?ng copy vào b? nh? t?m.')
   }
 }
 
@@ -293,7 +293,7 @@ onMounted(loadAll)
       <div class="heading-content">
         <span class="badge-tag">Chương Trình Đối Tác</span>
         <h1>Affiliate Center</h1>
-        <p>Kiếm tiền thụ động không giới hạn bằng việc tiếp thị sản phẩm của NextGen Laptop tới cộng đồng của bạn.</p>
+        <p>Kiếm tiền thụ động không giới hạn bằng việc tiếp thị sản phẩm của Predator tới cộng đồng của bạn.</p>
       </div>
     </div>
 
@@ -305,7 +305,7 @@ onMounted(loadAll)
           <div class="double-bounce1"></div>
           <div class="double-bounce2"></div>
         </div>
-        <p>Đang tải dữ liệu, vui lòng đợi...</p>
+        <p>Đang tải dữ liệu, vui lòng d?i...</p>
       </div>
 
       <!-- Error State -->
@@ -313,7 +313,7 @@ onMounted(loadAll)
         <AlertCircle class="error-status-icon" />
         <h3>Đã xảy ra sự cố</h3>
         <p>{{ error }}</p>
-        <button class="btn btn-primary" @click="loadAll">Tải lại trang</button>
+        <button class="btn btn-primary" @click="loadAll">T?i l?i trang</button>
       </div>
 
       <!-- Active Status Check -->
@@ -323,7 +323,7 @@ onMounted(loadAll)
           <div class="activation-icon-box">
             <Award class="award-icon" />
           </div>
-          <h3>Đăng Ký Cộng Tác Viên Tiếp Thị</h3>
+          <h3>Đăng Ký Cộng Tác Viên Ti?p Th?</h3>
           <p class="activation-desc">
             Nhận mức chia sẻ hoa hồng ưu đãi trọn đời lên tới <strong>{{ data.profile?.commission_rate || 5 }}%</strong> cho mỗi đơn hàng phát sinh thành công từ mạng lưới tiếp thị của bạn.
           </p>
@@ -339,7 +339,7 @@ onMounted(loadAll)
           <div class="dashboard-tabs">
             <button :class="['tab-btn', { active: activeTab === 'overview' }]" @click="activeTab = 'overview'">
               <TrendingUp class="tab-icon" />
-              <span>Tổng quan</span>
+              <span>T?ng quan</span>
             </button>
             <button :class="['tab-btn', { active: activeTab === 'referrals' }]" @click="activeTab = 'referrals'">
               <Users class="tab-icon" />
@@ -347,7 +347,7 @@ onMounted(loadAll)
             </button>
             <button :class="['tab-btn', { active: activeTab === 'commissions' }]" @click="activeTab = 'commissions'">
               <DollarSign class="tab-icon" />
-              <span>Hoa hồng ({{ commissions.length }})</span>
+              <span>Hoa h?ng ({{ commissions.length }})</span>
             </button>
             <button :class="['tab-btn', { active: activeTab === 'withdraw' }]" @click="activeTab = 'withdraw'">
               <CreditCard class="tab-icon" />
@@ -361,7 +361,7 @@ onMounted(loadAll)
             <div v-if="activeTab === 'overview'" class="tab-pane fade-in">
               <div class="welcome-row">
                 <div class="welcome-meta">
-                  <h2>Chào mừng trở lại, {{ data.profile?.name || 'Cộng tác viên' }}!</h2>
+                  <h2>Chào m?ng tr? l?i, {{ data.profile?.name || 'C?ng tác viên' }}!</h2>
                   <p>Hãy theo dõi liên kết giới thiệu và trạng thái tài chính của bạn tại đây.</p>
                 </div>
                 <div class="code-badges">
@@ -370,7 +370,7 @@ onMounted(loadAll)
                     <span class="info-badge-value">{{ data.profile?.affiliate_code }}</span>
                   </div>
                   <div class="info-badge highlight">
-                    <span class="info-badge-label">Hoa hồng:</span>
+                    <span class="info-badge-label">Hoa h?ng:</span>
                     <span class="info-badge-value">{{ data.profile?.commission_rate }}%</span>
                   </div>
                 </div>
@@ -397,16 +397,16 @@ onMounted(loadAll)
               <div class="link-sharing-card product-generator-card" style="margin-top: 20px;">
                 <div class="link-card-body">
                   <div class="link-info-text">
-                    <h4>Công cụ tạo Link Tiếp thị Sản phẩm</h4>
-                    <p>Chia sẻ trực tiếp bất kỳ trang sản phẩm hoặc trang nội dung nào! Khi khách hàng click vào link tiếp thị này, họ sẽ được dẫn thẳng đến trang đó để xem hoặc mua hàng, đồng thời hệ thống vẫn tự động ghi nhận hoa hồng cho bạn.</p>
+                    <h4>Công cụ tạo Link Tiếp Thị Sản Phẩm</h4>
+                    <p>Chia sẻ trực tiếp bất kỳ trang sản phẩm hoặc trang nội dung nào. Khi khách hàng click vào link tiếp thị này, họ sẽ được dẫn thẳng đến trang đó để xem hoặc mua hàng, đồng thời hệ thống vẫn tự động ghi nhận hoa hồng cho bạn.</p>
                   </div>
                   
                   <div class="generator-container">
                     <div class="generator-row">
                       <div class="generator-col">
-                        <label class="generator-label">Cách 1: Chọn sản phẩm từ danh sách</label>
+                        <label class="generator-label">Cách 1: Ch?n s?n ph?m t? danh sách</label>
                         <select class="generator-select" v-model="selectedProductId" @change="onProductSelectChange">
-                          <option value="">-- Chọn sản phẩm tiếp thị --</option>
+                          <option value="">-- Ch?n s?n ph?m tiếp thị --</option>
                           <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="prod.id_sanpham">
                             {{ prod.tenSP }}
                           </option>
@@ -414,8 +414,8 @@ onMounted(loadAll)
                       </div>
                       
                       <div class="generator-col">
-                        <label class="generator-label">Cách 2: Dán đường dẫn trang web bất kỳ</label>
-                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví dụ: /products/12 hoặc http://localhost:5173/products" @input="generateCustomLink" />
+                        <label class="generator-label">Cách 2: Dán du?ng d?n trang web b?t k?</label>
+                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví d?: /products/12 ho?c http://localhost:5173/products" @input="generateCustomLink" />
                       </div>
                     </div>
 
@@ -501,7 +501,7 @@ onMounted(loadAll)
                       <th>Đơn hàng</th>
                       <th>Khách hàng</th>
                       <th>Số tiền hoa hồng</th>
-                      <th>Trạng thái</th>
+                      <th>Tr?ng thái</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -533,7 +533,7 @@ onMounted(loadAll)
                 <div class="withdraw-form-card">
                   <div class="withdraw-balance-box">
                     <div class="balance-meta">
-                      <span class="balance-label">Số dư khả dụng để rút:</span>
+                      <span class="balance-label">S? d? kh? d?ng d? rút:</span>
                       <h2 class="balance-val">{{ formatMoney(data.stats?.available_balance || 0) }}</h2>
                     </div>
                     <Wallet class="balance-icon" />
@@ -544,23 +544,23 @@ onMounted(loadAll)
                       <label>Số tiền rút (VNĐ) <span class="required">*</span></label>
                       <div class="input-wrapper">
                         <DollarSign class="input-icon" />
-                        <input v-model="withdrawForm.amount" type="number" min="10000" placeholder="Số tiền rút (tối thiểu 10,000đ)" />
+                        <input v-model="withdrawForm.amount" type="number" min="10000" placeholder="Số tiền rút (t?i thi?u 10,000d)" />
                       </div>
                     </div>
 
                     <div class="input-group">
                       <label>Tên Ngân hàng <span class="required">*</span></label>
-                      <input v-model="withdrawForm.bank_name" placeholder="Ví dụ: Vietcombank, Techcombank..." />
+                      <input v-model="withdrawForm.bank_name" placeholder="Ví d?: Vietcombank, Techcombank..." />
                     </div>
 
                     <div class="input-group">
-                      <label>Tên Chủ tài khoản <span class="required">*</span></label>
-                      <input v-model="withdrawForm.bank_account_name" placeholder="Ví dụ: NGUYEN VAN A" />
+                      <label>Tên Ch? tài khoản <span class="required">*</span></label>
+                      <input v-model="withdrawForm.bank_account_name" placeholder="Ví d?: NGUYEN VAN A" />
                     </div>
 
                     <div class="input-group">
-                      <label>Số tài khoản <span class="required">*</span></label>
-                      <input v-model="withdrawForm.bank_account_number" placeholder="Nhập chính xác số tài khoản ngân hàng" />
+                      <label>S? tài khoản <span class="required">*</span></label>
+                      <input v-model="withdrawForm.bank_account_number" placeholder="Nh?p chính xác s? tài khoản ngân hàng" />
                     </div>
                   </div>
 
@@ -581,8 +581,8 @@ onMounted(loadAll)
                       <thead>
                         <tr>
                           <th>Số tiền</th>
-                          <th>Tài khoản thụ hưởng</th>
-                          <th>Trạng thái</th>
+                          <th>Tài kho?n th? hu?ng</th>
+                          <th>Tr?ng thái</th>
                           <th>Ngày tạo</th>
                         </tr>
                       </thead>

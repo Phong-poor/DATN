@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
@@ -26,7 +26,7 @@ const tabs = computed(() => ['Mới nhất', ...categories.value.slice(0, 4)])
 const displayedPages = computed(() => {
   const range = []
   const delta = 2
-  
+
   for (let i = 1; i <= lastPage.value; i++) {
     if (
       i === 1 ||
@@ -41,7 +41,7 @@ const displayedPages = computed(() => {
       range.push('...')
     }
   }
-  
+
   const result = []
   for (let i = 0; i < range.length; i++) {
     if (range[i] === '...' && result[result.length - 1] === '...') {
@@ -96,10 +96,10 @@ const fetchNews = async (page = 1) => {
     posts.value = data.data || []
     posts.value.forEach(post => {
       try {
-        const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
+        const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
         let cached = cachedStr ? JSON.parse(cachedStr) : {}
         if (!cached.post) cached.post = post
-        localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
+        localStorage.setItem(`predator_news_detail_cache_${post.id}`, JSON.stringify(cached))
       } catch (e) {}
     })
     currentPage.value = data.current_page || 1
@@ -123,10 +123,10 @@ const fetchPopular = async () => {
     popularPosts.value = (data.data || []).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
     popularPosts.value.forEach(post => {
       try {
-        const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
+        const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
         let cached = cachedStr ? JSON.parse(cachedStr) : {}
         if (!cached.post) cached.post = post
-        localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
+        localStorage.setItem(`predator_news_detail_cache_${post.id}`, JSON.stringify(cached))
       } catch (e) {}
     })
   } catch (error) {
@@ -143,7 +143,7 @@ const selectTab = async (tab) => {
 
 const loadCache = () => {
   try {
-    const cached = localStorage.getItem('nextgen_news_cache')
+    const cached = localStorage.getItem('predator_news_cache')
     if (cached) {
       const parsed = JSON.parse(cached)
       if (parsed.posts) posts.value = parsed.posts
@@ -154,8 +154,14 @@ const loadCache = () => {
 
 const saveCache = () => {
   try {
-    localStorage.setItem('nextgen_news_cache', JSON.stringify({ posts: posts.value, popularPosts: popularPosts.value }))
+    localStorage.setItem('predator_news_cache', JSON.stringify({ posts: posts.value, popularPosts: popularPosts.value }))
   } catch (e) {}
+}
+
+const getReadingTime = (content) => {
+  if (!content) return 3
+  const words = content.replace(/<[^>]*>/g, '').trim().split(/\s+/).length
+  return Math.ceil(words / 200) || 1
 }
 
 onMounted(async () => {
@@ -167,7 +173,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Lỗi tải tin tức:', error)
   }
-  
+
   // Reading progress indicator script setup
   window.addEventListener('scroll', () => {
     const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
@@ -195,11 +201,11 @@ onMounted(async () => {
           <span class="sep">/</span>
           <span class="current">Tạp chí công nghệ</span>
         </div>
-        
-        <span class="header-badge">📡 NETGEN CYBER-MEDIA HUB</span>
+
+        <span class="header-badge">📡 PREDATOR CYBER-MEDIA HUB</span>
         <h1>Trải nghiệm <span>vũ trụ công nghệ.</span></h1>
-        <p class="header-description">Kênh truyền thông chính thức của NetGen - Cập nhật những phát kiến phần cứng, trí tuệ nhân tạo local và cẩm nang công nghệ chuyên sâu.</p>
-        
+        <p class="header-description">Kênh truyền thông chính thức của Predator - Cập nhật những phát kiến phần cứng, trí tuệ nhân tạo local và cẩm nang công nghệ chuyên sâu.</p>
+
         <nav class="tabs">
           <button
             v-for="tab in tabs"
@@ -241,26 +247,26 @@ onMounted(async () => {
                   <span class="hero-editorial-label">FEATURED BRIEF</span>
                   <img :src="imageUrl(randomPost.image)" :alt="randomPost.image_alt || randomPost.title" class="hero-featured-img" @error="e => e.target.src = placeholderImage" />
                 </div>
-                
-                <!-- Right: Content Side -->
-                <div class="hero-content-side">
-                  <div class="hero-meta-row">
-                    <span class="hero-category-tag">{{ randomPost.category }}</span>
-                    <span class="meta-dot">•</span>
-                    <span class="hero-reading-time">⏱️ 5 phút đọc</span>
-                  </div>
-                  
-                  <h2 class="hero-headline">{{ randomPost.title }}</h2>
-                  <p class="hero-abstract" v-if="randomPost.excerpt">{{ randomPost.excerpt }}</p>
-                  
-                  <div class="hero-author-row">
-                    <div class="author-avatar">NG</div>
-                    <div class="author-info">
-                      <span class="author-name">NetGen Editorial Staff</span>
-                      <span class="published-date">{{ formatDate(randomPost.published_at || randomPost.created_at) }}</span>
-                    </div>
-                  </div>
-                  
+
+                 <!-- Right: Content Side -->
+                 <div class="hero-content-side">
+                   <div class="hero-meta-row">
+                     <span class="hero-category-tag">{{ randomPost.category }}</span>
+                     <span class="meta-dot">•</span>
+                     <span class="hero-reading-time">⏱️ {{ getReadingTime(randomPost.content) }} phút đọc</span>
+                   </div>
+
+                   <h2 class="hero-headline">{{ randomPost.title }}</h2>
+                   <p class="hero-abstract" v-if="randomPost.excerpt">{{ randomPost.excerpt }}</p>
+
+                   <div class="hero-author-row">
+                     <div class="author-avatar">NG</div>
+                     <div class="author-info">
+                       <span class="author-name">{{ randomPost.author_name || randomPost.tac_gia || 'Predator Staff' }}</span>
+                       <span class="published-date">{{ formatDate(randomPost.published_at || randomPost.created_at) }}</span>
+                     </div>
+                   </div>
+
                   <span class="hero-action-link">ĐỌC BÀI VIẾT ĐẦY ĐỦ <span class="arrow">→</span></span>
                 </div>
               </div>
@@ -270,10 +276,10 @@ onMounted(async () => {
           <!-- TRENDING MAGAZINE RADAR (Buying Guides & Expert picks) -->
           <div class="tech-radar-section" v-if="posts.length > 0">
             <div class="radar-header">
-              <h3>⚡ Tech Radar: NetGen Khuyên Dùng</h3>
-              <p>Các cẩm nang lựa chọn thiết bị công nghệ chuyên nghiệp được biên soạn bởi chuyên gia NetGen</p>
+              <h3>⚡ Tech Radar: Predator Khuyên Dùng</h3>
+              <p>Các cẩm nang lựa chọn thiết bị công nghệ chuyên nghiệp được biên soạn bởi chuyên gia Predator</p>
             </div>
-            
+
             <div class="radar-grid">
               <div class="radar-card radar-glow-1">
                 <div class="radar-icon">💻</div>
@@ -313,13 +319,13 @@ onMounted(async () => {
                 <div class="card-meta-line">
                   <span class="card-pub-date">{{ formatDate(post.published_at || post.created_at) }}</span>
                   <span class="meta-dot">•</span>
-                  <span class="card-read-time">⏱️ 3 phút đọc</span>
+                  <span class="card-read-time">⏱️ {{ getReadingTime(post.content) }} phút đọc</span>
                 </div>
                 <h3 class="card-headline">{{ post.title }}</h3>
                 <p class="card-excerpt" v-if="post.excerpt">{{ post.excerpt }}</p>
-                
+
                 <div class="card-bottom-row">
-                  <span class="card-author-name">Bởi NetGen Tech</span>
+                  <span class="card-author-name">👤 {{ post.author_name || post.tac_gia || 'Predator staff' }}</span>
                   <span class="card-read-more-link">Khám phá <span class="arrow">→</span></span>
                 </div>
               </div>
@@ -334,22 +340,22 @@ onMounted(async () => {
 
           <!-- PREMIUM PAGINATION CONTROLLER -->
           <div class="magazine-pagination" v-if="lastPage > 1">
-            <button 
-              class="pagination-arrow-btn prev-btn" 
-              :disabled="currentPage <= 1" 
+            <button
+              class="pagination-arrow-btn prev-btn"
+              :disabled="currentPage <= 1"
               @click="fetchNews(currentPage - 1)"
               aria-label="Trang trước"
             >
               &laquo; Trước
             </button>
-            
+
             <div class="pagination-numbers-row">
               <template v-for="(page, idx) in displayedPages" :key="idx">
                 <span v-if="page === '...'" class="pagination-dots">...</span>
-                <button 
-                  v-else 
-                  class="pagination-num-btn" 
-                  :class="{ active: currentPage === page }" 
+                <button
+                  v-else
+                  class="pagination-num-btn"
+                  :class="{ active: currentPage === page }"
                   @click="fetchNews(page)"
                 >
                   {{ page }}
@@ -357,9 +363,9 @@ onMounted(async () => {
               </template>
             </div>
 
-            <button 
-              class="pagination-arrow-btn next-btn" 
-              :disabled="currentPage >= lastPage" 
+            <button
+              class="pagination-arrow-btn next-btn"
+              :disabled="currentPage >= lastPage"
               @click="fetchNews(currentPage + 1)"
               aria-label="Trang sau"
             >
@@ -390,7 +396,7 @@ onMounted(async () => {
                 <div class="pop-views-badge">👁️ {{ item.views || 0 }} lượt xem</div>
               </div>
             </RouterLink>
-            
+
             <div v-if="popularPosts.length === 0" class="sidebar-empty-fallback">
               Chưa có dữ liệu bài viết phổ biến.
             </div>
@@ -413,15 +419,42 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Xu hướng tìm kiếm -->
+        <div class="sidebar-magazine-widget">
+          <h4 class="widget-magazine-title">📈 XU HƯỚNG TÌM KIẾM</h4>
+          <div class="search-trends-list">
+            <a href="/products?search=RTX%2040" class="trend-item">
+              <span class="trend-rank">#1</span>
+              <span class="trend-query">Card đồ họa RTX 40-Series</span>
+              <span class="trend-icon">↗</span>
+            </a>
+            <a href="/products?search=OLED" class="trend-item">
+              <span class="trend-rank">#2</span>
+              <span class="trend-query">Màn hình OLED 240Hz</span>
+              <span class="trend-icon">↗</span>
+            </a>
+            <a href="/products?search=Ultra" class="trend-item">
+              <span class="trend-rank">#3</span>
+              <span class="trend-query">Intel Core Ultra AI</span>
+              <span class="trend-icon">↗</span>
+            </a>
+            <a href="/products?search=MacBook" class="trend-item">
+              <span class="trend-rank">#4</span>
+              <span class="trend-query">MacBook Pro M3 Max</span>
+              <span class="trend-icon">↗</span>
+            </a>
+          </div>
+        </div>
+
         <!-- PREMIUM MEMBERSHIP NEWSLETTER CARD -->
         <div class="premium-subscribe-block">
           <div class="glow-accent-overlay"></div>
           <div class="newsletter-brand-header">
             <span class="badge-mini">NEWSLETTER</span>
-            <h3>Join NetGen Cyber-Tech Weekly</h3>
+            <h3>Join Predator Cyber-Tech Weekly</h3>
             <p>Tham gia cùng hơn 50.000+ kỹ sư và người yêu công nghệ nhận bản tin phân tích độc quyền hàng tuần.</p>
           </div>
-          
+
           <ul class="subscribe-benefits-list">
             <li>
               <span class="check-icon">✓</span>
@@ -437,7 +470,7 @@ onMounted(async () => {
             </li>
             <li>
               <span class="check-icon">✓</span>
-              <span class="benefit-txt">Mã giảm giá mua sắm độc quyền NetGen</span>
+              <span class="benefit-txt">Mã giảm giá mua sắm độc quyền Predator</span>
             </li>
           </ul>
 
@@ -447,7 +480,7 @@ onMounted(async () => {
               THAM GIA NGAY ➜
             </button>
           </div>
-          
+
           <span class="privacy-note">Cam kết bảo mật 100% · Hủy đăng ký bất kỳ lúc nào</span>
         </div>
       </aside>
@@ -476,8 +509,8 @@ onMounted(async () => {
   --font-heading: 'Outfit', 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  background-color: #ffffff;
+
+  background-color: var(--tn-bg);
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
@@ -1370,7 +1403,7 @@ onMounted(async () => {
 }
 .newsletter-brand-header p {
   font-size: 11.5px;
-  color: #94a3b8;
+  color: #475569;
   line-height: 1.5;
   margin: 0;
 }
@@ -1397,7 +1430,7 @@ onMounted(async () => {
 }
 .subscribe-benefits-list .benefit-txt {
   font-size: 12px;
-  color: #e2e8f0;
+  color: #475569;
 }
 
 .newsletter-form-wrapper {
@@ -1512,5 +1545,49 @@ onMounted(async () => {
     padding: 12px;
     font-size: 13px;
   }
+}
+
+/* Search Trends List */
+.search-trends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e6eef6;
+  transition: var(--transition);
+}
+.trend-item:hover {
+  background: var(--primary-glow);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateX(4px);
+}
+.trend-rank {
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 12px;
+}
+.trend-query {
+  flex-grow: 1;
+}
+.trend-icon {
+  font-size: 12px;
+  color: #94a3b8;
+  transition: var(--transition);
+}
+.trend-item:hover .trend-icon {
+  color: var(--primary);
+  transform: translate(2px, -2px);
 }
 </style>

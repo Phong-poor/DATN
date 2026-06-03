@@ -606,7 +606,7 @@ class OptimizedTrie {
         ],
         output: `📣 VINATECH CREATIVE MARKETER ASSISTANT:
 ==================================================================
-Dưới đây là kế hoạch chiến dịch ra mắt "NextGen AI Laptop: VinaTech Elite Premium" hướng tới các nghệ sĩ, thiết kế đồ họa (Creatives) cực kỳ chi tiết:
+Dưới đây là kế hoạch chiến dịch ra mắt "Predator AI Laptop: VinaTech Elite Premium" hướng tới các nghệ sĩ, thiết kế đồ họa (Creatives) cực kỳ chi tiết:
 
 PHASE 1: TEASER - "SÁNG TẠO KHÔNG GIỚI HẠN" (Tuần 1 - Tuần 2)
   - Hoạt động: Đăng tải các video chuyển động 3D cận cảnh chi tiết phay nhôm CNC nguyên khối và hình ảnh màn hình OLED phản chiếu dải màu điện ảnh.

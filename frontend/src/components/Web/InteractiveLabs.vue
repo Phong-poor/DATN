@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="labs-page">
     <!-- Subtle Valiant Background Elements -->
     <div class="subtle-grid-bg"></div>
@@ -10,33 +10,33 @@
       <div class="hero-bg-overlay"></div>
       <div class="container hero-content">
         <div class="badge-label animate-fade-in">VinaTech Interactive & Gamification Hub</div>
-        <h1 class="animate-slide-up">Đấu Trường Tương Tác & Đại Sứ Công Nghệ</h1>
+        <h1 class="animate-slide-up">�?u Tru?ng Tuong T�c & �?i S? C�ng Ngh?</h1>
         <p class="animate-fade-in-delayed">
-          Khám phá giới hạn phần cứng, thiết kế laptop cá nhân và tham gia hệ sinh thái nhiệm vụ nhận quà độc quyền.
+          Kh�m ph� gi?i h?n ph?n c?ng, thi?t k? laptop c� nh�n v� tham gia h? sinh th�i nhi?m v? nh?n qu� d?c quy?n.
         </p>
 
         <!-- Tab Switcher (Expanded to 3 tabs) -->
         <div class="tabs-container">
-          <button 
-            @click="activeTab = 'versus'" 
-            :class="{ active: activeTab === 'versus' }" 
+          <button
+            @click="activeTab = 'versus'"
+            :class="{ active: activeTab === 'versus' }"
             class="tab-btn"
           >
-            <span class="tab-icon"></span> Đấu Trường Hiệu Năng
+            <span class="tab-icon"></span> �?u Tru?ng Hi?u Nang
           </button>
-          <button 
-            @click="activeTab = 'customizer'" 
-            :class="{ active: activeTab === 'customizer' }" 
+          <button
+            @click="activeTab = 'customizer'"
+            :class="{ active: activeTab === 'customizer' }"
             class="tab-btn"
           >
-            <span class="tab-icon"></span> Cá Nhân Hóa Laptop
+            <span class="tab-icon"></span> C� Nh�n H�a Laptop
           </button>
-          <button 
-            @click="activeTab = 'gamification'" 
-            :class="{ active: activeTab === 'gamification' }" 
+          <button
+            @click="activeTab = 'gamification'"
+            :class="{ active: activeTab === 'gamification' }"
             class="tab-btn"
           >
-            <span class="tab-icon"></span> Đại Sứ & Quests
+            <span class="tab-icon"></span> �?i S? & Quests
           </button>
         </div>
       </div>
@@ -45,20 +45,20 @@
     <!-- Main Content Area -->
     <div class="container main-content">
       <transition name="fade-slide" mode="out-in">
-        
+
         <!-- =================== TAB 1: VERSUS ARENA =================== -->
         <div v-if="activeTab === 'versus'" class="versus-arena" key="versus">
           <div class="grid-layout">
-            
+
             <!-- Column 1: Laptop A Selection -->
             <div class="control-panel card-glass">
               <div class="panel-header">
                 <span class="dot-indicator blue"></span>
-                <h3>Chiến Binh A (Laptop A)</h3>
+                <h3>Chi?n Binh A (Laptop A)</h3>
               </div>
-              
+
               <div class="form-group">
-                <label>Chọn Laptop đối đầu:</label>
+                <label>Ch?n Laptop d?i d?u:</label>
                 <div class="select-wrapper">
                   <select v-model="selectedIdA" class="custom-select">
                     <option v-for="lap in allLaptops" :key="'A-'+lap.id" :value="lap.id">
@@ -85,7 +85,7 @@
             <!-- Column 2: RADAR CHART (Middle Arena) -->
             <div class="chart-panel card-glass center-align">
               <div class="panel-header center-head">
-                <h3>ĐỐI ĐẦU CHỈ SỐ SỨC MẠNH</h3>
+                <h3>�?I �?U CH? S? S?C M?NH</h3>
               </div>
 
               <!-- Dynamic SVG Radar Chart -->
@@ -93,10 +93,10 @@
                 <svg viewBox="0 0 300 300" class="radar-svg">
                   <!-- Concentric pentagons for background grid -->
                   <polygon v-for="grid in [20, 40, 60, 80, 100]" :key="'grid-'+grid"
-                    :points="getGridPoints(grid)" 
-                    class="grid-polygon" 
+                    :points="getGridPoints(grid)"
+                    class="grid-polygon"
                   />
-                  
+
                   <!-- Circular Grid Radiants (concentric rings) -->
                   <circle cx="150" cy="150" r="100" class="grid-circle" />
                   <circle cx="150" cy="150" r="75" class="grid-circle" />
@@ -105,10 +105,10 @@
 
                   <!-- Axis Lines -->
                   <line v-for="i in 5" :key="'axis-'+i"
-                    x1="150" y1="150" 
-                    :x2="getAxisEndCoords(i-1).x" 
-                    :y2="getAxisEndCoords(i-1).y" 
-                    class="axis-line" 
+                    x1="150" y1="150"
+                    :x2="getAxisEndCoords(i-1).x"
+                    :y2="getAxisEndCoords(i-1).y"
+                    class="axis-line"
                   />
 
                   <!-- Grid Text Indicators -->
@@ -118,24 +118,24 @@
                   <text x="150" y="120" class="grid-text">25</text>
 
                   <!-- Laptop A Polygon (Neon Cyan) -->
-                  <polygon 
-                    v-if="laptopA" 
-                    :points="getPolygonPoints(laptopA)" 
-                    class="radar-poly poly-a" 
+                  <polygon
+                    v-if="laptopA"
+                    :points="getPolygonPoints(laptopA)"
+                    class="radar-poly poly-a"
                   />
                   <!-- Laptop B Polygon (Neon Pink) -->
-                  <polygon 
-                    v-if="laptopB" 
-                    :points="getPolygonPoints(laptopB)" 
-                    class="radar-poly poly-b" 
+                  <polygon
+                    v-if="laptopB"
+                    :points="getPolygonPoints(laptopB)"
+                    class="radar-poly poly-b"
                   />
 
                   <!-- Label Texts -->
-                  <text x="150" y="25" text-anchor="middle" class="axis-label">CPU (Xử lý)</text>
-                  <text x="260" y="105" text-anchor="start" class="axis-label">GPU (Game/Đồ họa)</text>
-                  <text x="235" y="235" text-anchor="start" class="axis-label">Pin (Dung lượng)</text>
-                  <text x="65" y="235" text-anchor="end" class="axis-label">Cơ động (Khối lượng)</text>
-                  <text x="40" y="105" text-anchor="end" class="axis-label">Tản nhiệt (Mát)</text>
+                  <text x="150" y="25" text-anchor="middle" class="axis-label">CPU (X? l�)</text>
+                  <text x="260" y="105" text-anchor="start" class="axis-label">GPU (Game/�? h?a)</text>
+                  <text x="235" y="235" text-anchor="start" class="axis-label">Pin (Dung lu?ng)</text>
+                  <text x="65" y="235" text-anchor="end" class="axis-label">Co d?ng (Kh?i lu?ng)</text>
+                  <text x="40" y="105" text-anchor="end" class="axis-label">T?n nhi?t (M�t)</text>
                 </svg>
               </div>
 
@@ -156,11 +156,11 @@
             <div class="control-panel card-glass">
               <div class="panel-header">
                 <span class="dot-indicator pink"></span>
-                <h3>Chiến Binh B (Laptop B)</h3>
+                <h3>Chi?n Binh B (Laptop B)</h3>
               </div>
-              
+
               <div class="form-group">
-                <label>Chọn Laptop đối đầu:</label>
+                <label>Ch?n Laptop d?i d?u:</label>
                 <div class="select-wrapper">
                   <select v-model="selectedIdB" class="custom-select">
                     <option v-for="lap in allLaptops" :key="'B-'+lap.id" :value="lap.id">
@@ -189,21 +189,21 @@
           <!-- Bottom: FPS & Simulation Arena -->
           <div class="simulation-section card-glass">
             <div class="simulation-header">
-              <span class="sim-icon">🎮</span>
+              <span class="sim-icon">??</span>
               <div>
-                <h3>Đấu Trường Giả Lập Hiệu Năng Game Thực Tế</h3>
-                <p>Chọn tựa game và độ phân giải đồ họa để mô phỏng chỉ số FPS & Nhiệt độ hoạt động</p>
+                <h3>�?u Tru?ng Gi? L?p Hi?u Nang Game Th?c T?</h3>
+                <p>Ch?n t?a game v� d? ph�n gi?i d? h?a d? m� ph?ng ch? s? FPS & Nhi?t d? ho?t d?ng</p>
               </div>
             </div>
 
             <div class="sim-grid">
               <!-- Game Selectors -->
               <div class="games-selector">
-                <label class="section-sublabel">1. Chọn tựa Game muốn thử:</label>
+                <label class="section-sublabel">1. Ch?n t?a Game mu?n th?:</label>
                 <div class="games-grid">
-                  <button 
-                    v-for="game in games" 
-                    :key="game.id" 
+                  <button
+                    v-for="game in games"
+                    :key="game.id"
                     @click="selectedGameId = game.id"
                     :class="{ active: selectedGameId === game.id }"
                     class="game-card"
@@ -219,23 +219,23 @@
 
               <!-- Graphics Settings -->
               <div class="graphics-selector">
-                <label class="section-sublabel">2. Thiết lập cấu hình đồ họa:</label>
+                <label class="section-sublabel">2. Thi?t l?p c?u h�nh d? h?a:</label>
                 <div class="slider-wrapper">
                   <div class="setting-labels">
-                    <span :class="{ active: graphicsSetting === 'low' }">Thấp (1080p)</span>
-                    <span :class="{ active: graphicsSetting === 'medium' }">Trung bình (2K)</span>
-                    <span :class="{ active: graphicsSetting === 'high' }">Cực cao (4K Ultra)</span>
+                    <span :class="{ active: graphicsSetting === 'low' }">Th?p (1080p)</span>
+                    <span :class="{ active: graphicsSetting === 'medium' }">Trung b�nh (2K)</span>
+                    <span :class="{ active: graphicsSetting === 'high' }">C?c cao (4K Ultra)</span>
                   </div>
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="3" 
-                    step="1" 
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="1"
                     v-model="graphicsSliderVal"
                     class="custom-range"
                   />
                   <div class="setting-description">
-                    ⚡ Đang mô phỏng cấu hình: <strong>{{ graphicsSettingLabel }}</strong>
+                    ? �ang m� ph?ng c?u h�nh: <strong>{{ graphicsSettingLabel }}</strong>
                   </div>
                 </div>
               </div>
@@ -244,12 +244,12 @@
             <!-- Comparison Results Bars -->
             <div class="comparison-results" v-if="laptopA && laptopB">
               <div class="versus-title-middle">RESULTS MATCH</div>
-              
+
               <div class="results-grid">
                 <!-- Stat Card: FPS -->
                 <div class="stat-compare-card">
-                  <div class="stat-compare-title">🎮 Khung hình mỗi giây (FPS)</div>
-                  
+                  <div class="stat-compare-title">?? Khung h�nh m?i gi�y (FPS)</div>
+
                   <!-- Laptop A Bar -->
                   <div class="bar-wrapper">
                     <div class="bar-info">
@@ -271,18 +271,18 @@
                       <div class="bar-fill pink-bg" :style="{ width: getPercentage(fpsB, 360) + '%' }"></div>
                     </div>
                   </div>
-                  <p class="stat-summary">Mượt mà tối thiểu: 60 FPS. Màn gaming lý tưởng: 144+ FPS.</p>
+                  <p class="stat-summary">Mu?t m� t?i thi?u: 60 FPS. M�n gaming l� tu?ng: 144+ FPS.</p>
                 </div>
 
                 <!-- Stat Card: TEMPERATURE -->
                 <div class="stat-compare-card">
-                  <div class="stat-compare-title">🌡️ Nhiệt độ hoạt động (°C)</div>
-                  
+                  <div class="stat-compare-title">??? Nhi?t d? ho?t d?ng (�C)</div>
+
                   <!-- Laptop A Bar -->
                   <div class="bar-wrapper">
                     <div class="bar-info">
                       <span>{{ laptopA.name }}</span>
-                      <span class="value" :class="getTempClass(tempA)">{{ tempA }} °C</span>
+                      <span class="value" :class="getTempClass(tempA)">{{ tempA }} �C</span>
                     </div>
                     <div class="bar-track">
                       <div class="bar-fill" :class="getTempBgClass(tempA)" :style="{ width: getPercentage(tempA, 105) + '%' }"></div>
@@ -293,20 +293,20 @@
                   <div class="bar-wrapper">
                     <div class="bar-info">
                       <span>{{ laptopB.name }}</span>
-                      <span class="value" :class="getTempClass(tempB)">{{ tempB }} °C</span>
+                      <span class="value" :class="getTempClass(tempB)">{{ tempB }} �C</span>
                     </div>
                     <div class="bar-track">
                       <div class="bar-fill" :class="getTempBgClass(tempB)" :style="{ width: getPercentage(tempB, 105) + '%' }"></div>
                     </div>
                   </div>
-                  <p class="stat-summary" v-if="tempA > 85 || tempB > 85">⚠️ Cảnh báo: Nhiệt độ vượt ngưỡng 85°C có thể gây giảm hiệu năng nhẹ (thermal throttling).</p>
-                  <p class="stat-summary" v-else>✅ Nhiệt độ hoạt động trong ngưỡng an toàn, hệ thống tản nhiệt hoạt động xuất sắc.</p>
+                  <p class="stat-summary" v-if="tempA > 85 || tempB > 85">?? C?nh b�o: Nhi?t d? vu?t ngu?ng 85�C c� th? g�y gi?m hi?u nang nh? (thermal throttling).</p>
+                  <p class="stat-summary" v-else>? Nhi?t d? ho?t d?ng trong ngu?ng an to�n, h? th?ng t?n nhi?t ho?t d?ng xu?t s?c.</p>
                 </div>
 
                 <!-- Stat Card: POWER DRAW -->
                 <div class="stat-compare-card">
-                  <div class="stat-compare-title">⚡ Điện năng tiêu thụ (TDP Watts)</div>
-                  
+                  <div class="stat-compare-title">? �i?n nang ti�u th? (TDP Watts)</div>
+
                   <!-- Laptop A Bar -->
                   <div class="bar-wrapper">
                     <div class="bar-info">
@@ -328,7 +328,7 @@
                       <div class="bar-fill pink-bg" :style="{ width: getPercentage(tdpB, 280) + '%' }"></div>
                     </div>
                   </div>
-                  <p class="stat-summary">TDP càng cao chứng tỏ máy tiêu hao năng lượng nhiều hơn để bung tối đa hiệu năng.</p>
+                  <p class="stat-summary">TDP c�ng cao ch?ng t? m�y ti�u hao nang lu?ng nhi?u hon d? bung t?i da hi?u nang.</p>
                 </div>
               </div>
             </div>
@@ -338,52 +338,52 @@
         <!-- =================== TAB 2: LAPTOP CUSTOMIZER =================== -->
         <div v-else-if="activeTab === 'customizer'" class="laptop-customizer" key="customizer">
           <div class="grid-layout-custom">
-            
+
             <!-- Left Column: Visual Customizer Canvas -->
             <div class="canvas-panel card-glass center-align">
               <!-- Visual Toggles -->
               <div class="canvas-toggles">
-                <button 
-                  @click="customizerView = 'lid'" 
+                <button
+                  @click="customizerView = 'lid'"
                   :class="{ active: customizerView === 'lid' }"
                   class="toggle-btn"
                 >
-                  💻 Vỏ Máy (Lid Outer)
+                  ?? V? M�y (Lid Outer)
                 </button>
-                <button 
-                  @click="customizerView = 'keyboard'" 
+                <button
+                  @click="customizerView = 'keyboard'"
                   :class="{ active: customizerView === 'keyboard' }"
                   class="toggle-btn"
                 >
-                  ⌨️ Bàn Phím (LED Backlit)
+                  ?? B�n Ph�m (LED Backlit)
                 </button>
-                <button 
-                  @click="customizerView = 'internals'" 
+                <button
+                  @click="customizerView = 'internals'"
                   :class="{ active: customizerView === 'internals' }"
                   class="toggle-btn"
                 >
-                  🔬 Mô Phỏng 3D Linh Kiện
+                  ?? M� Ph?ng 3D Linh Ki?n
                 </button>
               </div>
 
-              <!-- VIEW 1: OUTSIDE LAPTOP (MẶT A + STICKERS) -->
+              <!-- VIEW 1: OUTSIDE LAPTOP (M?T A + STICKERS) -->
               <div v-if="customizerView === 'lid'" class="laptop-lid-container animate-fade-in">
-                <div 
-                  class="laptop-lid" 
+                <div
+                  class="laptop-lid"
                   :style="{ background: chassisColorGrad }"
                   ref="laptopLidRef"
                 >
                   <!-- Glossy Metal Highlight -->
                   <div class="metal-shine"></div>
-                  
+
                   <!-- VinaTech Logo Core Center -->
                   <div class="center-brand-logo">
-                    <span class="logo-text">NextGen</span>
+                    <span class="logo-text">Predator</span>
                   </div>
 
                   <!-- Dynamic Applied Stickers Layer -->
-                  <div 
-                    v-for="stk in appliedStickers" 
+                  <div
+                    v-for="stk in appliedStickers"
                     :key="stk.id"
                     class="applied-sticker"
                     :class="{ selected: selectedStickerId === stk.id }"
@@ -405,10 +405,10 @@
                     </div>
                   </div>
                 </div>
-                <p class="interaction-tip">💡 Mẹo: Nhấn và kéo nhãn dán để di chuyển tự do trên vỏ máy!</p>
+                <p class="interaction-tip">?? M?o: Nh?n v� k�o nh�n d�n d? di chuy?n t? do tr�n v? m�y!</p>
               </div>
 
-              <!-- VIEW 2: KEYBOARD (MẶT C + RGB BACKLIGHT) -->
+              <!-- VIEW 2: KEYBOARD (M?T C + RGB BACKLIGHT) -->
               <div v-else-if="customizerView === 'keyboard'" class="laptop-keyboard-container animate-fade-in">
                 <div class="keyboard-chassis">
                   <!-- Touchpad area -->
@@ -481,34 +481,34 @@
                     <div class="key key-space" :style="keyLedStyle">SPACE</div>
                     <div class="key key-alt" :style="keyLedStyle">Alt</div>
                     <div class="key key-ctrl" :style="keyLedStyle">Ctrl</div>
-                    <div class="key key-arrow" :style="keyLedStyle">▲</div>
-                    <div class="key key-arrow" :style="keyLedStyle">▼</div>
+                    <div class="key key-arrow" :style="keyLedStyle">?</div>
+                    <div class="key key-arrow" :style="keyLedStyle">?</div>
                   </div>
 
                   <!-- Large glass trackpad -->
                   <div class="trackpad-glass"></div>
                 </div>
-                <p class="interaction-tip">⌨️ Phía trên là mô phỏng bàn phím tích hợp đèn LED RGB sinh động!</p>
+                <p class="interaction-tip">?? Ph�a tr�n l� m� ph?ng b�n ph�m t�ch h?p d�n LED RGB sinh d?ng!</p>
               </div>
 
               <!-- VIEW 3: 3D INTERNALS EXPLODED VIEW / SCHEMATIC OVERVIEW -->
               <div v-else-if="customizerView === 'internals'" class="laptop-internals-container animate-fade-in" :class="{ 'schematic-active': showSchematic }">
-                
+
                 <!-- SCHEMATIC 2D STATE -->
                 <div v-if="showSchematic" class="schematic-view-container animate-fade-in">
-                  <div class="schematic-image-wrapper" @click="triggerExplosion" title="Click để kích hoạt bung máy 3D!">
-                    <img src="/schematic_laptop.png" alt="Sơ đồ laptop ngoài" class="schematic-img animate-pulse-gentle" />
-                    
+                  <div class="schematic-image-wrapper" @click="triggerExplosion" title="Click d? k�ch ho?t bung m�y 3D!">
+                    <img src="/schematic_laptop.png" alt="So d? laptop ngo�i" class="schematic-img animate-pulse-gentle" />
+
                     <!-- Pulsing center button to trigger 3D explosion -->
                     <div class="schematic-overlay-cta">
                       <span class="cta-pulse-ring"></span>
-                      <span class="cta-text">💥 BẤM ĐỂ BUNG MÁY 3D</span>
+                      <span class="cta-text">?? B?M �? BUNG M�Y 3D</span>
                     </div>
 
                     <!-- Interactive pins on top of the image -->
-                    <div 
-                      v-for="part in schematicParts" 
-                      :key="part.id" 
+                    <div
+                      v-for="part in schematicParts"
+                      :key="part.id"
                       class="schematic-pin"
                       :style="{ left: part.x + '%', top: part.y + '%' }"
                       :class="{ active: activeSchematicPart === part.id }"
@@ -518,7 +518,7 @@
                     >
                       <span class="pin-dot"></span>
                       <span class="pin-ripple"></span>
-                      
+
                       <!-- Hover float tooltip -->
                       <div class="pin-tooltip card-glass">
                         <span class="tooltip-emoji">{{ part.emoji }}</span>
@@ -528,106 +528,106 @@
                   </div>
 
                   <div class="manual-rotation-instructions text-cyan">
-                    💡 Rê chuột qua các điểm đỏ nhấp nháy để xem bộ phận ngoài, click vào ảnh để BUNG LỚP 3D khám phá linh kiện bên trong!
+                    ?? R� chu?t qua c�c di?m d? nh?p nh�y d? xem b? ph?n ngo�i, click v�o ?nh d? BUNG L?P 3D kh�m ph� linh ki?n b�n trong!
                   </div>
                 </div>
 
                 <!-- 3D INTERNAL EXPLODED VIEW STATE -->
                 <div v-else class="scene-3d-wrapper-outer animate-fade-in">
-                  <!-- Mode Selector Toggle between NextGen and MacBook Pro -->
+                  <!-- Mode Selector Toggle between Predator and MacBook Pro -->
                   <div class="model-3d-selector-row">
-                    <button 
-                      @click="selectedModel3D = 'nextgen'" 
-                      :class="{ active: selectedModel3D === 'nextgen' }"
+                    <button
+                      @click="selectedModel3D = 'predator'"
+                      :class="{ active: selectedModel3D === 'predator' }"
                       class="selector-3d-btn"
                     >
-                      🚀 NextGen Elite (Bung Linh Kiện)
+                      ?? Predator Elite (Bung Linh Ki?n)
                     </button>
-                    <button 
-                      @click="selectedModel3D = 'macbook'" 
+                    <button
+                      @click="selectedModel3D = 'macbook'"
                       :class="{ active: selectedModel3D === 'macbook' }"
                       class="selector-3d-btn"
                     >
-                      🍏 MacBook Pro (Ngoại Hình 3D)
+                      ?? MacBook Pro (Ngo?i H�nh 3D)
                     </button>
                   </div>
 
-                  <div 
+                  <div
                     class="scene-3d-wrapper"
                     @mousemove="handleMouseMove3D"
                     @mouseleave="handleMouseLeave3D"
                   >
-                    <div 
+                    <div
                       class="scene-3d"
                       :style="{
                         transform: `rotateX(${explodedRotateX}deg) rotateY(${explodedRotateY}deg) rotateZ(${explodedRotateZ}deg)`
                       }"
                     >
-                      <!-- ORIGINAL NextGen Gaming Laptop Exploded Layers -->
-                      <template v-if="selectedModel3D === 'nextgen'">
+                      <!-- ORIGINAL Predator Gaming Laptop Exploded Layers -->
+                      <template v-if="selectedModel3D === 'predator'">
                         <!-- Layer 1: Display Panel (Top) -->
-                        <div 
+                        <div
                           class="layer-3d display-layer"
                           :class="{ dimmed: activePart && activePart !== 'display' }"
                           :style="{
                             transform: `translateZ(${explodedGap * 1.5}px)`
                           }"
                         >
-                          <img src="/elite_display_panel.png" alt="Màn hình" />
-                          
+                          <img src="/elite_display_panel.png" alt="M�n h�nh" />
+
                           <!-- Hotspot for Display Screen -->
-                          <div 
-                            class="hotspot display-hotspot" 
+                          <div
+                            class="hotspot display-hotspot"
                             :class="{ active: activePart === 'display' }"
                             @click="selectPart('display')"
                             @mouseenter="selectPart('display')"
-                            title="Màn hình Ultra-WQHD 240Hz"
+                            title="M�n h�nh Ultra-WQHD 240Hz"
                           >
                             <span class="hotspot-pulse"></span>
                             <span class="hotspot-label">SCREEN</span>
                           </div>
-                          
-                          <div class="layer-label">Màn Hình Ultra-WQHD 240Hz</div>
+
+                          <div class="layer-label">M�n H�nh Ultra-WQHD 240Hz</div>
                         </div>
 
                         <!-- Layer 2: Keyboard Chassis (Middle Top) -->
-                        <div 
+                        <div
                           class="layer-3d chassis-layer"
                           :class="{ dimmed: activePart && activePart !== 'chassis' }"
                           :style="{
                             transform: `translateZ(${explodedGap * 0.5}px)`
                           }"
                         >
-                          <img src="/elite_chassis_cnc.png" alt="Khung sườn" />
-                          
+                          <img src="/elite_chassis_cnc.png" alt="Khung su?n" />
+
                           <!-- Hotspot for CNC Case -->
-                          <div 
-                            class="hotspot chassis-hotspot" 
+                          <div
+                            class="hotspot chassis-hotspot"
                             :class="{ active: activePart === 'chassis' }"
                             @click="selectPart('chassis')"
                             @mouseenter="selectPart('chassis')"
-                            title="Khung vỏ CNC Cường Lực"
+                            title="Khung v? CNC Cu?ng L?c"
                           >
                             <span class="hotspot-pulse"></span>
                             <span class="hotspot-label">CASE</span>
                           </div>
-                          
-                          <div class="layer-label">Khung Vỏ CNC Cường Lực</div>
+
+                          <div class="layer-label">Khung V? CNC Cu?ng L?c</div>
                         </div>
 
                         <!-- Layer 3: Motherboard Layer (Center) -->
-                        <div 
+                        <div
                           class="layer-3d motherboard-layer"
                           :class="{ dimmed: activePart && !['cpu', 'gpu', 'ram', 'ssd'].includes(activePart) }"
                           :style="{
                             transform: `translateZ(0px)`
                           }"
                         >
-                          <img src="/elite_motherboard.png" alt="Bo mạch chủ" />
-                          
+                          <img src="/elite_motherboard.png" alt="Bo m?ch ch?" />
+
                           <!-- Hotspots on Motherboard with click and hover -->
-                          <div 
-                            class="hotspot cpu-hotspot" 
+                          <div
+                            class="hotspot cpu-hotspot"
                             :class="{ active: activePart === 'cpu' }"
                             @click="selectPart('cpu')"
                             @mouseenter="selectPart('cpu')"
@@ -637,8 +637,8 @@
                             <span class="hotspot-label">CPU</span>
                           </div>
 
-                          <div 
-                            class="hotspot gpu-hotspot" 
+                          <div
+                            class="hotspot gpu-hotspot"
                             :class="{ active: activePart === 'gpu' }"
                             @click="selectPart('gpu')"
                             @mouseenter="selectPart('gpu')"
@@ -648,8 +648,8 @@
                             <span class="hotspot-label">GPU</span>
                           </div>
 
-                          <div 
-                            class="hotspot ram-hotspot" 
+                          <div
+                            class="hotspot ram-hotspot"
                             :class="{ active: activePart === 'ram' }"
                             @click="selectPart('ram')"
                             @mouseenter="selectPart('ram')"
@@ -659,8 +659,8 @@
                             <span class="hotspot-label">RAM</span>
                           </div>
 
-                          <div 
-                            class="hotspot ssd-hotspot" 
+                          <div
+                            class="hotspot ssd-hotspot"
                             :class="{ active: activePart === 'ssd' }"
                             @click="selectPart('ssd')"
                             @mouseenter="selectPart('ssd')"
@@ -669,34 +669,34 @@
                             <span class="hotspot-pulse"></span>
                             <span class="hotspot-label">SSD</span>
                           </div>
-                          
-                          <div class="layer-label">NextGen Motherboard V2</div>
+
+                          <div class="layer-label">Predator Motherboard V2</div>
                         </div>
 
                         <!-- Layer 4: Internal Cooling & Battery (Bottom) -->
-                        <div 
+                        <div
                           class="layer-3d cooling-battery-layer"
                           :class="{ dimmed: activePart && !['cooling', 'battery'].includes(activePart) }"
                           :style="{
                             transform: `translateZ(-${explodedGap * 0.8}px)`
                           }"
                         >
-                          <img src="/elite_laptop_parts.png" alt="Tản nhiệt và Pin" />
-                          
+                          <img src="/elite_laptop_parts.png" alt="T?n nhi?t v� Pin" />
+
                           <!-- Hotspots on Bottom Layer with click and hover -->
-                          <div 
-                            class="hotspot cooling-hotspot" 
+                          <div
+                            class="hotspot cooling-hotspot"
                             :class="{ active: activePart === 'cooling' }"
                             @click="selectPart('cooling')"
                             @mouseenter="selectPart('cooling')"
-                            title="Hệ thống tản nhiệt Dual-Turbo"
+                            title="H? th?ng t?n nhi?t Dual-Turbo"
                           >
                             <span class="hotspot-pulse"></span>
                             <span class="hotspot-label">COOLING</span>
                           </div>
 
-                          <div 
-                            class="hotspot battery-hotspot" 
+                          <div
+                            class="hotspot battery-hotspot"
                             :class="{ active: activePart === 'battery' }"
                             @click="selectPart('battery')"
                             @mouseenter="selectPart('battery')"
@@ -706,18 +706,18 @@
                             <span class="hotspot-label">BATTERY</span>
                           </div>
 
-                          <div class="layer-label">Tản Nhiệt Dual-Turbo & Pin VinaVolt</div>
+                          <div class="layer-label">T?n Nhi?t Dual-Turbo & Pin VinaVolt</div>
                         </div>
                       </template>
 
                       <!-- PREMIUM CSS 3D MacBook Pro Model -->
-                      <div 
+                      <div
                         v-else-if="selectedModel3D === 'macbook'"
                         class="macbook-3d"
                         :class="[macbookColor, { 'dimmed-others': activeMacbookPart }]"
                       >
-                        <!-- 1. MacBook Base (Thân máy) -->
-                        <div 
+                        <!-- 1. MacBook Base (Th�n m�y) -->
+                        <div
                           class="macbook-base"
                           :class="{ highlighted: activeMacbookPart && ['keyboard', 'trackpad', 'speakers', 'ports', 'unibody'].includes(activeMacbookPart) }"
                         >
@@ -745,8 +745,8 @@
                           </div>
 
                           <!-- Interactive Hotspots on MacBook Base -->
-                          <div 
-                            class="hotspot mb-hotspot kbd-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot kbd-hotspot"
                             :class="{ active: activeMacbookPart === 'keyboard' }"
                             @mouseenter="selectMacbookPart('keyboard')"
                             title="Magic Keyboard & Touch ID"
@@ -755,8 +755,8 @@
                             <span class="hotspot-label">KEYBOARD</span>
                           </div>
 
-                          <div 
-                            class="hotspot mb-hotspot trackpad-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot trackpad-hotspot"
                             :class="{ active: activeMacbookPart === 'trackpad' }"
                             @mouseenter="selectMacbookPart('trackpad')"
                             title="Force Touch Trackpad"
@@ -765,8 +765,8 @@
                             <span class="hotspot-label">TRACKPAD</span>
                           </div>
 
-                          <div 
-                            class="hotspot mb-hotspot speakers-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot speakers-hotspot"
                             :class="{ active: activeMacbookPart === 'speakers' }"
                             @mouseenter="selectMacbookPart('speakers')"
                             title="Spatial Audio Speakers"
@@ -775,8 +775,8 @@
                             <span class="hotspot-label">AUDIO</span>
                           </div>
 
-                          <div 
-                            class="hotspot mb-hotspot ports-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot ports-hotspot"
                             :class="{ active: activeMacbookPart === 'ports' }"
                             @mouseenter="selectMacbookPart('ports')"
                             title="MagSafe 3 & Thunderbolt 4"
@@ -785,8 +785,8 @@
                             <span class="hotspot-label">I/O PORTS</span>
                           </div>
 
-                          <div 
-                            class="hotspot mb-hotspot unibody-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot unibody-hotspot"
                             :class="{ active: activeMacbookPart === 'unibody' }"
                             @mouseenter="selectMacbookPart('unibody')"
                             title="Aluminium Unibody Shell"
@@ -796,30 +796,30 @@
                           </div>
                         </div>
 
-                        <!-- 2. MacBook Screen Hinge (Nắp gập màn hình xoay bản lề) -->
-                        <div 
-                          class="macbook-screen-hinge" 
+                        <!-- 2. MacBook Screen Hinge (N?p g?p m�n h�nh xoay b?n l?) -->
+                        <div
+                          class="macbook-screen-hinge"
                           :style="{ transform: `rotateX(-${macbookHingeAngle}deg)` }"
                           :class="{ highlighted: activeMacbookPart && ['screen', 'logo'].includes(activeMacbookPart) }"
                         >
-                          <!-- Face 1: Screen Inner (Mặt trong màn hình hiển thị macOS) -->
+                          <!-- Face 1: Screen Inner (M?t trong m�n h�nh hi?n th? macOS) -->
                           <div class="macbook-screen-inner">
                             <div class="macbook-bezel">
                               <div class="macbook-notch-area">
                                 <span class="mb-webcam"></span>
                               </div>
-                              
+
                               <div class="macbook-display-panel" :class="[macbookWallpaper]">
                                 <!-- macOS Menu Bar -->
                                 <div class="macos-menubar">
-                                  <span class="macos-apple-icon"></span>
+                                  <span class="macos-apple-icon">?</span>
                                   <span class="menu-bold">Finder</span>
                                   <span>File</span>
                                   <span>Edit</span>
                                   <span>View</span>
                                   <span>Go</span>
                                   <span>Window</span>
-                                  <span class="menubar-right-status">🔋 100%  📶  22:13</span>
+                                  <span class="menubar-right-status">?? 100%  ??  22:13</span>
                                 </div>
 
                                 <!-- Desktop Center App mock -->
@@ -830,20 +830,20 @@
 
                                 <!-- macOS Dock Bar -->
                                 <div class="macos-dock-bar">
-                                  <span class="dock-icon finder">🧭</span>
-                                  <span class="dock-icon safari">🌐</span>
-                                  <span class="dock-icon terminal">💻</span>
-                                  <span class="dock-icon store">🛒</span>
-                                  <span class="dock-icon settings">⚙️</span>
+                                  <span class="dock-icon finder">??</span>
+                                  <span class="dock-icon safari">??</span>
+                                  <span class="dock-icon terminal">??</span>
+                                  <span class="dock-icon store">??</span>
+                                  <span class="dock-icon settings">??</span>
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          <!-- Face 2: Screen Outer (Mặt ngoài nắp máy chứa Apple Logo phát sáng) -->
+                          <!-- Face 2: Screen Outer (M?t ngo�i n?p m�y ch?a Apple Logo ph�t s�ng) -->
                           <div class="macbook-screen-outer">
-                            <div 
-                              class="macbook-apple-logo-glow" 
+                            <div
+                              class="macbook-apple-logo-glow"
                               :class="{ 'pulse-glow': activeMacbookPart === 'logo' }"
                             >
                               <svg class="apple-svg" viewBox="0 0 170 170" width="40" height="40">
@@ -853,8 +853,8 @@
                           </div>
 
                           <!-- Interactive Hotspots on MacBook Lid -->
-                          <div 
-                            class="hotspot mb-hotspot screen-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot screen-hotspot"
                             :class="{ active: activeMacbookPart === 'screen' }"
                             @mouseenter="selectMacbookPart('screen')"
                             title="Liquid Retina XDR Mini-LED Screen"
@@ -863,8 +863,8 @@
                             <span class="hotspot-label">RETINA XDR</span>
                           </div>
 
-                          <div 
-                            class="hotspot mb-hotspot logo-hotspot" 
+                          <div
+                            class="hotspot mb-hotspot logo-hotspot"
                             :class="{ active: activeMacbookPart === 'logo' }"
                             @mouseenter="selectMacbookPart('logo')"
                             title="Glowing Apple Logo"
@@ -879,7 +879,7 @@
                   </div>
 
                   <div class="manual-rotation-instructions">
-                    💡 Rê chuột qua các điểm nhấp nháy để quét chi tiết, di chuột tự do để xoay không gian 3D toàn cảnh!
+                    ?? R� chu?t qua c�c di?m nh?p nh�y d? qu�t chi ti?t, di chu?t t? do d? xoay kh�ng gian 3D to�n c?nh!
                   </div>
                 </div>
               </div>
@@ -888,18 +888,18 @@
             <!-- Right Column: Controls Dashboard -->
             <div class="controls-panel card-glass">
               <div class="panel-header">
-                <h3>BẢNG ĐIỀU KHIỂN SÁNG TẠO</h3>
+                <h3>BẰNG �I?U KHI?N S�NG T?O</h3>
               </div>
 
               <!-- CONTROLS FOR VIEW 1: COVER COLOR & STICKERS -->
               <div v-if="customizerView === 'lid'" class="lid-controls">
-                
+
                 <!-- 1. Color Selection -->
                 <div class="control-section">
-                  <h4 class="section-title">1. Chọn màu kim loại nắp máy:</h4>
+                  <h4 class="section-title">1. Ch?n m�u kim lo?i n?p m�y:</h4>
                   <div class="chassis-color-grid">
-                    <button 
-                      v-for="color in chassisColors" 
+                    <button
+                      v-for="color in chassisColors"
                       :key="color.id"
                       @click="chassisColor = color.id"
                       :class="{ active: chassisColor === color.id }"
@@ -907,18 +907,18 @@
                       :style="{ background: color.grad }"
                       :title="color.name"
                     >
-                      <span class="active-check" v-if="chassisColor === color.id">✓</span>
+                      <span class="active-check" v-if="chassisColor === color.id">?</span>
                     </button>
                   </div>
-                  <p class="selected-meta">Vỏ màu hiện tại: <strong>{{ selectedChassisName }}</strong></p>
+                  <p class="selected-meta">V? m�u hi?n t?i: <strong>{{ selectedChassisName }}</strong></p>
                 </div>
 
                 <!-- 2. Stickers Shelf -->
                 <div class="control-section">
-                  <h4 class="section-title">2. Thư viện Nhãn Dán (Stickers):</h4>
+                  <h4 class="section-title">2. Thu vi?n Nh�n D�n (Stickers):</h4>
                   <div class="stickers-shelf">
-                    <button 
-                      v-for="stk in stickersLibrary" 
+                    <button
+                      v-for="stk in stickersLibrary"
                       :key="stk.id"
                       @click="addSticker(stk)"
                       class="sticker-item"
@@ -931,66 +931,66 @@
 
                 <!-- 3. Edit Selected Sticker Properties -->
                 <div class="control-section" v-if="selectedSticker">
-                  <h4 class="section-title text-rainbow">3. Chỉnh sửa Sticker đang chọn:</h4>
+                  <h4 class="section-title text-rainbow">3. Ch?nh s?a Sticker dang ch?n:</h4>
                   <div class="selected-stk-badge">
-                    <span>Nhãn đang chỉnh: <strong>{{ selectedSticker.icon }} {{ selectedSticker.name }}</strong></span>
+                    <span>Nh�n dang ch?nh: <strong>{{ selectedSticker.icon }} {{ selectedSticker.name }}</strong></span>
                   </div>
 
                   <div class="sliders-grid">
                     <div class="slider-group">
                       <div class="slider-info">
-                        <span>Xoay góc (Rotate)</span>
-                        <span>{{ selectedSticker.rotate }}°</span>
+                        <span>Xoay g�c (Rotate)</span>
+                        <span>{{ selectedSticker.rotate }}�</span>
                       </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="360" 
-                        v-model.number="selectedSticker.rotate" 
-                        class="custom-range range-purple" 
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        v-model.number="selectedSticker.rotate"
+                        class="custom-range range-purple"
                       />
                     </div>
 
                     <div class="slider-group">
                       <div class="slider-info">
-                        <span>Kích thước (Scale)</span>
+                        <span>K�ch thu?c (Scale)</span>
                         <span>{{ Math.round(selectedSticker.scale * 100) }}%</span>
                       </div>
-                      <input 
-                        type="range" 
-                        min="0.5" 
-                        max="2" 
-                        step="0.1" 
-                        v-model.number="selectedSticker.scale" 
-                        class="custom-range range-purple" 
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.1"
+                        v-model.number="selectedSticker.scale"
+                        class="custom-range range-purple"
                       />
                     </div>
                   </div>
 
                   <div class="sticker-actions">
                     <button @click="deleteSelectedSticker" class="btn-stk-action btn-danger">
-                      🗑️ Xóa Nhãn Dán này
+                      ??? X�a Nh�n D�n n�y
                     </button>
                     <button @click="clearAllStickers" class="btn-stk-action btn-outline">
-                      🧹 Xóa tất cả Sticker
+                      ?? X�a t?t c? Sticker
                     </button>
                   </div>
                 </div>
                 <div class="control-section no-selection" v-else>
-                  <p>💡 Vui lòng click chọn 1 Sticker trên nắp máy để xoay, thu phóng hoặc xóa.</p>
+                  <p>?? Vui l�ng click ch?n 1 Sticker tr�n n?p m�y d? xoay, thu ph�ng ho?c x�a.</p>
                 </div>
 
               </div>
 
               <!-- CONTROLS FOR VIEW 2: RGB LED LIGHTING -->
               <div v-else-if="customizerView === 'keyboard'" class="keyboard-controls">
-                
+
                 <!-- 1. Select Led Backlit Mode -->
                 <div class="control-section">
-                  <h4 class="section-title">1. Chọn Hiệu ứng Đèn nền:</h4>
+                  <h4 class="section-title">1. Ch?n Hi?u ?ng ��n n?n:</h4>
                   <div class="led-modes-grid">
-                    <button 
-                      v-for="mode in ledModes" 
+                    <button
+                      v-for="mode in ledModes"
                       :key="mode.id"
                       @click="ledMode = mode.id"
                       :class="{ active: ledMode === mode.id }"
@@ -1007,25 +1007,25 @@
 
                 <!-- 2. Static Color Customizer Picker -->
                 <div class="control-section" v-show="ledMode === 'static' || ledMode === 'breathe'">
-                  <h4 class="section-title">2. Chọn màu LED Neon tùy chỉnh:</h4>
+                  <h4 class="section-title">2. Ch?n m�u LED Neon t�y ch?nh:</h4>
                   <div class="custom-color-picker-wrap">
                     <div class="color-picker-input-group">
-                      <input 
-                        type="color" 
-                        v-model="customRgbColor" 
+                      <input
+                        type="color"
+                        v-model="customRgbColor"
                         class="picker-box"
                       />
                       <div class="hex-info">
-                        <span>Mã màu Hex:</span>
+                        <span>M� m�u Hex:</span>
                         <input type="text" v-model="customRgbColor" class="hex-text-input" />
                       </div>
                     </div>
 
                     <!-- Preset Quick Colors -->
                     <div class="quick-colors">
-                      <button 
-                        v-for="qc in quickColors" 
-                        :key="qc" 
+                      <button
+                        v-for="qc in quickColors"
+                        :key="qc"
                         @click="customRgbColor = qc"
                         class="quick-color-dot"
                         :style="{ background: qc }"
@@ -1036,14 +1036,14 @@
 
                 <!-- Specs summary -->
                 <div class="control-section spec-card-summary">
-                  <h4>CẤU HÌNH TRẢI NGHIỆM ĐÃ CHỌN</h4>
+                  <h4>C?U H�NH TR?I NGHI?M �� CH?N</h4>
                   <ul class="custom-specs-summary">
-                    <li>💻 Màu vỏ máy: <strong>{{ selectedChassisName }}</strong></li>
-                    <li>🎨 Nhãn trang trí: <strong>{{ appliedStickers.length }} Stickers đã dán</strong></li>
-                    <li>⌨️ LED Bàn phím: <strong>{{ selectedLedModeLabel }}</strong></li>
+                    <li>?? M�u v? m�y: <strong>{{ selectedChassisName }}</strong></li>
+                    <li>?? Nh�n trang tr�: <strong>{{ appliedStickers.length }} Stickers d� d�n</strong></li>
+                    <li>?? LED B�n ph�m: <strong>{{ selectedLedModeLabel }}</strong></li>
                   </ul>
                   <button @click="handleSaveDesign" class="order-custom-btn btn-rainbow-glow">
-                    🛒 Lưu Thiết Kế & Nhận 15 VinaCoins
+                    ?? Luu Thi?t K? & Nh?n 15 VinaCoins
                   </button>
                 </div>
 
@@ -1051,26 +1051,26 @@
 
               <!-- CONTROLS FOR VIEW 3: 3D INTERNALS EXPLODED VIEW -->
               <div v-else-if="customizerView === 'internals'" class="internals-controls">
-                
+
                 <!-- SCHEMATIC OVERVIEW CONTROLS -->
                 <div v-if="showSchematic" class="schematic-controls animate-fade-in">
                   <!-- Section 1: Guide / Start CTA -->
                   <div class="control-section">
-                    <h4 class="section-title">1. Sơ Đồ Thiết Kế Ngoài:</h4>
-                    <p class="quest-p">Đây là bản vẽ mô phỏng các thành phần bên ngoài của Laptop. Di chuột qua các điểm nhấp nháy trên mô hình để chẩn đoán thông số.</p>
-                    
+                    <h4 class="section-title">1. So �? Thi?t K? Ngo�i:</h4>
+                    <p class="quest-p">��y l� b?n v? m� ph?ng c�c th�nh ph?n b�n ngo�i c?a Laptop. Di chu?t qua c�c di?m nh?p nh�y tr�n m� h�nh d? ch?n do�n th�ng s?.</p>
+
                     <button @click="triggerExplosion" class="order-custom-btn btn-rainbow-glow w-full mt-4" style="margin-top: 15px; width: 100%;">
-                      💥 KÍCH HOẠT BUNG MÁY 3D BÊN TRONG
+                      ?? K�CH HO?T BUNG M�Y 3D B�N TRONG
                     </button>
                   </div>
 
                   <!-- Section 2: HUD inspector details -->
                   <div class="control-section parts-inspector">
-                    <h4 class="section-title text-rainbow">2. Bộ Quét Bộ Phận Ngoài:</h4>
-                    
+                    <h4 class="section-title text-rainbow">2. B? Qu�t B? Ph?n Ngo�i:</h4>
+
                     <div class="parts-quick-select">
-                      <button 
-                        v-for="part in schematicParts" 
+                      <button
+                        v-for="part in schematicParts"
                         :key="part.id"
                         @click="activeSchematicPart = part.id"
                         @mouseenter="activeSchematicPart = part.id"
@@ -1092,11 +1092,11 @@
                         {{ currentSchematicPartData.desc }}
                       </div>
                       <div class="part-performance-bar text-cyan" style="font-size: 11px; margin-top: 8px; font-weight: bold;">
-                        👉 Click để BUNG MÁY xem linh kiện bên trong!
+                        ?? Click d? BUNG M�Y xem linh ki?n b�n trong!
                       </div>
                     </div>
                     <div v-else class="no-part-selected">
-                      <p>🔍 Rê chuột hoặc bấm chọn linh kiện ngoài để thanh tra chi tiết thông số cấu tạo.</p>
+                      <p>?? R� chu?t ho?c b?m ch?n linh ki?n ngo�i d? thanh tra chi ti?t th�ng sự cốu t?o.</p>
                     </div>
                   </div>
                 </div>
@@ -1106,72 +1106,72 @@
                   <!-- Button to go back to schematic -->
                   <div class="preset-angles-row mb-4" style="margin-bottom: 15px;">
                     <button @click="showSchematic = true" class="btn-preset-scene w-full" style="border-color: #06b6d4; background: rgba(6, 182, 212, 0.1); width: 100%;">
-                      💻 Xem Sơ Đồ Thiết Kế Ngoài
+                      ?? Xem So �? Thi?t K? Ngo�i
                     </button>
                   </div>
 
                   <!-- 3D Scene Adjusters -->
                   <div class="control-section">
-                    <h4 class="section-title">1. Góc Xoay & Độ Bung Linh Kiện:</h4>
-                    
+                    <h4 class="section-title">1. G�c Xoay & �? Bung Linh Ki?n:</h4>
+
                     <div class="sliders-grid">
                       <div class="slider-group">
                         <div class="slider-info">
-                          <span>Độ bung linh kiện (Exploded View)</span>
+                          <span>�? bung linh ki?n (Exploded View)</span>
                           <span>{{ explodedGap }}px</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="180" 
-                          v-model.number="explodedGap" 
-                          class="custom-range range-cyan" 
+                        <input
+                          type="range"
+                          min="0"
+                          max="180"
+                          v-model.number="explodedGap"
+                          class="custom-range range-cyan"
                         />
                       </div>
 
                       <div class="slider-group">
                         <div class="slider-info">
                           <span>Xoay Ngang (Rotate Y)</span>
-                          <span>{{ explodedRotateY }}°</span>
+                          <span>{{ explodedRotateY }}�</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="-180" 
-                          max="180" 
-                          v-model.number="explodedRotateY" 
-                          class="custom-range range-cyan" 
+                        <input
+                          type="range"
+                          min="-180"
+                          max="180"
+                          v-model.number="explodedRotateY"
+                          class="custom-range range-cyan"
                         />
                       </div>
 
                       <div class="slider-group">
                         <div class="slider-info">
-                          <span>Xoay Dọc (Rotate X)</span>
-                          <span>{{ explodedRotateX }}°</span>
+                          <span>Xoay D?c (Rotate X)</span>
+                          <span>{{ explodedRotateX }}�</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="-60" 
-                          max="60" 
-                          v-model.number="explodedRotateX" 
-                          class="custom-range range-cyan" 
+                        <input
+                          type="range"
+                          min="-60"
+                          max="60"
+                          v-model.number="explodedRotateX"
+                          class="custom-range range-cyan"
                         />
                       </div>
                     </div>
 
                     <div class="preset-angles-row">
-                      <button @click="reset3DScene" class="btn-preset-scene">🔄 Đặt Lại Scene</button>
-                      <button @click="presetScene('exploded')" class="btn-preset-scene">💥 Bung Lớp 3D</button>
-                      <button @click="presetScene('assembled')" class="btn-preset-scene">⚙️ Lắp Ráp Máy</button>
+                      <button @click="reset3DScene" class="btn-preset-scene">?? �?t L?i Scene</button>
+                      <button @click="presetScene('exploded')" class="btn-preset-scene">?? Bung L?p 3D</button>
+                      <button @click="presetScene('assembled')" class="btn-preset-scene">?? L?p R�p M�y</button>
                     </div>
                   </div>
 
                   <!-- Component Details Inspector -->
                   <div class="control-section parts-inspector">
-                    <h4 class="section-title text-rainbow">2. Thanh Tra Linh Kiện:</h4>
-                    
+                    <h4 class="section-title text-rainbow">2. Thanh Tra Linh Ki?n:</h4>
+
                     <div class="parts-quick-select">
-                      <button 
-                        v-for="part in componentParts" 
+                      <button
+                        v-for="part in componentParts"
                         :key="part.id"
                         @click="selectPart(part.id)"
                         @mouseenter="selectPart(part.id)"
@@ -1205,35 +1205,35 @@
                       </div>
 
                       <div class="part-performance-bar">
-                        <div class="perf-title">⚡ Chỉ số hiệu năng (Power Score)</div>
+                        <div class="perf-title">? Ch? s? hi?u nang (Power Score)</div>
                         <div class="perf-bar-track">
                           <div class="perf-bar-fill animate-width" :style="{ width: selectedPartData.score + '%', background: selectedPartData.color }"></div>
                         </div>
-                        <div class="perf-score-desc">Cấp độ: <strong>{{ selectedPartData.score }} / 100</strong></div>
+                        <div class="perf-score-desc">C?p d?: <strong>{{ selectedPartData.score }} / 100</strong></div>
                       </div>
                     </div>
                     <div v-else class="no-part-selected">
-                      <p>🔬 Rê chuột hoặc click chọn linh kiện trên hình ảnh 3D để quét chi tiết thông số kỹ thuật.</p>
+                      <p>?? R� chu?t ho?c click ch?n linh ki?n tr�n h�nh ?nh 3D d? qu�t chi ti?t th�ng s? k? thu?t.</p>
                     </div>
                   </div>
 
                   <!-- Custom Coin boost integration -->
                   <div class="control-section spec-card-summary">
-                    <h4>NHIỆM VỤ QUÉT LINH KIỆN</h4>
-                    <p class="quest-p">Quét đầy đủ {{ componentParts.length }} linh kiện chính của laptop để hiểu rõ cơ chế vận hành và tích luỹ thêm phần thưởng!</p>
+                    <h4>NHI?M V? QU�T LINH KI?N</h4>
+                    <p class="quest-p">Qu�t d?y d? {{ componentParts.length }} linh ki?n ch�nh c?a laptop d? hi?u r� co ch? v?n h�nh v� t�ch lu? th�m ph?n thu?ng!</p>
                     <div class="scanning-progress-wrap">
-                      <span>Tiến trình quét: {{ scannedPartsCount }} / {{ componentParts.length }} linh kiện</span>
+                      <span>Ti?n tr�nh qu�t: {{ scannedPartsCount }} / {{ componentParts.length }} linh ki?n</span>
                       <div class="progress-track-mini">
                         <div class="progress-fill-mini" :style="{ width: (scannedPartsCount / componentParts.length) * 100 + '%' }"></div>
                       </div>
                     </div>
-                    <button 
-                      @click="claimScanningCoins" 
+                    <button
+                      @click="claimScanningCoins"
                       :disabled="scannedPartsCount < componentParts.length || hasClaimedScanReward"
                       class="order-custom-btn btn-rainbow-glow"
                       :class="{ disabled: scannedPartsCount < componentParts.length || hasClaimedScanReward }"
                     >
-                      {{ hasClaimedScanReward ? '✔️ Đã nhận 25 VinaCoins' : (scannedPartsCount < componentParts.length ? '🔒 Hãy quét đủ ' + componentParts.length + ' linh kiện' : '🎁 Nhận ngay 25 VinaCoins!') }}
+                      {{ hasClaimedScanReward ? '?? �� nh?n 25 VinaCoins' : (scannedPartsCount < componentParts.length ? '?? H�y qu�t d? ' + componentParts.length + ' linh ki?n' : '?? Nh?n ngay 25 VinaCoins!') }}
                     </button>
                   </div>
                 </div>
@@ -1252,39 +1252,39 @@
           <!-- Coins and wallet bar -->
           <div class="coins-wallet-bar card-glass">
             <div class="wallet-left">
-              <span class="wallet-icon">💎</span>
+              <span class="wallet-icon">??</span>
               <div>
                 <span class="wallet-label">VinaCoins Wallet của bạn:</span>
                 <h2 class="coins-counter text-rainbow">{{ vinaCoins }} VinaCoins</h2>
               </div>
             </div>
             <div class="wallet-right">
-              <p>Hoàn thành các nhiệm vụ hàng ngày để tích luỹ xu đổi Voucher giảm giá Laptop thực tế!</p>
+              <p>Ho�n th�nh c�c nhi?m v? h�ng ng�y d? t�ch lu? xu d?i Voucher gi?m gi� Laptop th?c t?!</p>
             </div>
           </div>
 
           <div class="gamified-grid">
-            
+
             <!-- Left panel: Ambassador Leaderboard -->
             <div class="leaderboard-panel card-glass">
               <div class="panel-header">
-                <span class="leaderboard-icon">🏆</span>
-                <h3>ĐẠI SỨ DANH VỌNG THÁNG 5</h3>
+                <span class="leaderboard-icon">??</span>
+                <h3>�?I S? DANH V?NG TH�NG 5</h3>
               </div>
-              <p class="leaderboard-sub">Bảng xếp hạng Đại Sứ liên kết giới thiệu (Affiliate) xuất sắc nhất hệ thống.</p>
+              <p class="leaderboard-sub">B?ng x?p h?ng �?i S? li�n k?t gi?i thi?u (Affiliate) xu?t s?c nh?t h? th?ng.</p>
 
               <!-- Top 5 List -->
               <div class="leaderboard-list">
-                <div 
-                  v-for="(user, idx) in leaderboardUsers" 
+                <div
+                  v-for="(user, idx) in leaderboardUsers"
                   :key="'user-'+idx"
                   class="leaderboard-row"
                   :class="{ 'first-place': idx === 0 }"
                 >
                   <div class="rank-badge" :class="'rank-'+(idx+1)">
-                    <span v-if="idx === 0">🥇</span>
-                    <span v-else-if="idx === 1">🥈</span>
-                    <span v-else-if="idx === 2">🥉</span>
+                    <span v-if="idx === 0">??</span>
+                    <span v-else-if="idx === 1">??</span>
+                    <span v-else-if="idx === 2">??</span>
                     <span v-else>{{ idx + 1 }}</span>
                   </div>
                   <img :src="user.avatar" :alt="user.name" class="user-avatar" />
@@ -1293,7 +1293,7 @@
                     <span class="user-title">{{ user.title }}</span>
                   </div>
                   <div class="user-points">
-                    <span class="referrals-count">🗣️ {{ user.refs }} Lượt</span>
+                    <span class="referrals-count">??? {{ user.refs }} Lu?t</span>
                     <span class="earned-com">{{ formatPrice(user.com) }}</span>
                   </div>
                 </div>
@@ -1303,7 +1303,7 @@
               <div class="live-ticker-card">
                 <div class="ticker-dot animate-pulse"></div>
                 <div class="ticker-content-wrapper">
-                  <span class="ticker-title">Thanh toán hoa hồng trực tuyến:</span>
+                  <span class="ticker-title">Thanh to�n hoa h?ng tr?c tuy?n:</span>
                   <p class="ticker-text">{{ recentPayoutText }}</p>
                 </div>
               </div>
@@ -1311,54 +1311,54 @@
 
             <!-- Right panel: Quests and Rewards Shop -->
             <div class="quests-rewards-panel">
-              
+
               <!-- 1. Daily Quests Shelf -->
               <div class="quests-box card-glass">
                 <div class="panel-header">
-                  <span class="quest-title-icon">⚡</span>
-                  <h3>Nhiệm Vụ Hàng Ngày</h3>
+                  <span class="quest-title-icon">?</span>
+                  <h3>Nhi?m V? H�ng Ng�y</h3>
                 </div>
-                
+
                 <div class="quests-list">
                   <!-- Quest 1 -->
                   <div class="quest-row-card">
                     <div class="quest-body">
-                      <span class="quest-check">🔗</span>
+                      <span class="quest-check">??</span>
                       <div class="quest-info">
-                        <h5>Chia sẻ đường dẫn Tiếp thị liên kết</h5>
-                        <p>Sao chép link ref và chia sẻ lên MXH để nhận xu</p>
+                        <h5>Chia s? du?ng d?n Ti?p th? li�n k?t</h5>
+                        <p>Sao ch�p link ref v� chia s? l�n MXH d? nh?n xu</p>
                       </div>
                     </div>
                     <button @click="completeShareQuest" class="quest-action-btn">
-                      Copy Link (+20 💎)
+                      Copy Link (+20 ??)
                     </button>
                   </div>
 
                   <!-- Quest 2 -->
                   <div class="quest-row-card">
                     <div class="quest-body">
-                      <span class="quest-check">📰</span>
+                      <span class="quest-check">??</span>
                       <div class="quest-info">
-                        <h5>Đọc bản tin Công nghệ NextGen mới</h5>
-                        <p>Ghé thăm mục tin tức để tìm hiểu thêm xu hướng công nghệ</p>
+                        <h5>�?c b?n tin C�ng ngh? Predator m?i</h5>
+                        <p>Gh� tham m?c tin t?c d? t�m hi?u th�m xu hu?ng c�ng ngh?</p>
                       </div>
                     </div>
                     <router-link to="/news" @click="completeNewsQuest" class="quest-action-btn link-btn">
-                      Ghé xem (+10 💎)
+                      Gh� xem (+10 ??)
                     </router-link>
                   </div>
 
                   <!-- Quest 3 -->
                   <div class="quest-row-card">
                     <div class="quest-body">
-                      <span class="quest-check">🗣️</span>
+                      <span class="quest-check">???</span>
                       <div class="quest-info">
-                        <h5>Mời một người bạn ghé thăm VinaTech</h5>
-                        <p>Nhập tên bạn bè để giới thiệu mua laptop lên đời</p>
+                        <h5>M?i m?t ngu?i b?n gh� tham VinaTech</h5>
+                        <p>Nh?p t�n b?n b� d? gi?i thi?u mua laptop l�n d?i</p>
                       </div>
                     </div>
                     <button @click="completeReferralQuest" class="quest-action-btn">
-                      Giới thiệu (+50 💎)
+                      Gi?i thi?u (+50 ??)
                     </button>
                   </div>
                 </div>
@@ -1367,38 +1367,38 @@
               <!-- 2. Rewards Store Shop -->
               <div class="rewards-store card-glass">
                 <div class="panel-header">
-                  <span class="shop-icon">🛒</span>
+                  <span class="shop-icon">??</span>
                   <h3>VinaCoins Rewards Shop</h3>
                 </div>
-                <p class="rewards-sub">Đổi xu nhận Voucher trợ giá độc quyền mua laptop!</p>
+                <p class="rewards-sub">�?i xu nh?n Voucher tr? gi� d?c quy?n mua laptop!</p>
 
                 <div class="rewards-grid">
-                  <div 
-                    v-for="reward in rewardsShop" 
-                    :key="reward.id" 
+                  <div
+                    v-for="reward in rewardsShop"
+                    :key="reward.id"
                     class="reward-card-item"
                   >
                     <span class="reward-emoji">{{ reward.emoji }}</span>
                     <h5>{{ reward.name }}</h5>
-                    <p class="reward-cost">💰 Giá: {{ reward.cost }} VinaCoins</p>
-                    <button 
-                      @click="redeemReward(reward)" 
+                    <p class="reward-cost">?? Gi�: {{ reward.cost }} VinaCoins</p>
+                    <button
+                      @click="redeemReward(reward)"
                       :disabled="vinaCoins < reward.cost"
                       class="redeem-btn"
                     >
-                      Đổi ngay
+                      �?i ngay
                     </button>
                   </div>
                 </div>
 
                 <!-- Virtual Wallet Inventory for redeemed codes -->
                 <div class="virtual-inventory" v-if="myRewards.length">
-                  <h5>🎫 Ví Voucher Đã Đổi Của Bạn:</h5>
+                  <h5>?? V� Voucher �� �?i C?a B?n:</h5>
                   <div class="inventory-list">
                     <div v-for="item in myRewards" :key="item.id" class="inventory-row">
                       <div class="inv-left">
                         <span class="inv-name">{{ item.name }}</span>
-                        <span class="inv-date">Đổi ngày: {{ item.date }}</span>
+                        <span class="inv-date">�?i ng�y: {{ item.date }}</span>
                       </div>
                       <span class="inv-code">{{ item.code }}</span>
                     </div>
@@ -1422,7 +1422,7 @@ import api from '@/services/api';
 import { storageUrl } from '@/services/urls';
 import Swal from 'sweetalert2';
 
-const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'đ';
+const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'd';
 
 // Active Tab Layout
 const activeTab = ref('versus'); // 'versus', 'customizer', 'gamification'
@@ -1439,8 +1439,8 @@ const selectedIdB = ref('preset-2');
 const presetLaptops = [
   {
     id: 'preset-1',
-    name: 'NextGen Elite Beast Pro',
-    fullName: 'NextGen Elite Beast Pro (RTX 4090 / Intel i9 / 64GB)',
+    name: 'Predator Elite Beast Pro',
+    fullName: 'Predator Elite Beast Pro (RTX 4090 / Intel i9 / 64GB)',
     price: 89990000,
     cpu: 'Intel Core i9-14900HX (24 cores, 5.8GHz)',
     gpu: 'NVIDIA GeForce RTX 4090 16GB GDDR6',
@@ -1450,8 +1450,8 @@ const presetLaptops = [
   },
   {
     id: 'preset-2',
-    name: 'NextGen Elite Air M3',
-    fullName: 'NextGen Elite Air (Apple M3 Max / 32GB / 1TB)',
+    name: 'Predator Elite Air M3',
+    fullName: 'Predator Elite Air (Apple M3 Max / 32GB / 1TB)',
     price: 64990000,
     cpu: 'Apple M3 Max (16-core CPU, 40-core GPU)',
     gpu: 'Apple M3 Max 40-Core GPU',
@@ -1461,8 +1461,8 @@ const presetLaptops = [
   },
   {
     id: 'preset-3',
-    name: 'NextGen Elite Scholar Plus',
-    fullName: 'NextGen Elite Scholar Plus (RTX 4060 / Ryzen 7 / 16GB)',
+    name: 'Predator Elite Scholar Plus',
+    fullName: 'Predator Elite Scholar Plus (RTX 4060 / Ryzen 7 / 16GB)',
     price: 29990000,
     cpu: 'AMD Ryzen 7 8845HS (8 cores, 5.1GHz)',
     gpu: 'NVIDIA GeForce RTX 4060 8GB GDDR6',
@@ -1472,8 +1472,8 @@ const presetLaptops = [
   },
   {
     id: 'preset-4',
-    name: 'NextGen Scholar Eco',
-    fullName: 'NextGen Scholar Eco (Intel i5 / 16GB / 512GB)',
+    name: 'Predator Scholar Eco',
+    fullName: 'Predator Scholar Eco (Intel i5 / 16GB / 512GB)',
     price: 18490000,
     cpu: 'Intel Core i5-13420H (8 cores, 4.6GHz)',
     gpu: 'Intel Iris Xe Graphics',
@@ -1503,21 +1503,21 @@ const fetchRealProducts = async () => {
   try {
     const res = await api.get('/sanpham');
     const raw = Array.isArray(res.data) ? res.data : (res.data.data || []);
-    
+
     realProducts.value = raw.map(p => {
       const vars = p.bien_the_san_pham || p.bienthe || [];
       const firstBt = vars[0] || {};
-      
+
       let ram = '16GB DDR5';
       let cpu = 'Intel Core i7';
       let gpu = 'NVIDIA RTX 4060';
-      
+
       try {
         const ts = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || []);
         if (Array.isArray(ts)) {
           const rObj = ts.find(t => t.ten === 'RAM' || t.ten === 'ram');
           const cObj = ts.find(t => t.ten === 'CPU' || t.ten === 'cpu');
-          const gObj = ts.find(t => t.ten === 'GPU' || t.ten === 'gpu' || t.ten === 'Card đồ họa');
+          const gObj = ts.find(t => t.ten === 'GPU' || t.ten === 'gpu' || t.ten === 'Card d? h?a');
           if (rObj) ram = rObj.giatri;
           if (cObj) cpu = cObj.giatri;
           if (gObj) gpu = gObj.giatri;
@@ -1561,13 +1561,13 @@ const fetchRealProducts = async () => {
         metrics: { cpu: cpuScore, gpu: gpuScore, battery: batteryScore, portability: portScore, cooling: coolScore }
       };
     });
-    
+
     // Save to cache for instant load next time
     try {
-      localStorage.setItem('nextgen_labs_real_products', JSON.stringify(realProducts.value));
+      localStorage.setItem('predator_labs_real_products', JSON.stringify(realProducts.value));
     } catch(e) {}
   } catch (e) {
-    console.error('Lỗi khi fetch sản phẩm thực tế:', e);
+    console.error('L?i khi fetch s?n ph?m th?c t?:', e);
   } finally {
     isLoadingProducts.value = false;
   }
@@ -1615,10 +1615,10 @@ const selectedGameId = ref('wukong');
 const graphicsSliderVal = ref(2); // 1 = low, 2 = medium, 3 = high
 
 const games = [
-  { id: 'wukong', name: 'Black Myth: Wukong', genre: 'Action RPG / Đồ họa 3D cực nặng', emoji: '🐒', base: 52 },
-  { id: 'cyberpunk', name: 'Cyberpunk 2077', genre: 'Sci-fi Open World / Ray-Tracing', emoji: '🤖', base: 56 },
-  { id: 'cs2', name: 'Counter-Strike 2', genre: 'FPS Esport / Tốc độ phản hồi', emoji: '🔫', base: 190 },
-  { id: 'lol', name: 'League of Legends', genre: 'MOBA nhẹ / Ổn định tối đa', emoji: '⚔️', base: 310 }
+  { id: 'wukong', name: 'Black Myth: Wukong', genre: 'Action RPG / �? h?a 3D c?c n?ng', emoji: '??', base: 52 },
+  { id: 'cyberpunk', name: 'Cyberpunk 2077', genre: 'Sci-fi Open World / Ray-Tracing', emoji: '??', base: 56 },
+  { id: 'cs2', name: 'Counter-Strike 2', genre: 'FPS Esport / T?c d? ph?n h?i', emoji: '??', base: 190 },
+  { id: 'lol', name: 'League of Legends', genre: 'MOBA nh? / ?n d?nh t?i da', emoji: '??', base: 310 }
 ];
 
 const selectedGame = computed(() => {
@@ -1633,9 +1633,9 @@ const graphicsSetting = computed(() => {
 });
 
 const graphicsSettingLabel = computed(() => {
-  if (graphicsSetting.value === 'low') return 'Chất lượng Thấp (1080p - Hiệu năng cao)';
-  if (graphicsSetting.value === 'high') return 'Cực cao Ultra (4K UHD - Đồ họa đỉnh cao)';
-  return 'Trung bình (1440p QHD - Khuyên dùng)';
+  if (graphicsSetting.value === 'low') return 'Ch?t lu?ng Th?p (1080p - Hi?u nang cao)';
+  if (graphicsSetting.value === 'high') return 'C?c cao Ultra (4K UHD - �? h?a d?nh cao)';
+  return 'Trung b�nh (1440p QHD - Khuy�n d�ng)';
 });
 
 const calculateFPS = (laptop) => {
@@ -1643,9 +1643,9 @@ const calculateFPS = (laptop) => {
   const game = selectedGame.value;
   const isGpuBound = ['wukong', 'cyberpunk'].includes(game.id);
   const score = isGpuBound ? laptop.metrics.gpu : laptop.metrics.cpu;
-  
+
   let fps = game.base * (score / 82);
-  
+
   if (graphicsSetting.value === 'low') fps *= 1.45;
   if (graphicsSetting.value === 'high') fps *= 0.65;
 
@@ -1719,7 +1719,7 @@ const hasClaimedScanReward = ref(localStorage.getItem('scanned_parts_reward') ==
 // ==========================================
 // 3D MACBOOK PRO ENGINE
 // ==========================================
-const selectedModel3D = ref('nextgen'); // 'nextgen' or 'macbook'
+const selectedModel3D = ref('predator'); // 'predator' or 'macbook'
 const macbookHingeAngle = ref(110); // 0 to 135
 const macbookColor = ref('spacegray'); // 'spacegray' or 'silver'
 const macbookWallpaper = ref('sequoia'); // 'sequoia', 'terminal', 'store'
@@ -1728,99 +1728,99 @@ const activeMacbookPart = ref(null);
 const macbookParts = [
   {
     id: 'screen',
-    name: 'Màn hình Liquid Retina XDR 16.2"',
-    emoji: '🖥️',
-    sub: 'Độ phân giải 3.4K, 1600 nits, ProMotion 120Hz',
-    desc: 'Tấm nền Mini-LED Extreme Dynamic Range đỉnh cao, tỷ lệ tương phản 1.000.000:1, dải màu rộng P3 chuẩn studio, tần số quét thích ứng 120Hz mượt mà kinh ngạc.',
+    name: 'M�n h�nh Liquid Retina XDR 16.2"',
+    emoji: '???',
+    sub: '�? ph�n gi?i 3.4K, 1600 nits, ProMotion 120Hz',
+    desc: 'T?m n?n Mini-LED Extreme Dynamic Range d?nh cao, t? l? tuong ph?n 1.000.000:1, d?i m�u r?ng P3 chu?n studio, t?n s? qu�t th�ch ?ng 120Hz mu?t m� kinh ng?c.',
     specs: {
-      'Độ phân giải': '3456 x 2234 (3.4K)',
-      'Độ sáng tối đa': '1600 nits Peak HDR',
-      'Công nghệ nền': 'Mini-LED 10,000 bóng LED',
-      'Tần số quét': 'ProMotion 120Hz thích ứng'
+      '�? ph�n gi?i': '3456 x 2234 (3.4K)',
+      '�? s�ng t?i da': '1600 nits Peak HDR',
+      'C�ng ngh? n?n': 'Mini-LED 10,000 b�ng LED',
+      'T?n s? qu�t': 'ProMotion 120Hz th�ch ?ng'
     },
     score: 98,
     color: '#06b6d4'
   },
   {
     id: 'keyboard',
-    name: 'Bàn phím Magic Keyboard & Touch ID',
-    emoji: '⌨️',
-    sub: 'Hành trình phím tối ưu, bảo mật sinh trắc học',
-    desc: 'Phím gõ êm ái, ổn định tuyệt đối với cơ chế cắt kéo. Hàng phím chức năng full-size tiện lợi cùng cảm biến vân tay Touch ID siêu bảo mật tích hợp ở góc phải.',
+    name: 'B�n ph�m Magic Keyboard & Touch ID',
+    emoji: '??',
+    sub: 'H�nh tr�nh ph�m t?i uu, b?o m?t sinh tr?c h?c',
+    desc: 'Ph�m g� �m �i, ?n d?nh tuy?t d?i v?i co ch? c?t k�o. H�ng ph�m ch?c nang full-size ti?n l?i c�ng c?m bi?n v�n tay Touch ID si�u b?o m?t t�ch h?p ? g�c ph?i.',
     specs: {
-      'Loại cơ cấu': 'Cơ cấu cắt kéo (Scissor-switch)',
-      'Đèn nền': 'LED đơn trắng thông minh',
-      'Bảo mật': 'Touch ID Secure Enclave'
+      'Lo?i co c?u': 'Co c?u c?t k�o (Scissor-switch)',
+      '��n n?n': 'LED don tr?ng th�ng minh',
+      'B?o m?t': 'Touch ID Secure Enclave'
     },
     score: 92,
     color: '#3b82f6'
   },
   {
     id: 'trackpad',
-    name: 'Bàn rê Force Touch Trackpad',
-    emoji: '🖱️',
-    sub: 'Cảm ứng lực thông minh, phản hồi haptic',
-    desc: 'Bàn rê cảm ứng lực lớn nhất thế giới, hỗ trợ nhận diện nhiều cấp độ lực nhấn và vô vàn cử chỉ Multi-Touch thông minh. Không có chi tiết chuyển động vật lý, giả lập lực nhấn bằng bộ rung haptic cực kỳ chính xác.',
+    name: 'B�n r� Force Touch Trackpad',
+    emoji: '???',
+    sub: 'C?m ?ng l?c th�ng minh, ph?n h?i haptic',
+    desc: 'B�n r� c?m ?ng l?c l?n nh?t th? gi?i, h? tr? nh?n di?n nhi?u c?p d? l?c nh?n v� v� v�n c? ch? Multi-Touch th�ng minh. Kh�ng c� chi ti?t chuy?n d?ng v?t l�, gi? l?p l?c nh?n b?ng b? rung haptic c?c k? ch�nh x�c.',
     specs: {
-      'Cơ chế hoạt động': 'Cảm biến lực + Taptic Engine',
-      'Chất liệu bề mặt': 'Kính mờ Acid-etched Glass cao cấp',
-      'Hỗ trợ cử chỉ': 'Multi-Touch & Force Click'
+      'Co ch? ho?t d?ng': 'C?m bi?n l?c + Taptic Engine',
+      'Ch?t li?u b? m?t': 'K�nh m? Acid-etched Glass cao c?p',
+      'H? tr? c? ch?': 'Multi-Touch & Force Click'
     },
     score: 95,
     color: '#a855f7'
   },
   {
     id: 'logo',
-    name: 'Logo Táo khuyết mạ gương phát sáng',
-    emoji: '🍏',
-    sub: 'Biểu tượng đẳng cấp thiết kế Apple',
-    desc: 'Biểu trưng Apple được gia công cắt laser chính xác bằng chất liệu kính tráng gương bóng bẩy chống xước, tạo điểm nhấn thẩm mỹ thanh lịch đặc trưng trên nắp nhôm.',
+    name: 'Logo T�o khuy?t m? guong ph�t s�ng',
+    emoji: '??',
+    sub: 'Bi?u tu?ng d?ng c?p thi?t k? Apple',
+    desc: 'Bi?u trung Apple được gia c�ng c?t laser ch�nh x�c b?ng ch?t li?u k�nh tr�ng guong b�ng b?y ch?ng xu?c, t?o di?m nh?n th?m m? thanh l?ch d?c trung tr�n n?p nh�m.',
     specs: {
-      'Chất liệu': 'Kính cường lực Mirror-polished',
-      'Đặc điểm': 'Gia công chính xác, chống bám vân tay',
-      'Hiệu ứng': 'Phát sáng neon đổi màu khi hover'
+      'Ch?t li?u': 'K�nh cu?ng l?c Mirror-polished',
+      '�?c di?m': 'Gia c�ng ch�nh x�c, ch?ng b�m v�n tay',
+      'Hi?u ?ng': 'Ph�t s�ng neon d?i m�u khi hover'
     },
     score: 90,
     color: '#f59e0b'
   },
   {
     id: 'speakers',
-    name: 'Hệ thống 6 loa ngoài Spatial Audio',
-    emoji: '🔊',
-    sub: 'Loa trầm khử lực force-cancelling, âm thanh vòm',
-    desc: 'Hệ thống âm thanh tốt nhất trên mọi chiếc laptop thế giới với 4 loa trầm khử lực triệt tiêu rung động và 2 loa bổng hiệu năng cao. Hỗ trợ Spatial Audio khi phát nhạc hoặc phim chuẩn Dolby Atmos.',
+    name: 'H? th?ng 6 loa ngo�i Spatial Audio',
+    emoji: '??',
+    sub: 'Loa tr?m kh? l?c force-cancelling, �m thanh v�m',
+    desc: 'H? th?ng �m thanh t?t nh?t tr�n m?i chi?c laptop th? gi?i v?i 4 loa tr?m kh? l?c tri?t ti�u rung d?ng v� 2 loa b?ng hi?u nang cao. H? tr? Spatial Audio khi ph�t nh?c ho?c phim chu?n Dolby Atmos.',
     specs: {
-      'Cấu hình loa': '6 Loa Hi-Fi (4 Woofers + 2 Tweeters)',
-      'Công nghệ': 'Spatial Audio & Dolby Atmos vòm',
-      'Hỗ trợ mic': 'Cụm 3 micro định hướng chuẩn studio'
+      'C?u h�nh loa': '6 Loa Hi-Fi (4 Woofers + 2 Tweeters)',
+      'C�ng ngh?': 'Spatial Audio & Dolby Atmos v�m',
+      'H? tr? mic': 'C?m 3 micro d?nh hu?ng chu?n studio'
     },
     score: 97,
     color: '#ec4899'
   },
   {
     id: 'ports',
-    name: 'Cổng MagSafe 3 & Thunderbolt 4',
-    emoji: '🔌',
-    sub: 'Kết nối đa năng, sạc hít nam châm an toàn',
-    desc: 'Trang bị cổng sạc nam châm MagSafe 3 cực kỳ an toàn, tự động bung ra khi vấp cáp sạc. Đi kèm 3 cổng Thunderbolt 4 (USB-C) băng thông siêu tốc 40Gbps, khe đọc thẻ nhớ SDXC và cổng HDMI 2.1 xuất màn hình 8K.',
+    name: 'C?ng MagSafe 3 & Thunderbolt 4',
+    emoji: '??',
+    sub: 'K?t n?i da nang, s?c h�t nam ch�m an to�n',
+    desc: 'Trang b? c?ng s?c nam ch�m MagSafe 3 c?c k? an to�n, t? d?ng bung ra khi v?p c�p s?c. �i k�m 3 c?ng Thunderbolt 4 (USB-C) bang th�ng si�u t?c 40Gbps, khe d?c th? nh? SDXC v� c?ng HDMI 2.1 xu?t m�n h�nh 8K.',
     specs: {
-      'MagSafe 3': 'Hít nam châm sạc nhanh 140W',
-      'Thunderbolt 4': '3 Cổng USB-C tốc độ 40Gbps',
-      'Đầu ra hình ảnh': 'HDMI 2.1 & Đầu đọc thẻ nhớ SDXC'
+      'MagSafe 3': 'H�t nam ch�m s?c nhanh 140W',
+      'Thunderbolt 4': '3 C?ng USB-C t?c d? 40Gbps',
+      '�?u ra h�nh ?nh': 'HDMI 2.1 & �?u d?c th? nh? SDXC'
     },
     score: 94,
     color: '#10b981'
   },
   {
     id: 'unibody',
-    name: 'Vỏ nhôm nguyên khối Aluminium Unibody',
-    emoji: '🛡️',
-    sub: 'Nhôm tái chế 100% bảo vệ môi trường, siêu bền',
-    desc: 'Khung sườn MacBook Pro được đúc và tiện từ một khối nhôm duy nhất siêu chịu lực. Vật liệu làm bằng nhôm tái chế 100% được gia công vi-anode chống bám mồ hôi và xước dăm hiệu quả.',
+    name: 'V? nh�m nguy�n kh?i Aluminium Unibody',
+    emoji: '???',
+    sub: 'Nh�m t�i ch? 100% b?o v? m�i tru?ng, si�u b?n',
+    desc: 'Khung su?n MacBook Pro được d�c v� ti?n t? m?t kh?i nh�m duy nh?t si�u ch?u l?c. V?t li?u l�m b?ng nh�m t�i ch? 100% được gia c�ng vi-anode ch?ng b�m m? h�i v� xu?c dam hi?u qu?.',
     specs: {
-      'Chất liệu': '100% Nhôm Series 6000 tái chế',
-      'Màu sắc': 'Space Gray (Xám) / Silver (Bạc)',
-      'Trọng lượng': 'Chỉ 2.1 kg cho phiên bản 16.2"'
+      'Ch?t li?u': '100% Nh�m Series 6000 t�i ch?',
+      'M�u s?c': 'Space Gray (X�m) / Silver (B?c)',
+      'Tr?ng lu?ng': 'Ch? 2.1 kg cho phi�n b?n 16.2"'
     },
     score: 96,
     color: '#6b7280'
@@ -1842,66 +1842,66 @@ const activeSchematicPart = ref(null);
 const schematicParts = [
   {
     id: 'camera',
-    name: 'Camera AI FHD & Cảm biến IR hồng ngoại',
-    emoji: '📷',
+    name: 'Camera AI FHD & C?m bi?n IR h?ng ngo?i',
+    emoji: '??',
     x: 48, y: 7,
-    desc: 'Hệ thống camera độ phân giải cao kết hợp cảm biến hồng ngoại hỗ trợ bảo mật Windows Hello mở khóa bằng khuôn mặt 3D, tự động căn chỉnh khung hình AI.'
+    desc: 'H? th?ng camera d? ph�n gi?i cao k?t h?p c?m bi?n h?ng ngo?i h? tr? b?o m?t Windows Hello m? kh�a b?ng khu�n m?t 3D, t? d?ng can ch?nh khung h�nh AI.'
   },
   {
     id: 'screen',
-    name: 'Màn Hình Ultra-OLED 16" 2.5K 240Hz',
-    emoji: '🖥️',
+    name: 'M�n H�nh Ultra-OLED 16" 2.5K 240Hz',
+    emoji: '???',
     x: 60, y: 25,
-    desc: 'Tấm nền OLED cao cấp thế hệ mới, độ phủ màu điện ảnh 100% DCI-P3, tần số quét 240Hz siêu mượt và độ sáng cực đại 600 nits cho trải nghiệm hình ảnh tuyệt mỹ.'
+    desc: 'T?m n?n OLED cao c?p th? h? m?i, d? ph? m�u di?n ?nh 100% DCI-P3, t?n s? qu�t 240Hz si�u mu?t v� d? s�ng c?c d?i 600 nits cho tr?i nghi?m h�nh ?nh tuy?t m?.'
   },
   {
     id: 'top_panel',
-    name: 'Khung Vỏ Nắp Trên Hợp Kim Nhôm',
-    emoji: '💻',
+    name: 'Khung V? N?p Tr�n H?p Kim Nh�m',
+    emoji: '??',
     x: 35, y: 22,
-    desc: 'Nắp vỏ nhôm dòng 6000 siêu nhẹ gia công CNC nguyên khối tinh xảo, xử lý anode mịn màng chống xước và tăng độ chịu lực tác động vật lý bên ngoài.'
+    desc: 'N?p v? nh�m d�ng 6000 si�u nh? gia c�ng CNC nguy�n kh?i tinh x?o, x? l� anode m?n m�ng ch?ng xu?c v� tang d? ch?u l?c t�c d?ng v?t l� b�n ngo�i.'
   },
   {
     id: 'keyboard',
-    name: 'Bàn Phím Cơ LED Backlit Cơ Học',
-    emoji: '⌨️',
+    name: 'B�n Ph�m Co LED Backlit Co H?c',
+    emoji: '??',
     x: 55, y: 55,
-    desc: 'Lưới phím bấm cơ học thế hệ mới với hành trình phím 1.5mm phản hồi xúc giác tối ưu, trang bị đèn nền LED RGB độc lập lấp lánh.'
+    desc: 'Lu?i ph�m b?m co h?c th? h? m?i v?i h�nh tr�nh ph�m 1.5mm ph?n h?i x�c gi�c t?i uu, trang b? d�n n?n LED RGB d?c l?p l?p l�nh.'
   },
   {
     id: 'touchpad',
-    name: 'Bàn Rê Haptic Glass Touchpad',
-    emoji: '🖱️',
+    name: 'B�n R� Haptic Glass Touchpad',
+    emoji: '???',
     x: 63, y: 62,
-    desc: 'Diện tích cực rộng, phủ kính cường lực mượt mà, tích hợp động cơ rung phản hồi lực Haptic chính xác thay cho cơ chế phím bấm vật lý truyền thống.'
+    desc: 'Di?n t�ch c?c r?ng, ph? k�nh cu?ng l?c mu?t m�, t�ch h?p d?ng co rung ph?n h?i l?c Haptic ch�nh x�c thay cho co ch? ph�m b?m v?t l� truy?n th?ng.'
   },
   {
     id: 'power_btn',
-    name: 'Nút Nguồn Vân Tay 1 Chạm',
-    emoji: '🔘',
+    name: 'N�t Ngu?n V�n Tay 1 Ch?m',
+    emoji: '??',
     x: 31, y: 58,
-    desc: 'Được trang bị cảm biến sinh trắc học vân tay siêu nhạy dưới nút nguồn giúp đăng nhập Windows an toàn chỉ trong một lần chạm.'
+    desc: '�u?c trang b? c?m bi?n sinh tr?c h?c v�n tay si�u nh?y du?i n�t ngu?n gi�p dang nh?p Windows an to�n ch? trong m?t l?n ch?m.'
   },
   {
     id: 'charging_port',
-    name: 'Cổng Sạc DC Siêu Tốc VinaCharge',
-    emoji: '🔌',
+    name: 'C?ng S?c DC Si�u T?c VinaCharge',
+    emoji: '??',
     x: 27, y: 56,
-    desc: 'Cổng sạc cấp nguồn công suất cao chuyên dụng, hỗ trợ công nghệ sạc siêu nhanh giúp hồi sinh 80% dung lượng pin trong vòng 45 phút sạc.'
+    desc: 'C?ng s?c c?p ngu?n c�ng su?t cao chuy�n d?ng, h? tr? c�ng ngh? s?c si�u nhanh gi�p h?i sinh 80% dung lu?ng pin trong v�ng 45 ph�t s?c.'
   },
   {
     id: 'usb_ports',
-    name: 'Cổng USB Siêu Tốc & Thunderbolt 4',
-    emoji: '⚡',
+    name: 'C?ng USB Si�u T?c & Thunderbolt 4',
+    emoji: '?',
     x: 34, y: 64,
-    desc: 'Cổng giao tiếp đa năng băng thông siêu rộng 40Gbps hỗ trợ truyền dữ liệu, sạc nhanh Power Delivery và xuất ra thêm 2 màn hình rời 4K.'
+    desc: 'C?ng giao ti?p da nang bang th�ng si�u r?ng 40Gbps h? tr? truy?n dữ liệu, s?c nhanh Power Delivery v� xu?t ra th�m 2 m�n h�nh r?i 4K.'
   },
   {
     id: 'base_panel',
-    name: 'Vỏ Đáy Hợp Kim Magie Siêu Bền',
-    emoji: '🛡️',
+    name: 'V? ��y H?p Kim Magie Si�u B?n',
+    emoji: '???',
     x: 77, y: 56,
-    desc: 'Đế máy đúc nguyên khối Magie siêu nhẹ, thiết kế khe lưới tản nhiệt hình tổ ong tăng lưu lượng khí hút vào quạt tản nhiệt thêm 30%.'
+    desc: '�? m�y d�c nguy�n kh?i Magie si�u nh?, thi?t k? khe lu?i t?n nhi?t h�nh t? ong tang luu lu?ng kh� h�t v�o qu?t t?n nhi?t th�m 30%.'
   }
 ];
 
@@ -1927,15 +1927,15 @@ const handleMouseMove3D = (event) => {
   const rect = container.getBoundingClientRect();
   const width = rect.width;
   const height = rect.height;
-  
+
   // Mouse position relative to center of the container (-0.5 to 0.5)
   const relX = (event.clientX - rect.left) / width - 0.5;
   const relY = (event.clientY - rect.top) / height - 0.5;
-  
-  // Xoay ngang 180 độ (từ -180 đến 180 độ toàn cảnh)
+
+  // Xoay ngang 180 d? (t? -180 d?n 180 d? to�n c?nh)
   explodedRotateY.value = Math.round(relX * 360);
-  
-  // Xoay dọc (từ -45 đến 45 độ)
+
+  // Xoay d?c (t? -45 d?n 45 d?)
   explodedRotateX.value = Math.round(-relY * 90);
 };
 
@@ -1948,30 +1948,30 @@ const handleMouseLeave3D = () => {
 const componentParts = [
   {
     id: 'display',
-    name: 'Màn hình Ultra-WQHD 240Hz',
-    emoji: '🖥️',
-    sub: 'Tấm Nền OLED Điện Ảnh Thế Hệ Mới',
-    desc: 'Tấm nền OLED cao cấp độ phủ màu 100% DCI-P3 siêu trung thực, hỗ trợ HDR600, tần số quét 240Hz lý tưởng cho game thủ FPS và nhà thiết kế chuyên nghiệp.',
+    name: 'M�n h�nh Ultra-WQHD 240Hz',
+    emoji: '???',
+    sub: 'T?m N?n OLED �i?n ?nh Th? H? M?i',
+    desc: 'T?m n?n OLED cao c?p d? ph? m�u 100% DCI-P3 si�u trung th?c, h? tr? HDR600, t?n s? qu�t 240Hz l� tu?ng cho game th? FPS v� nh� thi?t k? chuy�n nghi?p.',
     specs: {
-      'Kích thước': '16 inches',
-      'Độ Phân Giải': '2.5K WQHD (2560x1600)',
-      'Tần Số Quét': '240Hz siêu mượt',
-      'Công Nghệ': 'OLED HDR600'
+      'K�ch thu?c': '16 inches',
+      '�? Ph�n Gi?i': '2.5K WQHD (2560x1600)',
+      'T?n S? Qu�t': '240Hz si�u mu?t',
+      'C�ng Ngh?': 'OLED HDR600'
     },
     score: 96,
     color: '#60a5fa'
   },
   {
     id: 'chassis',
-    name: 'Khung Vỏ Kim Loại CNC',
-    emoji: '💻',
-    sub: 'Vỏ Nhôm Dòng 6000 Nguyên Khối Cường Lực',
-    desc: 'Khung máy hợp kim nhôm-magie dòng 6000 tiện CNC siêu tỉ mỉ, tăng cường cấu trúc tản nhiệt thụ động, chịu lực và chống va đập tiêu chuẩn quân đội.',
+    name: 'Khung V? Kim Lo?i CNC',
+    emoji: '??',
+    sub: 'V? Nh�m D�ng 6000 Nguy�n Kh?i Cu?ng L?c',
+    desc: 'Khung m�y h?p kim nh�m-magie d�ng 6000 ti?n CNC si�u t? m?, tang cu?ng c?u tr�c t?n nhi?t th? d?ng, ch?u l?c v� ch?ng va d?p ti�u chu?n qu�n d?i.',
     specs: {
-      'Chất Liệu': 'Hợp Kim Nhôm-Magie 6000',
-      'Độ Dày': 'Chỉ 15.9 mm',
-      'Trọng Lượng vỏ': 'Gia cố chịu lực 25kg',
-      'Quy Trình': 'Cắt CNC nguyên khối + Anode phủ mịn'
+      'Ch?t Li?u': 'H?p Kim Nh�m-Magie 6000',
+      '�? D�y': 'Ch? 15.9 mm',
+      'Tr?ng Lu?ng v?': 'Gia c? ch?u l?c 25kg',
+      'Quy Tr�nh': 'C?t CNC nguy�n kh?i + Anode ph? m?n'
     },
     score: 93,
     color: '#94a3b8'
@@ -1979,14 +1979,14 @@ const componentParts = [
   {
     id: 'cpu',
     name: 'CPU Intel Core i9-14900HX',
-    emoji: '🧠',
-    sub: 'Vi Xử Lý Siêu Cấp Hạng Raptor Lake',
-    desc: 'Trang bị 24 nhân (8 nhân P-core hiệu năng cao & 16 nhân E-core tiết kiệm điện), xung nhịp turbo tối đa lên tới 5.8 GHz. Hỗ trợ Intel Thread Director tối ưu luồng chơi game và dựng hình 3D đỉnh cao.',
+    emoji: '??',
+    sub: 'Vi X? L� Si�u C?p H?ng Raptor Lake',
+    desc: 'Trang b? 24 nh�n (8 nh�n P-core hi?u nang cao & 16 nh�n E-core ti?t ki?m di?n), xung nh?p turbo t?i da l�n t?i 5.8 GHz. H? tr? Intel Thread Director t?i uu lu?ng choi game v� d?ng h�nh 3D d?nh cao.',
     specs: {
-      'Số Nhân / Luồng': '24 Cores / 32 Threads',
-      'Xung Nhịp': 'Xung turbo 5.8 GHz',
-      'Bộ Nhớ Đệm': '36MB Smart Cache',
-      'Công Suất tiêu thụ': '55W - 157W Turbo'
+      'S? Nh�n / Lu?ng': '24 Cores / 32 Threads',
+      'Xung Nh?p': 'Xung turbo 5.8 GHz',
+      'B? Nh? �?m': '36MB Smart Cache',
+      'C�ng Su?t ti�u th?': '55W - 157W Turbo'
     },
     score: 98,
     color: '#06b6d4'
@@ -1994,14 +1994,14 @@ const componentParts = [
   {
     id: 'gpu',
     name: 'GPU NVIDIA RTX 4090 Laptop',
-    emoji: '🎮',
-    sub: 'Quái Thú Đồ Họa Cận Cực Ada Lovelace',
-    desc: 'Sở hữu 16GB VRAM GDDR6 siêu tốc, công nghệ DLSS 3.0 với Frame Generation tái tạo khung hình AI mượt mà gấp 4 lần. Hỗ trợ Full Ray-Tracing mang lại thế giới ảo lung linh chân thực.',
+    emoji: '??',
+    sub: 'Qu�i Th� �? H?a C?n C?c Ada Lovelace',
+    desc: 'S? h?u 16GB VRAM GDDR6 si�u t?c, c�ng ngh? DLSS 3.0 v?i Frame Generation t�i t?o khung h�nh AI mu?t m� g?p 4 l?n. H? tr? Full Ray-Tracing mang l?i th? gi?i ?o lung linh ch�n th?c.',
     specs: {
-      'Nhân CUDA': '9728 Cores',
-      'Bộ Nhớ VRAM': '16GB GDDR6 256-bit',
-      'TDP Tối Đa': 'TGP 175W max',
-      'Linh Kiện Ray-Tracing': 'Nhân RT thế hệ 3'
+      'Nh�n CUDA': '9728 Cores',
+      'B? Nh? VRAM': '16GB GDDR6 256-bit',
+      'TDP T?i �a': 'TGP 175W max',
+      'Linh Ki?n Ray-Tracing': 'Nh�n RT th? h? 3'
     },
     score: 99,
     color: '#ec4899'
@@ -2009,14 +2009,14 @@ const componentParts = [
   {
     id: 'ram',
     name: 'RAM DDR5 Dual-Channel 64GB',
-    emoji: '⚡',
-    sub: 'Bộ Nhớ Siêu Băng Thông Cực Nhanh',
-    desc: 'Hệ thống bộ nhớ dung lượng khủng 64GB DDR5 Dual Channel chạy ở bus cực cao 5600MHz, độ trễ cực thấp. Cho phép render video 4K song song chơi game AAA và chạy hàng chục tab Chrome không giật lag.',
+    emoji: '?',
+    sub: 'B? Nh? Si�u Bang Th�ng C?c Nhanh',
+    desc: 'H? th?ng b? nh? dung lu?ng kh?ng 64GB DDR5 Dual Channel ch?y ? bus c?c cao 5600MHz, d? tr? c?c th?p. Cho ph�p render video 4K song song choi game AAA v� ch?y h�ng ch?c tab Chrome kh�ng gi?t lag.',
     specs: {
-      'Dung Lượng': '64GB (2 x 32GB)',
-      'Chuẩn RAM': 'DDR5 SODIMM',
-      'Tốc Độ Bus': '5600 MT/s',
-      'Độ Trễ Latency': 'CL40 - Cực thấp'
+      'Dung Lu?ng': '64GB (2 x 32GB)',
+      'Chu?n RAM': 'DDR5 SODIMM',
+      'T?c �? Bus': '5600 MT/s',
+      '�? Tr? Latency': 'CL40 - C?c th?p'
     },
     score: 95,
     color: '#a855f7'
@@ -2024,29 +2024,29 @@ const componentParts = [
   {
     id: 'ssd',
     name: 'SSD PCIe Gen 5 NVMe 2TB',
-    emoji: '💾',
-    sub: 'Ổ Cứng Siêu Tốc Thế Hệ Mới Nhất',
-    desc: 'Ổ cứng thể rắn cao cấp nhất thế giới với chuẩn PCIe Gen 5.0 x4 mới nhất, mang lại tốc độ đọc ghi phi thường lên đến 12,000 MB/s. Load game nặng chỉ trong tích tắc, khởi động Windows chưa đầy 3 giây.',
+    emoji: '??',
+    sub: '? C?ng Si�u T?c Th? H? M?i Nh?t',
+    desc: '? c?ng th? r?n cao c?p nh?t th? gi?i v?i chu?n PCIe Gen 5.0 x4 m?i nh?t, mang l?i t?c d? d?c ghi phi thu?ng l�n d?n 12,000 MB/s. Load game n?ng ch? trong t�ch t?c, kh?i d?ng Windows chua d?y 3 gi�y.',
     specs: {
-      'Tốc Độ Đọc': 'Tới 12,400 MB/s',
-      'Tốc Độ Ghi': 'Tới 11,800 MB/s',
-      'Chuẩn Kết Nối': 'M.2 NVMe PCIe 5.0',
-      'Độ Bền TBW': '1400 TBW cực trâu'
+      'T?c �? �?c': 'T?i 12,400 MB/s',
+      'T?c �? Ghi': 'T?i 11,800 MB/s',
+      'Chu?n K?t N?i': 'M.2 NVMe PCIe 5.0',
+      '�? B?n TBW': '1400 TBW c?c tr�u'
     },
     score: 97,
     color: '#10b981'
   },
   {
     id: 'cooling',
-    name: 'Tản Nhiệt Dual-Turbo Liquid-Metal',
-    emoji: '❄️',
-    sub: 'Hệ Thống Làm Mát Keo Kim Liquid-Metal',
-    desc: 'Sử dụng keo kim loại lỏng Thermal Grizzly thế hệ mới trên bề mặt CPU/GPU giúp hạ nhiệt độ đến 15°C so với keo truyền thống. Kết hợp 2 quạt cánh thép mỏng 0.1mm tăng lượng gió 35% mà không ồn.',
+    name: 'T?n Nhi?t Dual-Turbo Liquid-Metal',
+    emoji: '??',
+    sub: 'H? Th?ng L�m M�t Keo Kim Liquid-Metal',
+    desc: 'S? d?ng keo kim lo?i l?ng Thermal Grizzly th? h? m?i tr�n b? m?t CPU/GPU gi�p h? nhi?t d? d?n 15�C so v?i keo truy?n th?ng. K?t h?p 2 qu?t c�nh th�p m?ng 0.1mm tang lu?ng gi� 35% m� kh�ng ?n.',
     specs: {
-      'Số Quạt / Ống Đồng': '2 Quạt / 7 Ống dẫn nhiệt',
-      'Lưu Lượng Gió': '32.5 CFM',
-      'Độ Ồn Tối Đa': 'Dưới 42 dB',
-      'Vật Liệu Tản': 'Keo kim loại lỏng + Đồng cánh sen'
+      'S? Qu?t / ?ng �?ng': '2 Qu?t / 7 ?ng d?n nhi?t',
+      'Luu Lu?ng Gi�': '32.5 CFM',
+      '�? ?n T?i �a': 'Du?i 42 dB',
+      'V?t Li?u T?n': 'Keo kim lo?i l?ng + �?ng c�nh sen'
     },
     score: 92,
     color: '#3b82f6'
@@ -2054,14 +2054,14 @@ const componentParts = [
   {
     id: 'battery',
     name: 'Pin VinaVolt 99.9Wh 4-Cell',
-    emoji: '🔋',
-    sub: 'Nguồn Năng Lượng Đạt Chuẩn Hàng Không',
-    desc: 'Dung lượng pin lớn nhất thế giới được phép mang lên máy bay (99.9 Watt-hour). Sử dụng lõi Lithium-Polymer cao cấp cho thời gian sử dụng văn phòng lên đến 10 tiếng liên tục. Tích hợp sạc nhanh VinaCharge 100W.',
+    emoji: '??',
+    sub: 'Ngu?n Nang Lu?ng �?t Chu?n H�ng Kh�ng',
+    desc: 'Dung lu?ng pin l?n nh?t th? gi?i được ph�p mang l�n m�y bay (99.9 Watt-hour). S? d?ng l�i Lithium-Polymer cao c?p cho th?i gian s? d?ng van ph�ng l�n d?n 10 ti?ng li�n t?c. T�ch h?p s?c nhanh VinaCharge 100W.',
     specs: {
-      'Dung Lượng Wh': '99.9 Watt-hours',
-      'Số Lõi Pin': '4-Cell Lithium-Polymer',
-      'Công Suất Sạc': 'Sạc nhanh PD 100W',
-      'Tuổi Thọ Vòng Đời': 'Hơn 1000 chu kỳ sạc'
+      'Dung Lu?ng Wh': '99.9 Watt-hours',
+      'S? L�i Pin': '4-Cell Lithium-Polymer',
+      'C�ng Su?t S?c': 'S?c nhanh PD 100W',
+      'Tu?i Th? V�ng �?i': 'Hon 1000 chu k? s?c'
     },
     score: 90,
     color: '#f59e0b'
@@ -2107,14 +2107,14 @@ const claimScanningCoins = () => {
   if (scannedPartsCount.value < componentParts.length || hasClaimedScanReward.value) return;
   hasClaimedScanReward.value = true;
   localStorage.setItem('scanned_parts_reward', 'true');
-  completeQuest(25, 'Khám phá và quét sơ đồ 3D linh kiện Laptop');
+  completeQuest(25, 'Kh�m ph� v� qu�t so d? 3D linh ki?n Laptop');
 };
 
 const chassisColors = [
-  { id: 'black', name: 'Stealth Matte Black (Đen mờ)', grad: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' },
-  { id: 'silver', name: 'Liquid Titanium Silver (Bạc titan)', grad: 'linear-gradient(135deg, #cbd5e1 0%, #64748b 100%)' },
+  { id: 'black', name: 'Stealth Matte Black (�en m?)', grad: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' },
+  { id: 'silver', name: 'Liquid Titanium Silver (B?c titan)', grad: 'linear-gradient(135deg, #cbd5e1 0%, #64748b 100%)' },
   { id: 'cyan', name: 'Quantum Cyber Cyan (Xanh Lazer)', grad: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' },
-  { id: 'purple', name: 'Obsidian Aurora Purple (Tím huyền ảo)', grad: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)' }
+  { id: 'purple', name: 'Obsidian Aurora Purple (T�m huy?n ?o)', grad: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)' }
 ];
 
 const selectedChassisName = computed(() => {
@@ -2129,16 +2129,16 @@ const chassisColorGrad = computed(() => {
 
 // Sticker Library
 const stickersLibrary = [
-  { id: 'stk-1', name: 'VinaTech Cyber', icon: '🌌' },
-  { id: 'stk-2', name: 'Zero Bugs Coder', icon: '🐛' },
-  { id: 'stk-3', name: 'RGB Gaming Beast', icon: '🦖' },
-  { id: 'stk-4', name: 'Developer Coder', icon: '💻' },
-  { id: 'stk-5', name: 'Space Astronaut', icon: '👨‍🚀' },
-  { id: 'stk-6', name: 'Coffee Refueled', icon: '☕' }
+  { id: 'stk-1', name: 'VinaTech Cyber', icon: '??' },
+  { id: 'stk-2', name: 'Zero Bugs Coder', icon: '??' },
+  { id: 'stk-3', name: 'RGB Gaming Beast', icon: '??' },
+  { id: 'stk-4', name: 'Developer Coder', icon: '??' },
+  { id: 'stk-5', name: 'Space Astronaut', icon: '?????' },
+  { id: 'stk-6', name: 'Coffee Refueled', icon: '?' }
 ];
 
 const appliedStickers = ref([
-  { id: 'default-stk', name: 'VinaTech Cyber', icon: '🌌', x: 42, y: 35, scale: 1.2, rotate: 15 }
+  { id: 'default-stk', name: 'VinaTech Cyber', icon: '??', x: 42, y: 35, scale: 1.2, rotate: 15 }
 ]);
 const selectedStickerId = ref('default-stk');
 
@@ -2182,19 +2182,19 @@ let stickerStartY = 0;
 const startDrag = (event, stickerId) => {
   activeDragStickerId.value = stickerId;
   selectedStickerId.value = stickerId;
-  
+
   const stk = appliedStickers.value.find(s => s.id === stickerId);
   if (!stk) return;
-  
+
   stickerStartX = stk.x;
   stickerStartY = stk.y;
-  
+
   const clientX = event.touches ? event.touches[0].clientX : event.clientX;
   const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-  
+
   dragStartX = clientX;
   dragStartY = clientY;
-  
+
   document.addEventListener('mousemove', handleDrag);
   document.addEventListener('mouseup', stopDrag);
   document.addEventListener('touchmove', handleDrag, { passive: false });
@@ -2204,16 +2204,16 @@ const startDrag = (event, stickerId) => {
 const handleDrag = (event) => {
   if (!activeDragStickerId.value) return;
   event.preventDefault();
-  
+
   const clientX = event.touches ? event.touches[0].clientX : event.clientX;
   const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-  
+
   const deltaX = clientX - dragStartX;
   const deltaY = clientY - dragStartY;
-  
+
   const containerWidth = laptopLidRef.value ? laptopLidRef.value.clientWidth : 350;
   const containerHeight = laptopLidRef.value ? laptopLidRef.value.clientHeight : 220;
-  
+
   const stk = appliedStickers.value.find(s => s.id === activeDragStickerId.value);
   if (stk) {
     stk.x = Math.max(0, Math.min(88, stickerStartX + (deltaX / containerWidth) * 100));
@@ -2231,10 +2231,10 @@ const stopDrag = () => {
 
 // Keyboard Backlight Styles
 const ledModes = [
-  { id: 'rainbow', name: 'Rainbow Wave (Dải màu)', emoji: '🌈', desc: 'Chạy dải màu chuyển động lấp lánh liên tục' },
-  { id: 'breathe', name: 'Breathing Glow (Nhịp thở)', emoji: '🫁', desc: 'Đèn LED nhấp nháy tỏa sáng theo chu kỳ nhịp thở' },
-  { id: 'static', name: 'Static Neon (Màu tĩnh)', emoji: '💡', desc: 'Giữ sáng cố định theo màu sắc bạn pha trộn' },
-  { id: 'off', name: 'Backlit Off (Tắt đèn)', emoji: '🌑', desc: 'Tắt toàn bộ hệ thống đèn nền bàn phím' }
+  { id: 'rainbow', name: 'Rainbow Wave (D?i m�u)', emoji: '??', desc: 'Ch?y d?i m�u chuy?n d?ng l?p l�nh li�n t?c' },
+  { id: 'breathe', name: 'Breathing Glow (Nh?p th?)', emoji: '??', desc: '��n LED nh?p nh�y t?a s�ng theo chu k? nh?p th?' },
+  { id: 'static', name: 'Static Neon (M�u tinh)', emoji: '??', desc: 'Gi? s�ng c? d?nh theo m�u s?c b?n pha tr?n' },
+  { id: 'off', name: 'Backlit Off (T?t d�n)', emoji: '??', desc: 'T?t to�n b? h? th?ng d�n n?n b�n ph�m' }
 ];
 
 const selectedLedModeLabel = computed(() => {
@@ -2274,13 +2274,13 @@ const keyLedStyle = computed(() => {
 // Trigger complete Quest 4 on saving custom design
 const handleSaveDesign = () => {
   Swal.fire({
-    title: 'Đã lưu thiết kế! 💻',
-    text: 'Cấu hình thiết kế laptop độc quyền của bạn đã được ghi lại thành công.',
+    title: '�� luu thi?t k?! ??',
+    text: 'C?u h�nh thi?t k? laptop d?c quy?n của bạn d� được ghi l?i th�nh c�ng.',
     icon: 'success',
-    confirmButtonText: 'Đóng',
+    confirmButtonText: '��ng',
     confirmButtonColor: '#2563eb'
   });
-  completeQuest(15, 'Trải nghiệm cá nhân hóa Laptop');
+  completeQuest(15, 'Tr?i nghi?m c� nh�n h�a Laptop');
 };
 
 
@@ -2312,25 +2312,25 @@ const vinaCoins = ref(getStoredCoins());
 const myRewards = ref(getStoredRewards());
 
 const leaderboardUsers = [
-  { name: 'Nguyễn Văn Hùng', title: 'Đại sứ Kim Cương', refs: 142, com: 42600000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
-  { name: 'Trần Thị Mai', title: 'Đại sứ Vàng', refs: 89, com: 26700000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia' },
-  { name: 'Phạm Minh Tuấn', title: 'Đại sứ Vàng', refs: 74, com: 22200000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack' },
-  { name: 'Lê Thanh Vy', title: 'Đại sứ Bạc', refs: 45, com: 13500000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zoe' },
-  { name: 'Hoàng Quốc Bảo', title: 'Đại sứ Bạc', refs: 38, com: 11400000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Buddy' }
+  { name: 'Nguy?n Van H�ng', title: '�?i s? Kim Cuong', refs: 142, com: 42600000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
+  { name: 'Tr?n Th? Mai', title: '�?i s? V�ng', refs: 89, com: 26700000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia' },
+  { name: 'Ph?m Minh Tu?n', title: '�?i s? V�ng', refs: 74, com: 22200000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack' },
+  { name: 'L� Thanh Vy', title: '�?i s? B?c', refs: 45, com: 13500000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zoe' },
+  { name: 'Ho�ng Qu?c B?o', title: '�?i s? B?c', refs: 38, com: 11400000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Buddy' }
 ];
 
 const rewardsShop = [
-  { id: 'rew-1', name: 'Voucher Trợ Giá 200,000đ mua Laptop', emoji: '🎫', cost: 100 },
-  { id: 'rew-2', name: 'Mã Miễn Phí Vận Chuyển VVIP Toàn Quốc', emoji: '🚚', cost: 50 },
-  { id: 'rew-3', name: 'Bộ 6 Sticker Kim Loại NextGen Độc Quyền', emoji: '🎁', cost: 25 }
+  { id: 'rew-1', name: 'Voucher Tr? Gi� 200,000d mua Laptop', emoji: '??', cost: 100 },
+  { id: 'rew-2', name: 'M� Mi?n Ph� V?n Chuy?n VVIP To�n Qu?c', emoji: '??', cost: 50 },
+  { id: 'rew-3', name: 'B? 6 Sticker Kim Lo?i Predator �?c Quy?n', emoji: '??', cost: 25 }
 ];
 
 // Ambassador Live Ticker simulator
 const recentPayouts = [
-  'Đại sứ Trần Thị Mai vừa nhận +450,000đ rút tiền hoa hồng liên kết!',
-  'Đại sứ Lê Thanh Vy vừa ghi nhận đơn hàng mới phát sinh hoa hồng +350,000đ!',
-  'Đại sứ Nguyễn Văn Hùng vừa nhận giải thưởng Top 1 Đại sứ liên kết xuất sắc +1,000,000đ!',
-  'Cộng tác viên Phạm Minh Tuấn vừa chuyển thành công đơn hàng Laptop Gaming!'
+  '�?i s? Tr?n Th? Mai v?a nh?n +450,000d r�t ti?n hoa h?ng li�n k?t!',
+  '�?i s? L� Thanh Vy v?a ghi nh?n don h�ng m?i ph�t sinh hoa h?ng +350,000d!',
+  '�?i s? Nguy?n Van H�ng v?a nh?n gi?i thu?ng Top 1 �?i s? li�n k?t xu?t s?c +1,000,000d!',
+  'C?ng t�c vi�n Ph?m Minh Tu?n v?a chuy?n th�nh c�ng don h�ng Laptop Gaming!'
 ];
 const currentPayoutIndex = ref(0);
 const recentPayoutText = computed(() => recentPayouts[currentPayoutIndex.value]);
@@ -2344,10 +2344,10 @@ const rotatePayoutText = () => {
 const completeQuest = (amount, questName) => {
   vinaCoins.value += amount;
   localStorage.setItem('vina_coins', vinaCoins.value.toString());
-  
+
   Swal.fire({
-    title: `+${amount} VinaCoins! 💎`,
-    text: `Chúc mừng bạn đã hoàn thành nhiệm vụ: "${questName}"`,
+    title: `+${amount} VinaCoins! ??`,
+    text: `Ch�c m?ng b?n d� ho�n th�nh nhi?m v?: "${questName}"`,
     icon: 'success',
     confirmButtonColor: '#2563eb'
   });
@@ -2357,33 +2357,33 @@ const completeShareQuest = () => {
   const refLink = `${window.location.origin}/?ref=VINATECH-AMB`;
   navigator.clipboard.writeText(refLink).then(() => {
     Swal.fire({
-      title: 'Đã sao chép link Ref! 🔗',
-      text: 'Link tiếp thị đã được lưu vào khay nhớ tạm. Hãy dán chia sẻ lên Facebook/Zalo nhé!',
+      title: '�� sao ch�p link Ref! ??',
+      text: 'Link tiếp thị d� được luu v�o khay nh? t?m. H�y d�n chia s? l�n Facebook/Zalo nh�!',
       icon: 'info',
       confirmButtonColor: '#2563eb'
     }).then(() => {
-      completeQuest(20, 'Chia sẻ đường dẫn Tiếp thị liên kết');
+      completeQuest(20, 'Chia s? du?ng d?n Ti?p th? li�n k?t');
     });
   });
 };
 
 const completeNewsQuest = () => {
-  completeQuest(10, 'Tìm hiểu tin tức công nghệ');
+  completeQuest(10, 'T�m hi?u tin t?c c�ng ngh?');
 };
 
 const completeReferralQuest = () => {
   Swal.fire({
-    title: 'Mời bạn bè ghé thăm 👥',
-    text: 'Nhập họ tên người bạn muốn giới thiệu mua Laptop:',
+    title: 'M?i b?n b� gh� tham ??',
+    text: 'Nh?p h? t�n ngu?i b?n mu?n gi?i thi?u mua Laptop:',
     input: 'text',
-    inputPlaceholder: 'Ví dụ: Nguyễn Văn A',
+    inputPlaceholder: 'V� d?: Nguy?n Van A',
     showCancelButton: true,
-    confirmButtonText: 'Gửi lời mời',
+    confirmButtonText: 'G?i l?i m?i',
     confirmButtonColor: '#2563eb',
-    cancelButtonText: 'Hủy'
+    cancelButtonText: 'H?y'
   }).then((result) => {
     if (result.isConfirmed && result.value.trim()) {
-      completeQuest(50, `Giới thiệu thành viên mới: ${result.value}`);
+      completeQuest(50, `Gi?i thi?u th�nh vi�n m?i: ${result.value}`);
     }
   });
 };
@@ -2391,17 +2391,17 @@ const completeReferralQuest = () => {
 const redeemReward = (reward) => {
   if (vinaCoins.value < reward.cost) {
     Swal.fire({
-      title: 'Không đủ VinaCoins! 💎',
-      text: `Bạn cần thêm ${reward.cost - vinaCoins.value} xu để đổi phần quà này.`,
+      title: 'Kh�ng d? VinaCoins! ??',
+      text: `B?n c?n th�m ${reward.cost - vinaCoins.value} xu d? d?i ph?n qu� n�y.`,
       icon: 'error',
       confirmButtonColor: '#ef4444'
     });
     return;
   }
-  
+
   vinaCoins.value -= reward.cost;
   localStorage.setItem('vina_coins', vinaCoins.value.toString());
-  
+
   // Create code and store in local inv
   const code = 'VNT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
   const redeemedList = JSON.parse(localStorage.getItem('redeemed_rewards') || '[]');
@@ -2415,8 +2415,8 @@ const redeemReward = (reward) => {
   myRewards.value = redeemedList;
 
   Swal.fire({
-    title: 'Đổi Quà Thành Công! 🎉',
-    html: `Bạn đã đổi thành công <strong>${reward.name}</strong>.<br/>Mã Voucher của bạn: <strong style="color: #2563eb; font-size: 18px; font-family: monospace;">${code}</strong>`,
+    title: '�?i Qu� Th�nh C�ng! ??',
+    html: `B?n d� d?i th�nh c�ng <strong>${reward.name}</strong>.<br/>M� Voucher của bạn: <strong style="color: #2563eb; font-size: 18px; font-family: monospace;">${code}</strong>`,
     icon: 'success',
     confirmButtonColor: '#2563eb'
   });
@@ -2427,7 +2427,7 @@ const redeemReward = (reward) => {
 // Lifecycle Hooks
 onMounted(() => {
   try {
-    const cached = localStorage.getItem('nextgen_labs_real_products');
+    const cached = localStorage.getItem('predator_labs_real_products');
     if (cached) {
       realProducts.value = JSON.parse(cached);
     }
@@ -2459,7 +2459,7 @@ onUnmounted(() => {
 .subtle-grid-bg {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  background-image: 
+  background-image:
     linear-gradient(rgba(15, 23, 42, 0.97), rgba(15, 23, 42, 0.97)),
     linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
@@ -2575,7 +2575,7 @@ onUnmounted(() => {
   -webkit-backdrop-filter: blur(25px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35), 
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35),
               inset 0 1px 1px rgba(255, 255, 255, 0.08);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -2598,7 +2598,7 @@ onUnmounted(() => {
 .card-glass:hover {
   transform: translateY(-4px);
   border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5),
               0 0 25px rgba(37, 99, 235, 0.15);
 }
 
@@ -2695,7 +2695,7 @@ onUnmounted(() => {
 }
 
 .select-wrapper::after {
-  content: '▼';
+  content: '?';
   font-size: 10px;
   color: #94a3b8;
   position: absolute;
@@ -3077,30 +3077,30 @@ onUnmounted(() => {
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.cyan-bg { 
-  background: linear-gradient(90deg, #0891b2 0%, #06b6d4 100%); 
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.8); 
+.cyan-bg {
+  background: linear-gradient(90deg, #0891b2 0%, #06b6d4 100%);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
 }
-.pink-bg { 
-  background: linear-gradient(90deg, #db2777 0%, #ec4899 100%); 
-  box-shadow: 0 0 12px rgba(236, 72, 153, 0.8); 
+.pink-bg {
+  background: linear-gradient(90deg, #db2777 0%, #ec4899 100%);
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.8);
 }
 
 .temp-danger { color: #f43f5e; text-shadow: 0 0 6px rgba(244, 63, 94, 0.4); }
 .temp-warning { color: #fb923c; text-shadow: 0 0 6px rgba(251, 146, 60, 0.4); }
 .temp-safe { color: #10b981; text-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
 
-.red-bg { 
-  background: linear-gradient(90deg, #e11d48 0%, #f43f5e 100%); 
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.8); 
+.red-bg {
+  background: linear-gradient(90deg, #e11d48 0%, #f43f5e 100%);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
 }
-.orange-bg { 
-  background: linear-gradient(90deg, #ea580c 0%, #fb923c 100%); 
-  box-shadow: 0 0 12px rgba(251, 146, 60, 0.8); 
+.orange-bg {
+  background: linear-gradient(90deg, #ea580c 0%, #fb923c 100%);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.8);
 }
-.green-bg { 
-  background: linear-gradient(90deg, #059669 0%, #10b981 100%); 
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8); 
+.green-bg {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
 }
 
 .stat-summary {
@@ -4247,24 +4247,24 @@ onUnmounted(() => {
   .grid-layout {
     grid-template-columns: 1fr;
   }
-  
+
   .control-panel {
     order: 2;
   }
-  
+
   .chart-panel {
     order: 1;
     min-height: 400px;
   }
-  
+
   .grid-layout-custom {
     grid-template-columns: 1fr;
   }
-  
+
   .sim-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .gamified-grid {
     grid-template-columns: 1fr;
   }
@@ -4274,52 +4274,52 @@ onUnmounted(() => {
   .labs-hero h1 {
     font-size: 32px;
   }
-  
+
   .tabs-container {
     flex-direction: column;
     width: 100%;
     max-width: 320px;
     border-radius: 20px;
   }
-  
+
   .games-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .results-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stickers-shelf {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .led-modes-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .keys-grid {
     transform: scale(0.85);
     transform-origin: top center;
   }
-  
+
   .laptop-keyboard-container {
     overflow-x: auto;
     padding-bottom: 20px;
   }
-  
+
   .coins-wallet-bar {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
     padding: 20px;
   }
-  
+
   .wallet-right {
     text-align: left;
     max-width: 100%;
   }
-  
+
   .runner-ups-grid {
     grid-template-columns: 1fr;
   }

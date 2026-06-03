@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
@@ -15,26 +15,26 @@ const freeshipCoupon = ref('')
 const freeshipDiscount = ref(0)
 const appliedFreeshipPromo = ref(null)
 
-// Lấy điều kiện tối thiểu từ promotion freeship được chọn (dạng computed)
+// L?y di?u ki?n t?i thi?u t? promotion freeship được ch?n (d?ng computed)
 const freeshipMinOrder = computed(() => {
-    // Nếu đang áp mã freeship thì lấy dieu_kien của mã đó
+    // N?u dang �p m� freeship th� l?y dieu_kien c?a m� d�
     if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
         return appliedFreeshipPromo.value.dieu_kien
     }
-    // Nếu đang chọn mã từ select (chưa apply) thì lấy dieu_kien của mã đó
+    // N?u dang ch?n m� t? select (chua apply) th� l?y dieu_kien c?a m� d�
     if (freeshipCoupon.value) {
         const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
         if (p && p.dieu_kien > 0) return p.dieu_kien
     }
-    // Nếu chưa chọn mã nào, lấy dieu_kien nhỏ nhất trong danh sách freeship
+    // N?u chua ch?n m� n�o, l?y dieu_kien nh? nh?t trong danh s�ch freeship
     const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
     if (withCondition.length > 0) {
         return Math.min(...withCondition.map(p => p.dieu_kien))
     }
-    return 0 // Không có điều kiện = miễn phí ship tất cả đơn
+    return 0 // Kh�ng c� di?u ki?n = mi?n ph� ship t?t c? don
 })
 
-// Lấy điều kiện riêng cho từng mã freeship (dùng khi chọn mã cụ thể)
+// L?y di?u ki?n ri�ng cho t?ng m� freeship (d�ng khi ch?n m� c? th?)
 const getFreeshipMinOrder = (promo) => {
     if (!promo) return 0
     return promo.dieu_kien > 0 ? promo.dieu_kien : 0
@@ -49,13 +49,13 @@ const hienThiThongBao = (type, message) => {
     setTimeout(() => { thongBao.value.show = false }, 3000)
 }
 
-// ===================== GIỎ HÀNG =====================
+// ===================== GI? H�NG =====================
 const fetchGioHang = async () => {
     try {
         if (cart.value.length === 0) isLoading.value = true
         const res = await api.get('/gio-hang')
         cart.value = res.data.gio_hang
-        localStorage.setItem('nextgen_cart_cache', JSON.stringify(cart.value))
+        localStorage.setItem('predator_cart_cache', JSON.stringify(cart.value))
     } catch (err) {
         console.error('Lỗi tải giỏ hàng:', err)
     } finally {
@@ -111,7 +111,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
 
     group.soluong = soLuongMoi
     
-    // Cập nhật số lượng của từng món trong cache giỏ hàng cục bộ
+    // C?p nh?t s? lu?ng c?a t?ng m�n trong cache gi? h�ng c?c b?
     cart.value.forEach(item => {
         if (item.combo_group_id === group.combo_group_id) {
             item.soluong = soLuongMoi
@@ -125,7 +125,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
     try {
         await api.put(`/gio-hang/cap-nhat-combo/${group.combo_group_id}`, { soluong: soLuongMoi })
     } catch (err) {
-        hienThiThongBao('error', err.response?.data?.message || 'Lỗi cập nhật số lượng combo!')
+        hienThiThongBao('error', err.response?.data?.message || 'L?i c?p nh?t s? lu?ng combo!')
         fetchGioHang()
     }
 }
@@ -157,25 +157,25 @@ const capNhatSoLuong = async (item, delta) => {
         return
     }
 
-    // Cập nhật state gốc trong cart.value để kích hoạt tính toán lại subtotal/total
+    // C?p nh?t state g?c trong cart.value d? k�ch ho?t t�nh to�n l?i subtotal/total
     const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
     if (originalItem) {
         originalItem.soluong = soLuongMoi
         originalItem.thanh_tien = originalItem.gia * soLuongMoi
     }
     
-    // Cập nhật bản sao (item) để fallback
+    // C?p nh?t b?n sao (item) d? fallback
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
-    // Tính lại discount nếu đã áp mã
+    // T�nh l?i discount n?u d� �p m�
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
 
     try {
         await api.put(`/gio-hang/cap-nhat/${item.id_giohang}`, { soluong: soLuongMoi })
     } catch (err) {
-        hienThiThongBao('error', err.response?.data?.message || 'Lỗi cập nhật số lượng!')
+        hienThiThongBao('error', err.response?.data?.message || 'L?i c?p nh?t s? lu?ng!')
         fetchGioHang()
     }
 }
@@ -186,7 +186,7 @@ const xoaSanPham = async (idGioHang) => {
     const item = cart.value[index]
     cart.value.splice(index, 1)
 
-    // Tính lại discount sau khi xóa
+    // T�nh l?i discount sau khi x�a
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
 
@@ -219,7 +219,7 @@ const xoaTatCa = async () => {
     }
 }
 
-// ===================== MÃ GIẢM GIÁ =====================
+// ===================== M� GI?M GI� =====================
 const allPromos = ref([])
 
 const fetchPromotions = async () => {
@@ -231,7 +231,7 @@ const fetchPromotions = async () => {
     }
 }
 
-// Tính số tiền giảm dựa vào promo object
+// T�nh s? ti?n gi?m d?a v�o promo object
 const tinhDiscount = (promo) => {
     if (!promo) { discount.value = 0; return }
     const sub = subtotal.value
@@ -247,7 +247,7 @@ const tinhDiscount = (promo) => {
 const tinhFreeshipDiscount = (promo) => {
     if (!promo) { freeshipDiscount.value = 0; return }
     const minOrder = getFreeshipMinOrder(promo)
-    // Kiểm tra lại điều kiện khi tính lại (ví dụ sau khi xóa sản phẩm)
+    // Ki?m tra l?i di?u ki?n khi t�nh l?i (v� d? sau khi x�a s?n ph?m)
     if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
@@ -314,7 +314,7 @@ const apDungFreeshipTuSelect = () => {
     const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
     if (!promo) return
     const minOrder = getFreeshipMinOrder(promo)
-    // Kiểm tra điều kiện đơn hàng tối thiểu của mã này
+    // Ki?m tra di?u ki?n don h�ng t?i thi?u c?a m� n�y
     if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipCoupon.value = ''
         hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(minOrder)} để dùng mã miễn phí vận chuyển này!`)
@@ -356,7 +356,7 @@ const autoApplyPromo = () => {
                    appliedPromo.value = bestP
                    tinhDiscount(bestP)
                    coupon.value = bestP.code
-                   hienThiThongBao('success', ` Tự động áp dụng mã ${bestP.code} tốt nhất!`)
+                   hienThiThongBao('success', `Tự động áp dụng mã ${bestP.code} tốt nhất!`)
                }
            }
         } else if (coupon.value === '') {
@@ -366,12 +366,12 @@ const autoApplyPromo = () => {
         }
     }
 
-    // 2. FREESHIP DISCOUNT (áp dụng dựa trên dieu_kien của từng mã)
+    // 2. FREESHIP DISCOUNT (�p d?ng d?a tr�n dieu_kien c?a t?ng m�)
     let bestF = null
     let maxDF = 0
     freeshipPromosList.value.forEach(p => {
         const minOrder = getFreeshipMinOrder(p)
-        if (minOrder > 0 && sub < minOrder) return // Chưa đủ điều kiện
+        if (minOrder > 0 && sub < minOrder) return // Chua d? di?u ki?n
         let d = shippingFee.value
         if (d > maxDF) {
             maxDF = d
@@ -386,7 +386,7 @@ const autoApplyPromo = () => {
                appliedFreeshipPromo.value = bestF
                tinhFreeshipDiscount(bestF)
                freeshipCoupon.value = bestF.code
-               hienThiThongBao('success', ` Tự động chọn mã freeship tốt nhất!`)
+               hienThiThongBao('success', `Tự động chọn mã freeship tốt nhất!`)
            }
         } else if (freeshipCoupon.value === '') {
             appliedFreeshipPromo.value = bestF
@@ -405,7 +405,7 @@ watch([subtotal, allPromos], () => {
     }
 })
 
-const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ'
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'd'
 
 const getFullProductName = (item) => {
     let name = item.ten_san_pham || ''
@@ -417,7 +417,7 @@ const getFullProductName = (item) => {
         if (Array.isArray(tskt)) {
             specs = tskt.map(s => s.giatri).filter(Boolean)
         }
-    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    } catch (e) { console.error('L?i parse thong_so_ky_thuat:', e) }
     
     return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
 }
@@ -425,7 +425,7 @@ const getFullProductName = (item) => {
 onMounted(() => { 
     window.scrollTo(0, 0)
     try {
-        const cached = localStorage.getItem('nextgen_cart_cache')
+        const cached = localStorage.getItem('predator_cart_cache')
         if (cached) {
             cart.value = JSON.parse(cached)
         }
@@ -441,7 +441,7 @@ onMounted(() => {
   <!-- ===== TOAST NOTIFICATION ===== -->
   <transition name="toast-slide">
     <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
-      <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '✕' }}</span>
+      <span class="toast-icon">{{ thongBao.type === 'success' ? '?' : '?' }}</span>
       {{ thongBao.message }}
     </div>
   </transition>
@@ -456,16 +456,16 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">🛍️ NetGen Laptop Store</div>
+              <div class="header-eyebrow">??? Predator Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
-                <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
+                <span class="item-count-badge">{{ cart.length }} s?n ph?m</span>
               </h1>
               <p class="header-sub">Kiểm tra sản phẩm trước khi thanh toán</p>
             </div>
             <div class="header-actions">
               <router-link to="/products" class="btn-continue">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                Tiếp tục mua sắm
+                Tiếp tục mua s?m
               </router-link>
               <button v-if="cart.length > 0" class="btn-clear-all" @click="xoaTatCa">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -527,10 +527,10 @@ onMounted(() => {
             </div>
           </div>
           <h2 class="empty-title">Giỏ hàng đang trống</h2>
-          <p class="empty-sub">Khám phá những mẫu laptop mới nhất tại NetGen và thêm sản phẩm bạn yêu thích vào giỏ hàng.</p>
+          <p class="empty-sub">Khám phá những mẫu laptop mới nhất tại Predator và thêm sản phẩm bạn yêu thích vào giỏ hàng.</p>
           <router-link to="/products" class="empty-cta">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Tiếp tục mua sắm
+            Tiếp tục mua s?m
           </router-link>
         </div>
 
@@ -556,7 +556,7 @@ onMounted(() => {
 
               <!-- ITEM INFO -->
               <div class="item-info">
-                <div class="item-brand">{{ entry.ten_thuonghieu || 'NetGen' }}</div>
+                <div class="item-brand">{{ entry.ten_thuonghieu || 'Predator' }}</div>
                 <h3 class="item-name">{{ getFullProductName(entry) }}</h3>
 
                 <!-- ATTRIBUTE CHIPS -->
@@ -569,7 +569,7 @@ onMounted(() => {
 
                 <!-- QUANTITY SELECTOR -->
                 <div class="qty-selector">
-                  <span class="qty-label">Số lượng</span>
+                  <span class="qty-label">S? lu?ng</span>
                   <div class="qty-controls">
                     <button class="qty-btn" @click="capNhatSoLuong(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -598,20 +598,20 @@ onMounted(() => {
 
             <!-- Combo grouped items -->
             <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
-              <!-- Banner quà tặng VIP (chỉ hiện khi là ưu đãi miễn phí) -->
+              <!-- Banner qu� t?ng VIP (ch? hi?n khi l� uu d�i mi?n ph�) -->
               <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
-                <span class="gift-offer-icon">🎁</span>
+                <span class="gift-offer-icon">??</span>
                 <div class="gift-offer-text">
                   <strong>Quà Tặng Đặc Quyền VIP</strong>
-                  <span>Miễn phí hoàn toàn · Kèm theo đơn hàng của bạn</span>
+                  <span>Miễn phí hoàn toàn - Kèm theo đơn hàng của bạn</span>
                 </div>
-                <span class="gift-free-badge">0đ</span>
+                <span class="gift-free-badge">0d</span>
               </div>
 
               <div class="combo-group-header">
                 <div class="title-box">
                   <span class="badge-tag" :class="{ 'badge-tag-gift': entry.gia_combo === 0 }">
-                    {{ entry.gia_combo === 0 ? '🎁 Quà tặng VIP' : '🎁 Combo' }}
+                    {{ entry.gia_combo === 0 ? 'Quà tặng VIP' : 'Combo' }}
                   </span>
                   <h3>{{ entry.ten_combo }}</h3>
                 </div>
@@ -638,15 +638,15 @@ onMounted(() => {
               </div>
               <div class="combo-group-footer">
                 <div class="qty-section">
-                  <span>Số lượng:</span>
+                  <span>S? lu?ng:</span>
                   <div class="qty">
-                    <button @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">−</button>
+                    <button @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">-</button>
                     <span>{{ entry.soluong }}</span>
                     <button @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">+</button>
                   </div>
                 </div>
                 <div class="total-section">
-                  <span class="lbl">Trọn bộ:</span>
+                  <span class="lbl">Tr?n b?:</span>
                   <span v-if="entry.gia_combo === 0" class="price-val free-combo-price">MIỄN PHÍ</span>
                   <span v-else class="price-val">{{ formatPrice(entry.gia_combo * entry.soluong) }}</span>
                 </div>
@@ -663,7 +663,7 @@ onMounted(() => {
         <div class="summary-card">
           <div class="summary-header">
             <h2 class="summary-title">Tóm tắt đơn hàng</h2>
-            <span class="summary-count">{{ cart.length }} sản phẩm</span>
+            <span class="summary-count">{{ cart.length }} s?n ph?m</span>
           </div>
 
           <!-- PRICE ROWS -->
@@ -674,7 +674,7 @@ onMounted(() => {
             </div>
             <div class="summary-row" v-if="discount > 0">
               <span>Giảm giá <span class="promo-badge">{{ appliedPromo?.code }}</span></span>
-              <span class="sum-val discount">−{{ formatPrice(discount) }}</span>
+              <span class="sum-val discount">-{{ formatPrice(discount) }}</span>
             </div>
             <div class="summary-row">
               <span>Phí vận chuyển</span>
@@ -685,7 +685,7 @@ onMounted(() => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 Freeship áp dụng
               </span>
-              <span class="sum-val discount">−{{ formatPrice(freeshipDiscount) }}</span>
+              <span class="sum-val discount">-{{ formatPrice(freeshipDiscount) }}</span>
             </div>
           </div>
 
@@ -696,7 +696,7 @@ onMounted(() => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
               </span>
               <span class="freeship-text" v-if="subtotal >= freeshipMinOrder">
-                ✅ Đủ điều kiện miễn phí vận chuyển!
+                Đủ điều kiện miễn phí vận chuyển!
               </span>
               <span class="freeship-text pending" v-else>
                 Mua thêm <strong>{{ formatPrice(freeshipMinOrder - subtotal) }}</strong> để freeship
@@ -717,9 +717,9 @@ onMounted(() => {
               Mã giảm giá
             </div>
             <select v-model="coupon" @change="apDungMaTuSelect" class="coupon-select">
-              <option value="">— Không dùng mã —</option>
+              <option value="">Không dùng mã</option>
               <option v-for="p in discountPromosList" :key="p.code" :value="p.code">
-                {{ p.name }} · {{ p.type === 'percent' ? `Giảm ${p.value}%` : `Giảm ${formatPrice(p.value)}` }}
+                {{ p.name }} - {{ p.type === 'percent' ? `Giảm ${p.value}%` : `Giảm ${formatPrice(p.value)}` }}
               </option>
             </select>
           </div>
@@ -735,16 +735,16 @@ onMounted(() => {
               class="coupon-select green"
               :disabled="subtotal < freeshipMinOrder"
             >
-              <option value="">— Không dùng mã freeship —</option>
+              <option value="">Không dùng mã freeship</option>
               <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code">
-                {{ p.name }} · Giảm 100% phí ship
+                {{ p.name }} - Giảm 100% phí ship
               </option>
             </select>
           </div>
 
           <!-- TOTAL -->
           <div class="summary-total-row">
-            <span class="total-label">Tổng cộng</span>
+            <span class="total-label">T?ng c?ng</span>
             <div class="total-amount">{{ formatPrice(total) }}</div>
           </div>
 
@@ -779,7 +779,7 @@ onMounted(() => {
               <div class="trust-icon shield">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <span>Bảo mật SSL</span>
+              <span>B?o m?t SSL</span>
             </div>
             <div class="trust-badge">
               <div class="trust-icon check">
@@ -1473,7 +1473,7 @@ onMounted(() => {
   .item-right { flex-direction: row; width: 100%; justify-content: space-between; align-items: center; }
 }
 
-/* ─── GROUPED COMBO ITEMS ─── */
+/* --- GROUPED COMBO ITEMS --- */
 .combo-item-group {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.95));
     border: 2px solid rgba(59, 130, 246, 0.4);
@@ -1491,7 +1491,7 @@ onMounted(() => {
     border-color: rgba(59, 130, 246, 0.7);
 }
 
-/* Combo quà tặng VIP (gia_combo = 0) */
+/* Combo qu� t?ng VIP (gia_combo = 0) */
 .combo-gift-group {
     border-color: rgba(22, 163, 74, 0.5) !important;
     background: linear-gradient(135deg, rgba(240, 253, 244, 0.95), rgba(255, 255, 255, 0.98)) !important;
@@ -1503,7 +1503,7 @@ onMounted(() => {
     box-shadow: 0 15px 30px rgba(22, 163, 74, 0.12) !important;
 }
 
-/* Banner quà tặng VIP */
+/* Banner qu� t?ng VIP */
 .gift-offer-banner {
     display: flex;
     align-items: center;
@@ -1549,12 +1549,12 @@ onMounted(() => {
     letter-spacing: 0.5px;
 }
 
-/* Badge xanh lá cho combo quà tặng */
+/* Badge xanh l� cho combo qu� t?ng */
 .badge-tag-gift {
     background: linear-gradient(135deg, #16a34a, #15803d) !important;
 }
 
-/* Giá miễn phí */
+/* Gi� mi?n ph� */
 .free-price-text {
     color: #16a34a !important;
     font-weight: 900 !important;

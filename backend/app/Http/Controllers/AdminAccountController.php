@@ -21,9 +21,9 @@ class AdminAccountController extends Controller
     {
         return [
             'general' => [
-                'brand_name' => 'NextGen',
+                'brand_name' => 'Predator',
                 'slogan' => 'Giải pháp công nghệ toàn diện',
-                'support_email' => 'support@nextgen.vn',
+                'support_email' => 'support@predator.vn',
                 'support_phone' => '1800 9999',
                 'business_address' => 'TP. Hồ Chí Minh',
                 'working_hours' => '08:00 - 21:00',

@@ -68,7 +68,7 @@ const slides = [
         secondary: 'So sánh sản phẩm'
     },
     {
-        eyebrow: 'NEXTGEN SHOWROOM',
+        eyebrow: 'PREDATOR SHOWROOM',
         title: 'Trải Nghiệm Đắm Chìm',
         highlight: 'Không Gian Cao Cấp',
         desc: 'Khám phá không gian laptop hiện đại với các dòng máy cao cấp được trưng bày thực tế cho game, sáng tạo và công việc chuyên nghiệp.',
@@ -701,55 +701,65 @@ onUnmounted(() => {
         </section>
 
         <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
-        <section class="section combos-section" v-if="combos && combos.length > 0">
-            <div class="grid-container">
-                <div class="section-header scroll-reveal reveal-fade-up">
-                    <div class="label-wrapper">
-                        <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
-                        <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
-                        <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
+        <section class="section combos-section">
+    <div class="grid-container">
+        <div class="section-header scroll-reveal reveal-fade-up">
+            <div class="label-wrapper">
+                <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
+                <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
+                <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
+            </div>
+        </div>
+
+        <!-- Có combo thì hiện danh sách -->
+        <div v-if="combos && combos.length" class="combos-grid scroll-reveal reveal-stagger">
+            <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
+                <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
+
+                <div class="combo-home-img">
+                    <img
+                        :src="c.image_url || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'"
+                        alt="Combo accessories"
+                        @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')"
+                    />
+                </div>
+
+                <div class="combo-home-info">
+                    <h3>{{ c.ten_combo }}</h3>
+                    <p class="desc">{{ c.mota }}</p>
+
+                    <div class="bundle-items" v-if="c.products && c.products.length > 0">
+                        <div class="b-item-line">
+                            <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
+                                <span class="clickable-product" @click="router.push(`/products/${p.id}`)">
+                                    {{ p.tenSP }}
+                                </span>
+                                <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <div class="price-box">
+                            <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
+                            <span class="price">{{ Number(c.giakhuyenmai || 0).toLocaleString('vi-VN') }}đ</span>
+                        </div>
+                        <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
+                            <span>Cấu hình Combo</span>
+                        </button>
                     </div>
                 </div>
+            </article>
+        </div>
 
-                <div class="combos-grid scroll-reveal reveal-stagger">
-                    <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
-                        <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
-                        
-                        <div class="combo-home-img">
-                            <img :src="c.image_url || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'" 
-                                 alt="Combo accessories" 
-                                 @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
-                        </div>
-
-                        <div class="combo-home-info">
-                            <h3>{{ c.ten_combo }}</h3>
-                            <p class="desc">{{ c.mota }}</p>
-
-                            <!-- Bundle product list inline -->
-                            <div class="bundle-items" v-if="c.products && c.products.length > 0">
-                                <div class="b-item-line">
-                                    <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
-                                        <span class="clickable-product" @click="router.push(`/products/${p.id}`)">{{ p.tenSP }}</span>
-                                        <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="price-row">
-                                <div class="price-box">
-                                    <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
-                                    <span class="price">{{ Number(c.giakhuyenmai).toLocaleString('vi-VN') }}đ</span>
-                                </div>
-                                <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
-                                    <span>Cấu hình Combo</span>
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </section>
-
+        <!-- Không có combo thì vẫn hiện giao diện -->
+        <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
+            <div class="combo-empty-icon">🎁</div>
+            <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
+            <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng cập nhật database hoặc thêm combo trong trang quản trị.</p>
+        </div>
+    </div>
+</section>
         <!-- 3. PRODUCT CATEGORIES (Rich dark luxury grid backdrop) -->
         <section class="section category-section">
             <div class="grid-container">
@@ -1111,35 +1121,35 @@ onUnmounted(() => {
     --text-muted-light: #94a3b8;
 
     /* Legacy compatibility mappings */
-    --col-primary: var(--bg-primary-dark);
-    --col-secondary: var(--bg-secondary-dark);
+    --col-primary: var(--tn-bg);
+    --col-secondary: #f8fafc;
     --col-accent: var(--accent-blue);
     --col-highlight: var(--accent-cyan);
     --col-success: #10B981;
     --col-warning: #F59E0B;
-    --col-text: var(--text-light);
-    --col-muted: var(--text-muted-light);
-    --col-border: rgba(255,255,255,0.07);
+    --col-text: var(--tn-text);
+    --col-muted: var(--tn-text-muted);
+    --col-border: var(--tn-border);
     --glass-bg-dark: rgba(17, 24, 39, 0.7);
     --glass-bg-light: rgba(255, 255, 255, 0.05);
     
-    background-color: var(--col-primary);
-    color: var(--col-text);
+    background-color: var(--tn-bg);
+    color: var(--tn-text);
     font-family: 'Be Vietnam Pro', sans-serif;
     overflow-x: hidden;
 }
 
-/* ─── FLASH SALE DARK CYBER-LUXURY ─── */
+/* ─── FLASH SALE LIGHT CONVERSION ─── */
 .flashsale-section {
-    background: #0d1520 !important;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: #ffffff !important;
+    border-top: 1px solid var(--tn-border);
+    border-bottom: 1px solid var(--tn-border);
 }
 .flashsale-section h2 {
-    color: #ffffff !important;
+    color: var(--tn-text) !important;
 }
 .flashsale-section p {
-    color: #94a3b8 !important;
+    color: var(--tn-text-muted) !important;
 }
 .flex-row-align {
     display: flex;
@@ -1149,36 +1159,36 @@ onUnmounted(() => {
     gap: 32px;
 }
 .flash-badge {
-    background: rgba(239, 68, 68, 0.12) !important;
-    border-color: rgba(239, 68, 68, 0.35) !important;
-    color: #f87171 !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    border-color: rgba(37, 99, 235, 0.25) !important;
+    color: var(--accent-blue) !important;
 }
 .countdown-clock {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #0f172a;
+    background: #ffffff;
     padding: 8px 16px;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--tn-border);
 }
 .timer-segment {
     font-size: 20px;
     font-weight: 800;
-    color: #ffffff;
-    font-family: 'Courier New', monospace !important;
+    color: var(--tn-text);
+    font-family: monospace !important;
     min-width: 2.2ch;
     text-align: center;
-    background: rgba(255, 255, 255, 0.06);
+    background: #f1f5f9;
     padding: 4px 8px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--tn-border);
 }
 .timer-colon {
     font-size: 18px;
     font-weight: 800;
-    color: #ef4444;
+    color: var(--accent-blue);
     animation: flash-pulse 1s infinite;
 }
 @keyframes flash-pulse {
@@ -1196,25 +1206,26 @@ onUnmounted(() => {
 @media (max-width: 600px)  { .flash-cyber-grid { grid-template-columns: 1fr; } }
 
 .flash-cyber-card {
-    background: #162130;
+    background: #ffffff;
     border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid var(--tn-border);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     cursor: pointer;
     transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 .flash-cyber-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.45);
-    border-color: rgba(239, 68, 68, 0.35);
+    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.35);
 }
 
 /* Image Box — crisp white square container */
 .flash-img-box {
     position: relative;
-    background: #ffffff;
+    background: #f8fafc;
     border-radius: 12px;
     margin: 14px 14px 0;
     aspect-ratio: 1 / 1;
@@ -1224,9 +1235,9 @@ onUnmounted(() => {
     overflow: hidden;
 }
 .flash-img-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 85%;
+    max-height: 85%;
+    object-fit: contain;
     display: block;
     transition: transform 0.3s ease;
 }
@@ -1261,7 +1272,7 @@ onUnmounted(() => {
 .flash-brand {
     font-size: 11px;
     font-weight: 600;
-    color: #64748b;
+    color: var(--tn-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin: 0;
@@ -1269,7 +1280,7 @@ onUnmounted(() => {
 .flash-product-name {
     font-size: 13.5px;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--tn-text);
     line-height: 1.4;
     margin: 0;
     min-height: 38px;
@@ -1292,16 +1303,16 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: #64748b;
+    color: var(--tn-text-muted);
 }
 .flash-stock-labels strong {
-    color: #cbd5e1;
+    color: var(--tn-text);
     font-weight: 700;
 }
 .flash-progress-track {
     width: 100%;
     height: 5px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.06);
     border-radius: 99px;
     overflow: hidden;
 }
@@ -1328,7 +1339,7 @@ onUnmounted(() => {
 }
 .flash-old-price {
     font-size: 11px;
-    color: #64748b;
+    color: var(--tn-text-muted);
     text-decoration: line-through;
     font-weight: 500;
 }
@@ -1343,9 +1354,9 @@ onUnmounted(() => {
     height: 38px;
     min-width: 38px;
     border-radius: 10px;
-    background: #202e43;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #e2e8f0;
+    background: #f1f5f9;
+    border: 1px solid var(--tn-border);
+    color: var(--tn-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1354,8 +1365,9 @@ onUnmounted(() => {
     flex-shrink: 0;
 }
 .flash-cart-btn:hover {
-    background: #ef4444;
-    border-color: #ef4444;
+    background: var(--accent-blue);
+    color: #ffffff;
+    border-color: var(--accent-blue);
     transform: scale(1.08);
 }
 
@@ -1861,16 +1873,15 @@ onUnmounted(() => {
     margin: 0;
 }
 
-/* ─── 3. PRODUCT CATEGORIES (Always Premium Dark Luxury themed) ─── */
+/* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
 .category-section {
-    background: var(--bg-primary-dark);
-    color: #ffffff;
+    background: var(--tn-bg);
 }
 .category-section h2 {
-    color: #ffffff !important;
+    color: var(--tn-text) !important;
 }
 .category-section p {
-    color: #94A3B8 !important;
+    color: var(--tn-text-muted) !important;
 }
 .category-cards-grid {
     display: grid;
@@ -2253,16 +2264,15 @@ onUnmounted(() => {
 
 
 
-/* ─── 5. FEATURED ECOSYSTEM (Always Premium Dark Luxury themed) ─── */
+/* ─── 5. FEATURED ECOSYSTEM (Light Background Conversion) ─── */
 .ecosystem-section {
-    background: var(--bg-secondary-dark);
-    color: #ffffff;
+    background: var(--tn-bg);
 }
 .ecosystem-section h2 {
-    color: #ffffff !important;
+    color: var(--tn-text) !important;
 }
 .ecosystem-section p {
-    color: #94A3B8 !important;
+    color: var(--tn-text-muted) !important;
 }
 .bento-asymmetrical-grid {
     display: grid;
@@ -2652,10 +2662,11 @@ onUnmounted(() => {
 }
 
 /* ─── 8. REVIEWS (Immersive Dark transitioning section) ─── */
+/* ─── 8. REVIEWS (Light background Conversion) ─── */
 .reviews-slider-section {
-    background: var(--bg-secondary-dark);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--tn-bg);
+    border-top: 1px solid var(--tn-border);
+    border-bottom: 1px solid var(--tn-border);
 }
 .reviews-editorial-grid {
     display: grid;
@@ -2663,13 +2674,13 @@ onUnmounted(() => {
     gap: 24px;
 }
 .editorial-review-card {
-    background: var(--bg-card-dark);
+    background: #ffffff;
     padding: 36px 32px;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tn-border);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 }
 .stars-row {
     color: var(--col-warning);
@@ -2680,7 +2691,7 @@ onUnmounted(() => {
 .review-quote {
     font-size: 14.5px;
     line-height: 1.75;
-    color: var(--text-light);
+    color: var(--tn-text);
     margin: 0 0 24px;
     flex-grow: 1;
 }
@@ -2688,7 +2699,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--tn-border);
     padding-top: 20px;
 }
 .reviewer-avatar {
@@ -2696,7 +2707,7 @@ onUnmounted(() => {
     height: 44px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(0, 0, 0, 0.05);
 }
 .reviewer-meta {
     display: flex;
@@ -2705,11 +2716,11 @@ onUnmounted(() => {
 .reviewer-meta strong {
     font-size: 13.5px;
     font-weight: 800;
-    color: var(--text-light);
+    color: var(--tn-text);
 }
 .reviewer-meta span {
     font-size: 11px;
-    color: var(--text-muted-light);
+    color: var(--tn-text-muted);
     font-weight: 600;
 }
 .verified-token {
@@ -2739,13 +2750,20 @@ onUnmounted(() => {
     position: relative;
     border-radius: 32px;
     padding: 64px;
-    background: var(--bg-card-light);
-    border: 1px solid rgba(15, 23, 42, 0.05);
+    background: #071426;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
 }
 .newsletter-bg-glow {
-    display: none;
+    display: block;
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+    filter: blur(40px);
+    right: -50px;
+    top: -50px;
 }
 .newsletter-layout {
     position: relative;
@@ -2759,12 +2777,12 @@ onUnmounted(() => {
     font-size: 32px;
     font-weight: 800;
     margin: 0 0 12px;
-    color: var(--text-dark);
+    color: #ffffff !important;
 }
 .newsletter-headline p {
     font-size: 14.5px;
     line-height: 1.7;
-    color: var(--text-muted-dark);
+    color: #cbd5e1 !important;
     margin: 0;
 }
 .newsletter-interactive-form {
@@ -2775,27 +2793,27 @@ onUnmounted(() => {
     display: flex;
     width: 100%;
     max-width: 440px;
-    background: var(--bg-secondary-light);
-    border: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 12px;
     padding: 6px;
     transition: all 0.3s;
 }
 .input-glow-group:focus-within {
-    border-color: var(--accent-blue);
-    box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+    border-color: var(--col-highlight) !important;
+    box-shadow: 0 6px 18px rgba(34, 211, 238, 0.15) !important;
 }
 .input-glow-group input {
     flex-grow: 1;
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text-dark);
+    color: #ffffff !important;
     font-size: 14px;
     padding: 0 16px;
 }
 .input-glow-group input::placeholder {
-    color: var(--text-muted-dark);
+    color: #64748b !important;
 }
 
 /* ─── GENERAL BUTTONS ─── */
@@ -3029,89 +3047,132 @@ onUnmounted(() => {
 }
 
 /* ─── HOME COMBOS ─── */
+/* ─── HOME COMBOS ─── */
 .combos-section {
-    background: #edf2f8;
-    border-radius: 30px;
+    background: var(--tn-bg);
     padding: 64px 0;
-    margin: 40px 0;
+    border-top: 1px solid var(--tn-border);
+    border-bottom: 1px solid var(--tn-border);
+}
+
+.combos-section .grid-container {
+    position: relative;
+    z-index: 1;
+}
+
+.combos-section .ambient-label {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.2);
+    color: var(--accent-blue);
+}
+
+.combos-section h2 {
+    color: var(--tn-text);
 }
 
 .combos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 24px;
-    margin-top: 32px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 26px;
 }
 
 .combo-home-card {
-    background: white;
-    border-radius: 20px;
+    background: #ffffff;
+    border-radius: 16px;
     overflow: hidden;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--tn-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     display: flex;
     flex-direction: column;
+    max-width: none;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .combo-home-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.08);
 }
 
 .combo-home-card .badge-discount {
     position: absolute;
-    top: 16px;
-    left: 16px;
-    background: linear-gradient(135deg, #ef4444, #f97316);
+    top: 12px;
+    left: 12px;
+    background: linear-gradient(135deg, #ff007f, #7928ca);
     color: white;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 30px;
     z-index: 10;
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 4px 12px rgba(255, 0, 127, 0.3);
+    letter-spacing: 0.5px;
 }
 
 .combo-home-img {
     width: 100%;
-    height: 220px;
+    height: 150px;
     overflow: hidden;
+    position: relative;
+}
+
+.combo-home-img::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 24px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.9));
+    z-index: 2;
 }
 
 .combo-home-img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s ease;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .combo-home-card:hover .combo-home-img img {
-    transform: scale(1.05);
+    transform: scale(1.08);
 }
 
 .combo-home-info {
-    padding: 24px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     flex: 1;
 }
 
 .combo-home-info h3 {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 8px;
+    color: var(--tn-text);
+    margin-bottom: 6px;
+    line-height: 1.32;
+    transition: color 0.3s;
+    min-height: 60px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.combo-home-card:hover h3 {
+    color: var(--accent-blue);
 }
 
 .combo-home-info .desc {
-    font-size: 13.5px;
-    color: #64748b;
-    margin-bottom: 20px;
-    line-height: 1.5;
+    font-size: 12.5px;
+    color: var(--tn-text-muted);
+    margin-bottom: 12px;
+    line-height: 1.45;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3119,10 +3180,10 @@ onUnmounted(() => {
 
 .bundle-items {
     background: #f8fafc;
-    border: 1px solid #edf2f7;
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin-bottom: 24px;
+    border: 1px solid var(--tn-border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -3130,9 +3191,9 @@ onUnmounted(() => {
 
 .b-item-line {
     width: 100%;
-    font-size: 13px;
-    font-weight: 700;
-    color: #334155;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tn-text-soft);
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
@@ -3142,16 +3203,17 @@ onUnmounted(() => {
 .clickable-product {
     cursor: pointer;
     transition: all 0.2s ease;
+    color: #2563eb;
 }
 
 .clickable-product:hover {
-    color: #2563eb;
+    color: #1d4ed8;
     text-decoration: underline;
 }
 
 .b-item-inline .sep {
-    color: #2563eb;
-    margin: 0 8px;
+    color: var(--accent-blue);
+    margin: 0 4px;
     font-weight: 800;
 }
 
@@ -3159,8 +3221,9 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-top: 1px solid #edf2f7;
-    padding-top: 16px;
+    gap: 8px;
+    border-top: 1px solid var(--tn-border);
+    padding-top: 12px;
 }
 
 .combo-home-info .price-box {
@@ -3170,14 +3233,62 @@ onUnmounted(() => {
 }
 
 .combo-home-info .price-box .lbl {
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--tn-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .combo-home-info .price-box .price {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 800;
-    color: #2563eb;
+    color: #ef4444;
+}
+
+.combo-home-info .btn {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    line-height: 1.2 !important;
+    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+    transition: all 0.3s !important;
+}
+
+.combo-home-info .btn:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4) !important;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 1280px) {
+    .combos-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1024px) {
+    .combos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .combos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 520px) {
+    .combos-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
