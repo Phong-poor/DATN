@@ -230,7 +230,7 @@
             <div class="ornament ornament-br"></div>
 
             <div class="header">
-                <div class="brand">NextGen &nbsp;·&nbsp; Dành riêng cho bạn</div>
+                <div class="brand">Predator &nbsp;·&nbsp; Dành riêng cho bạn</div>
                 <div class="candle-row">🕯️ 🎂 🕯️</div>
                 <div class="greeting-sub">Chúc mừng sinh nhật</div>
                 <h1>
@@ -246,7 +246,7 @@
 
             <div class="body">
                 <p class="message">
-                    Nhân dịp sinh nhật của bạn, NextGen xin gửi tặng<br>
+                    Nhân dịp sinh nhật của bạn, Predator xin gửi tặng<br>
                     một món quà nhỏ thể hiện sự trân trọng của chúng tôi.<br>
                     Mong rằng ngày hôm nay thật đặc biệt và tràn đầy niềm vui.
                 </p>
@@ -259,12 +259,12 @@
                 <p class="closing">
                     Chúc bạn một ngày sinh nhật thật vui vẻ và hạnh phúc.<br><br>
                     Trân trọng,<br>
-                    <strong>Đội ngũ NextGen</strong>
+                    <strong>Đội ngũ Predator</strong>
                 </p>
             </div>
 
             <div class="footer">
-                <p class="footer-text">© {{ date('Y') }} NextGen &nbsp;·&nbsp; Đây là email tự động, vui lòng không trả lời</p>
+                <p class="footer-text">© {{ date('Y') }} Predator &nbsp;·&nbsp; Đây là email tự động, vui lòng không trả lời</p>
             </div>
 
         </div>

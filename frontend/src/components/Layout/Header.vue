@@ -1,28 +1,303 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
+const route = useRoute()
+
+const getSwal = async () => {
+  const module = await import('@/services/swal')
+  return module.default
+}
 
 const showWishlist = ref(false)
 const showUser = ref(false)
 const isMobileMenuOpen = ref(false)
 
+// ===================== ANNOUNCEMENT BAR =====================
+const announcements = [
+  { icon: '🚚', text: 'Giao hàng nhanh trong <strong>2 giờ</strong> nội thành TP.HCM & Hà Nội' },
+  { icon: '💳', text: 'Trả góp <strong>0%</strong> lãi suất — Duyệt trong 5 phút' },
+  { icon: '🎁', text: 'Giảm đến <strong>20 triệu</strong> cho Gaming Laptop RTX 5090' },
+  { icon: '🛡️', text: '<strong>Bảo hành chính hãng</strong> toàn quốc · Đổi trả 7 ngày miễn phí' },
+]
+const annIdx = ref(0)
+let annTimer = null
+
+// ===================== SCROLL BEHAVIOR =====================
+const isScrolled = ref(false)
+const handleScroll = () => { isScrolled.value = window.scrollY > 20 }
+
+// ===================== MEGA MENU =====================
+const activeMegaMenu = ref(null)
+let megaLeaveTimer = null
+
+const megaMenuData = {
+  gaming: {
+    label: 'Gaming',
+    accent: '#ef4444',
+    accentBg: 'rgba(239,68,68,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 10v4M6 12h4m6-2v4m0-2h2"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80',
+    sections: [
+      {
+        title: 'Theo GPU', icon: '🎮',
+        items: [
+          { label: 'RTX 5090', badge: 'NEW', q: 'RTX 5090' },
+          { label: 'RTX 5080', badge: '', q: 'RTX 5080' },
+          { label: 'RTX 5070', badge: '', q: 'RTX 5070' },
+          { label: 'RTX 4070', badge: 'HOT', q: 'RTX 4070' },
+        ]
+      },
+      {
+        title: 'Thương hiệu', icon: '🏷️',
+        items: [
+          { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
+          { label: 'MSI Titan', badge: '', q: 'MSI Titan' },
+          { label: 'Lenovo Legion', badge: 'HOT', q: 'Lenovo Legion' },
+          { label: 'Acer Predator', badge: '', q: 'Acer Predator' },
+        ]
+      },
+      {
+        title: 'Mức giá', icon: '💰',
+        items: [
+          { label: 'Dưới 20 triệu', badge: '', q: 'gaming duoi 20 trieu' },
+          { label: '20M – 35M', badge: '', q: 'gaming 20-35 trieu' },
+          { label: '35M – 60M', badge: '', q: 'gaming 35-60 trieu' },
+          { label: 'Trên 60 triệu', badge: 'PRO', q: 'gaming flagship' },
+        ]
+      },
+    ],
+    featured: { name: 'ASUS ROG Zephyrus G16', price: '52.990.000₫', oldPrice: '59.990.000₫', tag: 'HOT', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=200&q=80' },
+    quickLinks: ['RTX 5090 Gaming', 'Gaming dưới 20 triệu', 'So sánh gaming laptop'],
+  },
+  aipc: {
+    label: 'AI PC',
+    accent: '#6366f1',
+    accentBg: 'rgba(99,102,241,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&q=80',
+    sections: [
+      {
+        title: 'Dòng chip', icon: '⚡',
+        items: [
+          { label: 'Intel Core Ultra 9', badge: 'NEW', q: 'Intel Core Ultra 9' },
+          { label: 'AMD Ryzen AI 9', badge: 'NEW', q: 'AMD Ryzen AI 9' },
+          { label: 'Snapdragon X Elite', badge: '', q: 'Snapdragon X Elite' },
+          { label: 'Intel Core Ultra 5', badge: '', q: 'Intel Core Ultra 5' },
+        ]
+      },
+      {
+        title: 'Thương hiệu', icon: '🏷️',
+        items: [
+          { label: 'Dell XPS', badge: 'HOT', q: 'Dell XPS' },
+          { label: 'HP Spectre', badge: '', q: 'HP Spectre' },
+          { label: 'Samsung Galaxy Book', badge: '', q: 'Samsung Galaxy Book' },
+          { label: 'Microsoft Surface', badge: '', q: 'Microsoft Surface' },
+        ]
+      },
+      {
+        title: 'Tính năng AI', icon: '🤖',
+        items: [
+          { label: 'NPU tích hợp 45 TOPs', badge: '', q: 'NPU laptop' },
+          { label: 'Copilot+ Certified', badge: '', q: 'Copilot plus' },
+          { label: 'On-device AI LLM', badge: 'PRO', q: 'on device AI' },
+          { label: 'AI Creator Suite', badge: '', q: 'AI creator' },
+        ]
+      },
+    ],
+    featured: { name: 'Dell XPS 15 Core Ultra 9', price: '48.990.000₫', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
+    quickLinks: ['AI PC Copilot+', 'Intel Core Ultra so sánh', 'AI PC cho lập trình'],
+  },
+  macbook: {
+    label: 'MacBook',
+    accent: '#0ea5e9',
+    accentBg: 'rgba(14,165,233,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
+    sections: [
+      {
+        title: 'Dòng sản phẩm', icon: '🍎',
+        items: [
+          { label: 'MacBook Air M4', badge: 'NEW', q: 'MacBook Air M4' },
+          { label: 'MacBook Pro M4', badge: 'HOT', q: 'MacBook Pro M4' },
+          { label: 'MacBook Pro M4 Pro', badge: '', q: 'MacBook Pro M4 Pro' },
+          { label: 'MacBook Pro M4 Max', badge: 'PRO', q: 'MacBook Pro M4 Max' },
+        ]
+      },
+      {
+        title: 'Kích thước', icon: '📐',
+        items: [
+          { label: '13 inch – Air', badge: '', q: 'MacBook 13 inch' },
+          { label: '14 inch – Pro', badge: 'HOT', q: 'MacBook 14 inch' },
+          { label: '15 inch – Air', badge: '', q: 'MacBook 15 inch' },
+          { label: '16 inch – Pro Max', badge: '', q: 'MacBook 16 inch' },
+        ]
+      },
+      {
+        title: 'Cấu hình RAM', icon: '💾',
+        items: [
+          { label: '8GB / 256GB', badge: '', q: 'MacBook 8GB' },
+          { label: '16GB / 512GB', badge: 'HOT', q: 'MacBook 16GB' },
+          { label: '24GB / 1TB', badge: '', q: 'MacBook 24GB' },
+          { label: '48GB / 2TB', badge: 'PRO', q: 'MacBook 48GB' },
+        ]
+      },
+    ],
+    featured: { name: 'MacBook Pro 16" M4 Max', price: '89.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=200&q=80' },
+    quickLinks: ['MacBook Air M4 giá rẻ', 'So sánh MacBook Pro', 'MacBook cho sinh viên'],
+  },
+  workstation: {
+    label: 'Workstation',
+    accent: '#8b5cf6',
+    accentBg: 'rgba(139,92,246,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=400&q=80',
+    sections: [
+      {
+        title: 'Brands', icon: '🏷️',
+        items: [
+          { label: 'ThinkPad', badge: 'HOT', q: 'ThinkPad' },
+          { label: 'Dell', badge: '', q: 'Dell Precision' },
+          { label: 'HP ZBook', badge: '', q: 'HP ZBook' },
+          { label: 'ASUS ProArt', badge: 'NEW', q: 'ASUS ProArt' },
+        ]
+      },
+      {
+        title: 'Use Cases', icon: '🎯',
+        items: [
+          { label: 'CAD', badge: '', q: 'CAD workstation' },
+          { label: 'AI Training', badge: 'PRO', q: 'AI workstation' },
+          { label: 'Rendering', badge: 'HOT', q: 'rendering workstation' },
+          { label: 'SolidWorks', badge: '', q: 'SolidWorks' },
+        ]
+      },
+      {
+        title: 'Specifications', icon: '⚙️',
+        items: [
+          { label: 'RTX 5000 Ada', badge: 'PRO', q: 'RTX 5000 Ada' },
+          { label: 'RTX 4000 Ada', badge: '', q: 'RTX 4000 Ada' },
+          { label: '64GB RAM', badge: '', q: 'workstation 64GB' },
+          { label: '128GB RAM', badge: 'PRO', q: 'workstation 128GB' },
+        ]
+      },
+    ],
+    featured: { name: 'ASUS ProArt Studiobook 16', price: '65.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&q=80' },
+    quickLinks: ['Workstation cho render 3D', 'So sánh Workstation', 'Trả góp Workstation'],
+  },
+  sale: {
+    label: 'Khuyến mãi',
+    accent: '#f59e0b',
+    accentBg: 'rgba(245,158,11,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&q=80',
+    sections: [
+      {
+        title: '🔥 Flash Sale', icon: '🔥',
+        items: [
+          { label: 'Giảm đến 30% hôm nay', badge: 'HOT', q: 'sale 30%' },
+          { label: 'Clearance Stock', badge: '', q: 'clearance laptop' },
+          { label: 'Thanh lý kho cuối năm', badge: '', q: 'thanh ly laptop' },
+          { label: 'Open-box giá sốc', badge: 'NEW', q: 'open box laptop' },
+        ]
+      },
+      {
+        title: 'Trả góp 0%', icon: '💳',
+        items: [
+          { label: '6 tháng không lãi', badge: '', q: 'tra gop 6 thang' },
+          { label: '12 tháng 0% lãi', badge: 'HOT', q: 'tra gop 12 thang' },
+          { label: '24 tháng ưu đãi', badge: '', q: 'tra gop 24 thang' },
+          { label: '36 tháng duyệt nhanh', badge: '', q: 'tra gop 36 thang' },
+        ]
+      },
+      {
+        title: 'Combo ưu đãi', icon: '🎁',
+        items: [
+          { label: 'Laptop + Chuột Gaming', badge: '', q: 'combo laptop chuot' },
+          { label: 'Laptop + Balo + Hub', badge: 'HOT', q: 'combo laptop balo' },
+          { label: 'Laptop + Màn hình 4K', badge: '', q: 'combo laptop man hinh' },
+          { label: 'Laptop + Bàn phím cơ', badge: '', q: 'combo laptop ban phim' },
+        ]
+      },
+    ],
+    featured: { name: 'Acer Nitro V RTX 4060', price: '22.990.000₫', oldPrice: '30.990.000₫', tag: 'SALE -25%', img: 'https://images.unsplash.com/photo-1593642632623-9f5b9e3c4a0c?w=200&q=80' },
+    quickLinks: ['Laptop dưới 15 triệu', 'Sinh viên ưu đãi', 'Flash Sale hôm nay'],
+  },
+}
+
+const visibleMegaMenuData = computed(() => {
+  const { aipc, ...menus } = megaMenuData
+  return menus
+})
+
+const openMega = (key) => {
+  clearTimeout(megaLeaveTimer)
+  activeMegaMenu.value = key
+}
+const closeMega = () => {
+  megaLeaveTimer = setTimeout(() => { activeMegaMenu.value = null }, 250)
+}
+const keepMega = () => { clearTimeout(megaLeaveTimer) }
+
+const menuCategoryMap = {
+  gaming: 'Laptop Gaming',
+  macbook: 'MacBook',
+  workstation: 'Workstation',
+}
+
+const navToCategory = (key) => {
+  activeMegaMenu.value = null
+  if (key === 'sale') {
+    router.push('/khuyen-mai')
+  } else if (key === 'workstation') {
+    router.push('/workstation')
+  } else {
+    router.push({ path: '/products', query: { category: menuCategoryMap[key] || key } })
+  }
+}
+
+const navToMegaItem = (key, keyword) => {
+  activeMegaMenu.value = null
+  if (key === 'sale') {
+    router.push({ path: '/khuyen-mai', query: keyword ? { q: keyword } : {} })
+    return
+  }
+  router.push({ path: '/products', query: { category: menuCategoryMap[key] || key, q: keyword } })
+}
+
+const mobileMenuTarget = (key) => {
+  if (key === 'sale') return '/khuyen-mai'
+  if (key === 'workstation') return '/workstation'
+  return { path: '/products', query: { category: menuCategoryMap[key] || key } }
+}
+
+const isMenuCurrent = (key) => {
+  if (key === 'sale') return route.path === '/khuyen-mai'
+  if (key === 'workstation') {
+    return route.path === '/workstation' ||
+      (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
+  }
+
+  if (!['gaming', 'macbook'].includes(key)) return false
+  const currentCategory = String(route.query.category || '').toLowerCase()
+  return route.path === '/products' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
+}
+
 // ===================== TÌM KIẾM =====================
 const searchQuery = ref('')
+const searchFocused = ref(false)
 
 const handleSearch = () => {
   const keyword = searchQuery.value.trim()
   if (!keyword) return
-  // Chuyển sang trang sản phẩm với query tìm kiếm
   router.push({ path: '/products', query: { q: keyword } })
   searchQuery.value = ''
   isMobileMenuOpen.value = false
+  searchFocused.value = false
 }
 
 // ===================== GIỎ HÀNG BADGE =====================
@@ -34,13 +309,7 @@ const showCartDropdown = ref(false)
 const fetchCart = async () => {
   try {
     const token = getToken()
-    if (!token) {
-      cartCount.value = 0
-      cartItems.value = []
-      cartTotal.value = 0
-      return
-    }
-
+    if (!token) { cartCount.value = 0; cartItems.value = []; cartTotal.value = 0; return }
     const res = await api.get('/gio-hang', { skipGlobalLoader: true })
     if (res.data?.success) {
       cartItems.value = res.data.gio_hang || []
@@ -61,26 +330,19 @@ const fetchCart = async () => {
       
       cartTotal.value = res.data.tong_tien || 0
     }
-  } catch {
-    cartCount.value = 0
-    cartItems.value = []
-    cartTotal.value = 0
-  }
+  } catch { cartCount.value = 0; cartItems.value = []; cartTotal.value = 0 }
 }
 
-// ===================== WISHLIST (DỮ LIỆU THẬT) =====================
+// ===================== WISHLIST =====================
 const wishlistItems = ref([])
 
 const fetchWishlist = async () => {
   try {
-  const token = getToken()
+    const token = getToken()
     if (!token) { wishlistItems.value = []; return }
-
     const res = await api.get('/yeu-thich', { skipGlobalLoader: true })
     wishlistItems.value = res.data.data || res.data || []
-  } catch {
-    wishlistItems.value = []
-  }
+  } catch { wishlistItems.value = [] }
 }
 
 const removeWishlist = async (id) => {
@@ -88,45 +350,65 @@ const removeWishlist = async (id) => {
     await api.delete(`/yeu-thich/xoa/${id}`)
     wishlistItems.value = wishlistItems.value.filter(i => i.id !== id)
     window.dispatchEvent(new Event('wishlist-updated'))
-  } catch (err) {
-    console.error('Lỗi khi xóa khỏi yêu thích', err)
-  }
+  } catch (err) { console.error('Lỗi khi xóa khỏi yêu thích', err) }
 }
 
 const formatPrice = (value) => {
-    if(!value) return '0₫'
-    return parseInt(value).toLocaleString('vi-VN') + '₫'
+  if (!value) return '0₫'
+  return parseInt(value).toLocaleString('vi-VN') + '₫'
 }
 
 const getWishlistImg = (item) => {
-    const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
-    return imgPath ? storageUrl(imgPath) : 'https://via.placeholder.com/150'
+  const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
+  return imgPath ? storageUrl(imgPath) : 'https://via.placeholder.com/150'
 }
 
-const handleCartUpdated = () => { fetchCart() }
-const handleWishlistUpdated = () => { fetchWishlist() }
+const handleCartUpdated = () => fetchCart()
+const handleWishlistUpdated = () => fetchWishlist()
+let headerDataIdleId = null
+let headerDataTimeoutId = null
+
+const scheduleHeaderDataHydration = () => {
+  const hydrate = () => {
+    headerDataIdleId = null
+    headerDataTimeoutId = null
+    fetchUser()
+  }
+
+  if ('requestIdleCallback' in window) {
+    headerDataIdleId = window.requestIdleCallback(hydrate, { timeout: 1200 })
+  } else {
+    headerDataTimeoutId = setTimeout(hydrate, 300)
+  }
+}
 
 onMounted(() => {
-  fetchUser()
   if (!getToken()) {
     cartCount.value = 0
     cartItems.value = []
     cartTotal.value = 0
     wishlistItems.value = []
   }
-
   window.addEventListener('cart-updated', handleCartUpdated)
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
   window.addEventListener('user-updated', fetchUser)
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  scheduleHeaderDataHydration()
 
+  // Announcement bar rotation
+  annTimer = setInterval(() => {
+    annIdx.value = (annIdx.value + 1) % announcements.length
+  }, 3500)
   const warmProductsPage = () => {
-    import('../Web/Producpage.vue')
+    const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
+    if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
+    import('../Web/ProductsPremiumPage.vue')
     prefetchProductsPage().catch(() => {})
   }
   if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(warmProductsPage, { timeout: 1200 })
+    window.requestIdleCallback(warmProductsPage, { timeout: 900 })
   } else {
-    setTimeout(warmProductsPage, 700)
+    setTimeout(warmProductsPage, 500)
   }
 
   document.addEventListener('click', handleOutside)
@@ -136,12 +418,22 @@ onUnmounted(() => {
   window.removeEventListener('cart-updated', handleCartUpdated)
   window.removeEventListener('wishlist-updated', handleWishlistUpdated)
   window.removeEventListener('user-updated', fetchUser)
+  window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleOutside)
+  if (headerDataIdleId !== null && 'cancelIdleCallback' in window) {
+    window.cancelIdleCallback(headerDataIdleId)
+  }
+  if (headerDataTimeoutId !== null) {
+    clearTimeout(headerDataTimeoutId)
+  }
+  clearInterval(annTimer)
+  clearTimeout(megaLeaveTimer)
 })
 
-const goToCart = () => {
+const goToCart = async () => {
   const token = getToken()
   if (!token) {
+    const swal = await getSwal()
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước!')
     router.push({ path: '/login', query: { redirect: '/cart' } })
     return
@@ -169,41 +461,32 @@ const goAdmin = () => {
 }
 
 const handleOutside = (e) => {
-  if (!e.target.closest('.dropdown-wrap')) {
+  if (!e.target.closest('.dropdown-wrap') && !e.target.closest('.mega-nav-item')) {
     showWishlist.value = false
     showUser.value = false
+    activeMegaMenu.value = null
   }
 }
 
 const user = ref(null)
 
 const avatarUrl = computed(() => {
-  if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User')
+  if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
   if (user.value.avatar.startsWith('http')) return user.value.avatar
   return storageUrl(user.value.avatar)
 })
 
 const fetchUser = () => {
-    user.value = getUser()
-    if (user.value) {
-        fetchCart()
-        fetchWishlist()
-    }
+  user.value = getUser()
+  if (user.value) { fetchCart(); fetchWishlist() }
 }
 
 const handleLogout = async () => {
-  const isConfirmed = await swal.confirm(
-    'Xác nhận đăng xuất',
-    'Bạn có chắc chắn muốn thoát khỏi hệ thống?'
-  )
+  const swal = await getSwal()
+  const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống?')
   if (!isConfirmed) return
-
   showUser.value = false
-  try {
-    await api.post('/logout')
-  } catch {
-    console.log('Logout API lỗi (bỏ qua)')
-  }
+  try { await api.post('/logout') } catch { console.log('Logout API lỗi (bỏ qua)') }
   clearAuth()
   localStorage.removeItem('remember_email')
   cartCount.value = 0
@@ -212,164 +495,219 @@ const handleLogout = async () => {
 }
 
 const warmProductsPageNow = () => {
-  import('../Web/Producpage.vue')
+  const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
+  if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
+  import('../Web/ProductsPremiumPage.vue')
   prefetchProductsPage().catch(() => {})
 }
 </script>
 
 <template>
-  <div class="topbar">
-    <div class="topbar-container">
-      <span class="topbar-message">
-        Chào mừng đến với <strong>NextGen Laptop 2026</strong> — Giao hàng nhanh chỉ trong 2 giờ nội thành
-      </span>
-      <div class="topbar-right">
-        <span class="topbar-item">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
-          </svg>
+  <!-- ===== ANNOUNCEMENT BAR ===== -->
+  <div class="ann-bar">
+    <div class="ann-container">
+      <transition name="ann-slide" mode="out-in">
+        <span
+          class="ann-text"
+          :key="annIdx"
+          v-html="announcements[annIdx].icon + ' ' + announcements[annIdx].text"
+        ></span>
+      </transition>
+      <div class="ann-right">
+        <a href="tel:18009999" class="ann-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           1800 9999
-        </span>
-        <span class="topbar-divider">|</span>
-        <span class="topbar-item">
-          <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a14.5 14.5 0 0 1 0 20A14.5 14.5 0 0 1 12 2" />
-            <path d="M2 12h20" />
-          </svg>
-          Việt Nam | VNĐ
-        </span>
+        </a>
+        <span class="ann-sep">|</span>
+        <span class="ann-link">🇻🇳 VNĐ</span>
       </div>
     </div>
   </div>
 
-  <header class="header">
-    <div class="container">
+  <!-- ===== MAIN HEADER ===== -->
+  <header class="header" :class="{ scrolled: isScrolled }">
+    <div class="header-inner">
 
-      <div class="logo logo-3d">
-        <div class="logo-inner">
-          <span class="logo-black">NextGen</span>
-          <span class="logo-blue">Laptop</span>
-        </div>
-      </div>
+      <!-- LOGO -->
+      <router-link to="/" class="logo-wrap" aria-label="Predator Group">
+        <img src="/Gemini_Generated_Image_s57r15s57r15s57r-removebg-preview.png" alt="Predator Group" class="logo-img" />
+      </router-link>
 
-      <nav class="nav">
-        <router-link to="/" :exact="true">Trang chủ</router-link>
-        <router-link to="/products" @mouseenter="warmProductsPageNow" @focus="warmProductsPageNow">Sản phẩm</router-link>
-        <router-link to="/news">Tin tức</router-link>
-        <router-link to="/contact">Liên hệ</router-link>
-        <router-link to="/interactive-labs">Interactive Labs</router-link>
-      </nav>
-
-      <div class="right">
-
-        <div class="search">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm..."
-            v-model="searchQuery"
-            @keyup.enter="handleSearch"
-          />
-          <svg viewBox="0 0 24 24" fill="none" @click="handleSearch" style="cursor: pointer;">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </div>
-
-        <div class="dropdown-wrap" @mouseenter="showWishlist = true" @mouseleave="showWishlist = false">
-          <button class="icon-btn" @click.stop="toggleWishlist" :class="{ active: showWishlist }">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            <span class="badge badge-red" v-if="wishlistItems.length > 0">{{ wishlistItems.length }}</span>
+      <!-- MEGA MENU NAVIGATION -->
+      <nav class="mega-nav">
+        <div
+          v-for="(menu, key) in visibleMegaMenuData"
+          :key="key"
+          class="mega-nav-item"
+          @mouseenter="openMega(key)"
+          @mouseleave="closeMega"
+        >
+          <button
+            class="nav-btn"
+            :class="{ active: activeMegaMenu === key, current: isMenuCurrent(key) }"
+            @click="navToCategory(key)"
+          >
+            {{ menu.label }}
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
 
-          <transition name="drop">
-            <div class="dropdown wishlist-drop" v-if="showWishlist">
-              <div class="drop-header">
-                <span class="drop-title">Yêu thích</span>
-                <span class="drop-count">{{ wishlistItems.length }} sản phẩm</span>
-              </div>
-              <div class="drop-body">
-                <div v-if="wishlistItems.length === 0" class="drop-empty">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                  <p>Chưa có sản phẩm yêu thích</p>
-                </div>
-                
-                <div class="wish-item" v-for="item in wishlistItems" :key="item.id">
-                  <img :src="getWishlistImg(item)" :alt="item.bienthe?.sanpham?.tenSP" />
-                  <div class="wish-info">
-                    <p class="wish-name">{{ item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</p>
-                    <p class="wish-price">{{ formatPrice(item.bienthe?.gia) }}</p>
+          <!-- MEGA DROPDOWN -->
+          <transition name="mega-drop">
+            <div
+              v-if="activeMegaMenu === key"
+              class="mega-dropdown"
+              :style="{ '--accent': menu.accent, '--accent-bg': menu.accentBg }"
+              @mouseenter="keepMega"
+              @mouseleave="closeMega"
+            >
+              <!-- BODY -->
+              <div class="mega-body">
+                <!-- SECTIONS (Columns 1, 2, 3) -->
+                <div v-for="(section, sIdx) in menu.sections" :key="section.title" class="mega-col" :class="`col-${sIdx + 1}`">
+                  <div class="mega-col-title">
+                    {{ section.title }}
                   </div>
-                  <button class="wish-remove" @click="removeWishlist(item.id)" title="Xóa">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <ul class="mega-list">
+                    <li v-for="it in section.items" :key="it.label">
+                      <a
+                        href="#"
+                        class="mega-link"
+                        @click.prevent="navToMegaItem(key, it.q)"
+                      >
+                        <span class="mega-link-text">{{ it.label }}</span>
+                        <span v-if="it.badge" class="mega-item-badge" :class="it.badge.toLowerCase()">{{ it.badge }}</span>
+                      </a>
+                    </li>
+                  </ul>
                 </div>
-              </div>
-              <div class="drop-footer" v-if="wishlistItems.length > 0">
-                <router-link to="/wishlistpage" class="drop-action-btn" @click="showWishlist = false">
-                  Xem tất cả
-                </router-link>
+
+                <!-- FEATURED PANEL (Column 4) -->
+                <div class="mega-featured-panel">
+                  <div class="mega-col-title">NỔI BẬT</div>
+                  <div class="mfp-card" @click="navToMegaItem(key, menu.featured.name)">
+                    <div class="mfp-img-box">
+                      <img :src="menu.featured.img" :alt="menu.featured.name" class="mfp-img"
+                        @error="e => e.target.style.display='none'" />
+                      <span class="mfp-badge" :style="{ background: menu.accent }">{{ menu.featured.tag || 'PRO' }}</span>
+                    </div>
+                    <div class="mfp-info">
+                      <div class="mfp-name">{{ menu.featured.name }}</div>
+                      <div class="mfp-price" :style="{ color: menu.accent }">{{ menu.featured.price }}</div>
+                      <button
+                        class="mfp-btn"
+                        :style="{ background: menu.accent }"
+                      >
+                        Xem ngay →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </transition>
         </div>
 
-        <div class="dropdown-wrap" @mouseenter="showCartDropdown = true" @mouseleave="showCartDropdown = false">
-          <div class="icon-btn-wrap">
-            <button class="icon-btn" @click="goToCart" :class="{ active: showCartDropdown }">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M6 6h15l-1.5 9h-13z" />
-                <circle cx="9" cy="20" r="1" />
-                <circle cx="18" cy="20" r="1" />
-              </svg>
-            </button>
-            <span class="badge badge-blue" v-if="cartCount > 0">
-              {{ cartCount > 99 ? '99+' : cartCount }}
-            </span>
-          </div>
+        <!-- Extra links -->
+        <router-link to="/news" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
+        <router-link to="/contact" class="nav-plain-link">Liên hệ</router-link>
+      </nav>
+
+      <!-- SEARCH BAR -->
+      <div class="search-wrap" :class="{ focused: searchFocused }">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Tìm kiếm"
+          v-model="searchQuery"
+          @keyup.enter="handleSearch"
+          @focus="searchFocused = true"
+          @blur="searchFocused = false"
+        />
+        <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''; searchFocused = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <span class="search-keyboard" aria-hidden="true"></span>
+        <button type="button" class="search-submit" @click="handleSearch" aria-label="Tim kiem" title="Tim kiem">
+          Tìm
+        </button>
+      </div>
+
+      <!-- HEADER ACTIONS -->
+      <div class="header-actions">
+
+        <!-- WISHLIST -->
+        <div class="dropdown-wrap" @mouseenter="showWishlist = true" @mouseleave="showWishlist = false">
+          <button class="icon-action" :class="{ active: showWishlist }" @click.stop="toggleWishlist" title="Yêu thích">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span class="action-badge red" v-if="wishlistItems.length > 0">{{ wishlistItems.length }}</span>
+          </button>
 
           <transition name="drop">
-            <div class="dropdown cart-drop" v-if="showCartDropdown">
-              <div class="drop-header">
-                <span class="drop-title">Giỏ hàng</span>
-                <span class="drop-count">{{ cartCount }} sản phẩm</span>
+            <div class="hdr-dropdown wishlist-drop" v-if="showWishlist">
+              <div class="drop-head">
+                <span class="drop-ttl">Yêu thích</span>
+                <span class="drop-cnt">{{ wishlistItems.length }} sp</span>
+              </div>
+              <div class="drop-body">
+                <div v-if="wishlistItems.length === 0" class="drop-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <p>Chưa có sản phẩm yêu thích</p>
+                </div>
+                <div class="drop-item" v-for="item in wishlistItems" :key="item.id">
+                  <img :src="getWishlistImg(item)" :alt="item.bienthe?.sanpham?.tenSP" />
+                  <div class="drop-item-info">
+                    <p class="di-name">{{ item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</p>
+                    <p class="di-price">{{ formatPrice(item.bienthe?.gia) }}</p>
+                  </div>
+                  <button class="di-remove" @click="removeWishlist(item.id)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="drop-foot" v-if="wishlistItems.length > 0">
+                <router-link to="/wishlistpage" class="drop-cta" @click="showWishlist = false">Xem tất cả →</router-link>
+              </div>
+            </div>
+          </transition>
+        </div>
+
+        <!-- CART -->
+        <div class="dropdown-wrap" @mouseenter="showCartDropdown = true" @mouseleave="showCartDropdown = false">
+          <button class="icon-action cart-action" :class="{ active: showCartDropdown }" @click="goToCart" title="Giỏ hàng">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6h15l-1.5 9h-13z"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+            <span class="action-badge blue" v-if="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+          </button>
+
+          <transition name="drop">
+            <div class="hdr-dropdown cart-drop" v-if="showCartDropdown">
+              <div class="drop-head">
+                <span class="drop-ttl">Giỏ hàng</span>
+                <span class="drop-cnt">{{ cartCount }} sp</span>
               </div>
               <div class="drop-body">
                 <div v-if="cartItems.length === 0" class="drop-empty">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M6 6h15l-1.5 9h-13z" />
-                    <circle cx="9" cy="20" r="1" />
-                    <circle cx="18" cy="20" r="1" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6h15l-1.5 9h-13z"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
                   <p>Giỏ hàng của bạn đang trống</p>
                 </div>
-                
-                <div class="wish-item" v-for="item in cartItems" :key="item.id_giohang">
-                  <img :src="item.hinh_anh || 'https://via.placeholder.com/150'" :alt="item.ten_san_pham" />
-                  <div class="wish-info">
-                    <p class="wish-name">{{ item.ten_san_pham }}</p>
-                    <div class="cart-item-meta" v-if="item.ten_bienthe">
-                      <span class="meta-tag">{{ item.ten_bienthe }}</span>
-                    </div>
-                    <div class="cart-price-qty-wrap">
-                      <span class="wish-price">{{ formatPrice(item.gia) }}</span>
-                      <span class="qty-badge">x{{ item.soluong }}</span>
+                <div class="drop-item" v-for="item in cartItems" :key="item.id_giohang">
+                  <img :src="item.hinh_anh || 'https://via.placeholder.com/60'" :alt="item.ten_san_pham" />
+                  <div class="drop-item-info">
+                    <p class="di-name">{{ item.ten_san_pham }}</p>
+                    <div class="di-meta" v-if="item.ten_bienthe"><span>{{ item.ten_bienthe }}</span></div>
+                    <div class="di-price-row">
+                      <span class="di-price">{{ formatPrice(item.gia) }}</span>
+                      <span class="di-qty">×{{ item.soluong }}</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="drop-footer" v-if="cartItems.length > 0">
-                <div class="total-wrap">
-                  <span class="total-label">Tổng cộng:</span>
-                  <span class="total-val">{{ formatPrice(cartTotal) }}</span>
+              <div class="drop-foot" v-if="cartItems.length > 0">
+                <div class="cart-total-row">
+                  <span>Tổng cộng</span>
+                  <span class="cart-total-val">{{ formatPrice(cartTotal) }}</span>
                 </div>
-                <router-link to="/cart" class="drop-action-btn" @click="showCartDropdown = false">
+                <router-link to="/cart" class="drop-cta" @click="showCartDropdown = false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                   Xem giỏ hàng
                 </router-link>
               </div>
@@ -377,1084 +715,971 @@ const warmProductsPageNow = () => {
           </transition>
         </div>
 
+        <!-- USER -->
         <div class="dropdown-wrap">
-          <div class="icon-btn-wrap">
-            <button class="icon-btn icon-btn-user" @click.stop="toggleUser" :class="{ active: showUser }">
-              <img v-if="user" :src="avatarUrl" class="avatar-img" :alt="user.name" />
-              <svg v-else viewBox="0 0 24 24" fill="none">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </button>
-          </div>
+          <button class="icon-action user-action" :class="{ active: showUser }" @click.stop="toggleUser" title="Tài khoản">
+            <img v-if="user" :src="avatarUrl" class="user-avatar" :alt="user.name" />
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
 
           <transition name="drop">
-            <div class="dropdown user-drop" v-if="showUser">
-              <div class="user-profile-card">
-                <img v-if="user" :src="avatarUrl" :alt="user.name" class="user-avatar" />
-                <div class="user-info">
-                  <p class="user-name">{{ user?.name }}</p>
-                  <p class="user-email">{{ user?.email }}</p>
-                  <span class="user-badge">{{ user?.memberSince }}</span>
+            <div class="hdr-dropdown user-drop" v-if="showUser">
+              <div class="user-card">
+                <img :src="avatarUrl" :alt="user?.name" class="user-card-avatar" />
+                <div class="user-card-info">
+                  <p class="uc-name">{{ user?.name || 'Khách hàng' }}</p>
+                  <p class="uc-email">{{ user?.email }}</p>
+                  <span class="uc-badge">Predator Member</span>
                 </div>
               </div>
-              <div class="drop-divider"></div>
-              <div class="drop-footer-user">
+              <div class="user-menu">
                 <template v-if="user && user.role === 'admin'">
-                  <button class="admin-btn" @click="goAdmin">
-                    <span class="btn-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
+                  <button class="um-item admin" @click="goAdmin">
+                    <span class="um-left">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                       Quản trị hệ thống
                     </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                  <button class="logout-btn" @click="handleLogout">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                    Đăng xuất
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
                 </template>
                 <template v-else>
-                  <router-link to="/profile" @click="showUser = false" class="profile-btn">
-                    <span class="btn-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
+                  <router-link to="/profile" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       Thông tin cá nhân
                     </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </router-link>
-                  <router-link to="/affiliate" @click="showUser = false" class="profile-btn">
-                    <span class="btn-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
+                  <router-link to="/orders" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      Đơn hàng của tôi
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  </router-link>
+                  <router-link to="/affiliate" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                       Affiliate Center
                     </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </router-link>
-                  <button class="logout-btn" @click="handleLogout">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                    Đăng xuất
-                  </button>
                 </template>
+                <div class="um-divider"></div>
+                <button class="um-item logout" @click="handleLogout">
+                  <span class="um-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Đăng xuất
+                  </span>
+                </button>
               </div>
-              <div class="drop-divider"></div>
             </div>
           </transition>
         </div>
 
-        <button class="hamburger-btn" @click="isMobileMenuOpen = !isMobileMenuOpen" :class="{ active: isMobileMenuOpen }" aria-label="Toggle menu">
-          <span></span>
-          <span></span>
-          <span></span>
+        <!-- HAMBURGER (mobile) -->
+        <button class="hamburger" :class="{ open: isMobileMenuOpen }" @click="isMobileMenuOpen = !isMobileMenuOpen" aria-label="Menu">
+          <span></span><span></span><span></span>
         </button>
 
       </div>
     </div>
   </header>
 
-  <!-- Mobile Drawer Overlay & Menu -->
-  <div class="mobile-menu-overlay" v-if="isMobileMenuOpen" @click="isMobileMenuOpen = false"></div>
-  <transition name="slide-drawer">
-    <div class="mobile-menu-drawer" v-if="isMobileMenuOpen">
-      <div class="drawer-header">
-        <div class="logo logo-3d">
-          <div class="logo-inner">
-            <span class="logo-black">NextGen</span>
-            <span class="logo-blue">Laptop</span>
-          </div>
-        </div>
-        <button class="drawer-close" @click="isMobileMenuOpen = false">×</button>
+  <!-- ===== MOBILE DRAWER ===== -->
+  <div class="mob-overlay" v-if="isMobileMenuOpen" @click="isMobileMenuOpen = false"></div>
+  <transition name="mob-slide">
+    <div class="mob-drawer" v-if="isMobileMenuOpen">
+      <div class="mob-head">
+        <router-link to="/" class="mob-logo" @click="isMobileMenuOpen = false">
+          <img src="/Gemini_Generated_Image_s57r15s57r15s57r-removebg-preview.png" alt="Predator Group" />
+        </router-link>
+        <button class="mob-close" @click="isMobileMenuOpen = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <div class="drawer-body">
-        <div class="mobile-search">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm..."
-            v-model="searchQuery"
-            @keyup.enter="handleSearch"
-          />
-          <svg viewBox="0 0 24 24" fill="none" @click="handleSearch" style="cursor: pointer;">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </div>
-        <nav class="mobile-nav">
-          <router-link to="/" :exact="true" @click="isMobileMenuOpen = false">Trang chủ</router-link>
-          <router-link to="/products" @click="isMobileMenuOpen = false">Sản phẩm</router-link>
-          <router-link to="/news" @click="isMobileMenuOpen = false">Tin tức</router-link>
-          <router-link to="/contact" @click="isMobileMenuOpen = false">Liên hệ</router-link>
-          <router-link to="/interactive-labs" @click="isMobileMenuOpen = false">Interactive Labs</router-link>
-        </nav>
+
+      <div class="mob-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input
+          type="text"
+          placeholder="Tìm kiếm sản phẩm..."
+          v-model="searchQuery"
+          @keyup.enter="handleSearch"
+        />
+      </div>
+
+      <nav class="mob-nav">
+        <div class="mob-nav-label">Danh mục</div>
+        <router-link v-for="(menu, key) in megaMenuData" :key="key"
+          :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link" :class="{ current: isMenuCurrent(key) }">
+          {{ menu.label }}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </router-link>
+        <div class="mob-nav-label">Thêm</div>
+        <router-link to="/news" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
+        <router-link to="/contact" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+      </nav>
+
+      <div class="mob-footer">
+        <router-link to="/cart" @click="isMobileMenuOpen = false" class="mob-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-13z"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+          Giỏ hàng {{ cartCount > 0 ? '(' + cartCount + ')' : '' }}
+        </router-link>
       </div>
     </div>
   </transition>
 </template>
 
 <style scoped>
-.topbar {
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ============================= ANNOUNCEMENT BAR ============================= */
+.ann-bar {
   background: #0f172a;
-  color: #cbd5e1;
-  font-size: 13px;
-  height: 36px;
+  height: 34px;
   display: flex;
   align-items: center;
+  overflow: hidden;
 }
-.topbar-container {
-  max-width: 1300px;
+.ann-container {
+  max-width: 1680px;
   width: 100%;
   margin: auto;
-  padding: 0 30px;
+  padding: 0 clamp(28px, 4.8vw, 72px);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.topbar-message {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.ann-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
   color: #94a3b8;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
 }
-.topbar-message strong { color: #e2e8f0; font-weight: 600; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-.topbar-item { display: flex; align-items: center; gap: 5px; color: #94a3b8; cursor: pointer; transition: color 0.2s; }
-.topbar-item:hover { color: #e2e8f0; }
-.topbar-item svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
-.topbar-divider { color: #334155; }
-/* admin-btn styles moved to profile/user group */
-.header { background: #fff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 1000; box-shadow: 0 1px 8px rgba(0,0,0,0.05); }
-.container { max-width: 1300px; margin: auto; padding: 0 30px; height: 68px; display: flex; align-items: center; justify-content: space-between; }
-.logo {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  perspective: 900px;
+.ann-text :deep(strong) { color: #e2e8f0; font-weight: 600; }
+.ann-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ann-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: #94a3b8; text-decoration: none; cursor: pointer;
+  transition: color 0.2s; font-family: 'Inter', sans-serif;
 }
+.ann-link svg { width: 12px; height: 12px; }
+.ann-link:hover { color: #e2e8f0; }
+.ann-sep { color: #cbd5e1; font-size: 12px; }
 
-.logo-3d {
-  perspective: 900px;
-}
+.ann-slide-enter-active { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); }
+.ann-slide-leave-active { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.ann-slide-enter-from { opacity: 0; transform: translateY(10px); }
+.ann-slide-leave-to   { opacity: 0; transform: translateY(-10px); }
 
-.logo-inner {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  transform-style: preserve-3d;
-  animation: logo-spin 8s linear infinite;
-}
-
-.logo-inner::after {
-  content: 'NextGen Laptop';
-  position: absolute;
+/* ============================= MAIN HEADER ============================= */
+.header {
+  position: sticky;
   top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(15, 23, 42, 0.12);
-  transform: rotateY(180deg) translateZ(12px);
-  backface-visibility: hidden;
-}
-
-.logo:hover .logo-inner {
-  animation-play-state: paused;
-}
-
-.logo-black,
-.logo-blue {
-  display: inline-block;
-  transform: translateZ(12px);
-  backface-visibility: hidden;
-}
-
-.logo-black {
-  color: #0f172a;
-}
-
-.logo-blue {
-  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-@keyframes logo-spin {
-  0% {
-    transform: rotateY(0deg);
-  }
-  100% {
-    transform: rotateY(360deg);
-  }
-}
-/* profile-btn styles moved to footer section styles */
-.nav { display: flex; gap: 28px; }
-.nav a { text-decoration: none; color: #1e293b; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; transition: color 0.2s; position: relative; padding-bottom: 4px; }
-.nav a:hover { color: #2563eb; }
-.nav a.router-link-exact-active { color: #2563eb; }
-.nav a.router-link-exact-active::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 2.5px; background: #2563eb; border-radius: 2px; }
-.right { display: flex; align-items: center; gap: 10px; }
-.search { display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; padding: 6px 14px; width: 230px; transition: border-color 0.2s, box-shadow 0.2s; }
-.search:focus-within { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #fff; }
-.search input { border: none; background: transparent; outline: none; font-size: 13px; flex: 1; color: #1e293b; }
-.search input::placeholder { color: #94a3b8; }
-.search svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; }
-.icon-btn-wrap { position: relative; display: inline-flex; }
-.icon-btn { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #f1f5f9; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; text-decoration: none; border: none; position: relative; }
-.icon-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
-.icon-btn.active { background: #dbeafe; box-shadow: 0 0 0 2px #2563eb; }
-.icon-btn svg { width: 18px; height: 18px; stroke: #475569; stroke-width: 1.8; fill: none; }
-.icon-btn-user { background: #2563eb; padding: 0; }
-.icon-btn-user svg { stroke: #fff; }
-.icon-btn-user:hover { background: #1d4ed8; }
-.icon-btn-user.active { box-shadow: 0 0 0 2px #93c5fd; }
-.avatar-img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; display: block; }
-.badge { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; line-height: 1; z-index: 10; }
-.badge-blue { background: #2563eb; }
-.badge-red { background: #ef4444; }
-.dropdown-wrap { position: relative; }
-.dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  background: rgba(255, 255, 255, 0.85);
+  z-index: 1000;
+  background: rgba(13, 27, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  z-index: 2000;
-  overflow: hidden;
-  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header.scrolled {
+  background: rgba(13, 27, 46, 0.99);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
+  border-bottom-color: rgba(37, 99, 235, 0.2);
 }
 
-.dropdown::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  right: 14px;
-  width: 12px;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-bottom: none;
-  border-right: none;
-  transform: rotate(45deg);
-  backdrop-filter: blur(20px);
+.header-inner {
+  width: min(calc(100% - clamp(220px, 16vw, 340px)), 1400px);
+  margin: 0 auto;
+  padding: 0;
+  height: 68px;
+  display: grid;
+  grid-template-columns: minmax(220px, 250px) minmax(max-content, 1fr) minmax(280px, 360px) auto;
+  align-items: center;
+  gap: clamp(12px, 1.35vw, 22px);
 }
 
-.wishlist-drop {
-  width: 360px;
-}
-
-.drop-header {
+/* LOGO */
+.logo-wrap {
+  grid-column: 1;
+  justify-self: start;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px 10px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-}
-
-.drop-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.drop-count {
-  font-size: 11.5px;
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
-  padding: 3px 10px;
-  border-radius: 99px;
-  font-weight: 700;
-  border: 1px solid rgba(37, 99, 235, 0.1);
-}
-
-.drop-body {
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 12px 8px;
-}
-
-.drop-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.drop-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.drop-body::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
-  border-radius: 99px;
-}
-
-.drop-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
-}
-
-.drop-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 28px 0;
-  color: #94a3b8;
-}
-
-.drop-empty svg {
-  width: 40px;
-  height: 40px;
-  stroke: #cbd5e1;
-  stroke-width: 1.5;
-  fill: none;
-}
-
-.drop-empty p {
-  font-size: 13px;
-}
-
-.wish-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(15, 23, 42, 0.04);
-  border-radius: 14px;
-  margin: 0 12px 10px;
-  padding: 12px;
-  box-sizing: border-box;
-  width: calc(100% - 24px);
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.wish-item:last-child {
-  margin-bottom: 2px;
-}
-
-.wish-item:hover {
-  background: #ffffff;
-  border-color: rgba(37, 99, 235, 0.25);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
-  transform: translateY(-2px);
-}
-
-.wish-item img {
-  width: 58px;
-  height: 58px;
-  border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  object-fit: cover;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.wish-item:hover img {
-  transform: scale(1.04);
-}
-
-.wish-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.wish-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 4px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  white-space: normal;
-  text-overflow: ellipsis;
-}
-
-.wish-price {
-  font-size: 14px;
-  color: #2563eb;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-}
-
-.wish-remove {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-
-.wish-remove:hover {
-  background: #fee2e2;
-}
-
-.wish-remove svg {
-  width: 14px;
-  height: 14px;
-  stroke: #ef4444;
-  stroke-width: 2.5;
-}
-
-.drop-footer {
-  padding: 16px 20px 14px;
-  border-top: 1px solid rgba(15, 23, 42, 0.05);
-  background: rgba(248, 250, 252, 0.4);
-}
-
-.drop-action-btn {
-  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
-  font-size: 13.5px;
-  font-weight: 750;
-  border: none;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22) !important;
-  border-radius: 12px;
-  padding: 11px 0;
-  text-align: center;
-  display: block;
-  text-decoration: none;
-  color: #fff;
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.drop-action-btn:hover {
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.32), 0 2px 8px rgba(124, 58, 237, 0.15) !important;
-  transform: translateY(-2px) scale(1.015);
-  opacity: 0.98;
-}
-.user-drop {
-  width: 290px;
-}
-.user-profile-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px 18px;
-}
-.user-avatar {
-  width: 52px;
+  width: clamp(205px, 14vw, 250px);
   height: 52px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #2563eb, 0 4px 12px rgba(37, 99, 235, 0.18);
+  text-decoration: none;
   flex-shrink: 0;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.user-profile-card:hover .user-avatar {
-  transform: scale(1.06);
+.logo-wrap:hover { transform: scale(1.04); }
+.logo-img {
+  width: 100%;
+  height: 100%;
+  max-height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
 }
-.user-info {
+
+/* ============================= MEGA NAV ============================= */
+.mega-nav {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: center;
   min-width: 0;
 }
-.user-name {
-  font-size: 15px;
-  font-weight: 750;
-  color: #0f172a;
-  margin: 0 0 3px;
-  letter-spacing: -0.2px;
-}
-.user-email {
-  font-size: 12px;
-  color: #64748b;
-  margin: 0 0 6px;
+
+.mega-nav-item { position: relative; }
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.2s;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.user-badge {
-  display: inline-block;
-  font-size: 10px;
+.nav-btn:hover, .nav-btn.active, .nav-btn.current {
+  background: rgba(37, 99, 235, 0.12);
+  color: #60a5fa;
+}
+.nav-btn.current {
+  background: rgba(37, 99, 235, 0.18);
+  color: #60a5fa;
   font-weight: 700;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  padding: 2px 8px;
-  border-radius: 20px;
-  letter-spacing: 0.02em;
+  position: relative;
 }
-.drop-divider {
-  height: 1px;
-  background: linear-gradient(90deg, rgba(241,245,249,0.3) 0%, #f1f5f9 50%, rgba(241,245,249,0.3) 100%);
+.nav-btn.current::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 999px;
 }
-.drop-footer-user {
-  padding: 14px 16px;
+.nav-chevron {
+  width: 12px; height: 12px;
+  transition: transform 0.2s;
+  stroke: currentColor;
+}
+.nav-btn.active .nav-chevron { transform: rotate(180deg); }
+
+.nav-plain-link {
+  padding: 8px 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+}
+.nav-plain-link:hover { background: rgba(37, 99, 235, 0.12); color: #60a5fa; }
+
+/* Active route highlight */
+.nav-plain-link.router-link-active,
+.nav-plain-link.router-link-exact-active {
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.15);
+  font-weight: 700;
+}
+.nav-plain-link.router-link-exact-active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 2px;
+}
+
+/* MEGA DROPDOWN */
+.mega-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  z-index: 9999;
+  width: 585px;
+  overflow: hidden;
+  padding: 7px 8px;
+}
+/* Bridge trong suốt lấp khoảng trống 10px giữa button và dropdown */
+.mega-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -14px;       /* cao hơn khoảng gap 10px để chắc chắn không hở */
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: transparent;
+}
+
+/* BODY LAYOUT - 4 COLUMNS WITH DIVIDERS */
+.mega-body {
+  display: grid;
+  grid-template-columns: 0.9fr 0.9fr 0.9fr 1.18fr;
+  gap: 0;
+  background: transparent;
+}
+
+.mega-col {
+  padding: 0 5px;
+  border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: flex-start;
 }
-.profile-btn, .admin-btn {
+
+.mega-col-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 5px;
+  padding-left: 6px;
+}
+
+/* COMPACT CLEAN LINKS */
+.mega-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mega-link {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 11px 14px;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  font-size: 13.5px;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 3px 5px;
+  background: transparent;
+  border-radius: 6px;
   text-decoration: none;
-  border: 1px solid #f1f5f9;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
 }
-.profile-btn:hover {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #2563eb;
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+.mega-link-text {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: color 0.15s ease;
 }
-.admin-btn {
-  background: #faf5ff;
-  border-color: #f3e8ff;
-  color: #7c3aed;
+.mega-link:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
-.admin-btn:hover {
-  background: #f3e8ff;
-  border-color: #e9d5ff;
-  color: #6d28d9;
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+.mega-link:hover .mega-link-text {
+  color: #ffffff;
 }
-.btn-left {
+
+/* ITEM BADGES */
+.mega-item-badge {
+  font-size: 7.5px;
+  font-weight: 800;
+  padding: 1px 4.5px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+  margin-left: 0;
+}
+.mega-item-badge.hot  { background: rgba(239,68,68,0.15); color: #f87171; }
+.mega-item-badge.new  { background: rgba(34,197,94,0.15); color: #4ade80; }
+.mega-item-badge.pro  { background: rgba(139,92,246,0.15); color: #a78bfa; }
+.mega-item-badge.sale { background: rgba(249,115,22,0.15); color: #fb923c; }
+
+.mega-featured-panel {
+  padding: 0 0 0 7px;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
 }
-.btn-icon {
-  width: 17px;
-  height: 17px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-  transition: transform 0.25s ease;
+.mega-featured-panel .mega-col-title {
+  padding-left: 0;
 }
-.profile-btn:hover .btn-icon, .admin-btn:hover .btn-icon {
-  transform: scale(1.1);
+
+.mfp-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  padding: 5px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.chevron-icon {
-  width: 14px;
-  height: 14px;
-  stroke: #94a3b8;
-  stroke-width: 2.5;
-  fill: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.mfp-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2);
 }
-.profile-btn:hover .chevron-icon {
-  stroke: #2563eb;
-  transform: translateX(2px);
-}
-.admin-btn:hover .chevron-icon {
-  stroke: #7c3aed;
-  transform: translateX(2px);
-}
-.logout-btn {
+
+.mfp-img-box {
+  position: relative;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 11px;
-  border-radius: 10px;
-  border: 1px solid #fee2e2;
-  background: #fff5f5;
-  color: #ef4444;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 2px;
 }
-.logout-btn:hover {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  border-color: #dc2626;
-  color: #fff;
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
-}
-.logout-btn .btn-icon {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  fill: none;
+.mfp-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   transition: transform 0.25s ease;
 }
-.logout-btn:hover .btn-icon {
-  transform: translateX(-2px);
-}
-.drop-enter-active {
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.drop-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.drop-enter-from {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.97);
-}
-.drop-leave-to {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.97);
+.mfp-card:hover .mfp-img {
+  transform: scale(1.05);
 }
 
-/* ===================== RESPONSIVE STYLES ===================== */
-@media (max-width: 1024px) {
-  .topbar {
-    display: none;
-  }
-  .nav {
-    display: none;
-  }
-  .search {
-    display: none;
-  }
-  .container {
-    padding: 0 20px;
-    height: 60px;
-  }
-  .right {
-    gap: 8px;
-  }
-  .hamburger-btn {
-    display: flex;
-  }
-  .dropdown {
-    right: -10px;
-  }
-  .dropdown::before {
-    right: 24px;
-  }
+.mfp-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 7px;
+  font-weight: 800;
+  color: white;
+  padding: 1.5px 4.5px;
+  border-radius: 4px;
+  text-transform: uppercase;
 }
 
-@media (max-width: 480px) {
-  .container {
-    padding: 0 12px;
-  }
-  .logo {
-    font-size: 19px;
-  }
-  .logo-black {
-    font-size: 19px;
-  }
-  .logo-blue {
-    font-size: 19px;
-  }
-  .right {
-    gap: 6px;
-  }
-  .icon-btn {
-    width: 34px;
-    height: 34px;
-  }
-  .icon-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-  .avatar-img {
-    width: 34px;
-    height: 34px;
-  }
-}
-
-@media (max-width: 360px) {
-  .logo {
-    font-size: 17px;
-  }
-  .logo-black {
-    font-size: 17px;
-  }
-  .logo-blue {
-    font-size: 17px;
-  }
-  .right {
-    gap: 4px;
-  }
-  .icon-btn {
-    width: 30px;
-    height: 30px;
-  }
-  .icon-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-  .avatar-img {
-    width: 30px;
-    height: 30px;
-  }
-}
-
-/* Hamburger Button styles */
-.hamburger-btn {
-  display: none;
+.mfp-info {
+  display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  width: 22px;
-  height: 15px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 10001;
-  margin-left: 6px;
+  gap: 4px;
 }
-.hamburger-btn span {
+
+.mfp-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.mfp-price {
+  font-family: 'Outfit', sans-serif;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.mfp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: 2.2px;
-  background-color: #0f172a;
-  border-radius: 2px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 3.5px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  margin-top: 1px;
 }
-.hamburger-btn.active span:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
-}
-.hamburger-btn.active span:nth-child(2) {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-.hamburger-btn.active span:nth-child(3) {
-  transform: translateY(-6.8px) rotate(-45deg);
+.mfp-btn:hover {
+  opacity: 0.9;
 }
 
-/* Drawer overlay & content styles */
-.mobile-menu-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(5px);
-  z-index: 9998;
-}
-.mobile-menu-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 280px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: -10px 0 30px rgba(15, 23, 42, 0.08);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  box-sizing: border-box;
-}
-.drawer-header {
+/* MEGA DROPDOWN TRANSITIONS */
+.mega-drop-enter-active { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mega-drop-leave-active { transition: all 0.18s ease; }
+.mega-drop-enter-from { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.96); }
+.mega-drop-leave-to   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+
+/* ============================= SEARCH ============================= */
+.search-wrap {
+  grid-column: 3;
+  width: 100%;
+  max-width: 360px;
+  justify-self: end;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 0;
+  background: #0f0f10;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 99px;
+  padding: 0 0 0 16px;
+  height: 40px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 1px 2px rgba(0,0,0,0.35);
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
 }
-.drawer-close {
-  font-size: 32px;
-  color: #64748b;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  line-height: 0.8;
+.search-wrap.focused {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #101011;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.035),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.mobile-search {
-  display: flex;
-  align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  padding: 7px 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.mobile-search:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
-  background: #fff;
-}
-.mobile-search input {
+.search-input {
+  flex: 1;
   border: none;
   background: transparent;
   outline: none;
-  font-size: 13.5px;
-  flex: 1;
-  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #e7e7e7 !important;
+  padding: 0 10px 0 0;
+  min-width: 0;
+  height: 100%;
 }
-.mobile-search svg {
-  width: 15px;
-  height: 15px;
-  stroke: #94a3b8;
-  stroke-width: 2;
+.search-input::placeholder { color: #68686b !important; opacity: 1; }
+.search-clear {
+  width: 22px; height: 22px;
+  border: none; background: rgba(255,255,255,0.08); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; margin-right: 8px;
+  transition: background 0.2s;
 }
-.mobile-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.search-clear:hover { background: rgba(239,68,68,0.15); }
+.search-clear svg { width: 12px; height: 12px; color: #94a3b8; }
+.search-keyboard {
+  position: relative;
+  width: 21px;
+  height: 14px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  opacity: 0.78;
 }
-.mobile-nav a {
-  text-decoration: none;
-  color: #1e293b;
-  font-size: 14.5px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  padding: 10px 14px;
-  border-radius: 10px;
+.search-keyboard::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0 2px;
+  border-radius: 2px;
+  background:
+    linear-gradient(#a9a9a9, #a9a9a9) 3px 3px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 8px 3px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 13px 3px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 17px 3px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 3px 7px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 8px 7px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 13px 7px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 17px 7px / 3px 1.5px no-repeat,
+    linear-gradient(#a9a9a9, #a9a9a9) 6px 10px / 10px 1.5px no-repeat,
+    #7a7a7d;
+  box-shadow: inset 0 0 0 1px #57575a;
+}
+.search-submit {
+  position: relative;
+  width: 56px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-left: 1px solid rgba(255,255,255,0.035);
+  border-radius: 0 99px 99px 0;
+  background: #282426;
+  color: white;
+  font-size: 0;
+  cursor: pointer;
+  flex-shrink: 0;
   transition: all 0.2s;
 }
-.mobile-nav a:hover, .mobile-nav a.router-link-exact-active {
-  background: #eff6ff;
-  color: #2563eb;
+.search-submit::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2.3px solid currentColor;
+  border-radius: 50%;
+  position: absolute;
+  top: 10px;
+  left: 18px;
+}
+.search-submit::after {
+  content: '';
+  width: 10px;
+  height: 2.3px;
+  background: currentColor;
+  border-radius: 999px;
+  position: absolute;
+  top: 25px;
+  left: 32px;
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+.search-submit:hover {
+  background: #302b2e;
 }
 
-/* Slide drawer animation */
-.slide-drawer-enter-active, .slide-drawer-leave-active {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-drawer-enter-from, .slide-drawer-leave-to {
-  transform: translateX(100%);
-}
-
-/* Mini Cart Dropdown Styles */
-.cart-drop {
-  width: 370px;
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04) !important;
-  padding: 6px 0;
+/* ============================= HEADER ACTIONS ============================= */
+.header-actions {
+  grid-column: 4;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.cart-drop::before {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.5) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.5) !important;
-  backdrop-filter: blur(20px);
-}
-
-.cart-drop .drop-header {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-  padding: 12px 20px 10px;
-}
-
-.cart-drop .drop-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.cart-drop .drop-count {
-  font-size: 11.5px;
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
-  padding: 3px 10px;
-  border-radius: 99px;
-  font-weight: 700;
-  border: 1px solid rgba(37, 99, 235, 0.1);
-}
-
-.cart-drop .drop-body {
-  max-height: 320px;
-  padding: 12px 8px;
-}
-
-.cart-drop .drop-body::-webkit-scrollbar {
-  width: 6px;
-}
-.cart-drop .drop-body::-webkit-scrollbar-track {
+.icon-action {
+  position: relative;
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
   background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
-.cart-drop .drop-body::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
-  border-radius: 99px;
-}
-.cart-drop .drop-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
-}
+.icon-action svg { width: 20px; height: 20px; }
+.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
+.icon-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
-/* Floating Card style for items */
-.cart-drop .wish-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(15, 23, 42, 0.04);
-  border-radius: 14px;
-  margin: 0 12px 10px;
-  padding: 12px;
-  box-sizing: border-box;
-  width: calc(100% - 24px);
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+.cart-action {
+  background: transparent;
+  color: #94a3b8;
+  border: 1.5px solid transparent;
 }
+.cart-action svg { stroke: currentColor; }
+.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
+.cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
-.cart-drop .wish-item:last-child {
-  margin-bottom: 2px;
+.user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
+.user-action.active { border-color: #2563eb; }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+
+.action-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  color: white; font-size: 10px; font-weight: 800;
+  border-radius: 999px; display: flex; align-items: center; justify-content: center;
+  border: 2px solid #0d1b2e; z-index: 2;
 }
+.action-badge.red  { background: #ef4444; }
+.action-badge.blue { background: #2563eb; }
 
-.cart-drop .wish-item:hover {
-  background: #ffffff;
-  border-color: rgba(37, 99, 235, 0.25);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
-  transform: translateY(-2px);
-}
+/* ============================= DROPDOWNS ============================= */
+.dropdown-wrap { position: relative; }
 
-.cart-drop .wish-item img {
-  width: 58px;
-  height: 58px;
-  border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  object-fit: cover;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cart-drop .wish-item:hover img {
-  transform: scale(1.04);
-}
-
-.cart-drop .wish-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.cart-drop .wish-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 4px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.hdr-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  background: rgba(17, 31, 53, 0.98);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.3);
+  z-index: 9998;
   overflow: hidden;
-  white-space: normal;
-  text-overflow: ellipsis;
+  min-width: 320px;
+}
+.hdr-dropdown::before {
+  content: '';
+  position: absolute; top: -7px; right: 14px;
+  width: 13px; height: 13px;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom: none; border-right: none;
+  transform: rotate(45deg);
 }
 
-.cart-item-meta {
-  display: inline-flex;
-  margin-bottom: 5px;
+.wishlist-drop { width: 360px; }
+.cart-drop    { width: 380px; }
+.user-drop    { width: 300px; min-width: 280px; }
+
+/* DROP HEADER */
+.drop-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.drop-ttl { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 800; color: #f1f5f9; }
+.drop-cnt {
+  font-size: 11px; font-weight: 700; color: #60a5fa;
+  background: rgba(37,99,235,0.15); padding: 2px 10px; border-radius: 20px;
+  border: 1px solid rgba(37,99,235,0.25);
 }
 
-.cart-item-meta .meta-tag {
-  font-size: 10px;
-  background: rgba(148, 163, 184, 0.12);
-  color: #475569;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  border: 1px solid rgba(148, 163, 184, 0.08);
+/* DROP BODY */
+.drop-body {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+.drop-body::-webkit-scrollbar { width: 5px; }
+.drop-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+/* EMPTY */
+.drop-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 30px 0; color: #94a3b8;
+}
+.drop-empty svg { width: 36px; height: 36px; }
+.drop-empty p { font-size: 13px; font-weight: 500; }
+
+/* DROP ITEM */
+.drop-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s;
+}
+.drop-item:hover { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.1); }
+.drop-item img { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+.drop-item-info { flex: 1; min-width: 0; }
+.di-name { font-size: 12.5px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.di-meta span { font-size: 10px; background: rgba(255,255,255,0.07); color: #94a3b8; padding: 1px 7px; border-radius: 6px; font-weight: 600; }
+.di-price-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.di-price { font-size: 13.5px; font-weight: 800; color: #60a5fa; }
+.di-qty { font-size: 10.5px; font-weight: 700; color: #60a5fa; background: rgba(37,99,235,0.15); padding: 1px 7px; border-radius: 8px; border: 1px solid rgba(37,99,235,0.25); }
+.di-remove {
+  width: 26px; height: 26px; border-radius: 8px;
+  border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+}
+.di-remove:hover { background: rgba(239,68,68,0.15); }
+.di-remove svg { width: 12px; height: 12px; color: #ef4444; }
+
+/* CART TOTAL ROW */
+.cart-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 4px; margin-bottom: 12px; font-size: 13.5px; font-weight: 600; color: #94a3b8;
+}
+.cart-total-val { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: #60a5fa; letter-spacing: -0.3px; }
+
+/* DROP FOOTER */
+.drop-foot {
+  padding: 14px 14px 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+}
+.drop-cta {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; padding: 11px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white; font-family: 'Outfit', sans-serif;
+  font-size: 13.5px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.3);
+  transition: all 0.22s;
+}
+.drop-cta svg { width: 15px; height: 15px; }
+.drop-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(37,99,235,0.45); }
+
+/* USER CARD */
+.user-card {
+  display: flex; align-items: center; gap: 13px;
+  padding: 18px 16px 14px;
+}
+.user-card-avatar { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; border: 2px solid rgba(37,99,235,0.3); flex-shrink: 0; }
+.uc-name { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 800; color: #f1f5f9; margin-bottom: 2px; }
+.uc-email { font-size: 11.5px; color: #64748b; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; }
+.uc-badge { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; color: #60a5fa; background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.25); padding: 2px 8px; border-radius: 20px; text-transform: uppercase; }
+
+/* USER MENU */
+.user-menu { padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+.um-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 10px;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #94a3b8;
+  text-decoration: none; background: transparent;
+  border: 1px solid transparent; cursor: pointer; width: 100%;
+  transition: all 0.18s;
+}
+.um-left { display: flex; align-items: center; gap: 9px; }
+.um-left svg { width: 15px; height: 15px; flex-shrink: 0; }
+.um-item > svg { width: 13px; height: 13px; color: #475569; }
+.um-item:hover { background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
+.um-item.admin { background: rgba(139,92,246,0.08); color: #a78bfa; }
+.um-item.admin:hover { background: rgba(139,92,246,0.15); }
+.um-item.logout { color: #f87171; }
+.um-item.logout:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+.um-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
+
+/* DROPDOWN TRANSITION */
+.drop-enter-active { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.drop-leave-active { transition: all 0.16s ease; }
+.drop-enter-from  { opacity: 0; transform: translateY(-10px) scale(0.97); }
+.drop-leave-to    { opacity: 0; transform: translateY(-6px); }
+
+/* ============================= HAMBURGER ============================= */
+.hamburger {
+  grid-column: 5;
+  justify-self: end;
+  display: none;
+  flex-direction: column; justify-content: space-between;
+  width: 22px; height: 15px;
+  background: transparent; border: none; cursor: pointer; padding: 0; margin-left: 6px;
+}
+.hamburger span {
+  width: 100%; height: 2px; background: #334155; border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; transform: translateX(-10px); }
+.hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* ============================= MOBILE DRAWER ============================= */
+.mob-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  z-index: 9997;
+}
+.mob-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(320px, 90vw);
+  background: #0d1b2e;
+  z-index: 9998;
+  display: flex; flex-direction: column;
+  box-shadow: -16px 0 48px rgba(0,0,0,0.5);
+  overflow-y: auto;
 }
 
-.cart-price-qty-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
+.mob-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
+.mob-logo img {
+  width: 210px;
+  max-width: 62vw;
+  height: 42px;
+  object-fit: contain;
+}
+.mob-close {
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1.5px solid #e2e8f0; background: #0d1b2e;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #475569; transition: all 0.2s;
+}
+.mob-close:hover { background: #fee2e2; border-color: #ef4444; color: #ef4444; }
+.mob-close svg { width: 15px; height: 15px; }
 
-.cart-drop .wish-price {
-  font-size: 14px;
+.mob-search {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 20px;
+  background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 12px;
+  padding: 10px 14px; flex-shrink: 0;
+}
+.mob-search svg { width: 15px; height: 15px; color: #94a3b8; flex-shrink: 0; }
+.mob-search input { border: none; background: transparent; outline: none; font-size: 14px; flex: 1; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+.mob-search input::placeholder { color: #475569; }
+
+.mob-nav { padding: 0 12px; flex: 1; }
+.mob-nav-label {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #94a3b8;
+  padding: 12px 8px 6px;
+}
+.mob-link {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 12px; border-radius: 12px;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: #cbd5e1;
+  text-decoration: none; margin-bottom: 2px; transition: all 0.2s;
+}
+.mob-link svg { width: 14px; height: 14px; color: #94a3b8; }
+.mob-link:hover,
+.mob-link.router-link-active,
+.mob-link.router-link-exact-active,
+.mob-link.current {
+  background: #eef2ff;
   color: #2563eb;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-}
-
-.qty-badge {
-  font-size: 10.5px;
-  font-weight: 750;
-  color: #4f46e5;
-  background: rgba(79, 70, 229, 0.09);
-  padding: 1.5px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(79, 70, 229, 0.08);
-}
-
-.cart-drop .drop-footer {
-  padding: 16px 20px 14px;
-  border-top: 1px solid rgba(15, 23, 42, 0.05);
-  background: rgba(248, 250, 252, 0.4);
-}
-
-.total-wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-  padding: 0 4px;
-}
-
-.total-label {
-  font-size: 14px;
   font-weight: 700;
-  color: #475569;
+}
+.mob-link.labs { color: #6366f1; }
+
+.mob-footer {
+  padding: 16px 20px 24px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.mob-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px; border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
+  text-decoration: none; box-shadow: 0 6px 18px rgba(99,102,241,0.25);
+  transition: all 0.2s;
+}
+.mob-cta svg { width: 16px; height: 16px; }
+.mob-cta:hover { transform: translateY(-1px); }
+
+/* MOBILE TRANSITION */
+.mob-slide-enter-active { transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
+.mob-slide-leave-active { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+.mob-slide-enter-from, .mob-slide-leave-to { transform: translateX(100%); }
+
+/* ============================= RESPONSIVE ============================= */
+@media (max-width: 1200px) {
+  .header-inner {
+    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+  }
+  .mega-nav { display: none; }
+  .search-wrap {
+    grid-column: 2;
+    justify-self: center;
+  }
+  .header-actions { grid-column: 3; }
+  .hamburger { grid-column: 4; }
+  .hamburger { display: flex; }
+  .search-wrap { max-width: 260px; }
 }
 
-.total-val {
-  font-size: 17px;
-  font-weight: 900;
-  color: #ef4444;
-  letter-spacing: -0.3px;
+@media (max-width: 900px) {
+  .search-wrap { display: none; }
+  .header-inner {
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+  }
+  .header-actions {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .hamburger { grid-column: 3; }
 }
 
-.cart-drop .drop-action-btn {
-  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
-  font-size: 13.5px;
-  font-weight: 750;
-  border: none;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22) !important;
-  border-radius: 12px;
-  padding: 11px 0;
-  text-align: center;
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+@media (max-width: 600px) {
+  .ann-bar { display: none; }
+  .header-inner {
+    width: calc(100% - 32px);
+    padding: 0;
+    height: 60px;
+  }
 }
 
-.cart-drop .drop-action-btn:hover {
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.32), 0 2px 8px rgba(124, 58, 237, 0.15) !important;
-  transform: translateY(-2px) scale(1.015);
-  opacity: 0.98;
+@media (max-width: 400px) {
+  .icon-action { width: 36px; height: 36px; border-radius: 10px; }
+  .icon-action svg { width: 18px; height: 18px; }
 }
 </style>

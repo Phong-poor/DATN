@@ -807,8 +807,9 @@ function exportExcel() {
 
 /* FILTER */
 .filter-wrap {
-    background: white; border-radius: 14px; border: 1px solid #f1f5f9;
+    background: white; border-radius: 14px; border: 1px solid #e2e8f0;
     padding: 16px 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 .search-row { display: flex; align-items: center; gap: 12px; }
 .search-box {
@@ -821,19 +822,39 @@ function exportExcel() {
 .search-box input {
     width: 100%; padding: 9px 14px 9px 36px; border-radius: 8px;
     border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;
-    outline: none; transition: border-color 0.2s;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    background: #ffffff;
 }
-.search-box input:focus { border-color: #2563eb; }
+.search-box input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
 
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
-    padding: 8px 14px; border-radius: 8px; border: none;
-    background: transparent; font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #dbe4f0;
+    background: #ffffff; font-size: 13px; font-weight: 600;
     color: #64748b; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     display: flex; align-items: center; gap: 6px;
 }
-.tab:hover { background: #f1f5f9; color: #334155; }
-.tab.active { background: #2563eb; color: white; }
+.tab:hover {
+    background: #f8fafc;
+    border-color: #93c5fd;
+    color: #1e3a8a;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+.tab:focus-visible {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+.tab.active {
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: white;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+}
 
 .tab-count {
     background: #e2e8f0;

@@ -11,6 +11,21 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         emptyOutDir: true,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined
+                    if (id.includes('vue') || id.includes('vue-router') || id.includes('vuex')) {
+                        return 'vendor-vue'
+                    }
+                    if (id.includes('sweetalert2')) return 'vendor-swal'
+                    if (id.includes('leaflet')) return 'vendor-map'
+                    if (id.includes('xlsx')) return 'vendor-xlsx'
+                    if (id.includes('axios')) return 'vendor-http'
+                    return 'vendor'
+                }
+            }
+        },
     },
     resolve: {
         alias: {

@@ -138,6 +138,8 @@ class DatHangController extends Controller
             'id_diachi' => 'nullable|integer',
             'diachi' => 'required_without:id_diachi|string',
             'PTTT'   => 'required|string',
+            'name'   => 'required|string',
+            'phone'  => 'required|string',
         ]);
 
         $userId = Auth::id();
@@ -157,6 +159,16 @@ class DatHangController extends Controller
 
             $diaChiGiaoHang = $diaChi->dia_chi_day_du;
         }
+
+        // Cập nhật sđt người dùng nếu chưa có
+        $user = Auth::user();
+        if ($request->filled('phone') && !$user->phone) {
+            $user->phone = $request->phone;
+            $user->save();
+        }
+
+        // Gắn tên và sđt vào địa chỉ giao hàng để lưu lại
+        $diaChiGiaoHang = $request->name . ' - ' . $request->phone . ' - ' . $diaChiGiaoHang;
 
         $gioHangItems = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId)->get();
 

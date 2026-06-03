@@ -1,9 +1,29 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import * as XLSX from 'xlsx'
 import api from '@/services/api'
 import { storageUrl } from '@/services/urls'
-import swal from '@/services/swal'
+
+const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
+const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
+let xlsxModulePromise = null
+let swalModulePromise = null
+
+const loadXlsx = async () => {
+  if (!xlsxModulePromise) xlsxModulePromise = import('xlsx')
+  return xlsxModulePromise
+}
+
+const getSwal = async () => {
+  if (!swalModulePromise) swalModulePromise = import('@/services/swal')
+  return (await swalModulePromise).default
+}
+
+const swal = new Proxy({}, {
+  get: (_, method) => async (...args) => {
+    const service = await getSwal()
+    return service[method](...args)
+  },
+})
 
 /* ═══════════════════════════════════════
    DANH SÁCH SẢN PHẨM
@@ -46,6 +66,7 @@ const currentPage = ref(1)
 const PER_PAGE = 10
 
 const products = ref([])
+const isProductsFetching = ref(false)
 const categories = ref([])
 const parentCategories = ref([])
 const childCategories = ref([])
@@ -208,6 +229,7 @@ const handleExportExcel = async () => {
   if (isExporting.value) return
   isExporting.value = true
   try {
+    const XLSX = await loadXlsx()
     const res = await api.get('/admin/sanpham/export-inventory')
     const data = res.data
 
@@ -230,7 +252,7 @@ const handleExportExcel = async () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory")
 
     // Download file
-    XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
+    XLSX.writeFile(workbook, `Kho_Hang_Predator_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
     swal.error('Lỗi', 'Lỗi khi xuất file Excel')
@@ -252,6 +274,7 @@ const handleImportExcel = async (e) => {
 
   reader.onload = async (event) => {
     try {
+      const XLSX = await loadXlsx()
       const data = new Uint8Array(event.target.result)
       const workbook = XLSX.read(data, { type: 'array' })
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -292,13 +315,14 @@ const handleImportExcel = async (e) => {
 /* ═══════════════════════════════════════
    NHẬP XUẤT EXCEL BIẾN THỂ (TRONG MODAL)
    ═══════════════════════════════════════ */
-const handleExportVariantsExcel = () => {
+const handleExportVariantsExcel = async () => {
   const headers = tableHeaders.value
   if (!headers.length) {
     swal.warning('Không có dữ liệu', 'Không có thuộc tính để xuất')
     return
   }
 
+  const XLSX = await loadXlsx()
   const data = generatedRows.value.map(row => {
     const item = {}
     headers.forEach(h => {
@@ -324,8 +348,9 @@ const handleImportVariantsExcel = (e) => {
   if (!file) return
 
   const reader = new FileReader()
-  reader.onload = (event) => {
+  reader.onload = async (event) => {
     try {
+      const XLSX = await loadXlsx()
       const data = new Uint8Array(event.target.result)
       const wb = XLSX.read(data, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
@@ -377,9 +402,35 @@ const handleImportVariantsExcel = (e) => {
   reader.readAsArrayBuffer(file)
 }
 
-const fetchProducts = async () => {
+const loadProductsCache = () => {
   try {
-    const res = await api.get('/sanpham')
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY)
+    if (!raw) return false
+    const cached = JSON.parse(raw)
+    if (!cached?.products || Date.now() - cached.fetchedAt > PRODUCTS_CACHE_TTL) return false
+    products.value = cached.products
+    return true
+  } catch {
+    return false
+  }
+}
+
+const saveProductsCache = () => {
+  try {
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({
+      fetchedAt: Date.now(),
+      products: products.value,
+    }))
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+const fetchProducts = async () => {
+  if (isProductsFetching.value) return
+  isProductsFetching.value = true
+  try {
+    const res = await api.get('/sanpham', { skipGlobalLoader: true })
 
     products.value = res.data.map(p => {
       const bienThes = Array.isArray(p.bien_thes) ? p.bien_thes : []
@@ -403,8 +454,11 @@ const fetchProducts = async () => {
           : 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200',
       }
     })
+    saveProductsCache()
   } catch (error) {
     formError.value = getErrorMessage(error, 'Không tải được danh sách sản phẩm.')
+  } finally {
+    isProductsFetching.value = false
   }
 }
 
@@ -1752,12 +1806,15 @@ const submitForm = async () => {
 }
 
 onMounted(() => {
+  loadProductsCache()
   fetchProducts()
-  fetchParentCategories()
-  fetchCategories()
-  fetchBrands()
-  fetchAttributeGroups()
-  fetchColors()
+  Promise.allSettled([
+    fetchParentCategories(),
+    fetchCategories(),
+    fetchBrands(),
+    fetchAttributeGroups(),
+    fetchColors(),
+  ])
 })
 </script>
 
@@ -1945,7 +2002,7 @@ onMounted(() => {
             </td>
             <td>
               <div class="product-cell">
-                <img :src="p.img" :alt="p.name" />
+                <img :src="p.img" :alt="p.name" loading="lazy" decoding="async" />
                 <div><b>{{ p.name }}</b><span>SKU: {{ p.sku }}</span></div>
               </div>
             </td>
@@ -2439,7 +2496,7 @@ onMounted(() => {
                   <tr v-for="(p, i) in lowStockProducts" :key="p.id">
                     <td>{{ i + 1 }}</td>
                     <td>
-                      <img :src="p.img" :alt="p.name"
+                      <img :src="p.img" :alt="p.name" loading="lazy" decoding="async"
                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
                     </td>
                     <td><b>{{ p.name }}</b><br><span style="font-size: 11px; color: #94a3b8;">SKU: {{ p.sku }}</span>

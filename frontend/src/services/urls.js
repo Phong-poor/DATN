@@ -20,13 +20,13 @@ export const storageUrl = (path) => {
 
   if (!path) return ''
 
-
-
-  const raw = String(path).trim()
-
+  let raw = String(path).trim()
   if (!raw) return ''
 
-
+  // Globally replace seeder orange phone image with realistic laptop image
+  if (raw.includes('photo-1611186871348-b1ce696e52c9')) {
+    raw = raw.replace('photo-1611186871348-b1ce696e52c9', 'photo-1588872657578-7efd1f1555ed')
+  }
 
   if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) {
 

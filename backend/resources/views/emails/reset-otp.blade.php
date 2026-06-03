@@ -15,7 +15,7 @@
                     <!-- LOGO / TITLE -->
                     <tr>
                         <td align="center" style="padding-bottom:20px;">
-                            <h2 style="margin:0; color:#2563eb;">NextGen Laptop</h2>
+                            <h2 style="margin:0; color:#2563eb;">Predator</h2>
                         </td>
                     </tr>
 

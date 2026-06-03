@@ -16,7 +16,7 @@
                     <!-- HEADER -->
                     <tr>
                         <td style="background:blue;padding:30px;text-align:center;color:white;">
-                            <h1 style="margin:0;">NextGen Shop</h1>
+                            <h1 style="margin:0;">Predator</h1>
                             <p style="margin:5px 0 0;">Xác nhận đặt hàng thành công</p>
                         </td>
                     </tr>
@@ -29,7 +29,7 @@
                             </h2>
 
                             <p style="color:#555;font-size:15px;">
-                                Cảm ơn bạn đã tin tưởng mua sắm tại <strong>NextGen Laptop</strong>. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.
+                                Cảm ơn bạn đã tin tưởng mua sắm tại <strong>Predator</strong>. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.
                             </p>
 
                             <div style="margin:25px 0; padding:20px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
@@ -117,7 +117,7 @@
                     <!-- FOOTER -->
                     <tr>
                         <td style="background:#f8fafc;padding:20px;text-align:center;color:#94a3b8;font-size:12px;border-top:1px solid #e2e8f0;">
-                            © 2026 NextGen Laptop. All rights reserved.<br>
+                            © 2026 Predator. All rights reserved.<br>
                             Địa chỉ: 123 Đường Công Nghệ, TP. Hồ Chí Minh.
                         </td>
                     </tr>

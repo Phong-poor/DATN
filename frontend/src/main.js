@@ -4,6 +4,7 @@ import './assets/styles/swal-theme.css'
 import App from './App.vue'
 import router from './router/index.js'
 import { initGoogleAnalytics } from './services/analytics'
+import { installPerformanceWarmup } from './services/performanceWarmup'
 
 initGoogleAnalytics()
 
@@ -65,3 +66,5 @@ window.addEventListener('pageshow', (event) => {
 createApp(App)
   .use(router)
   .mount('#app')
+
+installPerformanceWarmup()

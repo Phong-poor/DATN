@@ -82,7 +82,7 @@ const articleBlocks = computed(() => {
 })
 
 const articleImages = computed(() => articleBlocks.value.filter((block) => block.type === 'image'))
-const heroAlt = computed(() => post.value?.image_alt || post.value?.title || 'Ảnh minh họa bài viết VinaTech')
+const heroAlt = computed(() => post.value?.image_alt || post.value?.title || '?nh minh h?a bài vi?t VinaTech')
 
 const compactTitle = (title = '') => {
   const cleanTitle = title.trim()
@@ -122,7 +122,7 @@ const applyArticleSeo = (article) => {
   setSeo({
     title: compactTitle(article.title),
     description,
-    keywords: `${article.category}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
+    keywords: `${article.category}, tin t?c c?ng ngh?, t? v?n laptop, laptop VinaTech`,
     image: fullImageUrl,
     url: canonicalPath,
     type: 'article',
@@ -176,14 +176,14 @@ const fetchRelated = async (currentPost) => {
       .filter((item) => item.id !== currentPost.id)
       .slice(0, 3)
   } catch (error) {
-    console.error('Lỗi tải bài viết liên quan:', error)
+    console.error('L?i t?i bài vi?t liên quan:', error)
     relatedPosts.value = []
   }
 }
 
 const loadCache = (id) => {
   try {
-    const cached = localStorage.getItem(`nextgen_news_detail_cache_${id}`)
+    const cached = localStorage.getItem(`predator_news_detail_cache_${id}`)
     if (cached) {
       const parsed = JSON.parse(cached)
       if (parsed.post) post.value = parsed.post
@@ -191,19 +191,19 @@ const loadCache = (id) => {
       return true
     }
   } catch (e) {
-    console.error('Lỗi load cache chi tiết tin tức:', e)
+    console.error('L?i load cache chi ti?t tin t?c:', e)
   }
   return false
 }
 
 const saveCache = (id) => {
   try {
-    localStorage.setItem(`nextgen_news_detail_cache_${id}`, JSON.stringify({
+    localStorage.setItem(`predator_news_detail_cache_${id}`, JSON.stringify({
       post: post.value,
       relatedPosts: relatedPosts.value
     }))
   } catch (e) {
-    console.error('Lỗi save cache chi tiết tin tức:', e)
+    console.error('L?i save cache chi ti?t tin t?c:', e)
   }
 }
 
@@ -217,14 +217,14 @@ const fetchPost = async () => {
   } else {
     loading.value = true
   }
-  errorMessage.value = ''
+  errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
 
   try {
     const { data } = await api.get(`/news/${articleId}`, { skipGlobalLoader: true })
     post.value = data
     applyArticleSeo(data)
     
-    // Tải bài viết liên quan
+    // T?i bài vi?t liên quan
     if (data?.category) {
       await fetchRelated(data)
     }
@@ -232,7 +232,7 @@ const fetchPost = async () => {
     saveCache(articleId)
     loading.value = false
   } catch (error) {
-    console.error('Lỗi tải chi tiết tin tức:', error)
+    console.error('L?i t?i chi ti?t tin t?c:', error)
     if (!post.value) {
       post.value = null
       relatedPosts.value = []
@@ -255,15 +255,15 @@ onMounted(() => {
 
 <template>
   <section class="detail-page">
-    <div v-if="loading" class="state-box">Đang tải bài viết...</div>
+    <div v-if="loading" class="state-box">Đang tải bài vi?t...</div>
 
     <div v-else-if="errorMessage" class="state-box">
       <p>{{ errorMessage }}</p>
-      <RouterLink to="/news">Quay lại tin tức</RouterLink>
+      <RouterLink to="/news">Quay l?i tin t?c</RouterLink>
     </div>
 
     <article v-else class="article-wrap h-entry hentry">
-      <RouterLink to="/news" class="back-link u-url">← Quay lại tin tức</RouterLink>
+      <RouterLink to="/news" class="back-link u-url">? Quay l?i tin t?c</RouterLink>
 
       <header class="article-head">
         <span class="category p-category">{{ post.category }}</span>
@@ -274,9 +274,9 @@ onMounted(() => {
             {{ formatDate(post.published_at || post.created_at) }}
           </time>
           <time v-if="post.updated_at" class="dt-updated updated" :datetime="post.updated_at">
-            Cập nhật {{ formatDate(post.updated_at) }}
+            C?p nh?t {{ formatDate(post.updated_at) }}
           </time>
-          <span>{{ post.views || 0 }} lượt xem</span>
+          <span>{{ post.views || 0 }} lu?t xem</span>
         </div>
       </header>
 
@@ -308,7 +308,7 @@ onMounted(() => {
       </div>
 
       <section class="article-gallery" v-if="articleImages.length">
-        <h2>Hình ảnh minh họa trong bài</h2>
+        <h2>Hình ?nh minh h?a trong bài</h2>
         <div class="gallery-grid">
           <figure v-for="image in articleImages" :key="image.src">
             <img :src="imageUrl(image.src)" :alt="image.alt" loading="lazy" decoding="async" />
@@ -318,12 +318,12 @@ onMounted(() => {
       </section>
 
       <section class="seo-summary">
-        <h2>Tóm tắt nhanh</h2>
+        <h2>Tóm t?t nhanh</h2>
         <p v-for="item in seoSummary" :key="item">{{ item }}</p>
       </section>
 
       <aside v-if="relatedPosts.length" class="related">
-        <h3>Bài viết liên quan</h3>
+        <h3>Bài vi?t liên quan</h3>
         <div class="related-grid">
           <RouterLink
             v-for="item in relatedPosts"
@@ -357,7 +357,7 @@ onMounted(() => {
 }
 
 .state-box {
-  background: white;
+  background: #111f35;
   border-radius: 12px;
   color: #64748b;
   padding: 28px;
@@ -388,7 +388,7 @@ onMounted(() => {
 }
 
 .article-head h1 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 42px;
   line-height: 1.12;
   margin: 12px 0;
@@ -410,9 +410,9 @@ onMounted(() => {
 }
 
 .article-body {
-  background: white;
+  background: #111f35;
   border-radius: 16px;
-  color: #334155;
+  color: #cbd5e1;
   font-size: 16px;
   line-height: 1.8;
   margin-top: 24px;
@@ -420,13 +420,13 @@ onMounted(() => {
 }
 
 .article-body .lead {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 19px;
   font-weight: 600;
 }
 
 .article-body h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 26px;
   line-height: 1.35;
   margin: 30px 0 12px;
@@ -472,14 +472,14 @@ onMounted(() => {
 }
 
 .article-gallery {
-  background: white;
+  background: #111f35;
   border-radius: 16px;
   margin-top: 20px;
   padding: 24px;
 }
 
 .article-gallery h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
   margin: 0 0 16px;
 }
@@ -505,14 +505,14 @@ onMounted(() => {
   background: #eef6ff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  color: #334155;
+  color: #cbd5e1;
   line-height: 1.75;
   margin-top: 20px;
   padding: 24px 30px;
 }
 
 .seo-summary h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
   margin: 0 0 10px;
 }
@@ -526,7 +526,7 @@ onMounted(() => {
 }
 
 .related h3 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
 }
 
@@ -537,7 +537,7 @@ onMounted(() => {
 }
 
 .related-card {
-  background: white;
+  background: #111f35;
   border-radius: 14px;
   color: inherit;
   overflow: hidden;
@@ -561,7 +561,7 @@ onMounted(() => {
 }
 
 .related-card h4 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 14px;
   margin: 6px 0 0;
 }

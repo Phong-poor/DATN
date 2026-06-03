@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="support-widget">
     <transition name="fade-scale">
       <div v-if="supportOpen" class="support-card">
@@ -19,7 +19,7 @@
             <i>📞</i>
           </button>
           <button type="button" class="support-item" @click="openChatbot">
-            <span>Chatbot</span>
+            <span>Trò chuyện trực tuyến</span>
             <i>💬</i>
           </button>
         </div>

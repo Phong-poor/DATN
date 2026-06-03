@@ -1,560 +1,2188 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
+import { getToken } from '@/services/auth'
 
-
+// Form State
 const name = ref('')
 const phone = ref('')
 const email = ref('')
+const subject = ref('Tư vấn mua hàng')
 const message = ref('')
 const error = ref('')
 const success = ref(false)
 const loading = ref(false)
 
-import { onMounted } from 'vue'
-import { getToken } from '@/services/auth'
+const currentFormStep = ref(1)
+
+const subjects = [
+  'Tư vấn mua hàng',
+  'Hỗ trợ kỹ thuật',
+  'Bảo hành & sửa chữa',
+  'Hợp tác kinh doanh',
+  'Khác',
+]
+
+const step1Categories = [
+  { label: 'Tư vấn mua hàng', icon: '💻', desc: 'Chọn cấu hình Laptop, Workstation, AI PC phù hợp.' },
+  { label: 'Hỗ trợ kỹ thuật', icon: '🛠️', desc: 'Xử lý lỗi phần cứng, cài đặt driver, phần mềm.' },
+  { label: 'Bảo hành & sửa chữa', icon: '🛡️', desc: 'Tra cứu chính sách bảo hành, sửa chữa dịch vụ.' },
+  { label: 'Hợp tác kinh doanh', icon: '🤝', desc: 'Cung cấp giải pháp doanh nghiệp, đại lý bán lẻ.' },
+  { label: 'Khác', icon: '⚙️', desc: 'Các câu hỏi hoặc yêu cầu hỗ trợ đặc thù khác.' }
+]
+
+// Suggestion tags for Step 3 based on subject
+const suggestionTags = computed(() => {
+  if (subject.value === 'Tư vấn mua hàng') {
+    return ['Tư vấn laptop chạy Blender/3D', 'Báo giá PC chạy LLM Local', 'Laptop gaming dưới 30 triệu', 'Tư vấn trả góp 0%']
+  }
+  if (subject.value === 'Hỗ trợ kỹ thuật') {
+    return ['Cách cài lại Windows local', 'Máy không nhận GPU rời', 'Nhiệt độ CPU quá cao', 'Lỗi màn hình xanh BSOD']
+  }
+  if (subject.value === 'Bảo hành & sửa chữa') {
+    return ['Tra cứu thời hạn bảo hành', 'Chi phí thay pin chính hãng', 'Quy trình đổi trả 1-1', 'Nâng cấp RAM tại showroom']
+  }
+  if (subject.value === 'Hợp tác kinh doanh') {
+    return ['Báo giá số lượng lớn doanh nghiệp', 'Chính sách đại lý Predator', 'Yêu cầu làm đối tác cung ứng']
+  }
+  return ['Yêu cầu hỗ trợ khẩn cấp', 'Góp ý chất lượng dịch vụ']
+})
+
+const applySuggestion = (tag) => {
+  message.value = tag
+}
+
+// Validation before step change
+const nextStep = () => {
+  if (currentFormStep.value === 1) {
+    currentFormStep.value = 2
+  } else if (currentFormStep.value === 2) {
+    if (!name.value || !phone.value || !email.value) {
+      error.value = 'Vui lòng nhập đầy đủ thông tin liên hệ bắt buộc.'
+      setTimeout(() => { error.value = '' }, 4000)
+      return
+    }
+    // simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.value)) {
+      error.value = 'Địa chỉ Email không hợp lệ.'
+      setTimeout(() => { error.value = '' }, 4000)
+      return
+    }
+    error.value = ''
+    currentFormStep.value = 3
+  }
+}
+
+const prevStep = () => {
+  if (currentFormStep.value > 1) {
+    currentFormStep.value--
+  }
+}
+
+const selectCategory = (categoryLabel) => {
+  subject.value = categoryLabel
+  // Auto transition to step 2 after a brief delay
+  setTimeout(() => {
+    currentFormStep.value = 2
+  }, 250)
+}
 
 onMounted(async () => {
-    try {
-        const data = (await api.get('/user/profile')).data
+  if (!getToken()) return
 
-        name.value = data.name
-        email.value = data.email
-        phone.value = data.phone
-
-    } catch (err) {
-        console.log('Chưa đăng nhập')
-    }
+  try {
+    const data = (await api.get('/user/profile')).data
+    name.value = data.name
+    email.value = data.email
+    phone.value = data.phone
+  } catch (err) {
+    console.log('Chưa đăng nhập')
+  }
 })
 
 async function submitForm() {
-    if (loading.value) return
-
-    if (!name.value || !phone.value || !email.value || !message.value) {
-        error.value = 'Vui lòng nhập đầy đủ thông tin'
-        success.value = false
-        return
+  if (loading.value) return
+  if (!name.value || !phone.value || !email.value || !message.value) {
+    error.value = 'Vui lòng nhập đầy đủ nội dung mô tả yêu cầu.'
+    success.value = false
+    return
+  }
+  try {
+    error.value = ''
+    success.value = false
+    loading.value = true
+    const data = (await api.post('/lien-he', {
+      name: name.value,
+      email: email.value,
+      phone: phone.value,
+      message: `[${subject.value}] ${message.value}`,
+    })).data
+    if (data.status) {
+      success.value = true
+      name.value = ''
+      phone.value = ''
+      email.value = ''
+      message.value = ''
+      subject.value = 'Tư vấn mua hàng'
+      currentFormStep.value = 1
+      setTimeout(() => { success.value = false }, 6000)
+    } else {
+      error.value = data.message || 'Gửi yêu cầu thất bại, vui lòng thử lại'
     }
-
-    try {
-        error.value = ''
-        success.value = false
-        loading.value = true
-
-        const data = (await api.post('/lien-he', {
-            name: name.value,
-            email: email.value,
-            phone: phone.value,
-            message: message.value,
-        })).data
-
-        if (data.status) {
-            success.value = true
-            error.value = ''
-
-            // reset form
-            name.value = ''
-            phone.value = ''
-            email.value = ''
-            message.value = ''
-
-            setTimeout(() => {
-                success.value = false
-            }, 4000)
-        } else {
-            error.value = data.message || 'Gửi thất bại'
-        }
-    } catch (err) {
-        error.value = 'Lỗi kết nối server'
-    } finally {
-        loading.value = false
-    }
+  } catch (err) {
+    error.value = 'Lỗi kết nối máy chủ. Vui lòng thử lại sau.'
+  } finally {
+    loading.value = false
+  }
 }
 
-import { computed } from 'vue'
-
+// Showrooms State
 const showrooms = ref([
-    {
-        id: 1,
-        name: 'Trụ sở chính (Nhà Bè)',
-        address: 'Số 18/7 Huỳnh Tấn Phát, Thị trấn Nhà Bè, Huyện Nhà Bè, TP. Hồ Chí Minh',
-        query: 'Công Ty Cổ Phần Công Nghệ Đại Dương Huỳnh Tấn Phát',
-        mapUrl: 'https://www.google.com/maps?q=Công+Ty+Cổ+Phần+Công+Nghệ+Đại+Dương+Huỳnh+Tấn+Phát',
-        phone: '1900 8888 (Phím 1)'
-    },
-    {
-        id: 2,
-        name: 'Chi nhánh Quận 1 (TP. HCM)',
-        address: 'Số 135 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-        query: '135 Nguyễn Huệ, Bến Nghé, Quận 1, Thành phố Hồ Chí Minh',
-        mapUrl: 'https://www.google.com/maps?q=135+Nguyễn+Huệ,+Bến+Nghé,+Quận+1,+TP+Hồ+Chí+Minh',
-        phone: '1900 8888 (Phím 2)'
-    },
-    {
-        id: 3,
-        name: 'Chi nhánh Cầu Giấy (Hà Nội)',
-        address: 'Số 26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
-        query: '26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
-        mapUrl: 'https://www.google.com/maps?q=26+Trần+Thái+Tông,+Dịch+Vọng+Hậu,+Cầu+Giấy,+Hà+Nội',
-        phone: '1900 8888 (Phím 3)'
-    }
+  {
+    id: 1,
+    name: 'Trụ sở chính (Nhà Bè)',
+    address: 'Số 18/7 Huỳnh Tấn Phát, Thị trấn Nhà Bè, Huyện Nhà Bè, TP. Hồ Chí Minh',
+    query: 'Công Ty Cổ Phần Công Nghệ Đại Dương Huỳnh Tấn Phát',
+    mapUrl: 'https://www.google.com/maps?q=Công+Ty+Cổ+Phần+Công+Nghệ+Đại+Dương+Huỳnh+Tấn+Phát',
+    phone: '1900 8888 (Phím 1)',
+    worktime: 'T2 – T6: 8:00 – 18:00 | T7: 8:00 – 12:00'
+  },
+  {
+    id: 2,
+    name: 'Chi nhánh Quận 1 (TP. HCM)',
+    address: 'Số 135 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+    query: '135 Nguyễn Huệ, Bến Nghé, Quận 1, Thành phố Hồ Chí Minh',
+    mapUrl: 'https://www.google.com/maps?q=135+Nguyễn+Huệ,+Bến+Nghé,+Quận+1,+TP+Hồ+Chí+Minh',
+    phone: '1900 8888 (Phím 2)',
+    worktime: 'T2 – T6: 8:00 – 20:00 | T7-CN: 8:00 – 18:00'
+  },
+  {
+    id: 3,
+    name: 'Chi nhánh Cầu Giấy (Hà Nội)',
+    address: 'Số 26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
+    query: '26 Trần Thái Tông, Dịch Vọng Hậu, Cầu Giấy, Hà Nội',
+    mapUrl: 'https://www.google.com/maps?q=26+Trần+Thái+Tông,+Dịch+Vọng+Hậu,+Cầu+Giấy,+Hà+Nội',
+    phone: '1900 8888 (Phím 3)',
+    worktime: 'T2 – T6: 8:00 – 19:00 | T7: 8:00 – 17:00'
+  },
 ])
 
 const selectedShowroom = ref(showrooms.value[0])
 
-const mapLink = computed(() => selectedShowroom.value.mapUrl)
-
 const infos = computed(() => [
-    {
-        icon: '📍',
-        label: 'Địa chỉ',
-        value: selectedShowroom.value.address,
-        color: '#dbeafe',
-    },
-    {
-        icon: '📞',
-        label: 'Hotline',
-        value: selectedShowroom.value.phone,
-        bold: true,
-        color: '#dcfce7',
-    },
-    {
-        icon: '✉️',
-        label: 'Email',
-        value: 'support@vinatech.vn',
-        color: '#ede9fe',
-    },
-    {
-        icon: '🕐',
-        label: 'Giờ làm việc',
-        value: 'T2 – T6: 8:00 – 18:00 | T7: 8:00 – 12:00',
-        color: '#fef9c3',
-    },
+  { icon: '📍', label: 'Địa chỉ', value: selectedShowroom.value.address, color: 'rgba(37, 99, 235, 0.15)' },
+  { icon: '📞', label: 'Hotline', value: selectedShowroom.value.phone, bold: true, color: 'rgba(6, 182, 212, 0.15)' },
+  { icon: '✉️', label: 'Email', value: 'support@vinatech.vn', color: 'rgba(139, 92, 246, 0.15)' },
+  { icon: '🕐', label: 'Giờ mở cửa', value: selectedShowroom.value.worktime, color: 'rgba(245, 158, 11, 0.15)' },
 ])
+
+const bookShowroomVisit = (store) => {
+  subject.value = 'Hợp tác kinh doanh'
+  message.value = `Tôi muốn đăng ký lịch hẹn tư vấn và trải nghiệm phần cứng trực tiếp tại Showroom: ${store.name}.`
+  currentFormStep.value = 3 // Jump straight to descriptions
+  const element = document.getElementById('guidedContactForm')
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
+// Experts Data
+const experts = [
+  {
+    name: 'Hoàng Long',
+    role: 'Gaming Specialist',
+    experience: '5 năm kinh nghiệm',
+    specialty: 'Cấu hình tối ưu chơi game AAA, eSports & Laptop Gaming cao cấp.',
+    avatar: 'HL'
+  },
+  {
+    name: 'Minh Thư',
+    role: 'Workstation Consultant',
+    experience: '6 năm kinh nghiệm',
+    specialty: 'Hệ thống Render 3D, Blender, dựng phim & RTX Enterprise.',
+    avatar: 'MT'
+  },
+  {
+    name: 'Tuấn Kiệt',
+    role: 'AI PC & Neural compute Expert',
+    experience: '4 năm kinh nghiệm',
+    specialty: 'Setup local LLM, Stable Diffusion, tăng tốc NPU Intel/AMD.',
+    avatar: 'TK'
+  },
+  {
+    name: 'Khánh An',
+    role: 'Enterprise Solutions Director',
+    experience: '8 năm kinh nghiệm',
+    specialty: 'Máy chủ lưu trữ NAS, ảo hóa Server & mạng lưới doanh nghiệp.',
+    avatar: 'KA'
+  }
+]
+
+// FAQ Data
+const faqs = ref([
+  {
+    q: 'Tôi có thể đến trực tiếp showroom để xem hàng không?',
+    a: 'Hoàn toàn có thể! Hệ thống showroom VinaTech mở cửa phục vụ cả ngày. Bạn có thể đến bất kỳ chi nhánh nào gần nhất để trải nghiệm thực tế các dòng laptop cấu hình cao cùng sự hỗ trợ chuyên sâu của đội ngũ kỹ sư.',
+    open: false,
+    category: 'buying'
+  },
+  {
+    q: 'VinaTech có hỗ trợ giao hàng toàn quốc không?',
+    a: 'Có! Chúng tôi giao hàng toàn quốc 63 tỉnh thành. Các đơn hàng nội thành Hồ Chí Minh và Hà Nội được đóng gói niêm phong cực kỳ cẩn thận và bàn giao siêu tốc chỉ từ 2–4 giờ.',
+    open: false,
+    category: 'buying'
+  },
+  {
+    q: 'Chính sách bảo hành của VinaTech như thế nào?',
+    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách Predator Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
+    open: false,
+    category: 'warranty'
+  },
+  {
+    q: 'Tôi muốn trả góp 0% lãi suất, cần điều kiện gì?',
+    a: 'VinaTech hỗ trợ trả góp 0% qua thẻ tín dụng của hơn 25 ngân hàng liên kết toàn quốc. Bạn chỉ cần thẻ tín dụng chính chủ còn hạn mức thanh toán. Thủ tục duyệt trực tuyến cực nhanh chỉ trong 10 phút.',
+    open: false,
+    category: 'buying'
+  },
+  {
+    q: 'Thời gian phản hồi sau khi gửi form liên hệ là bao lâu?',
+    a: 'Đội ngũ chuyên viên Predator cam kết phản hồi tất cả các yêu cầu tư vấn bằng văn bản hoặc liên hệ trực tiếp trong vòng tối đa 2 giờ làm việc kể từ lúc nhận được guided form.',
+    open: false,
+    category: 'technical'
+  },
+  {
+    q: 'VinaTech có nhận đổi trả hàng không?',
+    a: 'Đổi mới 1-1 miễn phí trong vòng 30 ngày nếu sản phẩm xuất hiện lỗi phần cứng từ nhà sản xuất. Hỗ trợ thu cũ đổi mới lên đời laptop cấu hình cao hơn cực ưu đãi cho khách hàng thân thiết.',
+    open: false,
+    category: 'warranty'
+  },
+])
+
+const faqSearchQuery = ref('')
+const selectedFaqCategory = ref('all')
+
+const filteredFaqs = computed(() => {
+  return faqs.value.filter(faq => {
+    const matchesCategory = selectedFaqCategory.value === 'all' || faq.category === selectedFaqCategory.value
+    const matchesSearch = faq.q.toLowerCase().includes(faqSearchQuery.value.toLowerCase()) || 
+                          faq.a.toLowerCase().includes(faqSearchQuery.value.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+})
+
+const toggleFaq = (index) => {
+  // Toggle the clicked FAQ, close others
+  faqs.value.forEach((item, idx) => {
+    if (idx === index) {
+      item.open = !item.open
+    } else {
+      item.open = false
+    }
+  })
+}
 </script>
 
 <template>
-
-    <div class="page">
-        <!-- HERO -->
-        <section class="hero">
-            <span class="hero-badge">Liên hệ với chúng tôi</span>
-            <h1>
-                Chúng tôi luôn sẵn sàng <br />
-                <span class="gradient-text">hỗ trợ bạn</span>
-            </h1>
-            <p>
-                Kết nối với đội ngũ chuyên gia VinaTech để nhận tư vấn và giải
-                pháp công nghệ tối ưu cho doanh nghiệp và cá nhân.
-            </p>
-        </section>
-
-        <!-- MAIN -->
-        <section class="contact-section">
-            <div class="container">
-                <div class="contact-grid">
-                    <!-- FORM -->
-                    <div class="form-card">
-                        <form @submit.prevent="submitForm">
-                            <div class="form-top">
-                                <h3>Gửi tin nhắn cho chúng tôi</h3>
-                                <p>Chúng tôi sẽ phản hồi trong vòng 24 giờ</p>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="input-group">
-                                    <label>Họ tên <span class="req">*</span></label>
-                                    <input
-                                        v-model="name"
-                                        placeholder="Nguyễn Văn A"
-                                    />
-                                </div>
-
-                                <div class="input-group">
-                                    <label>Số điện thoại <span class="req">*</span></label>
-                                    <input
-                                        v-model="phone"
-                                        placeholder="090 123 4567"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="input-group">
-                                <label>Email <span class="req">*</span></label>
-                                <input
-                                    v-model="email"
-                                    type="email"
-                                    placeholder="example@vinatech.com"
-                                />
-                            </div>
-
-                            <div class="input-group">
-                                <label>Nội dung <span class="req">*</span></label>
-                                <textarea
-                                    v-model="message"
-                                    placeholder="Bạn cần chúng tôi hỗ trợ vấn đề gì?"
-                                ></textarea>
-                            </div>
-
-                            <p v-if="error" class="msg error">⚠ {{ error }}</p>
-                            <p v-if="success" class="msg success">
-                                ✓ gửi thành công! chúng tôi sẽ liên hệ trong 24 giờ tới.
-                            </p>
-
-                            <button
-                                type="submit"
-                                class="submit-btn"
-                                :disabled="loading"
-                            >
-                                <span v-if="loading" class="spinner"></span>
-                                <span v-else>Gửi yêu cầu →</span>
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- INFO -->
-                    <div class="info-col">
-                        <div class="info-card">
-                            <h3>Thông tin liên hệ</h3>
-
-                            <div class="info-list">
-                                <div
-                                    class="info-item"
-                                    v-for="item in infos"
-                                    :key="item.label"
-                                >
-                                    <div
-                                        class="info-icon"
-                                        :style="{ background: item.color }"
-                                    >
-                                        {{ item.icon }}
-                                    </div>
-
-                                    <div>
-                                        <p class="info-label">{{ item.label }}</p>
-                                        <p
-                                            :class="
-                                                item.bold
-                                                    ? 'info-val bold'
-                                                    : 'info-val'
-                                            "
-                                        >
-                                            {{ item.value }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- SHOWROOM SELECTOR -->
-                        <div class="showroom-selector-card">
-                            <h4>Hệ thống Showroom VinaTech:</h4>
-                            <div class="showroom-tabs">
-                                <button 
-                                    v-for="store in showrooms" 
-                                    :key="store.id" 
-                                    @click="selectedShowroom = store"
-                                    :class="{ active: selectedShowroom.id === store.id }"
-                                    class="showroom-tab-btn"
-                                >
-                                    <span class="store-dot"></span>
-                                    {{ store.name }}
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- INTERACTIVE MAP -->
-                        <div class="map-card interactive-map">
-                            <iframe
-                                :src="'https://www.google.com/maps?q=' + encodeURIComponent(selectedShowroom.query) + '&output=embed'"
-                                loading="lazy"
-                            ></iframe>
-
-                            <div class="map-overlay-actions">
-                                <a :href="selectedShowroom.mapUrl" target="_blank" class="btn-open-maps">
-                                    🧭 Xem bản đồ vệ tinh / Chỉ đường →
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+  <div class="contact-page">
+    
+    <!-- ===== BRAND PARTNERS FLOATING MARQUEE ===== -->
+    <div class="brands-ticker">
+      <div class="brands-ticker-track">
+        <span>Intel Core Ultra</span>
+        <span class="ticker-dot">•</span>
+        <span>NVIDIA RTX Studio</span>
+        <span class="ticker-dot">•</span>
+        <span>AMD Ryzen AI</span>
+        <span class="ticker-dot">•</span>
+        <span>ASUS Republic of Gamers</span>
+        <span class="ticker-dot">•</span>
+        <span>MSI Extreme Workstation</span>
+        <span class="ticker-dot">•</span>
+        <span>Dell XPS Professional</span>
+        <span class="ticker-dot">•</span>
+        <span>HP ZBook Power</span>
+      </div>
     </div>
 
+    <!-- ===== CYBER GRADIENT HERO ===== -->
+    <section class="support-hero">
+      <div class="glow-sphere-1"></div>
+      <div class="glow-sphere-2"></div>
+      
+      <div class="hero-container">
+        <span class="support-badge">📡 PREDATOR GLOBAL SUPPORT</span>
+        <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
+        <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Workstation dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
+        
+        <div class="hero-actions">
+          <a href="#guidedContactForm" class="btn-glow-primary">Đặt Lịch Tư Vấn</a>
+          <a href="tel:19008888" class="btn-glass">Hotline 1900 8888</a>
+        </div>
+
+        <!-- Live statistic counters -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-number">5.000+</span>
+            <span class="stat-label">Khách Hàng Đã Hỗ Trợ</span>
+          </div>
+          <div class="stat-border-line"></div>
+          <div class="stat-card">
+            <span class="stat-number">98%</span>
+            <span class="stat-label">Tỷ Lệ Hài Lòng Tuyệt Đối</span>
+          </div>
+          <div class="stat-border-line"></div>
+          <div class="stat-card">
+            <span class="stat-number">2h</span>
+            <span class="stat-label">Cam Kết Phản Hồi Tối Đa</span>
+          </div>
+          <div class="stat-border-line"></div>
+          <div class="stat-card">
+            <span class="stat-number">3</span>
+            <span class="stat-label">Showroom Trải Nghiệm Lớn</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CONVERSATIONAL SUPPORT FORM CENTER ===== -->
+    <section class="form-section-container" id="guidedContactForm">
+      <div class="form-wrapper-max">
+        
+        <div class="section-magazine-title">
+          <span class="sub-label">GUIDED SUPPORT CENTER</span>
+          <h2>Trung Tâm Khởi Tạo <span>Yêu Cầu Hỗ Trợ.</span></h2>
+          <p>Điền thông tin hội thoại từng bước dưới đây, kỹ sư Predator sẽ liên hệ giải đáp nhanh chóng.</p>
+        </div>
+
+        <div class="guided-grid-layout">
+          
+          <!-- LEFT SIDE: GUIDED SMART FORM -->
+          <div class="guided-form-glass-card">
+            <div class="step-progress-row">
+              <div class="step-node" :class="{ active: currentFormStep >= 1, done: currentFormStep > 1 }">
+                <span class="step-num">1</span>
+                <span class="step-label">Nhu Cầu</span>
+              </div>
+              <div class="step-line" :class="{ fill: currentFormStep > 1 }"></div>
+              <div class="step-node" :class="{ active: currentFormStep >= 2, done: currentFormStep > 2 }">
+                <span class="step-num">2</span>
+                <span class="step-label">Thông Tin</span>
+              </div>
+              <div class="step-line" :class="{ fill: currentFormStep > 2 }"></div>
+              <div class="step-node" :class="{ active: currentFormStep >= 3, done: currentFormStep > 3 }">
+                <span class="step-num">3</span>
+                <span class="step-label">Chi Tiết</span>
+              </div>
+            </div>
+
+            <!-- STEP 1: FOCUS / TOPIC CHOICE -->
+            <div v-if="currentFormStep === 1" class="step-view-content fade-in">
+              <h3 class="step-view-title">Bước 1: Nhu cầu của bạn là gì?</h3>
+              <p class="step-view-subtitle">Hãy chọn một chuyên mục hỗ trợ chính để chúng tôi điều phối đúng chuyên gia.</p>
+              
+              <div class="guided-categories-grid">
+                <div 
+                  v-for="cat in step1Categories" 
+                  :key="cat.label" 
+                  class="guided-category-card"
+                  :class="{ active: subject === cat.label }"
+                  @click="selectCategory(cat.label)"
+                >
+                  <div class="cat-icon-box">{{ cat.icon }}</div>
+                  <div class="cat-details">
+                    <h4>{{ cat.label }}</h4>
+                    <p>{{ cat.desc }}</p>
+                  </div>
+                  <div class="cat-check-dot"></div>
+                </div>
+              </div>
+
+              <div class="step-actions-footer">
+                <span></span>
+                <button type="button" class="btn-step-next" @click="nextStep">
+                  Bước Tiếp Theo ➜
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 2: CUSTOMER INFO -->
+            <div v-if="currentFormStep === 2" class="step-view-content fade-in">
+              <h3 class="step-view-title">Bước 2: Thông tin liên hệ của bạn</h3>
+              <p class="step-view-subtitle">Nhập chính xác để chuyên gia Predator có thể kết nối ngay lập tức.</p>
+              
+              <div class="guided-inputs-wrapper">
+                <div class="floating-input-field">
+                  <span class="field-icon-neon">👤</span>
+                  <div class="input-block">
+                    <input 
+                      id="step2-name"
+                      v-model="name"
+                      type="text" 
+                      placeholder=" "
+                      required
+                    />
+                    <label for="step2-name">Họ và tên của bạn *</label>
+                  </div>
+                </div>
+
+                <div class="floating-input-field">
+                  <span class="field-icon-neon">📱</span>
+                  <div class="input-block">
+                    <input 
+                      id="step2-phone"
+                      v-model="phone"
+                      type="tel" 
+                      placeholder=" "
+                      required
+                    />
+                    <label for="step2-phone">Số điện thoại liên lạc *</label>
+                  </div>
+                </div>
+
+                <div class="floating-input-field">
+                  <span class="field-icon-neon">📧</span>
+                  <div class="input-block">
+                    <input 
+                      id="step2-email"
+                      v-model="email"
+                      type="email" 
+                      placeholder=" "
+                      required
+                    />
+                    <label for="step2-email">Địa chỉ Email xác thực *</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Inline Step Alert -->
+              <div v-if="error" class="step-validation-error">
+                <span>⚠️</span> {{ error }}
+              </div>
+
+              <div class="step-actions-footer">
+                <button type="button" class="btn-step-prev" @click="prevStep">
+                  ⬅ Quay Lại
+                </button>
+                <button type="button" class="btn-step-next" @click="nextStep">
+                  Tiếp Theo ➜
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 3: MESSAGE & SUBMIT -->
+            <div v-if="currentFormStep === 3" class="step-view-content fade-in">
+              <h3 class="step-view-title">Bước 3: Mô tả chi tiết mong muốn</h3>
+              <p class="step-view-subtitle">Chuyên mục đang chọn: <strong class="text-secondary-cyan">{{ subject }}</strong></p>
+              
+              <!-- Quick Suggestions tags -->
+              <div class="suggestion-tags-row">
+                <span class="suggest-label">💡 Gợi ý nhanh:</span>
+                <button 
+                  v-for="tag in suggestionTags" 
+                  :key="tag"
+                  type="button"
+                  class="suggest-tag-btn"
+                  @click="applySuggestion(tag)"
+                >
+                  {{ tag }}
+                </button>
+              </div>
+
+              <div class="guided-textarea-field">
+                <textarea 
+                  v-model="message"
+                  placeholder="Mô tả cấu hình bạn cần, lỗi thiết bị bạn gặp phải hoặc nhu cầu hợp tác cụ thể..."
+                  required
+                ></textarea>
+              </div>
+
+              <!-- Error & Success states -->
+              <div v-if="error" class="form-feedback-alert error">
+                <span>⚠️ Lỗi:</span> {{ error }}
+              </div>
+              <div v-if="success" class="form-feedback-alert success">
+                <span>✓ Thành công:</span> Gửi tin nhắn thành công! Đội ngũ tư vấn sẽ gọi cho bạn trong tối đa 2 giờ.
+              </div>
+
+              <div class="step-actions-footer">
+                <button type="button" class="btn-step-prev" @click="prevStep">
+                  ⬅ Quay Lại
+                </button>
+                <button 
+                  type="button" 
+                  class="btn-step-submit" 
+                  :disabled="loading"
+                  @click="submitForm"
+                >
+                  <span v-if="loading" class="spin-loader"></span>
+                  <span v-else>Xác Nhận Gửi Yêu Cầu ➜</span>
+                </button>
+              </div>
+
+              <p class="cyber-privacy-note">🔒 Dữ liệu cá nhân được mã hóa và bảo vệ nghiêm ngặt theo tiêu chuẩn ISO 27001.</p>
+            </div>
+
+          </div>
+
+          <!-- RIGHT SIDE: SHOWROOM PANEL -->
+          <div class="showroom-guided-panel">
+            <div class="showroom-brand-header">
+              <span class="pill-badge">🏬 HỆ THỐNG TRẢI NGHIỆM</span>
+              <h3>Bản Đồ Showroom Predator</h3>
+              <p>Chọn địa điểm showroom để cập nhật thông tin liên hệ và đặt lịch trực tiếp.</p>
+            </div>
+
+            <!-- Showroom Buttons Selector -->
+            <div class="showroom-cyber-list">
+              <div 
+                v-for="store in showrooms" 
+                :key="store.id" 
+                class="showroom-cyber-btn"
+                :class="{ active: selectedShowroom.id === store.id }"
+                @click="selectedShowroom = store"
+              >
+                <span class="active-neon-dot"></span>
+                <div class="store-btn-info">
+                  <h5>{{ store.name }}</h5>
+                  <span>{{ store.address.split(',')[0] }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Showroom Info Card -->
+            <div class="showroom-detail-glass-card">
+              <div class="detail-row" v-for="info in infos" :key="info.label">
+                <div class="detail-icon" :style="{ backgroundColor: info.color }">{{ info.icon }}</div>
+                <div class="detail-text">
+                  <span class="detail-label">{{ info.label }}</span>
+                  <p class="detail-val" :class="{ bold: info.bold }">{{ info.value }}</p>
+                </div>
+              </div>
+              
+              <button 
+                type="button" 
+                class="btn-visit-schedule" 
+                @click="bookShowroomVisit(selectedShowroom)"
+              >
+                📅 Đặt Lịch Hẹn Trải Nghiệm Showroom
+              </button>
+            </div>
+
+            <!-- Secondary Embedded Maps Viewport -->
+            <div class="showroom-embedded-map">
+              <iframe 
+                :src="'https://www.google.com/maps?q=' + encodeURIComponent(selectedShowroom.query) + '&output=embed'"
+                loading="lazy"
+                title="Bản đồ showroom"
+              ></iframe>
+              <div class="map-overlay-footer">
+                <a :href="selectedShowroom.mapUrl" target="_blank" class="cyber-map-link">
+                  🧭 Mở trong Google Maps chính thức ➜
+                </a>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== HUMANIZING SECTION: MEET THE EXPERTS ===== -->
+    <section class="experts-section-wrapper">
+      <div class="experts-inner-container">
+        
+        <div class="section-magazine-title text-center">
+          <span class="sub-label">HUMANIZING SUPPORT</span>
+          <h2>Đồng Hành Cùng <span>Các Chuyên Gia.</span></h2>
+          <p>Predator mang đến dịch vụ tư vấn trực tiếp bởi những kỹ sư, chuyên gia phần cứng hàng đầu.</p>
+        </div>
+
+        <div class="experts-grid">
+          <div 
+            v-for="expert in experts" 
+            :key="expert.name" 
+            class="expert-avatar-card"
+          >
+            <div class="expert-card-top">
+              <div class="expert-avatar-circle">{{ expert.avatar }}</div>
+              <div class="expert-identity">
+                <h4>{{ expert.name }}</h4>
+                <span class="expert-badge-role">{{ expert.role }}</span>
+              </div>
+            </div>
+            <div class="expert-card-body">
+              <div class="exp-badge">{{ expert.experience }}</div>
+              <p class="exp-description">"{{ expert.specialty }}"</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== TECHNOLOGY PARTNERS TRUST BAR ===== -->
+    <section class="tech-trust-banner">
+      <div class="tech-trust-inner">
+        <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của Predator</h4>
+        <div class="partners-logos-row">
+          <span>Intel</span>
+          <span>AMD</span>
+          <span>NVIDIA</span>
+          <span>ASUS ROG</span>
+          <span>MSI</span>
+          <span>Dell Enterprise</span>
+          <span>Lenovo Pro</span>
+          <span>HP ZBook</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ KNOWLEDGE CENTER ===== -->
+    <section class="faq-knowledge-center">
+      <div class="faq-inner-max">
+        
+        <div class="section-magazine-title text-center">
+          <span class="sub-label">KNOWLEDGE BASE</span>
+          <h2>Giải Đáp <span>Thắc Mắc.</span></h2>
+          <p>Hệ thống tri thức được phân loại trực quan giúp bạn giải quyết nhanh các câu hỏi thường gặp.</p>
+        </div>
+
+        <!-- FAQ Categories and Search bar -->
+        <div class="faq-controls-row">
+          <div class="faq-category-tabs">
+            <button 
+              type="button" 
+              class="faq-tab-btn" 
+              :class="{ active: selectedFaqCategory === 'all' }"
+              @click="selectedFaqCategory = 'all'"
+            >
+              Tất Cả
+            </button>
+            <button 
+              type="button" 
+              class="faq-tab-btn" 
+              :class="{ active: selectedFaqCategory === 'buying' }"
+              @click="selectedFaqCategory = 'buying'"
+            >
+              🛍️ Mua Hàng & Trả Góp
+            </button>
+            <button 
+              type="button" 
+              class="faq-tab-btn" 
+              :class="{ active: selectedFaqCategory === 'warranty' }"
+              @click="selectedFaqCategory = 'warranty'"
+            >
+              🛡️ Bảo Hành & Đổi Trả
+            </button>
+            <button 
+              type="button" 
+              class="faq-tab-btn" 
+              :class="{ active: selectedFaqCategory === 'technical' }"
+              @click="selectedFaqCategory = 'technical'"
+            >
+              🛠️ Hỗ Trợ Kỹ Thuật
+            </button>
+          </div>
+
+          <div class="faq-search-box">
+            <span class="search-icon">🔍</span>
+            <input 
+              v-model="faqSearchQuery"
+              type="text" 
+              placeholder="Tìm câu hỏi của bạn..." 
+              aria-label="Tìm kiếm câu hỏi"
+            />
+          </div>
+        </div>
+
+        <!-- FAQ Accordions List -->
+        <div class="faq-accordions-grid">
+          <div 
+            v-for="(faq, idx) in filteredFaqs" 
+            :key="idx" 
+            class="faq-cyber-accordion"
+            :class="{ open: faq.open }"
+            @click="toggleFaq(idx)"
+          >
+            <div class="accordion-head">
+              <span class="accordion-index">{{ String(idx + 1).padStart(2, '0') }}</span>
+              <h4 class="accordion-qtext">{{ faq.q }}</h4>
+              <div class="accordion-trigger-icon"></div>
+            </div>
+            
+            <div class="accordion-body-wrapper" :class="{ expanded: faq.open }">
+              <div class="accordion-body-inner">
+                <p>{{ faq.a }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="filteredFaqs.length === 0" class="faq-empty-state">
+            <span class="icon">🔍</span>
+            <h5>Không tìm thấy câu hỏi phù hợp</h5>
+            <p>Vui lòng thử lại với từ khóa khác hoặc liên hệ trực tiếp với chuyên gia qua guided form ở trên.</p>
+          </div>
+        </div>
+
+        <!-- Support CTA Footer -->
+        <div class="support-footer-cta-card">
+          <div class="glow-accent-overlay"></div>
+          <div class="cta-card-content">
+            <span class="cta-emoji-box">💬</span>
+            <div class="cta-text-details">
+              <h3>Bạn có yêu cầu đặc biệt khác?</h3>
+              <p>Đội ngũ chuyên viên Predator luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
+            </div>
+            <div class="cta-actions-group">
+              <a href="tel:19008888" class="cta-phone-btn">📞 Gọi 1900 8888</a>
+              <a href="#guidedContactForm" class="cta-form-btn">Gửi Form Ngay</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
-* {
-  box-sizing: border-box;
+/* ==================== GENERAL STYLE & TOKENS ==================== */
+.contact-page {
+  --primary: #2563EB;
+  --primary-glow: rgba(37, 99, 235, 0.15);
+  --secondary: #06B6D4;
+  --secondary-glow: rgba(6, 182, 212, 0.15);
+  --accent: #f59e0b;
+  --dark-bg: #0F172A;
+  --dark-surface: #111827;
+  --light-bg: #0d1b2e;
+  --light-surface: #111f35;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --border-color: #e6eef6;
+  --card-glow: 0px 10px 35px rgba(15, 23, 42, 0.03);
+  --font-heading: 'Outfit', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  background-color: var(--tn-bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  position: relative;
 }
 
-.page {
-  font-family: 'Inter', sans-serif;
+/* Ticker Marquee Bar */
+.brands-ticker {
   background: #f8fafc;
+  border-bottom: 1px solid #e6eef6;
+  padding: 10px 0;
+  overflow: hidden;
+  display: flex;
 }
-
-.hero {
-  text-align: center;
-  padding: 80px 20px 60px;
-  background: linear-gradient(160deg, #eef2ff 0%, #f8fafc 60%);
-}
-
-.hero-badge {
-  background: #e0e7ff;
-  color: #4f46e5;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 12px;
+.brands-ticker-track {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  white-space: nowrap;
+  animation: tickerScroll 30s linear infinite;
+  color: #475569;
+  font-family: var(--font-heading);
+  font-size: 11.5px;
   font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.ticker-dot {
+  color: var(--secondary);
+}
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
-.hero h1 {
-  font-size: 46px;
+/* ==================== CYBER GRADIENT HERO ==================== */
+.support-hero {
+  position: relative;
+  background: 
+    linear-gradient(135deg, rgba(15, 23, 42, 0.93) 0%, rgba(17, 24, 39, 0.88) 100%), 
+    url('/elite_workspace.png') center/cover no-repeat;
+  padding: 90px 24px 75px;
+  text-align: center;
+  color: white;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.glow-sphere-1 {
+  position: absolute;
+  top: -20%; left: -10%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.glow-sphere-2 {
+  position: absolute;
+  bottom: -20%; right: -10%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hero-container {
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+.support-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 11px;
   font-weight: 800;
-  margin: 20px 0;
+  color: var(--secondary);
+  letter-spacing: 1.5px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  padding: 5px 14px;
+  border-radius: 30px;
+  margin-bottom: 20px;
 }
-
-.gradient-text {
-  background: linear-gradient(90deg, #4f46e5, #2563eb);
+.support-hero h1 {
+  font-family: var(--font-heading);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -1.5px;
+  margin: 0 0 16px 0;
+  color: #ffffff;
+}
+.highlight-text {
+  background: linear-gradient(135deg, #ffffff 30%, var(--secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-.contact-section {
-  padding-bottom: 80px;
-}
-
-.container {
-  width: min(1100px, 95%);
-  margin: auto;
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 24px;
-}
-
-.form-card,
-.info-card,
-.map-card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-}
-
-.form-card,
-.info-card {
-  padding: 28px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.input-group {
-  margin-bottom: 16px;
-}
-
-.input-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.input-group input,
-.input-group textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-}
-
-.input-group textarea {
-  min-height: 130px;
-}
-
-.msg {
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.error {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.success {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  color: white;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.info-item {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.info-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bold {
-  font-weight: 700;
-}
-
-.showroom-selector-card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-  padding: 24px;
-}
-
-.showroom-selector-card h4 {
-  margin: 0 0 16px 0;
+.hero-desc {
   font-size: 15px;
+  color: #94a3b8;
+  line-height: 1.65;
+  max-width: 680px;
+  margin: 0 auto 36px;
+}
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 56px;
+}
+
+/* Premium Buttons */
+.btn-glow-primary {
+  padding: 13px 26px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+  transition: var(--transition);
+}
+.btn-glow-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.5);
+}
+.btn-glass {
+  padding: 13px 26px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 13.5px;
   font-weight: 700;
-  color: #1e293b;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: var(--transition);
+}
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Stat Counter Area */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 20px 36px;
+  backdrop-filter: blur(12px);
+}
+.stat-card {
+  text-align: center;
+}
+.stat-number {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--secondary);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.stat-border-line {
+  width: 1px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.08);
+}
 
-.showroom-tabs {
+/* ==================== GUIDED CONTACT FORM AREA ==================== */
+.form-section-container {
+  padding: 60px 24px;
+}
+.form-wrapper-max {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-magazine-title {
+  margin-bottom: 36px;
+}
+.section-magazine-title.text-center {
+  text-align: center;
+}
+.section-magazine-title .sub-label {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 1.5px;
+  display: block;
+  margin-bottom: 6px;
+}
+.section-magazine-title h2 {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  margin: 0 0 10px 0;
+}
+.section-magazine-title h2 span {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.section-magazine-title p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.guided-grid-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: start;
+}
+
+/* LEFT: Guided Steps Box (light form variant) */
+.guided-form-glass-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(2,6,23,0.06);
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Step Bar Node */
+.step-progress-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36px;
+  justify-content: space-between;
+}
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+  width: 68px;
+}
+.step-num {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 2px solid #e6eef6;
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.step-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.step-line {
+  flex-grow: 1;
+  height: 2px;
+  background: #cbd5e1;
+  margin-top: -16px;
+  z-index: 1;
+  transition: var(--transition);
+}
+
+.step-node.active .step-num {
+  border-color: var(--primary);
+  background: #f8fafc;
+  color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+.step-node.active .step-label {
+  color: var(--primary);
+  font-weight: 800;
+}
+.step-node.done .step-num {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+.step-node.done .step-label {
+  color: var(--text-primary);
+}
+.step-line.fill {
+  background: var(--primary);
+}
+
+/* Step Content Styles */
+.step-view-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+.step-view-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+.step-view-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 24px 0;
+}
+
+.fade-in {
+  animation: stepFadeIn 0.3s ease-out;
+}
+@keyframes stepFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Step 1 Category list */
+.guided-categories-grid {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 24px;
+}
+.guided-category-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e6eef6;
+  background: #ffffff;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+.cat-icon-box {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: 1px solid #e6eef6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.cat-details h4 {
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+}
+.cat-details p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+.cat-check-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #e6eef6;
+  margin-left: auto;
+  background: #f1f5f9;
+  transition: var(--transition);
+  flex-shrink: 0;
 }
 
-.showroom-tab-btn {
+.guided-category-card:hover {
+  border-color: var(--primary);
+  background: #f8fafc;
+  transform: translateX(3px);
+}
+.guided-category-card.active {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.04);
+  box-shadow: 0 6px 16px var(--primary-glow);
+}
+.guided-category-card.active .cat-icon-box {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+.guided-category-card.active .cat-check-dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: inset 0 0 0 3px white;
+}
+
+/* Step 2 Inputs */
+.guided-inputs-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.floating-input-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1.5px solid #e6eef6;
+  border-radius: 14px;
+  padding: 10px 16px;
+  background: #ffffff;
+  transition: var(--transition);
+}
+.field-icon-neon {
+  font-size: 18px;
+  opacity: 0.7;
+}
+.input-block {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex-grow: 1;
+}
+.input-block input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  padding: 16px 0 4px 0;
+  width: 100%;
+}
+.input-block label {
+  position: absolute;
+  left: 0; top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+/* Floating behavior */
+.input-block input:focus ~ label,
+.input-block input:not(:placeholder-shown) ~ label {
+  top: 0px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.floating-input-field:focus-within {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.step-validation-error {
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Step 3 suggestion tag and texts */
+.suggestion-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.suggest-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.suggest-tag-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #e6eef6;
+  background: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+.suggest-tag-btn:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: white;
+}
+
+.guided-textarea-field {
+  border: 1.5px solid #e6eef6;
+  border-radius: 14px;
+  padding: 12px;
+  background: #ffffff;
+  margin-bottom: 18px;
+  transition: var(--transition);
+}
+.guided-textarea-field textarea {
+  width: 100%;
+  height: 140px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  resize: none;
+}
+.guided-textarea-field:focus-within {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.text-secondary-cyan {
+  color: var(--secondary);
+}
+
+/* Form Action Footer */
+.step-actions-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid #e6eef6;
+}
+.btn-step-next {
+  padding: 11px 22px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+.btn-step-next:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+.btn-step-prev {
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1.5px solid #e6eef6;
+  background: #f8fafc;
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-step-prev:hover {
+  background: #eef2f6;
+  color: var(--text-primary);
+  border-color: #e6eef6;
+}
+.btn-step-submit {
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--secondary) 0%, #0891b2 100%);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px var(--secondary-glow);
+}
+.btn-step-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
+}
+.btn-step-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.spin-loader {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.6s linear infinite;
+}
+
+.form-feedback-alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.form-feedback-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+.form-feedback-alert.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+.cyber-privacy-note {
+  font-size: 9.5px;
+  color: #94a3b8;
+  text-align: center;
+  margin: 12px 0 0 0;
+}
+
+/* RIGHT: Showrooms guided panel */
+.showroom-guided-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.showroom-brand-header {
+  margin-bottom: 4px;
+}
+.showroom-brand-header h3 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+.showroom-brand-header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.pill-badge {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.06);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.showroom-cyber-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.showroom-cyber-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #e6eef6;
+  background: #ffffff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.active-neon-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: var(--transition);
+}
+.store-btn-info h5 {
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+.store-btn-info span {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.showroom-cyber-btn:hover {
+  background: #f8fafc;
+  transform: translateX(3px);
+  border-color: #cbd5e1;
+}
+.showroom-cyber-btn.active {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.08);
+}
+.showroom-cyber-btn.active .active-neon-dot {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+/* Dynamic details card */
+.showroom-detail-glass-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid #e6eef6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.04);
+}
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.detail-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.detail-text {
+  display: flex;
+  flex-direction: column;
+}
+.detail-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+.detail-val {
+  font-size: 12.5px;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+.detail-val.bold {
+  font-weight: 700;
+}
+
+.btn-visit-schedule {
+  width: 100%;
+  padding: 11px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: var(--transition);
+}
+.btn-visit-schedule:hover {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Secondary Maps */
+.showroom-embedded-map {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.showroom-embedded-map iframe {
+  width: 100%;
+  flex-grow: 1;
+  border: none;
+}
+.map-overlay-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e6eef6;
+  padding: 8px;
+  text-align: center;
+}
+.cyber-map-link {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  text-decoration: none;
+  transition: var(--transition);
+}
+.cyber-map-link:hover {
+  color: #1d4ed8;
+}
+
+/* ==================== MEET OUR EXPERTS ==================== */
+.experts-section-wrapper {
+  background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%);
+  padding: 70px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+.experts-inner-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.experts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 36px;
+}
+.expert-avatar-card {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e6eef6;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+.expert-card-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 18px;
 }
-
-.showroom-tab-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #1e293b;
-  transform: translateX(4px);
-}
-
-.showroom-tab-btn.active {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  color: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
-}
-
-.store-dot {
-  width: 8px;
-  height: 8px;
+.expert-avatar-circle {
+  width: 44px; height: 44px;
   border-radius: 50%;
-  background-color: #cbd5e1;
-  transition: all 0.25s ease;
-}
-
-.showroom-tab-btn.active .store-dot {
-  background-color: #3b82f6;
-  box-shadow: 0 0 8px #3b82f6;
-}
-
-.map-card.interactive-map {
-  overflow: hidden;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 800;
   display: flex;
-  flex-direction: column;
-  background: white;
-}
-
-.map-card iframe {
-  width: 100%;
-  height: 240px;
-  border: none;
-  pointer-events: auto; /* Allow map panning & zooming */
-  transition: opacity 0.3s ease;
-}
-
-.map-overlay-actions {
-  padding: 16px;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: center;
-  background: #f8fafc;
-}
-
-.btn-open-maps {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
-  border-radius: 10px;
-  background: white;
-  border: 1px solid #cbd5e1;
-  color: #475569;
-  font-size: 13.5px;
+  flex-shrink: 0;
+}
+.expert-identity h4 {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+}
+.expert-badge-role {
+  font-size: 10.5px;
   font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  color: var(--text-secondary);
+}
+.expert-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+}
+.exp-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.exp-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-style: italic;
+  margin: 0;
 }
 
-.btn-open-maps:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-  border-color: #94a3b8;
-  transform: translateY(-1px);
+.expert-avatar-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.06);
+}
+
+/* ==================== TECH TRUST BRAND BAR ==================== */
+.tech-trust-banner {
+  background: #f8fafc;
+  border-top: 1px solid #e6eef6;
+  border-bottom: 1px solid #e6eef6;
+  padding: 32px 24px;
+  text-align: center;
+}
+.tech-trust-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.tech-trust-inner h4 {
+  font-family: var(--font-heading);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 20px 0;
+}
+.partners-logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.partners-logos-row span {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: #cbd5e1;
+  cursor: default;
+  transition: var(--transition);
+}
+.partners-logos-row span:hover {
+  color: var(--text-secondary);
+  transform: scale(1.05);
+}
+
+/* ==================== FAQ KNOWLEDGE CENTER ==================== */
+.faq-knowledge-center {
+  padding: 70px 24px;
+  background: #ffffff;
+}
+.faq-inner-max {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faq-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-top: 36px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.faq-category-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.faq-tab-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e6eef6;
+  background: #f8fafc;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  transition: var(--transition);
+}
+.faq-tab-btn:hover,
+.faq-tab-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+.faq-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid #e6eef6;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: #ffffff;
+  width: 280px;
+  transition: var(--transition);
+}
+.search-icon {
+  font-size: 14px;
+  opacity: 0.6;
+}
+.faq-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 100%;
+}
+.faq-search-box:focus-within {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+/* Accordions */
+.faq-accordions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+.faq-cyber-accordion {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1.5px solid #e6eef6;
+  cursor: pointer;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.accordion-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  position: relative;
+}
+.accordion-index {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  background: #f8fafc;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+.accordion-qtext {
+  flex-grow: 1;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0;
+}
+.accordion-trigger-icon {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #f8fafc;
+  position: relative;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.accordion-trigger-icon::before,
+.accordion-trigger-icon::after {
+  content: '';
+  position: absolute;
+  background: var(--text-secondary);
+  transition: var(--transition);
+}
+/* horizontal line */
+.accordion-trigger-icon::before {
+  width: 10px; height: 2px;
+  left: 7px; top: 11px;
+}
+/* vertical line */
+.accordion-trigger-icon::after {
+  width: 2px; height: 10px;
+  left: 11px; top: 7px;
+}
+
+.faq-cyber-accordion:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.05);
+}
+
+/* Expanded state styles */
+.faq-cyber-accordion.open {
+  border-color: var(--primary);
+  box-shadow: var(--card-glow);
+}
+.faq-cyber-accordion.open .accordion-index {
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--primary);
+}
+.faq-cyber-accordion.open .accordion-trigger-icon {
+  background: var(--primary);
+  transform: rotate(135deg);
+}
+.faq-cyber-accordion.open .accordion-trigger-icon::before,
+.faq-cyber-accordion.open .accordion-trigger-icon::after {
+  background: white;
+}
+
+.accordion-body-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.accordion-body-wrapper.expanded {
+  max-height: 200px;
+}
+.accordion-body-inner {
+  padding: 0 24px 20px 64px;
+}
+.accordion-body-inner p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid #e6eef6;
+}
+
+.faq-empty-state {
+  padding: 48px;
+  text-align: center;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 16px;
+  color: var(--text-secondary);
+}
+.faq-empty-state .icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+}
+.faq-empty-state h5 {
+  font-family: var(--font-heading);
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+.faq-empty-state p {
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* Bottom CTA Card */
+.support-footer-cta-card {
+  position: relative;
+  background: #061A3A; /* Primary Navy */
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 32px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  color: #ffffff;
+}
+.support-footer-cta-card .glow-accent-overlay {
+  position: absolute;
+  top: -50%; right: -20%;
+  width: 80%; height: 180%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 60%);
+  pointer-events: none;
+}
+.cta-card-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+.cta-emoji-box {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.cta-text-details {
+  flex-grow: 1;
+  min-width: 250px;
+}
+.cta-text-details h3 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: #ffffff !important;
+}
+.cta-text-details p {
+  font-size: 13.5px;
+  color: #cbd5e1 !important;
+  line-height: 1.5;
+  margin: 0;
+}
+.cta-actions-group {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.cta-phone-btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #ffffff !important;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: var(--transition);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+.cta-phone-btn:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+.cta-form-btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff !important;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.cta-form-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* ==================== RESPONSIVE RULES ==================== */
+@media (max-width: 1100px) {
+  .guided-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .experts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .support-hero h1 {
+    font-size: 36px;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 16px 28px;
+  }
+  .stat-border-line {
+    display: none;
+  }
+  .faq-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .faq-search-box {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
-  .contact-grid,
-  .form-row {
+  .experts-grid {
     grid-template-columns: 1fr;
   }
+}
 
-  .hero h1 {
-    font-size: 30px;
+@media (max-width: 600px) {
+  .support-hero {
+    padding: 60px 16px 50px;
+  }
+  .support-hero h1 {
+    font-size: 28px;
+  }
+  .hero-desc {
+    font-size: 13.5px;
+    margin-bottom: 24px;
+  }
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .btn-glow-primary, .btn-glass {
+    width: 100%;
+    text-align: center;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 16px;
+  }
+  .stat-number {
+    font-size: 20px;
+  }
+  .stat-label {
+    font-size: 10px;
+  }
+  .form-section-container {
+    padding: 32px 16px;
+  }
+  .guided-form-glass-card {
+    padding: 20px;
+  }
+  .step-progress-row {
+    margin-bottom: 24px;
+  }
+  .step-node {
+    width: 48px;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    font-size: 12px;
+  }
+  .step-label {
+    font-size: 8px;
+  }
+  .guided-category-card {
+    padding: 12px;
+  }
+  .cat-icon-box {
+    width: 36px; height: 36px;
+    font-size: 16px;
+  }
+  .cat-details h4 {
+    font-size: 12.5px;
+  }
+  .cat-details p {
+    font-size: 10px;
+  }
+  .floating-input-field {
+    padding: 6px 12px;
+  }
+  .input-block input {
+    font-size: 12.5px;
+  }
+  .step-actions-footer {
+    gap: 8px;
+  }
+  .btn-step-next, .btn-step-prev, .btn-step-submit {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .tech-trust-banner {
+    padding: 24px 16px;
+  }
+  .partners-logos-row {
+    justify-content: center;
+    gap: 16px 20px;
+  }
+  .partners-logos-row span {
+    font-size: 15px;
+  }
+  .faq-knowledge-center {
+    padding: 40px 16px;
+  }
+  .accordion-head {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .accordion-qtext {
+    font-size: 13px;
+  }
+  .accordion-body-inner {
+    padding: 0 16px 16px 44px;
+  }
+  .accordion-body-inner p {
+    font-size: 12.5px;
+  }
+  .support-footer-cta-card {
+    padding: 20px;
+  }
+  .cta-phone-btn, .cta-form-btn {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>

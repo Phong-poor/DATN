@@ -27,7 +27,16 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'phone' => ['required', 'regex:/^0[0-9]{9}$/'],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',
+                'regex:/[a-z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
             'referral_code' => ['nullable', 'string', 'max:20'],
         ], [
             'name.required' => 'Vui lòng nhập họ và tên.',

@@ -6,20 +6,47 @@ use App\Mail\SendResetOtpMail;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ForgotPasswordController extends Controller
 {
+    public function captcha()
+    {
+        $token = Str::random(40);
+        Cache::put("forgot_password_captcha:{$token}", true, now()->addMinutes(5));
+
+        return response()->json([
+            'token' => $token,
+            'type' => 'checkbox',
+            'label' => 'Xác minh bạn là con người',
+            'expires_in' => 300,
+        ]);
+    }
+
     public function sendOtp(Request $request)
     {
         $request->validate([
             'email' => ['required', 'email'],
+            'captcha_token' => ['required', 'string'],
+            'captcha_verified' => ['accepted'],
         ], [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
+            'captcha_token.required' => 'Vui lòng tải mã xác minh.',
+            'captcha_verified.accepted' => 'Vui lòng xác minh bạn là con người.',
         ]);
+
+        $isCaptchaValid = Cache::pull("forgot_password_captcha:{$request->captcha_token}");
+
+        if (!$isCaptchaValid) {
+            throw ValidationException::withMessages([
+                'captcha_verified' => ['Captcha không đúng hoặc đã hết hạn.'],
+            ]);
+        }
 
         $user = User::where('email', $request->email)->first();
 
@@ -29,7 +56,7 @@ class ForgotPasswordController extends Controller
             ]);
         }
 
-        $otp = rand(100000, 999999);
+        $otp = random_int(100000, 999999);
 
         $user->reset_otp = $otp;
         $user->reset_otp_expires_at = Carbon::now()->addMinutes(5);
@@ -85,14 +112,23 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],
-            'password' => ['required', 'min:6', 'confirmed'],
+            'password' => [
+                'required',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',
+                'regex:/[a-z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
         ], [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
             'otp.required' => 'Vui lòng nhập mã OTP.',
             'password.required' => 'Vui lòng nhập mật khẩu mới.',
-            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'password.regex' => 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.',
         ]);
 
         $user = User::where('email', $request->email)

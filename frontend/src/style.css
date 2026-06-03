@@ -1,10 +1,43 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
+/* ============================================================
+   TECHNOVА COLOR SYSTEM — Global Design Tokens
+   ============================================================ */
 :root {
   --font-sans: 'Be Vietnam Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-body: var(--font-sans);
+  --font-display: var(--font-sans);
+  --font-alt: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  --text-color: #0f172a;
-  --text-muted: #475569;
+
+  /* --- TechNova Core Palette (Light Theme by Default) --- */
+  --tn-bg:           #F8FAFC;        /* Light background */
+  --tn-surface:      #ffffff;        /* White card / surface */
+  --tn-surface-2:    #f1f5f9;        /* Hover surface */
+  --tn-border:       #E2E8F0;        /* Light border */
+  --tn-border-hover: #cbd5e1;
+
+  /* --- TechNova Accent Blue --- */
+  --tn-primary:      #2563eb;
+  --tn-primary-hover:#1d4ed8;
+  --tn-primary-glow: rgba(37,99,235,0.15);
+  --tn-primary-muted:rgba(37,99,235,0.06);
+
+  /* --- Text --- */
+  --tn-text:         #0F172A;        /* Text Dark */
+  --tn-text-muted:   #64748B;        /* Text Muted */
+  --tn-text-faint:   #94a3b8;
+
+  /* --- Status Colors --- */
+  --tn-red:          #ef4444;        /* Badge giảm giá / error */
+  --tn-green:        #10B981;        /* Success */
+  --tn-orange:       #f97316;        /* Flash sale / sale */
+  --tn-yellow:       #eab308;        /* Promo / warning */
+
+  /* --- Legacy (giữ tương thích components cũ) --- */
+  --text-color: #0F172A;
+  --text-muted:  #64748B;
 }
 
 *,
@@ -28,10 +61,10 @@ html {
 
 body {
   font-family: var(--font-sans) !important;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-color);
-  background: #f8fafc;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--tn-text);
+  background: var(--tn-bg);
 }
 
 /* Force one unified typography system across the entire document and dynamically rendered portals */
@@ -43,6 +76,10 @@ button,
 input,
 select,
 textarea,
+button *,
+input *,
+select *,
+textarea *,
 .swal2-container,
 .swal2-container * {
   font-family: var(--font-sans) !important;
@@ -53,7 +90,7 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.25;
   letter-spacing: 0;
   font-family: var(--font-sans) !important;
-  color: var(--text-color);
+  color: var(--tn-text);
 }
 
 p, span, small, label, li, a, td, th {
@@ -62,25 +99,25 @@ p, span, small, label, li, a, td, th {
 }
 
 p, li, label, td, th {
-  color: var(--text-muted);
+  color: var(--tn-text-muted);
 }
 
 button, input, textarea, select {
   font-size: 14px;
+  color: var(--tn-text);
 }
 
 code, pre {
   font-family: var(--font-mono) !important;
 }
 
-/* Explicitly maintain and restore monospace fonts for all code blocks */
-code,
-pre,
-kbd,
-samp,
-.mono,
-.order-code,
-.promo-code,
+/* Force the entire app to use the same Sans typography unless explicitly monospace */
+#app *,
+#app *::before,
+#app *::after {
+  font-family: var(--font-sans) !important;
+}
+
 #app code,
 #app pre,
 #app kbd,
@@ -93,13 +130,13 @@ samp,
 
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -124,7 +161,7 @@ select {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: #cbd5e1;
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -157,4 +194,371 @@ select option {
   font-weight: 500;
   color: #475569;
   background-color: #ffffff;
+}
+
+/* ============================================================
+   GLOBAL READABILITY LAYER
+   Chuẩn hóa chữ toàn hệ thống: rõ hơn, đều hơn, dễ đọc hơn.
+   ============================================================ */
+:root {
+  --tn-text: #0f172a;
+  --tn-text-muted: #64748b;
+  --tn-text-faint: #94a3b8;
+  --tn-text-dark: #0f172a;
+  --tn-text-soft: #334155;
+  --tn-text-subtle: #64748b;
+  --text-color: #0f172a;
+  --text-muted: #64748b;
+  --text-dark: #0f172a;
+  --text-muted-dark: #475569;
+  --text-light: #f8fafc;
+  --text-muted-light: #cbd5e1;
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  font-family: var(--font-sans) !important;
+  font-size: 15px;
+  line-height: 1.65;
+  font-weight: 400;
+  color: var(--tn-text);
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+#app {
+  color: var(--tn-text);
+}
+
+#app h1,
+#app h2,
+#app h3,
+#app h4,
+#app h5,
+#app h6,
+.swal2-title {
+  font-family: var(--font-sans) !important;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+#app p,
+#app li,
+#app td,
+#app th,
+#app label,
+#app input,
+#app textarea,
+#app select,
+.swal2-html-container {
+  line-height: 1.65;
+  letter-spacing: -0.005em;
+}
+
+#app button,
+#app input,
+#app textarea,
+#app select,
+.swal2-popup button {
+  font-family: var(--font-sans) !important;
+}
+
+#app button,
+.swal2-popup button {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+#app input,
+#app textarea,
+#app select {
+  color: var(--tn-text-dark);
+  font-weight: 500;
+}
+
+#app input::placeholder,
+#app textarea::placeholder {
+  color: var(--tn-text-subtle);
+  opacity: 1;
+}
+
+#app a {
+  text-underline-offset: 3px;
+}
+
+#app strong,
+#app b {
+  font-weight: 700;
+  color: inherit;
+}
+
+#app table {
+  font-variant-numeric: tabular-nums;
+}
+
+#app th {
+  font-weight: 700;
+}
+
+/* ============================================================
+   GLOBAL POPUP READABILITY
+   SweetAlert renders outside #app, so force readable light popup text here.
+   ============================================================ */
+.swal2-container {
+  z-index: 100000 !important;
+}
+
+.swal2-custom-popup,
+.swal2-popup.swal2-modal {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-radius: 22px !important;
+  padding: 30px 28px !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24) !important;
+}
+
+.swal2-custom-title,
+.swal2-title {
+  color: #0f172a !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  margin: 0 0 10px !important;
+  text-align: center !important;
+}
+
+.swal2-custom-content,
+.swal2-html-container {
+  color: #334155 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.65 !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+}
+
+.swal2-custom-content *,
+.swal2-html-container * {
+  color: inherit !important;
+}
+
+.swal2-actions {
+  gap: 10px !important;
+  margin-top: 24px !important;
+}
+
+.swal2-custom-confirm,
+.swal2-confirm {
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 11px 22px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22) !important;
+}
+
+.swal2-custom-cancel,
+.swal2-cancel {
+  color: #334155 !important;
+  background: #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 11px 22px !important;
+  font-weight: 800 !important;
+}
+
+.swal2-toast-popup,
+.swal2-popup.swal2-toast {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18) !important;
+}
+
+.swal2-toast-title,
+.swal2-popup.swal2-toast .swal2-title {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  text-align: left !important;
+}
+
+/* Auth pages use custom modal markup instead of SweetAlert. */
+.modal-card .modal-title,
+.auth-modal .modal-title {
+  color: #0f172a !important;
+}
+
+.modal-card .modal-message,
+.auth-modal .modal-message {
+  color: #475569 !important;
+}
+
+/* ============================================================
+   DESIGN SYSTEM UTILITIES & COMPONENT PRESET STYLES
+   ============================================================ */
+
+/* Dark Theme Section Wrapper - Standardizes premium sections on dark background */
+.dark-theme-section {
+  --tn-bg: #061A3A;
+  --tn-surface: #081B2F;
+  --tn-surface-2: #16284a;
+  --tn-border: rgba(255, 255, 255, 0.08);
+  --tn-border-hover: rgba(255, 255, 255, 0.15);
+  --tn-text: #F8FAFC;
+  --tn-text-muted: #94A3B8;
+  --text-color: #F8FAFC;
+  --text-muted: #94A3B8;
+  background-color: var(--tn-bg) !important;
+  color: var(--tn-text) !important;
+}
+
+.dark-theme-section h1,
+.dark-theme-section h2,
+.dark-theme-section h3,
+.dark-theme-section h4,
+.dark-theme-section h5,
+.dark-theme-section h6 {
+  color: #ffffff !important;
+}
+
+.dark-theme-section p,
+.dark-theme-section span,
+.dark-theme-section small,
+.dark-theme-section label,
+.dark-theme-section li,
+.dark-theme-section a,
+.dark-theme-section td,
+.dark-theme-section th {
+  color: var(--tn-text-muted) !important;
+}
+
+/* Premium Buttons Styling */
+.btn-premium-glow {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-premium-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.btn-premium-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff !important;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-premium-glass:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Premium Badges */
+.badge-premium {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-premium.badge-blue {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563EB;
+}
+
+.badge-premium.badge-cyan {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00E5FF;
+}
+
+.badge-premium.badge-orange {
+  background: rgba(249, 115, 22, 0.1);
+  color: #F97316;
+}
+
+.badge-premium.badge-green {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+}
+
+/* Section Header Shared Style */
+.premium-section-header {
+  margin-bottom: 40px;
+}
+
+.premium-section-header .section-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #2563EB;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.premium-section-header h2 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--tn-text);
+  margin-bottom: 12px;
+}
+
+.premium-section-header p {
+  font-size: 16px;
+  color: var(--tn-text-muted);
+  max-width: 600px;
+}
+
+/* Premium Product Spec Card */
+.spec-group-card {
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.spec-group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.dark-theme-section .spec-group-card {
+  background: #081B2F;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
 
@@ -10,6 +10,24 @@ const showConfirm = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const errors = ref({})
+const captcha = ref({ question: '', answer: '' })
+const loadingCaptcha = ref(false)
+
+const loadCaptcha = async () => {
+    loadingCaptcha.value = true
+    try {
+        const res = await api.get('/user/change-password/captcha')
+        captcha.value = {
+            question: res.data?.question || '',
+            answer: '',
+        }
+    } catch (err) {
+        console.error('Lỗi tải captcha:', err)
+        captcha.value = { question: '', answer: '' }
+    } finally {
+        loadingCaptcha.value = false
+    }
+}
 
 const strength = computed(() => {
     const p = form.value.newPass
@@ -32,12 +50,17 @@ const requirements = computed(() => [
     { label: 'Có ký tự đặc biệt', ok: /[^A-Za-z0-9]/.test(form.value.newPass) },
 ])
 
+onMounted(() => {
+    loadCaptcha()
+})
+
 const validate = () => {
     errors.value = {}
     if (!form.value.current) errors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
     if (!form.value.newPass) errors.value.newPass = 'Vui lòng nhập mật khẩu mới'
     else if (strength.value < 2) errors.value.newPass = 'Mật khẩu quá yếu'
     if (form.value.newPass !== form.value.confirm) errors.value.confirm = 'Mật khẩu không khớp'
+    if (!captcha.value.answer) errors.value.captcha = 'Vui lòng nhập captcha'
     return Object.keys(errors.value).length === 0
 }
 
@@ -49,10 +72,12 @@ const save = async () => {
         const res = await api.put('/user/change-password', {
             current_password: form.value.current,
             new_password: form.value.newPass,
-            new_password_confirmation: form.value.confirm
+            new_password_confirmation: form.value.confirm,
+            captcha_answer: captcha.value.answer,
         })
         saved.value = true
         form.value = { current: '', newPass: '', confirm: '' }
+        await loadCaptcha()
         setTimeout(() => saved.value = false, 3000)
         swal.success('Thành công', 'Đổi mật khẩu thành công!')
     } catch (err) {
@@ -62,13 +87,22 @@ const save = async () => {
             if (data.errors) {
                 if (data.errors.current_password) {
                     errors.value.current = data.errors.current_password[0]
+                    await loadCaptcha()
                 }
                 if (data.errors.new_password) {
                     errors.value.newPass = data.errors.new_password[0]
                 }
+                if (data.errors.captcha_answer) {
+                    errors.value.captcha = data.errors.captcha_answer[0]
+                    await loadCaptcha()
+                }
             } else if (data.message) {
-                if (data.message.includes('hiện tại') || data.message.includes('current')) {
+                if (data.message.toLowerCase().includes('captcha')) {
+                    errors.value.captcha = data.message
+                    await loadCaptcha()
+                } else if (data.message.includes('hiện tại') || data.message.includes('current')) {
                     errors.value.current = data.message
+                    await loadCaptcha()
                 } else {
                     swal.error('Thất bại', data.message)
                 }
@@ -189,6 +223,25 @@ const save = async () => {
                             <span class="err-msg" v-if="errors.confirm">{{ errors.confirm }}</span>
                         </div>
 
+                        <div class="form-group" :class="{ error: errors.captcha }">
+                            <label>Captcha</label>
+                            <div class="captcha-row">
+                                <div class="captcha-question">
+                                    {{ loadingCaptcha ? 'Đang tải...' : (captcha.question || 'Không tải được captcha') }}
+                                </div>
+                                <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="loadingCaptcha">
+                                    <svg viewBox="0 0 24 24" fill="none">
+                                        <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6" />
+                                        <path d="M3 12a9 9 0 0 1 15.49-6" />
+                                        <path d="M21 3v6h-6" />
+                                        <path d="M3 21v-6h6" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <input class="captcha-input" v-model="captcha.answer" inputmode="numeric" autocomplete="off" placeholder="Nhập kết quả" />
+                            <span class="err-msg" v-if="errors.captcha">{{ errors.captcha }}</span>
+                        </div>
+
                         <button type="submit" class="btn-save" :disabled="saving">
                             <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none">
                                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -241,7 +294,7 @@ const save = async () => {
 <style scoped>
 .page {
     min-height: 100vh;
-    background: #f8fafc;
+    background: #0d1b2e;
     padding: 32px 30px;
     font-family: system-ui, sans-serif;
 }
@@ -258,7 +311,7 @@ const save = async () => {
 .page-title {
     font-size: 22px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
     margin: 0 0 4px;
 }
 
@@ -276,9 +329,9 @@ const save = async () => {
 }
 
 .card {
-    background: #fff;
+    background: #111f35;
     border-radius: 20px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.07);
     padding: 28px 32px;
 }
 
@@ -298,7 +351,7 @@ const save = async () => {
 .form-group label {
     font-size: 13px;
     font-weight: 600;
-    color: #374151;
+    color: #cbd5e1;
 }
 
 .input-wrap {
@@ -324,7 +377,7 @@ const save = async () => {
     border: 1.5px solid #e2e8f0;
     border-radius: 10px;
     font-size: 14px;
-    color: #1e293b;
+    color: #e2e8f0;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
@@ -336,6 +389,10 @@ const save = async () => {
 }
 
 .form-group.error .input-wrap input {
+    border-color: #ef4444;
+}
+
+.form-group.error .captcha-input {
     border-color: #ef4444;
 }
 
@@ -358,6 +415,72 @@ const save = async () => {
     stroke: #94a3b8;
     stroke-width: 1.8;
     fill: none;
+}
+
+.captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.captcha-question {
+    flex: 1;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px dashed #bfdbfe;
+    border-radius: 10px;
+    background: #0d1b2e;
+    color: #f8fafc;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.captcha-refresh {
+    width: 42px;
+    height: 42px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #2563eb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.captcha-refresh:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.captcha-refresh svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+.captcha-input {
+    width: 100%;
+    margin-top: 8px;
+    padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: #111f35;
+    color: #e2e8f0;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.captcha-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .strength-bar {
@@ -437,9 +560,9 @@ const save = async () => {
 
 /* SIDE INFO */
 .req-card {
-    background: #fff;
+    background: #111f35;
     border-radius: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.07);
     padding: 20px;
     margin-bottom: 14px;
 }
@@ -447,7 +570,7 @@ const save = async () => {
 .req-title {
     font-size: 13px;
     font-weight: 700;
-    color: #374151;
+    color: #cbd5e1;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0 0 14px;

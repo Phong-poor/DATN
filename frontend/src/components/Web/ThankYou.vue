@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
@@ -62,7 +62,7 @@ onMounted(async () => {
 
 <style scoped>
 .thank-you-page {
-  background: #f8fafc;
+  background: #0d1b2e;
   min-height: 80vh;
   display: flex;
   align-items: center;
@@ -76,7 +76,7 @@ onMounted(async () => {
 }
 
 .card {
-  background: white;
+  background: #111f35;
   padding: 60px 40px;
   border-radius: 24px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
@@ -105,7 +105,7 @@ onMounted(async () => {
 h1 {
   font-size: 28px;
   font-weight: 700;
-  color: #1e293b;
+  color: #e2e8f0;
   margin-bottom: 16px;
 }
 
@@ -143,8 +143,8 @@ h1 {
 }
 
 .btn.secondary {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #111f35;
+  color: #e2e8f0;
 }
 
 .btn.secondary:hover {

@@ -12,22 +12,55 @@
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="logo-icon">N</div>
-        <span class="logo-text">NextGen LabTop</span>
+        <span class="logo-text">Predator</span>
       </div>
 
       <div class="menu-section">
         <p class="menu-label">MAIN MENU</p>
-        <router-link
-          v-for="item in menuItems"
-          :key="item.path"
-          :to="item.path"
-          v-slot="{ isActive, isExactActive }"
-        >
-          <div :class="['item', (item.path === '/admin' ? isExactActive : isActive) && 'active']">
-            <component :is="item.icon" class="item-icon" />
-            <span>{{ item.label }}</span>
+        <div v-for="item in menuConfig" :key="item.label || item.path" class="menu-wrapper">
+          <!-- Normal Link -->
+          <router-link
+            v-if="!item.isDropdown"
+            :to="item.path"
+            v-slot="{ isActive, isExactActive }"
+          >
+            <div :class="['item', (item.path === '/admin' ? isExactActive : isActive) && 'active']">
+              <component :is="item.icon" class="item-icon" />
+              <span>{{ item.label }}</span>
+            </div>
+          </router-link>
+
+          <!-- Dropdown Group -->
+          <div v-else class="dropdown-group" :class="{ 'is-open': dropdownStates[item.label] }">
+            <button
+              type="button"
+              class="item dropdown-toggle"
+              :class="{ 'parent-active': isParentActive(item) }"
+              @click="toggleDropdown(item.label)"
+            >
+              <component :is="item.icon" class="item-icon" />
+              <span>{{ item.label }}</span>
+              <ChevronDown class="chevron-icon" />
+            </button>
+
+            <div class="submenu">
+              <router-link
+                v-for="sub in item.children"
+                :key="sub.path"
+                :to="sub.path"
+                v-slot="{ isActive }"
+              >
+                <div :class="['submenu-item', isActive && 'active']">
+                  <span class="bullet-dot"></span>
+                  <span>{{ sub.label }}</span>
+                  <span v-if="sub.badge" :class="['submenu-badge', `badge-${sub.badge.toLowerCase()}`]">
+                    {{ sub.badge }}
+                  </span>
+                </div>
+              </router-link>
+            </div>
           </div>
-        </router-link>
+        </div>
       </div>
 
       <div class="sidebar-user">
@@ -164,13 +197,17 @@
         </div>
       </section>
 
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="page-fade">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
 import AdminChatManager from '@/components/Admin/Layout/AdminChatManager.vue'
@@ -181,7 +218,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  RotateCcw,
   Newspaper,
   FolderTree,
   Tag,
@@ -194,6 +230,7 @@ import {
   Mail,
   Activity,
   Gift,
+  ChevronDown,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -225,24 +262,86 @@ const appearance = ref({
   animation_level: 'normal',
 })
 
-const menuItems = [
+const menuConfig = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/admin/products', label: 'Sản phẩm', icon: Package },
-  { path: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
-  
-  { path: '/admin/news', label: 'Bài viết', icon: Newspaper },
-  { path: '/admin/categories', label: 'Danh mục', icon: FolderTree },
-  { path: '/admin/brands', label: 'Thương hiệu', icon: Tag },
-  { path: '/admin/promotions', label: 'Khuyến mãi', icon: TicketPercent },
-  { path: '/admin/combos', label: 'Quản lý Combo', icon: Gift },
+  {
+    label: 'Sản phẩm',
+    icon: Package,
+    isDropdown: true,
+    children: [
+      { path: '/admin/products', label: 'Sản phẩm', badge: 'CORE' },
+      { path: '/admin/categories', label: 'Danh mục', badge: 'CONFIG' },
+      { path: '/admin/brands', label: 'Thương hiệu', badge: 'CONFIG' },
+      { path: '/admin/variants', label: 'Màu & biến thể', badge: 'CONFIG' },
+    ]
+  },
+  {
+    label: 'Bán hàng',
+    icon: ShoppingCart,
+    isDropdown: true,
+    children: [
+      { path: '/admin/orders', label: 'Đơn hàng', badge: 'CORE' },
+      { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'SALES' },
+      { path: '/admin/combos', label: 'Quản lý Combo', badge: 'SALES' },
+      { path: '/admin/affiliates', label: 'Affiliate', badge: 'MARKETING' },
+    ]
+  },
+  {
+    label: 'Nội dung',
+    icon: Newspaper,
+    isDropdown: true,
+    children: [
+      { path: '/admin/news', label: 'Bài viết', badge: 'CONTENT' },
+      { path: '/admin/reviews', label: 'Bình luận', badge: 'CONTENT' },
+    ]
+  },
+  {
+    label: 'Người dùng',
+    icon: Users,
+    isDropdown: true,
+    children: [
+      { path: '/admin/users', label: 'User', badge: 'ADMIN' },
+      { path: '/admin/contacts', label: 'Liên hệ', badge: 'SUPPORT' },
+    ]
+  },
   { path: '/admin/banners', label: 'Banner', icon: Image },
-  { path: '/admin/variants', label: 'Màu & biến thể', icon: Palette },
-  { path: '/admin/users', label: 'User', icon: Users },
-  { path: '/admin/reviews', label: 'Bình luận', icon: MessageSquare },
-  { path: '/admin/affiliates', label: 'Affiliate', icon: Handshake },
-  { path: '/admin/contacts', label: 'Liên hệ', icon: Mail },
   { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
+
+const dropdownStates = ref({
+  'Sản phẩm': false,
+  'Bán hàng': false,
+  'Nội dung': false,
+  'Người dùng': false,
+})
+
+function toggleDropdown(label) {
+  dropdownStates.value[label] = !dropdownStates.value[label]
+}
+
+function isParentActive(item) {
+  if (!item.children) return false
+  return item.children.some(child => route.path === child.path)
+}
+
+function autoOpenDropdowns() {
+  menuConfig.forEach(item => {
+    if (item.isDropdown && item.children) {
+      const hasActiveChild = item.children.some(child => route.path === child.path)
+      if (hasActiveChild) {
+        dropdownStates.value[item.label] = true
+      }
+    }
+  })
+}
+
+watch(
+  () => route.path,
+  () => {
+    autoOpenDropdowns()
+  },
+  { immediate: true }
+)
 
 const quickApps = [
   { label: 'Dashboard', path: '/admin' },
@@ -510,6 +609,112 @@ a { text-decoration: none; }
 .item-icon { width: 19px; height: 19px; flex-shrink: 0; stroke-width: 2; }
 .item:hover { background: rgba(255, 255, 255, 0.08); }
 .item.active { background: linear-gradient(135deg, #10b981, #059669); font-weight: 600; }
+.dropdown-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.dropdown-toggle.parent-active {
+  color: #34d399;
+}
+.chevron-icon {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.25s ease;
+  color: rgba(248, 250, 252, 0.6);
+}
+.dropdown-group.is-open .chevron-icon {
+  transform: rotate(180deg);
+  color: #fff;
+}
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s cubic-bezier(0, 1, 0, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 20px;
+}
+.dropdown-group.is-open .submenu {
+  max-height: 300px;
+  transition: max-height 0.25s ease-in-out;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.submenu-item {
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: rgba(248, 250, 252, 0.75);
+  font-size: 13.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  transition: all 0.2s ease;
+}
+.submenu-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+.submenu-item.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  font-weight: 600;
+}
+.bullet-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: rgba(248, 250, 252, 0.4);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.submenu-item.active .bullet-dot {
+  background-color: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+.submenu-badge {
+  margin-left: auto;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.badge-core {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.badge-sales {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.badge-config {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.badge-content {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+.badge-admin {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+.badge-support {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+.badge-marketing {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
 .sidebar-user { margin-top: 10px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.08); display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
 .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, var(--admin-primary)); color: #fff; display: grid; place-items: center; overflow: hidden; font-weight: 700; }
 .user-avatar-img { width: 100%; height: 100%; object-fit: cover; }

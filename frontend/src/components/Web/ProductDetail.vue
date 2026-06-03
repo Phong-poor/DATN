@@ -28,7 +28,7 @@ const fetchProductCombos = async (productId) => {
     try {
         const res = await api.get('/combos', { skipGlobalLoader: true })
         const allCombos = res.data?.data || []
-        combos.value = allCombos.filter(combo => 
+        combos.value = allCombos.filter(combo =>
             combo.products.some(p => String(p.id_sanpham) === String(productId))
         )
     } catch (e) {
@@ -211,6 +211,13 @@ const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ'
 }
 
+const getSpecValue = (name) => {
+    if (!product.value || !product.value.thong_so_ky_thuat) return ''
+    const specs = Array.isArray(product.value.thong_so_ky_thuat) ? product.value.thong_so_ky_thuat : []
+    const found = specs.find(s => (s.ten_thuoctinh || '').toLowerCase().includes(name.toLowerCase()))
+    return found ? found.giatri : ''
+}
+
 const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/600'
     if (path.startsWith('http') || path.startsWith('data:image')) return path
@@ -253,7 +260,7 @@ const startAutoSlide = () => {
             const currentIndex = allImages.value.indexOf(selectedImage.value)
             const nextIndex = (currentIndex + 1) % allImages.value.length
             selectedImage.value = allImages.value[nextIndex]
-            
+
             // Sync thumb slider
             if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
                 thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
@@ -272,7 +279,7 @@ const stopAutoSlide = () => {
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
-        const cached = localStorage.getItem(`nextgen_product_detail_cache_${productId}`)
+        const cached = localStorage.getItem(`predator_product_detail_cache_${productId}`)
         if (cached) {
             const parsed = JSON.parse(cached)
             if (parsed.product) product.value = parsed.product
@@ -283,7 +290,7 @@ const loadCache = (productId) => {
             if (product.value && product.value.tenSP) {
                 window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
             }
-            
+
             // Cập nhật ảnh đại diện và biến thể từ cache
             if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
             const variants = product.value.bienThes || []
@@ -314,7 +321,7 @@ const loadCache = (productId) => {
 
 const saveCache = (productId) => {
     try {
-        localStorage.setItem(`nextgen_product_detail_cache_${productId}`, JSON.stringify({
+        localStorage.setItem(`predator_product_detail_cache_${productId}`, JSON.stringify({
             product: product.value,
             reviews: reviews.value,
             recentlyViewedProducts: recentlyViewedProducts.value,
@@ -405,14 +412,70 @@ const loadPageData = async () => {
     }
 }
 
+const showStickyBar = ref(false)
+const activeSpecTab = ref(0)
+const handleScrollSticky = () => {
+    showStickyBar.value = window.scrollY > 600
+}
+
+const categorizedSpecs = computed(() => {
+    const categories = {
+        performance: { title: 'Hiệu năng', icon: '⚡', items: [] },
+        screen: { title: 'Màn hình', icon: '🖥️', items: [] },
+        storage: { title: 'Lưu trữ & RAM', icon: '💾', items: [] },
+        connectivity: { title: 'Kết nối', icon: '🔌', items: [] },
+        warranty: { title: 'Bảo hành & Khác', icon: '🛡️', items: [] }
+    }
+
+    const rows = [...machineInfoRows.value]
+    rows.forEach(row => {
+        const labelLower = row.label.toLowerCase()
+        if (labelLower.includes('cpu') || labelLower.includes('gpu') || labelLower.includes('card') || labelLower.includes('bộ vi xử lý') || labelLower.includes('vi xử lý') || labelLower.includes('đồ họa') || labelLower.includes('hiệu năng') || labelLower.includes('bộ nhớ đệm') || labelLower.includes('chipset')) {
+            categories.performance.items.push(row)
+        } else if (labelLower.includes('màn hình') || labelLower.includes('độ phân giải') || labelLower.includes('tần số quét') || labelLower.includes('hz') || labelLower.includes('oled') || labelLower.includes('ips') || labelLower.includes('hiển thị')) {
+            categories.screen.items.push(row)
+        } else if (labelLower.includes('ssd') || labelLower.includes('ổ cứng') || labelLower.includes('dung lượng') || labelLower.includes('lưu trữ') || labelLower.includes('hdd') || labelLower.includes('ram') || labelLower.includes('bộ nhớ trong')) {
+            categories.storage.items.push(row)
+        } else if (labelLower.includes('cổng') || labelLower.includes('kết nối') || labelLower.includes('giao tiếp') || labelLower.includes('usb') || labelLower.includes('hdmi') || labelLower.includes('wi-fi') || labelLower.includes('wifi') || labelLower.includes('bluetooth') || labelLower.includes('mạng') || labelLower.includes('thunderbolt')) {
+            categories.connectivity.items.push(row)
+        } else {
+            categories.warranty.items.push(row)
+        }
+    })
+
+    return Object.values(categories).filter(c => c.items.length > 0)
+})
+
+const whyBuyThisSpecs = computed(() => {
+    return [
+        { icon: '🚀', title: 'Hiệu năng đỉnh cao', desc: 'Trang bị cấu hình phần cứng mới nhất giúp vận hành mọi tác vụ cực độ mà không có độ trễ.' },
+        { icon: '🖥️', title: 'Màn hình chuẩn màu', desc: 'Đáp ứng 100% không gian màu thiết kế, tần số quét mượt mà cho trải nghiệm thị giác vô tận.' },
+        { icon: '❄️', title: 'Tản nhiệt buồng hơi kép', desc: 'Hệ thống cánh quạt tản nhiệt siêu mỏng giúp giảm nhiệt độ máy đến 15°C khi chịu tải nặng liên tục.' },
+        { icon: '💾', title: 'Nâng cấp dễ dàng', desc: 'Thiết kế bo mạch linh hoạt hỗ trợ mở rộng thêm ổ cứng SSD và RAM dung lượng lớn để lưu trữ không giới hạn.' },
+        { icon: '💼', title: 'Đa nhiệm hoàn hảo', desc: 'Phù hợp hoàn toàn cho các lập trình viên chuyên nghiệp, designer sáng tạo và game thủ chiến mọi tựa game.' },
+        { icon: '🛡️', title: 'Hậu mãi chuẩn 5 sao', desc: 'Bảo hành chính hãng 24 tháng, cam kết 1 đổi 1 trong vòng 7 ngày đầu nếu có lỗi phần cứng.' }
+    ]
+})
+
+const benchmarkData = computed(() => {
+    return [
+        { label: 'Gaming (FPS trung bình ở Ultra 1080p)', score: 85, color: '#f97316', desc: 'CS2: 240+ FPS | Cyberpunk 2077: 75+ FPS' },
+        { label: 'Render 3D (Blender / V-Ray Cycles)', score: 92, color: '#2563eb', desc: 'Render thời gian thực cực mượt với nhân Ray Tracing' },
+        { label: 'Đồ họa & Dựng Phim (Premiere Pro / DaVinci)', score: 88, color: '#00e5ff', desc: 'Xử lý video RAW 4K 10-bit không cần proxy' },
+        { label: 'AI & Lập trình (PyTorch / Xcode compiler)', score: 90, color: '#10b981', desc: 'Gia tốc NPU riêng biệt chạy mô hình LLM local' }
+    ]
+})
+
 onMounted(() => {
     window.scrollTo(0, 0)
     loadPageData()
     startAutoSlide()
+    window.addEventListener('scroll', handleScrollSticky, { passive: true })
 })
 
 onUnmounted(() => {
     stopAutoSlide()
+    window.removeEventListener('scroll', handleScrollSticky)
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -442,7 +505,7 @@ const fetchRecentlyViewed = async () => {
     try {
         const res = await api.get('/sanpham-daxem', { skipGlobalLoader: true })
         const allProducts = res.data || []
-        
+
         // Lọc để ẩn sản phẩm hiện đang xem
         const currentProductId = route.params.id || 1;
         const filtered = allProducts.filter(p => p.id_sanpham != currentProductId);
@@ -496,12 +559,59 @@ const fetchRecentlyViewed = async () => {
 const relatedProducts = ref([])
 const currentRelatedPage = ref(1)
 const relatedItemsPerPage = 5
-const paginatedRelatedProducts = computed(() => {
-    const start = (currentRelatedPage.value - 1) * relatedItemsPerPage
-    return relatedProducts.value.slice(start, start + relatedItemsPerPage)
+const selectedCategory = ref(null)
+
+const filteredRelatedProducts = computed(() => {
+    if (!selectedCategory.value) return relatedProducts.value
+    return relatedProducts.value.filter(p => p.category === selectedCategory.value)
 })
 
-const totalRelatedPages = computed(() => Math.ceil(relatedProducts.value.length / relatedItemsPerPage))
+const paginatedRelatedProducts = computed(() => {
+    const start = (currentRelatedPage.value - 1) * relatedItemsPerPage
+    return filteredRelatedProducts.value.slice(start, start + relatedItemsPerPage)
+})
+
+const totalRelatedPages = computed(() => Math.ceil(filteredRelatedProducts.value.length / relatedItemsPerPage))
+
+// Lấy danh sách các danh mục duy nhất từ sản phẩm tương tự
+const uniqueCategories = computed(() => {
+    const categories = new Set()
+    relatedProducts.value.forEach(p => {
+        if (p.category) categories.add(p.category)
+    })
+    return Array.from(categories).sort()
+})
+
+// Phân bố đánh giá theo số sao
+const ratingDistribution = computed(() => {
+    const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    reviews.value.forEach(r => {
+        if (r.danhgia >= 1 && r.danhgia <= 5) {
+            dist[r.danhgia]++
+        }
+    })
+    return dist
+})
+
+// Biểu tượng cho từng loại máy
+const getCategoryIcon = (category) => {
+    const cat = category.toLowerCase()
+    if (cat.includes('gaming')) return '🎮'
+    if (cat.includes('văn phòng') || cat.includes('office')) return '💼'
+    if (cat.includes('sinh viên') || cat.includes('student')) return '📚'
+    if (cat.includes('macbook') || cat.includes('apple')) return '🍎'
+    if (cat.includes('đồ họa') || cat.includes('design') || cat.includes('creator')) return '🎨'
+    if (cat.includes('mỏng')) return '💫'
+    if (cat.includes('2 in 1')) return '🔄'
+    return '💻'
+}
+
+const scrollToRelated = () => {
+    const relatedElement = document.querySelector('.related')
+    if (relatedElement) {
+        relatedElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+}
 
 
 
@@ -623,7 +733,7 @@ const extractAllAttributes = (variant) => {
 // Lấy danh sách tất cả các thuộc tính và thông số kỹ thuật để so sánh (normalize keys)
 const allAttributeKeys = computed(() => {
     const keysMap = new Map() // Use Map to normalize keys (case-insensitive)
-    
+
     // Thêm thông số kỹ thuật sản phẩm hiện tại
     if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
         product.value.thong_so_ky_thuat.forEach(spec => {
@@ -635,7 +745,7 @@ const allAttributeKeys = computed(() => {
             }
         })
     }
-    
+
     if (selectedVariant.value) {
         const attrs = extractAllAttributes(selectedVariant.value)
         Object.keys(attrs).forEach(k => {
@@ -653,7 +763,7 @@ const allAttributeKeys = computed(() => {
                 keysMap.set(normalizedKey, k)
             }
         })
-        
+
         if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
             p.thong_so_ky_thuat.forEach(spec => {
                 if (spec.ten_thuoctinh) {
@@ -668,13 +778,63 @@ const allAttributeKeys = computed(() => {
     return Array.from(keysMap.values()).sort()
 })
 
+const machineInfoRows = computed(() => {
+    const rows = []
+    const seen = new Set()
+    const addRow = (group, label, value) => {
+        if (value === undefined || value === null || value === '') return
+        const normalized = `${group}-${label}`.toLowerCase()
+        if (seen.has(normalized)) return
+        seen.add(normalized)
+        rows.push({ group, label, value })
+    }
+
+    addRow('Tổng quan', 'Tên sản phẩm', product.value.tenSP)
+    addRow('Tổng quan', 'Thương hiệu', product.value.thuong_hieu?.ten_thuonghieu)
+    addRow('Tổng quan', 'Danh mục', product.value.danh_muc?.ten_danhmuc)
+    addRow('Tổng quan', 'Mã sản phẩm', product.value.SKU || product.value.sku || product.value.id_sanpham)
+    addRow('Giá & kho', 'Giá đang chọn', selectedVariant.value ? formatPrice(selectedVariant.value.gia) : formatPrice(product.value.gia))
+    addRow('Giá & kho', 'Tình trạng', selectedVariant.value ? (selectedVariant.value.soluong > 0 ? `Còn ${selectedVariant.value.soluong} sản phẩm` : 'Hết hàng') : 'Đang cập nhật')
+    addRow('Biến thể', 'Mã biến thể', selectedVariant.value?.SKU || selectedVariant.value?.sku || selectedVariant.value?.id_bienthe)
+
+    if (selectedVariant.value) {
+        getVariantAttributes(selectedVariant.value).forEach(attr => {
+            addRow('Biến thể', attr.ten_thuoctinh, attr.giatri)
+        })
+    }
+
+    if (Array.isArray(product.value.thong_so_ky_thuat)) {
+        product.value.thong_so_ky_thuat.forEach(spec => {
+            addRow('Cấu hình', spec.ten_thuoctinh, spec.giatri)
+        })
+    }
+
+    return rows
+})
+
+const machineInfoGridRows = computed(() => {
+    const columns = 5
+    const rows = [...machineInfoRows.value]
+    const missing = rows.length % columns === 0 ? 0 : columns - (rows.length % columns)
+
+    for (let i = 0; i < missing; i++) {
+        rows.push({
+            group: 'Thông tin thêm',
+            label: 'Đang cập nhật',
+            value: 'Liên hệ tư vấn'
+        })
+    }
+
+    return rows
+})
+
 // Tạo dữ liệu so sánh: so sánh sản phẩm hiện tại với các sản phẩm khác
 const comparisonData = computed(() => {
     const data = []
-    
+
     if (selectedVariant.value && relatedProducts.value.length > 0) {
         const currentAttrs = extractAllAttributes(selectedVariant.value)
-        
+
         relatedProducts.value.slice(0, 4).forEach(relatedProd => {
             const relatedAttrs = relatedProd.attributes || {}
             data.push({
@@ -687,12 +847,14 @@ const comparisonData = computed(() => {
             })
         })
     }
-    
+
     return data
 })
 
 // ====== COMPARE MODAL STATE & HELPERS ======
 const showCompareModal = ref(false)
+const showFullSpecs = ref(false)
+const specsPanelMode = ref('info')
 const compareSelection = ref([]) // array of key_id to compare
 const maxCompare = 3
 
@@ -724,30 +886,30 @@ const modalComparisonData = computed(() => {
     if (selectedVariant.value && compareProducts.value.length > 0) {
         const currentAttrs = extractAllAttributes(selectedVariant.value)
         const currentSpecs = {}
-        
+
         // Lấy thông số kỹ thuật sản phẩm hiện tại
         if (product.value && product.value.thong_so_ky_thuat && Array.isArray(product.value.thong_so_ky_thuat)) {
             product.value.thong_so_ky_thuat.forEach(spec => {
                 if (spec.ten_thuoctinh) currentSpecs[spec.ten_thuoctinh] = spec.giatri
             })
         }
-        
+
         compareProducts.value.forEach(p => {
             // Kết hợp thông số kỹ thuật và thuộc tính biến thể
             const combinedSpecs = {}
-            
+
             // Thêm thông số kỹ thuật sản phẩm
             if (p.thong_so_ky_thuat && Array.isArray(p.thong_so_ky_thuat)) {
                 p.thong_so_ky_thuat.forEach(spec => {
                     if (spec.ten_thuoctinh) combinedSpecs[spec.ten_thuoctinh] = spec.giatri
                 })
             }
-            
+
             // Thêm thuộc tính biến thể
             if (p.attributes) {
                 Object.assign(combinedSpecs, p.attributes)
             }
-            
+
             data.push({
                 id: p.key_id,
                 name: p.fullName,
@@ -761,6 +923,7 @@ const modalComparisonData = computed(() => {
     }
     return data
 })
+
 
 const selectedVariantOffers = computed(() => {
     return selectedVariant.value?.combo_offers || []
@@ -799,10 +962,36 @@ const handleSelectVariantById = (idBienThe) => {
         hienThiThongBao('success', `✨ Đã chuyển cấu hình: ${matched.ten_bienthe}`)
     }
 }
+
 </script>
 
 <template>
 
+    <!-- STICKY BUY BAR FOR HIGH CONVERSIONS -->
+    <transition name="fade-slide-bar">
+        <div v-show="showStickyBar" class="sticky-buy-bar">
+            <div class="container sticky-bar-flex">
+                <div class="sticky-info-left">
+                    <img :src="selectedImage" :alt="product.tenSP" class="sticky-thumb" />
+                    <div class="sticky-meta">
+                        <h4 class="sticky-title">{{ product.tenSP }}</h4>
+                        <span class="sticky-variant-name" v-if="selectedVariant">{{ selectedVariant.ten_bienthe }}</span>
+                    </div>
+                </div>
+                <div class="sticky-actions-right">
+                    <div class="sticky-price-glow">
+                        {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
+                    </div>
+                    <button class="btn btn-premium-glass" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                        Thêm vào giỏ
+                    </button>
+                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                        Mua ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition>
 
     <transition name="slide-down">
         <div v-if="thongBao.show" :class="['toast', thongBao.type]">
@@ -810,143 +999,290 @@ const handleSelectVariantById = (idBienThe) => {
         </div>
     </transition>
 
-    <div class="page">
-        <div class="container">
+    <!-- TOP GLOW DECORATOR -->
+    <div class="tech-glow-top"></div>
 
-            <div v-if="isLoading" style="text-align: center; padding: 50px;">
-                Đang tải dữ liệu sản phẩm...
-            </div>
+    <div class="page" v-if="!isLoading && product.tenSP">
+        <div class="premium-hero-container">
+            <div class="container">
+                <!-- Premium Breadcrumbs -->
+                <div class="premium-breadcrumb">
+                    <router-link to="/">Trang chủ</router-link>
+                    <span class="sep">/</span>
+                    <router-link :to="`/products?cat=${product.id_danhmuc}`">{{ product.danh_muc?.ten_danhmuc || 'Sản phẩm' }}</router-link>
+                    <span class="sep">/</span>
+                    <span class="current">{{ product.tenSP }}</span>
+                </div>
 
-            <div v-else>
-                <div class="detail">
+                <!-- MAIN DETAIL HERO GRID -->
+                <div class="detail-hero-grid">
+                    <!-- GALLERY COLUMN (Left) -->
+                    <div class="gallery-column">
+                        <div class="main-image-viewport">
+                            <div class="neon-glow-backdrop"></div>
 
-                    <!-- ẢNH -->
-                    <div>
-                        <div class="main-img" @mouseenter="stopAutoSlide" @mouseleave="startAutoSlide">
-                            <transition name="slide-left" mode="out-in">
-                                <img :key="selectedImage" :src="selectedImage" />
-                            </transition>
-                        </div>
-                        <div class="thumb-wrapper">
-                            <button class="thumb-nav p-left" @click="prevThumbs" :disabled="thumbIndex === 0">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16"
-                                    height="16">
+                            <!-- Badges Overlay -->
+                            <div class="gallery-badges">
+                                <span class="badge badge-glow" v-if="product.thuong_hieu">{{ product.thuong_hieu.ten_thuonghieu }}</span>
+                                <span class="badge badge-tech">ORIGINAL BRAND</span>
+                            </div>
+
+                            <img :src="selectedImage" :alt="product.tenSP" class="main-showcase-image" />
+
+                            <div v-if="selectedVariant && selectedVariant.soluong === 0" class="premium-out-of-stock-badge">
+                                HẾT HÀNG
+                            </div>
+
+                            <!-- Navigation Arrows -->
+                            <button @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
-                            <div class="thumbs">
-                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img; startAutoSlide()"
-                                    :class="{ active: selectedImage === img }" />
+                            <button @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+
+
+                            <!-- Slide Indicator Dots -->
+                            <div class="slide-dots">
+                                <span v-for="(img, idx) in allImages" :key="idx"
+                                      :class="['dot', { active: selectedImage === img }]"
+                                      @click="selectedImage = img"></span>
                             </div>
-                            <button class="thumb-nav p-right" @click="nextThumbs"
-                                :disabled="thumbIndex + thumbLimit >= allImages.length">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16"
-                                    height="16">
+
+                        </div>
+
+                        <!-- Thumbnails Slider -->
+                        <div class="premium-thumbs-container">
+                            <button class="thumb-arrow-btn" @click="prevThumbs" :disabled="thumbIndex === 0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+
+                            <div class="premium-thumbs-scroll">
+                                <div v-for="(img, i) in visibleThumbs" :key="i"
+                                     :class="['thumb-card', { active: selectedImage === img }]"
+                                     @click="selectedImage = img; startAutoSlide ? startAutoSlide() : null">
+                                    <img :src="img" alt="Thumbnail" />
+                                </div>
+
+                            </div>
+
+                            <button class="thumb-arrow-btn" @click="nextThumbs" :disabled="thumbIndex + thumbLimit >= allImages.length">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
                         </div>
                     </div>
 
-                    <!-- THÔNG TIN -->
-                    <div>
-                        <span class="tag" v-if="product.thuong_hieu">{{ product.thuong_hieu.ten_thuonghieu }}</span>
-                        <span class="tag" v-else>MỚI NHẤT 2026</span>
-
-                        <h1>{{ product.tenSP }}</h1>
-
-                        <div class="rating">
-                            <span class="stars-gold">
-                                <template v-for="i in 5">
-                                    <span v-if="i <= Math.round(averageRating)">★</span>
-                                    <span v-else style="color: #e2e8f0;">★</span>
-                                </template>
-                            </span>
-                            <span class="rating-count">
-                                ({{ reviews.length > 0 ? averageRating + '/5' : 'Chưa có đánh giá' }})
-                                <span v-if="reviews.length > 0"> • {{ reviews.length }} đánh giá</span>
-                            </span>
+                    <!-- INFO & PURCHASE COLUMN (Right) -->
+                    <div class="purchase-column">
+                        <!-- Dynamic Premium Tag & Specs Badges -->
+                        <div class="tech-spec-badges">
+                            <span class="pill-spec-badge animate-shine">Intel Core Ultra</span>
+                            <span class="pill-spec-badge">RTX 4060 Ready</span>
+                            <span class="pill-spec-badge">AI Boost</span>
+                            <span class="pill-spec-badge">24M Warranty</span>
                         </div>
 
-                        <div class="price">
-                            {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
+                        <div class="brand-subtitle" v-if="product.thuong_hieu">
+                            {{ product.thuong_hieu.ten_thuonghieu.toUpperCase() }} WORKSTATION
                         </div>
 
+                        <h1 class="premium-product-title">{{ product.tenSP }}</h1>
 
-                        <div class="variant-stock" v-if="selectedVariant">
-                            <span v-if="selectedVariant.soluong > 0" class="in-stock">
-                                ✅ Còn hàng: {{ selectedVariant.soluong }} sản phẩm
-                            </span>
-                            <span v-else class="out-stock">❌ Hết hàng</span>
+                        <!-- Star Rating Interactive Link -->
+                        <div class="premium-rating-bar" @click="scrollToRelated()">
+                            <div class="stars-gold">
+                                <span v-for="i in 5" :key="i" class="star-icon">
+                                    {{ i <= Math.round(averageRating) ? '★' : '☆' }}
+                                </span>
+                            </div>
+                            <span class="rating-numeric">{{ averageRating }}/5</span>
+                            <span class="rating-separator">|</span>
+                            <span class="rating-reviews-count">{{ reviews.length }} Đánh giá</span>
                         </div>
 
-                        <div class="product-options" v-if="product.bienThes && product.bienThes.length > 0">
-                            <div class="option-group" v-for="group in variantGroups" :key="group.name">
-                                <p class="option-label">{{ group.name }}:</p>
+                        <!-- Modern Gradient Price Tag -->
+                        <div class="premium-price-container">
+                            <span class="price-label">Giá sở hữu</span>
+                            <div class="price-value-glow">
+                                {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
+                            </div>
+                            <div class="price-badges-row">
+                                <span class="premium-badge-check">✓ Trả góp 0%</span>
+                                <span class="premium-badge-check">✓ Miễn phí giao hàng</span>
+                            </div>
+                        </div>
 
-                                <div v-if="group.name === 'Màu sắc'" class="color-list">
-                                    <button v-for="item in group.values" :key="item.giatri" class="color-btn"
-                                        :class="{ active: selectedOptions[group.name] === item.giatri }"
-                                        @click="handleSelectOptionWithReset(group.name, item.giatri)"
-                                        :title="item.giatri">
-                                        <span class="color-dot"
-                                            :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
+                        <!-- BOX ƯU ĐÃI ĐI KÈM (VIP Bundles Up-sell) -->
+                        <div class="product-benefits-box">
+                            <h4 class="benefits-title">🎁 ƯU ĐÃI ĐI KÈM ĐẶC BIỆT:</h4>
+                            <ul class="benefits-list">
+                                <li>
+                                    <span class="benefit-icon">🎒</span>
+                                    <span class="benefit-text">Tặng ngay Balo Predator chống nước cao cấp trị giá 850.000đ.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💳</span>
+                                    <span class="benefit-text">Giảm thêm <b>500.000đ</b> khi thanh toán online qua VNPay/Momo.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💸</span>
+                                    <span class="benefit-text">Trả góp <b>0% lãi suất</b> bằng thẻ tín dụng (kỳ hạn đến 12 tháng).</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">💿</span>
+                                    <span class="benefit-text">Miễn phí trọn đời dịch vụ cài đặt Windows, Office bản quyền & vệ sinh máy định kỳ.</span>
+                                </li>
+                                <li>
+                                    <span class="benefit-icon">🚀</span>
+                                    <span class="benefit-text">Miễn phí giao hàng toàn quốc hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- BOX CAM KẾT CHẤT LƯỢNG (Trust Badges) -->
+                        <div class="product-guarantees-box">
+                            <div class="guarantee-card">
+                                <span class="g-icon">🛡️</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">100% Chính Hãng</span>
+                                    <span class="g-desc">Đầy đủ VAT & xuất xứ</span>
+                                </div>
+                            </div>
+                            <div class="guarantee-card">
+                                <span class="g-icon">⚙️</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">Bảo Hành 24T</span>
+                                    <span class="g-desc">Chính hãng tại trung tâm</span>
+                                </div>
+                            </div>
+                            <div class="guarantee-card">
+                                <span class="g-icon">🔁</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">1 Đổi 1 7 Ngày</span>
+                                    <span class="g-desc">Nếu phát sinh lỗi NSX</span>
+                                </div>
+                            </div>
+                            <div class="guarantee-card">
+                                <span class="g-icon">💎</span>
+                                <div class="g-text-wrap">
+                                    <span class="g-title">Hỗ Trợ 24/7</span>
+                                    <span class="g-desc">Trọn đời từ Predator</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Variant Selectors Option Groups -->
+                        <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
+                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
+                                <div class="option-header-row">
+                                    <span class="option-label-title">{{ group.name }}</span>
+                                    <span class="option-selected-value">{{ selectedOptions[group.name] }}</span>
+                                </div>
+
+                                <!-- Color Dot Custom Buttons -->
+                                <div v-if="group.name === 'Màu sắc'" class="premium-color-selectors">
+                                    <button v-for="item in group.values" :key="item.giatri"
+                                            :class="['color-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
+                                            @click="handleSelectOptionWithReset(group.name, item.giatri)"
+                                            :title="item.giatri">
+                                        <span class="color-core" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
+                                        <span class="color-ring-glow"></span>
                                     </button>
                                 </div>
 
-                                <div v-else class="variant-grid">
-                                    <button v-for="item in group.values" :key="item.giatri" class="variant-item-btn"
-                                        :class="{ active: selectedOptions[group.name] === item.giatri }"
-                                        @click="handleSelectOptionWithReset(group.name, item.giatri)">
-                                        {{ item.giatri }}
+                                <!-- Custom Pill Buttons for RAM / SSD / Specs -->
+                                <div v-else class="premium-pill-selectors">
+                                    <button v-for="item in group.values" :key="item.giatri"
+                                            :class="['pill-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
+                                            @click="handleSelectOptionWithReset(group.name, item.giatri)">
+                                        <span class="pill-text">{{ item.giatri }}</span>
+                                        <span class="active-indicator"></span>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="product-options" v-else>
-                            <p style="color:#666; font-size:14px;">Sản phẩm đang cập nhật tùy chọn.</p>
+                        <!-- Option Group fallback if none -->
+                        <div class="premium-selectors-wrapper" v-else>
+                            <p class="updating-text">Thông số biến thể đang được đồng bộ...</p>
                         </div>
 
-
-                        <div class="qty-wrap" v-if="selectedVariant && selectedVariant.soluong > 0">
-                            <p class="option-label">Số lượng:</p>
-                            <div class="qty-control">
-                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1">−</button>
-                                <span>{{ soLuongMua }}</span>
-                                <button @click="tangSoLuong"
-                                    :disabled="soLuongMua >= selectedVariant.soluong">+</button>
+                        <!-- Stock Status -->
+                        <div class="premium-stock-banner" v-if="selectedVariant">
+                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
+                                <span class="pulse-green-dot"></span>
+                                <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
+                            </div>
+                            <div v-else class="stock-status out-of-stock">
+                                <span class="pulse-red-dot"></span>
+                                <span class="stock-text">Hiện tại hết hàng - Liên hệ CSKH hỗ trợ</span>
                             </div>
                         </div>
 
+                        <!-- Qty and CTAs buy buttons -->
+                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
+                            <!-- Qty Control -->
+                            <div class="premium-qty-stepper">
+                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                                <span class="stepper-value">{{ soLuongMua }}</span>
+                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                            </div>
 
-                        <div class="actions">
-                            <button class="add"
-                                :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
-                                :class="{ 'disabled-btn': !selectedVariant || selectedVariant.soluong === 0 }"
-                                @click="themVaoGioHang">
-                                <span v-if="dangThem"> Đang thêm...</span>
-                                <span v-else> Thêm vào giỏ hàng</span>
-                            </button>
-                            <button class="install">Trả góp 0%</button>
-                            
-                            <button class="wishlist-btn" :disabled="dangThemYeuThich" @click="themVaoYeuThich"
-                                title="Thêm vào yêu thích">
-                                <span v-if="dangThemYeuThich">⏳</span>
-                                <span v-else>❤️</span>
-                            </button>
+                            <!-- Buttons action grid -->
+                            <div class="actions-grid">
+                                <button class="btn-buy-now btn-glow-primary"
+                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
+                                        @click="themVaoGioHang">
+                                    <span class="btn-ripple-bg"></span>
+                                    <span v-if="dangThem" class="loading-spin-circle"></span>
+                                    <span v-else class="btn-content-text">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                                            <circle cx="9" cy="21" r="1"></circle>
+                                            <circle cx="20" cy="21" r="1"></circle>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                        </svg>
+                                        THÊM VÀO GIỎ HÀNG
+                                    </span>
+                                </button>
 
-                            <button class="compare-btn" title="So sánh sản phẩm" @click="openCompareModal">
-                                🔁 So sánh
-                            </button>
+                                <button class="btn-installment">
+                                    <span class="top-tag">LÃI SUẤT 0%</span>
+                                    <span class="main-text">TRẢ GÓP ONLINE</span>
+                                </button>
+                            </div>
+
+                            <!-- Wishlist & Compare floating actions -->
+                            <div class="floating-shortcuts-row">
+                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
+                                    <span class="icon">{{ dangThemYeuThich ? '⏳' : '❤️' }}</span>
+                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
+                                </button>
+
+                                <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
+                                    <span class="icon">🔁</span>
+                                    <span>So sánh specs</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="info">
-                            <span>Giao nhanh 2h</span>
-                            <span>Bảo hành 24 tháng</span>
-                        </div>
-
-                        <!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
+<!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
                         <div v-if="selectedVariantOffers.length > 0" class="variant-offers-box">
                             <div class="offer-header-vip">
                                 <span class="badge-vip">🎁 ĐẶC QUYỀN VIP</span>
@@ -979,12 +1315,12 @@ const handleSelectVariantById = (idBienThe) => {
                             <span class="teaser-icon">💡</span>
                             <div class="teaser-content">
                                 <p class="teaser-text">
-                                    <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản 
+                                    <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản
                                     <span class="highlight-variant" @click="handleSelectVariantById(otherVariantsWithOffers[0].id_bienthe)" title="Click để chọn phiên bản này ngay">
                                         "{{ otherVariantsWithOffers[0].ten_bienthe }}"
-                                    </span> 
-                                    để nhận ngay Quà Tặng 
-                                    <span class="free-text-badge">MIỄN PHÍ 0đ</span>: 
+                                    </span>
+                                    để nhận ngay Quà Tặng
+                                    <span class="free-text-badge">MIỄN PHÍ 0đ</span>:
                                     <b>{{ otherVariantsWithOffers[0].offers[0].ten_combo }}</b>!
                                 </p>
                             </div>
@@ -1022,1222 +1358,3232 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- THÔNG SỐ KỸ THUẬT -->
-                <div class="specifications" v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.length > 0">
-                    <div class="spec-header">
-                        <h2>Thông số kỹ thuật</h2>
-                    </div>
-                    <div class="spec-table-wrap">
-                        <table class="spec-table">
-                            <tbody>
-                                <tr v-for="(spec, idx) in product.thong_so_ky_thuat" :key="idx">
-                                    <td class="spec-label">{{ spec.ten_thuoctinh }}</td>
-                                    <td class="spec-value">{{ spec.giatri }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Popup so sánh: hiển thị khi người dùng nhấn nút So sánh -->
-                <div>
-                    <transition name="fade">
-                        <div class="compare-modal-overlay" v-if="showCompareModal">
-                            <div class="compare-modal">
-                                <div class="compare-modal-header">
-                                    <h3>Chọn sản phẩm để so sánh (tối đa {{ maxCompare }})</h3>
-                                    <button class="close" @click="closeCompareModal">✕</button>
-                                </div>
+        <!-- HIGH-TECH SPECIFICATIONS TABLE SECTION -->
+        <div class="premium-specs-section" v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.length > 0">
+            <div class="container">
+                <div class="specs-table-panel">
+                    <div class="specs-panel-topbar">
+                        <div>
+                            <span class="accent-subtitle">SPECIFICATIONS</span>
+                            <h2 class="section-main-title">Bảng Thông Tin Máy</h2>
+                        </div>
+                        <div class="specs-mode-tabs">
+                            <button
+                                :class="['specs-mode-btn', { active: specsPanelMode === 'info' }]"
+                                @click="specsPanelMode = 'info'">
+                                Xem thông tin máy
+                            </button>
+                            <button
+                                :class="['specs-mode-btn', { active: specsPanelMode === 'compare' }]"
+                                @click="specsPanelMode = 'compare'">
+                                Lọc so sánh máy
+                            </button>
+                        </div>
+                    </div>
 
-                                <div class="compare-modal-body">
-                                    <div class="compare-left">
-                                        <div v-if="relatedProducts.length === 0">Không có sản phẩm tương tự để so sánh.</div>
-                                        <div class="compare-list">
-                                            <label v-for="p in relatedProducts" :key="p.key_id" class="compare-item">
-                                                <input type="checkbox" :value="p.key_id" v-model="compareSelection"
-                                                    :disabled="compareSelection.length >= maxCompare && !compareSelection.includes(p.key_id)" />
-                                                <img :src="p.img" :alt="p.fullName" />
-                                                <div class="meta">
-                                                    <div class="name">{{ p.fullName }}</div>
-                                                    <div class="spec">{{ p.specText }}</div>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
+                    <!-- TABBED SPECIFICATIONS CARDS -->
+                    <div v-if="specsPanelMode === 'info'" class="tabbed-specs-layout">
+                        <!-- Tab Headers -->
+                        <div class="specs-category-tabs">
+                            <button v-for="(cat, cIdx) in categorizedSpecs" :key="cIdx"
+                                    :class="['spec-tab-btn', { active: activeSpecTab === cIdx }]"
+                                    @click="activeSpecTab = cIdx">
+                                <span class="tab-icon">{{ cat.icon }}</span>
+                                <span class="tab-text">{{ cat.title }}</span>
+                            </button>
+                        </div>
 
-                                    <div class="compare-right">
-                                        
-
-                                        <div class="compare-result" v-if="compareSelection.length > 0">
-                                            <div class="comparison-table-wrapper">
-                                                <table class="comparison-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="attr-col">Thông số</th>
-                                                        <th class="product-col">
-                                                            <div class="prod-header">
-                                                                <img :src="selectedImage" />
-                                                                <div class="prod-info">
-                                                                    <div class="prod-name">{{ product.tenSP }}</div>
-                                                                    <div class="prod-price">{{ formatPrice(selectedVariant.gia) }}</div>
-                                                                </div>
-                                                            </div>
-                                                        </th>
-                                                        <th class="product-col" v-for="p in compareProducts" :key="p.key_id">
-                                                            <div class="prod-header">
-                                                                <img :src="p.img" />
-                                                                <div class="prod-info">
-                                                                    <div class="prod-name">{{ p.fullName }}</div>
-                                                                    <div class="prod-price">{{ formatPrice(p.price) }}</div>
-                                                                </div>
-                                                            </div>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                
-                                                <tbody>
-                                                    <tr v-for="attr in allAttributeKeys" :key="attr">
-                                                        <td class="attr-col">{{ attr }}</td>
-                                                        <td class="product-col">
-                                                            <!-- Kiểm tra thông số kỹ thuật sản phẩm hiện tại trước (case-insensitive) -->
-                                                            <span v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
-                                                                {{ product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
-                                                            </span>
-                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
-                                                            <span v-else-if="extractAllAttributes(selectedVariant)[attr.toLowerCase()]" class="value">
-                                                                {{ extractAllAttributes(selectedVariant)[attr.toLowerCase()] }}
-                                                            </span>
-                                                            <span v-else class="no-value">—</span>
-                                                        </td>
-                                                        <td class="product-col" v-for="p in compareProducts" :key="p.key_id">
-                                                            <!-- Kiểm tra thông số kỹ thuật so sánh trước (case-insensitive) -->
-                                                            <span v-if="p.thong_so_ky_thuat && p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="value">
-                                                                {{ p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
-                                                            </span>
-                                                            <!-- Nếu không, kiểm tra thuộc tính biến thể (case-insensitive) -->
-                                                            <span v-else-if="(p.attributes || {})[attr.toLowerCase()]" class="value">
-                                                                {{ (p.attributes || {})[attr.toLowerCase()] }}
-                                                            </span>
-                                                            <span v-else class="no-value">—</span>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <!-- Selected Category Grid -->
+                        <div class="spec-tab-content-grid" v-if="categorizedSpecs[activeSpecTab]">
+                            <div v-for="(item, idx) in categorizedSpecs[activeSpecTab].items" :key="idx" class="spec-detail-card">
+                                <span class="spec-row-label">{{ item.label }}</span>
+                                <strong class="spec-row-value">{{ item.value }}</strong>
                             </div>
                         </div>
-                    </transition>
+                    </div>
+
+                    <div v-else class="inline-compare-area">
+                        <div class="inline-compare-filter">
+                            <div class="inline-filter-title">Chọn máy để so sánh</div>
+                            <p class="inline-filter-note">Tối đa {{ maxCompare }} máy tương tự.</p>
+                            <div class="no-related-msg" v-if="relatedProducts.length === 0">Không tìm thấy máy tương tự để so sánh.</div>
+                            <div class="inline-compare-list" v-else>
+                                <label v-for="p in relatedProducts" :key="p.key_id" class="inline-compare-item">
+                                    <input
+                                        type="checkbox"
+                                        :value="p.key_id"
+                                        v-model="compareSelection"
+                                        :disabled="compareSelection.length >= maxCompare && !compareSelection.includes(p.key_id)" />
+                                    <img :src="p.img" :alt="p.fullName" />
+                                    <span class="inline-compare-name">{{ p.fullName }}</span>
+                                    <span class="inline-compare-price">{{ formatPrice(p.price) }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="inline-compare-table-wrap">
+                            <div class="empty-inline-compare" v-if="compareSelection.length === 0">
+                                Chọn ít nhất một máy ở bên trái để xem bảng so sánh.
+                            </div>
+                            <table v-else class="inline-compare-table">
+                                <thead>
+                                    <tr>
+                                        <th>Thông số</th>
+                                        <th>Máy đang xem</th>
+                                        <th v-for="p in compareProducts" :key="p.key_id">{{ p.fullName }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="attr in allAttributeKeys" :key="attr">
+                                        <td class="machine-spec-name">{{ attr }}</td>
+                                        <td class="machine-spec-value">
+                                            <span v-if="product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())">
+                                                {{ product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                            </span>
+                                            <span v-else-if="selectedVariant && extractAllAttributes(selectedVariant)[attr.toLowerCase()]">
+                                                {{ extractAllAttributes(selectedVariant)[attr.toLowerCase()] }}
+                                            </span>
+                                            <span v-else class="cell-no-value">-</span>
+                                        </td>
+                                        <td v-for="p in compareProducts" :key="p.key_id" class="machine-spec-value">
+                                            <span v-if="p.thong_so_ky_thuat && p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())">
+                                                {{ p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                            </span>
+                                            <span v-else-if="p.attributes && p.attributes[attr]">{{ p.attributes[attr] }}</span>
+                                            <span v-else class="cell-no-value">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                                    </div>
+            </div>
+        </div>
+
+        <!-- NEW PRODUCT HIGHLIGHTS SECTION -->
+        <div class="premium-highlights-section">
+            <div class="container">
+                <div class="section-title-wrap text-center">
+                    <span class="accent-subtitle">FEATURES HIGHLIGHT</span>
+                    <h2 class="section-main-title">Tại Sao Nên Chọn Sản Phẩm Này?</h2>
+                    <p class="section-description-text text-center">Được chế tạo để dẫn đầu xu thế, mang lại trải nghiệm đỉnh cao cho mọi lập trình viên và nhà sáng tạo nội dung.</p>
                 </div>
+
+                <div class="highlights-grid">
+                    <!-- Feature 1 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">🚀</div>
+                            <h3>Hiệu năng bứt phá mọi giới hạn</h3>
+                            <p>Tăng tốc tối đa các tác vụ nặng như render video 4K, compile source code cực nhanh nhờ tích hợp AI thông minh thế hệ mới nhất.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">👁️</div>
+                            <h3>Màn hình Retina sắc nét đỉnh cao</h3>
+                            <p>Không gian màu 100% DCI-P3 chuẩn xác, tần số quét cao siêu mượt cho trải nghiệm thiết kế đồ họa đỉnh cao chân thực.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">🔋</div>
+                            <h3>Năng lượng bền bỉ suốt cả ngày</h3>
+                            <p>Tối ưu hóa năng lượng siêu hiệu quả cùng chế độ sạc nhanh Type-C thông minh, giúp bạn tự tin làm việc di động không lo hết pin.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">🧠</div>
+                            <h3>Trí tuệ nhân tạo AI Ready thế hệ mới</h3>
+                            <p>Vi xử lý tích hợp bộ gia tốc NPU riêng biệt, hỗ trợ đắc lực cho các thuật toán học máy và trợ lý ảo làm việc tối ưu nhất.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">💎</div>
+                            <h3>Thiết kế nhôm CNC cấp tàu vũ trụ</h3>
+                            <p>Chế tác tinh xảo, đường cắt kim cương chuẩn xác, mỏng nhẹ thời thượng nhưng vô cùng bền bỉ đạt chuẩn quân đội.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="highlight-item-card">
+                        <div class="h-card-inner">
+                            <div class="h-card-icon">❄️</div>
+                            <h3>Hệ thống tản nhiệt buồng hơi vượt trội</h3>
+                            <p>Các cánh quạt siêu mỏng cùng buồng hơi kép giữ cho nhiệt độ luôn mát mẻ ngay cả khi chịu tải nặng kéo dài nhiều giờ liền.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BENCHMARK SYSTEM SECTION -->
+        <div class="premium-benchmark-section">
+            <div class="container">
+                <div class="premium-section-header text-center">
+                    <span class="section-label">Performance Core</span>
+                    <h2>Kiểm Tra Hiệu Năng Thực Tế</h2>
+                    <p class="section-description-text text-center">Điểm số benchmark đo đạc trực tiếp trên cấu hình phần cứng tối tân của máy.</p>
+                </div>
+
+                <div class="benchmark-container-grid">
+                    <div v-for="(bench, idx) in benchmarkData" :key="idx" class="benchmark-progress-card">
+                        <div class="bench-meta-row">
+                            <span class="bench-label">{{ bench.label }}</span>
+                            <span class="bench-score" :style="{ color: bench.color }">{{ bench.score }}%</span>
+                        </div>
+                        <div class="bench-progress-track">
+                            <div class="bench-progress-fill" :style="{ width: bench.score + '%', backgroundColor: bench.color }"></div>
+                        </div>
+                        <p class="bench-desc">{{ bench.desc }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW PRODUCT STORYTELLING BLOCK SECTIONS (Apple Style) -->
+        <div class="premium-storytelling-section">
+            <!-- Story Block 1 -->
+            <div class="story-block">
+                <div class="container grid-2-columns">
+                    <div class="story-content">
+                        <span class="story-tag">DESIGN ARCHITECTURE</span>
+                        <h2 class="story-title">Kiệt tác chế tác nhôm nguyên khối bền bỉ.</h2>
+                        <p class="story-p">
+                            Từng milimet của chiếc laptop này được điêu khắc tinh xảo từ một khối nhôm duy nhất bằng công nghệ cắt CNC chính xác cấp độ micrometer. Không chỉ mang lại một bộ khung mỏng nhẹ tuyệt đối, nó còn mang trong mình độ bền bỉ phi thường, chống chịu mọi va đập hàng ngày, sẵn sàng đồng hành cùng bạn trên mọi hành trình kiến tạo tương lai.
+                        </p>
+                        <div class="story-stats-row">
+                            <div class="stat-unit">
+                                <span class="num">1.49 kg</span>
+                                <span class="desc">Siêu mỏng nhẹ</span>
+                            </div>
+                            <div class="stat-unit">
+                                <span class="num">14.9 mm</span>
+                                <span class="desc">Độ mỏng ấn tượng</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="story-media-box">
+                        <div class="glass-media-card">
+                            <img :src="allImages[0]" alt="Thiết kế khung nhôm CNC" class="story-img" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
                 <!-- Modal Chọn Biến Thể Combo -->
-                <ComboSelectionModal 
-                    v-if="selectedCombo" 
-                    :combo="selectedCombo" 
+                <ComboSelectionModal
+                    v-if="selectedCombo"
+                    :combo="selectedCombo"
                     :show="showComboModal"
                     :triggerVariant="selectedTriggerVariant"
-                    @close="showComboModal = false; selectedTriggerVariant = null" 
+                    @close="showComboModal = false; selectedTriggerVariant = null"
                 />
 
-                <!-- ĐÁNH GIÁ -->
-                <div class="reviews" id="reviews-section">
-                    <div class="review-header">
-                        <div>
-                            <h2>Đánh giá từ người dùng ({{ reviews.length }})</h2>
-                            <p v-if="reviews.length > 0">Điểm trung bình: <b>{{ averageRating }} / 5</b></p>
-                            <p v-else>Sản phẩm này chưa có đánh giá. Hãy là người đầu tiên mua và đánh giá!</p>
+            <!-- Story Block 2 -->
+            <div class="story-block alt-direction">
+                <div class="container grid-2-columns">
+                    <div class="story-media-box">
+                        <div class="glass-media-card">
+                            <img :src="allImages[1] || allImages[0]" alt="Sức mạnh xử lý AI NPU" class="story-img" />
+                        </div>
+                    </div>
+                    <div class="story-content">
+                        <span class="story-tag">PREDATOR INTELLIGENCE</span>
+                        <h2 class="story-title">Kỷ nguyên trí tuệ nhân tạo local dẫn đầu xu hướng.</h2>
+                        <p class="story-p">
+                            Khởi động và vận hành các tác vụ trí tuệ nhân tạo AI cực nhanh mà không cần kết nối đám mây nhờ bộ vi xử lý được thiết kế chuyên biệt. Cho dù bạn đang xử lý thuật toán học sâu phức tạp hay tối ưu hình ảnh, bộ nhân NPU thế hệ mới sẽ giải quyết mọi thứ trong tích tắc với mức tiêu thụ điện năng tối thiểu nhất.
+                        </p>
+                        <div class="story-stats-row">
+                            <div class="stat-unit">
+                                <span class="num">38 TOPS</span>
+                                <span class="desc">Sức mạnh tính toán AI</span>
+                            </div>
+                            <div class="stat-unit">
+                                <span class="num">2.5X</span>
+                                <span class="desc">Hiệu suất render AI</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- REVIEWS RATING & FEEDBACK SECTION -->
+        <div class="premium-reviews-section" id="reviews-section">
+            <div class="container">
+                <div class="section-title-wrap">
+                    <span class="accent-subtitle">CUSTOMER REVIEWS</span>
+                    <h2 class="section-main-title">Ý Kiến Từ Người Sử Dụng</h2>
+                    <p class="section-description-text">Chúng tôi trân trọng từng phản hồi để mang đến sản phẩm và dịch vụ công nghệ hoàn hảo nhất.</p>
+                </div>
+
+                <!-- Main dashboard summary -->
+                <div class="reviews-dashboard-grid">
+                    <!-- Left Score Card -->
+                    <div class="rating-overall-card">
+                        <span class="card-label">ĐIỂM ĐÁNH GIÁ TRUNG BÌNH</span>
+                        <div class="overall-score-number">{{ averageRating }}</div>
+                        <div class="overall-stars">
+                            <span v-for="i in 5" :key="i" class="dashboard-star">
+                                {{ i <= Math.round(averageRating) ? '★' : '☆' }}
+                            </span>
+                        </div>
+                        <span class="overall-total-count">Dựa trên {{ reviews.length }} phản hồi thực tế</span>
+                    </div>
+
+                    <!-- Center distribution meters -->
+                    <div class="rating-meters-card">
+                        <div class="meters-title">Phân tích sao đánh giá</div>
+
+                        <div class="rating-meters-wrapper" v-if="reviews.length > 0">
+                            <div v-for="stars in [5,4,3,2,1]" :key="stars" class="meter-bar-row">
+                                <span class="stars-label">{{ stars }} ★</span>
+                                <div class="meter-track">
+                                    <div class="meter-fill" :style="{ width: (ratingDistribution[stars] / reviews.length * 100) + '%' }"></div>
+                                </div>
+                                <span class="percent-label">{{ Math.round((ratingDistribution[stars] || 0) / reviews.length * 100) }}%</span>
+                            </div>
+                        </div>
+                        <div class="no-reviews-fallback" v-else>
+                            <p>Không có dữ liệu phân tích. Hãy mua và để lại bình luận đầu tiên.</p>
                         </div>
                     </div>
 
-                    <div class="review-list" v-if="reviews.length > 0">
-                        <div class="review-card" v-for="review in reviews" :key="review.id_danhgia">
-                            <div class="review-user-row">
-                                <div class="user-avatar-small">
-                                    {{ review.user?.name?.charAt(0) || 'U' }}
-                                </div>
-                                <div>
-                                    <b class="user-name">{{ review.user?.name || 'Người dùng' }}</b>
-                                    <p class="review-date">{{ formatDate(review.created_at) }}</p>
-                                </div>
-                            </div>
-
-                            <div class="stars-gold">
-                                <span v-for="s in 5" :key="s">
-                                    {{ s <= review.danhgia ? '★' : '☆' }} </span>
-                            </div>
-
-                            <p class="review-comment">{{ review.binhluan || 'Hài lòng với sản phẩm.' }}</p>
-                        </div>
-                    </div>
-
-                    <div v-else class="empty-reviews">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path
-                                d="M12 20.25c4.556 0 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75 3.75 7.444 3.75 12s3.694 8.25 8.25 8.25z" />
-                            <path d="M12 8.25v7.5M15.75 12h-7.5" />
-                        </svg>
-                        <p>Chưa có bình luận nào cho sản phẩm này.</p>
+                    <!-- Right Trust card -->
+                    <div class="reviews-cskh-card">
+                        <div class="cskh-avatar">🤝</div>
+                        <h3>Chính Sách Đánh Giá Khách Quan</h3>
+                        <p>100% nhận xét đều xuất phát từ người mua đã hoàn thành thanh toán hóa đơn sản phẩm. Đội ngũ kỹ sư sẽ hỗ trợ phản hồi trong vòng 24 giờ.</p>
                     </div>
                 </div>
 
+                <!-- Reviews User Feedbacks list -->
+                <div class="reviews-list-wrapper" v-if="reviews.length > 0">
+                    <div class="review-feedback-card" v-for="review in reviews" :key="review.id_danhgia">
+                        <div class="card-glow-outline"></div>
+                        <div class="card-top-header">
+                            <div class="user-profile-meta">
+                                <div class="user-avatar-circle">
+                                    {{ review.user?.name?.charAt(0).toUpperCase() || 'U' }}
+                                </div>
+                                <div class="name-date-stack">
+                                    <b class="username">{{ review.user?.name || 'Khách hàng ẩn danh' }}</b>
+                                    <span class="review-timestamp">✓ Đã mua hàng · {{ formatDate(review.created_at) }}</span>
+                                </div>
+                            </div>
+                            <div class="review-badge-stars">
+                                <span v-for="s in 5" :key="s" class="star">
+                                    {{ s <= review.danhgia ? '★' : '☆' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body-text">
+                            <p class="comment-p">"{{ review.binhluan || 'Sản phẩm hoạt động cực tốt, cấu hình cực mạnh, màn hình siêu nét đúng như mô tả của website.' }}"</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty reviews visual state -->
+                <div v-else class="empty-reviews-state">
+                    <div class="empty-icon-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 10.742h.008v.008h-.008v-.008zm.37 0h.008v.008h-.008v-.008zM12 20.25c4.556 0 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75 3.75 7.444 3.75 12s3.694 8.25 8.25 8.25z" />
+                        </svg>
+                    </div>
+                    <h4>Chưa có đánh giá nào cho siêu phẩm này</h4>
+                    <p>Hãy là những người đầu tiên sở hữu để chia sẻ những cảm nhận và đánh giá chân thực nhất với cộng đồng.</p>
+                </div>
             </div>
+        </div>
+
+        <!-- RELATED PRODUCTS SECTION -->
+        <div class="premium-related-products-section" v-if="filteredRelatedProducts.length > 0">
+            <div class="container">
+                <div class="related-section-header">
+                    <div class="title-side">
+                        <span class="subtitle-tag">RECOMMENDATIONS</span>
+                        <h2 class="main-title" v-if="selectedCategory">Sản Phẩm Tương Tự: {{ selectedCategory }}</h2>
+                        <h2 class="main-title" v-else>Có Thể Bạn Sẽ Thích</h2>
+                    </div>
+                    <router-link to="/products" class="action-all-link">Xem tất cả sản phẩm <span class="arrow">→</span></router-link>
+                </div>
+
+                <!-- Grid layout of Related items -->
+                <div class="related-products-grid">
+                    <div class="premium-product-card" v-for="p in paginatedRelatedProducts" :key="p.key_id"
+                         @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
+                        <div class="card-glow-outline"></div>
+                        <div class="badge-row">
+                            <span class="tag-badge badge-glow">HOT PROMO</span>
+                        </div>
+
+                        <div class="product-image-box">
+                            <img :src="p.img" :alt="p.fullName" class="card-main-image" />
+                        </div>
+
+                        <div class="product-info-box">
+                            <h4 class="product-card-title">{{ p.fullName }}</h4>
+                            <p class="product-card-specs">{{ p.specText }}</p>
+
+                            <!-- Rating stars for small related card -->
+                            <div class="product-card-rating">
+                                <span class="stars">⭐⭐⭐⭐⭐</span>
+                                <span class="score">5.0</span>
+                            </div>
+
+                            <div class="product-card-bottom-row">
+                                <div class="price-side">
+                                    <span class="price-title">Giá từ</span>
+                                    <span class="price-tag">{{ formatPrice(p.price) }}</span>
+                                </div>
+                                <button class="btn-quick-view" aria-label="Xem chi tiết sản phẩm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Related Pagination links -->
+                <div class="premium-pagination-container" v-if="totalRelatedPages > 1">
+                    <button class="pag-btn" :disabled="currentRelatedPage === 1" @click="currentRelatedPage--">
+                        &laquo; Trước
+                    </button>
+                    <div class="pag-numbers-box">
+                        <button v-for="p in totalRelatedPages" :key="p"
+                                :class="['pag-number-btn', { active: currentRelatedPage === p }]"
+                                @click="currentRelatedPage = p">
+                            {{ p }}
+                        </button>
+                    </div>
+                    <button class="pag-btn" :disabled="currentRelatedPage === totalRelatedPages" @click="currentRelatedPage++">
+                        Sau &raquo;
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENTLY VIEWED PRODUCTS SECTION -->
+        <div class="premium-related-products-section" v-if="recentlyViewedProducts.length > 0">
+            <div class="container">
+                <div class="related-section-header">
+                    <div class="title-side">
+                        <span class="subtitle-tag">HISTORY</span>
+                        <h2 class="main-title">Sản Phẩm Đã Xem Gần Đây</h2>
+                    </div>
+                </div>
+
+                <!-- Grid of recently viewed items -->
+                <div class="related-products-grid">
+                    <div class="premium-product-card" v-for="p in paginatedRecentlyViewedProducts" :key="p.key_id"
+                         @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
+                        <div class="card-glow-outline"></div>
+                        <div class="product-image-box">
+                            <img :src="p.img" :alt="p.fullName" class="card-main-image" />
+                        </div>
+
+                        <div class="product-info-box">
+                            <h4 class="product-card-title">{{ p.fullName }}</h4>
+                            <p class="product-card-specs">{{ p.specText }}</p>
+
+                            <div class="product-card-bottom-row">
+                                <div class="price-side">
+                                    <span class="price-title">Giá từ</span>
+                                    <span class="price-tag">{{ formatPrice(p.price) }}</span>
+                                </div>
+                                <button class="btn-quick-view" aria-label="Xem chi tiết sản phẩm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Viewed pagination links -->
+                <div class="premium-pagination-container" v-if="totalRecentlyViewedPages > 1">
+                    <button class="pag-btn" :disabled="currentRecentlyViewedPage === 1" @click="currentRecentlyViewedPage--">
+                        &laquo; Trước
+                    </button>
+                    <div class="pag-numbers-box">
+                        <button v-for="p in totalRecentlyViewedPages" :key="p"
+                                :class="['pag-number-btn', { active: currentRecentlyViewedPage === p }]"
+                                @click="currentRecentlyViewedPage = p">
+                            {{ p }}
+                        </button>
+                    </div>
+                    <button class="pag-btn" :disabled="currentRecentlyViewedPage === totalRecentlyViewedPages" @click="currentRecentlyViewedPage++">
+                        Sau &raquo;
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- POPUP SO SÁNH MODAL (High-tech full responsive design) -->
+        <div class="compare-modal-wrapper">
+            <transition name="fade">
+                <div class="compare-modal-overlay" v-if="showCompareModal">
+                    <div class="compare-modal-card">
+                        <div class="modal-glow-boundary"></div>
+
+                        <div class="compare-modal-header">
+                            <div class="header-titles">
+                                <h3>📊 So Sánh Hiệu Năng & Chi Tiết Phần Cứng</h3>
+                                <p>Chọn sản phẩm tương tự để so sánh trực tiếp các chỉ số (tối đa {{ maxCompare }} sản phẩm)</p>
+                            </div>
+                            <button class="close-modal-btn" @click="closeCompareModal" aria-label="Đóng cửa sổ">✕</button>
+                        </div>
+
+                        <div class="compare-modal-body">
+                            <!-- Left sidebar selector list -->
+                            <div class="compare-products-picker-panel">
+                                <div class="panel-section-title">Danh sách sản phẩm tương đồng:</div>
+                                <div class="no-related-msg" v-if="relatedProducts.length === 0">Không tìm thấy máy tương đương cấu hình.</div>
+
+                                <div class="picker-list-wrapper" v-else>
+                                    <label v-for="p in relatedProducts" :key="p.key_id" class="picker-item-row">
+                                        <input type="checkbox" :value="p.key_id" v-model="compareSelection"
+                                               :disabled="compareSelection.length >= maxCompare && !compareSelection.includes(p.key_id)"
+                                               class="custom-tech-checkbox" />
+                                        <div class="p-thumb-box"><img :src="p.img" :alt="p.fullName" /></div>
+                                        <div class="p-info-side">
+                                            <span class="p-name">{{ p.fullName }}</span>
+                                            <span class="p-price">{{ formatPrice(p.price) }}</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Right comparison table -->
+                            <div class="compare-results-table-panel">
+                                <div class="empty-compare-selection-state" v-if="compareSelection.length === 0">
+                                    <span class="icon">📊</span>
+                                    <h4>Chưa chọn sản phẩm so sánh</h4>
+                                    <p>Vui lòng tích chọn ít nhất một cấu hình máy tính ở bảng bên trái để bắt đầu đo thông số kỹ thuật.</p>
+                                </div>
+
+                                <div class="table-scroll-view" v-else>
+                                    <table class="comparison-tech-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="attribute-col">Thông số phần cứng</th>
+                                                <th class="product-showcase-col active-current">
+                                                    <div class="col-product-card">
+                                                        <img :src="selectedImage" alt="Sản phẩm hiện tại" />
+                                                        <span class="label-now">HIỆN TẠI</span>
+                                                        <span class="name">{{ product.tenSP }}</span>
+                                                        <span class="price-val">{{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}</span>
+                                                    </div>
+                                                </th>
+                                                <th class="product-showcase-col" v-for="p in compareProducts" :key="p.key_id">
+                                                    <div class="col-product-card">
+                                                        <img :src="p.img" :alt="p.fullName" />
+                                                        <span class="name">{{ p.fullName }}</span>
+                                                        <span class="price-val">{{ formatPrice(p.price) }}</span>
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <tr v-for="attr in allAttributeKeys" :key="attr">
+                                                <td class="attribute-col">{{ attr.toUpperCase() }}</td>
+                                                <td class="product-showcase-col active-current">
+                                                    <!-- Check spec array first -->
+                                                    <span v-if="product.thong_so_ky_thuat && product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="cell-value-text">
+                                                        {{ product.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                    </span>
+                                                    <!-- Else check variant attr -->
+                                                    <span v-else-if="extractAllAttributes(selectedVariant)[attr.toLowerCase()]" class="cell-value-text">
+                                                        {{ extractAllAttributes(selectedVariant)[attr.toLowerCase()] }}
+                                                    </span>
+                                                    <span v-else class="cell-no-value">—</span>
+                                                </td>
+                                                <td class="product-showcase-col" v-for="p in compareProducts" :key="p.key_id">
+                                                    <!-- Check spec array first -->
+                                                    <span v-if="p.thong_so_ky_thuat && p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())" class="cell-value-text">
+                                                        {{ p.thong_so_ky_thuat.find(s => (s.ten_thuoctinh || '').toLowerCase() === attr.toLowerCase())?.giatri }}
+                                                    </span>
+                                                    <!-- Else check variant attr -->
+                                                    <span v-else-if="(p.attributes || {})[attr.toLowerCase()]" class="cell-value-text">
+                                                        {{ (p.attributes || {})[attr.toLowerCase()] }}
+                                                    </span>
+                                                    <span v-else class="cell-no-value">—</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
         </div>
     </div>
 
-    <div class="related" v-if="!isLoading && relatedProducts.length > 0">
-        <div class="related-header">
-            <h2>Sản phẩm tương tự</h2>
-            <router-link to="/products">Xem tất cả →</router-link>
-        </div>
-        <div class="related-list">
-            <div class="product-card" v-for="p in paginatedRelatedProducts" :key="p.key_id"
-                @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
-                <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
-                <h4>{{ p.fullName }}</h4>
-                <p class="sub">{{ p.specText }}</p>
-                <p class="price">{{ formatPrice(p.price) }}</p>
-            </div>
-        </div>
-
-        <!-- PHÂN TRANG -->
-        <div class="related-pagination" v-if="totalRelatedPages > 1">
-            <button class="pag-btn" :disabled="currentRelatedPage === 1" @click="currentRelatedPage--">
-                &laquo; Trước
-            </button>
-            <div class="pag-numbers">
-                <button v-for="p in totalRelatedPages" :key="p" class="pag-num"
-                    :class="{ active: currentRelatedPage === p }" @click="currentRelatedPage = p">
-                    {{ p }}
-                </button>
-            </div>
-            <button class="pag-btn" :disabled="currentRelatedPage === totalRelatedPages" @click="currentRelatedPage++">
-                Sau &raquo;
-            </button>
-        </div>
-    </div>
-
-    <!-- SẢN PHẨM ĐÃ XEM GẦN ĐÂY -->
-    <div class="related" v-if="!isLoading && recentlyViewedProducts.length > 0">
-        <div class="related-header">
-            <h2>Sản phẩm đã xem gần đây</h2>
-        </div>
-        <div class="related-list">
-            <div class="product-card" v-for="p in paginatedRecentlyViewedProducts" :key="p.key_id"
-                @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
-                <div class="img-box"><img :src="p.img" :alt="p.fullName" /></div>
-                <h4>{{ p.fullName }}</h4>
-                <p class="sub">{{ p.specText }}</p>
-                <p class="price">{{ formatPrice(p.price) }}</p>
-            </div>
-        </div>
-
-        <!-- PHÂN TRANG -->
-        <div class="related-pagination" v-if="totalRecentlyViewedPages > 1">
-            <button class="pag-btn" :disabled="currentRecentlyViewedPage === 1" @click="currentRecentlyViewedPage--">
-                &laquo; Trước
-            </button>
-            <div class="pag-numbers">
-                <button v-for="p in totalRecentlyViewedPages" :key="p" class="pag-num"
-                    :class="{ active: currentRecentlyViewedPage === p }" @click="currentRecentlyViewedPage = p">
-                    {{ p }}
-                </button>
-            </div>
-            <button class="pag-btn" :disabled="currentRecentlyViewedPage === totalRecentlyViewedPages" @click="currentRecentlyViewedPage++">
-                Sau &raquo;
-            </button>
+    <!-- MAIN LOADING SCREEN -->
+    <div class="immersive-loader-screen" v-else>
+        <div class="loader-ripple-glow"></div>
+        <div class="loader-content-wrap">
+            <span class="loading-spinner"></span>
+            <h3>Đang giải mã dữ liệu sản phẩm...</h3>
+            <p>Vui lòng đợi trong khi chúng tôi chuẩn bị giao diện trải nghiệm sản phẩm cao cấp.</p>
         </div>
     </div>
 
 </template>
 
 <style scoped>
-/* ===== TOAST THÔNG BÁO ===== */
-.wishlist-btn {
-    padding: 0 16px;
-    border: 1px solid #ff4d4f;
-    border-radius: 8px;
-    cursor: pointer;
-    background: white;
-    color: #ff4d4f;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
+.sticky-buy-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid #E2E8F0;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    z-index: 1000;
+    padding: 12px 0;
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sticky-bar-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.sticky-info-left {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    transition: all 0.2s;
+    gap: 12px;
 }
 
-.wishlist-btn:hover:not(:disabled) {
-    background: #fff1f0;
-    transform: scale(1.05);
+.sticky-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
 }
 
-.wishlist-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.sticky-meta {
+    display: flex;
+    flex-direction: column;
 }
 
+.sticky-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+}
+
+.sticky-variant-name {
+    font-size: 12px;
+    color: #64748B;
+}
+
+.sticky-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.sticky-price-glow {
+    font-size: 18px;
+    font-weight: 800;
+    color: #2563EB;
+}
+
+/* Benefits Box */
+.product-benefits-box {
+    background: #f8fafc;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.benefits-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 12px 0;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    color: #475569;
+}
+
+.benefit-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Guarantees Box */
+.product-guarantees-box {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.guarantee-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.g-icon {
+    font-size: 22px;
+}
+
+.g-text-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.g-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.g-desc {
+    font-size: 11px;
+    color: #64748B;
+}
+
+/* Categorized Specs Tabs */
+.tabbed-specs-layout {
+    margin-top: 30px;
+}
+
+.specs-category-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+.spec-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748B;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.spec-tab-btn:hover {
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.spec-tab-btn.active {
+    color: #ffffff;
+    background: #2563EB;
+    border-color: #2563EB;
+}
+
+.spec-tab-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.spec-detail-card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.spec-row-label {
+    font-size: 12px;
+    color: #64748B;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.spec-row-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+/* Benchmark system styling */
+.premium-benchmark-section {
+    padding: 80px 0;
+    background: #ffffff;
+    border-top: 1px solid #E2E8F0;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.benchmark-container-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    margin-top: 40px;
+}
+
+@media (max-width: 768px) {
+    .benchmark-container-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.benchmark-progress-card {
+    background: #f8fafc;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.bench-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.bench-label {
+    font-weight: 700;
+    color: #0F172A;
+    font-size: 14.5px;
+}
+
+.bench-score {
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.bench-progress-track {
+    height: 10px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.bench-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 1s ease-in-out;
+}
+
+.bench-desc {
+    font-size: 12.5px;
+    color: #64748B;
+    margin: 0;
+}
+
+/* Fade Slide transition for Sticky Bar */
+.fade-slide-bar-enter-active,
+.fade-slide-bar-leave-active {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-bar-enter-from,
+.fade-slide-bar-leave-to {
+    opacity: 0;
+    transform: translateY(-100%);
+}
+
+
+
+/* ==================== GLOBAL PREMIUM VARIABLES ==================== */
+.page {
+    --primary: #2563EB;
+    --primary-glow: rgba(37, 99, 235, 0.15);
+    --secondary: #06B6D4;
+    --secondary-glow: rgba(6, 182, 212, 0.15);
+    --accent: #f59e0b;
+    --dark-bg: #0F172A;
+    --dark-surface: #111827;
+    --light-bg: #f8fafc;
+    --light-surface: #ffffff;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --border-color: rgba(255,255,255,0.07);
+    --card-glow: 0px 8px 30px rgba(0, 0, 0, 0.04);
+    --font-heading: 'Outfit', 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    background-color: #ffffff;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* ==================== TOAST & DECORATIONS ==================== */
 .toast {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 14px;
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-family: var(--font-heading);
+    font-size: 15px;
     font-weight: 600;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
     color: white;
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
+@keyframes toast-in {
+    from { transform: translateY(-20px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
 .toast.success {
-    background: #16a34a;
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
 }
-
 .toast.error {
-    background: #dc2626;
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
 }
 
 .slide-down-enter-active,
 .slide-down-leave-active {
-    transition: all 0.3s ease;
+    transition: var(--transition);
 }
-
-.slide-down-enter-from {
-    opacity: 0;
-    transform: translateY(-20px);
-}
-
+.slide-down-enter-from,
 .slide-down-leave-to {
     opacity: 0;
     transform: translateY(-20px);
 }
 
-/* ===== CHỌN SỐ LƯỢNG ===== */
-.qty-wrap {
-    margin-bottom: 20px;
-}
-
-.qty-control {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.qty-control button {
-    width: 38px;
-    height: 38px;
-    border: none;
-    background: #f1f5f9;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.qty-control button:hover:not(:disabled) {
-    background: #dbeafe;
-    color: #2563eb;
-}
-
-.qty-control button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.qty-control span {
-    min-width: 48px;
-    text-align: center;
-    font-weight: 600;
-    font-size: 15px;
-    border-left: 1px solid #cbd5e1;
-    border-right: 1px solid #cbd5e1;
-    padding: 0 8px;
-    line-height: 38px;
-}
-
-/* ===== GIỮ NGUYÊN STYLE CŨ ===== */
-.page {
-    background: #f5f7fb;
+.tech-glow-top {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 400px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(6, 182, 212, 0.02) 50%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
-    padding: 30px 24px;
-    font-family: sans-serif;
-}
-
-.detail {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 40px;
-    align-items: start;
-}
-
-.main-img {
-    background: #eef2ff;
-    padding: 24px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 420px;
-    overflow: hidden;
-}
-
-.main-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 6px;
-}
-
-.thumb-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 15px;
-    width: 100%;
-}
-
-.thumbs {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    flex: 1;
-}
-
-.thumbs img {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    cursor: pointer;
-    opacity: 0.7;
-    border-radius: 6px;
-    border: 2px solid #f1f5f9;
-    transition: 0.2s;
-}
-
-.thumbs img.active {
-    border-color: #2563eb;
-    opacity: 1;
-    background: #fff;
-}
-
-.thumb-nav {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid #e2e8f0;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #64748b;
-    transition: 0.2s;
-    flex-shrink: 0;
-}
-
-.thumb-nav:hover:not(:disabled) {
-    background: #f8fafc;
-    color: #2563eb;
-    border-color: #2563eb;
-}
-
-.thumb-nav:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.tag {
-    background: #e2e8f0;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-}
-
-h1 {
-    margin: 10px 0;
-}
-
-.price {
-    font-size: 24px;
-    color: #2563eb;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-
-.variant-stock {
-    margin-top: -10px;
-    margin-bottom: 18px;
-    font-size: 14px;
-}
-
-.in-stock {
-    color: #16a34a;
-}
-
-.out-stock {
-    color: #dc2626;
-    font-weight: bold;
-}
-
-.product-options {
-    margin-bottom: 25px;
-}
-
-.option-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 14px;
-}
-
-.option-label {
-    margin: 0 0 8px;
-    font-size: 14px;
-    color: #334155;
-    font-weight: bold;
-}
-
-.variant-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.variant-item-btn {
-    padding: 8px 16px;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s ease;
-    color: #334155;
-}
-
-.variant-item-btn:hover {
-    border-color: #2563eb;
-    color: #2563eb;
-}
-
-.variant-item-btn.active {
-    border-color: #2563eb;
-    background: #eff6ff;
-    color: #2563eb;
-    font-weight: bold;
-    box-shadow: 0 0 0 1px #2563eb;
-}
-
-.color-list {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-
-.color-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background: transparent;
-    padding: 3px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.color-btn.active {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 1px #2563eb;
-}
-
-.color-dot {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: 999px;
-    border: 1px solid #cbd5e1;
-}
-
-.actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.add {
-    flex: 1;
-    background: #2563eb;
-    color: white;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: 0.2s;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.add:hover:not(.disabled-btn) {
-    background: #1d4ed8;
-}
-
-.disabled-btn {
-    opacity: 0.5;
-    cursor: not-allowed !important;
-}
-
-.install {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    cursor: pointer;
-    background: white;
-}
-
-.info {
-    display: flex;
-    gap: 20px;
-    font-size: 13px;
-    color: #64748b;
-}
-
-.reviews {
-    margin-top: 60px;
-}
-
-/* ===== THÔNG SỐ KỸ THUẬT ===== */
-.specifications {
-    margin-top: 60px;
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-
-.spec-header {
-    margin-bottom: 24px;
-    border-left: 4px solid #2563eb;
-    padding-left: 16px;
-}
-
-.spec-header h2 {
-    font-size: 20px;
-    margin: 0;
-    color: #1e293b;
-}
-
-.spec-table-wrap {
-    overflow: hidden;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-}
-
-.spec-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.spec-table tr {
-    transition: background 0.2s;
-}
-
-.spec-table tr:nth-child(even) {
-    background: #f8fafc;
-}
-
-.spec-table tr:hover {
-    background: #f1f5f9;
-}
-
-.spec-table td {
-    padding: 14px 20px;
-    font-size: 14px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.spec-table tr:last-child td {
-    border-bottom: none;
-}
-
-.spec-label {
-    width: 30%;
-    font-weight: 600;
-    color: #64748b;
-    background: #f1f5f9;
-}
-
-.spec-value {
-    color: #1e293b;
-}
-
-@media (max-width: 768px) {
-    .spec-label {
-        width: 40%;
-    }
-}
-
-.review-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    align-items: center;
-}
-
-.review-header button {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.review-list {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-}
-
-.review-card {
-    background: #dadbdc;
-    padding: 15px;
-    border-radius: 10px;
-}
-
-.stars {
-    color: orange;
-}
-
-.related {
-    max-width: 1200px;
-    margin: 60px auto;
     padding: 0 24px;
+    position: relative;
+    z-index: 1;
 }
 
-.related-header {
+/* ==================== BREADCRUMBS ==================== */
+.premium-breadcrumb {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
-}
-
-.related-header h2 {
-    font-size: 24px;
-    font-weight: 800;
-    color: #0f172a;
-}
-
-.related-header a {
-    color: #2563eb;
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.related-list {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-}
-
-.product-card {
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #f1f5f9;
-    padding: 12px;
-    transition: all 0.25s ease;
-    cursor: pointer;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-}
-
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.1);
-    border-color: #2563eb;
-}
-
-.img-box {
-    background: #f8fafc;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    overflow: hidden;
-}
-
-.img-box img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    transition: transform 0.3s;
-}
-
-.product-card:hover .img-box img {
-    transform: scale(1.05);
-}
-
-.product-card h4 {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 24px 0 16px 0;
     font-size: 13px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 6px;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    /* Standard fallback */
-    line-clamp: 2;
-    overflow: hidden;
-    height: 36px;
-    line-height: 1.4;
+    font-weight: 500;
+    color: var(--text-secondary);
 }
-
-.sub {
+.premium-breadcrumb a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+.premium-breadcrumb a:hover {
+    color: var(--primary);
+}
+.premium-breadcrumb .sep {
+    color: #cbd5e1;
     font-size: 11px;
-    color: #64748b;
-    margin-bottom: 10px;
+}
+.premium-breadcrumb .current {
+    color: var(--primary);
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 250px;
 }
 
-.product-card .price {
-    font-size: 15px;
-    font-weight: 800;
-    color: #2563eb;
+/* ==================== IMMERSIVE HERO WRAPPER ==================== */
+.premium-hero-container {
+    position: relative;
+    padding-bottom: 40px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
-@media (max-width: 1024px) {
-
-    .detail,
-    .review-list {
-        grid-template-columns: 1fr;
-    }
-
-    .related {
-        padding: 0 16px;
-    }
-
-    .related-list {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.detail-hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: start;
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 16px 12px;
-    }
-    .main-img {
-        height: 320px;
-        padding: 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    .container {
-        padding: 12px 8px;
-    }
-    .main-img {
-        height: 240px;
-        padding: 8px;
-    }
-    .related-list {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* REVIEW STYLES */
-.stars-gold {
-    color: #f59e0b;
-    font-size: 16px;
-    margin-right: 5px;
-}
-
-.rating-count {
-    font-size: 14px;
-    color: #64748b;
-}
-
-.review-header {
+/* ==================== GALLERY COLUMN ==================== */
+.gallery-column {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f1f5f9;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.review-header h2 {
-    font-size: 20px;
+.main-image-viewport {
+    position: relative;
+    aspect-ratio: 4/3;
+    border-radius: 28px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06), inset 0 2px 4px rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    overflow: hidden;
+}
+
+.neon-glow-backdrop {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.main-showcase-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    z-index: 1;
+    transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.main-image-viewport:hover .main-showcase-image {
+    transform: scale(1.05);
+}
+
+.gallery-badges {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 2;
+}
+.badge {
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.badge-glow {
+    background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+.badge-tech {
+    background: #0F172A;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.premium-out-of-stock-badge {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    font-family: var(--font-heading);
     font-weight: 800;
-    color: #0f172a;
-    margin: 0;
+    letter-spacing: 2px;
+    font-size: 18px;
+    padding: 16px 36px;
+    border-radius: 50px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    z-index: 3;
 }
 
-.review-header p {
-    font-size: 14px;
-    color: #64748b;
-    margin-top: 5px;
+.gallery-nav-arrow {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    transition: var(--transition);
+    z-index: 2;
 }
-
-.review-card {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    transition: transform 0.2s;
+.gallery-nav-arrow svg {
+    width: 20px;
+    height: 20px;
 }
-
-.review-card:hover {
+.gallery-nav-arrow:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.arrow-left { left: 20px; }
+.arrow-right { right: 20px; }
+
+.slide-dots {
+    position: absolute;
+    bottom: 20px;
+    display: flex;
+    gap: 6px;
+    z-index: 2;
+}
+.slide-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.slide-dots .dot.active {
+    width: 24px;
+    border-radius: 10px;
+    background: var(--primary);
 }
 
-.review-user-row {
+.premium-thumbs-container {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    justify-content: center;
 }
-
-.user-avatar-small {
-    width: 36px;
-    height: 36px;
-    background: #2563eb;
-    color: #fff;
+.thumb-arrow-btn {
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-}
-
-.user-name {
-    font-size: 14px;
-    color: #0f172a;
-}
-
-.review-date {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.review-attr-tags {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin: 8px 0;
-}
-
-.attr-tag {
-    font-size: 12px;
-    color: #475569;
-    background: #f8fafc;
-    padding: 4px 10px;
-    border-radius: 4px;
-    border: 1px solid #e2e8f0;
-    font-weight: 500;
-}
-
-.review-comment {
-    font-size: 14px;
-    color: #334155;
-    line-height: 1.6;
-    margin-top: 5px;
-}
-
-.empty-reviews {
-    text-align: center;
-    padding: 60px 0;
-    color: #94a3b8;
-}
-
-.empty-reviews svg {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 15px;
-}
-
-/* PHÂN TRANG RELATED */
-.related-pagination {
-    margin-top: 30px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-}
-
-.pag-btn {
-    padding: 8px 16px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #64748b;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: var(--transition);
 }
-
-.pag-btn:hover:not(:disabled) {
-    border-color: #2563eb;
-    color: #2563eb;
-    background: #eff6ff;
+.thumb-arrow-btn:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
-
-.pag-btn:disabled {
+.thumb-arrow-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
-.pag-numbers {
+.premium-thumbs-scroll {
     display: flex;
-    gap: 6px;
+    gap: 12px;
 }
-
-.pag-num {
-    width: 36px;
-    height: 36px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 8px;
+.thumb-card {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+    transition: var(--transition);
+}
+.thumb-card img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.thumb-card.active {
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px var(--primary-glow);
+    transform: translateY(-2px);
+}
+
+/* ==================== PURCHASE COLUMN ==================== */
+.purchase-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.tech-spec-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.pill-spec-badge {
+    padding: 6px 12px;
+    border-radius: 30px;
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+}
+
+.brand-subtitle {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--secondary);
+    margin-bottom: 8px;
+}
+
+.premium-product-title {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.5px;
+}
+
+.premium-rating-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    margin-bottom: 24px;
+    width: fit-content;
+    padding: 4px 12px;
+    background: #ffffff;
+    border-radius: 30px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.stars-gold {
+    color: var(--accent);
+    letter-spacing: 1.5px;
+}
+.rating-numeric {
+    color: var(--text-primary);
+}
+.rating-separator {
+    color: #cbd5e1;
 }
 
-.pag-num:hover:not(.active) {
-    border-color: #cbd5e1;
-    color: #0f172a;
+.premium-price-container {
+    padding: 24px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
 }
-
-.pag-num.active {
-    background: #2563eb;
+.premium-price-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 80%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+}
+.price-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 4px;
+}
+.price-value-glow {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    font-weight: 800;
     color: white;
-    border-color: #2563eb;
+    line-height: 1;
+    margin-bottom: 12px;
+    background: linear-gradient(to right, #ffffff 30%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.price-badges-row {
+    display: flex;
+    gap: 12px;
+}
+.premium-badge-check {
+    font-size: 12px;
+    font-weight: 600;
+    color: #38bdf8;
 }
 
-/* ===== COMPARISON STYLES ===== */
-.comparison {
-    margin-top: 40px;
-    padding: 30px 0;
-    border-top: 2px solid #f1f5f9;
+.premium-trust-signals-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
 }
-
-.comparison h2 {
-    font-size: 22px;
+.signal-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.signal-icon {
+    font-size: 16px;
+}
+.signal-text {
+    font-size: 12px;
     font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 25px;
+    color: #334155;
 }
 
-.comparison-table-wrapper {
-    overflow-x: auto;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    background: #f8fafc;
-    max-height: 600px;
-    overflow-y: auto;
+/* ==================== SELECTORS ==================== */
+.premium-selectors-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 24px;
 }
-
-.comparison-table {
-    width: 100%;
-    min-width: 600px;
-    border-collapse: collapse;
-    background: white;
+.premium-option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-
-.comparison-table th,
-.comparison-table td {
-    padding: 16px 12px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.comparison-table th {
-    background: #f1f5f9;
-    font-weight: 700;
-    color: #0f172a;
+.option-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 13px;
+    font-weight: 800;
+}
+.option-label-title {
+    color: var(--text-primary);
+}
+.option-selected-value {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.premium-color-selectors {
+    display: flex;
+    gap: 12px;
+}
+.color-selector-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.color-core {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+    z-index: 1;
+}
+.color-ring-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid transparent;
+/* Hide quick-view buttons in related/recent lists since whole card is clickable */
+.btn-quick-view {
+    display: none !important;
+}
+    border-radius: 50%;
+    transition: var(--transition);
+}
+.color-selector-btn.active .color-ring-glow {
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.premium-pill-selectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.pill-selector-btn {
+    padding: 12px 20px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1.5px solid #d6e0ec;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pill-text {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    z-index: 1;
+}
+.active-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease-out;
+    z-index: 0;
+}
+.pill-selector-btn:hover {
+    border-color: var(--primary);
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+.pill-selector-btn.active {
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px var(--primary-glow);
+}
+.pill-selector-btn.active .pill-text {
+    color: white;
+}
+.pill-selector-btn.active .active-indicator {
+    transform: scaleX(1);
+}
+
+.updating-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ==================== STOCK & CTAS ==================== */
+.premium-stock-banner {
+    margin-bottom: 24px;
+}
+.stock-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+.stock-status.in-stock {
+    background: #ecfdf5;
+    color: #065f46;
+}
+.stock-status.out-of-stock {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.pulse-green-dot, .pulse-red-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: dot-pulse 1.5s infinite;
+}
+.pulse-green-dot { background-color: #10B981; }
+.pulse-red-dot { background-color: #EF4444; }
+
+@keyframes dot-pulse {
+    0% { transform: scale(0.95); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.5; }
+    100% { transform: scale(0.95); opacity: 1; }
+}
+
+.purchase-actions-box {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.premium-qty-stepper {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 14px;
+    overflow: hidden;
+    width: fit-content;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+.stepper-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f172a;
+    transition: var(--transition);
+}
+.stepper-btn:hover:not(:disabled) {
+    background: #eff6ff;
+    color: var(--primary);
+}
+.stepper-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.stepper-value {
+    min-width: 48px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 16px;
+}
+
+.btn-buy-now {
+    height: 54px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+    color: white;
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px var(--primary-glow);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-buy-now:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(37, 99, 235, 0.35);
+}
+.btn-buy-now:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.btn-content-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-installment {
+    height: 54px;
+    border-radius: 16px;
+    border: 1.5px solid var(--primary);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+.btn-installment .top-tag {
+    font-family: var(--font-heading);
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 0.5px;
+}
+.btn-installment .main-text {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.btn-installment:hover {
+    background: rgba(37, 99, 235, 0.04);
+    transform: translateY(-2px);
+}
+
+.floating-shortcuts-row {
+    display: flex;
+    gap: 16px;
+}
+.shortcut-action-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    background: #f8fafc;
+    font-size: 13px;
+    font-weight: 800;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+.shortcut-action-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+/* ==================== SPECIFICATIONS SECTION ==================== */
+.premium-specs-section {
+    padding: 80px 0;
+    background: #ffffff;
+    border-top: 1px solid #e6eef6;
+    border-bottom: 1px solid #e6eef6;
+}
+
+.section-title-wrap {
+    margin-bottom: 48px;
+    max-width: 600px;
+}
+.section-title-wrap.text-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+.accent-subtitle {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 8px;
+}
+.section-main-title {
+    font-family: var(--font-heading);
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+    letter-spacing: -0.5px;
+}
+.section-description-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.specs-table-panel {
+    background: #ffffff;
+    border: 1px solid #dbe6f3;
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.specs-panel-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 22px;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+    border-bottom: 1px solid #dbe6f3;
+}
+
+.specs-panel-topbar .section-main-title {
+    font-size: 26px;
+    margin-bottom: 0;
+}
+
+.specs-mode-tabs {
+    display: flex;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 14px;
+    background: #e8eef7;
+    flex-shrink: 0;
+}
+
+.specs-mode-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 11px 18px;
+    background: transparent;
+    color: #334155;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.specs-mode-btn:hover {
+    color: var(--primary);
+    background: #ffffff;
+}
+
+.specs-mode-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
+
+.machine-info-table-wrap,
+.inline-compare-table-wrap {
+    overflow-x: auto;
+}
+
+.machine-info-matrix {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1px;
+    background: #dbe6f3;
+}
+
+.machine-info-cell {
+    min-height: 92px;
+    padding: 12px 14px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.machine-info-cell:nth-child(10n + 1),
+.machine-info-cell:nth-child(10n + 2),
+.machine-info-cell:nth-child(10n + 3),
+.machine-info-cell:nth-child(10n + 4),
+.machine-info-cell:nth-child(10n + 5) {
+    background: #f8fafc;
+}
+
+.machine-info-cell.is-placeholder {
+    background: #f1f5f9;
+}
+
+.machine-info-cell.is-placeholder .machine-spec-group,
+.machine-info-cell.is-placeholder .machine-spec-name,
+.machine-info-cell.is-placeholder .machine-spec-value {
+    color: #64748b;
+}
+
+.machine-info-table,
+.inline-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.machine-info-table th,
+.machine-info-table td,
+.inline-compare-table th,
+.inline-compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5edf6;
+    text-align: left;
     vertical-align: top;
 }
 
-.comparison-table tbody tr:hover {
+.machine-info-table th,
+.inline-compare-table th {
+    background: #0f172a;
+    color: #ffffff;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.machine-info-table tr:nth-child(even) td,
+.inline-compare-table tr:nth-child(even) td {
     background: #f8fafc;
 }
 
-.attr-col {
-    width: 180px;
+.machine-info-table tr:last-child td,
+.inline-compare-table tr:last-child td {
+    border-bottom: none;
+}
+
+.machine-spec-group {
+    width: auto;
+    color: var(--primary);
+    font-size: 9.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    line-height: 1.1;
+}
+
+.machine-spec-name {
+    width: auto;
+    color: #334155;
+    font-size: 11.5px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.machine-spec-value {
+    color: #0f172a;
+    font-family: var(--font-heading);
+    font-size: 14.5px;
+    font-weight: 900;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.inline-compare-area {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: 420px;
+}
+
+.inline-compare-filter {
+    padding: 20px;
+    background: #f8fafc;
+    border-right: 1px solid #dbe6f3;
+}
+
+.inline-filter-title {
+    color: #0f172a;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.inline-filter-note {
+    color: #64748b;
+    font-size: 12px;
     font-weight: 600;
-    color: #475569;
-    font-size: 13px;
-    min-width: 180px;
+    margin: 0 0 14px;
 }
 
-.product-col {
-    min-width: 150px;
-}
-
-.prod-header {
+.inline-compare-list {
     display: flex;
+    flex-direction: column;
     gap: 10px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.inline-compare-item {
+    display: grid;
+    grid-template-columns: 18px 48px 1fr;
+    grid-template-areas:
+        "check image name"
+        "check image price";
+    gap: 4px 10px;
     align-items: center;
-}
-
-.prod-header img {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    object-fit: cover;
+    padding: 10px;
+    border-radius: 12px;
+    background: #ffffff;
     border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
-.prod-info {
+.inline-compare-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+
+.inline-compare-item input {
+    grid-area: check;
+    accent-color: var(--primary);
+}
+
+.inline-compare-item img {
+    grid-area: image;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.inline-compare-name {
+    grid-area: name;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.inline-compare-price {
+    grid-area: price;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.empty-inline-compare {
+    height: 100%;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    padding: 24px;
+}
+
+.specs-modern-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.spec-card {
+    position: relative;
+    padding: 24px;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e6eef6;
+    overflow: hidden;
+    transition: var(--transition);
+}
+.card-glow-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+}
+.spec-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.03);
+    margin-bottom: 16px;
+}
+.spec-card-icon svg {
+    width: 22px;
+    height: 22px;
+}
+.spec-card-content {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
+.spec-card-content .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.spec-card-content .value {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+.spec-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: 0 15px 30px var(--primary-glow);
+}
 
-.prod-name {
+/* ==================== PRODUCT HIGHLIGHTS ==================== */
+.premium-highlights-section {
+    padding: 80px 0;
+    background: #ffffff;
+}
+
+.highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+.highlight-item-card {
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid #e6eef6;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    transition: var(--transition);
+}
+.highlight-item-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 30px rgba(37, 99, 235, 0.08);
+    border-color: var(--secondary);
+}
+.h-card-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+}
+.highlight-item-card h3 {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+.highlight-item-card p {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ==================== STORYTELLING SECTION ==================== */
+.premium-storytelling-section {
+    padding: 40px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 120px;
+}
+.story-block {
+    position: relative;
+}
+.grid-2-columns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 64px;
+    align-items: center;
+}
+.story-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.story-tag {
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--primary);
+}
+.story-title {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin: 0;
+}
+.story-p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0;
+}
+.story-stats-row {
+    display: flex;
+    gap: 40px;
+    margin-top: 16px;
+}
+.stat-unit {
+    display: flex;
+    flex-direction: column;
+}
+.stat-unit .num {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+.stat-unit .desc {
     font-size: 12px;
     font-weight: 600;
-    color: #0f172a;
-    line-height: 1.3;
+    color: var(--text-secondary);
+    margin-top: 4px;
 }
 
-.prod-price {
-    font-size: 14px;
-    font-weight: 700;
-    color: #2563eb;
-}
-
-.comparison-table tbody td.product-col {
-    font-size: 13px;
-    color: #0f172a;
-}
-
-.value {
-    display: inline-block;
-    padding: 6px 10px;
-    background: #eff6ff;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #0c4a6e;
-    font-weight: 600;
-}
-
-.no-value {
-    color: #cbd5e1;
-    font-size: 13px;
-}
-
-@media (max-width: 1024px) {
-    .comparison-table {
-        font-size: 12px;
-    }
-    
-    .attr-col {
-        width: 140px;
-        min-width: 140px;
-    }
-    
-    .product-col {
-        min-width: 130px;
-    }
-    
-    .prod-header img {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .prod-name {
-        font-size: 11px;
-    }
-}
-
-/* ===== MODAL & COMPARE STYLES (scoped to this component) ===== */
-.compare-btn {
-    margin-left: 10px;
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    color: #0f172a;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 700;
-}
-.compare-btn:hover { background: #f1f5f9 }
-
-.compare-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(2,6,23,0.5);
+.glass-media-card {
+    border-radius: 28px;
+    background: #111f35;
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 24px;
+    box-shadow: var(--card-glow);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 99999;
+}
+.story-img {
+    max-width: 100%;
+    border-radius: 16px;
+    transition: transform 0.5s ease;
+}
+.glass-media-card:hover .story-img {
+    transform: scale(1.03);
+}
+
+.alt-direction .story-content {
+    order: 2;
+}
+.alt-direction .story-media-box {
+    order: 1;
+}
+
+/* ==================== REVIEWS SECTION ==================== */
+.premium-reviews-section {
+    padding: 80px 0;
+    background:
+        radial-gradient(circle at 18% 12%, rgba(37, 99, 235, 0.18), transparent 34%),
+        linear-gradient(180deg, #13223a 0%, #0f1c31 100%);
+    border-top: 1px solid rgba(96,165,250,0.16);
+    color: #f8fafc;
+}
+
+.premium-reviews-section .section-title-wrap {
+    margin-bottom: 42px;
+}
+
+.premium-reviews-section .accent-subtitle {
+    color: #60a5fa;
+    text-shadow: 0 0 18px rgba(96,165,250,0.34);
+}
+
+.premium-reviews-section .section-main-title {
+    color: #f8fafc;
+}
+
+.premium-reviews-section .section-description-text {
+    color: #cbd5e1;
+    max-width: 720px;
+}
+
+.reviews-dashboard-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr 1fr;
+    gap: 30px;
+    margin-bottom: 48px;
+}
+
+.rating-overall-card, .rating-meters-card, .reviews-cskh-card {
+    padding: 30px;
+    border-radius: 24px;
+    background: rgba(8, 18, 33, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 45px rgba(2, 6, 23, 0.26), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.rating-overall-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.rating-overall-card .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #a9bbd3;
+    letter-spacing: 0.5px;
+}
+.overall-score-number {
+    font-family: var(--font-heading);
+    font-size: 64px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+    margin: 12px 0;
+}
+.overall-stars {
+    color: var(--accent);
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+.overall-total-count {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #a9bbd3;
+}
+
+.rating-meters-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.meters-title {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    color: #eef5ff;
+    margin-bottom: 16px;
+}
+.rating-meters-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.meter-bar-row {
+    display: grid;
+    grid-template-columns: 45px 1fr 45px;
+    align-items: center;
+    gap: 12px;
+}
+.stars-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+.meter-track {
+    height: 6px;
+    border-radius: 10px;
+    background: rgba(226, 232, 240, 0.82);
+    overflow: hidden;
+}
+.meter-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 10px;
+}
+.percent-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #dbeafe;
+    text-align: right;
+}
+
+.reviews-cskh-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.cskh-avatar {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+.reviews-cskh-card h3 {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 8px 0;
+}
+.reviews-cskh-card p {
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.65;
+    margin: 0;
+}
+
+.reviews-list-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.review-feedback-card {
+    position: relative;
+    border-radius: 20px;
+    background: rgba(8, 18, 33, 0.74);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    padding: 24px;
+    transition: var(--transition);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+}
+.review-feedback-card:hover {
+    border-color: rgba(96,165,250,0.55);
+    box-shadow: 0 16px 38px rgba(37,99,235,0.18);
+}
+.card-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.user-profile-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.user-avatar-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+.name-date-stack {
+    display: flex;
+    flex-direction: column;
+}
+.name-date-stack .username {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+.name-date-stack .review-timestamp {
+    font-size: 11px;
+    font-weight: 500;
+    color: #a9bbd3;
+    margin-top: 2px;
+}
+.review-badge-stars {
+    color: var(--accent);
+    letter-spacing: 1px;
+}
+.comment-p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #dbe6f5;
+    margin: 0;
+    font-style: italic;
+}
+
+.empty-reviews-state {
+    padding: 60px;
+    text-align: center;
+    border-radius: 24px;
+    background: #0d1b2e;
+    border: 1.5px dashed #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+.empty-icon-wrap {
+    width: 60px;
+    height: 60px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+}
+.empty-reviews-state h4 {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+.empty-reviews-state p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ==================== RELATED PRODUCTS ==================== */
+.premium-related-products-section {
+    padding: 60px 0 20px 0;
+}
+.related-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+}
+.related-section-header .subtitle-tag {
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 2px;
+    display: block;
+    margin-bottom: 4px;
+}
+.related-section-header .main-title {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+.action-all-link {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: var(--transition);
+}
+.action-all-link:hover {
+    color: #1d4ed8;
+}
+.action-all-link:hover .arrow {
+    transform: translateX(4px);
+}
+.action-all-link .arrow {
+    transition: transform 0.2s ease;
+}
+
+.related-products-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+}
+
+.premium-product-card {
+    border-radius: 20px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 16px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+.badge-row {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+}
+.tag-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: var(--font-heading);
+    font-size: 9px;
+    font-weight: 800;
+    color: white;
+}
+.product-image-box {
+    aspect-ratio: 1.1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    background: #f8fafc;
+}
+.card-main-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    transition: transform 0.4s ease;
+}
+.premium-product-card:hover .card-main-image {
+    transform: scale(1.06);
+}
+
+.product-info-box {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.product-card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.35;
+    margin: 0 0 6px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 36px;
+}
+.product-card-specs {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0 0 10px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.product-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+.product-card-rating .stars {
+    letter-spacing: 0.5px;
+}
+.product-card-rating .score {
+    color: #334155;
+}
+
+.product-card-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+}
+.price-side {
+    display: flex;
+    flex-direction: column;
+}
+.price-side .price-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+}
+.price-side .price-tag {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--primary);
+}
+.btn-quick-view {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #cbd5e1;
+    border: none;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.premium-product-card:hover .btn-quick-view {
+    background: #94a3b8;
+    color: white;
+}
+.premium-product-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: var(--card-glow);
+}
+
+.premium-pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+}
+.pag-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    background: #111f35;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+.pag-btn:hover:not(:disabled) {
+    background: #111f35;
+    color: var(--text-primary);
+}
+.pag-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.pag-numbers-box {
+    display: flex;
+    gap: 6px;
+}
+.pag-number-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #111f35;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+.pag-number-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+/* ==================== COMPARE MODAL ==================== */
+.compare-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 24px;
 }
 
-.compare-modal {
-    width: min(1200px, 100%);
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 20px 50px rgba(2,6,23,0.2);
+.compare-modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    max-height: 85vh;
+    background: #111f35;
+    border-radius: 28px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.18);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
 .compare-modal-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:16px 20px;
-    border-bottom:1px solid #f1f5f9;
+    padding: 24px 30px;
+    border-bottom: 1px solid #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-.compare-modal-header h3{ margin:0; }
-.compare-modal-header .close{ background:transparent;border:none;font-size:18px;cursor:pointer }
-
-.compare-modal-body{
-    display:flex;
-    gap:20px;
+.header-titles h3 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
 }
-.compare-left{ width:320px; max-height:520px; overflow:auto; padding:16px }
-.compare-right{ flex:1; padding:16px; overflow:hidden; max-height:600px; display:flex; flex-direction:column }
-.compare-list{ display:flex; flex-direction:column; gap:8px }
-.compare-item{ display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; border:1px solid #f1f5f9 }
-.compare-item img{ width:56px;height:56px;object-fit:cover;border-radius:6px }
-.compare-item .meta{ font-size:13px }
-.compare-item .name{ font-weight:700; color:#0f172a }
-.compare-item .spec{ color:#64748b; font-size:12px }
+.header-titles p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+.close-modal-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #111f35;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.close-modal-btn:hover {
+    background: #dc2626;
+    color: white;
+}
 
-.compare-actions{ padding-bottom:10px }
-.compare-result { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.compare-result .comparison-table{ width:100%; border-collapse:collapse }
+.compare-modal-body {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    flex-grow: 1;
+    overflow: hidden;
+}
 
-@media (max-width: 768px){ .compare-modal{ width:100%; height:100%; border-radius:0 } .compare-left{ display:none } }
+.compare-products-picker-panel {
+    padding: 24px 30px;
+    border-right: 1px solid #cbd5e1;
+    overflow-y: auto;
+}
+.panel-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+.picker-list-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.picker-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.picker-item-row:hover {
+    background: #0d1b2e;
+}
+.custom-tech-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.p-thumb-box {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.p-thumb-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.p-info-side {
+    display: flex;
+    flex-direction: column;
+}
+.p-info-side .p-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+.p-info-side .p-price {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 2px;
+}
 
+.compare-results-table-panel {
+    padding: 24px 30px;
+    overflow-y: auto;
+    background: #0d1b2e;
+}
 
+.empty-compare-selection-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+.empty-compare-selection-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+.empty-compare-selection-state h4 {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+}
+.empty-compare-selection-state p {
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin: 0;
+}
 
-@media (max-width: 768px) {
-    .comparison {
-        display: none;
+.comparison-tech-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.comparison-tech-table th, .comparison-tech-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+}
+.comparison-tech-table th {
+    background: #111f35;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    vertical-align: bottom;
+}
+.attribute-col {
+    width: 180px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+.product-showcase-col {
+    min-width: 200px;
+}
+.product-showcase-col.active-current {
+    background: rgba(37, 99, 235, 0.02);
+}
+.col-product-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.col-product-card img {
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 12px;
+}
+.col-product-card .label-now {
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: var(--primary);
+    color: white;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.col-product-card .name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+    height: 32px;
+    overflow: hidden;
+}
+.col-product-card .price-val {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-top: 4px;
+}
+
+.cell-value-text {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+.cell-no-value {
+    color: #94a3b8;
+}
+
+/* ==================== LOADING SCREEN ==================== */
+.immersive-loader-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #0F172A;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    border-top-color: var(--secondary);
+    animation: loader-spin 1s infinite linear;
+    display: inline-block;
+    margin-bottom: 24px;
+}
+@keyframes loader-spin {
+    to { transform: rotate(360deg); }
+}
+.loader-content-wrap {
+    text-align: center;
+    max-width: 320px;
+}
+.loader-content-wrap h3 {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+.loader-content-wrap p {
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ==================== RESPONSIVE LAYOUTS ==================== */
+@media (max-width: 1024px) {
+    .detail-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+    .specs-panel-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .specs-mode-tabs {
+        width: 100%;
+    }
+    .specs-mode-btn {
+        flex: 1;
+    }
+    .inline-compare-area {
+        grid-template-columns: 1fr;
+    }
+    .inline-compare-filter {
+        border-right: none;
+        border-bottom: 1px solid #dbe6f3;
+    }
+    .machine-info-matrix {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .specs-modern-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .highlights-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .related-products-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .compare-modal-card {
+        max-height: 90vh;
     }
 }
+
+/* CYBER NEWSLETTER (light variant for product page) */
+.cyber-newsletter-section {
+    background: var(--light-bg, #f8fafc);
+    padding: 56px 0 72px;
+}
+.newsletter-neon-box {
+    position: relative;
+    border-radius: 24px;
+    padding: 40px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+.newsletter-bg-glow { display: none; }
+.newsletter-layout {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 28px;
+    align-items: center;
+}
+.newsletter-headline h2 {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: #0f172a;
+}
+.newsletter-headline p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #616e7a;
+    margin: 0;
+}
+.newsletter-interactive-form { display: flex; justify-content: flex-end; }
+.input-glow-group {
+    display: flex;
+    width: 100%;
+    max-width: 520px;
+    background: #f3f6f9;
+    border: 1px solid #e6eef6;
+    border-radius: 12px;
+    padding: 6px;
+}
+.input-glow-group input {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #0f172a;
+    font-size: 14px;
+    padding: 0 12px;
+}
+.input-glow-group input::placeholder { color: #94a3b8; }
+
+@media (max-width: 992px) {
+    .newsletter-layout { grid-template-columns: 1fr; text-align: center; }
+    .newsletter-interactive-form { justify-content: center; }
+}
+
+@media (max-width: 768px) {
+    .premium-product-title {
+        font-size: 26px;
+    }
+    .grid-2-columns {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+    .alt-direction .story-content {
+        order: 1;
+    }
+    .alt-direction .story-media-box {
+        order: 2;
+    }
+    .reviews-dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .compare-modal-body {
+        grid-template-columns: 1fr;
+    }
+    .compare-products-picker-panel {
+        border-right: none;
+        border-bottom: 1px solid #cbd5e1;
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .machine-info-matrix {
+        grid-template-columns: 1fr;
+    }
+    .machine-info-cell {
+        min-height: 82px;
+    }
+    .specs-modern-grid {
+        grid-template-columns: 1fr;
+    }
+    .highlights-grid {
+        grid-template-columns: 1fr;
+    }
+    .related-products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+    .btn-buy-now {
+        order: 1;
+    }
+    .btn-installment {
+        order: 2;
+    }
+    .story-title {
+        font-size: 28px;
+    }
+}
+
+/* ==================== DETAILED SPECS ACCORDION ==================== */
+.detailed-specs-accordion {
+    grid-column: 1 / -1;
+    margin-top: 40px;
+    border-radius: 20px;
+    background: #111f35;
+    border: 1px solid rgba(255,255,255,0.07);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
+    transition: var(--transition);
+}
+.detailed-specs-accordion:hover {
+    border-color: var(--primary);
+    box-shadow: 0 15px 35px var(--primary-glow);
+}
+.toggle-accordion-btn {
+    width: 100%;
+    padding: 20px 28px;
+    background: #0d1b2e;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    text-align: left;
+    transition: var(--transition);
+}
+.toggle-accordion-btn:hover {
+    background: #111f35;
+}
+.toggle-accordion-btn .btn-text {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.toggle-accordion-btn .accordion-icon {
+    font-size: 12px;
+    color: var(--primary);
+    transition: var(--transition);
+}
+.glow-accent-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+    opacity: 0.8;
+}
+
+.full-specs-table-wrapper {
+    padding: 24px 28px;
+    background: #111f35;
+}
+
+.specs-table-cyber {
+    width: 100%;
+    border-collapse: collapse;
+}
+.specs-table-cyber th, .specs-table-cyber td {
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.specs-table-cyber th {
+    background: #0d1b2e;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-radius: 8px;
+}
+.specs-table-cyber tr:hover {
+    background: rgba(37, 99, 235, 0.01);
+}
+.specs-table-cyber tr:last-child td {
+    border-bottom: none;
+}
+.specs-table-cyber .lbl-col {
+    width: 280px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+.specs-table-cyber .val-col {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+/* Accordion expand transitions */
+.expand-specs-enter-active,
+.expand-specs-leave-active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 1000px;
+}
+.expand-specs-enter-from,
+.expand-specs-leave-to {
+    opacity: 0;
+    max-height: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    overflow: hidden;
+}
+
+/* ==================== Quick UI Improvements ==================== */
+/* Make gallery image bigger and breathe a bit */
+.main-image-viewport {
+    padding: 20px;
+}
+.main-showcase-image {
+    max-width: 92%;
+}
+
+/* Responsive product title */
+.premium-product-title {
+    font-size: clamp(20px, 3.6vw, 32px);
+}
+
+/* Keep gallery visible while the purchase details scroll on wide screens */
+.gallery-column {
+    position: sticky;
+    top: 112px;
+    align-self: start;
+    z-index: 2;
+}
+
+/* Slightly smaller, interactive thumbnails */
+.thumb-card {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+}
+.thumb-card img {
+    transition: transform 0.25s ease;
+}
+.thumb-card:hover img { transform: scale(1.06); }
+
 
 /* ===== IMAGE SLIDE TRANSITION ===== */
 .slide-left-enter-active,
@@ -2597,5 +4943,15 @@ h1 {
     border-radius: 4px;
     display: inline-block;
     margin: 0 2px;
+}
+
+
+/* Tighter grid gap and responsive stack */
+.detail-hero-grid { gap: 36px; }
+@media (max-width: 1024px) {
+    .detail-hero-grid { grid-template-columns: 1fr; gap: 24px; }
+    .gallery-column { position: static; top: auto; }
+    .main-image-viewport { aspect-ratio: 16/10; }
+
 }
 </style>

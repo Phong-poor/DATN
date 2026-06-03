@@ -1,10 +1,11 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
 import { getUser, saveAuth } from '@/services/auth'
 import { formatAuthMessage } from '@/services/authMessages'
+import { validateEmail, normalizeEmail } from '@/services/authValidation'
 
 const email = ref('')
 const password = ref('')
@@ -68,6 +69,50 @@ const closeModal = () => {
 const router = useRouter()
 const route = useRoute()
 
+const safeRedirectPath = (path) => {
+  if (!path || typeof path !== 'string') return ''
+  if (!path.startsWith('/') || path.startsWith('/login')) return ''
+  return path
+}
+
+const redirectAfterLogin = async (user, token) => {
+  const redirectPath = safeRedirectPath(
+    route.query.redirect || sessionStorage.getItem('redirect_after_auth')
+  )
+  sessionStorage.removeItem('redirect_after_auth')
+
+  if (user?.role === 'admin') {
+    await router.replace('/admin')
+    return
+  }
+
+  if (redirectPath) {
+    await router.replace(redirectPath)
+    return
+  }
+
+  const pendingItemStr = localStorage.getItem('pendingCartItem')
+  if (pendingItemStr) {
+    try {
+      const pendingItem = JSON.parse(pendingItemStr)
+      await api.post('/gio-hang/them', pendingItem, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      localStorage.removeItem('pendingCartItem')
+      window.dispatchEvent(new Event('cart-updated'))
+      await router.replace('/cart')
+      return
+    } catch (err) {
+      console.error('Lỗi thêm pending item:', err)
+    }
+  }
+
+  await router.replace('/')
+}
+
 
 onMounted(() => {
   if (route.query.social_error) {
@@ -113,13 +158,14 @@ onMounted(() => {
 })
 
 const handleLogin = async () => {
-  if (!email.value || !password.value) {
-    showModal('error', 'Thiếu thông tin', 'Vui lòng nhập email và mật khẩu.')
-    showModal(
-      'error',
-      'Thiếu thông tin',
-      'Nhập email và password.'
-    )
+  const emailError = validateEmail(email.value)
+  if (emailError) {
+    showModal('error', 'Email không hợp lệ', emailError)
+    return
+  }
+
+  if (!password.value) {
+    showModal('error', 'Thiếu thông tin', 'Vui lòng nhập mật khẩu.')
     return
   }
 
@@ -129,7 +175,7 @@ const handleLogin = async () => {
 
   try {
     const res = await api.post('/login', {
-      email: String(email.value).trim(),
+      email: normalizeEmail(email.value),
       password: password.value,
       remember: remember.value
     })
@@ -139,11 +185,6 @@ const handleLogin = async () => {
 
     if (!token) {
       showModal('error', 'Lỗi', 'Máy chủ không trả về token đăng nhập.')
-      showModal(
-        'error',
-        'Lỗi',
-        'Server không trả token'
-      )
       return
     }
 
@@ -162,79 +203,15 @@ const handleLogin = async () => {
       localStorage.removeItem('remember_email')
     }
 
-    showModal(
-      'success',
-      'Đăng nhập thành công!',
-      formatAuthMessage(res.data.message, 'Đăng nhập thành công.'),
-      () => {
-        const redirectPath = sessionStorage.getItem('redirect_after_auth')
-        sessionStorage.removeItem('redirect_after_auth')
-
-        res.data.message,
-          async () => {
-            if (user.role === 'admin') {
-              router.push('/admin')
-            } else if (redirectPath) {
-              router.push(redirectPath)
-            } else {
-              const pendingItemStr =
-                localStorage.getItem('pendingCartItem')
-
-              if (pendingItemStr) {
-                try {
-                  const pendingItem =
-                    JSON.parse(pendingItemStr)
-
-                  await api.post(
-                    '/gio-hang/them',
-                    pendingItem,
-                    {
-                      headers: {
-                        Authorization: `Bearer ${token}`
-                      }
-                    }
-                  )
-
-                  localStorage.removeItem(
-                    'pendingCartItem'
-                  )
-
-                  window.dispatchEvent(
-                    new Event('cart-updated')
-                  )
-
-                  router.push('/cart')
-                  return
-                } catch (err) {
-                  console.error(
-                    'Lỗi thêm pending item:',
-                    err
-                  )
-                }
-              }
-
-              router.push('/')
-            }
-          }
-      }
-    )
+    await redirectAfterLogin(user, token)
+    return
   } catch (err) {
     console.log(err)
 
     if (err.response?.data?.message) {
       showModal('error', 'Lỗi', formatAuthMessage(err.response.data.message, 'Email hoặc mật khẩu không đúng.'))
-      showModal(
-        'error',
-        'Lỗi',
-        err.response.data.message
-      )
     } else {
       showModal('error', 'Lỗi', 'Email hoặc mật khẩu không đúng.')
-      showModal(
-        'error',
-        'Lỗi',
-        'Sai tài khoản hoặc mật khẩu'
-      )
     }
   } finally {
     loading.value = false
@@ -249,7 +226,7 @@ const handleLogin = async () => {
       <!-- LEFT -->
       <div class="left">
         <h1>
-          NextGen <br />
+          Predator <br />
           <span>Chinh Phục</span> <br />
           Tầm Cao Mới.
         </h1>
@@ -257,11 +234,11 @@ const handleLogin = async () => {
           Trở lại tài khoản để quản lý đơn hàng, lưu cấu hình laptop và nhận ưu đãi dành riêng cho bạn.
         </p>
         <div class="left-highlights">
-          <span>✓ Đăng nhập nhanh</span>
-          <span>✓ Đồng bộ giỏ hàng</span>
-          <span>✓ Ưu đãi cá nhân</span>
+          <span>Đăng nhập nhanh</span>
+          <span>Đồng bộ giỏ hàng</span>
+          <span>Ưu đãi cá nhân</span>
         </div>
-        <img class="left-laptop" src="/hero_3d_laptop.png" alt="NextGen laptop" />
+        <img class="left-laptop" src="/hero_3d_laptop.png" alt="Predator laptop" />
       </div>
 
       <!-- RIGHT -->
@@ -284,7 +261,7 @@ const handleLogin = async () => {
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
             autocomplete="current-password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
@@ -698,7 +675,7 @@ h2 {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .modal-message {

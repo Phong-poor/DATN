@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="scene" v-if="visible">
     <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
     <div class="backdrop" @click.self="dismiss"></div>

@@ -1,7 +1,7 @@
 <template>
   <div :class="['chatbot-container', supportPanelOpen ? 'support-open' : '']">
-    <!-- Bubble Button -->
-    <div class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
+    <!-- Bubble Button hidden, handled by FloatingContactMenu -->
+    <div v-if="false" class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
       @keydown.enter.prevent="toggleChat" @keydown.space.prevent="toggleChat"
       :class="{ 'pulse-animation': !isOpen && !isAdminOpen && messages.length === 1 }">
       <i v-if="!isOpen && !isAdminOpen" class="chat-icon">💬</i>
@@ -21,19 +21,19 @@
         <div class="chat-header">
           <div class="header-info">
             <div class="avatar-wrap">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf"
+              <img src="/support_avatar.png"
                 alt="Nhân viên tư vấn" class="avatar" />
               <span class="status-dot"></span>
             </div>
             <div class="title-wrap">
-              <h4 class="title">Chatbot hỗ trợ</h4>
-              <p class="subtitle">Trợ lý tự động tư vấn sản phẩm</p>
+              <h4 class="title">Tư vấn trực tuyến</h4>
+              <p class="subtitle">Mia - Chuyên viên hỗ trợ VinaTech</p>
             </div>
-
             <!-- Button to open Admin Chat -->
             <button class="mode-toggle-btn" @click="switchToAdmin" title="Nhắn cho Admin">
               Nhắn Admin
             </button>
+            <button class="chat-close-btn" type="button" @click="isOpen = false" aria-label="Đóng chat">✕</button>
           </div>
         </div>
 
@@ -42,7 +42,7 @@
           <div v-for="(msg, index) in messages" :key="index" class="message-wrapper"
             :class="msg.role === 'user' ? 'message-right' : 'message-left'">
             <div v-if="msg.role === 'bot'" class="bot-avatar-small">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf" alt="Bot" />
+              <img src="/support_avatar.png" alt="Bot" />
             </div>
 
             <div class="message-bubble" :class="msg.role">
@@ -64,7 +64,7 @@
 
           <div v-if="isLoading" class="message-wrapper message-left">
             <div class="bot-avatar-small">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf" alt="Bot" />
+              <img src="/support_avatar.png" alt="Bot" />
             </div>
             <div class="message-bubble bot typing-indicator">
               <span></span><span></span><span></span>
@@ -75,7 +75,7 @@
         <!-- Footer -->
         <div class="chat-footer">
           <form @submit.prevent="sendMessage" class="input-form">
-            <input type="text" v-model="newMessage" placeholder="Hỏi bé ngay (ví dụ: tư vấn máy sinh viên)..."
+            <input type="text" v-model="newMessage" placeholder="Trò chuyện với Mia (ví dụ: tư vấn laptop văn phòng)..."
               :disabled="isLoading" autocomplete="off" />
             <button type="submit" :disabled="!newMessage.trim() || isLoading" class="send-btn">
               ➤
@@ -145,7 +145,7 @@ const getProductImage = (bt) => {
 const messages = ref([
   {
     role: 'bot',
-    content: "Dạ em chào khách yêu ạ! Khách yêu đang tìm kiếm chiếc laptop chân ái nào vậy ạ? Anh/Chị cứ nói nhu cầu (văn phòng, sinh viên hay gaming) kèm tầm giá để em tư vấn nha!"
+    content: "Xin chào anh/chị! Em là Mia, chuyên viên hỗ trợ của VinaTech. Rất vui được đồng hành cùng anh/chị. Anh/chị đang cần tìm kiếm dòng máy nào (văn phòng, đồ họa hay gaming) trong tầm giá bao nhiêu ạ? Em sẽ tư vấn chi tiết cho mình nhé!"
   }
 ]);
 
@@ -277,36 +277,36 @@ const handleSupportOpenedEvent = (e) => {
 <style scoped>
 .chatbot-container {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
+  bottom: 28px;
+  right: 24px;
   z-index: 9999;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .chatbot-container.support-open {
-  right: 170px; /* shift left to avoid overlapping the support card */
+  right: 150px;
   transition: right 0.18s ease;
 }
 
 /* ===== BUBBLE BUTTON ===== */
 .chatbot-bubble {
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1a2744, #2563eb);
   color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 21px;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .chatbot-bubble:hover {
-  transform: scale(1.1);
+  transform: translateY(-2px);
 }
 
 .glow-effect {
@@ -316,31 +316,32 @@ const handleSupportOpenedEvent = (e) => {
 .pulse-animation::before {
   content: '';
   position: absolute;
-  top: -5px;
-  left: -5px;
-  right: -5px;
-  bottom: -5px;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.18);
   z-index: -1;
-  animation: pulse 2s infinite;
+  animation: pulse 2.8s infinite;
 }
 
 .bubble-support-action {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 28px;
-  height: 28px;
+  left: 5px;
+  bottom: 5px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.16);
   color: white;
   border: none;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
+  opacity: 0.88;
 }
 
 .bubble-support-action:hover {
@@ -350,11 +351,11 @@ const handleSupportOpenedEvent = (e) => {
 @keyframes pulse {
   0% {
     transform: scale(0.95);
-    opacity: 0.8;
+    opacity: 0.55;
   }
 
   100% {
-    transform: scale(1.4);
+    transform: scale(1.32);
     opacity: 0;
   }
 }
@@ -362,11 +363,11 @@ const handleSupportOpenedEvent = (e) => {
 /* ===== CHAT WINDOW ===== */
 .chatbot-window {
   position: absolute;
-  bottom: 80px;
+  bottom: 86px;
   right: 0;
   width: 350px;
   height: 500px;
-  background: #ffffff;
+  background: #111f35;
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(26, 39, 68, 0.18);
   display: flex;
@@ -374,6 +375,43 @@ const handleSupportOpenedEvent = (e) => {
   overflow: hidden;
   border: 1px solid rgba(37, 99, 235, 0.08);
   transform-origin: bottom right;
+}
+
+.chat-close-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+@media (max-width: 640px) {
+  .chatbot-container {
+    right: 18px;
+    bottom: 20px;
+  }
+
+  .chatbot-container.support-open {
+    right: 18px;
+  }
+
+  .chatbot-bubble {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
 }
 
 .slide-fade-enter-active {
@@ -425,7 +463,7 @@ const handleSupportOpenedEvent = (e) => {
   position: relative;
   width: 45px;
   height: 45px;
-  background: white;
+  background: #111f35;
   border-radius: 50%;
   padding: 2px;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
@@ -505,7 +543,7 @@ const handleSupportOpenedEvent = (e) => {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: white;
+  background: #111f35;
   flex-shrink: 0;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
@@ -534,8 +572,8 @@ const handleSupportOpenedEvent = (e) => {
 
 /* Tin nhắn bot — trắng với viền xanh nhẹ */
 .message-bubble.bot {
-  background: white;
-  color: #1e293b;
+  background: #111f35;
+  color: #e2e8f0;
   border-bottom-left-radius: 4px;
   border: 1px solid rgba(37, 99, 235, 0.1);
   box-shadow: 0 2px 10px rgba(37, 99, 235, 0.06);
@@ -553,7 +591,7 @@ const handleSupportOpenedEvent = (e) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f8fafc;
+  background: #0d1b2e;
   border: 1px solid rgba(37, 99, 235, 0.15);
   border-radius: 12px;
   padding: 8px;
@@ -565,7 +603,7 @@ const handleSupportOpenedEvent = (e) => {
 .bot-product-card:hover {
   transform: translateY(-2px);
   border-color: #2563eb;
-  background: white;
+  background: #111f35;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 
@@ -574,8 +612,8 @@ const handleSupportOpenedEvent = (e) => {
   height: 50px;
   object-fit: cover;
   border-radius: 8px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.07);
 }
 
 .bot-product-info {
@@ -588,7 +626,7 @@ const handleSupportOpenedEvent = (e) => {
 .bot-product-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: #e2e8f0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -649,7 +687,7 @@ const handleSupportOpenedEvent = (e) => {
 /* ===== FOOTER ===== */
 .chat-footer {
   padding: 15px;
-  background: white;
+  background: #111f35;
   border-top: 1px solid rgba(37, 99, 235, 0.08);
 }
 
@@ -664,7 +702,7 @@ const handleSupportOpenedEvent = (e) => {
 }
 
 .input-form:focus-within {
-  background: white;
+  background: #111f35;
   border-color: #2563eb;
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
 }
@@ -675,11 +713,11 @@ const handleSupportOpenedEvent = (e) => {
   background: transparent;
   font-size: 14px;
   outline: none;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .input-form input::placeholder {
-  color: #94a3b8;
+  color: #475569;
 }
 
 /* Nút gửi — xanh blue */

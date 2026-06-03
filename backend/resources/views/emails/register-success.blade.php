@@ -16,7 +16,7 @@
                     <!-- HEADER -->
                     <tr>
                         <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:30px;text-align:center;color:white;">
-                            <h1 style="margin:0;">NextGen Labtop</h1>
+                            <h1 style="margin:0;">Predator</h1>
                             <p style="margin:5px 0 0;">Chinh phục tầm cao mới</p>
                         </td>
                     </tr>
@@ -33,7 +33,7 @@
                             </p>
 
                             <p style="color:#555;font-size:15px;">
-                                Chào mừng bạn đến với hệ thống <strong>NextGen</strong>.
+                                Chào mừng bạn đến với hệ thống <strong>Predator</strong>.
                             </p>
 
                             <!-- BUTTON -->
@@ -59,7 +59,7 @@
                     <!-- FOOTER -->
                     <tr>
                         <td style="background:#f9fafb;padding:15px;text-align:center;color:#999;font-size:12px;">
-                            © 2026 NextGen. All rights reserved.
+                            © 2026 Predator. All rights reserved.
                         </td>
                     </tr>
 

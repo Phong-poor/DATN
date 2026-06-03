@@ -7,22 +7,22 @@
   <ChatbotWidget v-if="showChatbot && widgetsReady" />
   <AdminChatWidget v-if="showChatbot && widgetsReady" />
   <GlobalLoader />
-  <ZaloWidget v-if="showChatbot" />
+  <ZaloWidget v-if="showChatbot && widgetsReady" />
+  <FloatingContactMenu v-if="showChatbot && widgetsReady" />
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import GlobalLoader from '@/components/Layout/GlobalLoader.vue'
-import ChatbotWidget from '@/components/Web/ChatbotWidget.vue'
-import AdminChatWidget from '@/components/Web/AdminChatWidget.vue'
-import ZaloWidget from '@/components/Web/ZaloWidget.vue'
-
 const SupportWidget = defineAsyncComponent(() => import('@/components/Web/SupportWidget.vue'))
-
-
+const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/ChatbotWidget.vue'))
+const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/AdminChatWidget.vue'))
+const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/ZaloWidget.vue'))
+const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/FloatingContactMenu.vue'))
 const route = useRoute()
 const widgetsReady = ref(false)
+let pageShowHandler = null
 
 const showChatbot = computed(() => {
   const hiddenRouteNames = ['login', 'register', 'forgot-password', 'otp-verify', 'reset-password', 'login-success']
@@ -36,6 +36,11 @@ onMounted(() => {
     history.scrollRestoration = 'manual'
   }
   window.scrollTo(0, 0)
+  pageShowHandler = () => {
+    window.scrollTo(0, 0)
+    requestAnimationFrame(() => window.scrollTo(0, 0))
+  }
+  window.addEventListener('pageshow', pageShowHandler)
 
   const bootWidgets = () => { widgetsReady.value = true }
   if ('requestIdleCallback' in window) {
@@ -44,12 +49,18 @@ onMounted(() => {
     setTimeout(bootWidgets, 600)
   }
 })
+
+onUnmounted(() => {
+  if (pageShowHandler) {
+    window.removeEventListener('pageshow', pageShowHandler)
+  }
+})
 </script>
 
 <style>
 body {
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .route-shell {

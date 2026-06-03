@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\ImageHelper;
 use App\Models\News;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class NewsController extends Controller
@@ -40,9 +41,17 @@ class NewsController extends Controller
         $perPage = (int) $request->get('per_page', 9);
         $perPage = max(1, min($perPage, 50));
 
-        return response()->json(
-            $query->orderByDesc('published_at')->orderByDesc('id')->paginate($perPage)
-        );
+        $query->orderByDesc('published_at')->orderByDesc('id');
+
+        if (($request->scope ?? '') === 'public') {
+            $cacheKey = 'news_public_index_' . md5(json_encode($request->query()));
+
+            return response()->json(
+                Cache::remember($cacheKey, 60, fn () => $query->paginate($perPage))
+            );
+        }
+
+        return response()->json($query->paginate($perPage));
     }
 
     public function show($id)

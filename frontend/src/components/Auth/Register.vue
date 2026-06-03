@@ -1,8 +1,20 @@
-<script setup>
+﻿<script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
+import {
+  getPasswordChecks,
+  getPasswordRequirements,
+  getPasswordScore,
+  getPasswordStrength,
+  normalizeEmail,
+  normalizePhone,
+  validateEmail,
+  validatePasswordConfirmation,
+  validatePhone,
+  validateStrongPassword,
+} from '@/services/authValidation'
 
 const name = ref('')
 const email = ref('')
@@ -41,52 +53,45 @@ const router = useRouter()
 const route = useRoute()
 const referralCode = ref((route.query.ref || localStorage.getItem('affiliate_ref') || '').toString().trim().toUpperCase())
 
-const normalizedPhone = computed(() => phone.value.replace(/[\s.-]/g, ''))
+const normalizedPhone = computed(() => normalizePhone(phone.value))
 
-const isValidPhone = computed(() => /^0[0-9]{9}$/.test(normalizedPhone.value))
+const isValidPhone = computed(() => !phone.value || !validatePhone(phone.value))
 
-const passwordChecks = computed(() => ({
-  length: password.value.length >= 8,
-  upper: /[A-Z]/.test(password.value),
-  number: /[0-9]/.test(password.value),
-  special: /[^A-Za-z0-9]/.test(password.value),
-}))
+const passwordChecks = computed(() => getPasswordChecks(password.value))
 
-const passwordScore = computed(() => Object.values(passwordChecks.value).filter(Boolean).length)
+const passwordScore = computed(() => getPasswordScore(password.value))
 
-const passwordStrength = computed(() => {
-  if (!password.value) {
-    return { label: '', color: '#e2e8f0', width: '0%' }
-  }
+const passwordStrength = computed(() => getPasswordStrength(password.value))
 
-  return [
-    { label: 'Mật khẩu yếu', color: '#ef4444', width: '25%' },
-    { label: 'Mật khẩu trung bình', color: '#f59e0b', width: '50%' },
-    { label: 'Mật khẩu mạnh', color: '#2563eb', width: '75%' },
-    { label: 'Mật khẩu rất mạnh', color: '#16a34a', width: '100%' },
-  ][Math.max(passwordScore.value - 1, 0)]
-})
-
-const passwordRequirements = computed(() => [
-  { label: 'Ít nhất 8 ký tự', ok: passwordChecks.value.length },
-  { label: 'Có chữ hoa', ok: passwordChecks.value.upper },
-  { label: 'Có số', ok: passwordChecks.value.number },
-  { label: 'Có ký tự đặc biệt', ok: passwordChecks.value.special },
-])
+const passwordRequirements = computed(() => getPasswordRequirements(password.value))
 
 const handleRegister = async () => {
-  if (!name.value || !email.value || !phone.value || !password.value || !confirm.value) {
+  if (!name.value.trim() || !email.value || !phone.value || !password.value || !confirm.value) {
     showModal('error', 'Thiếu thông tin', 'Vui lòng nhập đầy đủ thông tin.')
     return
   }
 
-  if (!isValidPhone.value) {
-    showModal('error', 'Số điện thoại không hợp lệ', 'Vui lòng nhập số điện thoại gồm 10 chữ số và bắt đầu bằng số 0.')
+  const emailError = validateEmail(email.value)
+  if (emailError) {
+    showModal('error', 'Email không hợp lệ', emailError)
     return
   }
 
-  if (password.value !== confirm.value) {
-    showModal('error', 'Mật khẩu không khớp', 'Xác nhận mật khẩu sai.')
+  const phoneError = validatePhone(phone.value)
+  if (phoneError) {
+    showModal('error', 'Số điện thoại không hợp lệ', phoneError)
+    return
+  }
+
+  const passwordError = validateStrongPassword(password.value)
+  if (passwordError) {
+    showModal('error', 'Mật khẩu chưa đủ mạnh', passwordError)
+    return
+  }
+
+  const confirmError = validatePasswordConfirmation(password.value, confirm.value)
+  if (confirmError) {
+    showModal('error', 'Mật khẩu không khớp', confirmError)
     return
   }
 
@@ -95,8 +100,8 @@ const handleRegister = async () => {
 
   try {
     const res = await api.post('/register', {
-      name: name.value,
-      email: email.value,
+      name: name.value.trim(),
+      email: normalizeEmail(email.value),
       phone: normalizedPhone.value,
       password: password.value,
       password_confirmation: confirm.value,
@@ -151,7 +156,7 @@ const loginFacebook = () => {
       <!-- LEFT -->
       <div class="left">
         <h1>
-          NextGen <br />
+          Predator <br />
           Thế hệ mới 2026 <br />
           <span>Chinh Phục Tầm Cao</span>
         </h1>
@@ -159,11 +164,11 @@ const loginFacebook = () => {
           Tạo tài khoản để lưu cấu hình laptop yêu thích, nhận ưu đãi riêng và theo dõi đơn hàng nhanh hơn.
         </p>
         <div class="left-highlights">
-          <span>✓ Ưu đãi thành viên</span>
-          <span>✓ Theo dõi bảo hành</span>
-          <span>✓ Gợi ý phụ kiện phù hợp</span>
+          <span>Ưu đãi thành viên</span>
+          <span>Theo dõi bảo hành</span>
+          <span>Gợi ý phụ kiện phù hợp</span>
         </div>
-        <img class="left-accessories" src="/elite_accessories.png" alt="Phụ kiện laptop NextGen" />
+        <img class="left-accessories" src="/elite_accessories.png" alt="Phụ kiện laptop Predator" />
       </div>
 
       <!-- RIGHT -->
@@ -179,7 +184,7 @@ const loginFacebook = () => {
 
         <!-- NAME -->
         <div class="input-box">
-          <span>👤</span>
+          <span>??</span>
           <input v-model="name" placeholder="Nguyễn Văn A" />
         </div>
 
@@ -191,7 +196,7 @@ const loginFacebook = () => {
 
         <!-- PHONE -->
         <div class="input-box">
-          <span>📞</span>
+          <span>??</span>
           <input v-model="phone" inputmode="numeric" maxlength="12" placeholder="0123 456 789" />
         </div>
         <p v-if="phone && !isValidPhone" class="field-hint error">
@@ -199,13 +204,13 @@ const loginFacebook = () => {
         </p>
 
         <div class="input-box" v-if="referralCode">
-          <span>🎯</span>
+          <span>??</span>
           <input :value="referralCode" readonly />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -224,7 +229,7 @@ const loginFacebook = () => {
         <div v-if="password" class="password-strength">
           <div class="strength-head">
             <span :style="{ color: passwordStrength.color }">{{ passwordStrength.label }}</span>
-            <small>{{ passwordScore }}/4</small>
+            <small>{{ passwordScore }}/5</small>
           </div>
           <div class="strength-track">
             <div class="strength-fill" :style="{ width: passwordStrength.width, background: passwordStrength.color }"></div>
@@ -238,7 +243,7 @@ const loginFacebook = () => {
 
         <!-- CONFIRM -->
         <div class="input-box">
-          <span>🔒</span>
+          <span>??</span>
           <input :type="showConfirm ? 'text' : 'password'" v-model="confirm" placeholder="Xác nhận mật khẩu" />
           <button class="eye-btn" @click="showConfirm = !showConfirm" type="button">
             <svg v-if="!showConfirm" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -678,7 +683,7 @@ h2 {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .modal-message {

@@ -1,8 +1,8 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
-import { getUser } from '@/services/auth'
+import { getUser, updateUser } from '@/services/auth'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 
@@ -385,6 +385,30 @@ const fetchCart = async () => {
     }
 }
 
+const fillUserForm = (user = {}) => {
+    form.value.name = user.name || user.ten || form.value.name || ''
+    form.value.email = user.email || form.value.email || ''
+    form.value.phone = user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
+}
+
+const fetchUserProfile = async () => {
+    const cachedUser = getUser()
+    if (cachedUser) {
+        fillUserForm(cachedUser)
+    }
+
+    try {
+        const response = await api.get('/user/profile')
+        const profile = response.data?.user || response.data?.data || response.data
+        if (profile) {
+            fillUserForm(profile)
+            updateUser({ ...(cachedUser || {}), ...profile })
+        }
+    } catch (error) {
+        console.error('Lỗi tải thông tin người dùng:', error)
+    }
+}
+
 const groupedCart = computed(() => {
     const list = []
     const comboGroups = {}
@@ -419,14 +443,7 @@ const groupedCart = computed(() => {
 onMounted(() => {
     fetchCart()
     fetchAddresses()
-
-    // Tự động điền thông tin người dùng nếu đã đăng nhập
-    const user = getUser()
-    if (user) {
-        form.value.name = user.name || user.ten || ''
-        form.value.email = user.email || ''
-        form.value.phone = user.phone || user.sdt || ''
-    }
+    fetchUserProfile()
 })
 
 const subtotal = computed(() =>
@@ -441,7 +458,18 @@ const total = computed(() => {
 
 const format = (n) => n.toLocaleString('vi-VN') + 'đ'
 
+const normalizePhone = () => {
+    form.value.phone = String(form.value.phone || '').replace(/\D/g, '').slice(0, 10)
+}
+
 const confirmOrder = async () => {
+    normalizePhone()
+
+    if (!/^0\d{9}$/.test(form.value.phone)) {
+        swal.warning('Thiếu thông tin', 'Vui lòng nhập số điện thoại 10 số và bắt đầu bằng số 0.')
+        return
+    }
+
     if (!selectedAddressId.value && !form.value.address) {
         swal.warning('Thiếu thông tin', 'Vui lòng chọn địa chỉ')
         return
@@ -457,6 +485,8 @@ const confirmOrder = async () => {
         const response = await api.post('/checkout', {
             id_diachi: selectedAddressId.value,
             diachi: form.value.address,
+            name: form.value.name,
+            phone: form.value.phone,
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value
@@ -505,8 +535,17 @@ const confirmOrder = async () => {
           </div>
 
           <div class="form-grid">
-            <input class="checkout-input" v-model="form.name" placeholder="Họ và tên" />
-            <input class="checkout-input" v-model="form.phone" placeholder="Số điện thoại" />
+            <input v-model="form.name" placeholder="Họ và tên" class="checkout-input" />
+            <input
+              v-model="form.phone"
+              placeholder="Số điện thoại"
+              type="tel"
+              inputmode="numeric"
+              autocomplete="tel"
+              maxlength="10"
+              class="checkout-input"
+              @input="normalizePhone"
+            />
           </div>
 
           <input class="checkout-input" v-model="form.email" placeholder="Email" />
@@ -787,7 +826,7 @@ const confirmOrder = async () => {
 
 /* BOX */
 .box {
-  background: white;
+  background: #111f35;
   padding: 24px;
   border-radius: 14px;
   margin-bottom: 20px;
@@ -826,7 +865,7 @@ input {
   height: 44px;
   padding: 0 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -838,7 +877,7 @@ select {
   height: 44px;
   padding: 0 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -850,7 +889,7 @@ textarea {
   height: 120px;
   padding: 12px 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -914,7 +953,7 @@ textarea {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #334155;
+  color: #cbd5e1;
 }
 
 .address-header {
@@ -952,9 +991,9 @@ textarea {
   grid-template-columns: 20px 1fr auto;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
-  background: #f8fafc;
+  background: #0d1b2e;
   cursor: pointer;
 }
 
@@ -993,13 +1032,13 @@ textarea {
 .address-card b {
   display: block;
   font-size: 13px;
-  color: #0f172a;
+  color: #f1f5f9;
 }
 
 .address-card p {
   margin: 4px 0;
   font-size: 13px;
-  color: #475569;
+  color: #94a3b8;
   line-height: 1.4;
 }
 
@@ -1033,7 +1072,7 @@ textarea {
   width: min(620px, 100%);
   max-height: 90vh;
   overflow: auto;
-  background: #fff;
+  background: #111f35;
   border-radius: 16px;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
 }
@@ -1057,8 +1096,8 @@ textarea {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: #f1f5f9;
-  color: #334155;
+  background: #111f35;
+  color: #cbd5e1;
   font-size: 22px;
   cursor: pointer;
 }
@@ -1086,7 +1125,7 @@ textarea {
 
 .checkout-form-group label,
 .region-picker-field label {
-  color: #374151;
+  color: #cbd5e1;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1158,7 +1197,7 @@ textarea {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #334155;
+  color: #cbd5e1;
 }
 
 .modal-checkbox input {
@@ -1188,8 +1227,8 @@ textarea {
 
 .btn-secondary {
   border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #334155;
+  background: #111f35;
+  color: #cbd5e1;
 }
 
 .btn-primary {
@@ -1212,7 +1251,7 @@ textarea {
   gap: 14px;
   padding: 16px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: #0d1b2e;
   cursor: pointer;
 }
 

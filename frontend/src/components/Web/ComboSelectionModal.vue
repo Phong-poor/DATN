@@ -149,7 +149,7 @@ const handleAddToCart = async () => {
         
         <!-- Header -->
         <div class="modal-hdr">
-          <span class="badge-promo">{{ triggerVariant ? '🎁 QUÀ TẶNG MIỄN PHÍ' : '🔥 COMBO Ư U ĐÃI' }}</span>
+          <span class="badge-promo">{{ triggerVariant ? '🎁 QUÀ TẶNG MIỄN PHÍ' : '🔥 COMBO ƯU ĐÃI' }}</span>
           <h2>{{ triggerVariant ? 'Chọn Phụ Kiện Quà Tặng VIP' : 'Cấu hình Combo Phụ Kiện' }}</h2>
           <p class="combo-title">{{ combo.ten_combo }}</p>
         </div>

@@ -1,40 +1,49 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// Vô hiệu hóa tính năng tự động khôi phục vị trí cuộn của trình duyệt khi reload trang
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual'
+}
+
 // ── Layout ──
-import MainLayout from '../components/Layout/MainLayout.vue'
+const MainLayout = () => import('../components/Layout/MainLayout.vue')
 
 // ── Web Pages ──
-import Home from '../components/Web/Home.vue'
-import Producpage from '../components/Web/Producpage.vue'
-import News from '../components/Web/News.vue'
-import NewsDetail from '../components/Web/NewsDetail.vue'
-import Cart from '../components/Web/Cart.vue'
-import Checkout from '../components/Web/Checkout.vue'
-import ProductDetail from '../components/Web/ProductDetail.vue'
-import Contact from '../components/Web/Contact.vue'
-import Profile from '../components/Web/Profile.vue'
-import ChatbotWidget from '../components/Web/ChatbotWidget.vue'
-import Orderspage from '../components/Web/Orderspage.vue'
-import Passwordpage from '../components/Web/Passwordpage.vue'
-import LoginSuccess from '../components/Web/LoginSuccess.vue'
-import WishlistPage from '../components/Web/WishlistPage.vue'
-import ThankYou from '../components/Web/ThankYou.vue'
-import PaymentFailed from '../components/Web/PaymentFailed.vue'
-import InteractiveLabs from '../components/Web/InteractiveLabs.vue'
-import AffiliateCenter from '../components/Web/AffiliateCenter.vue'
+const Home = () => import('../components/Web/Home.vue')
+const Producpage = () => import('../components/Web/ProductsPremiumPage.vue')
+const LandingPage = () => import('../components/Web/LandingPage.vue')
+const News = () => import('../components/Web/News.vue')
+const NewsDetail = () => import('../components/Web/NewsDetail.vue')
+const Cart = () => import('../components/Web/Cart.vue')
+const Checkout = () => import('../components/Web/Checkout.vue')
+const ProductDetail = () => import('../components/Web/ProductDetail.vue')
+const Contact = () => import('../components/Web/Contact.vue')
+const Profile = () => import('../components/Web/Profile.vue')
+const ChatbotWidget = () => import('../components/Web/ChatbotWidget.vue')
+const Orderspage = () => import('../components/Web/Orderspage.vue')
+const Passwordpage = () => import('../components/Web/Passwordpage.vue')
+const LoginSuccess = () => import('../components/Web/LoginSuccess.vue')
+const WishlistPage = () => import('../components/Web/WishlistPage.vue')
+const ThankYou = () => import('../components/Web/ThankYou.vue')
+const PaymentFailed = () => import('../components/Web/PaymentFailed.vue')
+const InteractiveLabs = () => import('../components/Web/InteractiveLabs.vue')
+const AffiliateCenter = () => import('../components/Web/AffiliateCenter.vue')
+const Promotions = () => import('../components/Web/Promotions.vue')
+const Workstation = () => import('../components/Web/Workstation.vue')
+
 
 // ── Auth ──
-import Login from '../components/Auth/Login.vue'
-import Register from '../components/Auth/Register.vue'
-import ForgotPassword from '../components/Auth/ForgotPassword.vue'
-import OtpVerify from '../components/Auth/OtpVerify.vue'
-import ResetPassword from '../components/Auth/ResetPassword.vue'
+const Login = () => import('../components/Auth/Login.vue')
+const Register = () => import('../components/Auth/Register.vue')
+const ForgotPassword = () => import('../components/Auth/ForgotPassword.vue')
+const OtpVerify = () => import('../components/Auth/OtpVerify.vue')
+const ResetPassword = () => import('../components/Auth/ResetPassword.vue')
 
 import { getUser, getToken } from '../services/auth'
 
 // ── Admin ──
-import AdminLayout from '../components/Admin/Layout/AdminLayout.vue'
-import AdminDashboard from '../components/Admin/Dashboard.vue'
+const AdminLayout = () => import('../components/Admin/Layout/AdminLayout.vue')
+const AdminDashboard = () => import('../components/Admin/Dashboard.vue')
 
 const routes = [
   // ── WEB ──
@@ -59,6 +68,8 @@ const routes = [
       { path: 'payment-failed', name: 'payment-failed', component: PaymentFailed },
       { path: 'interactive-labs', name: 'interactive-labs', component: InteractiveLabs },
       { path: 'affiliate', name: 'affiliate', component: AffiliateCenter },
+      { path: 'khuyen-mai', name: 'promotions', component: Promotions },
+      { path: 'workstation', name: 'workstation', component: Workstation },
     ],
   },
 
@@ -97,58 +108,73 @@ const routes = [
     ],
   },
 
-  // ── 404 fallback ──
+  // 404 fallback
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior() {
+    return { top: 0, left: 0 }
+  }
 })
 
+const forceScrollTop = () => {
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+}
+
 router.afterEach(() => {
+  // Cưỡng bức cuộn lên đầu trang ngay khi chuyển trang xong ở mức router
+  forceScrollTop()
+  requestAnimationFrame(forceScrollTop)
+  
+  // Thực hiện cuộn phụ sau 120ms để bù đắp sự thay đổi chiều cao do các tiến trình render bất đồng bộ (API/Transitions)
   setTimeout(() => {
+    forceScrollTop()
     window.dispatchEvent(new Event('global-loader-hide'))
   }, 120)
 })
 
 router.beforeEach((to, from, next) => {
-  window.dispatchEvent(new Event('global-loader-show'))
-  const user = getUser()
-  const token = getToken()
+    forceScrollTop()
+    const user = getUser()
+    const token = getToken()
 
-  const publicPages = [
-    '/',
-    '/products',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/otp-verify',
-    '/reset-password',
-    '/login-success',
-    '/news',
-    '/contact',
-    '/cart',
-    '/thank-you',
-    '/payment-failed',
-    '/interactive-labs',
-  ]
+    const publicPages = [
+      '/',
+      '/products',
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/otp-verify',
+      '/reset-password',
+      '/login-success',
+      '/news',
+      '/contact',
+      '/cart',
+      '/thank-you',
+      '/payment-failed',
+      '/interactive-labs',
+      '/khuyen-mai',
+      '/workstation',
+    ]
 
-  const isPublic =
-    publicPages.includes(to.path) ||
-    to.path.startsWith('/products/') ||
-    to.path.startsWith('/news/')
+    const isPublic =
+      publicPages.includes(to.path) ||
+      to.path.startsWith('/products/') ||
+      to.path.startsWith('/news/')
 
-  if (!isPublic && !token) {
-    return next('/login')
-  }
+    if (!isPublic && !token) {
+      return next('/login')
+    }
 
-  if (to.matched.some(route => route.meta.requiresAdmin)) {
-    if (!user || !token) return next('/login')
-    if (user.role !== 'admin') return next('/')
-  }
+    if (to.matched.some(route => route.meta.requiresAdmin)) {
+      if (!user || !token) return next('/login')
+      if (user.role !== 'admin') return next('/')
+    }
 
-  next()
+    next()
 })
 
 export default router
