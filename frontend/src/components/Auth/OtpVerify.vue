@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
@@ -15,6 +15,8 @@ const hasError = ref(false)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const isResending = ref(false)
+const captchaLoading = ref(false)
+const captcha = ref({ token: '', label: 'Xác minh bạn là con người', verified: false })
 const countdown = ref(60)
 let timer = null
 
@@ -43,6 +45,32 @@ function focusInput(index = 0) {
   }, 50)
 }
 
+async function loadCaptcha() {
+  captchaLoading.value = true
+  try {
+    const res = await api.get('/forgot-password/captcha')
+    captcha.value = {
+      token: res.data.token || '',
+      label: res.data.label || 'Xác minh bạn là con người',
+      verified: false
+    }
+  } catch (err) {
+    console.error('Không tải được captcha:', err)
+    captcha.value = { token: '', label: 'Không tải được captcha', verified: false }
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+async function verifyCaptcha() {
+  if (captchaLoading.value) return
+  if (!captcha.value.token) {
+    await loadCaptcha()
+    return
+  }
+  captcha.value.verified = !captcha.value.verified
+}
+
 onMounted(() => {
   if (!email.value) {
     swal.error('Lỗi', 'Thiếu email, vui lòng quay lại trang quên mật khẩu.')
@@ -51,6 +79,7 @@ onMounted(() => {
   }
 
   startTimer()
+  loadCaptcha()
   focusInput(0)
 })
 
@@ -153,29 +182,39 @@ async function verify() {
 async function resend() {
   if (countdown.value > 0 || isResending.value) return
 
+  if (!captcha.value.token || !captcha.value.verified) {
+    swal.error('Thiếu xác minh', 'Vui lòng xác minh bạn là con người trước khi gửi lại mã OTP.')
+    return
+  }
+
   isResending.value = true
   hasError.value = false
   errorMessage.value = ''
 
   try {
     await api.post('/forgot-password/send-otp', {
-      email: email.value
+      email: email.value,
+      captcha_token: captcha.value.token,
+      captcha_verified: captcha.value.verified
     })
 
     clearOtp()
     focusInput(0)
     startTimer()
+    await loadCaptcha()
     swal.toast('Đã gửi lại mã OTP.')
   } catch (err) {
     console.log(err)
     swal.error('Lỗi',
       formatAuthMessage(
         err.response?.data?.errors?.email?.[0] ||
+        err.response?.data?.errors?.captcha_verified?.[0] ||
         err.response?.data?.message ||
         'Không thể gửi lại OTP.',
         'Không thể gửi lại OTP.'
       )
     )
+    await loadCaptcha()
   } finally {
     isResending.value = false
   }
@@ -222,6 +261,29 @@ async function resend() {
       <!-- Resend -->
       <div class="resend-row">
         <span class="resend-label">Không nhận được mã?</span>
+        <div v-if="countdown <= 0" class="captcha-resend-box">
+          <button
+            type="button"
+            class="captcha-check"
+            :class="{ checked: captcha.verified }"
+            @click="verifyCaptcha"
+            :disabled="captchaLoading"
+            aria-label="Xác minh bạn là con người"
+          >
+            <span v-if="captcha.verified">✓</span>
+          </button>
+          <span class="captcha-title">{{ captcha.label }}</span>
+          <div class="captcha-brand">
+            <svg viewBox="0 0 64 40" aria-hidden="true">
+              <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
+            </svg>
+            <strong>CLOUDFLARE</strong>
+            <small>Quyền riêng tư · Giúp đỡ</small>
+            <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading">
+              ↻
+            </button>
+          </div>
+        </div>
         <button class="resend-btn" @click="resend" :disabled="countdown > 0 || isResending">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10" />
@@ -433,11 +495,95 @@ async function resend() {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  width: 100%;
 }
 
 .resend-label {
   font-size: 12.5px;
   color: #94a3b8;
+}
+
+.captcha-resend-box {
+  width: 100%;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: #fafafa;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  padding: 12px;
+  margin-top: 6px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.captcha-check {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #4b5563;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.captcha-check.checked {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.captcha-check:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.captcha-title {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.captcha-brand {
+  width: 92px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  color: #111827;
+}
+
+.captcha-brand svg {
+  width: 42px;
+  height: 24px;
+}
+
+.captcha-brand strong {
+  color: #111827;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  line-height: 1;
+}
+
+.captcha-brand small {
+  color: #374151;
+  font-size: 8px;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.captcha-refresh {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  padding: 1px 4px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .resend-btn {

@@ -1,90 +1,189 @@
-<template>
-  <div class="page">
-    <div class="container">
+﻿<template>
+  <div class="wishlist-page">
+    <div class="wishlist-container">
 
-      <div class="section-header">
-        <h2 class="section-title">Sản phẩm yêu thích</h2>
-        <button class="share-btn" @click="shareList">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <circle cx="18" cy="5" r="3" />
-            <circle cx="6" cy="12" r="3" />
-            <circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
-          Chia sẻ danh sách
-        </button>
+      <!-- ===== PAGE HEADER ===== -->
+      <div class="page-header">
+        <div class="header-left">
+          <div class="header-label">💜 Bộ sưu tập của bạn</div>
+          <h1 class="page-title">Yêu Thích</h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" @click="shareList">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Chia sẻ
+          </button>
+          <button
+            v-if="wishlist.length > 0"
+            class="btn-primary"
+            @click="wishlist.forEach(i => i.bienthe?.soluong > 0 && moveToCart(i))"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            Thêm tất cả vào giỏ
+          </button>
+        </div>
       </div>
-      <p class="section-sub">
-        Hiện có <span>{{ wishlist.length }} sản phẩm</span> trong danh sách của bạn
-      </p>
 
-      <div class="wishlist-grid">
-        <div v-if="isLoading" class="loading-text">Đang tải danh sách...</div>
-        <div v-else-if="wishlist.length === 0" class="empty-text">Chưa có sản phẩm nào trong danh sách yêu thích.</div>
+      <!-- ===== STATS SECTION ===== -->
+      <div class="stats-row" v-if="!isLoading && wishlist.length > 0">
+        <div class="stat-card">
+          <div class="stat-icon purple">💾</div>
+          <div class="stat-body">
+            <div class="stat-val">{{ wishlist.length }}</div>
+            <div class="stat-lbl">Sản phẩm đã lưu</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-body">
+            <div class="stat-val">{{ wishlist.filter(i => i.bienthe?.soluong > 0).length }}</div>
+            <div class="stat-lbl">Sản phẩm còn hàng</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon indigo">💰</div>
+          <div class="stat-body">
+            <div class="stat-val">{{ formatPrice(wishlist.reduce((s, i) => s + (i.bienthe?.gia || 0) * (i.soluong || 1), 0)) }}</div>
+            <div class="stat-lbl">Tổng giá trị</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">🕐</div>
+          <div class="stat-body">
+            <div class="stat-val">Hôm nay</div>
+            <div class="stat-lbl">Cập nhật gần nhất</div>
+          </div>
+        </div>
+      </div>
 
-        <transition-group v-else name="card" tag="div" class="wishlist-inner">
+      <!-- ===== LOADING STATE ===== -->
+      <div v-if="isLoading" class="grid-wrapper">
+        <div v-for="n in 6" :key="n" class="skeleton-card">
+          <div class="sk-img"></div>
+          <div class="sk-body">
+            <div class="sk-line long"></div>
+            <div class="sk-line med"></div>
+            <div class="sk-block"></div>
+            <div class="sk-line short"></div>
+            <div class="sk-btn"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== EMPTY STATE ===== -->
+      <div v-else-if="wishlist.length === 0" class="empty-state">
+        <div class="empty-illustration">
+          <div class="empty-circle">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32 56s-24-14-24-28a12 12 0 0 1 24 0 12 12 0 0 1 24 0C56 42 32 56 32 56z" fill="url(#heartGrad)" />
+              <defs>
+                <linearGradient id="heartGrad" x1="8" y1="16" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#818cf8"/>
+                  <stop offset="1" stop-color="#6366f1"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+        <h2 class="empty-title">Danh sách yêu thích trống</h2>
+        <p class="empty-desc">Hãy khám phá cửa hàng và thêm những sản phẩm bạn yêu thích vào đây.</p>
+        <a href="/products" class="btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          Khám phá sản phẩm
+        </a>
+      </div>
+
+      <!-- ===== PRODUCT GRID ===== -->
+      <div v-else class="grid-wrapper">
+        <transition-group name="card" tag="div" class="product-grid">
           <div v-for="item in wishlist" :key="item.id" class="product-card">
-            <div class="card-img-wrap">
-              <span class="badge" :class="item.bienthe?.soluong > 0 ? 'in-stock' : 'out-stock'">
-                {{ item.bienthe?.soluong > 0 ? 'Còn hàng' : 'Hết hàng' }}
-              </span>
-              <button class="delete-btn" title="Xoá" @click="removeItem(item.id)">
+
+            <!-- RECENTLY ADDED RIBBON -->
+            <div class="recently-added-tag">Đã lưu</div>
+
+            <!-- IMAGE AREA -->
+            <div class="card-image-wrap">
+              <div class="stock-badge" :class="item.bienthe?.soluong > 0 ? 'in-stock' : 'out-stock'">
+                {{ item.bienthe?.soluong > 0 ? '● Còn hàng' : '● Hết hàng' }}
+              </div>
+              <button class="btn-remove" title="Xoá khỏi yêu thích" @click="removeItem(item.id)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6l-1 14H6L5 6" />
-                  <path d="M10 11v6" />
-                  <path d="M14 11v6" />
-                  <path d="M9 6V4h6v2" />
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
               </button>
-              <img :src="getImage(item)" :alt="item.bienthe?.sanpham?.tenSP" @error="onImgError" />
+              <div class="img-container">
+                <img :src="getImage(item)" :alt="item.fullName" @error="onImgError" class="product-img" />
+              </div>
             </div>
 
+            <!-- CARD BODY -->
             <div class="card-body">
-              <div class="card-name">{{ item.fullName || item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</div>
-              <p class="brand-txt">{{ item.brandName }} {{ item.weight ? '· ' + item.weight + 'kg' : '' }}</p>
+              <!-- BRAND + NAME -->
+              <div class="brand-label">{{ item.brandName }}</div>
+              <h3 class="product-name">{{ item.fullName || item.bienthe?.sanpham?.tenSP || 'Sản phẩm' }}</h3>
 
-              <!-- KHUNG THÔNG SỐ -->
-              <div class="specs-box" v-if="item.processedSpecs && item.processedSpecs.length > 0">
-                <div class="spec-item" v-for="s in item.processedSpecs" :key="s.label">
-                  <span class="spec-label">{{ s.label }}:</span>
-                  <span class="spec-value">{{ s.value }}</span>
+              <!-- SPECS GRID -->
+              <div class="specs-grid" v-if="item.processedSpecs && item.processedSpecs.length > 0">
+                <div class="spec-row" v-for="s in item.processedSpecs" :key="s.label">
+                  <span class="spec-key">{{ s.label }}</span>
+                  <span class="spec-val">{{ s.value }}</span>
+                </div>
+                <div class="spec-row" v-if="item.weight">
+                  <span class="spec-key">Trọng lượng</span>
+                  <span class="spec-val">{{ item.weight }} kg</span>
                 </div>
               </div>
 
-              <div class="card-price" :class="{ out: item.bienthe?.soluong === 0 }">
-                {{ formatPrice(item.bienthe?.gia) }}
+              <!-- PRICE SECTION -->
+              <div class="price-section">
+                <div class="price-current" :class="{ 'price-out': item.bienthe?.soluong === 0 }">
+                  {{ formatPrice(item.bienthe?.gia) }}
+                </div>
+                <div class="price-installment" v-if="item.bienthe?.gia">
+                  Góp từ {{ formatPrice(Math.round(item.bienthe.gia / 12)) }}/tháng
+                </div>
               </div>
 
-              <div class="qty-control">
-                <span class="qty-label">SL:</span>
-                <div class="qty-actions">
-                  <button @click="updateQuantity(item, -1)" :disabled="item.soluong <= 1">-</button>
+              <!-- QUANTITY CONTROL -->
+              <div class="qty-row">
+                <span class="qty-label">Số lượng</span>
+                <div class="qty-stepper">
+                  <button @click="updateQuantity(item, -1)" :disabled="item.soluong <= 1">−</button>
                   <span>{{ item.soluong }}</span>
                   <button @click="updateQuantity(item, 1)">+</button>
                 </div>
               </div>
 
-              <button v-if="item.bienthe?.soluong > 0" class="add-cart-btn" @click="moveToCart(item)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                  <circle cx="9" cy="21" r="1" />
-                  <circle cx="20" cy="21" r="1" />
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                </svg>
-                Thêm vào giỏ hàng
-              </button>
-              <button v-else class="notify-btn" @click="notifyMe(item)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                Thông báo khi có hàng
-              </button>
+              <!-- ACTION BUTTONS -->
+              <div class="card-actions">
+                <button v-if="item.bienthe?.soluong > 0" class="btn-add-cart" @click="moveToCart(item)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  </svg>
+                  Thêm vào giỏ
+                </button>
+                <button v-else class="btn-notify" @click="notifyMe(item)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  Thông báo khi có hàng
+                </button>
+              </div>
             </div>
+
           </div>
         </transition-group>
       </div>
+
     </div>
   </div>
 </template>
@@ -138,7 +237,6 @@ const fetchWishlist = async () => {
       const p = item.bienthe?.sanpham || {}
       const bt = item.bienthe || {}
 
-      // 1. Xử lý fullName: Tên SP + Thông số kỹ thuật chung
       let generalSpecs = []
       try {
         const tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || [])
@@ -149,7 +247,6 @@ const fetchWishlist = async () => {
 
       const fullName = [p.tenSP, ...generalSpecs].join(' ')
 
-      // 2. Xử lý processedSpecs: RAM, CPU, Màu từ biến thể
       let ram = '', cpu = '', mausac = ''
       try {
         const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
@@ -209,17 +306,15 @@ const removeItem = async (id) => {
 
 const moveToCart = async (item) => {
   try {
-    // 1. Gửi request thêm vào giỏ hàng
     await api.post('/gio-hang/them', {
       id_bienthe: item.id_bienthe,
       soluong: item.soluong
     })
 
-
     await removeItem(item.id)
 
     swal.success('Thành công', 'Đã chuyển sản phẩm sang giỏ hàng thành công!')
-    window.dispatchEvent(new Event('cart-updated')) // Cập nhật số đếm giỏ hàng nếu có
+    window.dispatchEvent(new Event('cart-updated'))
   } catch (err) {
     swal.error('Lỗi', err.response?.data?.message || 'Lỗi khi chuyển sang giỏ hàng!')
   }
@@ -231,7 +326,6 @@ const formatPrice = (value) => {
 }
 
 const getImage = (item) => {
-  // Ưu tiên ảnh của biến thể, nếu không có thì lấy ảnh mặc định của sản phẩm
   const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
   return imgPath ? storageUrl(imgPath) : ''
 }
@@ -260,487 +354,619 @@ const onImgError = (e) => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-.page {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  background: #f0f2f5;
+/* ===================== PAGE LAYOUT ===================== */
+.wishlist-page {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #eef2ff;
+  --primary-glow: rgba(99, 102, 241, 0.18);
+  --success: #22c55e;
+  --danger: #ef4444;
+  --text-1: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+  --border: #e2e8f0;
+  --card-bg: #ffffff;
+  --page-bg: #f8fafc;
+  --font: 'Inter', 'Outfit', sans-serif;
+  --radius-card: 24px;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  font-family: var(--font);
+  background: var(--page-bg);
   min-height: 100vh;
-  padding: 32px 16px 48px;
-  color: #1a1a2e;
+  padding: 40px 20px 80px;
+  color: var(--text-1);
 }
 
-.container {
-  max-width: 780px;
+.wishlist-container {
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-/* Header */
-.section-header {
+/* ===================== PAGE HEADER ===================== */
+.page-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.header-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--primary);
   margin-bottom: 6px;
+  font-family: 'Outfit', sans-serif;
 }
 
-.section-title {
-  font-size: 22px;
+.page-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--text-1);
+  line-height: 1.1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ===================== BUTTONS ===================== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
   font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 6px 18px var(--primary-glow);
+  transition: var(--transition);
+}
+.btn-primary svg { width: 15px; height: 15px; }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35);
 }
 
-.share-btn {
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-2);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-secondary svg { width: 15px; height: 15px; }
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+/* ===================== STATS ROW ===================== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #5b5ef4;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: opacity .18s;
-  font-family: inherit;
+  gap: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  transition: var(--transition);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
-.share-btn:hover {
-  opacity: .7;
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.stat-icon.purple { background: rgba(139, 92, 246, 0.1); }
+.stat-icon.green  { background: rgba(34, 197, 94, 0.1); }
+.stat-icon.indigo { background: rgba(99, 102, 241, 0.1); }
+.stat-icon.amber  { background: rgba(245, 158, 11, 0.1); }
+
+.stat-val {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-1);
+  line-height: 1.2;
 }
 
-.share-btn svg {
-  width: 15px;
-  height: 15px;
+.stat-lbl {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-top: 2px;
 }
 
-.section-sub {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 20px;
+/* ===================== SKELETON LOADING ===================== */
+.grid-wrapper {
+  width: 100%;
 }
 
-.section-sub span {
-  color: #5b5ef4;
-  font-weight: 600;
-}
-
-.loading-text,
-.empty-text {
-  font-size: 14px;
-  color: #666;
-  text-align: center;
-  padding: 40px 0;
-}
-
-/* Wishlist */
-.wishlist-grid {
-  margin-bottom: 40px;
-  min-height: 200px;
-}
-
-.wishlist-inner {
+.product-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
-@media (max-width: 600px) {
-  .wishlist-inner {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .suggest-grid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .wishlist-inner {
-    grid-template-columns: 1fr;
-  }
-
-  .suggest-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-.product-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 16px rgba(91, 94, 244, .07);
+.skeleton-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
   overflow: hidden;
-  transition: transform .2s, box-shadow .2s;
+}
+
+.sk-img {
+  height: 200px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.sk-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+.sk-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.sk-line.long  { width: 90%; }
+.sk-line.med   { width: 60%; }
+.sk-line.short { width: 40%; }
+
+.sk-block {
+  height: 70px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.sk-btn {
+  height: 40px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-top: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===================== EMPTY STATE ===================== */
+.empty-state {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.empty-illustration {
+  margin-bottom: 24px;
+}
+
+.empty-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+.empty-circle svg { width: 100%; height: 100%; }
+
+.empty-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-1);
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-3);
+  line-height: 1.6;
+  max-width: 360px;
+  margin: 0 auto 28px;
+}
+
+/* ===================== PRODUCT CARD ===================== */
+.product-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  transition: var(--transition);
 }
 
 .product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 28px rgba(91, 94, 244, .13);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12);
+  border-color: #c7d2fe;
 }
 
-.card-img-wrap {
+/* Recently Added tag */
+.recently-added-tag {
+  position: absolute;
+  top: 14px;
+  left: -1px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px 4px 11px;
+  border-radius: 0 6px 6px 0;
+  z-index: 3;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+/* IMAGE AREA */
+.card-image-wrap {
   position: relative;
-  background: #f6f7fb;
-  height: 130px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(145deg, #f8fafc 0%, #eef2ff 100%);
+  height: 150px;
   overflow: hidden;
 }
 
-.card-img-wrap img {
-  max-height: 100px;
-  max-width: 90%;
-  object-fit: contain;
-  transition: transform .3s;
+.img-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
 }
 
-.product-card:hover .card-img-wrap img {
+.product-img {
+  max-height: 115px;
+  max-width: 85%;
+  object-fit: contain;
+  transition: transform 0.45s cubic-bezier(0.165, 0.84, 0.44, 1);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.08));
+}
+.product-card:hover .product-img {
   transform: scale(1.06);
 }
 
-.badge {
+.stock-badge {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .6px;
-  text-transform: uppercase;
-  padding: 3px 8px;
+  top: 14px;
+  right: 14px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
   border-radius: 20px;
   color: #fff;
+  z-index: 3;
 }
+.stock-badge.in-stock  { background: var(--success); box-shadow: 0 2px 8px rgba(34,197,94,0.35); }
+.stock-badge.out-stock { background: var(--danger);  box-shadow: 0 2px 8px rgba(239,68,68,0.35); }
 
-.badge.in-stock {
-  background: #22c55e;
-}
-
-.badge.out-stock {
-  background: #ef4444;
-}
-
-.delete-btn {
+.btn-remove {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(255, 255, 255, .85);
+  bottom: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: rgba(255,255,255,0.95);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #bbb;
-  transition: background .18s, color .18s;
+  color: var(--text-3);
+  transition: var(--transition);
+  z-index: 3;
+  backdrop-filter: blur(4px);
 }
-
-.delete-btn:hover {
-  background: #fee2e2;
-  color: #ef4444;
+.btn-remove:hover {
+  background: #fef2f2;
+  border-color: var(--danger);
+  color: var(--danger);
 }
+.btn-remove svg { width: 14px; height: 14px; }
 
-.delete-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
+/* CARD BODY */
 .card-body {
-  padding: 12px 14px 14px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
-  display: flex;
-  flex-direction: column;
 }
 
-.card-name {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.45;
+.brand-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--primary);
   margin-bottom: 4px;
-  color: #1e293b;
 }
 
-.brand-txt {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-bottom: 12px;
-  font-weight: 500;
+.product-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.35;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.specs-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
+/* SPECS GRID */
+.specs-grid {
+  background: #0d1b2e;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.spec-item {
+.spec-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 11.5px;
+  justify-content: space-between;
+  font-size: 10.5px;
 }
-
-.spec-label {
-  color: #64748b;
+.spec-key {
+  color: var(--text-3);
   font-weight: 500;
 }
-
-.spec-value {
-  color: #334155;
-  font-weight: 600;
-  text-align: right;
-}
-
-.card-price {
-  font-size: 16px;
+.spec-val {
+  color: var(--text-2);
   font-weight: 700;
-  color: #5b5ef4;
-  margin-bottom: 12px;
+  text-align: right;
+  max-width: 60%;
 }
 
-.card-price.out {
-  color: #aaa;
-  text-decoration: line-through;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-/* Control Số Lượng */
-.qty-control {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+/* PRICE SECTION */
+.price-section {
+  margin-bottom: 10px;
   margin-top: auto;
 }
 
-.qty-label {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #555;
+.price-current {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
 }
-
-.qty-actions {
-  display: flex;
-  align-items: center;
-  border: 1px solid #e8eaf0;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.qty-actions button {
-  background: #f6f7fb;
-  border: none;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-weight: 600;
-  color: #555;
-}
-
-.qty-actions button:hover:not(:disabled) {
-  background: #e2e5f1;
-}
-
-.qty-actions button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.qty-actions span {
+.price-current.price-out {
+  color: var(--text-3);
+  text-decoration: line-through;
   font-size: 13px;
-  padding: 0 10px;
   font-weight: 500;
 }
 
-.add-cart-btn {
-  width: 100%;
-  padding: 9px 0;
-  border-radius: 24px;
-  border: none;
-  background: #5b5ef4;
-  color: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: background .18s, transform .12s;
-}
-
-.add-cart-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.add-cart-btn:hover {
-  background: #4547d4;
-  transform: scale(1.02);
-}
-
-.notify-btn {
-  width: 100%;
-  padding: 9px 0;
-  border-radius: 24px;
-  border: 1.5px solid #e8eaf0;
-  background: #f6f7fb;
-  color: #888;
-  font-family: inherit;
-  font-size: 12.5px;
+.price-installment {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
   font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: border-color .18s, background .18s, color .18s;
 }
 
-.notify-btn svg {
-  width: 13px;
-  height: 13px;
-}
-
-.notify-btn:hover {
-  border-color: #5b5ef4;
-  background: #eef0ff;
-  color: #5b5ef4;
-}
-
-/* Suggestions */
-.suggest-header {
+/* QUANTITY STEPPER */
+.qty-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
+  padding: 7px 10px;
+  background: #0d1b2e;
+  border-radius: 10px;
+  border: 1px solid var(--border);
 }
 
-.suggest-title {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.nav-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.nav-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1.5px solid #e8eaf0;
-  background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1a1a2e;
-  transition: background .18s, border-color .18s, color .18s;
-}
-
-.nav-btn:hover {
-  background: #5b5ef4;
-  border-color: #5b5ef4;
-  color: #fff;
-}
-
-.nav-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.suggest-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-.suggest-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 16px rgba(91, 94, 244, .07);
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform .2s, box-shadow .2s;
-}
-
-.suggest-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(91, 94, 244, .13);
-}
-
-.suggest-img {
-  height: 100px;
-  background: #f6f7fb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.suggest-img img {
-  max-height: 80px;
-  max-width: 85%;
-  object-fit: contain;
-  transition: transform .3s;
-}
-
-.suggest-card:hover .suggest-img img {
-  transform: scale(1.07);
-}
-
-.suggest-body {
-  padding: 10px 12px 12px;
-}
-
-.suggest-name {
-  font-size: 12.5px;
+.qty-label {
+  font-size: 11px;
   font-weight: 600;
-  margin-bottom: 5px;
-  line-height: 1.35;
+  color: var(--text-2);
 }
 
-.suggest-price {
-  font-size: 14px;
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.qty-stepper button {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: #111f35;
+  cursor: pointer;
+  font-size: 13px;
   font-weight: 700;
-  color: #5b5ef4;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  line-height: 1;
+}
+.qty-stepper button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.qty-stepper button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.qty-stepper span {
+  min-width: 24px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-1);
 }
 
-/* Transition animations */
-.card-enter-active {
-  transition: all .35s ease;
+/* ACTION BUTTONS */
+.card-actions {
+  margin-top: 4px;
 }
 
-.card-leave-active {
-  transition: all .25s ease;
+.btn-add-cart {
+  width: 100%;
+  padding: 9px;
+  border-radius: 11px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 3px 10px var(--primary-glow);
+  transition: var(--transition);
+}
+.btn-add-cart svg { width: 13px; height: 13px; }
+.btn-add-cart:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
+.btn-notify {
+  width: 100%;
+  padding: 9px;
+  border-radius: 11px;
+  border: 1.5px solid var(--border);
+  background: #0d1b2e;
+  color: var(--text-3);
+  font-family: 'Outfit', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: var(--transition);
+}
+.btn-notify svg { width: 12px; height: 12px; }
+.btn-notify:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ===================== TRANSITION ANIMATIONS ===================== */
+.card-enter-active { transition: all 0.38s cubic-bezier(0.4, 0, 0.2, 1); }
+.card-leave-active { transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 .card-enter-from {
   opacity: 0;
-  transform: translateY(16px) scale(.95);
+  transform: translateY(20px) scale(0.96);
 }
-
 .card-leave-to {
   opacity: 0;
-  transform: scale(.9);
+  transform: scale(0.92);
 }
 
-/* Đã xóa card-variant-name cũ */
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1280px) {
+  .product-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+}
+
+@media (max-width: 1024px) {
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .wishlist-page { padding: 24px 14px 60px; }
+  .page-title { font-size: 26px; }
+  .page-header { align-items: flex-start; }
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-val { font-size: 14px; }
+}
+
+@media (max-width: 500px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .header-actions { width: 100%; }
+  .btn-primary, .btn-secondary { flex: 1; justify-content: center; }
+}
 </style>

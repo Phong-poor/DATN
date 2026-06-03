@@ -52,6 +52,7 @@ Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
+Route::get('/forgot-password/captcha', [ForgotPasswordController::class, 'captcha']);
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
@@ -76,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+    Route::get('/user/change-password/captcha', [UserController::class, 'passwordCaptcha']);
     Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
     Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
     Route::get('/user/dia-chi', [DiaChiController::class, 'index']);

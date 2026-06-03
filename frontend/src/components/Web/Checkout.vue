@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
@@ -826,7 +826,7 @@ const confirmOrder = async () => {
 
 /* BOX */
 .box {
-  background: white;
+  background: #111f35;
   padding: 24px;
   border-radius: 14px;
   margin-bottom: 20px;
@@ -865,7 +865,7 @@ input {
   height: 44px;
   padding: 0 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -877,7 +877,7 @@ select {
   height: 44px;
   padding: 0 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -889,7 +889,7 @@ textarea {
   height: 120px;
   padding: 12px 14px;
   border: none;
-  background: #f1f5f9;
+  background: #111f35;
   border-radius: 10px;
   font-size: 14px;
   box-sizing: border-box;
@@ -953,7 +953,7 @@ textarea {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #334155;
+  color: #cbd5e1;
 }
 
 .address-header {
@@ -991,9 +991,9 @@ textarea {
   grid-template-columns: 20px 1fr auto;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
-  background: #f8fafc;
+  background: #0d1b2e;
   cursor: pointer;
 }
 
@@ -1032,13 +1032,13 @@ textarea {
 .address-card b {
   display: block;
   font-size: 13px;
-  color: #0f172a;
+  color: #f1f5f9;
 }
 
 .address-card p {
   margin: 4px 0;
   font-size: 13px;
-  color: #475569;
+  color: #94a3b8;
   line-height: 1.4;
 }
 
@@ -1072,7 +1072,7 @@ textarea {
   width: min(620px, 100%);
   max-height: 90vh;
   overflow: auto;
-  background: #fff;
+  background: #111f35;
   border-radius: 16px;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
 }
@@ -1096,8 +1096,8 @@ textarea {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: #f1f5f9;
-  color: #334155;
+  background: #111f35;
+  color: #cbd5e1;
   font-size: 22px;
   cursor: pointer;
 }
@@ -1125,7 +1125,7 @@ textarea {
 
 .checkout-form-group label,
 .region-picker-field label {
-  color: #374151;
+  color: #cbd5e1;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1197,7 +1197,7 @@ textarea {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #334155;
+  color: #cbd5e1;
 }
 
 .modal-checkbox input {
@@ -1227,8 +1227,8 @@ textarea {
 
 .btn-secondary {
   border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #334155;
+  background: #111f35;
+  color: #cbd5e1;
 }
 
 .btn-primary {
@@ -1251,7 +1251,7 @@ textarea {
   gap: 14px;
   padding: 16px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: #0d1b2e;
   cursor: pointer;
 }
 

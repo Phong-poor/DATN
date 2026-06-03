@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
@@ -36,7 +36,7 @@ const orderId = route.query.order_id
 
 <style scoped>
 .payment-failed-page {
-  background: #f8fafc;
+  background: #0d1b2e;
   min-height: 80vh;
   display: flex;
   align-items: center;
@@ -50,7 +50,7 @@ const orderId = route.query.order_id
 }
 
 .card {
-  background: white;
+  background: #111f35;
   padding: 60px 40px;
   border-radius: 24px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
@@ -75,7 +75,7 @@ const orderId = route.query.order_id
 h1 {
   font-size: 28px;
   font-weight: 700;
-  color: #1e293b;
+  color: #e2e8f0;
   margin-bottom: 16px;
 }
 
@@ -113,8 +113,8 @@ h1 {
 }
 
 .btn.secondary {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #111f35;
+  color: #e2e8f0;
 }
 
 .btn.secondary:hover {

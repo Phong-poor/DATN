@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import api from '@/services/api'
@@ -357,7 +357,7 @@ onMounted(() => {
 }
 
 .state-box {
-  background: white;
+  background: #111f35;
   border-radius: 12px;
   color: #64748b;
   padding: 28px;
@@ -388,7 +388,7 @@ onMounted(() => {
 }
 
 .article-head h1 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 42px;
   line-height: 1.12;
   margin: 12px 0;
@@ -410,9 +410,9 @@ onMounted(() => {
 }
 
 .article-body {
-  background: white;
+  background: #111f35;
   border-radius: 16px;
-  color: #334155;
+  color: #cbd5e1;
   font-size: 16px;
   line-height: 1.8;
   margin-top: 24px;
@@ -420,13 +420,13 @@ onMounted(() => {
 }
 
 .article-body .lead {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 19px;
   font-weight: 600;
 }
 
 .article-body h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 26px;
   line-height: 1.35;
   margin: 30px 0 12px;
@@ -472,14 +472,14 @@ onMounted(() => {
 }
 
 .article-gallery {
-  background: white;
+  background: #111f35;
   border-radius: 16px;
   margin-top: 20px;
   padding: 24px;
 }
 
 .article-gallery h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
   margin: 0 0 16px;
 }
@@ -505,14 +505,14 @@ onMounted(() => {
   background: #eef6ff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  color: #334155;
+  color: #cbd5e1;
   line-height: 1.75;
   margin-top: 20px;
   padding: 24px 30px;
 }
 
 .seo-summary h2 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
   margin: 0 0 10px;
 }
@@ -526,7 +526,7 @@ onMounted(() => {
 }
 
 .related h3 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 22px;
 }
 
@@ -537,7 +537,7 @@ onMounted(() => {
 }
 
 .related-card {
-  background: white;
+  background: #111f35;
   border-radius: 14px;
   color: inherit;
   overflow: hidden;
@@ -561,7 +561,7 @@ onMounted(() => {
 }
 
 .related-card h4 {
-  color: #0f172a;
+  color: #f1f5f9;
   font-size: 14px;
   margin: 6px 0 0;
 }

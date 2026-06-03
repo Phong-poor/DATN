@@ -1,16 +1,15 @@
-<template>
+﻿<template>
   <div class="labs-page">
-    <!-- Cyberpunk Animated Background Elements -->
-    <div class="cyber-grid-bg"></div>
-    <div class="cyber-scanline"></div>
-    <div class="ambient-glow cyan"></div>
-    <div class="ambient-glow purple"></div>
+    <!-- Subtle Valiant Background Elements -->
+    <div class="subtle-grid-bg"></div>
+    <div class="subtle-glow cyan"></div>
+    <div class="subtle-glow purple"></div>
 
     <!-- Hero / Header Section -->
     <div class="labs-hero">
       <div class="hero-bg-overlay"></div>
       <div class="container hero-content">
-        <div class="badge-label animate-fade-in">🔬 VinaTech Interactive & Gamification Hub</div>
+        <div class="badge-label animate-fade-in">VinaTech Interactive & Gamification Hub</div>
         <h1 class="animate-slide-up">Đấu Trường Tương Tác & Đại Sứ Công Nghệ</h1>
         <p class="animate-fade-in-delayed">
           Khám phá giới hạn phần cứng, thiết kế laptop cá nhân và tham gia hệ sinh thái nhiệm vụ nhận quà độc quyền.
@@ -23,21 +22,21 @@
             :class="{ active: activeTab === 'versus' }" 
             class="tab-btn"
           >
-            <span class="tab-icon">⚔️</span> Đấu Trường Hiệu Năng
+            <span class="tab-icon"></span> Đấu Trường Hiệu Năng
           </button>
           <button 
             @click="activeTab = 'customizer'" 
             :class="{ active: activeTab === 'customizer' }" 
             class="tab-btn"
           >
-            <span class="tab-icon">🎨</span> Cá Nhân Hóa Laptop
+            <span class="tab-icon"></span> Cá Nhân Hóa Laptop
           </button>
           <button 
             @click="activeTab = 'gamification'" 
             :class="{ active: activeTab === 'gamification' }" 
             class="tab-btn"
           >
-            <span class="tab-icon">💎</span> Đại Sứ & Quests
+            <span class="tab-icon"></span> Đại Sứ & Quests
           </button>
         </div>
       </div>
@@ -1479,7 +1478,7 @@ const presetLaptops = [
     cpu: 'Intel Core i5-13420H (8 cores, 4.6GHz)',
     gpu: 'Intel Iris Xe Graphics',
     ram: '16GB LPDDR5 4800MHz',
-    img: '/elite_unboxing.png',
+    img: '/elite_shipping.png',
     metrics: { cpu: 65, gpu: 45, battery: 75, portability: 90, cooling: 75 }
   }
 ];
@@ -1498,7 +1497,9 @@ const laptopB = computed(() => {
 
 // Fetch products from API `/sanpham`
 const fetchRealProducts = async () => {
-  isLoadingProducts.value = true;
+  if (realProducts.value.length === 0) {
+    isLoadingProducts.value = true;
+  }
   try {
     const res = await api.get('/sanpham');
     const raw = Array.isArray(res.data) ? res.data : (res.data.data || []);
@@ -1560,6 +1561,11 @@ const fetchRealProducts = async () => {
         metrics: { cpu: cpuScore, gpu: gpuScore, battery: batteryScore, portability: portScore, cooling: coolScore }
       };
     });
+    
+    // Save to cache for instant load next time
+    try {
+      localStorage.setItem('nextgen_labs_real_products', JSON.stringify(realProducts.value));
+    } catch(e) {}
   } catch (e) {
     console.error('Lỗi khi fetch sản phẩm thực tế:', e);
   } finally {
@@ -2420,6 +2426,13 @@ const redeemReward = (reward) => {
 
 // Lifecycle Hooks
 onMounted(() => {
+  try {
+    const cached = localStorage.getItem('nextgen_labs_real_products');
+    if (cached) {
+      realProducts.value = JSON.parse(cached);
+    }
+  } catch (e) {}
+
   fetchRealProducts();
   payoutInterval = setInterval(rotatePayoutText, 4500);
 });
@@ -2442,58 +2455,34 @@ onUnmounted(() => {
   z-index: 1;
 }
 
-/* Cyberpunk Animated Background Elements */
-.cyber-grid-bg {
+/* Subtle Background Elements */
+.subtle-grid-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  top: 0; left: 0; width: 100vw; height: 100vh;
   background-image: 
-    linear-gradient(rgba(8, 11, 17, 0.95), rgba(8, 11, 17, 0.95)),
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.97), rgba(15, 23, 42, 0.97)),
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
   background-size: 100% 100%, 45px 45px, 45px 45px;
-  opacity: 0.85;
   z-index: -2;
   pointer-events: none;
 }
-.cyber-scanline {
+.subtle-glow {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 3px;
-  background: linear-gradient(to bottom, rgba(37, 99, 235, 0.06), transparent);
-  animation: scanlineMove 12s linear infinite;
-  z-index: -1;
-  pointer-events: none;
-}
-@keyframes scanlineMove {
-  0% { transform: translateY(-100px); }
-  100% { transform: translateY(100vh); }
-}
-.ambient-glow {
-  position: fixed;
-  width: 60vw;
-  height: 60vw;
+  width: 50vw; height: 50vw;
   border-radius: 50%;
-  filter: blur(160px);
-  opacity: 0.15;
+  filter: blur(140px);
+  opacity: 0.08;
   z-index: -2;
   pointer-events: none;
 }
-.ambient-glow.cyan {
-  top: -15%; right: -15%;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
-}
-.ambient-glow.purple {
-  bottom: -15%; left: -15%;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, transparent 70%);
-}
+.subtle-glow.cyan { top: -10%; right: -10%; background: radial-gradient(circle, #3b82f6 0%, transparent 70%); }
+.subtle-glow.purple { bottom: -10%; left: -10%; background: radial-gradient(circle, #6366f1 0%, transparent 70%); }
 
 /* 1. HERO HEADER AREA */
 .labs-hero {
   position: relative;
-  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.18) 0%, rgba(15, 23, 42, 0) 60%),
-              radial-gradient(circle at bottom left, rgba(124, 58, 237, 0.15) 0%, rgba(11, 15, 25, 0) 50%);
+  background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08) 0%, rgba(15, 23, 42, 0) 70%);
   padding: 80px 0 40px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   text-align: center;
@@ -2521,11 +2510,10 @@ onUnmounted(() => {
 }
 
 .labs-hero h1 {
-  font-family: 'Outfit', sans-serif;
   font-size: 42px;
   font-weight: 800;
   margin: 0 0 15px 0;
-  background: linear-gradient(135deg, #ffffff 30%, #93c5fd 60%, #c084fc 100%);
+  background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.5px;
@@ -3031,7 +3019,7 @@ onUnmounted(() => {
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 2px;
-  color: #475569;
+  color: #94a3b8;
   margin-bottom: 25px;
 }
 
@@ -4153,7 +4141,7 @@ onUnmounted(() => {
 
 .redeem-btn:disabled {
   background: #1e293b;
-  color: #475569;
+  color: #94a3b8;
   cursor: not-allowed;
   border: 1px solid rgba(255, 255, 255, 0.02);
 }

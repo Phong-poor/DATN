@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { saveAuth } from '@/services/auth'

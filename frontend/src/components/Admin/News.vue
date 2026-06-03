@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { getUser, updateUser } from '@/services/auth'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
@@ -142,7 +143,7 @@ const smartContentAlt = computed(() => buildSmartAlt('content'))
 const imageUrl = (path) => {
   if (!path) return placeholderImage
   if (path.startsWith('http') || path.startsWith('data:image')) return path
-  return `http://127.0.0.1:8000/storage/${path}`
+  return storageUrl(path)
 }
 const formatDate = (value) => {
   if (!value) return 'Chưa đặt lịch'

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
@@ -575,7 +575,7 @@ onUnmounted(() => {
 <style scoped>
 .page {
     min-height: 100vh;
-    background: #f8fafc;
+    background: #0d1b2e;
     padding: 32px 30px;
 }
 
@@ -591,7 +591,7 @@ onUnmounted(() => {
 .page-title {
     font-size: 22px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
     margin: 0 0 4px;
 }
 
@@ -605,8 +605,8 @@ onUnmounted(() => {
 .tabs {
     display: flex;
     gap: 6px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: #111f35;
+    border: 1px solid rgba(255,255,255,0.07);
     border-radius: 14px;
     padding: 6px;
     margin-bottom: 20px;
@@ -629,8 +629,8 @@ onUnmounted(() => {
 }
 
 .tab:hover {
-    background: #f1f5f9;
-    color: #374151;
+    background: #111f35;
+    color: #cbd5e1;
 }
 
 .tab.active {
@@ -647,7 +647,7 @@ onUnmounted(() => {
 }
 
 .tab:not(.active) .tab-count {
-    background: #f1f5f9;
+    background: #111f35;
     color: #64748b;
 }
 
@@ -678,9 +678,9 @@ onUnmounted(() => {
 }
 
 .order-card {
-    background: #fff;
+    background: #111f35;
     border-radius: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.07);
     overflow: hidden;
 }
 
@@ -689,7 +689,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
 .order-meta {
@@ -701,7 +701,7 @@ onUnmounted(() => {
 .order-id {
     font-size: 13px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
 }
 
 .order-date {
@@ -732,7 +732,7 @@ onUnmounted(() => {
     height: 52px;
     border-radius: 10px;
     object-fit: cover;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.07);
     flex-shrink: 0;
 }
 
@@ -744,7 +744,7 @@ onUnmounted(() => {
 .order-item-name {
     font-size: 14px;
     font-weight: 700;
-    color: #1e293b;
+    color: #e2e8f0;
     margin: 0 0 2px;
 }
 
@@ -772,8 +772,8 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
-    border-top: 1px solid #f1f5f9;
-    background: #f8fafc;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    background: #0d1b2e;
 }
 
 .order-total {
@@ -782,7 +782,7 @@ onUnmounted(() => {
 }
 
 .order-total strong {
-    color: #0f172a;
+    color: #f1f5f9;
     font-size: 15px;
 }
 
@@ -797,7 +797,7 @@ onUnmounted(() => {
 }
 
 .btn-detail {
-    background: #fff;
+    background: #111f35;
     border-color: #2563eb;
     color: #2563eb;
 }
@@ -817,7 +817,7 @@ onUnmounted(() => {
 }
 
 .btn-cancel {
-    background: #fff;
+    background: #111f35;
     border-color: #dc2626;
     color: #dc2626;
 }
@@ -853,7 +853,7 @@ onUnmounted(() => {
 }
 
 .modal {
-    background: #fff;
+    background: #111f35;
     border-radius: 20px;
     width: 100%;
     max-width: 560px;
@@ -875,7 +875,7 @@ onUnmounted(() => {
 .modal-title {
     font-size: 18px;
     font-weight: 700;
-    color: #0f172a;
+    color: #f1f5f9;
     margin: 0;
 }
 
@@ -890,7 +890,7 @@ onUnmounted(() => {
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: #f1f5f9;
+    background: #111f35;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -931,7 +931,7 @@ onUnmounted(() => {
     align-items: center;
     gap: 12px;
     padding: 10px;
-    background: #f8fafc;
+    background: #0d1b2e;
     border-radius: 12px;
     margin-bottom: 8px;
 }
@@ -941,7 +941,7 @@ onUnmounted(() => {
     height: 52px;
     border-radius: 10px;
     object-fit: cover;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255,255,255,0.07);
 }
 
 .modal-item-info {
@@ -952,7 +952,7 @@ onUnmounted(() => {
 .modal-item-name {
     font-size: 13px;
     font-weight: 700;
-    color: #1e293b;
+    color: #e2e8f0;
     margin: 0 0 2px;
 }
 
@@ -979,7 +979,7 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 14px 0 0;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid rgba(255,255,255,0.07);
     font-size: 14px;
     font-weight: 600;
     color: #64748b;
@@ -1002,7 +1002,7 @@ onUnmounted(() => {
     width: 100%;
     padding: 10px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.07);
     font-size: 14px;
 }
 

@@ -1,10 +1,18 @@
-<script setup>
+﻿<script setup>
 import { ref, computed } from 'vue'
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { formatAuthMessage } from '@/services/authMessages'
+import {
+  getPasswordChecks,
+  getPasswordRequirements,
+  getPasswordScore,
+  getPasswordStrength,
+  validatePasswordConfirmation,
+  validateStrongPassword,
+} from '@/services/authValidation'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,17 +34,15 @@ const isLoading = ref(false)
 const form = ref({ password: '', confirm: '' })
 const errors = ref({ password: '', confirm: '' })
 
-const checks = computed(() => ({
-  length: form.value.password.length >= 8,
-  upper: /[A-Z]/.test(form.value.password),
-  special: /[0-9!@#$%^&*]/.test(form.value.password),
-}))
+const checks = computed(() => getPasswordChecks(form.value.password))
+const requirements = computed(() => getPasswordRequirements(form.value.password))
 
-const strengthScore = computed(() => Object.values(checks.value).filter(Boolean).length)
+const strengthScore = computed(() => getPasswordScore(form.value.password))
+const strength = computed(() => getPasswordStrength(form.value.password))
 
-const strengthWidth = computed(() => ['0%', '33%', '66%', '100%'][strengthScore.value])
-const strengthColor = computed(() => ['#e2e8f0', '#ef4444', '#f59e0b', '#22c55e'][strengthScore.value])
-const strengthText = computed(() => ['', 'Yếu', 'Trung bình', 'Mạnh'][strengthScore.value])
+const strengthWidth = computed(() => strength.value.width)
+const strengthColor = computed(() => strength.value.color)
+const strengthText = computed(() => strength.value.label)
 
 function validatePassword() {
   errors.value.password = ''
@@ -47,10 +53,10 @@ function validatePassword() {
 
 function validate() {
   errors.value = { password: '', confirm: '' }
-  if (!form.value.password) { errors.value.password = 'Vui lòng nhập mật khẩu mới.'; return false }
-  if (strengthScore.value < 2) { errors.value.password = 'Mật khẩu chưa đủ mạnh.'; return false }
-  if (!form.value.confirm) { errors.value.confirm = 'Vui lòng xác nhận mật khẩu.'; return false }
-  if (form.value.password !== form.value.confirm) { errors.value.confirm = 'Mật khẩu xác nhận không khớp.'; return false }
+  const passwordError = validateStrongPassword(form.value.password).replace('mật khẩu.', 'mật khẩu mới.')
+  if (passwordError) { errors.value.password = passwordError; return false }
+  const confirmError = validatePasswordConfirmation(form.value.password, form.value.confirm)
+  if (confirmError) { errors.value.confirm = confirmError; return false }
   return true
 }
 
@@ -237,17 +243,9 @@ async function submit() {
             <span class="strength-label" :style="{ color: strengthColor }">{{ strengthText }}</span>
           </div>
           <div class="req-list">
-            <div class="req-item" :class="{ 'req-ok': checks.length }">
+            <div v-for="item in requirements" :key="item.key" class="req-item" :class="{ 'req-ok': item.ok }">
               <span class="req-dot"></span>
-              Ít nhất 8 ký tự
-            </div>
-            <div class="req-item" :class="{ 'req-ok': checks.upper }">
-              <span class="req-dot"></span>
-              Ít nhất 1 chữ hoa
-            </div>
-            <div class="req-item" :class="{ 'req-ok': checks.special }">
-              <span class="req-dot"></span>
-              Chứa ít nhất 1 số hoặc ký tự đặc biệt
+              {{ item.label }}
             </div>
           </div>
         </div>
@@ -453,7 +451,7 @@ async function submit() {
   display: block;
   font-size: 12.5px;
   font-weight: 600;
-  color: #374151;
+  color: #334155;
   margin-bottom: 7px;
 }
 
@@ -494,7 +492,7 @@ async function submit() {
 
 .field-input::placeholder {
   letter-spacing: 2px;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .eye-btn {

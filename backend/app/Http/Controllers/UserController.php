@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 
 
 class UserController extends Controller
@@ -183,6 +184,31 @@ class UserController extends Controller
         return response()->json($request->user());
     }
 
+    public function passwordCaptcha(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $left = random_int(2, 9);
+        $right = random_int(1, 9);
+        $operator = random_int(0, 1) === 1 ? '+' : '-';
+        $answer = $operator === '+' ? $left + $right : $left - $right;
+
+        if ($answer < 0) {
+            [$left, $right] = [$right, $left];
+            $answer = $left - $right;
+        }
+
+        Cache::put("password_captcha:{$user->id}", $answer, now()->addMinutes(10));
+
+        return response()->json([
+            'question' => "{$left} {$operator} {$right} = ?",
+        ]);
+    }
+
     public function destroy($id)
     {
         $user = User::findOrFail($id);
@@ -273,9 +299,20 @@ class UserController extends Controller
         $request->validate([
             'current_password' => 'required',
             'new_password' => 'required|string|min:8|confirmed',
+            'captcha_answer' => 'required|integer',
         ], [
             'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
         ]);
+
+        $captchaAnswer = Cache::pull("password_captcha:{$user->id}");
+        if ($captchaAnswer === null || (int) $request->captcha_answer !== (int) $captchaAnswer) {
+            return response()->json([
+                'message' => 'Captcha không đúng hoặc đã hết hạn',
+                'errors' => [
+                    'captcha_answer' => ['Captcha không đúng hoặc đã hết hạn'],
+                ],
+            ], 422);
+        }
 
         if (!Hash::check($request->current_password, $user->password)) {
             \Log::warning("Direct password change failed for User ID: {$user->id}: Current password check failed.");

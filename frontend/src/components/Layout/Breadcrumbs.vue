@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -163,7 +163,7 @@ const crumbs = computed(() => {
 }
 
 .breadcrumb-current {
-  color: #0f172a;
+  color: #f1f5f9;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;

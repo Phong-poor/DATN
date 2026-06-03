@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
@@ -630,7 +630,7 @@ onMounted(loadAll)
   max-width: 1200px;
   margin: 30px auto;
   padding: 0 20px;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 /* Heading Banner */
@@ -689,8 +689,8 @@ onMounted(loadAll)
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 16px;
   padding: 24px;
 }
@@ -782,7 +782,7 @@ onMounted(loadAll)
 }
 .activation-desc {
   font-size: 15px;
-  color: #475569;
+  color: #94a3b8;
   line-height: 1.6;
   margin-bottom: 32px;
 }
@@ -839,10 +839,10 @@ onMounted(loadAll)
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  background: #f8fafc;
+  background: #0d1b2e;
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
 }
 .tab-btn {
   display: inline-flex;
@@ -860,11 +860,11 @@ onMounted(loadAll)
   transition: all 0.2s ease;
 }
 .tab-btn:hover {
-  color: #1e293b;
+  color: #e2e8f0;
   background: rgba(255,255,255,0.7);
 }
 .tab-btn.active {
-  background: #ffffff;
+  background: #111f35;
   color: #2563eb;
   box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.08);
 }
@@ -876,8 +876,8 @@ onMounted(loadAll)
 
 /* Tab Panel */
 .tab-content-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 16px;
   padding: 28px;
   min-height: 300px;
@@ -907,8 +907,8 @@ onMounted(loadAll)
   gap: 10px;
 }
 .info-badge {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
   padding: 8px 14px;
   display: flex;
@@ -932,7 +932,7 @@ onMounted(loadAll)
 .info-badge-value {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f1f5f9;
 }
 .info-badge.highlight .info-badge-value {
   color: #1e3a8a;
@@ -941,7 +941,7 @@ onMounted(loadAll)
 /* Link Sharing Card */
 .link-sharing-card {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 14px;
   padding: 20px;
   margin-bottom: 28px;
@@ -960,7 +960,7 @@ onMounted(loadAll)
 .link-copy-box {
   display: flex;
   gap: 8px;
-  background: #ffffff;
+  background: #111f35;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 6px;
@@ -973,7 +973,7 @@ onMounted(loadAll)
   background: transparent;
   padding: 8px 10px;
   font-size: 13.5px;
-  color: #1e293b;
+  color: #e2e8f0;
   outline: none;
   font-family: monospace;
 }
@@ -1003,8 +1003,8 @@ onMounted(loadAll)
   margin-bottom: 24px;
 }
 .stat-card {
-  background: #ffffff;
-  border: 1px solid #f1f5f9;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.05);
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -1055,7 +1055,7 @@ onMounted(loadAll)
 .notice-info-card {
   display: flex;
   gap: 12px;
-  background: #f8fafc;
+  background: #0d1b2e;
   border-left: 4px solid #3b82f6;
   border-radius: 10px;
   padding: 16px;
@@ -1069,7 +1069,7 @@ onMounted(loadAll)
 }
 .notice-text {
   font-size: 13px;
-  color: #475569;
+  color: #94a3b8;
   line-height: 1.5;
 }
 
@@ -1077,7 +1077,7 @@ onMounted(loadAll)
 .section-header {
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 .section-header h3 {
   font-size: 18px;
@@ -1097,7 +1097,7 @@ onMounted(loadAll)
 /* Modern Tables styling */
 .table-container {
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 12px;
 }
 .modern-table {
@@ -1107,8 +1107,8 @@ onMounted(loadAll)
   font-size: 13.5px;
 }
 .modern-table th {
-  background: #f8fafc;
-  color: #475569;
+  background: #0d1b2e;
+  color: #94a3b8;
   font-weight: 600;
   padding: 14px 18px;
   border-bottom: 1px solid #e2e8f0;
@@ -1118,15 +1118,15 @@ onMounted(loadAll)
 }
 .modern-table td {
   padding: 14px 18px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  color: #cbd5e1;
   vertical-align: middle;
 }
 .modern-table tr:last-child td {
   border-bottom: none;
 }
 .modern-table tbody tr:hover td {
-  background: #f8fafc;
+  background: #0d1b2e;
 }
 .font-semibold { font-weight: 600; }
 .text-muted { color: #64748b; }
@@ -1176,8 +1176,8 @@ onMounted(loadAll)
   align-items: start;
 }
 .withdraw-form-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #111f35;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 14px;
   padding: 20px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);
@@ -1225,7 +1225,7 @@ onMounted(loadAll)
 .input-group label {
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #94a3b8;
 }
 .required {
   color: #ef4444;
@@ -1251,7 +1251,7 @@ onMounted(loadAll)
   border-radius: 8px !important;
   padding: 9px 12px !important;
   font-size: 13.5px !important;
-  color: #1e293b !important;
+  color: #e2e8f0 !important;
   outline: none !important;
   transition: all 0.2s ease !important;
 }
@@ -1275,7 +1275,7 @@ onMounted(loadAll)
   color: #64748b;
 }
 .font-bold { font-weight: 700; }
-.text-dark { color: #0f172a; }
+.text-dark { color: #f1f5f9; }
 
 /* Micro-animations */
 .fade-in {
@@ -1288,8 +1288,8 @@ onMounted(loadAll)
 
 /* Product Affiliate Link Generator styles */
 .product-generator-card {
-  border: 1px solid #e2e8f0;
-  background: #f8fafc !important;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: #0d1b2e !important;
 }
 .generator-container {
   display: flex;
@@ -1310,7 +1310,7 @@ onMounted(loadAll)
 .generator-label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: #94a3b8;
 }
 .generator-select, .generator-input {
   width: 100% !important;
@@ -1322,7 +1322,7 @@ onMounted(loadAll)
   border: 1px solid #cbd5e1 !important;
   background: #ffffff !important;
   font-size: 14px !important;
-  color: #1e293b !important;
+  color: #e2e8f0 !important;
   outline: none !important;
   transition: all 0.2s ease !important;
   line-height: normal !important;

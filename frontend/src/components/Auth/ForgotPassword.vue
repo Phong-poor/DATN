@@ -1,11 +1,14 @@
-<script setup>
-import { ref } from 'vue'
+﻿<script setup>
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
+import { normalizeEmail, validateEmail } from '@/services/authValidation'
 
 const email = ref('')
 const loading = ref(false)
+const captchaLoading = ref(false)
+const captcha = ref({ token: '', label: 'Xác minh bạn là con người', verified: false })
 const router = useRouter()
 
 const modal = ref({
@@ -27,15 +30,49 @@ const closeModal = () => {
   if (cb) cb()
 }
 
+const loadCaptcha = async () => {
+  captchaLoading.value = true
+  try {
+    const res = await api.get('/forgot-password/captcha')
+    captcha.value = {
+      token: res.data.token || '',
+      label: res.data.label || 'Xác minh bạn là con người',
+      verified: false
+    }
+  } catch (err) {
+    console.error('Không tải được captcha:', err)
+    captcha.value = { token: '', label: 'Không tải được captcha', verified: false }
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+onMounted(loadCaptcha)
+
+const verifyCaptcha = async () => {
+  if (captchaLoading.value) return
+  if (!captcha.value.token) {
+    await loadCaptcha()
+    return
+  }
+  captcha.value.verified = !captcha.value.verified
+}
+
 const handleSubmit = async () => {
-  if (!email.value.trim()) {
-    showModal('error', 'Thiếu thông tin', 'Vui lòng nhập địa chỉ email của bạn.')
+  const emailError = validateEmail(email.value)
+  if (emailError) {
+    showModal('error', 'Email không hợp lệ', emailError)
     return
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email.value)) {
-    showModal('error', 'Email không hợp lệ', 'Vui lòng nhập đúng định dạng email.')
+  if (!captcha.value.token) {
+    showModal('error', 'Thiếu xác minh', 'Vui lòng tải lại mã xác minh.')
+    await loadCaptcha()
+    return
+  }
+
+  if (!captcha.value.verified) {
+    showModal('error', 'Thiếu xác minh', 'Vui lòng xác minh bạn là con người.')
     return
   }
 
@@ -44,7 +81,9 @@ const handleSubmit = async () => {
 
   try {
     const res = await api.post('/forgot-password/send-otp', {
-      email: email.value.trim()
+      email: normalizeEmail(email.value),
+      captcha_token: captcha.value.token,
+      captcha_verified: captcha.value.verified
     })
 
     showModal(
@@ -54,7 +93,7 @@ const handleSubmit = async () => {
       () => {
         router.push({
           name: 'otp-verify',
-          query: { email: email.value.trim() }
+          query: { email: normalizeEmail(email.value) }
         })
       }
     )
@@ -63,10 +102,12 @@ const handleSubmit = async () => {
 
     const errorMsg =
       err.response?.data?.errors?.email?.[0] ||
+      err.response?.data?.errors?.captcha_verified?.[0] ||
       err.response?.data?.message ||
       'Không gửi được OTP'
 
     showModal('error', 'Lỗi', formatAuthMessage(errorMsg, 'Không gửi được OTP. Vui lòng thử lại.'))
+    await loadCaptcha()
   } finally {
     loading.value = false
   }
@@ -97,6 +138,30 @@ const handleSubmit = async () => {
       <div class="input-box">
         <span>@</span>
         <input v-model="email" placeholder="example@vinatech.com" @keyup.enter="handleSubmit" />
+      </div>
+
+      <div class="captcha-box">
+        <button
+          type="button"
+          class="captcha-check"
+          :class="{ checked: captcha.verified }"
+          @click="verifyCaptcha"
+          :disabled="captchaLoading"
+          aria-label="Xác minh bạn là con người"
+        >
+          <span v-if="captcha.verified">✓</span>
+        </button>
+        <span class="captcha-title">{{ captcha.label }}</span>
+        <div class="captcha-brand">
+          <svg viewBox="0 0 64 40" aria-hidden="true">
+            <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
+          </svg>
+          <strong>CLOUDFLARE</strong>
+          <small>Quyền riêng tư · Giúp đỡ</small>
+          <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading">
+            ↻
+          </button>
+        </div>
       </div>
 
       <!-- BUTTON -->
@@ -191,7 +256,7 @@ const handleSubmit = async () => {
 h2 {
   font-size: 22px;
   margin-bottom: 8px;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .desc {
@@ -221,6 +286,88 @@ h2 {
   outline: none;
   flex: 1;
   font-size: 14px;
+}
+
+.captcha-box {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: #fafafa;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  padding: 12px;
+  margin-bottom: 15px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.captcha-check {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #4b5563;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.captcha-check.checked {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.captcha-check:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.captcha-title {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.captcha-brand {
+  width: 92px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  color: #111827;
+}
+
+.captcha-brand svg {
+  width: 42px;
+  height: 24px;
+}
+
+.captcha-brand strong {
+  color: #111827;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  line-height: 1;
+}
+
+.captcha-brand small {
+  color: #374151;
+  font-size: 8px;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.captcha-refresh {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  padding: 1px 4px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .btn {
@@ -325,7 +472,7 @@ h2 {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .modal-message {

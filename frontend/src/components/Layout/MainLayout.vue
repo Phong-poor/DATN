@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -14,9 +14,16 @@ const showChatbot = computed(() =>
 )
 
 const showScrollTop = ref(false)
+let scrollTicking = false
 
 const handleScroll = () => {
-  showScrollTop.value = window.scrollY > 300
+  if (scrollTicking) return
+
+  scrollTicking = true
+  window.requestAnimationFrame(() => {
+    showScrollTop.value = window.scrollY > 300
+    scrollTicking = false
+  })
 }
 
 const scrollToTop = () => {
@@ -27,7 +34,7 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(() => {
@@ -38,7 +45,11 @@ onUnmounted(() => {
 <template>
   <Header />
   <Breadcrumbs v-if="route.path !== '/'" />
-  <router-view />
+  <router-view v-slot="{ Component }">
+    <transition name="page-fade">
+      <component :is="Component" :key="route.fullPath" />
+    </transition>
+  </router-view>
   <Footer />
 
   <!-- Nút cuộn lên đầu trang (Back to Top) -->
@@ -65,33 +76,33 @@ onUnmounted(() => {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(26, 39, 68, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2), 0 0 12px rgba(37, 99, 235, 0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9998;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), bottom 0.3s ease;
 }
 
 .scroll-top-btn.has-chatbot {
-  bottom: 105px; /* Positioned perfectly above the 60px chatbot bubble (30px + 60px + 15px spacing) */
+  bottom: 96px; /* Positioned perfectly above the 56px chatbot bubble with clean spacing */
 }
 
 .scroll-top-btn:hover {
-  transform: translateY(-3px);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(59, 130, 246, 0.95) 100%);
-  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5), 0 0 15px rgba(37, 99, 235, 0.3);
-  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-4px) scale(1.06);
+  background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4), 0 0 18px rgba(99, 102, 241, 0.25);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .scroll-top-btn:active {
-  transform: translateY(-1px) scale(0.95);
+  transform: translateY(-2px) scale(0.96);
 }
 
 /* Transition Animations */

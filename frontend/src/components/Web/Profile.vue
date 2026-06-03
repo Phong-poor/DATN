@@ -490,6 +490,7 @@ onMounted(() => {
   fetchWishlistCount()
   fetchPromotions()
   fetchAddresses()
+  loadPwCaptcha()
 
   const userData = getUser()
   if (getToken() && userData && (userData.id || userData.id_user)) {
@@ -1004,6 +1005,24 @@ const pwForm = ref({ current: '', newPass: '', confirm: '' })
 const showPw = ref({ current: false, newPass: false, confirm: false })
 const savingPw = ref(false)
 const pwErrors = ref({})
+const pwCaptcha = ref({ question: '', answer: '' })
+const loadingPwCaptcha = ref(false)
+
+const loadPwCaptcha = async () => {
+  loadingPwCaptcha.value = true
+  try {
+    const res = await api.get('/user/change-password/captcha')
+    pwCaptcha.value = {
+      question: res.data?.question || '',
+      answer: '',
+    }
+  } catch (error) {
+    console.error('Lỗi tải captcha đổi mật khẩu:', error)
+    pwCaptcha.value = { question: '', answer: '' }
+  } finally {
+    loadingPwCaptcha.value = false
+  }
+}
 
 const pwStrength = computed(() => {
   const p = pwForm.value.newPass
@@ -1048,6 +1067,10 @@ const savePw = async () => {
     pwErrors.value.confirm = 'Mật khẩu không khớp'
   }
 
+  if (!pwCaptcha.value.answer) {
+    pwErrors.value.captcha = 'Vui lòng nhập captcha'
+  }
+
   if (Object.keys(pwErrors.value).length) return
 
   savingPw.value = true
@@ -1056,9 +1079,11 @@ const savePw = async () => {
       current_password: pwForm.value.current,
       new_password: pwForm.value.newPass,
       new_password_confirmation: pwForm.value.confirm,
+      captcha_answer: pwCaptcha.value.answer,
     })
 
     pwForm.value = { current: '', newPass: '', confirm: '' }
+    await loadPwCaptcha()
     showToast(res.data?.message || 'Đổi mật khẩu thành công!')
   } catch (error) {
     const data = error.response?.data || {}
@@ -1066,16 +1091,26 @@ const savePw = async () => {
     if (error.response?.status === 422) {
       if (data.errors?.current_password?.[0]) {
         pwErrors.value.current = data.errors.current_password[0]
+        await loadPwCaptcha()
       }
 
       if (data.errors?.new_password?.[0]) {
         pwErrors.value.newPass = data.errors.new_password[0]
       }
 
+      if (data.errors?.captcha_answer?.[0]) {
+        pwErrors.value.captcha = data.errors.captcha_answer[0]
+        await loadPwCaptcha()
+      }
+
       if (!Object.keys(pwErrors.value).length && data.message) {
         const message = data.message
-        if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
+        if (message.toLowerCase().includes('captcha')) {
+          pwErrors.value.captcha = message
+          await loadPwCaptcha()
+        } else if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
           pwErrors.value.current = message
+          await loadPwCaptcha()
         } else {
           pwErrors.value.newPass = message
         }
@@ -1552,8 +1587,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: ORDERS ════ -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Lịch Sử Đơn Hàng</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
           </div>
           
           <div class="category-tabs" style="margin-bottom: 20px;">
@@ -1665,8 +1700,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: PROMOTIONS ════ -->
         <div v-else-if="activeTab === 'promotions'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #1e293b;">Khuyến Mãi</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
             <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
           </div>
 
@@ -1695,9 +1730,9 @@ const promoStatusMap = {
                   </td>
                 </tr>
                 <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
-                  <td><span style="font-weight:600; color:#1e293b;">{{ item.promotion?.name }}</span></td>
+                  <td><span style="font-weight:600; color: #e2e8f0;">{{ item.promotion?.name }}</span></td>
                   <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
-                  <td style="color:#64748b; font-size:13px;">
+                  <td style="color: #64748b; font-size:13px;">
                     {{ item.promotion?.type === 'percent' ? 'Phần trăm' : 'Cố định' }}
                   </td>
                   <td style="font-weight:700; color:#2563eb;">
@@ -1705,7 +1740,7 @@ const promoStatusMap = {
                       ? item.promotion?.value + '%'
                       : new Intl.NumberFormat('vi-VN').format(item.promotion?.value) + 'đ' }}
                   </td>
-                  <td style="font-size:13px; color:#64748b;">
+                  <td style="font-size:13px; color: #64748b;">
                     <span v-if="item.promotion?.end_date">{{ new Date(item.promotion?.end_date).toLocaleDateString('vi-VN') }}</span>
                     <span v-else>Không giới hạn</span>
                   </td>
@@ -1801,6 +1836,19 @@ const promoStatusMap = {
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
+                <div class="form-group" :class="{ error: pwErrors.captcha }">
+                  <label>Captcha</label>
+                  <div class="captcha-row">
+                    <div class="captcha-question">
+                      {{ loadingPwCaptcha ? 'Đang tải...' : (pwCaptcha.question || 'Không tải được captcha') }}
+                    </div>
+                    <button type="button" class="captcha-refresh" @click="loadPwCaptcha" :disabled="loadingPwCaptcha">
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
+                    </button>
+                  </div>
+                  <input class="captcha-input" v-model="pwCaptcha.answer" inputmode="numeric" autocomplete="off" placeholder="Nhập kết quả" />
+                  <span class="err-msg" v-if="pwErrors.captcha">{{ pwErrors.captcha }}</span>
+                </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
                   <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   {{ savingPw ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}
@@ -1840,25 +1888,25 @@ const promoStatusMap = {
 
 <style scoped>
 /* ── BASE ── */
-.page { min-height:100vh; background:#f8fafc; padding:32px 30px; font-family:system-ui,sans-serif; }
+.page { min-height:100vh; background: #0d1b2e; padding:32px 30px; font-family:system-ui,sans-serif; }
 .container { max-width:1100px; margin:auto; display:grid; grid-template-columns:280px 1fr; gap:24px; align-items:start; }
 
 /* ── SIDEBAR ── */
-.sidebar { background:#fff; border-radius:20px; border:1px solid #e5e7eb; overflow:hidden; position:sticky; top:20px; }
-.avatar-section { padding:28px 24px 20px; text-align:center; border-bottom:1px solid #f1f5f9; }
+.sidebar { background: #111f35; border-radius:20px; border: 1px solid rgba(255,255,255,0.07); overflow:hidden; position:sticky; top:20px; }
+.avatar-section { padding:28px 24px 20px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.07); }
 .avatar-wrap { position:relative; display:inline-block; margin-bottom:12px; }
 .avatar { width:88px; height:88px; border-radius:50%; object-fit:cover; border:3px solid #dbeafe; }
 .avatar-edit { position:absolute; bottom:0; right:0; width:28px; height:28px; border-radius:50%; background:#2563eb; border:2px solid #fff; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .avatar-edit svg { width:13px; height:13px; stroke:#fff; stroke-width:2; fill:none; }
-.sidebar-name { font-size:16px; font-weight:700; color:#0f172a; margin:0 0 6px; }
+.sidebar-name { font-size:16px; font-weight:700; color: #f1f5f9; margin:0 0 6px; }
 .sidebar-badge { display:inline-block; font-size:11px; font-weight:700; color:#2563eb; background:#dbeafe; padding:3px 10px; border-radius:20px; }
 .sidebar-join { font-size:12px; color:#94a3b8; margin:8px 0 0; }
 
-.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#f1f5f9; border-top:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; }
-.stat-card { background:#fff; padding:14px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background: #111f35; border-top: 1px solid rgba(255,255,255,0.07); border-bottom: 1px solid rgba(255,255,255,0.07); }
+.stat-card { background: #111f35; padding:14px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
 .stat-card svg { width:18px; height:18px; stroke:#2563eb; stroke-width:1.8; fill:none; }
-.stat-val { font-size:16px; font-weight:700; color:#0f172a; }
-.stat-lbl { font-size:11px; color:#64748b; }
+.stat-val { font-size:16px; font-weight:700; color: #f1f5f9; }
+.stat-lbl { font-size:11px; color: #64748b; }
 
 /* ── SIDEBAR NAV BUTTONS ── */
 .side-nav { padding:10px 12px 16px; display:flex; flex-direction:column; gap:3px; }
@@ -1872,7 +1920,7 @@ const promoStatusMap = {
 .side-btn svg:not(.arrow) { width:17px; height:17px; stroke:#64748b; stroke-width:1.8; fill:none; flex-shrink:0; transition:stroke 0.18s; }
 .side-btn span { flex:1; }
 .side-btn .arrow { width:14px; height:14px; stroke:#d1d5db; stroke-width:2; fill:none; flex-shrink:0; opacity:0; transition:opacity 0.18s, stroke 0.18s; }
-.side-btn:hover { background:#f1f5f9; color:#1e293b; }
+.side-btn:hover { background: #111f35; color: #e2e8f0; }
 .side-btn:hover svg:not(.arrow) { stroke:#374151; }
 .side-btn:hover .arrow { opacity:1; }
 .side-btn.active { background:#eff6ff; color:#2563eb; font-weight:600; }
@@ -1881,21 +1929,21 @@ const promoStatusMap = {
 
 /* ── MAIN ── */
 .main { min-width:0; }
-.card { background:#fff; border-radius:20px; border:1px solid #e5e7eb; padding:28px 32px; }
+.card { background: #111f35; border-radius:20px; border: 1px solid rgba(255,255,255,0.07); padding:28px 32px; }
 .page-header-inline { margin-bottom:20px; }
-.card-title { font-size:20px; font-weight:700; color:#0f172a; margin:0 0 4px; }
-.card-sub { font-size:13px; color:#64748b; margin:0; }
+.card-title { font-size:20px; font-weight:700; color: #f1f5f9; margin:0 0 4px; }
+.card-sub { font-size:13px; color: #64748b; margin:0; }
 .card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; }
 
 /* PROFILE */
-.btn-edit { display:flex; align-items:center; gap:7px; padding:9px 18px; border-radius:10px; background:#f1f5f9; border:1px solid #e2e8f0; color:#374151; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-edit { display:flex; align-items:center; gap:7px; padding:9px 18px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#374151; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-edit:hover { background:#dbeafe; color:#2563eb; border-color:#bfdbfe; }
 .btn-edit svg { width:14px; height:14px; stroke:currentColor; stroke-width:2; fill:none; }
 .info-grid { display:flex; flex-direction:column; }
-.info-row { display:flex; align-items:center; padding:16px 0; border-bottom:1px solid #f1f5f9; }
+.info-row { display:flex; align-items:center; padding:16px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
 .info-row:last-child { border-bottom:none; }
-.info-lbl { width:160px; flex-shrink:0; font-size:13px; color:#64748b; font-weight:500; }
-.info-val { font-size:14px; color:#1e293b; font-weight:500; }
+.info-lbl { width:160px; flex-shrink:0; font-size:13px; color: #64748b; font-weight:500; }
+.info-val { font-size:14px; color: #e2e8f0; font-weight:500; }
 
 /* FORMS */
 .edit-form,.form { display:flex; flex-direction:column; gap:18px; }
@@ -1903,13 +1951,13 @@ const promoStatusMap = {
 .form-full { grid-column:1/-1; }
 .form-group { display:flex; flex-direction:column; gap:6px; }
 .form-group label { font-size:13px; font-weight:600; color:#374151; }
-.form-group input,.form-group select { padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; color:#1e293b; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background:#fff; }
+.form-group input,.form-group select { padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; color: #e2e8f0; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background: #111f35; }
 .form-group input:focus,.form-group select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
 .form-group.error input { border-color:#ef4444; }
 .checkbox-label { display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; color:#374151; font-weight:500; }
 .checkbox-label input[type="checkbox"] { width:16px; height:16px; accent-color:#2563eb; cursor:pointer; }
 .form-actions { display:flex; gap:12px; justify-content:flex-end; padding-top:8px; }
-.btn-cancel { padding:10px 22px; border-radius:10px; background:#f1f5f9; border:1px solid #e2e8f0; color:#374151; font-size:14px; font-weight:600; cursor:pointer; }
+.btn-cancel { padding:10px 22px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#374151; font-size:14px; font-weight:600; cursor:pointer; }
 .btn-cancel:hover { background:#e2e8f0; }
 .btn-save { display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 24px; border-radius:10px; background:#2563eb; border:none; color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-save:hover { background:#1d4ed8; }
@@ -1919,17 +1967,17 @@ const promoStatusMap = {
 .err-msg { font-size:12px; color:#ef4444; font-weight:500; }
 
 /* ORDERS */
-.order-tabs { display:flex; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:6px; margin-bottom:20px; flex-wrap:wrap; }
-.order-tab { padding:8px 14px; border-radius:10px; border:none; background:transparent; font-size:13px; font-weight:500; color:#64748b; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
-.order-tab:hover { background:#f1f5f9; }
+.order-tabs { display:flex; gap:6px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); border-radius:14px; padding:6px; margin-bottom:20px; flex-wrap:wrap; }
+.order-tab { padding:8px 14px; border-radius:10px; border:none; background:transparent; font-size:13px; font-weight:500; color: #64748b; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
+.order-tab:hover { background: #111f35; }
 .order-tab.active { background:#2563eb; color:#fff; font-weight:600; }
 .otab-count { background:rgba(255,255,255,0.25); padding:1px 7px; border-radius:99px; font-size:11px; }
-.order-tab:not(.active) .otab-count { background:#f1f5f9; color:#64748b; }
+.order-tab:not(.active) .otab-count { background: #111f35; color: #64748b; }
 
-.table-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+.table-card { background: #111f35; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); overflow: hidden; }
 .order-data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-.order-data-table th { background: #f8fafc; padding: 16px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid #f1f5f9; }
-.order-data-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.order-data-table th { background: #0d1b2e; padding: 16px 20px; font-weight: 600; color: #64748b; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.order-data-table td { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); color: #cbd5e1; vertical-align: middle; }
 .order-row:hover { background: #fafafa; }
 .id-col { font-weight: 700; color: #2563eb; }
 .status-cell { font-weight: 600; font-size: 13px; }
@@ -1941,7 +1989,7 @@ const promoStatusMap = {
 .btn-hoan-tra:hover { background: #f97316; color: #fff; }
 .btn-mua-lai { background: #10b981; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 13px; }
 .btn-mua-lai:hover { background: #059669; }
-.btn-huy-don { background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+.btn-huy-don { background: #111f35; color: #ef4444; border: 1px solid #ef4444; padding: 5px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
 .btn-huy-don:hover { background: #ef4444; color: #fff; }
 
 .badge-cart-like {
@@ -1960,13 +2008,13 @@ const promoStatusMap = {
   text-align: center;
 }
 
-.pagination-footer { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 12px; background: #fff; }
+.pagination-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; align-items: center; gap: 12px; background: #111f35; }
 .pagination-info { font-size: 13px; color: #64748b; margin: 0; }
 .pagination { display: flex; align-items: center; gap: 10px; }
-.p-arrow { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; color: #64748b; font-weight: 600; cursor: pointer; font-size: 13px; }
+.p-arrow { background: #111f35; border: none; padding: 6px 12px; border-radius: 6px; color: #64748b; font-weight: 600; cursor: pointer; font-size: 13px; }
 .p-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
 .p-nums { display: flex; gap: 6px; }
-.p-num { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-weight: 600; cursor: pointer; }
+.p-num { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); background: #111f35; color: #64748b; font-weight: 600; cursor: pointer; }
 .p-num.active { background: #2563eb; border-color: #2563eb; color: #fff; }
 
 .empty-state-cell { padding: 60px 0; }
@@ -1978,21 +2026,21 @@ const promoStatusMap = {
 .btn-add:hover { background:#1d4ed8; }
 .btn-add svg { width:15px; height:15px; stroke:#fff; stroke-width:2.5; fill:none; }
 .form-card { margin-bottom:16px; }
-.form-title { font-size:17px; font-weight:700; color:#0f172a; margin:0 0 20px; }
+.form-title { font-size:17px; font-weight:700; color: #f1f5f9; margin:0 0 20px; }
 .addr-list { display:flex; flex-direction:column; gap:12px; }
-.addr-card { background:#fff; border-radius:16px; border:1.5px solid #e5e7eb; padding:18px 22px; }
+.addr-card { background: #111f35; border-radius:16px; border:1.5px solid #e5e7eb; padding:18px 22px; }
 .addr-card.is-default { border-color:#bfdbfe; }
 .addr-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .addr-name-wrap { display:flex; align-items:center; gap:8px; }
-.addr-name { font-size:14px; font-weight:700; color:#0f172a; }
+.addr-name { font-size:14px; font-weight:700; color: #f1f5f9; }
 .addr-sep { color:#cbd5e1; }
-.addr-phone { font-size:13px; color:#64748b; }
+.addr-phone { font-size:13px; color: #64748b; }
 .default-badge { font-size:11px; font-weight:700; color:#2563eb; background:#dbeafe; padding:3px 10px; border-radius:99px; }
 .addr-full { font-size:13px; color:#374151; margin:0 0 14px; line-height:1.5; }
 .addr-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.addr-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#374151; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
+.addr-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border: 1px solid rgba(255,255,255,0.07); background: #0d1b2e; color:#374151; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
 .addr-btn svg { width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
-.addr-btn:hover { background:#f1f5f9; }
+.addr-btn:hover { background: #111f35; }
 .addr-btn-default:hover { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
 .addr-btn-delete:hover { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
 
@@ -2000,16 +2048,24 @@ const promoStatusMap = {
 .pw-layout { display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start; }
 .input-wrap { position:relative; display:flex; align-items:center; }
 .input-icon { position:absolute; left:14px; width:16px; height:16px; stroke:#94a3b8; stroke-width:1.8; fill:none; pointer-events:none; }
-.input-wrap input { width:100%; padding:11px 44px 11px 40px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; color:#1e293b; outline:none; transition:border-color 0.2s,box-shadow 0.2s; box-sizing:border-box; }
+.input-wrap input { width:100%; padding:11px 44px 11px 40px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; color: #e2e8f0; outline:none; transition:border-color 0.2s,box-shadow 0.2s; box-sizing:border-box; }
 .input-wrap input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
 .form-group.error .input-wrap input { border-color:#ef4444; }
+.form-group.error .captcha-input { border-color:#ef4444; }
 .eye-btn { position:absolute; right:12px; width:28px; height:28px; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .eye-btn svg { width:16px; height:16px; stroke:#94a3b8; stroke-width:1.8; fill:none; }
+.captcha-row { display:flex; align-items:center; gap:10px; }
+.captcha-question { flex:1; min-height:42px; display:flex; align-items:center; justify-content:center; border:1.5px dashed #bfdbfe; border-radius:10px; background:#0d1b2e; color:#f8fafc; font-size:16px; font-weight:800; letter-spacing:0; }
+.captcha-refresh { width:42px; height:42px; border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff; color:#2563eb; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.captcha-refresh:disabled { opacity:.65; cursor:not-allowed; }
+.captcha-refresh svg { width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; }
+.captcha-input { width:100%; margin-top:8px; padding:11px 14px; border:1.5px solid #e2e8f0; border-radius:10px; background:#111f35; color:#e2e8f0; font-size:14px; outline:none; box-sizing:border-box; }
+.captcha-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
 .strength-bar { display:flex; align-items:center; gap:10px; margin-top:4px; }
 .strength-track { flex:1; height:5px; background:#e2e8f0; border-radius:99px; overflow:hidden; }
 .strength-fill { height:100%; border-radius:99px; transition:width 0.3s,background 0.3s; }
 .strength-label { font-size:12px; font-weight:600; min-width:72px; text-align:right; }
-.req-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; padding:20px; margin-bottom:12px; }
+.req-card { background: #111f35; border-radius:16px; border: 1px solid rgba(255,255,255,0.07); padding:20px; margin-bottom:12px; }
 .req-title { font-size:13px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px; }
 .req-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; }
 .req-list li { display:flex; align-items:center; gap:10px; font-size:13px; color:#94a3b8; font-weight:500; transition:color 0.2s; }
@@ -2044,11 +2100,11 @@ const promoStatusMap = {
 
 /* MODAL */
 .overlay { position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(3px); }
-.modal { background:#fff; border-radius:20px; width:100%; max-width:520px; max-height:88vh; overflow-y:auto; }
+.modal { background: #111f35; border-radius:20px; width:100%; max-width:520px; max-height:88vh; overflow-y:auto; }
 .modal-head { display:flex; align-items:flex-start; justify-content:space-between; padding:22px 24px 0; }
-.modal-title { font-size:17px; font-weight:700; color:#0f172a; margin:0 0 2px; }
+.modal-title { font-size:17px; font-weight:700; color: #f1f5f9; margin:0 0 2px; }
 .modal-id { font-size:12px; color:#94a3b8; margin:0; }
-.close-btn { width:30px; height:30px; border-radius:50%; border:none; background:#f1f5f9; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.close-btn { width:30px; height:30px; border-radius:50%; border:none; background: #111f35; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .close-btn svg { width:14px; height:14px; stroke:#64748b; stroke-width:2.5; }
 .modal-body { padding:18px 24px 24px; }
 .modal-status { display:inline-block; font-size:12px; font-weight:700; padding:5px 14px; border-radius:99px; margin-bottom:18px; }
@@ -2067,8 +2123,8 @@ const promoStatusMap = {
 .btn-modal-hoantra:hover { background:#f97316; color:#fff; }
 .region-picker-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .region-picker-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
-.inline-map-field small { display:block; margin-top:6px; color:#64748b; font-size:12px; }
-.map-placeholder { min-height:92px; width:100%; border:1px dashed #cbd5e1; border-radius:12px; background:linear-gradient(135deg,#f8fafc 25%,#f1f5f9 25%,#f1f5f9 50%,#f8fafc 50%,#f8fafc 75%,#f1f5f9 75%); background-size:32px 32px; color:#64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; font-weight:700; }
+.inline-map-field small { display:block; margin-top:6px; color: #64748b; font-size:12px; }
+.map-placeholder { min-height:92px; width:100%; border:1px dashed #cbd5e1; border-radius:12px; background:linear-gradient(135deg,#f8fafc 25%,#f1f5f9 25%,#f1f5f9 50%,#f8fafc 50%,#f8fafc 75%,#f1f5f9 75%); background-size:32px 32px; color: #64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; font-weight:700; }
 .map-placeholder small { max-width:90%; color:#94a3b8; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .map-placeholder:disabled { opacity:.65; cursor:not-allowed; }
 
@@ -2076,26 +2132,26 @@ const promoStatusMap = {
 .timeline { display:flex; flex-direction:column; margin-bottom:22px; }
 .tl-item { display:flex; gap:14px; }
 .tl-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:24px; }
-.tl-dot { width:24px; height:24px; border-radius:50%; border:2px solid #e2e8f0; background:#f8fafc; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.tl-dot { width:24px; height:24px; border-radius:50%; border:2px solid #e2e8f0; background: #0d1b2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .tl-item.done .tl-dot { background:#2563eb; border-color:#2563eb; }
 .tl-dot svg { width:12px; height:12px; stroke:#fff; stroke-width:3; fill:none; }
 .tl-line { width:2px; flex:1; min-height:20px; background:#e2e8f0; margin:2px 0; }
 .tl-line.done { background:#2563eb; }
 .tl-content { padding-bottom:18px; flex:1; }
-.tl-label { font-size:13px; font-weight:600; color:#1e293b; margin:3px 0 2px; }
+.tl-label { font-size:13px; font-weight:600; color: #e2e8f0; margin:3px 0 2px; }
 .tl-date { font-size:11px; color:#94a3b8; margin:0; }
-.section-title { font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 10px; }
-.modal-item { display:flex; align-items:center; gap:12px; padding:10px; background:#f8fafc; border-radius:12px; margin-bottom:8px; }
-.modal-item img { width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid #e5e7eb; flex-shrink:0; }
+.section-title { font-size:12px; font-weight:700; color: #64748b; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 10px; }
+.modal-item { display:flex; align-items:center; gap:12px; padding:10px; background: #0d1b2e; border-radius:12px; margin-bottom:8px; }
+.modal-item img { width:48px; height:48px; border-radius:10px; object-fit:cover; border: 1px solid rgba(255,255,255,0.07); flex-shrink:0; }
 .modal-item-info { flex:1; min-width:0; }
-.modal-item-name { font-size:13px; font-weight:600; color:#1e293b; margin:0 0 3px; }
+.modal-item-name { font-size:13px; font-weight:600; color: #e2e8f0; margin:0 0 3px; }
 .modal-item-qty { font-size:12px; color:#94a3b8; margin:0; }
 .modal-item-price { font-size:14px; font-weight:700; color:#2563eb; }
-.modal-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid #f1f5f9; margin-top: 12px; }
+.modal-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 12px; }
 .modal-btns { display: flex; gap: 12px; }
-.btn-modal-huy { background: white; border: 1.2px solid #ef4444; color: #ef4444; padding: 7px 16px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-huy { background: #111f35; border: 1.2px solid #ef4444; color: #ef4444; padding: 7px 16px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
 .btn-modal-huy:hover { background: #fee2e2; }
-.btn-modal-mua { background: white; border: 1.5px solid #10b981; color: #10b981; padding: 7px 16px; border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
+.btn-modal-mua { background: #111f35; border: 1.5px solid #10b981; color: #10b981; padding: 7px 16px; border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 13.5px; transition: all 0.2s; }
 .btn-modal-mua:hover { background: #dcfce7; }
 .modal-total-wrap { text-align: right; display: flex; flex-direction: column; gap: 2px; }
 .total-label { font-size: 13px; color: #64748b; font-weight: 600; }
@@ -2113,7 +2169,7 @@ const promoStatusMap = {
 .form-avatar-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
 .form-avatar-dashed-border { width: 120px; height: 120px; border: 2px dashed #cbd5e1; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; padding: 8px; }
 .form-avatar-dashed-border:hover { border-color: #2563eb; transform: scale(1.02); }
-.form-avatar-circle { width: 100%; height: 100%; background: #f1f5f9; border-radius: 50%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.form-avatar-circle { width: 100%; height: 100%; background: #111f35; border-radius: 50%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .form-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .form-avatar-plus-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(37, 99, 235, 0.1); display: flex; align-items: center; justify-content: center; color: #2563eb; font-size: 32px; opacity: 0.6; transition: all 0.3s ease; }
 .form-avatar-dashed-border:hover .form-avatar-plus-overlay { opacity: 1; background: rgba(37, 99, 235, 0.2); }
@@ -2137,22 +2193,22 @@ const promoStatusMap = {
 .gap-2 { gap: 12px; }
 
 /* CANCEL MODAL */
-.cancel-textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #2563eb; font-size: 14px; margin-bottom: 20px; background: #eff6ff; outline: none; font-family: inherit; transition: all 0.2s; resize: vertical; color: #1e293b; box-sizing: border-box; }
-.cancel-textarea::placeholder { color: #94a3b8; }
-.cancel-textarea:focus { box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: #fff; }
+.cancel-textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #2563eb; font-size: 14px; margin-bottom: 20px; background: #eff6ff; outline: none; font-family: inherit; transition: all 0.2s; resize: vertical; color: #e2e8f0; box-sizing: border-box; }
+.cancel-textarea::placeholder { color: #475569; }
+.cancel-textarea:focus { box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: #111f35; }
 .btn-danger-confirm { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; border-radius: 10px; background: #ef4444; border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
 .btn-danger-confirm:hover { background: #dc2626; }
 .btn-danger-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
 .cancel-options {
-  background: #f8fafc;
+  background: #0d1b2e;
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.07);
   overflow: hidden;
 }
 .cancel-option-item {
   padding: 14px 18px;
   cursor: pointer;
-  background: #fff;
+  background: #111f35;
   border-bottom: 1px solid #e2e8f0;
   transition: background 0.2s;
   margin: 0;
@@ -2173,11 +2229,11 @@ const promoStatusMap = {
   border-bottom: none;
 }
 .cancel-option-item:hover {
-  background: #f8fafc;
+  background: #0d1b2e;
 }
 .cancel-option-text {
   font-size: 14.5px;
-  color: #334155;
+  color: #cbd5e1;
   font-weight: 500;
   transition: color 0.2s;
 }
@@ -2193,15 +2249,15 @@ const promoStatusMap = {
   font-family: inherit;
   transition: all 0.2s;
   resize: vertical;
-  color: #1e293b;
+  color: #e2e8f0;
   box-sizing: border-box;
 }
 .cancel-textarea::placeholder {
-  color: #94a3b8;
+  color: #475569;
 }
 .cancel-textarea:focus {
   box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
-  background: #fff;
+  background: #111f35;
 }
 .btn-danger-confirm {
   display: flex;
@@ -2227,7 +2283,7 @@ const promoStatusMap = {
 }
 /* ===== REVIEW STYLES ===== */
 .btn-review-small {
-  background: white;
+  background: #111f35;
   border: 1px solid #2563eb;
   color: #2563eb;
   padding: 4px 12px;
@@ -2261,7 +2317,7 @@ const promoStatusMap = {
 }
 
 .review-product-info {
-  background: #f8fafc;
+  background: #0d1b2e;
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 20px;
@@ -2270,7 +2326,7 @@ const promoStatusMap = {
 .review-product-name {
   font-weight: 600;
   font-size: 14px;
-  color: #1e293b;
+  color: #e2e8f0;
   margin: 0;
 }
 
@@ -2413,7 +2469,7 @@ const promoStatusMap = {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid rgba(255,255,255,0.07);
     padding-top: 8px;
     margin-top: 4px;
   }

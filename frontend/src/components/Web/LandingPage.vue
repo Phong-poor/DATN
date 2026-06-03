@@ -35,7 +35,7 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500',
+                img: p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }];
@@ -92,7 +92,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 price: bt.gia > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bt.gia) : 'Liên hệ',
                 specs: specs,
-                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500'),
+                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };
@@ -145,7 +145,7 @@ const mockProducts = [
         priceNum: 32500000,
         oldPriceNum: 36900000,
         specs: [{ label: 'RAM', value: '16GB' }, { label: 'CPU', value: 'Ultra 7 155H' }, { label: 'Màu', value: 'Màu xám không gian' }],
-        img: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500",
+        img: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500",
         badge: "NEW",
         badgeColor: "#2563eb"
     },
@@ -937,7 +937,7 @@ const specsMatrix = [
                         </div>
                     </div>
                     <div class="ub-image-box">
-                        <img src="/elite_unboxing.png" alt="Premium Unboxing Box Experience" class="ub-img" />
+                        <img src="/elite_shipping.png" alt="Premium Unboxing Box Experience" class="ub-img" />
                         <div class="ambient-glow-pink-left"></div>
                         <div class="ub-hud-tag">LIMITED SPECIAL EMBLEM v2.6</div>
                     </div>
