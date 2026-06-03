@@ -12,7 +12,10 @@ class DatHangChiTiet extends Model
         'id_dathang',
         'id_bienthe',
         'soluong',
-        'gia'
+        'gia',
+        'id_combo',
+        'combo_group_id',
+        'is_refund',
     ];
 
     public function datHang()
@@ -23,5 +26,11 @@ class DatHangChiTiet extends Model
     public function bienThe()
     {
         return $this->belongsTo(BienThe::class, 'id_bienthe', 'id_bienthe');
+    }
+
+    // Quan hệ với combo
+    public function combo()
+    {
+        return $this->belongsTo(Combo::class, 'id_combo', 'id_combo');
     }
 }

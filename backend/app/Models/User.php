@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'facebook_id',
         'status',
+        'last_active_at',
     ];
 
     protected $hidden = [
@@ -39,6 +40,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'last_active_at' => 'datetime',
         ];
     }
 

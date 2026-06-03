@@ -6,11 +6,25 @@ import { getToken } from '@/services/auth'
 
 
 import GiftPopup from './GiftPopup.vue'
+import ComboSelectionModal from './ComboSelectionModal.vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
+import { prefetchProductsPage } from '@/services/productsPrefetch'
 const router = useRouter()
 const showGift = ref(false)
+const availableGifts = ref([])
+
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+
+const openCombo = (combo) => {
+    selectedCombo.value = combo
+    showComboModal.value = true
+}
+
+
 
 
 
@@ -201,7 +215,7 @@ const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-48
 const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
     if (path.startsWith('http')) return path
-    return `http://127.0.0.1:8000/storage/${path}`
+    return storageUrl(path)
 }
 
 const loadCache = () => {
@@ -212,6 +226,7 @@ const loadCache = () => {
             if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
             if (parsed.categories) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
+            if (parsed.combos) combos.value = parsed.combos
         }
     } catch (e) {
         console.error('Lỗi load cache trang chủ:', e)
@@ -223,7 +238,8 @@ const saveCache = () => {
         localStorage.setItem('nextgen_home_cache', JSON.stringify({
             featuredProducts: featuredProducts.value,
             categories: categories.value,
-            latestNews: latestNews.value
+            latestNews: latestNews.value,
+            combos: combos.value
         }))
     } catch (e) {
         console.error('Lỗi save cache trang chủ:', e)
@@ -260,16 +276,23 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, spRes, catRes] = await Promise.all([
-            api.get('/news', { params: { scope: 'public', per_page: 3 } }),
-            api.get('/sanpham'),
-            api.get('/danhmuc')
+        const [newsRes, spRes, catRes, combosRes] = await Promise.all([
+            api.get('/news', { params: { scope: 'public', per_page: 3 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
+            api.get('/sanpham').catch(e => { console.error('Sanpham API failed', e); return { data: [] }; }),
+            api.get('/danhmuc').catch(e => { console.error('Danhmuc API failed', e); return { data: { data: [] } }; }),
+            api.get('/combos').catch(e => { console.error('Combos API failed', e); return { data: { data: [] } }; })
         ])
 
         latestNews.value = newsRes.data?.data || []
-        const allProducts = mapProducts(spRes.data)
+        
+        const rawProducts = Array.isArray(spRes.data) ? spRes.data : (spRes.data?.data || [])
+        const allProducts = mapProducts(rawProducts)
         featuredProducts.value = allProducts.slice(0, 20)
+        
         categories.value = (catRes.data?.data || catRes.data || []).slice(0, 4)
+
+        // Cập nhật combos
+        combos.value = combosRes.data?.data || []
 
         // Lưu cache mới nhất để dùng cho lần chuyển trang sau
         saveCache()
@@ -389,7 +412,7 @@ onUnmounted(stop)
 </script>
 
 <template>
-    <GiftPopup v-if="showGift" :delay="0" />
+    <GiftPopup v-if="showGift && availableGifts.length > 0" :promos-data="availableGifts" :delay="0" />
 
     <main class="home">
 
@@ -498,7 +521,49 @@ onUnmounted(stop)
             </div>
         </section>
 
-        
+        <!-- COMBOS KHUYẾN MÃI -->
+        <section class="section combos-section" v-if="combos.length > 0">
+            <div class="container">
+                <div class="section-head center">
+                    <div>
+                        <span class="section-label">ƯU ĐÃI LỚN BÁN CHẠY</span>
+                        <h2>Combo Phụ Kiện Giá Sốc</h2>
+                        <p>Mua trọn bộ chuột + bàn phím + phụ kiện công nghệ để nhận ưu đãi lên đến 30%!</p>
+                    </div>
+                </div>
+
+                <div class="combos-grid">
+                    <div v-for="combo in combos" :key="combo.id_combo" class="combo-home-card">
+                        <div class="badge-discount">🔥 Bundle Tiết Kiệm</div>
+                        <div class="combo-home-img">
+                            <img :src="storageUrl(combo.hinhanh) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'" :alt="combo.ten_combo" />
+                        </div>
+                        <div class="combo-home-info">
+                            <h3>{{ combo.ten_combo }}</h3>
+                            <p class="desc">{{ combo.mota || 'Tiết kiệm chi phí khi mua phụ kiện ghép bộ chuyên nghiệp.' }}</p>
+                            
+                            <div class="bundle-items">
+                                <div class="b-item-line">
+                                    <span v-for="(p, i) in combo.products" :key="p.id_sanpham" class="b-item-inline">
+                                        🔹 <span class="clickable-product" @click="router.push('/products/' + p.id_sanpham)" title="Xem chi tiết sản phẩm">{{ p.tenSP }}</span><span v-if="i < combo.products.length - 1" class="sep"> + </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="price-row">
+                                <div class="price-box">
+                                    <span class="lbl">Trọn bộ chỉ:</span>
+                                    <span class="price">{{ Number(combo.giakhuyenmai).toLocaleString('vi-VN') }}đ</span>
+                                </div>
+                                <button class="btn btn-primary" @click="openCombo(combo)">
+                                    Mua Combo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         <!-- CATEGORY -->
         <section class="section">
             <div class="container">
@@ -910,6 +975,13 @@ onUnmounted(stop)
             </div>
         </section>
 
+        <!-- Modal Chọn Biến Thể Combo -->
+        <ComboSelectionModal 
+            v-if="selectedCombo" 
+            :combo="selectedCombo" 
+            :show="showComboModal" 
+            @close="showComboModal = false" 
+        />
     </main>
 
 </template>
@@ -2237,7 +2309,7 @@ a.btn {
 .reveal-stagger.active > *:nth-child(2) { transition-delay: 0.16s; }
 .reveal-stagger.active > *:nth-child(3) { transition-delay: 0.24s; }
 .reveal-stagger.active > *:nth-child(4) { transition-delay: 0.32s; }
-.reveal-stagger.active > *:nth-child(5) { transition-delay: 0.40s; }
+.scroll-reveal.reveal-stagger.active > *:nth-child(5) { transition-delay: 0.40s; }
 .reveal-stagger.active > *:nth-child(6) { transition-delay: 0.48s; }
 
 /* PC BUILD BANNER */
@@ -2926,6 +2998,159 @@ a.btn {
     overflow: hidden;
     border-radius: 20px;
     height: 500px; /* Force height so video fits nicely */
+}
+
+/* ─── HOME COMBOS ─── */
+.combos-section {
+    background: #edf2f8;
+    border-radius: 30px;
+    padding: 64px 0;
+    margin: 40px 0;
+}
+
+.combos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.combo-home-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.combo-home-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.combo-home-card .badge-discount {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 30px;
+    z-index: 10;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+}
+
+.combo-home-img {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+}
+
+.combo-home-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.combo-home-card:hover .combo-home-img img {
+    transform: scale(1.05);
+}
+
+.combo-home-info {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.combo-home-info h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.combo-home-info .desc {
+    font-size: 13.5px;
+    color: #64748b;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bundle-items {
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.b-item-line {
+    width: 100%;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clickable-product {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-product:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.b-item-inline .sep {
+    color: #2563eb;
+    margin: 0 8px;
+    font-weight: 800;
+}
+
+.combo-home-info .price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #edf2f7;
+    padding-top: 16px;
+}
+
+.combo-home-info .price-box {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.combo-home-info .price-box .lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.combo-home-info .price-box .price {
+    font-size: 20px;
+    font-weight: 800;
+    color: #2563eb;
 }
 </style>
 

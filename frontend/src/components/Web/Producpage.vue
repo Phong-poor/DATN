@@ -233,15 +233,12 @@ const fetchProducts = async () => {
 // ===================== LOAD FILTER =====================
 const loadFilterData = async () => {
     try {
-        const [catRes, brandRes, attrRes] = await Promise.all([
-            api.get('/danhmuc', { skipGlobalLoader: true }),
-            api.get('/thuonghieu', { skipGlobalLoader: true }),
-            api.get('/sanpham/attribute-options', { skipGlobalLoader: true })
-        ])
+        const initRes = await api.get('/sanpham/init', { skipGlobalLoader: true })
+        const data = initRes.data
 
-        categories.value = catRes.data?.data || catRes.data || []
-        brands.value = brandRes.data?.data || brandRes.data || []
-        attrOptions.value = attrRes.data || attrOptions.value
+        categories.value = data.categories || []
+        brands.value = data.brands || []
+        attrOptions.value = data.attributes || attrOptions.value
 
     } catch (error) {
         console.error(error)

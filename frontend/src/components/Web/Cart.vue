@@ -15,7 +15,30 @@ const freeshipCoupon = ref('')
 const freeshipDiscount = ref(0)
 const appliedFreeshipPromo = ref(null)
 
-const MIN_ORDER_FOR_FREESHIP = 30000000 // Đơn hàng tối thiểu để dùng freeship (30 triệu)
+// Lấy điều kiện tối thiểu từ promotion freeship được chọn (dạng computed)
+const freeshipMinOrder = computed(() => {
+    // Nếu đang áp mã freeship thì lấy dieu_kien của mã đó
+    if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
+        return appliedFreeshipPromo.value.dieu_kien
+    }
+    // Nếu đang chọn mã từ select (chưa apply) thì lấy dieu_kien của mã đó
+    if (freeshipCoupon.value) {
+        const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
+        if (p && p.dieu_kien > 0) return p.dieu_kien
+    }
+    // Nếu chưa chọn mã nào, lấy dieu_kien nhỏ nhất trong danh sách freeship
+    const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
+    if (withCondition.length > 0) {
+        return Math.min(...withCondition.map(p => p.dieu_kien))
+    }
+    return 0 // Không có điều kiện = miễn phí ship tất cả đơn
+})
+
+// Lấy điều kiện riêng cho từng mã freeship (dùng khi chọn mã cụ thể)
+const getFreeshipMinOrder = (promo) => {
+    if (!promo) return 0
+    return promo.dieu_kien > 0 ? promo.dieu_kien : 0
+}
 
 const shippingFee = ref(30000)
 
@@ -42,6 +65,89 @@ const fetchGioHang = async () => {
 const subtotal = computed(() => cart.value.reduce((sum, item) => sum + item.thanh_tien, 0))
 const total = computed(() => Math.max(0, subtotal.value - discount.value) + Math.max(0, shippingFee.value - freeshipDiscount.value))
 
+const groupedCart = computed(() => {
+    const list = []
+    const comboGroups = {}
+
+    cart.value.forEach(item => {
+        if (item.id_combo && item.combo_group_id) {
+            if (!comboGroups[item.combo_group_id]) {
+                comboGroups[item.combo_group_id] = {
+                    isCombo: true,
+                    combo_group_id: item.combo_group_id,
+                    id_combo: item.id_combo,
+                    ten_combo: item.ten_combo,
+                    hinhanh_combo: item.hinhanh_combo,
+                    gia_combo: item.gia_combo,
+                    soluong: item.soluong,
+                    ton_kho: item.ton_kho,
+                    items: []
+                }
+                list.push(comboGroups[item.combo_group_id])
+            }
+            comboGroups[item.combo_group_id].items.push(item)
+            if (item.ton_kho < comboGroups[item.combo_group_id].ton_kho) {
+                comboGroups[item.combo_group_id].ton_kho = item.ton_kho
+            }
+        } else {
+            list.push({
+                isCombo: false,
+                ...item
+            })
+        }
+    })
+
+    return list
+})
+
+const capNhatSoLuongCombo = async (group, delta) => {
+    const soLuongMoi = group.soluong + delta
+    if (soLuongMoi < 1) return
+    if (soLuongMoi > group.ton_kho) {
+        hienThiThongBao('error', `Kho chỉ còn ${group.ton_kho} combo.`)
+        return
+    }
+
+    group.soluong = soLuongMoi
+    
+    // Cập nhật số lượng của từng món trong cache giỏ hàng cục bộ
+    cart.value.forEach(item => {
+        if (item.combo_group_id === group.combo_group_id) {
+            item.soluong = soLuongMoi
+            item.thanh_tien = item.gia * soLuongMoi
+        }
+    })
+
+    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
+    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
+    try {
+        await api.put(`/gio-hang/cap-nhat-combo/${group.combo_group_id}`, { soluong: soLuongMoi })
+    } catch (err) {
+        hienThiThongBao('error', err.response?.data?.message || 'Lỗi cập nhật số lượng combo!')
+        fetchGioHang()
+    }
+}
+
+const deleteCombo = async (group) => {
+    const isConfirmed = await swal.confirm('Xóa Combo', 'Bạn có chắc chắn muốn xóa combo này khỏi giỏ hàng?')
+    if (!isConfirmed) return
+
+    cart.value = cart.value.filter(item => item.combo_group_id !== group.combo_group_id)
+
+    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
+    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
+    try {
+        await api.delete(`/gio-hang/xoa-combo/${group.combo_group_id}`)
+        hienThiThongBao('success', 'Đã xóa combo khỏi giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
+    } catch (err) {
+        hienThiThongBao('error', 'Lỗi khi xóa combo!')
+        fetchGioHang()
+    }
+}
+
 const capNhatSoLuong = async (item, delta) => {
     const soLuongMoi = item.soluong + delta
     if (soLuongMoi < 1) return
@@ -50,6 +156,14 @@ const capNhatSoLuong = async (item, delta) => {
         return
     }
 
+    // Cập nhật state gốc trong cart.value để kích hoạt tính toán lại subtotal/total
+    const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
+    if (originalItem) {
+        originalItem.soluong = soLuongMoi
+        originalItem.thanh_tien = originalItem.gia * soLuongMoi
+    }
+    
+    // Cập nhật bản sao (item) để fallback
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
@@ -65,7 +179,9 @@ const capNhatSoLuong = async (item, delta) => {
     }
 }
 
-const xoaSanPham = async (index) => {
+const xoaSanPham = async (idGioHang) => {
+    const index = cart.value.findIndex(item => item.id_giohang === idGioHang)
+    if (index === -1) return
     const item = cart.value[index]
     cart.value.splice(index, 1)
 
@@ -76,6 +192,7 @@ const xoaSanPham = async (index) => {
     try {
         await api.delete(`/gio-hang/xoa/${item.id_giohang}`)
         hienThiThongBao('success', 'Đã xóa sản phẩm khỏi giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi xóa sản phẩm!')
         fetchGioHang()
@@ -95,6 +212,7 @@ const xoaTatCa = async () => {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
         hienThiThongBao('success', 'Đã xóa toàn bộ giỏ hàng.')
+        window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi xóa giỏ hàng!')
     }
@@ -127,8 +245,9 @@ const tinhDiscount = (promo) => {
 
 const tinhFreeshipDiscount = (promo) => {
     if (!promo) { freeshipDiscount.value = 0; return }
+    const minOrder = getFreeshipMinOrder(promo)
     // Kiểm tra lại điều kiện khi tính lại (ví dụ sau khi xóa sản phẩm)
-    if (subtotal.value < MIN_ORDER_FOR_FREESHIP) {
+    if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
         freeshipCoupon.value = ''
@@ -153,8 +272,23 @@ const validPromosList = computed(() => {
     })
 })
 
-const discountPromosList = computed(() => validPromosList.value.filter(p => p.category === 'product'))
-const freeshipPromosList = computed(() => validPromosList.value.filter(p => p.category === 'freeship'))
+const discountPromosList = computed(() => validPromosList.value.filter(p => {
+    if (p.category !== 'product') return false
+    if (p.dieu_kien > 0) {
+        const dk = Number(p.dieu_kien)
+        if (p.loai_dieu_kien === '>=' && subtotal.value < dk) return false
+        if (p.loai_dieu_kien === '>' && subtotal.value <= dk) return false
+        if (p.loai_dieu_kien === '=' && subtotal.value !== dk) return false
+    }
+    return true
+}))
+
+const freeshipPromosList = computed(() => validPromosList.value.filter(p => {
+    if (p.category !== 'freeship') return false
+    const minOrder = p.dieu_kien > 0 ? p.dieu_kien : 0
+    if (minOrder > 0 && subtotal.value < minOrder) return false
+    return true
+}))
 
 const apDungMaTuSelect = () => {
     if (!coupon.value) {
@@ -176,18 +310,18 @@ const apDungFreeshipTuSelect = () => {
         hienThiThongBao('success', 'Đã hủy mã freeship.')
         return
     }
-    // Kiểm tra điều kiện đơn hàng tối thiểu
-    if (subtotal.value < MIN_ORDER_FOR_FREESHIP) {
+    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
+    if (!promo) return
+    const minOrder = getFreeshipMinOrder(promo)
+    // Kiểm tra điều kiện đơn hàng tối thiểu của mã này
+    if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipCoupon.value = ''
-        hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(MIN_ORDER_FOR_FREESHIP)} để dùng mã miễn phí vận chuyển!`)
+        hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(minOrder)} để dùng mã miễn phí vận chuyển này!`)
         return
     }
-    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
-    if (promo) {
-        appliedFreeshipPromo.value = promo
-        tinhFreeshipDiscount(promo)
-        hienThiThongBao('success', `Đã chọn mã freeship ${promo.code}`)
-    }
+    appliedFreeshipPromo.value = promo
+    tinhFreeshipDiscount(promo)
+    hienThiThongBao('success', `Đã chọn mã freeship ${promo.code}`)
 }
 
 const autoApplyPromo = () => {
@@ -231,32 +365,32 @@ const autoApplyPromo = () => {
         }
     }
 
-    // 2. FREESHIP DISCOUNT (chỉ áp dụng nếu đơn hàng >= MIN_ORDER_FOR_FREESHIP)
-    if (sub >= MIN_ORDER_FOR_FREESHIP) {
-        let bestF = null
-        let maxDF = 0
-        freeshipPromosList.value.forEach(p => {
-            let d = shippingFee.value
-            if (d > maxDF) {
-                maxDF = d
-                bestF = p
-            }
-        })
+    // 2. FREESHIP DISCOUNT (áp dụng dựa trên dieu_kien của từng mã)
+    let bestF = null
+    let maxDF = 0
+    freeshipPromosList.value.forEach(p => {
+        const minOrder = getFreeshipMinOrder(p)
+        if (minOrder > 0 && sub < minOrder) return // Chưa đủ điều kiện
+        let d = shippingFee.value
+        if (d > maxDF) {
+            maxDF = d
+            bestF = p
+        }
+    })
 
-        if (bestF) {
-            let currentDF = appliedFreeshipPromo.value ? shippingFee.value : 0
-            if (appliedFreeshipPromo.value) {
-               if (appliedFreeshipPromo.value.code !== bestF.code && maxDF > currentDF) {
-                   appliedFreeshipPromo.value = bestF
-                   tinhFreeshipDiscount(bestF)
-                   freeshipCoupon.value = bestF.code
-                   hienThiThongBao('success', ` Tự động chọn mã freeship tốt nhất!`)
-               }
-            } else if (freeshipCoupon.value === '') {
-                appliedFreeshipPromo.value = bestF
-                tinhFreeshipDiscount(bestF)
-                freeshipCoupon.value = bestF.code
-            }
+    if (bestF) {
+        let currentDF = appliedFreeshipPromo.value ? shippingFee.value : 0
+        if (appliedFreeshipPromo.value) {
+           if (appliedFreeshipPromo.value.code !== bestF.code && maxDF > currentDF) {
+               appliedFreeshipPromo.value = bestF
+               tinhFreeshipDiscount(bestF)
+               freeshipCoupon.value = bestF.code
+               hienThiThongBao('success', ` Tự động chọn mã freeship tốt nhất!`)
+           }
+        } else if (freeshipCoupon.value === '') {
+            appliedFreeshipPromo.value = bestF
+            tinhFreeshipDiscount(bestF)
+            freeshipCoupon.value = bestF.code
         }
     }
 
@@ -330,27 +464,89 @@ onMounted(() => {
 
                 <!-- DANH SÁCH -->
                 <transition-group v-else name="fade" tag="div">
-                    <div class="item" v-for="(item, i) in cart" :key="item.id_giohang">
-                        <img :src="item.hinh_anh || 'https://via.placeholder.com/90'" />
-                        <div class="info">
-                            <h3>{{ getFullProductName(item) }}</h3>
-                            <p>{{ item.ten_bienthe }}</p>
-                            <div class="attr-tags" v-if="item.thuoc_tinh && item.thuoc_tinh.length">
-                                <span v-for="attr in item.thuoc_tinh" :key="attr.ten_thuoctinh" class="attr-tag">
-                                    {{ attr.ten_thuoctinh }}: {{ attr.giatri }}
-                                </span>
+                    <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : entry.id_giohang">
+                        
+                        <!-- Standalone item -->
+                        <div class="item" v-if="!entry.isCombo">
+                            <img :src="entry.hinh_anh || 'https://via.placeholder.com/90'" />
+                            <div class="info">
+                                <h3>{{ getFullProductName(entry) }}</h3>
+                                <p>{{ entry.ten_bienthe }}</p>
+                                <div class="attr-tags" v-if="entry.thuoc_tinh && entry.thuoc_tinh.length">
+                                    <span v-for="attr in entry.thuoc_tinh" :key="attr.ten_thuoctinh" class="attr-tag">
+                                        {{ attr.ten_thuoctinh }}: {{ attr.giatri }}
+                                    </span>
+                                </div>
+                                <div class="qty">
+                                    <button @click="capNhatSoLuong(entry, -1)" :disabled="entry.soluong <= 1">−</button>
+                                    <span>{{ entry.soluong }}</span>
+                                    <button @click="capNhatSoLuong(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">+</button>
+                                </div>
                             </div>
-                            <div class="qty">
-                                <button @click="capNhatSoLuong(item, -1)" :disabled="item.soluong <= 1">−</button>
-                                <span>{{ item.soluong }}</span>
-                                <button @click="capNhatSoLuong(item, +1)" :disabled="item.soluong >= item.ton_kho">+</button>
+                            <div class="price-col">
+                                <div class="price">{{ formatPrice(entry.thanh_tien) }}</div>
+                                <div class="unit-price">{{ formatPrice(entry.gia) }} / sp</div>
+                            </div>
+                            <button class="remove" @click="xoaSanPham(entry.id_giohang)" title="Xóa sản phẩm">×</button>
+                        </div>
+
+                        <!-- Combo grouped items -->
+                        <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
+                            <!-- Banner quà tặng VIP (chỉ hiện khi là ưu đãi miễn phí) -->
+                            <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
+                                <span class="gift-offer-icon">🎁</span>
+                                <div class="gift-offer-text">
+                                    <strong>Quà Tặng Đặc Quyền VIP</strong>
+                                    <span>Miễn phí hoàn toàn · Kèm theo đơn hàng của bạn</span>
+                                </div>
+                                <span class="gift-free-badge">0đ</span>
+                            </div>
+
+                            <div class="combo-group-header">
+                                <div class="title-box">
+                                    <span class="badge-tag" :class="{ 'badge-tag-gift': entry.gia_combo === 0 }">
+                                        {{ entry.gia_combo === 0 ? '🎁 Quà tặng VIP' : '🎁 Combo' }}
+                                    </span>
+                                    <h3>{{ entry.ten_combo }}</h3>
+                                </div>
+                                <button class="combo-remove-btn" @click="deleteCombo(entry)">×</button>
+                            </div>
+                            <div class="combo-child-list">
+                                <div class="child-item" v-for="child in entry.items" :key="child.id_giohang">
+                                    <img :src="child.hinh_anh || 'https://via.placeholder.com/90'" />
+                                    <div class="child-info">
+                                        <h4>{{ getFullProductName(child) }}</h4>
+                                        <p>{{ child.ten_bienthe }}</p>
+                                        <div class="attr-tags" v-if="child.thuoc_tinh && child.thuoc_tinh.length">
+                                            <span v-for="attr in child.thuoc_tinh" :key="attr.ten_thuoctinh" class="attr-tag">
+                                                {{ attr.ten_thuoctinh }}: {{ attr.giatri }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="child-price">
+                                        <span class="original-price">{{ formatPrice(child.gia_goc) }}</span>
+                                        <span v-if="entry.gia_combo === 0" class="allocated-price free-price-text">Miễn phí</span>
+                                        <span v-else class="allocated-price">{{ formatPrice(child.gia) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="combo-group-footer">
+                                <div class="qty-section">
+                                    <span>Số lượng:</span>
+                                    <div class="qty">
+                                        <button @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">−</button>
+                                        <span>{{ entry.soluong }}</span>
+                                        <button @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">+</button>
+                                    </div>
+                                </div>
+                                <div class="total-section">
+                                    <span class="lbl">Trọn bộ:</span>
+                                    <span v-if="entry.gia_combo === 0" class="price-val free-combo-price">MIỄN PHÍ</span>
+                                    <span v-else class="price-val">{{ formatPrice(entry.gia_combo * entry.soluong) }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="price-col">
-                            <div class="price">{{ formatPrice(item.thanh_tien) }}</div>
-                            <div class="unit-price">{{ formatPrice(item.gia) }} / sp</div>
-                        </div>
-                        <button class="remove" @click="xoaSanPham(i)" title="Xóa sản phẩm">×</button>
+
                     </div>
                 </transition-group>
             </div>
@@ -380,23 +576,26 @@ onMounted(() => {
 
                 <!-- CHỌN MÃ FREESHIP -->
                 <div class="promo-select-box" style="margin-top:0">
-                    <div v-if="freeshipPromosList.length > 0" class="freeship-condition-hint" :class="{ 'condition-met': subtotal >= MIN_ORDER_FOR_FREESHIP }">
-                        <span v-if="subtotal < MIN_ORDER_FOR_FREESHIP">
-                            🚚 Mua thêm <b>{{ formatPrice(MIN_ORDER_FOR_FREESHIP - subtotal) }}</b> để dùng mã miễn phí ship
+                    <!-- <div v-if="freeshipPromosList.length > 0" class="freeship-condition-hint" :class="{ 'condition-met': freeshipMinOrder === 0 || subtotal >= freeshipMinOrder }">
+                        <span v-if="freeshipMinOrder > 0 && subtotal < freeshipMinOrder">
+                            🚚 Mua thêm <b>{{ formatPrice(freeshipMinOrder - subtotal) }}</b> để dùng mã miễn phí ship
                         </span>
-                        <span v-else>
+                        <span v-else-if="freeshipMinOrder > 0">
                             ✅ Đủ điều kiện dùng mã miễn phí vận chuyển!
                         </span>
-                    </div>
+                        <span v-else>
+                            🚚 Áp dụng mã miễn phí vận chuyển ngay!
+                        </span>
+                    </div> -->
                     <select
                         v-model="freeshipCoupon"
                         @change="apDungFreeshipTuSelect"
                         class="promo-select freeship-select"
-                        :disabled="subtotal < MIN_ORDER_FOR_FREESHIP"
                     >
                         <option value="">không dùng mã vận chuyển</option>
-                        <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code">
-                            {{ p.name }} - Giảm 100%
+                        <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code"
+                            :disabled="p.dieu_kien > 0 && subtotal < p.dieu_kien">
+                            {{ p.name }} - Miễn phí ship{{ p.dieu_kien > 0 ? ` (đơn từ ${formatPrice(p.dieu_kien)})` : '' }}
                         </option>
                     </select>
                 </div>
@@ -451,8 +650,9 @@ onMounted(() => {
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-20px); }
 
 .page { font-family: 'Inter', sans-serif; background: linear-gradient(180deg, #f8fafc, #eef2ff); padding: 40px 0; }
-.container { width: min(1100px, 95%); margin: auto; }
-.cart { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+.container { width: min(1200px, 95%); margin: auto; }
+.cart { display: flex; gap: 30px; align-items: start; }
+.left { flex: 1; min-width: 0; }
 
 .cart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
 .cart-header h1 span { font-size: 16px; color: #64748b; font-weight: 400; }
@@ -483,7 +683,7 @@ onMounted(() => {
 .remove:hover { background: #fca5a5; }
 
 /* RIGHT */
-.right { padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 20px; }
+.right { width: 380px; flex-shrink: 0; padding: 24px; border-radius: 20px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 90px; box-sizing: border-box; }
 .right h3 { margin-bottom: 16px; font-size: 17px; }
 .row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
 .discount { color: #dc2626; }
@@ -537,9 +737,9 @@ onMounted(() => {
 .fade-enter-from { opacity: 0; transform: translateY(20px); }
 .fade-leave-to { opacity: 0; transform: translateX(20px); }
 
-@media (max-width: 768px) {
-    .cart { grid-template-columns: 1fr; }
-    .right { position: static; }
+@media (max-width: 992px) {
+    .cart { flex-direction: column; gap: 20px; }
+    .right { width: 100%; position: static; }
     .grid { grid-template-columns: 1fr 1fr; }
 }
 
@@ -582,5 +782,252 @@ onMounted(() => {
         width: 28px;
         height: 28px;
     }
+}
+
+/* ─── GROUPED COMBO ITEMS ─── */
+.combo-item-group {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.95));
+    border: 2px solid rgba(59, 130, 246, 0.4);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.04);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.combo-item-group:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.7);
+}
+
+/* Combo quà tặng VIP (gia_combo = 0) */
+.combo-gift-group {
+    border-color: rgba(22, 163, 74, 0.5) !important;
+    background: linear-gradient(135deg, rgba(240, 253, 244, 0.95), rgba(255, 255, 255, 0.98)) !important;
+    box-shadow: 0 10px 25px rgba(22, 163, 74, 0.06) !important;
+}
+
+.combo-gift-group:hover {
+    border-color: rgba(22, 163, 74, 0.8) !important;
+    box-shadow: 0 15px 30px rgba(22, 163, 74, 0.12) !important;
+}
+
+/* Banner quà tặng VIP */
+.gift-offer-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border: 1px solid #86efac;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+}
+
+.gift-offer-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.gift-offer-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gift-offer-text strong {
+    font-size: 13px;
+    font-weight: 800;
+    color: #166534;
+}
+
+.gift-offer-text span {
+    font-size: 11px;
+    color: #15803d;
+}
+
+.gift-free-badge {
+    background: #16a34a;
+    color: white;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Badge xanh lá cho combo quà tặng */
+.badge-tag-gift {
+    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+}
+
+/* Giá miễn phí */
+.free-price-text {
+    color: #16a34a !important;
+    font-weight: 900 !important;
+    font-size: 12px !important;
+}
+
+.free-combo-price {
+    font-size: 18px;
+    font-weight: 900;
+    color: #16a34a !important;
+    letter-spacing: 0.5px;
+}
+
+.combo-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed rgba(59, 130, 246, 0.3);
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+}
+
+.combo-group-header .title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.combo-group-header h3 {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.badge-tag {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.combo-remove-btn {
+    border: none;
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.combo-remove-btn:hover {
+    background: #fca5a5;
+}
+
+.combo-child-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.child-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: white;
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1px solid #edf2f7;
+}
+
+.child-item img {
+    width: 64px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.child-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.child-info h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.child-info p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+.child-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.child-price .original-price {
+    font-size: 11px;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.child-price .allocated-price {
+    font-size: 13px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.combo-group-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(59, 130, 246, 0.1);
+    padding-top: 14px;
+}
+
+.combo-group-footer .qty-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #475569;
+}
+
+.combo-group-footer .total-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.combo-group-footer .total-section .lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.combo-group-footer .total-section .price-val {
+    font-size: 18px;
+    font-weight: 800;
+    color: #2563eb;
 }
 </style>

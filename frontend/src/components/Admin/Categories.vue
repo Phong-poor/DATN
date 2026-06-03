@@ -16,11 +16,11 @@
         <p>Quản lý và tối ưu hóa các phân khúc sản phẩm dựa trên nhu cầu của khách hàng.</p>
       </div>
       <div class="hero-actions">
-        <button class="btn-secondary" @click="openCreateParent" style="margin-right: 10px;">
+        <button v-if="activeTab === 'parent'" class="btn-primary" @click="openCreateParent">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           Tạo Danh mục Gốc
         </button>
-        <button class="btn-primary" @click="openCreateChild">
+        <button v-if="activeTab === 'child'" class="btn-primary" @click="openCreateChild">
           <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tạo Danh mục Con
         </button>
@@ -62,18 +62,18 @@
         <tbody>
           <tr v-for="dm in filteredCategories" :key="dm.id_danhmuc" :class="{ 'row-selected': selectedIds.includes(dm.id_danhmuc) }">
             <td class="select-col">
-              <input type="checkbox" :checked="selectedIds.includes(dm.id_danhmuc)" @change="toggleItemSelection(dm.id_danhmuc)" />
+              <input type="checkbox" :checked="selectedIds.includes(dm.id)" @change="toggleItemSelection(dm.id)" />
             </td>
             <td class="cat-name">
-              #{{ dm.id_danhmuc }}
+              #{{ dm.id }}
             </td>
             <td>
               <p class="cat-name">{{ dm.ten_danhmuc }}</p>
-              <p class="cat-count" v-if="activeTab === 'child' && dm.parent_id" style="color: #64748b; font-size: 12px; margin-top: 4px;">
-                ↳ Thuộc nhóm: <b>{{ getParentName(dm.parent_id) }}</b>
+              <p class="cat-count" v-if="activeTab === 'child' && dm.id_danhmuc_cha" style="color: #64748b; font-size: 12px; margin-top: 4px;">
+                ↳ Thuộc nhóm: <b>{{ getParentName(dm.id_danhmuc_cha) }}</b>
               </p>
               <p class="cat-count" v-if="activeTab === 'parent'" style="color: #4f46e5; font-size: 12px; margin-top: 4px;">
-                Có {{ getChildCount(dm.id_danhmuc) }} danh mục con
+                Có {{ getChildCount(dm.id) }} danh mục con
               </p>
             </td>
             <td>
@@ -86,7 +86,7 @@
                  <button class="action-btn edit-btn" @click="openEdit(dm)" title="Chỉnh sửa">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button class="action-btn action-delete delete-btn" @click="deleteCategory(dm.id_danhmuc)" title="Xóa">
+                  <button class="action-btn action-delete delete-btn" @click="deleteCategory(dm.id)" title="Xóa">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                   </button>
               </div>
@@ -129,9 +129,9 @@
               </div>
               <div class="form-group" v-if="!isCreatingParent">
                 <label class="form-label">Thuộc Danh mục Gốc <span class="required">*</span></label>
-                <select class="form-input" v-model="form.parent_id">
+                <select class="form-input" v-model="form.id_danhmuc_cha">
                   <option value="" disabled>-- Chọn danh mục gốc --</option>
-                  <option v-for="p in parentCategories.filter(c => c.id_danhmuc !== editId)" :key="p.id_danhmuc" :value="p.id_danhmuc">
+                  <option v-for="p in parentCategories" :key="p.id" :value="p.id">
                     {{ p.ten_danhmuc }}
                   </option>
                 </select>
@@ -166,7 +166,8 @@ import BulkDeleteToolbar from './BulkDeleteToolbar.vue';
 import { useAdminBulkDelete } from '@/services/adminBulkDelete';
 
 // --- STATE QUẢN LÝ DỮ LIỆU ---
-const categories = ref([]);
+const parentCategories = ref([]);
+const childCategories = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 const activeTab = ref('child'); // 'parent' or 'child'
@@ -185,7 +186,8 @@ const defaultForm = () => ({
   trangthai: 'active', // 'active' hoặc 'hidden'
   trang_thai: 'active', // 'active' hoặc 'hidden'
   trangthai: 'active',
-  parent_id: '',
+  trangthai: 'active',
+  id_danhmuc_cha: '',
 });
 const form = ref(defaultForm());
 
@@ -193,8 +195,13 @@ const form = ref(defaultForm());
 const fetchCategories = async () => {
   isLoading.value = true;
   try {
-    const response = await api.get('/danhmuc'); 
-    categories.value = response.data.data || response.data;
+    const [parentRes, childRes] = await Promise.all([
+      api.get('/danhmuc-cha'),
+      api.get('/danhmuc')
+    ]);
+    
+    parentCategories.value = (parentRes.data.data || parentRes.data).map(c => ({...c, id: c.id_danhmuc_cha}));
+    childCategories.value = (childRes.data.data || childRes.data).map(c => ({...c, id: c.id_danhmuc}));
   } catch (error) {
     console.error('Lỗi khi tải danh mục:', error);
   } finally {
@@ -208,14 +215,7 @@ onMounted(() => {
 
 // --- TÌM KIẾM & LỌC THEO TAB ---
 const filteredCategories = computed(() => {
-  let list = categories.value;
-  
-  // Lọc theo tab
-  if (activeTab.value === 'parent') {
-    list = list.filter(c => !c.parent_id);
-  } else {
-    list = list.filter(c => c.parent_id);
-  }
+  let list = activeTab.value === 'parent' ? parentCategories.value : childCategories.value;
 
   // Lọc theo từ khóa tìm kiếm
   if (!searchQuery.value) return list;
@@ -235,29 +235,24 @@ const {
   removeSelected,
   removeAllFiltered,
 } = useAdminBulkDelete({
-  items: categories,
+  items: computed(() => activeTab.value === 'parent' ? parentCategories.value : childCategories.value),
   filteredItems: filteredCategories,
-  getId: item => item.id_danhmuc,
-  endpoint: id => `/admin/danhmuc/${id}`,
+  getId: item => item.id,
+  endpoint: id => activeTab.value === 'parent' ? `/admin/danhmuc-cha/${id}` : `/admin/danhmuc/${id}`,
   entityLabel: 'danh mục',
   fetchItems: fetchCategories,
   cannotDeleteMessage: 'Một số danh mục có thể đang được sản phẩm sử dụng.',
 });
 
-// Lọc danh mục gốc (không có cha)
-const parentCategories = computed(() => {
-  return categories.value.filter(c => !c.parent_id);
-});
-
 // Hàm lấy tên danh mục cha
 const getParentName = (parentId) => {
-  const p = categories.value.find(c => c.id_danhmuc == parentId);
+  const p = parentCategories.value.find(c => c.id == parentId);
   return p ? p.ten_danhmuc : '';
 };
 
 // Đếm số lượng danh mục con
 const getChildCount = (parentId) => {
-  return categories.value.filter(c => c.parent_id == parentId).length;
+  return childCategories.value.filter(c => c.id_danhmuc_cha == parentId).length;
 };
 
 // --- MỞ FORM THÊM MỚI ---
@@ -265,7 +260,7 @@ const openCreateParent = () => {
   isEdit.value = false;
   editId.value = null;
   form.value = defaultForm();
-  form.value.parent_id = '';
+  form.value.id_danhmuc_cha = '';
   isCreatingParent.value = true;
   showModal.value = true;
 };
@@ -281,16 +276,16 @@ const openCreateChild = () => {
 // --- MỞ FORM CHỈNH SỬA ---
 const openEdit = (dm) => {
   isEdit.value = true;
-  editId.value = dm.id_danhmuc;
+  editId.value = dm.id;
   form.value = { 
     ten_danhmuc: dm.ten_danhmuc,
     slug: dm.slug || '',
     mo_ta: dm.mo_ta || '',
     trang_thai: dm.trang_thai,
     trangthai: dm.trangthai || dm.trang_thai,
-    parent_id: dm.parent_id || '',
+    id_danhmuc_cha: dm.id_danhmuc_cha || '',
   }; 
-  isCreatingParent.value = !dm.parent_id;
+  isCreatingParent.value = activeTab.value === 'parent';
   showModal.value = true;
 };
 
@@ -320,22 +315,23 @@ const saveCategory = async () => {
 
   try {
     const payload = { ...form.value };
+    let endpoint = isCreatingParent.value ? '/admin/danhmuc-cha' : '/admin/danhmuc';
+    let publicEndpoint = isCreatingParent.value ? '/danhmuc-cha' : '/danhmuc';
+
     if (isCreatingParent.value) {
-      payload.parent_id = null; // Đảm bảo danh mục gốc không có parent_id
+      delete payload.id_danhmuc_cha;
     } else {
-      if (!payload.parent_id) {
+      if (!payload.id_danhmuc_cha) {
         swal.error("Thiếu thông tin", "Vui lòng chọn Danh mục Gốc!");
         return;
       }
     }
 
     if (isEdit.value) {
-      await api.put(`/admin/danhmuc/${editId.value}`, form.value);
-      await api.put(`/danhmuc/${editId.value}`, payload);
+      await api.put(`${endpoint}/${editId.value}`, form.value);
       swal.success('Thành công', 'Cập nhật danh mục thành công!');
     } else {
-      await api.post('/admin/danhmuc', form.value);
-      await api.post('/danhmuc', payload);
+      await api.post(endpoint, form.value);
       swal.success('Thành công', 'Thêm mới danh mục thành công!');
     }
     closeModal();
@@ -352,7 +348,8 @@ const deleteCategory = async (id) => {
   const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa danh mục này? Thao tác không thể hoàn tác!')
   if (isConfirmed) {
     try {
-      await api.delete(`/admin/danhmuc/${id}`);
+      let endpoint = activeTab.value === 'parent' ? '/admin/danhmuc-cha' : '/admin/danhmuc';
+      await api.delete(`${endpoint}/${id}`);
       swal.success('Đã xóa', 'Xóa danh mục thành công!');
       fetchCategories();
     } catch (error) {
@@ -429,7 +426,7 @@ td { padding: 16px 20px; vertical-align: middle; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
 
 /* MODAL CSS */
-.overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .modal { background: #fff; border-radius: 20px; width: 100%; max-width: 560px; box-shadow: 0 24px 60px rgba(0,0,0,0.18); display: flex; flex-direction: column; max-height: 90vh; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 20px; border-bottom: 1px solid #f1f5f9; }
 .modal-header-left { display: flex; align-items: center; gap: 14px; }

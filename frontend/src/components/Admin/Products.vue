@@ -11,6 +11,12 @@ import swal from '@/services/swal'
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
+const selectedParentTab = ref('')
+
+const selectParentTab = (id_danhmuc_cha) => {
+  selectedParentTab.value = id_danhmuc_cha
+  selectedCategory.value = ''
+}
 
 const isOpenStatusDropdown = ref(false)
 const isOpenCategoryDropdown = ref(false)
@@ -55,12 +61,18 @@ const selectedProductIds = ref([])
 const importExcelRef = ref(null)
 const importVariantsExcelRef = ref(null)
 
+const filteredCategoriesForDropdown = computed(() => {
+  if (!selectedParentTab.value) return categories.value
+  return categories.value.filter(c => String(c.id_danhmuc_cha) === String(selectedParentTab.value))
+})
+
 const filteredProducts = computed(() =>
   products.value.filter(p => {
     const s = searchQuery.value.toLowerCase()
 
     return (!s || p.name.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s))
       && (!selectedStatus.value || p.status === selectedStatus.value)
+      && (!selectedParentTab.value || String(p.parentCategoryId) === String(selectedParentTab.value))
       && (!selectedCategory.value || String(p.categoryId) === String(selectedCategory.value))
   })
 )
@@ -171,7 +183,7 @@ const clearProductSelection = () => {
   selectedProductIds.value = []
 }
 
-watch([searchQuery, selectedStatus, selectedCategory], () => {
+watch([searchQuery, selectedStatus, selectedCategory, selectedParentTab], () => {
   currentPage.value = 1
 })
 
@@ -379,6 +391,7 @@ const fetchProducts = async () => {
         sku: p.SKU || '',
         category: p.danh_muc?.ten_danhmuc || 'Chưa có danh mục',
         categoryId: p.id_danhmuc ?? '',
+        parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
         brand: p.thuong_hieu?.ten_thuonghieu || 'Chưa có thương hiệu',
         totalVariants: variantCount,
         bienThes,
@@ -737,6 +750,7 @@ const fetchAttributeGroups = async () => {
    MODAL & FORM
 ═══════════════════════════════════════ */
 const showModal = ref(false)
+const currentView = ref('list') // 'list' | 'product-form'
 const formError = ref('')
 const isEditMode = ref(false)
 const editingProductId = ref(null)
@@ -1530,6 +1544,7 @@ const openEditModal = async (id) => {
 
     mapProductToForm(product)
     showModal.value = true
+    currentView.value = 'product-form'
   } catch (error) {
     console.error(error)
     swal.error('Lỗi', getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
@@ -1539,6 +1554,7 @@ const openEditModal = async (id) => {
 const mapProductToForm = (product) => {
   form.value = {
     name: product?.tenSP || '',
+    parentCategory: String(product?.danh_muc?.id_danhmuc_cha ?? ''),
     category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
     brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
     status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Đang bán' : 'Nháp',
@@ -1650,7 +1666,7 @@ const openModal = () => {
   resetForm()
   isEditMode.value = false
   editingProductId.value = null
-  showModal.value = true
+  currentView.value = 'product-form'
 
   if (attributeGroups.value.length > 0) {
     selectedGroupId.value = attributeGroups.value[0].id
@@ -1659,7 +1675,7 @@ const openModal = () => {
 
 const closeModal = () => {
   resetFieldErrors()
-  showModal.value = false
+  currentView.value = 'list'
 }
 
 const submitForm = async () => {
@@ -1748,6 +1764,11 @@ onMounted(() => {
 <template>
   <div class="admin">
 
+    <!-- ══════════════════════════════════════════════════════
+         VIEW: DANH SÁCH sản phẩm (top, stats, filter, table)
+    ══════════════════════════════════════════════════════ -->
+    <template v-if="currentView === 'list'">
+
     <div class="top">
       <div>
         <h1>Quản lý sản phẩm</h1>
@@ -1807,6 +1828,26 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Tabs danh mục cha -->
+    <div class="parent-tabs">
+      <button 
+        class="parent-tab-btn" 
+        :class="{ active: selectedParentTab === '' }" 
+        @click="selectParentTab('')"
+      >
+        Tất cả sản phẩm
+      </button>
+      <button 
+        v-for="parentCat in parentCategories" 
+        :key="parentCat.id_danhmuc_cha"
+        class="parent-tab-btn" 
+        :class="{ active: String(selectedParentTab) === String(parentCat.id_danhmuc_cha) }" 
+        @click="selectParentTab(parentCat.id_danhmuc_cha)"
+      >
+        {{ parentCat.ten_danhmuc }}
+      </button>
+    </div>
+
     <div class="filter-bar">
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1844,7 +1885,7 @@ onMounted(() => {
         <transition name="fade-slide">
           <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
             <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Tất cả danh mục</li>
-            <li v-for="category in categories" :key="category.id_danhmuc" 
+            <li v-for="category in filteredCategoriesForDropdown" :key="category.id_danhmuc" 
                 :class="{ active: String(selectedCategory) === String(category.id_danhmuc) }" 
                 @click="selectedCategory = category.id_danhmuc; isOpenCategoryDropdown = false">
               {{ category.ten_danhmuc }}
@@ -1952,16 +1993,23 @@ onMounted(() => {
       <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
     </div>
 
-    <Teleport to="body">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-        <div class="modal modal-wide">
+    </template><!-- end list view -->
 
-          <div class="modal-header">
-            <h3>{{ isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới' }}</h3>
-            <button class="modal-close" @click="closeModal">×</button>
-          </div>
+    <!-- ══════════════════════════════════════════════════════
+         VIEW: FORM SẢN PHẨM (Thêm / Sửa)
+    ══════════════════════════════════════════════════════ -->
+    <template v-if="currentView === 'product-form'">
+      <!-- Inline form header -->
+      <div class="inline-form-header">
+        <button class="back-btn" @click="closeModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          Quay lại danh sách
+        </button>
+        <h1>{{ isEditMode ? '✏️ Chỉnh sửa sản phẩm' : '➕ Thêm sản phẩm mới' }}</h1>
+        <p>{{ isEditMode ? 'Cập nhật thông tin và biến thể của sản phẩm' : 'Điền đầy đủ thông tin để thêm sản phẩm vào hệ thống' }}</p>
+      </div>
 
-          <div class="modal-body">
+      <div class="inline-form-body">
 
             <div class="form-group">
               <label>Ảnh sản phẩm</label>
@@ -2016,28 +2064,18 @@ onMounted(() => {
                 <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
               </div>
               <div class="form-group">
-                <label>Thương hiệu <span class="required">*</span></label>
-                <select v-model="form.brand" :class="{ 'input-error': fieldErrors.brand }">
-                  <option value="">-- Chọn thương hiệu --</option>
-                  <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
-                    {{ brand.ten_thuonghieu }}
-                  </option>
-                </select>
-                <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
                 <label>Danh mục Cha <span class="required">*</span></label>
                 <select v-model="form.parentCategory" :class="{ 'input-error': fieldErrors.parentCategory }">
                   <option value="">-- Chọn danh mục cha --</option>
-                  <option v-for="parentCat in parentCategories" :key="parentCat.id_danhmuc"
-                    :value="String(parentCat.id_danhmuc)">
+                  <option v-for="parentCat in parentCategories" :key="parentCat.id_danhmuc_cha"
+                    :value="String(parentCat.id_danhmuc_cha)">
                     {{ parentCat.ten_danhmuc }}
                   </option>
                 </select>
                 <p v-if="fieldErrors.parentCategory" class="field-error">{{ fieldErrors.parentCategory }}</p>
               </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label>Danh mục Con <span class="required">*</span></label>
                 <select v-model="form.category" :class="{ 'input-error': fieldErrors.category }"
@@ -2049,6 +2087,16 @@ onMounted(() => {
                   </option>
                 </select>
                 <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
+              </div>
+              <div class="form-group">
+                <label>Thương hiệu <span class="required">*</span></label>
+                <select v-model="form.brand" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
+                  <option value="">-- Chọn thương hiệu --</option>
+                  <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
+                    {{ brand.ten_thuonghieu }}
+                  </option>
+                </select>
+                <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
               </div>
             </div>
             <div class="form-row">
@@ -2354,17 +2402,16 @@ onMounted(() => {
               {{ fieldErrors.variantRows }}
             </p>
             <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
-          </div>
 
-          <div class="modal-footer">
+          <!-- Inline footer actions -->
+          <div class="inline-form-footer">
             <button class="btn-cancel" @click="closeModal">Hủy</button>
             <button class="btn-submit" @click="submitForm">
               {{ isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm' }}
             </button>
           </div>
-        </div>
-      </div>
-    </Teleport>
+      </div><!-- end inline-form-body -->
+    </template><!-- end product-form -->
 
     <!-- Modal Danh sách sản phẩm sắp hết hàng -->
     <Teleport to="body">
@@ -2450,6 +2497,206 @@ onMounted(() => {
   background: #f5f7fb;
   min-height: 100vh;
   font-family: 'Segoe UI', sans-serif;
+}
+
+/* ── Inline Form Header ── */
+.inline-form-header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inline-form-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 4px;
+}
+
+.inline-form-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.back-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* ── Inline Form Body ── */
+.inline-form-body {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+/* ── Inline Form Footer ── */
+.inline-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ═══════════════════════════════════════
+   INLINE FORM — Form Elements Redesign
+══════════════════════════════════════ */
+
+/* Mỗi form-group trong inline-form-body là 1 card riêng */
+.inline-form-body > .form-group,
+.inline-form-body > .products-selection-section {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #edf0f7;
+  padding: 22px 24px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  border-top: none !important;
+  margin-top: 0 !important;
+  gap: 12px;
+}
+
+/* 2-col grid */
+.inline-form-body > .form-row,
+.inline-form-body > .form-cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.inline-form-body > .form-row > .form-group,
+.inline-form-body > .form-cols-2 > .form-group {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #edf0f7;
+  padding: 22px 24px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  gap: 10px;
+}
+
+/* Label */
+.inline-form-body .form-group label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Input / Select / Textarea */
+.inline-form-body .form-group input:not([type='file']),
+.inline-form-body .form-group select,
+.inline-form-body .form-group textarea {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+  background: #f9fafb;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inline-form-body .form-group input:focus,
+.inline-form-body .form-group select:focus,
+.inline-form-body .form-group textarea:focus {
+  border-color: #4f46e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.inline-form-body .form-group input.input-error,
+.inline-form-body .form-group select.input-error {
+  border-color: #f87171;
+  background: #fff5f5;
+}
+
+/* Upload zone redesign */
+.inline-form-body .upload-zone {
+  border: 2px dashed #c7d2fe;
+  background: linear-gradient(135deg, #f0f1ff 0%, #fafbff 100%);
+  border-radius: 14px;
+  padding: 44px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.inline-form-body .upload-zone:hover {
+  border-color: #4f46e5;
+  background: linear-gradient(135deg, #ebe8ff 0%, #f0f4ff 100%);
+}
+
+.inline-form-body .upload-zone svg {
+  width: 44px;
+  height: 44px;
+  color: #6366f1;
+}
+
+.inline-form-body .upload-zone p {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+  font-weight: 500;
+}
+
+.inline-form-body .upload-zone p span {
+  color: #4f46e5;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inline-form-body .upload-zone small {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Field errors */
+.inline-form-body .field-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin: 2px 0 0;
+}
+
+.inline-form-body .form-error {
+  font-size: 13px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin: 0;
+  font-weight: 500;
 }
 
 .top {
@@ -3028,13 +3275,16 @@ tbody td {
 }
 
 .badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
   background: #dbeafe;
   color: #1d4ed8;
+  white-space: nowrap;
 }
 
 .price {
@@ -3051,11 +3301,14 @@ tbody td {
 }
 
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .status-badge.active {
@@ -4575,6 +4828,46 @@ tbody td {
   gap: 8px;
 }
 
+/* ── PARENT CATEGORY TABS ── */
+.parent-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 24px 0 16px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+  width: fit-content;
+}
 
+.parent-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 9px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.parent-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.parent-tab-btn.active {
+  color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
 
 </style>

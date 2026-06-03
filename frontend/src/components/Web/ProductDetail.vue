@@ -1,15 +1,41 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
+import ComboSelectionModal from './ComboSelectionModal.vue'
 
 
 
 const route = useRoute()
 const isLoading = ref(true)
 const router = useRouter()
+
+// ===================== STATE COMBO =====================
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+const selectedTriggerVariant = ref(null) // Biến thể là laptop kích hoạt ưu đãi (nếu có)
+
+const openCombo = (combo, triggerVariant = null) => {
+    selectedCombo.value = combo
+    selectedTriggerVariant.value = triggerVariant
+    showComboModal.value = true
+}
+
+const fetchProductCombos = async (productId) => {
+    try {
+        const res = await api.get('/combos', { skipGlobalLoader: true })
+        const allCombos = res.data?.data || []
+        combos.value = allCombos.filter(combo => 
+            combo.products.some(p => String(p.id_sanpham) === String(productId))
+        )
+    } catch (e) {
+        console.error('Lỗi khi tải combo liên quan:', e)
+    }
+}
+
 // ===================== STATE GIỎ HÀNG =====================
 const soLuongMua = ref(1)
 const dangThem = ref(false)
@@ -217,6 +243,32 @@ const prevThumbs = () => {
     }
 }
 
+// ===================== AUTO SLIDER =====================
+let autoSlideInterval = null
+
+const startAutoSlide = () => {
+    stopAutoSlide()
+    autoSlideInterval = setInterval(() => {
+        if (allImages.value.length > 1) {
+            const currentIndex = allImages.value.indexOf(selectedImage.value)
+            const nextIndex = (currentIndex + 1) % allImages.value.length
+            selectedImage.value = allImages.value[nextIndex]
+            
+            // Sync thumb slider
+            if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
+                thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
+            }
+        }
+    }, 2000)
+}
+
+const stopAutoSlide = () => {
+    if (autoSlideInterval) {
+        clearInterval(autoSlideInterval)
+        autoSlideInterval = null
+    }
+}
+
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
@@ -227,6 +279,7 @@ const loadCache = (productId) => {
             if (parsed.reviews) reviews.value = parsed.reviews
             if (parsed.recentlyViewedProducts) recentlyViewedProducts.value = parsed.recentlyViewedProducts
             if (parsed.relatedProducts) relatedProducts.value = parsed.relatedProducts
+            if (parsed.combos) combos.value = parsed.combos
             if (product.value && product.value.tenSP) {
                 window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
             }
@@ -265,7 +318,8 @@ const saveCache = (productId) => {
             product: product.value,
             reviews: reviews.value,
             recentlyViewedProducts: recentlyViewedProducts.value,
-            relatedProducts: relatedProducts.value
+            relatedProducts: relatedProducts.value,
+            combos: combos.value
         }))
     } catch (e) {
         console.error('Lỗi save cache chi tiết sản phẩm:', e)
@@ -340,7 +394,8 @@ const loadPageData = async () => {
         await Promise.all([
             fetchProductDetail(),
             fetchRecentlyViewed(),
-            fetchReviews()
+            fetchReviews(),
+            fetchProductCombos(productId)
         ]);
         saveCache(productId)
         isLoading.value = false
@@ -353,6 +408,11 @@ const loadPageData = async () => {
 onMounted(() => {
     window.scrollTo(0, 0)
     loadPageData()
+    startAutoSlide()
+})
+
+onUnmounted(() => {
+    stopAutoSlide()
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -701,6 +761,44 @@ const modalComparisonData = computed(() => {
     }
     return data
 })
+
+const selectedVariantOffers = computed(() => {
+    return selectedVariant.value?.combo_offers || []
+})
+
+const otherVariantsWithOffers = computed(() => {
+    const list = []
+    const variants = product.value?.bienThes || []
+    variants.forEach(v => {
+        if (v.id_bienthe !== selectedVariant.value?.id_bienthe && v.combo_offers && v.combo_offers.length > 0) {
+            list.push({
+                id_bienthe: v.id_bienthe,
+                ten_bienthe: v.ten_bienthe,
+                offers: v.combo_offers
+            })
+        }
+    })
+    return list
+})
+
+const handleSelectVariantById = (idBienThe) => {
+    const variants = product.value.bienThes || []
+    const matched = variants.find(v => String(v.id_bienthe) === String(idBienThe))
+    if (matched) {
+        selectedVariant.value = matched
+        const options = {}
+        getVariantAttributes(matched).forEach(attr => {
+            options[attr.ten_thuoctinh] = attr.giatri
+        })
+        selectedOptions.value = options
+        if (matched.hinhanh) {
+            selectedImage.value = getImageUrl(matched.hinhanh)
+        }
+        router.replace({ query: { ...route.query, variant: matched.id_bienthe } })
+        soLuongMua.value = 1
+        hienThiThongBao('success', `✨ Đã chuyển cấu hình: ${matched.ten_bienthe}`)
+    }
+}
 </script>
 
 <template>
@@ -724,8 +822,10 @@ const modalComparisonData = computed(() => {
 
                     <!-- ẢNH -->
                     <div>
-                        <div class="main-img">
-                            <img :src="selectedImage" />
+                        <div class="main-img" @mouseenter="stopAutoSlide" @mouseleave="startAutoSlide">
+                            <transition name="slide-left" mode="out-in">
+                                <img :key="selectedImage" :src="selectedImage" />
+                            </transition>
                         </div>
                         <div class="thumb-wrapper">
                             <button class="thumb-nav p-left" @click="prevThumbs" :disabled="thumbIndex === 0">
@@ -735,7 +835,7 @@ const modalComparisonData = computed(() => {
                                 </svg>
                             </button>
                             <div class="thumbs">
-                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img"
+                                <img v-for="(img, i) in visibleThumbs" :key="i" :src="img" @click="selectedImage = img; startAutoSlide()"
                                     :class="{ active: selectedImage === img }" />
                             </div>
                             <button class="thumb-nav p-right" @click="nextThumbs"
@@ -844,6 +944,82 @@ const modalComparisonData = computed(() => {
                         <div class="info">
                             <span>Giao nhanh 2h</span>
                             <span>Bảo hành 24 tháng</span>
+                        </div>
+
+                        <!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
+                        <div v-if="selectedVariantOffers.length > 0" class="variant-offers-box">
+                            <div class="offer-header-vip">
+                                <span class="badge-vip">🎁 ĐẶC QUYỀN VIP</span>
+                                <h3>Quà Tặng Độc Quyền Cho Phiên Bản Này!</h3>
+                            </div>
+                            <div v-for="offer in selectedVariantOffers" :key="offer.id_combo" class="variant-offer-card">
+                                <div class="offer-left">
+                                    <h4 class="offer-title">{{ offer.mota_uudai || 'Món Quà Tri Ân Đặc Biệt' }}</h4>
+                                    <p class="offer-combo-name">⚡ Combo: <b>{{ offer.ten_combo }}</b></p>
+                                    <div class="offer-products-list">
+                                        <span v-for="p in offer.products" :key="p.id_sanpham" class="offer-p-item">
+                                            🎁 {{ p.tenSP }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="offer-right">
+                                    <div class="price-label-free">
+                                        <span class="old-price" v-if="offer.giakhuyenmai > 0">Trị giá: {{ formatPrice(offer.giakhuyenmai) }}</span>
+                                        <span class="free-badge-text">MIỄN PHÍ 0đ</span>
+                                    </div>
+                                    <button class="btn-claim-offer" @click="openCombo(offer, selectedVariant)">
+                                        Nhận Quà Ngay
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GỢI Ý NÂNG CẤP CẤU HÌNH (UPSELLING TEASER) -->
+                        <div v-else-if="otherVariantsWithOffers.length > 0" class="upsell-teaser-box">
+                            <span class="teaser-icon">💡</span>
+                            <div class="teaser-content">
+                                <p class="teaser-text">
+                                    <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản 
+                                    <span class="highlight-variant" @click="handleSelectVariantById(otherVariantsWithOffers[0].id_bienthe)" title="Click để chọn phiên bản này ngay">
+                                        "{{ otherVariantsWithOffers[0].ten_bienthe }}"
+                                    </span> 
+                                    để nhận ngay Quà Tặng 
+                                    <span class="free-text-badge">MIỄN PHÍ 0đ</span>: 
+                                    <b>{{ otherVariantsWithOffers[0].offers[0].ten_combo }}</b>!
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- KHUNG COMBO LIÊN QUAN -->
+                        <div v-if="combos.length > 0" class="related-combos-box">
+                            <h3 class="box-title">🎁 Deal Siêu Hời - Mua Theo Combo</h3>
+                            <div v-for="combo in combos" :key="combo.id_combo" class="related-combo-card">
+                                <div class="combo-left">
+                                    <span class="badge-discount">🔥 Tiết kiệm hơn</span>
+                                    <h4 class="clickable-combo" @click="openCombo(combo)" title="Xem chi tiết & cấu hình combo">
+                                        {{ combo.ten_combo }} <span class="info-icon">ℹ️</span>
+                                    </h4>
+                                    <div class="combo-products-inline">
+                                        <span v-for="(p, i) in combo.products" :key="p.id_sanpham" class="p-item">
+                                            🔹 <span class="clickable-product" @click="router.push('/products/' + p.id_sanpham)" title="Xem chi tiết sản phẩm">{{ p.tenSP }}</span><span v-if="i < combo.products.length - 1" class="plus"> + </span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="combo-right">
+                                    <div class="price-box">
+                                        <span class="label">Trọn bộ chỉ:</span>
+                                        <span class="price">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                                    </div>
+                                    <div class="combo-action-btns">
+                                        <button class="btn-view-combo" @click="openCombo(combo)">
+                                            Xem chi tiết
+                                        </button>
+                                        <button class="btn-buy-combo" @click="openCombo(combo)">
+                                            Mua ngay
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -957,6 +1133,15 @@ const modalComparisonData = computed(() => {
                         </div>
                     </transition>
                 </div>
+
+                <!-- Modal Chọn Biến Thể Combo -->
+                <ComboSelectionModal 
+                    v-if="selectedCombo" 
+                    :combo="selectedCombo" 
+                    :show="showComboModal"
+                    :triggerVariant="selectedTriggerVariant"
+                    @close="showComboModal = false; selectedTriggerVariant = null" 
+                />
 
                 <!-- ĐÁNH GIÁ -->
                 <div class="reviews" id="reviews-section">
@@ -2054,4 +2239,363 @@ h1 {
     }
 }
 
+/* ===== IMAGE SLIDE TRANSITION ===== */
+.slide-left-enter-active,
+.slide-left-leave-active {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.slide-left-enter-from {
+    opacity: 0;
+    transform: translateX(40px);
+}
+.slide-left-leave-to {
+    opacity: 0;
+    transform: translateX(-40px);
+}
+
+/* ===== RELATED COMBOS BOX ===== */
+.related-combos-box {
+    margin-top: 24px;
+    background: #edf2f7;
+    border: 1px dashed #2563eb;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.box-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f2b5b;
+    margin: 0 0 12px 0;
+}
+
+.related-combo-card {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    gap: 16px;
+}
+
+.related-combo-card:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+.clickable-product {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-product:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.clickable-combo {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.clickable-combo:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.clickable-combo .info-icon {
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.clickable-combo:hover .info-icon {
+    opacity: 1;
+}
+
+.combo-action-btns {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-view-combo {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-view-combo:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.combo-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.combo-left .badge-discount {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 30px;
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.15);
+}
+
+.combo-left h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.combo-products-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.combo-products-inline .plus {
+    color: #2563eb;
+    font-weight: 800;
+}
+
+.combo-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.combo-right .price-box {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.combo-right .price-box .label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.combo-right .price-box .price {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.btn-buy-combo {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-buy-combo:hover {
+    background: #1d4ed8;
+}
+
+/* ===== VARIANT OFFERS BOX (VIP SPEC OFFER) ===== */
+.variant-offers-box {
+    margin-top: 24px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid #22c55e;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.1);
+}
+
+.offer-header-vip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.badge-vip {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 30px;
+}
+
+.offer-header-vip h3 {
+    font-size: 14px;
+    font-weight: 800;
+    color: #14532d;
+    margin: 0;
+}
+
+.variant-offer-card {
+    background: white;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.offer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.offer-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #166534;
+    margin: 0;
+}
+
+.offer-combo-name {
+    font-size: 12px;
+    color: #475569;
+    margin: 0;
+}
+
+.offer-products-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.offer-p-item {
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.offer-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.price-label-free {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.price-label-free .old-price {
+    font-size: 10px;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.price-label-free .free-badge-text {
+    font-size: 16px;
+    font-weight: 800;
+    color: #22c55e;
+}
+
+.btn-claim-offer {
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
+    transition: background 0.2s ease;
+}
+
+.btn-claim-offer:hover {
+    background: #16a34a;
+}
+
+/* ===== UPSELL TEASER BOX ===== */
+.upsell-teaser-box {
+    margin-top: 24px;
+    background: #eff6ff;
+    border: 1.5px dashed #3b82f6;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.teaser-icon {
+    font-size: 20px;
+}
+
+.teaser-content {
+    flex: 1;
+    text-align: left;
+}
+
+.teaser-text {
+    font-size: 12.5px;
+    color: #1e3a8a;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.highlight-variant {
+    color: #2563eb;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.highlight-variant:hover {
+    color: #1d4ed8;
+}
+
+.free-text-badge {
+    background: #22c55e;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 2px;
+}
 </style>

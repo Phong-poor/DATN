@@ -68,6 +68,9 @@
             <h2 class="card__code">{{ promo.code }}</h2>
 
             <p class="card__desc">
+              <template v-if="promo.category === 'freeship' && promo.dieu_kien > 0">
+                🛒 Đơn tối thiểu {{ formatPrice(promo.dieu_kien) }}<br/>
+              </template>
               {{ promo.mota || 'Không có mô tả' }}
             </p>
 
@@ -106,7 +109,8 @@ import { getToken } from '@/services/auth'
 export default {
     name: 'GiftPopup',
     props: {
-        delay: { type: Number, default: 3000 }
+        delay: { type: Number, default: 3000 },
+        promosData: { type: Array, default: () => [] }
     },
     data() {
         return {
@@ -126,10 +130,17 @@ export default {
         const token = getToken()
         if (!token) return
 
-
-
-        // Đợi tải quà tặng về trước khi quyết định hiện popup
-        await this.fetchGifts()
+        if (this.promosData && this.promosData.length > 0) {
+            const all = this.promosData
+            const productPromo = all.find(p => p.category === 'product')
+            const freeshipPromo = all.find(p => p.category === 'freeship')
+            
+            if (productPromo) this.promos.push(productPromo)
+            if (freeshipPromo) this.promos.push(freeshipPromo)
+        } else {
+            // Đợi tải quà tặng về trước khi quyết định hiện popup
+            await this.fetchGifts()
+        }
 
         if (this.promos.length === 0) {
             return 
@@ -143,8 +154,6 @@ export default {
                 setTimeout(() => { this.launchConfetti() }, 250)
             })
         }, this.delay)
-
-
     },
     beforeUnmount() {
         cancelAnimationFrame(this.animFrame)

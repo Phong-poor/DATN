@@ -59,6 +59,11 @@ const form = ref({
 })
 
 const payment = ref('cod')
+const paymentMethodMap = {
+    cod: 'COD',
+    vnpay: 'VNPay',
+    momo: 'MoMo'
+}
 const cart = ref([])
 
 const isKnownAddressPart = (value) => value && value !== 'Không xác định'
@@ -364,7 +369,13 @@ const fetchCart = async () => {
                 desc: item.ten_bienthe,
                 price: item.gia,
                 qty: item.soluong,
-                img: item.hinh_anh || 'https://via.placeholder.com/200'
+                img: item.hinh_anh || 'https://via.placeholder.com/200',
+                id_combo: item.id_combo,
+                combo_group_id: item.combo_group_id,
+                ten_combo: item.ten_combo,
+                hinhanh_combo: item.hinhanh_combo,
+                gia_combo: item.gia_combo,
+                gia_goc: item.gia_goc
             }))
         }
     } catch (error) {
@@ -397,6 +408,37 @@ const fetchUserProfile = async () => {
         console.error('Lỗi tải thông tin người dùng:', error)
     }
 }
+
+const groupedCart = computed(() => {
+    const list = []
+    const comboGroups = {}
+
+    cart.value.forEach(item => {
+        if (item.id_combo && item.combo_group_id) {
+            if (!comboGroups[item.combo_group_id]) {
+                comboGroups[item.combo_group_id] = {
+                    isCombo: true,
+                    combo_group_id: item.combo_group_id,
+                    id_combo: item.id_combo,
+                    ten_combo: item.ten_combo,
+                    hinhanh_combo: item.hinhanh_combo,
+                    gia_combo: item.gia_combo,
+                    qty: item.qty,
+                    items: []
+                }
+                list.push(comboGroups[item.combo_group_id])
+            }
+            comboGroups[item.combo_group_id].items.push(item)
+        } else {
+            list.push({
+                isCombo: false,
+                ...item
+            })
+        }
+    })
+
+    return list
+})
 
 onMounted(() => {
     fetchCart()
@@ -445,7 +487,7 @@ const confirmOrder = async () => {
             diachi: form.value.address,
             name: form.value.name,
             phone: form.value.phone,
-            PTTT: payment.value === 'cod' ? 'COD' : (payment.value === 'bank' ? 'Chuyển khoản' : 'Ví điện tử'),
+            PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value
         })
@@ -506,7 +548,7 @@ const confirmOrder = async () => {
             />
           </div>
 
-          <input v-model="form.email" placeholder="Email" readonly class="readonly-input" />
+          <input class="checkout-input" v-model="form.email" placeholder="Email" />
 
           <div class="address-list" v-if="addresses.length || loadingAddresses">
             <div class="address-header">
@@ -527,7 +569,7 @@ const confirmOrder = async () => {
             </div>
           </div>
 
-          <textarea v-model="form.address" placeholder="Địa chỉ nhận hàng"></textarea>
+          <textarea class="checkout-textarea" v-model="form.address" placeholder="Địa chỉ nhận hàng"></textarea>
         </div>
 
         <!-- PAYMENT -->
@@ -542,18 +584,30 @@ const confirmOrder = async () => {
             <label class="pay-item" :class="{ active: payment === 'cod' }">
               <input type="radio" value="cod" v-model="payment" />
               <div class="radio"></div>
+              <div class="pay-logo cod-logo">COD</div>
               <div class="pay-text">
                 <b>COD (Thanh toán khi nhận hàng)</b>
                 <p>Thanh toán tiền mặt khi nhận hàng</p>
               </div>
             </label>
 
+            <label class="pay-item" :class="{ active: payment === 'vnpay' }">
+              <input type="radio" value="vnpay" v-model="payment" />
+              <div class="radio"></div>
+              <div class="pay-logo vnpay-logo">VN</div>
+              <div class="pay-text">
+                <b>Ví điện tử VNPay</b>
+                <p>Thanh toán nhanh qua cổng VNPay sandbox</p>
+              </div>
+            </label>
+
             <label class="pay-item" :class="{ active: payment === 'momo' }">
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
+              <div class="pay-logo momo-logo">M</div>
               <div class="pay-text">
-                <b>Ví điện tử VNPay</b>
-                <p>Thanh toán nhanh qua ví điện tử</p>
+                <b>MoMo Sandbox</b>
+                <p>Chuyển sang MoMo để chọn QR, ATM/Napas hoặc Visa/Mastercard/JCB</p>
               </div>
             </label>
 
@@ -566,13 +620,45 @@ const confirmOrder = async () => {
         <div class="summary">
           <h3>Tóm tắt đơn hàng</h3>
 
-          <div class="item" v-for="(i, index) in cart" :key="index">
-            <img :src="i.img" />
-            <div>
-              <p>{{ i.name }}</p>
-              <span>{{ i.desc }}</span>
+          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : index">
+            <!-- Standalone Item -->
+            <div class="item" v-if="!entry.isCombo">
+              <img :src="entry.img" />
+              <div style="flex: 1; min-width: 0; text-align: left;">
+                <p style="margin: 0; font-size: 13.5px; font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ entry.name }}</p>
+                <span style="font-size: 11px; color: #64748b; display: block; margin-top: 2px;">{{ entry.desc }}</span>
+                <span class="qty-badge" style="display: inline-block; font-size: 11px; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: 700;">x{{ entry.qty }}</span>
+              </div>
+              <div style="text-align: right; min-width: 75px;">
+                <b style="font-size: 14px; color: #1e293b;">{{ format(entry.price * entry.qty) }}</b>
+                <span style="display: block; font-size: 10px; color: #94a3b8; margin-top: 2px;" v-if="entry.qty > 1">{{ format(entry.price) }}/sp</span>
+              </div>
             </div>
-            <b>{{ format(i.price) }}</b>
+
+            <!-- Grouped Combo Item -->
+            <div class="checkout-combo-group" v-else>
+              <div class="checkout-combo-header">
+                <span class="checkout-badge-tag">🎁 Combo</span>
+                <h4>{{ entry.ten_combo }}</h4>
+                <span class="checkout-combo-qty">x{{ entry.qty }}</span>
+              </div>
+              <div class="checkout-combo-child-list">
+                <div class="checkout-child-item" v-for="child in entry.items" :key="child.id_giohang">
+                  <img :src="child.img" />
+                  <div class="checkout-child-info">
+                    <p>{{ child.name }}</p>
+                    <span>{{ child.desc }}</span>
+                  </div>
+                  <div class="checkout-child-price">
+                    <span class="allocated-price">{{ format(child.price) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="checkout-combo-footer">
+                <span>Tổng combo:</span>
+                <b>{{ format(entry.gia_combo * entry.qty) }}</b>
+              </div>
+            </div>
           </div>
 
           <div class="line"></div>
@@ -716,9 +802,20 @@ const confirmOrder = async () => {
   max-width: 1200px;
   margin: auto;
   padding: 40px 24px;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
   gap: 30px;
+  align-items: start;
+}
+
+.left {
+  flex: 1;
+  min-width: 0;
+}
+
+.right {
+  width: 380px;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 /* TEXT */
@@ -801,10 +898,48 @@ textarea {
   resize: none;
 }
 
-textarea {
-  height: 120px;
-  padding-top: 12px;
-  resize: none;
+/* CUSTOM CHECKOUT INPUTS */
+.checkout-input {
+  width: 100% !important;
+  height: 48px !important;
+  padding: 0 16px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
+  margin-bottom: 14px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.checkout-input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+  background: #ffffff !important;
+}
+
+.checkout-textarea {
+  width: 100% !important;
+  height: 100px !important;
+  padding: 14px 16px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
+  margin-top: 12px !important;
+  resize: none !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.checkout-textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+  background: #ffffff !important;
 }
 
 .address-list {
@@ -1111,7 +1246,7 @@ textarea {
 
 .pay-item {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px 44px 1fr;
   align-items: center;
   gap: 14px;
   padding: 16px;
@@ -1155,6 +1290,41 @@ textarea {
 .pay-text p {
   font-size: 12px;
   color: #64748b;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.pay-text {
+  min-width: 0;
+}
+
+.pay-text b {
+  line-height: 1.35;
+}
+
+.pay-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.cod-logo {
+  background: linear-gradient(135deg, #0f172a, #475569);
+}
+
+.vnpay-logo {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+}
+
+.momo-logo {
+  background: linear-gradient(135deg, #d1007f, #a50064);
 }
 
 /* RIGHT */
@@ -1220,11 +1390,135 @@ textarea {
   border-radius: 10px;
 }
 
+/* ─── GROUPED COMBO ITEMS FOR CHECKOUT SUMMARY ─── */
+.checkout-combo-group {
+  background: white;
+  border: 1.5px solid rgba(59, 130, 246, 0.35);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.03);
+}
+
+.checkout-combo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.checkout-combo-header h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-badge-tag {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.checkout-combo-qty {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.checkout-combo-child-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.checkout-child-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.checkout-child-item img {
+  width: 40px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.checkout-child-info {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.checkout-child-info p {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-child-info span {
+  font-size: 10px;
+  color: #64748b;
+  display: block;
+}
+
+.checkout-child-price {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.checkout-combo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed rgba(59, 130, 246, 0.15);
+  padding-top: 8px;
+  font-size: 12px;
+}
+
+.checkout-combo-footer span {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.checkout-combo-footer b {
+  font-size: 14px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
 /* RESPONSIVE */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   .container {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    gap: 20px;
     padding: 24px 16px;
+  }
+  .right {
+    width: 100%;
   }
 }
 
@@ -1239,6 +1533,16 @@ textarea {
   .form-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+  .pay-item {
+    grid-template-columns: 24px 38px 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+  .pay-logo {
+    width: 38px;
+    height: 38px;
+    font-size: 11px;
   }
 }
 </style>

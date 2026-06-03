@@ -92,6 +92,8 @@
               </div>
             </div>
 
+            <AdminChatManager />
+
             <div class="topbar-popover" ref="notifyMenuRef">
               <button class="topbar-icon-button" type="button" aria-label="Thông báo" @click="toggleNotifyMenu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
@@ -171,6 +173,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
+import AdminChatManager from '@/components/Admin/Layout/AdminChatManager.vue'
 import { storageUrl } from '@/services/urls'
 import api from '@/services/api'
 import swal from '@/services/swal'
@@ -178,6 +181,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  RotateCcw,
   Newspaper,
   FolderTree,
   Tag,
@@ -189,6 +193,7 @@ import {
   Handshake,
   Mail,
   Activity,
+  Gift,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -224,10 +229,12 @@ const menuItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/products', label: 'Sản phẩm', icon: Package },
   { path: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
+  
   { path: '/admin/news', label: 'Bài viết', icon: Newspaper },
   { path: '/admin/categories', label: 'Danh mục', icon: FolderTree },
   { path: '/admin/brands', label: 'Thương hiệu', icon: Tag },
   { path: '/admin/promotions', label: 'Khuyến mãi', icon: TicketPercent },
+  { path: '/admin/combos', label: 'Quản lý Combo', icon: Gift },
   { path: '/admin/banners', label: 'Banner', icon: Image },
   { path: '/admin/variants', label: 'Màu & biến thể', icon: Palette },
   { path: '/admin/users', label: 'User', icon: Users },

@@ -9,15 +9,13 @@ use App\Models\BienThe;
 use App\Models\DiaChi;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
-use App\Models\AffiliateCommission;
-use App\Models\AffiliateProfile;
-use App\Models\AffiliateReferral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use App\Mail\OrderSuccessMail;
 use App\Events\OrderStatusUpdated;
 use App\Events\OrderPlaced;
@@ -160,7 +158,7 @@ class DatHangController extends Controller
             $diaChiGiaoHang = $diaChi->dia_chi_day_du;
         }
 
-        $gioHangItems = GioHang::with('bienThe')->where('user_id', $userId)->get();
+        $gioHangItems = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId)->get();
 
         if ($gioHangItems->isEmpty()) {
             return response()->json([
@@ -169,10 +167,79 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        // Tính tổng tiền gốc
+        // Nhóm các items theo combo_group_id để tính giá phân bổ cho combo
+        $groupedCombos = $gioHangItems->filter(fn($item) => $item->id_combo && $item->combo_group_id)
+            ->groupBy('combo_group_id');
+
+        $allocatedPrices = [];
+
+        // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
+        $cartVariantIds = $gioHangItems->pluck('id_bienthe')->toArray();
+        $freeComboOffers = DB::table('bienthe_combo_offers')
+            ->whereIn('id_bienthe', $cartVariantIds)
+            ->where('trangthai', 1)
+            ->get()
+            ->filter(function ($offer) {
+                return \App\Http\Controllers\ComboController::isOfferValid($offer);
+            })
+            ->keyBy('id_combo');
+
+        foreach ($groupedCombos as $groupId => $comboItems) {
+            if ($comboItems->isEmpty()) continue;
+            
+            $first = $comboItems->first();
+            $combo = $first->combo;
+            if (!$combo) continue;
+
+            // Xác định giá bán của combo (miễn phí nếu có biến thể kích hoạt ưu đãi, hoặc lấy giá gốc combo)
+            $totalComboPrice = (float) $combo->giakhuyenmai;
+            if (isset($freeComboOffers[$combo->id_combo])) {
+                $offer = $freeComboOffers[$combo->id_combo];
+                if ($offer->loai_uudai === 'free') {
+                    $totalComboPrice = 0.00;
+                } else {
+                    $totalComboPrice = (float) ($offer->giakhuyenmai_override ?? $combo->giakhuyenmai);
+                }
+            }
+            
+            // Tính tổng giá gốc của các biến thể được chọn trong combo
+            $sumOriginalPrice = 0;
+            foreach ($comboItems as $item) {
+                $sumOriginalPrice += $item->bienThe ? (float)$item->bienThe->gia : 0;
+            }
+
+            if ($sumOriginalPrice <= 0) continue;
+
+            // Phân bổ tỷ lệ giá
+            $tempSum = 0;
+            $itemsCount = $comboItems->count();
+            
+            foreach ($comboItems as $index => $item) {
+                if (!$item->bienThe) continue;
+                
+                $originalPrice = (float)$item->bienThe->gia;
+                
+                if ($index === $itemsCount - 1) {
+                    $allocatedPrice = $totalComboPrice - $tempSum;
+                } else {
+                    $allocatedPrice = $totalComboPrice > 0 
+                        ? round($originalPrice * ($totalComboPrice / $sumOriginalPrice))
+                        : 0.00;
+                    $tempSum += $allocatedPrice;
+                }
+                
+                $allocatedPrices[$item->id_giohang] = $allocatedPrice;
+            }
+        }
+
+        // Tính tổng tiền gốc (đã bao gồm giảm giá combo!)
         $tongTienGoc = 0;
         foreach ($gioHangItems as $item) {
-            $tongTienGoc += $item->soluong * $item->bienThe->gia;
+            $unitPrice = isset($allocatedPrices[$item->id_giohang])
+                ? $allocatedPrices[$item->id_giohang]
+                : ($item->bienThe?->gia ?? 0);
+            
+            $tongTienGoc += $item->soluong * $unitPrice;
         }
 
         $shippingFee = 30000;
@@ -246,10 +313,34 @@ class DatHangController extends Controller
 
         $tongTienSauGiam = max(0, $tongTienGoc - $giamGia) + max(0, $shippingFee - $giamGiaShip);
 
+        $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
+        $isMomoPayment = $paymentProvider === 'momo';
+        $hasPaymentTracking = Schema::hasColumn('dathang', 'payment_provider');
+        $freeshipPromotionId = isset($fpromo) && $fpromo ? $fpromo->id : null;
+
+        if ($isMomoPayment) {
+            if (!env('MOMO_PARTNER_CODE') || !env('MOMO_ACCESS_KEY') || !env('MOMO_SECRET_KEY')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MoMo sandbox chưa được cấu hình partnerCode/accessKey/secretKey trong file .env.'
+                ], 422);
+            }
+
+            if ($tongTienSauGiam < 1000 || $tongTienSauGiam > 50000000) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MoMo chỉ hỗ trợ thanh toán từ 1.000đ đến 50.000.000đ.'
+                ], 422);
+            }
+
+        }
+
+        $donHang = null;
+
         try {
             DB::beginTransaction();
 
-            $donHang = DatHang::create([
+            $orderData = [
                 'user_id'     => $userId,
                 'tongtien'    => $tongTienSauGiam,
                 'trangthai'   => 'pending',
@@ -257,31 +348,71 @@ class DatHangController extends Controller
                 'PTTT'        => $request->PTTT,
                 'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'promotion_id' => $promoId,      // lưu id promotion đã dùng
-            ]);
+            ];
+
+            if ($hasPaymentTracking) {
+                $orderData['payment_provider'] = $paymentProvider;
+                $orderData['payment_status'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
+                $orderData['payment_payload'] = [
+                    'checkout' => [
+                        'promo_id' => $promoId,
+                        'freeship_promotion_id' => $freeshipPromotionId,
+                        'promo_code' => $request->promo_code,
+                        'freeship_code' => $request->freeship_code,
+                    ],
+                ];
+            }
+
+            $donHang = DatHang::create($orderData);
 
             foreach ($gioHangItems as $item) {
+                $unitPrice = isset($allocatedPrices[$item->id_giohang])
+                    ? $allocatedPrices[$item->id_giohang]
+                    : ($item->bienThe?->gia ?? 0);
+
                 DatHangChiTiet::create([
                     'id_dathang' => $donHang->id_dathang,
                     'id_bienthe' => $item->id_bienthe,
                     'soluong'    => $item->soluong,
-                    'gia'        => $item->bienThe->gia,
+                    'gia'        => $unitPrice,
+                    'id_combo'   => $item->id_combo,
+                    'combo_group_id' => $item->combo_group_id,
                 ]);
             }
 
-            GioHang::where('user_id', $userId)->delete();
+            if (!$isMomoPayment) {
+                GioHang::where('user_id', $userId)->delete();
 
-            // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
-            if ($promoId) {
-                UserVoucher::where('id_user', $userId)
-                    ->where('id_promotion', $promoId)
-                    ->update(['trang_thai' => 1]);
+                // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
+                if ($promoId) {
+                    UserVoucher::where('id_user', $userId)
+                        ->where('id_promotion', $promoId)
+                        ->update(['trang_thai' => 1]);
+                }
+
+                // Nếu có dùng thêm mã freeship
+                if ($freeshipPromotionId) {
+                    UserVoucher::where('id_user', $userId)
+                        ->where('id_promotion', $freeshipPromotionId)
+                        ->update(['trang_thai' => 1]);
+                }
             }
 
-            // Nếu có dùng thêm mã freeship
-            if (isset($fpromo) && $fpromo) {
-                UserVoucher::where('id_user', $userId)
-                    ->where('id_promotion', $fpromo->id)
-                    ->update(['trang_thai' => 1]);
+            // Increment the usage of applied combo offers
+            $appliedOfferIds = [];
+            foreach ($groupedCombos as $groupId => $comboItems) {
+                $first = $comboItems->first();
+                $combo = $first->combo;
+                if ($combo && isset($freeComboOffers[$combo->id_combo])) {
+                    $offer = $freeComboOffers[$combo->id_combo];
+                    $appliedOfferIds[] = $offer->id;
+                }
+            }
+
+            if (!empty($appliedOfferIds)) {
+                DB::table('bienthe_combo_offers')
+                    ->whereIn('id', $appliedOfferIds)
+                    ->increment('da_su_dung');
             }
 
             DB::commit();
@@ -292,13 +423,21 @@ class DatHangController extends Controller
             Cache::forget('dashboard_data_month');
             Cache::forget('dashboard_data_year');
 
-            // Broadcast new order event
-            broadcast(new OrderPlaced($donHang));
+            // MoMo chỉ thông báo đơn mới cho admin sau khi thanh toán thành công.
+            if (!$isMomoPayment) {
+                broadcast(new OrderPlaced($donHang));
+            }
 
             $payUrl = null;
-            if ($request->PTTT === 'Ví điện tử') {
+            if ($paymentProvider === 'vnpay') {
                 $vnpay = new VnpayController();
                 $payUrl = $vnpay->createPaymentUrl($donHang);
+            }
+            if ($isMomoPayment) {
+                $momo = new MomoController();
+                $momoPayment = $momo->createPayment($donHang, $this->resolveMomoRequestType($paymentProvider));
+                $payUrl = $momoPayment['payUrl'];
+                $donHang = $donHang->fresh();
             }
 
             return response()->json([
@@ -310,7 +449,15 @@ class DatHangController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::connection()->transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            if ($isMomoPayment && $donHang) {
+                DatHangChiTiet::where('id_dathang', $donHang->id_dathang)->delete();
+                $donHang->delete();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi đặt hàng: ' . $e->getMessage()
@@ -359,6 +506,67 @@ class DatHangController extends Controller
         ]);
     }
 
+    public function refund(Request $request, $id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::where('id_dathang', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        if ($order->trangthai !== 'done') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể yêu cầu hoàn trả khi đơn hàng đã hoàn thành.'
+            ], 400);
+        }
+
+        $request->validate([
+            'lydo' => 'required|string',
+            'proof' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $proofPath = null;
+            if ($request->hasFile('proof')) {
+                $file = $request->file('proof');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $proofPath = $file->storeAs('refund_proofs', $filename, 'public');
+            }
+
+            $order->update([
+                'trangthai' => 'refund_pending',
+                'lydo' => $request->lydo,
+                'refund_proof' => $proofPath
+            ]);
+
+            // Cập nhật các sản phẩm được chọn hoàn trả
+            \App\Models\DatHangChiTiet::where('id_dathang', $id)
+                ->whereIn('id_bienthe', $request->item_ids)
+                ->update(['is_refund' => 1]);
+
+            DB::commit();
+
+            // Broadcast the status update
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gửi yêu cầu hoàn trả thành công!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ===== ADMIN METHODS =====
 
     public function allOrders()
@@ -376,7 +584,7 @@ class DatHangController extends Controller
     public function updateStatus(Request $request, $id) 
     {
         $request->validate([
-            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled'
+            'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded,refund_rejected'
         ]);
 
         $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
@@ -419,18 +627,6 @@ class DatHangController extends Controller
             }
             $order->update($updateData);
 
-            if ($newStatus === 'done' && $oldStatus !== 'done') {
-                $this->createAffiliateCommissionForOrder($order);
-            }
-
-            if ($newStatus === 'cancelled') {
-                AffiliateCommission::where('order_id', $order->id_dathang)->update([
-                    'status' => 'cancelled',
-                    'approved_at' => null,
-                    'paid_at' => null,
-                ]);
-            }
-
             DB::commit();
 
             // Broadcast the status update
@@ -452,72 +648,21 @@ class DatHangController extends Controller
         }
     }
 
-    public function destroy($id)
+    private function resolvePaymentProvider(?string $method): ?string
     {
-        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
+        $method = trim((string) $method);
 
-        try {
-            DB::beginTransaction();
-
-            if (!in_array($order->trangthai, ['done', 'cancelled'])) {
-                foreach ($order->chi_tiets as $chiTiet) {
-                    if ($chiTiet->bienThe) {
-                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
-                    }
-                }
-            }
-
-            $order->delete();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Da xoa don hang thanh cong.'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Khong the xoa don hang: ' . $e->getMessage()
-            ], 500);
-        }
+        return match ($method) {
+            'MoMo', 'MOMO', 'momo' => 'momo',
+            'Ví điện tử', 'VNPAY', 'VNPay', 'vnpay' => 'vnpay',
+            'COD' => 'cod',
+            'Chuyển khoản' => 'bank',
+            default => null,
+        };
     }
 
-    private function createAffiliateCommissionForOrder(DatHang $order): void
+    private function resolveMomoRequestType(?string $provider): string
     {
-        $referral = AffiliateReferral::where('referred_user_id', $order->user_id)->first();
-        if (!$referral) {
-            return;
-        }
-
-        $profile = AffiliateProfile::where('user_id', $referral->affiliate_user_id)
-            ->where('status', 'active')
-            ->first();
-
-        if (!$profile) {
-            return;
-        }
-
-        $exists = AffiliateCommission::where('order_id', $order->id_dathang)->exists();
-        if ($exists) {
-            return;
-        }
-
-        $rate = (float) ($profile->commission_rate ?? 5);
-        $amount = round(((float) $order->tongtien * $rate) / 100, 2);
-
-        if ($amount <= 0) {
-            return;
-        }
-
-        AffiliateCommission::create([
-            'affiliate_user_id' => $profile->user_id,
-            'referred_user_id' => $order->user_id,
-            'order_id' => $order->id_dathang,
-            'amount' => $amount,
-            'status' => 'pending',
-        ]);
+        return env('MOMO_REQUEST_TYPE', 'payWithMethod') ?: 'payWithMethod';
     }
 }

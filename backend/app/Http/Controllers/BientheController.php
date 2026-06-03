@@ -143,14 +143,32 @@ class BienTheController extends Controller
         }
 
         $id_sanpham = $bienthe->id_sanpham;
-        $bienthe->delete();
+        
+        try {
+            $bienthe->delete();
 
-        Cache::forget('bienthe_all');
-        Cache::forget("bienthe_sp_{$id_sanpham}");
-        Cache::forget("bienthe_{$id}");
+            Cache::forget('bienthe_all');
+            Cache::forget("bienthe_sp_{$id_sanpham}");
+            Cache::forget("bienthe_{$id}");
 
-        return response()->json([
-            'message' => 'Xóa biến thể thành công.'
-        ]);
+            return response()->json([
+                'message' => 'Xóa biến thể thành công.'
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (($e->errorInfo[0] ?? null) === '23000') {
+                return response()->json([
+                    'message' => 'Không thể xóa biến thể này vì đang có dữ liệu đơn hàng liên quan.'
+                ], 409);
+            }
+            return response()->json([
+                'message' => 'Không xóa được biến thể.',
+                'error' => $e->getMessage()
+            ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Không xóa được biến thể.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

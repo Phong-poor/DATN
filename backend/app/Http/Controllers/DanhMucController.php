@@ -21,7 +21,7 @@ class DanhMucController extends Controller
     public function getParentCategories()
     {
         $parents = Cache::remember('danhmuc_parents', 120, function () {
-            return DanhMuc::whereNull('parent_id')->get();
+            return \App\Models\DanhMucCha::all();
         });
         return response()->json(['data' => $parents]);
     }
@@ -31,7 +31,7 @@ class DanhMucController extends Controller
      */
     public function getChildrenCategories($parentId)
     {
-        $children = DanhMuc::where('parent_id', $parentId)->get();
+        $children = DanhMuc::where('id_danhmuc_cha', $parentId)->get();
         return response()->json(['data' => $children]);
     }
 
@@ -58,12 +58,14 @@ class DanhMucController extends Controller
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc',
             'trangthai'  => 'required|in:active,hidden',
-            'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
+            'id_danhmuc_cha' => 'required|exists:danhmuc_cha,id_danhmuc_cha',
         ]);
 
-        $validated['trangthai'] = in_array((string) $validated['trangthai'], ['active', '1', 'true'], true) ? 'active' : 'hidden';
-
-        $danhmuc = DanhMuc::create($validated);
+        $danhmuc = DanhMuc::create([
+            'ten_danhmuc' => $validated['ten_danhmuc'],
+            'trangthai' => $validated['trangthai'],
+            'id_danhmuc_cha' => $validated['id_danhmuc_cha']
+        ]);
         
         Cache::forget('danhmuc_all');
         Cache::forget('danhmuc_parents');
@@ -97,13 +99,14 @@ class DanhMucController extends Controller
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc,' . $id . ',id_danhmuc',
             'trangthai'  => 'required|in:active,hidden',
-            'parent_id'  => 'nullable|exists:danhmuc,id_danhmuc'
+            'id_danhmuc_cha'  => 'required|exists:danhmuc_cha,id_danhmuc_cha',
         ]);
 
-        $validated['trangthai'] = in_array((string) $validated['trangthai'], ['active', '1', 'true'], true) ? 'active' : 'hidden';
-
-        
-        $danhMuc->update($validated);
+        $danhMuc->update([
+            'ten_danhmuc' => $validated['ten_danhmuc'],
+            'trangthai' => $validated['trangthai'],
+            'id_danhmuc_cha' => $validated['id_danhmuc_cha']
+        ]);
 
         Cache::forget('danhmuc_all');
         Cache::forget('danhmuc_parents');
