@@ -276,6 +276,179 @@ const stopAutoSlide = () => {
     }
 }
 
+// ===================== 3D PRODUCT VIEWER LOGIC =====================
+const active3DIndex = ref(0)
+const target3DIndex = ref(0)
+const isHovering3D = ref(false)
+const tiltX = ref(0)
+const tiltY = ref(0)
+const targetTiltX = ref(0)
+const targetTiltY = ref(0)
+const current3DRatio = ref(0)
+const target3DRatio = ref(0)
+
+const tiltStyle = computed(() => {
+    if (tiltX.value === 0 && tiltY.value === 0) {
+        return {
+            transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+            transition: 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)'
+        }
+    }
+    return {
+        transform: `perspective(1200px) rotateX(${tiltY.value}deg) rotateY(${tiltX.value}deg) scale3d(1.03, 1.03, 1.03)`,
+        transition: 'transform 0.18s ease-out'
+    }
+})
+
+const activeShowcaseImage = computed(() => {
+    if (isHovering3D.value && allImages.value.length > 0) {
+        return allImages.value[active3DIndex.value] || selectedImage.value
+    }
+    return selectedImage.value
+})
+
+let rotationAnimationFrame = null
+let tiltAnimationFrame = null
+
+const startTiltSmoothing = () => {
+    if (tiltAnimationFrame) return
+
+    const animate = () => {
+        const smoothness = 0.07
+        tiltX.value += (targetTiltX.value - tiltX.value) * smoothness
+        tiltY.value += (targetTiltY.value - tiltY.value) * smoothness
+
+        if (
+            Math.abs(targetTiltX.value - tiltX.value) < 0.02 &&
+            Math.abs(targetTiltY.value - tiltY.value) < 0.02
+        ) {
+            tiltX.value = targetTiltX.value
+            tiltY.value = targetTiltY.value
+        }
+
+        if (isHovering3D.value || tiltX.value !== 0 || tiltY.value !== 0) {
+            tiltAnimationFrame = requestAnimationFrame(animate)
+        } else {
+            tiltAnimationFrame = null
+        }
+    }
+
+    tiltAnimationFrame = requestAnimationFrame(animate)
+}
+
+const stopTiltSmoothing = () => {
+    if (tiltAnimationFrame) {
+        cancelAnimationFrame(tiltAnimationFrame)
+        tiltAnimationFrame = null
+    }
+}
+
+const startRotationLoop = () => {
+    if (rotationAnimationFrame) return
+
+    const animate = () => {
+        const total = allImages.value.length
+        if (total <= 1) {
+            rotationAnimationFrame = null
+            return
+        }
+
+        const ratioDiff = target3DRatio.value - current3DRatio.value
+        if (Math.abs(ratioDiff) > 0.001) {
+            current3DRatio.value += ratioDiff * 0.018
+        } else {
+            current3DRatio.value = target3DRatio.value
+        }
+
+        const frameIndex = Math.round(current3DRatio.value * (total - 1))
+        active3DIndex.value = Math.max(0, Math.min(frameIndex, total - 1))
+
+        if (isHovering3D.value || current3DRatio.value !== target3DRatio.value) {
+            rotationAnimationFrame = requestAnimationFrame(animate)
+        } else {
+            rotationAnimationFrame = null
+        }
+    }
+
+    rotationAnimationFrame = requestAnimationFrame(animate)
+}
+
+const stopRotationLoop = () => {
+    if (rotationAnimationFrame) {
+        cancelAnimationFrame(rotationAnimationFrame)
+        rotationAnimationFrame = null
+    }
+}
+
+const handleMouseMove = (e) => {
+    const el = e.currentTarget
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    
+    stopAutoSlide()
+    isHovering3D.value = true
+    
+    const ratioX = (e.clientX - rect.left) / rect.width
+    const ratioY = (e.clientY - rect.top) / rect.height
+    
+    if (allImages.value.length > 0) {
+        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
+    }
+    
+    startRotationLoop()
+    
+    const maxTiltX = 5
+    const maxTiltY = 4
+    
+    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
+    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
+    startTiltSmoothing()
+}
+
+const handleTouchMove = (e) => {
+    const touch = e.touches[0]
+    const el = e.currentTarget
+    if (!el || !touch) return
+    const rect = el.getBoundingClientRect()
+    
+    stopAutoSlide()
+    isHovering3D.value = true
+    
+    const ratioX = (touch.clientX - rect.left) / rect.width
+    const ratioY = (touch.clientY - rect.top) / rect.height
+    
+    if (allImages.value.length > 0) {
+        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
+    }
+    
+    startRotationLoop()
+    
+    const maxTiltX = 5
+    const maxTiltY = 4
+    
+    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
+    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
+    startTiltSmoothing()
+}
+
+const resetTilt = () => {
+    isHovering3D.value = false
+    stopRotationLoop()
+    targetTiltX.value = 0
+    targetTiltY.value = 0
+    startTiltSmoothing()
+    
+    const idx = allImages.value.indexOf(selectedImage.value)
+    const targetIdx = idx !== -1 ? idx : 0
+    const targetRatio = allImages.value.length > 1 ? targetIdx / (allImages.value.length - 1) : 0
+    target3DIndex.value = targetIdx
+    active3DIndex.value = targetIdx
+    current3DRatio.value = targetRatio
+    target3DRatio.value = targetRatio
+    
+    startAutoSlide()
+}
+
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
@@ -475,6 +648,8 @@ onMounted(() => {
 
 onUnmounted(() => {
     stopAutoSlide()
+    stopRotationLoop()
+    stopTiltSmoothing()
     window.removeEventListener('scroll', handleScrollSticky)
 })
 
@@ -812,6 +987,45 @@ const machineInfoRows = computed(() => {
     return rows
 })
 
+const specsColumns = computed(() => {
+    const col1 = []
+    const col2 = []
+    const col3 = []
+
+    machineInfoRows.value.forEach(row => {
+        if (row.group === 'Tổng quan' || row.group === 'Giá & kho') {
+            col1.push(row)
+        } else if (row.group === 'Biến thể') {
+            col2.push(row)
+        } else {
+            col3.push(row)
+        }
+    })
+
+    return [
+        { title: 'Thương Hiệu & Chung', items: col1 },
+        { title: 'Phiên Bản & Phân Loại', items: col2 },
+        { title: 'Thông Số Kỹ Thuật', items: col3 }
+    ]
+})
+
+const getItemBadge = (item) => {
+    if (!item) return null
+    const valLower = String(item.value).toLowerCase()
+    const labelLower = String(item.label).toLowerCase()
+    
+    if (labelLower.includes('giá') || labelLower.includes('tình trạng')) {
+        return { text: 'HOT', type: 'hot' }
+    }
+    if (valLower.includes('m4') || valLower.includes('ultra') || valLower.includes('oled') || valLower.includes('mini-led') || valLower.includes('100wh') || valLower.includes('128gb') || valLower.includes('rtx')) {
+        return { text: 'PRO', type: 'pro' }
+    }
+    if (labelLower.includes('biến thể') || valLower.includes('16 inch') || valLower.includes('65w') || labelLower.includes('màu') || valLower.includes('new')) {
+        return { text: 'NEW', type: 'new' }
+    }
+    return null
+}
+
 const machineInfoGridRows = computed(() => {
     const columns = 5
     const rows = [...machineInfoRows.value]
@@ -982,8 +1196,12 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="sticky-price-glow">
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
-                    <button class="btn btn-premium-glass" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
-                        Thêm vào giỏ
+                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                        <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
+                        </svg>
                     </button>
                     <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
                         Mua ngay
@@ -1018,7 +1236,12 @@ const handleSelectVariantById = (idBienThe) => {
                 <div class="detail-hero-grid">
                     <!-- GALLERY COLUMN (Left) -->
                     <div class="gallery-column">
-                        <div class="main-image-viewport">
+                        <div class="main-image-viewport"
+                             :class="{ 'is-3d-active': isHovering3D }"
+                             @mousemove="handleMouseMove"
+                             @mouseleave="resetTilt"
+                             @touchmove="handleTouchMove"
+                             @touchend="resetTilt">
                             <div class="neon-glow-backdrop"></div>
 
                             <!-- Badges Overlay -->
@@ -1027,27 +1250,27 @@ const handleSelectVariantById = (idBienThe) => {
                                 <span class="badge badge-tech">ORIGINAL BRAND</span>
                             </div>
 
-                            <img :src="selectedImage" :alt="product.tenSP" class="main-showcase-image" />
+
+                            <img :src="activeShowcaseImage" :alt="product.tenSP" class="main-showcase-image" :style="tiltStyle" />
 
                             <div v-if="selectedVariant && selectedVariant.soluong === 0" class="premium-out-of-stock-badge">
                                 HẾT HÀNG
                             </div>
 
                             <!-- Navigation Arrows -->
-                            <button @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
+                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
-                            <button @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
+                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
 
-
                             <!-- Slide Indicator Dots -->
-                            <div class="slide-dots">
+                            <div class="slide-dots" v-if="!isHovering3D">
                                 <span v-for="(img, idx) in allImages" :key="idx"
                                       :class="['dot', { active: selectedImage === img }]"
                                       @click="selectedImage = img"></span>
@@ -1122,26 +1345,61 @@ const handleSelectVariantById = (idBienThe) => {
 
                         <!-- BOX ƯU ĐÃI ĐI KÈM (VIP Bundles Up-sell) -->
                         <div class="product-benefits-box">
-                            <h4 class="benefits-title">🎁 ƯU ĐÃI ĐI KÈM ĐẶC BIỆT:</h4>
+                            <h4 class="benefits-title">
+                                <svg class="title-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px; height:18px; display:inline-block; vertical-align:middle; margin-right:6px;">
+                                    <polyline points="20 12 20 22 4 22 4 12"/>
+                                    <rect x="2" y="7" width="20" height="5"/>
+                                    <line x1="12" y1="22" x2="12" y2="7"/>
+                                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+                                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                                </svg>
+                                ƯU ĐÃI ĐI KÈM ĐẶC BIỆT:
+                            </h4>
                             <ul class="benefits-list">
                                 <li>
-                                    <span class="benefit-icon">🎒</span>
+                                    <span class="benefit-icon">
+                                        <svg viewBox="0 0 24 24" stroke="#e11d48">
+                                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/>
+                                        </svg>
+                                    </span>
                                     <span class="benefit-text">Tặng ngay Balo Predator chống nước cao cấp trị giá 850.000đ.</span>
                                 </li>
                                 <li>
-                                    <span class="benefit-icon">💳</span>
+                                    <span class="benefit-icon">
+                                        <svg viewBox="0 0 24 24" stroke="#f59e0b">
+                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                            <line x1="1" y1="10" x2="23" y2="10"/>
+                                        </svg>
+                                    </span>
                                     <span class="benefit-text">Giảm thêm <b>500.000đ</b> khi thanh toán online qua VNPay/Momo.</span>
                                 </li>
                                 <li>
-                                    <span class="benefit-icon">💸</span>
+                                    <span class="benefit-icon">
+                                        <svg viewBox="0 0 24 24" stroke="#10b981">
+                                            <line x1="19" y1="5" x2="5" y2="19"/>
+                                            <circle cx="6.5" cy="6.5" r="2.5"/>
+                                            <circle cx="17.5" cy="17.5" r="2.5"/>
+                                        </svg>
+                                    </span>
                                     <span class="benefit-text">Trả góp <b>0% lãi suất</b> bằng thẻ tín dụng (kỳ hạn đến 12 tháng).</span>
                                 </li>
                                 <li>
-                                    <span class="benefit-icon">💿</span>
+                                    <span class="benefit-icon">
+                                        <svg viewBox="0 0 24 24" stroke="#6366f1">
+                                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                                        </svg>
+                                    </span>
                                     <span class="benefit-text">Miễn phí trọn đời dịch vụ cài đặt Windows, Office bản quyền & vệ sinh máy định kỳ.</span>
                                 </li>
                                 <li>
-                                    <span class="benefit-icon">🚀</span>
+                                    <span class="benefit-icon">
+                                        <svg viewBox="0 0 24 24" stroke="#f43f5e">
+                                            <rect x="1" y="3" width="15" height="13"/>
+                                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                                            <circle cx="5.5" cy="18.5" r="2.5"/>
+                                            <circle cx="18.5" cy="18.5" r="2.5"/>
+                                        </svg>
+                                    </span>
                                     <span class="benefit-text">Miễn phí giao hàng toàn quốc hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
                                 </li>
                             </ul>
@@ -1150,28 +1408,47 @@ const handleSelectVariantById = (idBienThe) => {
                         <!-- BOX CAM KẾT CHẤT LƯỢNG (Trust Badges) -->
                         <div class="product-guarantees-box">
                             <div class="guarantee-card">
-                                <span class="g-icon">🛡️</span>
+                                <span class="g-icon">
+                                    <svg viewBox="0 0 24 24" stroke="#2563eb">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        <path d="m9 11 2 2 4-4"/>
+                                    </svg>
+                                </span>
                                 <div class="g-text-wrap">
                                     <span class="g-title">100% Chính Hãng</span>
                                     <span class="g-desc">Đầy đủ VAT & xuất xứ</span>
                                 </div>
                             </div>
                             <div class="guarantee-card">
-                                <span class="g-icon">⚙️</span>
+                                <span class="g-icon">
+                                    <svg viewBox="0 0 24 24" stroke="#8b5cf6">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                    </svg>
+                                </span>
                                 <div class="g-text-wrap">
                                     <span class="g-title">Bảo Hành 24T</span>
                                     <span class="g-desc">Chính hãng tại trung tâm</span>
                                 </div>
                             </div>
                             <div class="guarantee-card">
-                                <span class="g-icon">🔁</span>
+                                <span class="g-icon">
+                                    <svg viewBox="0 0 24 24" stroke="#3b82f6">
+                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                                    </svg>
+                                </span>
                                 <div class="g-text-wrap">
                                     <span class="g-title">1 Đổi 1 7 Ngày</span>
                                     <span class="g-desc">Nếu phát sinh lỗi NSX</span>
                                 </div>
                             </div>
                             <div class="guarantee-card">
-                                <span class="g-icon">💎</span>
+                                <span class="g-icon">
+                                    <svg viewBox="0 0 24 24" stroke="#0ea5e9">
+                                        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                                    </svg>
+                                </span>
                                 <div class="g-text-wrap">
                                     <span class="g-title">Hỗ Trợ 24/7</span>
                                     <span class="g-desc">Trọn đời từ Predator</span>
@@ -1271,12 +1548,26 @@ const handleSelectVariantById = (idBienThe) => {
                             <!-- Wishlist & Compare floating actions -->
                             <div class="floating-shortcuts-row">
                                 <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
-                                    <span class="icon">{{ dangThemYeuThich ? '⏳' : '❤️' }}</span>
+                                    <span class="icon">
+                                        <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                        </svg>
+                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                                        </svg>
+                                    </span>
                                     <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
                                 </button>
 
                                 <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
-                                    <span class="icon">🔁</span>
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="m17 2 4 4-4 4"/>
+                                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+                                            <path d="m7 22-4-4 4-4"/>
+                                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                                        </svg>
+                                    </span>
                                     <span>So sánh specs</span>
                                 </button>
                             </div>
@@ -1285,16 +1576,37 @@ const handleSelectVariantById = (idBienThe) => {
 <!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
                         <div v-if="selectedVariantOffers.length > 0" class="variant-offers-box">
                             <div class="offer-header-vip">
-                                <span class="badge-vip">🎁 ĐẶC QUYỀN VIP</span>
+                                <span class="badge-vip">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                        <rect x="3" y="11" width="18" height="10" rx="2"/>
+                                        <path d="M12 2v9"/>
+                                        <path d="M12 2a3 3 0 0 0-3 3c0 2 3 3 3 3"/>
+                                        <path d="M12 2a3 3 0 0 1 3 3c0 2-3 3-3 3"/>
+                                        <path d="M3 11h18"/>
+                                    </svg>
+                                    ĐẶC QUYỀN VIP
+                                </span>
                                 <h3>Quà Tặng Độc Quyền Cho Phiên Bản Này!</h3>
                             </div>
                             <div v-for="offer in selectedVariantOffers" :key="offer.id_combo" class="variant-offer-card">
                                 <div class="offer-left">
                                     <h4 class="offer-title">{{ offer.mota_uudai || 'Món Quà Tri Ân Đặc Biệt' }}</h4>
-                                    <p class="offer-combo-name">⚡ Combo: <b>{{ offer.ten_combo }}</b></p>
+                                    <p class="offer-combo-name">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                                        </svg>
+                                        Combo: <b>{{ offer.ten_combo }}</b>
+                                    </p>
                                     <div class="offer-products-list">
                                         <span v-for="p in offer.products" :key="p.id_sanpham" class="offer-p-item">
-                                            🎁 {{ p.tenSP }}
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px; color: #ef4444;">
+                                                <rect x="3" y="11" width="18" height="10" rx="2"/>
+                                                <path d="M12 2v9"/>
+                                                <path d="M12 2a3 3 0 0 0-3 3c0 2 3 3 3 3"/>
+                                                <path d="M12 2a3 3 0 0 1 3 3c0 2-3 3-3 3"/>
+                                                <path d="M3 11h18"/>
+                                            </svg>
+                                            {{ p.tenSP }}
                                         </span>
                                     </div>
                                 </div>
@@ -1312,7 +1624,13 @@ const handleSelectVariantById = (idBienThe) => {
 
                         <!-- GỢI Ý NÂNG CẤP CẤU HÌNH (UPSELLING TEASER) -->
                         <div v-else-if="otherVariantsWithOffers.length > 0" class="upsell-teaser-box">
-                            <span class="teaser-icon">💡</span>
+                            <span class="teaser-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle;">
+                                    <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .3 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+                                    <path d="M9 18h6"/>
+                                    <path d="M10 22h4"/>
+                                </svg>
+                            </span>
                             <div class="teaser-content">
                                 <p class="teaser-text">
                                     <b>Gợi ý nâng cấp cấu hình:</b> Chọn phiên bản
@@ -1328,16 +1646,38 @@ const handleSelectVariantById = (idBienThe) => {
 
                         <!-- KHUNG COMBO LIÊN QUAN -->
                         <div v-if="combos.length > 0" class="related-combos-box">
-                            <h3 class="box-title">🎁 Deal Siêu Hời - Mua Theo Combo</h3>
+                            <h3 class="box-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #ef4444;">
+                                    <rect x="3" y="11" width="18" height="10" rx="2"/>
+                                    <path d="M12 2v9"/>
+                                    <path d="M12 2a3 3 0 0 0-3 3c0 2 3 3 3 3"/>
+                                    <path d="M12 2a3 3 0 0 1 3 3c0 2-3 3-3 3"/>
+                                    <path d="M3 11h18"/>
+                                </svg>
+                                Deal Siêu Hời - Mua Theo Combo
+                            </h3>
                             <div v-for="combo in combos" :key="combo.id_combo" class="related-combo-card">
                                 <div class="combo-left">
-                                    <span class="badge-discount">🔥 Tiết kiệm hơn</span>
+                                    <span class="badge-discount">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+                                        </svg>
+                                        Tiết kiệm hơn
+                                    </span>
                                     <h4 class="clickable-combo" @click="openCombo(combo)" title="Xem chi tiết & cấu hình combo">
-                                        {{ combo.ten_combo }} <span class="info-icon">ℹ️</span>
+                                        {{ combo.ten_combo }} 
+                                        <span class="info-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-left: 2px;">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M12 16v-4"/>
+                                                <path d="M12 8h.01"/>
+                                            </svg>
+                                        </span>
                                     </h4>
                                     <div class="combo-products-inline">
                                         <span v-for="(p, i) in combo.products" :key="p.id_sanpham" class="p-item">
-                                            🔹 <span class="clickable-product" @click="router.push('/products/' + p.id_sanpham)" title="Xem chi tiết sản phẩm">{{ p.tenSP }}</span><span v-if="i < combo.products.length - 1" class="plus"> + </span>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 4px; color: #3b82f6;"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <span class="clickable-product" @click="router.push('/products/' + p.id_sanpham)" title="Xem chi tiết sản phẩm">{{ p.tenSP }}</span><span v-if="i < combo.products.length - 1" class="plus"> + </span>
                                         </span>
                                     </div>
                                 </div>
@@ -1389,21 +1729,22 @@ const handleSelectVariantById = (idBienThe) => {
 
                     <!-- TABBED SPECIFICATIONS CARDS -->
                     <div v-if="specsPanelMode === 'info'" class="tabbed-specs-layout">
-                        <!-- Tab Headers -->
-                        <div class="specs-category-tabs">
-                            <button v-for="(cat, cIdx) in categorizedSpecs" :key="cIdx"
-                                    :class="['spec-tab-btn', { active: activeSpecTab === cIdx }]"
-                                    @click="activeSpecTab = cIdx">
-                                <span class="tab-icon">{{ cat.icon }}</span>
-                                <span class="tab-text">{{ cat.title }}</span>
-                            </button>
-                        </div>
-
-                        <!-- Selected Category Grid -->
-                        <div class="spec-tab-content-grid" v-if="categorizedSpecs[activeSpecTab]">
-                            <div v-for="(item, idx) in categorizedSpecs[activeSpecTab].items" :key="idx" class="spec-detail-card">
-                                <span class="spec-row-label">{{ item.label }}</span>
-                                <strong class="spec-row-value">{{ item.value }}</strong>
+                        <div class="specs-columns-grid">
+                            <div v-for="(col, index) in specsColumns" :key="index" class="specs-column">
+                                <h4 class="specs-column-title">{{ col.title }}</h4>
+                                <div class="specs-column-list">
+                                    <div v-for="(item, iIdx) in col.items" :key="iIdx" class="specs-column-item">
+                                        <div class="specs-item-meta">
+                                            <span class="specs-item-label">{{ item.label }}</span>
+                                            <div class="specs-item-value-wrap">
+                                                <strong class="specs-item-value">{{ item.value }}</strong>
+                                                <span v-if="getItemBadge(item)" :class="['spec-badge', getItemBadge(item).type]">
+                                                    {{ getItemBadge(item).text }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1480,7 +1821,17 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 1 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">🚀</div>
+                            <div class="h-card-icon icon-performance">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5" />
+                                    <path d="M12 12c2-2 3-5.5 3-5.5s-3.5 1-5.5 3" />
+                                    <path d="M19 5c1.8-1.8 3-5 3-5s-3.2 1.2-5 3" />
+                                    <path d="M14 15l-3.5-3.5" />
+                                    <path d="M6.5 12.5l3.5 3.5" />
+                                    <path d="M14 9l-2.5-2.5" />
+                                    <path d="M9 14l2.5 2.5" />
+                                </svg>
+                            </div>
                             <h3>Hiệu năng bứt phá mọi giới hạn</h3>
                             <p>Tăng tốc tối đa các tác vụ nặng như render video 4K, compile source code cực nhanh nhờ tích hợp AI thông minh thế hệ mới nhất.</p>
                         </div>
@@ -1489,7 +1840,12 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 2 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">👁️</div>
+                            <div class="h-card-icon icon-screen">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </div>
                             <h3>Màn hình Retina sắc nét đỉnh cao</h3>
                             <p>Không gian màu 100% DCI-P3 chuẩn xác, tần số quét cao siêu mượt cho trải nghiệm thiết kế đồ họa đỉnh cao chân thực.</p>
                         </div>
@@ -1498,7 +1854,12 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 3 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">🔋</div>
+                            <div class="h-card-icon icon-battery">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="16" height="10" x="2" y="7" rx="2" ry="2" />
+                                    <path d="M22 11v2" />
+                                </svg>
+                            </div>
                             <h3>Năng lượng bền bỉ suốt cả ngày</h3>
                             <p>Tối ưu hóa năng lượng siêu hiệu quả cùng chế độ sạc nhanh Type-C thông minh, giúp bạn tự tin làm việc di động không lo hết pin.</p>
                         </div>
@@ -1507,7 +1868,12 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 4 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">🧠</div>
+                            <div class="h-card-icon icon-brain">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
+                                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
+                                </svg>
+                            </div>
                             <h3>Trí tuệ nhân tạo AI Ready thế hệ mới</h3>
                             <p>Vi xử lý tích hợp bộ gia tốc NPU riêng biệt, hỗ trợ đắc lực cho các thuật toán học máy và trợ lý ảo làm việc tối ưu nhất.</p>
                         </div>
@@ -1516,7 +1882,13 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 5 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">💎</div>
+                            <div class="h-card-icon icon-design">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 3h12l4 6-10 12L2 9z" />
+                                    <path d="M11 3 8 9l4 12 4-12-3-6" />
+                                    <path d="M2 9h20" />
+                                </svg>
+                            </div>
                             <h3>Thiết kế nhôm CNC cấp tàu vũ trụ</h3>
                             <p>Chế tác tinh xảo, đường cắt kim cương chuẩn xác, mỏng nhẹ thời thượng nhưng vô cùng bền bỉ đạt chuẩn quân đội.</p>
                         </div>
@@ -1525,7 +1897,16 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Feature 6 -->
                     <div class="highlight-item-card">
                         <div class="h-card-inner">
-                            <div class="h-card-icon">❄️</div>
+                            <div class="h-card-icon icon-cooling">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="2" x2="12" y2="22" />
+                                    <line x1="2" y1="12" x2="22" y2="12" />
+                                    <path d="m20 16-4-4 4-4" />
+                                    <path d="m4 8 4 4-4 4" />
+                                    <path d="m16 4-4 4-4-4" />
+                                    <path d="m8 20 4-4 4 4" />
+                                </svg>
+                            </div>
                             <h3>Hệ thống tản nhiệt buồng hơi vượt trội</h3>
                             <p>Các cánh quạt siêu mỏng cùng buồng hơi kép giữ cho nhiệt độ luôn mát mẻ ngay cả khi chịu tải nặng kéo dài nhiều giờ liền.</p>
                         </div>
@@ -1670,7 +2051,14 @@ const handleSelectVariantById = (idBienThe) => {
 
                     <!-- Right Trust card -->
                     <div class="reviews-cskh-card">
-                        <div class="cskh-avatar">🤝</div>
+                        <div class="cskh-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; color: #10b981; display: inline-block;">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
                         <h3>Chính Sách Đánh Giá Khách Quan</h3>
                         <p>100% nhận xét đều xuất phát từ người mua đã hoàn thành thanh toán hóa đơn sản phẩm. Đội ngũ kỹ sư sẽ hỗ trợ phản hồi trong vòng 24 giờ.</p>
                     </div>
@@ -1850,7 +2238,14 @@ const handleSelectVariantById = (idBienThe) => {
 
                         <div class="compare-modal-header">
                             <div class="header-titles">
-                                <h3>📊 So Sánh Hiệu Năng & Chi Tiết Phần Cứng</h3>
+                                <h3>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                    So Sánh Hiệu Năng & Chi Tiết Phần Cứng
+                                </h3>
                                 <p>Chọn sản phẩm tương tự để so sánh trực tiếp các chỉ số (tối đa {{ maxCompare }} sản phẩm)</p>
                             </div>
                             <button class="close-modal-btn" @click="closeCompareModal" aria-label="Đóng cửa sổ">✕</button>
@@ -1879,7 +2274,13 @@ const handleSelectVariantById = (idBienThe) => {
                             <!-- Right comparison table -->
                             <div class="compare-results-table-panel">
                                 <div class="empty-compare-selection-state" v-if="compareSelection.length === 0">
-                                    <span class="icon">📊</span>
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; color: #94a3b8; display: inline-block;">
+                                            <line x1="18" y1="20" x2="18" y2="10"/>
+                                            <line x1="12" y1="20" x2="12" y2="4"/>
+                                            <line x1="6" y1="20" x2="6" y2="14"/>
+                                        </svg>
+                                    </span>
                                     <h4>Chưa chọn sản phẩm so sánh</h4>
                                     <p>Vui lòng tích chọn ít nhất một cấu hình máy tính ở bảng bên trái để bắt đầu đo thông số kỹ thuật.</p>
                                 </div>
@@ -2026,20 +2427,46 @@ const handleSelectVariantById = (idBienThe) => {
     color: #2563EB;
 }
 
+.sticky-cart-icon-btn {
+    width: 48px;
+    min-width: 48px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: #2563EB;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    overflow: visible;
+}
+
+.sticky-cart-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+    flex: 0 0 auto;
+    opacity: 1;
+    stroke: #2563eb;
+    fill: none;
+    pointer-events: none;
+}
+
 /* Benefits Box */
 .product-benefits-box {
     background: #f8fafc;
     border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 20px;
-    margin: 20px 0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 14px 0;
 }
 
 .benefits-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: #0F172A;
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0;
 }
 
 .benefits-list {
@@ -2048,19 +2475,19 @@ const handleSelectVariantById = (idBienThe) => {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .benefits-list li {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    font-size: 13.5px;
+    gap: 8px;
+    font-size: 12.5px;
     color: #475569;
 }
 
 .benefit-icon {
-    font-size: 16px;
+    font-size: 14px;
     flex-shrink: 0;
 }
 
@@ -2068,22 +2495,22 @@ const handleSelectVariantById = (idBienThe) => {
 .product-guarantees-box {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin: 20px 0;
+    gap: 8px;
+    margin: 14px 0;
 }
 
 .guarantee-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     background: #ffffff;
     border: 1px solid #E2E8F0;
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 8px 12px;
 }
 
 .g-icon {
-    font-size: 22px;
+    font-size: 18px;
 }
 
 .g-text-wrap {
@@ -2092,80 +2519,104 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .g-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #0F172A;
 }
 
 .g-desc {
-    font-size: 11px;
+    font-size: 10px;
     color: #64748B;
 }
 
 /* Categorized Specs Tabs */
 .tabbed-specs-layout {
-    margin-top: 30px;
+    padding: 32px;
 }
 
 .specs-category-tabs {
     display: flex;
-    gap: 8px;
-    border-bottom: 1px solid #E2E8F0;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    gap: 12px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 16px;
+    margin-bottom: 28px;
     overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+}
+
+.specs-category-tabs::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
 }
 
 .spec-tab-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: transparent;
+    gap: 10px;
+    padding: 10px 22px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
     color: #64748B;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 13.5px;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .spec-tab-btn:hover {
     color: #2563EB;
-    background: rgba(37, 99, 235, 0.05);
+    background: #f0f6ff;
+    border-color: #bfdbfe;
+    transform: translateY(-1px);
 }
 
 .spec-tab-btn.active {
     color: #ffffff;
-    background: #2563EB;
-    border-color: #2563EB;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #2563eb;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
 }
 
 .spec-tab-content-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    gap: 20px;
 }
 
 .spec-detail-card {
     background: #ffffff;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
-    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2563eb; /* Premium blue accent line */
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.spec-detail-card:hover {
+    transform: translateY(-4px);
+    border-color: #cbd5e1;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
 }
 
 .spec-row-label {
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
     color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .spec-row-value {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 850;
     color: #0F172A;
+    line-height: 1.4;
 }
 
 /* Benchmark system styling */
@@ -2270,7 +2721,7 @@ const handleSelectVariantById = (idBienThe) => {
     background-color: #ffffff;
     color: var(--text-primary);
     font-family: var(--font-body);
-    overflow-x: hidden;
+    overflow-x: clip;
     position: relative;
 }
 
@@ -2385,6 +2836,9 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    position: sticky;
+    top: 100px;
+    z-index: 10;
 }
 
 .main-image-viewport {
@@ -2584,16 +3038,16 @@ const handleSelectVariantById = (idBienThe) => {
 .tech-spec-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 12px;
 }
 .pill-spec-badge {
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 30px;
     background: rgba(37, 99, 235, 0.06);
     border: 1px solid rgba(37, 99, 235, 0.12);
     color: var(--primary);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     font-family: var(--font-heading);
     letter-spacing: 0.5px;
@@ -2601,20 +3055,20 @@ const handleSelectVariantById = (idBienThe) => {
 
 .brand-subtitle {
     font-family: var(--font-heading);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     color: var(--secondary);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .premium-product-title {
     font-family: var(--font-heading);
-    font-size: 32px;
+    font-size: 26px;
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1.25;
-    margin: 0 0 16px 0;
+    margin: 0 0 10px 0;
     letter-spacing: -0.5px;
 }
 
@@ -2622,13 +3076,13 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     width: fit-content;
-    padding: 4px 12px;
+    padding: 3px 10px;
     background: #ffffff;
     border-radius: 30px;
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -2645,50 +3099,40 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .premium-price-container {
-    padding: 24px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
-    margin-bottom: 24px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: #111f35;
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.12);
+    margin-bottom: 16px;
     position: relative;
     overflow: hidden;
 }
 .premium-price-container::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 80%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 60%);
-    pointer-events: none;
+    display: none;
 }
 .price-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 1px;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 .price-value-glow {
     font-family: var(--font-heading);
-    font-size: 38px;
+    font-size: 30px;
     font-weight: 800;
-    color: white;
+    color: #ffffff;
     line-height: 1;
-    margin-bottom: 12px;
-    background: linear-gradient(to right, #ffffff 30%, #38bdf8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
 }
 .price-badges-row {
     display: flex;
     gap: 12px;
 }
 .premium-badge-check {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #38bdf8;
 }
@@ -2721,20 +3165,20 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-selectors-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 .premium-option-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 .option-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 750;
 }
 .option-label-title {
     color: var(--text-primary);
@@ -2746,11 +3190,11 @@ const handleSelectVariantById = (idBienThe) => {
 
 .premium-color-selectors {
     display: flex;
-    gap: 12px;
+    gap: 8px;
 }
 .color-selector-btn {
-    width: 38px;
-    height: 38px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -2761,8 +3205,8 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
 }
 .color-core {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
     z-index: 1;
@@ -2774,10 +3218,6 @@ const handleSelectVariantById = (idBienThe) => {
     right: 0;
     bottom: 0;
     border: 2px solid transparent;
-/* Hide quick-view buttons in related/recent lists since whole card is clickable */
-.btn-quick-view {
-    display: none !important;
-}
     border-radius: 50%;
     transition: var(--transition);
 }
@@ -2789,11 +3229,11 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-pill-selectors {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
 }
 .pill-selector-btn {
-    padding: 12px 20px;
-    border-radius: 14px;
+    padding: 6px 12px;
+    border-radius: 8px;
     background: #ffffff;
     border: 1.5px solid #d6e0ec;
     cursor: pointer;
@@ -2805,8 +3245,8 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
 }
 .pill-text {
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 700;
     color: #0f172a;
     z-index: 1;
 }
@@ -2829,7 +3269,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .pill-selector-btn.active {
     border-color: var(--primary);
-    box-shadow: 0 4px 15px var(--primary-glow);
+    box-shadow: 0 2px 8px var(--primary-glow);
 }
 .pill-selector-btn.active .pill-text {
     color: white;
@@ -2839,21 +3279,21 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .updating-text {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
 }
 
 /* ==================== STOCK & CTAS ==================== */
 .premium-stock-banner {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 .stock-status {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    font-size: 12.5px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 11.5px;
     font-weight: 600;
 }
 .stock-status.in-stock {
@@ -2866,8 +3306,8 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .pulse-green-dot, .pulse-red-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     animation: dot-pulse 1.5s infinite;
 }
@@ -2883,22 +3323,22 @@ const handleSelectVariantById = (idBienThe) => {
 .purchase-actions-box {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .premium-qty-stepper {
     display: flex;
     align-items: center;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
     overflow: hidden;
     width: fit-content;
     background: #ffffff;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 .stepper-btn {
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     border: none;
     background: transparent;
     cursor: pointer;
@@ -2917,9 +3357,9 @@ const handleSelectVariantById = (idBienThe) => {
     cursor: not-allowed;
 }
 .stepper-value {
-    min-width: 48px;
+    min-width: 36px;
     text-align: center;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     color: #0f172a;
 }
@@ -2927,31 +3367,31 @@ const handleSelectVariantById = (idBienThe) => {
 .actions-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
-    gap: 16px;
+    gap: 12px;
 }
 
 .btn-buy-now {
-    height: 54px;
-    border-radius: 16px;
+    height: 44px;
+    border-radius: 10px;
     border: none;
     background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
     color: white;
     font-family: var(--font-heading);
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 800;
     letter-spacing: 0.5px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 25px var(--primary-glow);
+    box-shadow: 0 6px 18px var(--primary-glow);
     transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .btn-buy-now:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 30px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
 }
 .btn-buy-now:disabled {
     opacity: 0.6;
@@ -2961,12 +3401,12 @@ const handleSelectVariantById = (idBienThe) => {
 .btn-content-text {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .btn-installment {
-    height: 54px;
-    border-radius: 16px;
+    height: 44px;
+    border-radius: 10px;
     border: 1.5px solid var(--primary);
     background: transparent;
     cursor: pointer;
@@ -2978,40 +3418,40 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .btn-installment .top-tag {
     font-family: var(--font-heading);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 800;
     color: var(--primary);
     letter-spacing: 0.5px;
 }
 .btn-installment .main-text {
     font-family: var(--font-heading);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     color: var(--text-primary);
 }
 .btn-installment:hover {
     background: rgba(37, 99, 235, 0.04);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 .floating-shortcuts-row {
     display: flex;
-    gap: 16px;
+    gap: 12px;
 }
 .shortcut-action-btn {
     flex: 1;
-    height: 44px;
-    border-radius: 12px;
+    height: 36px;
+    border-radius: 8px;
     border: 1px solid #E2E8F0;
     background: #f8fafc;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     color: #475569;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     transition: var(--transition);
 }
 .shortcut-action-btn:hover {
@@ -3023,9 +3463,9 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== SPECIFICATIONS SECTION ==================== */
 .premium-specs-section {
     padding: 80px 0;
-    background: #ffffff;
-    border-top: 1px solid #e6eef6;
-    border-bottom: 1px solid #e6eef6;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .section-title-wrap {
@@ -3038,12 +3478,13 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .accent-subtitle {
     font-family: var(--font-heading);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 0.15em;
     color: var(--primary);
     display: block;
     margin-bottom: 8px;
+    text-transform: uppercase;
 }
 .section-main-title {
     font-family: var(--font-heading);
@@ -3062,9 +3503,9 @@ const handleSelectVariantById = (idBienThe) => {
 
 .specs-table-panel {
     background: #ffffff;
-    border: 1px solid #dbe6f3;
-    border-radius: 18px;
-    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
     overflow: hidden;
 }
 
@@ -3073,200 +3514,213 @@ const handleSelectVariantById = (idBienThe) => {
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 16px 22px;
-    background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
-    border-bottom: 1px solid #dbe6f3;
+    padding: 18px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .specs-panel-topbar .section-main-title {
-    font-size: 26px;
+    font-size: 18px;
+    font-weight: 800;
     margin-bottom: 0;
+    color: #0f172a;
+    letter-spacing: -0.5px;
 }
 
 .specs-mode-tabs {
     display: flex;
-    gap: 10px;
-    padding: 6px;
-    border-radius: 14px;
-    background: #e8eef7;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     flex-shrink: 0;
 }
 
 .specs-mode-btn {
     border: none;
-    border-radius: 10px;
-    padding: 11px 18px;
+    border-radius: 6px;
+    padding: 5px 10px;
     background: transparent;
-    color: #334155;
+    color: #475569;
     font-family: var(--font-heading);
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
     transition: var(--transition);
 }
 
 .specs-mode-btn:hover {
     color: var(--primary);
-    background: #ffffff;
 }
 
 .specs-mode-btn.active {
-    background: var(--primary);
-    color: #ffffff;
-    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
-}
-
-.machine-info-table-wrap,
-.inline-compare-table-wrap {
-    overflow-x: auto;
-}
-
-.machine-info-matrix {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1px;
-    background: #dbe6f3;
-}
-
-.machine-info-cell {
-    min-height: 92px;
-    padding: 12px 14px;
     background: #ffffff;
+    color: var(--primary);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.tabbed-specs-layout {
+    padding: 24px;
+    background: #ffffff;
+}
+
+.specs-columns-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.specs-column {
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    gap: 6px;
+    gap: 14px;
+    position: relative;
 }
 
-.machine-info-cell:nth-child(10n + 1),
-.machine-info-cell:nth-child(10n + 2),
-.machine-info-cell:nth-child(10n + 3),
-.machine-info-cell:nth-child(10n + 4),
-.machine-info-cell:nth-child(10n + 5) {
-    background: #f8fafc;
+.specs-column:not(:last-child) {
+    border-right: 1px solid #e2e8f0;
 }
 
-.machine-info-cell.is-placeholder {
-    background: #f1f5f9;
-}
-
-.machine-info-cell.is-placeholder .machine-spec-group,
-.machine-info-cell.is-placeholder .machine-spec-name,
-.machine-info-cell.is-placeholder .machine-spec-value {
+.specs-column-title {
+    font-family: var(--font-heading);
+    font-size: 10px;
+    font-weight: 800;
     color: #64748b;
-}
-
-.machine-info-table,
-.inline-compare-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 720px;
-}
-
-.machine-info-table th,
-.machine-info-table td,
-.inline-compare-table th,
-.inline-compare-table td {
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5edf6;
-    text-align: left;
-    vertical-align: top;
-}
-
-.machine-info-table th,
-.inline-compare-table th {
-    background: #0f172a;
-    color: #ffffff;
-    font-family: var(--font-heading);
-    font-size: 12px;
-    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 1.2px;
+    margin: 0 0 2px 0;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding-bottom: 6px;
 }
 
-.machine-info-table tr:nth-child(even) td,
-.inline-compare-table tr:nth-child(even) td {
-    background: #f8fafc;
+.specs-column-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.machine-info-table tr:last-child td,
-.inline-compare-table tr:last-child td {
-    border-bottom: none;
+.specs-column-item {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+    background: transparent;
+    border: none;
+    transition: var(--transition);
 }
 
-.machine-spec-group {
-    width: auto;
-    color: var(--primary);
-    font-size: 9.5px;
-    font-weight: 900;
+.specs-column-item:hover {
+    transform: translateX(2px);
+}
+
+.specs-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.specs-item-label {
+    font-size: 8.5px;
+    font-weight: 750;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    line-height: 1.1;
+    letter-spacing: 0.5px;
 }
 
-.machine-spec-name {
-    width: auto;
-    color: #334155;
-    font-size: 11.5px;
-    font-weight: 800;
+.specs-item-value-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.specs-item-value {
+    font-size: 12.5px;
+    font-weight: 750;
+    color: #1e293b;
     line-height: 1.25;
 }
 
-.machine-spec-value {
-    color: #0f172a;
-    font-family: var(--font-heading);
-    font-size: 14.5px;
-    font-weight: 900;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
+.spec-badge {
+    font-size: 7.5px;
+    font-weight: 800;
+    padding: 1px 3px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.spec-badge.hot {
+    background: rgba(244, 63, 94, 0.08);
+    color: #e11d48;
+    border: 1px solid rgba(244, 63, 94, 0.1);
+}
+
+.spec-badge.pro {
+    background: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.spec-badge.new {
+    background: rgba(16, 185, 129, 0.08);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.1);
 }
 
 .inline-compare-area {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    min-height: 420px;
+    grid-template-columns: 280px 1fr;
+    min-height: 400px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
 }
 
 .inline-compare-filter {
-    padding: 20px;
+    padding: 16px;
     background: #f8fafc;
-    border-right: 1px solid #dbe6f3;
+    border-right: 1px solid #e2e8f0;
 }
 
 .inline-filter-title {
     color: #0f172a;
     font-family: var(--font-heading);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     margin-bottom: 4px;
 }
 
 .inline-filter-note {
     color: #64748b;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    margin: 0 0 14px;
+    margin: 0 0 12px;
 }
 
 .inline-compare-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: 520px;
+    gap: 8px;
+    max-height: 480px;
     overflow-y: auto;
     padding-right: 4px;
 }
 
 .inline-compare-item {
     display: grid;
-    grid-template-columns: 18px 48px 1fr;
+    grid-template-columns: 18px 40px 1fr;
     grid-template-areas:
         "check image name"
         "check image price";
-    gap: 4px 10px;
+    gap: 4px 8px;
     align-items: center;
-    padding: 10px;
-    border-radius: 12px;
+    padding: 8px;
+    border-radius: 8px;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     cursor: pointer;
@@ -3275,7 +3729,7 @@ const handleSelectVariantById = (idBienThe) => {
 
 .inline-compare-item:hover {
     border-color: var(--primary);
-    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+    background: #f0f6ff;
 }
 
 .inline-compare-item input {
@@ -3285,23 +3739,23 @@ const handleSelectVariantById = (idBienThe) => {
 
 .inline-compare-item img {
     grid-area: image;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
 }
 
 .inline-compare-name {
     grid-area: name;
     color: #0f172a;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    line-height: 1.35;
+    line-height: 1.3;
 }
 
 .inline-compare-price {
     grid-area: price;
     color: var(--primary);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
 }
 
@@ -3311,11 +3765,85 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #475569;
-    font-size: 14px;
+    color: #64748b;
+    font-size: 13px;
     font-weight: 700;
     text-align: center;
     padding: 24px;
+}
+
+.inline-compare-table-wrap {
+    overflow-x: auto;
+}
+
+.inline-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.inline-compare-table th {
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: top;
+}
+
+.inline-compare-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: top;
+    color: #334155;
+}
+
+.inline-compare-table tr:nth-child(even) td {
+    background: #f8fafc;
+}
+
+.inline-compare-table tr:last-child td {
+    border-bottom: none;
+}
+
+.machine-spec-name {
+    width: auto;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.machine-spec-value {
+    color: #0f172a;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.cell-no-value {
+    color: #94a3b8;
+}
+
+@media (max-width: 992px) {
+    .specs-columns-grid {
+        grid-template-columns: 1fr;
+    }
+    .specs-column {
+        padding: 16px 0;
+    }
+    .specs-column:not(:last-child) {
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
 }
 
 .specs-modern-grid {
@@ -3408,8 +3936,83 @@ const handleSelectVariantById = (idBienThe) => {
     border-color: var(--secondary);
 }
 .h-card-icon {
-    font-size: 32px;
-    margin-bottom: 16px;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.h-card-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 2;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Individual Icon Color Themes with Light Gradient Backgrounds */
+.icon-performance {
+    background: rgba(249, 115, 22, 0.08);
+    color: #f97316;
+}
+.icon-screen {
+    background: rgba(139, 92, 246, 0.08);
+    color: #8b5cf6;
+}
+.icon-battery {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+.icon-brain {
+    background: rgba(236, 72, 153, 0.08);
+    color: #ec4899;
+}
+.icon-design {
+    background: rgba(59, 130, 246, 0.08);
+    color: #3b82f6;
+}
+.icon-cooling {
+    background: rgba(6, 182, 212, 0.08);
+    color: #06b6d4;
+}
+
+.highlight-item-card:hover .h-card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+.highlight-item-card:hover .h-card-icon svg {
+    transform: scale(1.15);
+}
+.highlight-item-card:hover .icon-performance {
+    background: #f97316;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(249, 115, 22, 0.25);
+}
+.highlight-item-card:hover .icon-screen {
+    background: #8b5cf6;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
+}
+.highlight-item-card:hover .icon-battery {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+}
+.highlight-item-card:hover .icon-brain {
+    background: #ec4899;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.25);
+}
+.highlight-item-card:hover .icon-design {
+    background: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
+}
+.highlight-item-card:hover .icon-cooling {
+    background: #06b6d4;
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.25);
 }
 .highlight-item-card h3 {
     font-family: var(--font-heading);
@@ -3840,6 +4443,14 @@ const handleSelectVariantById = (idBienThe) => {
     font-weight: 800;
     color: white;
 }
+
+.tag-badge.badge-glow {
+    background: #2563eb;
+    color: #ffffff;
+    border: 1px solid #1d4ed8;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    text-shadow: none;
+}
 .product-image-box {
     aspect-ratio: 1.1;
     display: flex;
@@ -3866,7 +4477,8 @@ const handleSelectVariantById = (idBienThe) => {
 .product-card-title {
     font-size: 13.5px;
     font-weight: 700;
-    color: #334155;
+    color: #0f172a;
+    background: transparent;
     line-height: 1.35;
     margin: 0 0 6px 0;
     display: -webkit-box;
@@ -3878,6 +4490,7 @@ const handleSelectVariantById = (idBienThe) => {
 .product-card-specs {
     font-size: 11px;
     color: #64748b;
+    background: transparent;
     margin: 0 0 10px 0;
     white-space: nowrap;
     overflow: hidden;
@@ -3893,9 +4506,11 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .product-card-rating .stars {
     letter-spacing: 0.5px;
+    color: #f59e0b;
 }
 .product-card-rating .score {
-    color: #334155;
+    color: #0f172a;
+    background: transparent;
 }
 
 .product-card-bottom-row {
@@ -3912,6 +4527,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 9px;
     font-weight: 600;
     color: #64748b;
+    background: transparent;
     text-transform: uppercase;
 }
 .price-side .price-tag {
@@ -3919,6 +4535,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 15px;
     font-weight: 800;
     color: var(--primary);
+    background: transparent;
 }
 .btn-quick-view {
     width: 32px;
@@ -3953,20 +4570,24 @@ const handleSelectVariantById = (idBienThe) => {
 .pag-btn {
     padding: 8px 16px;
     border-radius: 10px;
-    border: 1px solid #cbd5e1;
-    background: #111f35;
+    border: 1px solid #94a3b8;
+    background: #ffffff;
     cursor: pointer;
     font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
+    font-weight: 800;
+    color: #0f172a;
     transition: var(--transition);
 }
 .pag-btn:hover:not(:disabled) {
-    background: #111f35;
-    color: var(--text-primary);
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
 }
 .pag-btn:disabled {
-    opacity: 0.4;
+    opacity: 1;
+    background: #e2e8f0;
+    color: #64748b;
+    border-color: #cbd5e1;
     cursor: not-allowed;
 }
 .pag-numbers-box {
@@ -3978,12 +4599,12 @@ const handleSelectVariantById = (idBienThe) => {
     height: 34px;
     border-radius: 8px;
     border: 1px solid #cbd5e1;
-    background: #111f35;
+    background: #ffffff;
     cursor: pointer;
     font-family: var(--font-heading);
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-secondary);
+    color: #0f172a;
     transition: var(--transition);
 }
 .pag-number-btn.active {
@@ -4953,5 +5574,91 @@ const handleSelectVariantById = (idBienThe) => {
     .gallery-column { position: static; top: auto; }
     .main-image-viewport { aspect-ratio: 16/10; }
 
+}
+
+/* ==================== PREMIUM 3D VIEW PORT STYLE ==================== */
+.main-image-viewport {
+    position: relative;
+    transform-style: preserve-3d;
+    perspective: 1200px;
+    transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.main-image-viewport.is-3d-active {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.15), inset 0 0 20px rgba(37, 99, 235, 0.05);
+}
+
+/* 3D Showcase Image transitions */
+.main-showcase-image {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transition: transform 1.4s cubic-bezier(0.1, 0.8, 0.2, 1);
+}
+
+/* 3D Indicator Badge */
+.badge-3d-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 20px;
+    font-family: var(--font-heading);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #475569;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.badge-3d-indicator.is-active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.9) 100%);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+}
+
+.badge-3d-indicator .pulse-icon {
+    font-size: 13px;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Custom styling for SVGs replacing Emojis */
+.g-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    display: block;
+}
+
+.benefit-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    display: inline-block;
+    vertical-align: middle;
 }
 </style>

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="scene" v-if="visible">
     <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
     <div class="backdrop" @click.self="dismiss"></div>
@@ -105,6 +105,27 @@
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
 
+const fallbackCopyTextToClipboard = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.opacity = '0'
+  textArea.style.pointerEvents = 'none'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch (err) {
+    console.error('Fallback copy failed:', err)
+    document.body.removeChild(textArea)
+    return false
+  }
+}
 
 export default {
     name: 'GiftPopup',
@@ -238,7 +259,14 @@ export default {
             await this.claim(promo.id)
         },
         copyCode(code, which) {
-            navigator.clipboard?.writeText(code)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).catch(err => {
+                    console.warn('Navigator clipboard failed, trying fallback:', err)
+                    fallbackCopyTextToClipboard(code)
+                })
+            } else {
+                fallbackCopyTextToClipboard(code)
+            }
             if (which === 1) { this.copied1 = true; setTimeout(() => { this.copied1 = false }, 2000) }
             else { this.copied2 = true; setTimeout(() => { this.copied2 = false }, 2000) }
         },

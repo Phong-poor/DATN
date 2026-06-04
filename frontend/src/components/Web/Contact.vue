@@ -24,11 +24,11 @@ const subjects = [
 ]
 
 const step1Categories = [
-  { label: 'Tư vấn mua hàng', icon: '💻', desc: 'Chọn cấu hình Laptop, Workstation, AI PC phù hợp.' },
-  { label: 'Hỗ trợ kỹ thuật', icon: '🛠️', desc: 'Xử lý lỗi phần cứng, cài đặt driver, phần mềm.' },
-  { label: 'Bảo hành & sửa chữa', icon: '🛡️', desc: 'Tra cứu chính sách bảo hành, sửa chữa dịch vụ.' },
-  { label: 'Hợp tác kinh doanh', icon: '🤝', desc: 'Cung cấp giải pháp doanh nghiệp, đại lý bán lẻ.' },
-  { label: 'Khác', icon: '⚙️', desc: 'Các câu hỏi hoặc yêu cầu hỗ trợ đặc thù khác.' }
+  { label: 'Tư vấn mua hàng', icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="12" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/><line x1="2" y1="16" x2="22" y2="16"/></svg>`, desc: 'Chọn cấu hình Laptop, Workstation, AI PC phù hợp.' },
+  { label: 'Hỗ trợ kỹ thuật', icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`, desc: 'Xử lý lỗi phần cứng, cài đặt driver, phần mềm.' },
+  { label: 'Bảo hành & sửa chữa', icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`, desc: 'Tra cứu chính sách bảo hành, sửa chữa dịch vụ.' },
+  { label: 'Hợp tác kinh doanh', icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`, desc: 'Cung cấp giải pháp doanh nghiệp, đại lý bán lẻ.' },
+  { label: 'Khác', icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0 -4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`, desc: 'Các câu hỏi hoặc yêu cầu hỗ trợ đặc thù khác.' }
 ]
 
 // Suggestion tags for Step 3 based on subject
@@ -171,10 +171,10 @@ const showrooms = ref([
 const selectedShowroom = ref(showrooms.value[0])
 
 const infos = computed(() => [
-  { icon: '📍', label: 'Địa chỉ', value: selectedShowroom.value.address, color: 'rgba(37, 99, 235, 0.15)' },
-  { icon: '📞', label: 'Hotline', value: selectedShowroom.value.phone, bold: true, color: 'rgba(6, 182, 212, 0.15)' },
-  { icon: '✉️', label: 'Email', value: 'support@vinatech.vn', color: 'rgba(139, 92, 246, 0.15)' },
-  { icon: '🕐', label: 'Giờ mở cửa', value: selectedShowroom.value.worktime, color: 'rgba(245, 158, 11, 0.15)' },
+  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`, label: 'Địa chỉ', value: selectedShowroom.value.address, color: 'rgba(37, 99, 235, 0.15)' },
+  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`, label: 'Hotline', value: selectedShowroom.value.phone, bold: true, color: 'rgba(6, 182, 212, 0.15)' },
+  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`, label: 'Email', value: 'support@vinatech.vn', color: 'rgba(139, 92, 246, 0.15)' },
+  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, label: 'Giờ mở cửa', value: selectedShowroom.value.worktime, color: 'rgba(245, 158, 11, 0.15)' },
 ])
 
 const bookShowroomVisit = (store) => {
@@ -311,7 +311,10 @@ const toggleFaq = (index) => {
       <div class="glow-sphere-2"></div>
       
       <div class="hero-container">
-        <span class="support-badge">📡 PREDATOR GLOBAL SUPPORT</span>
+        <span class="support-badge">
+          <svg class="cyber-svg-icon badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+          PREDATOR GLOBAL SUPPORT
+        </span>
         <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Workstation dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
@@ -389,7 +392,7 @@ const toggleFaq = (index) => {
                   :class="{ active: subject === cat.label }"
                   @click="selectCategory(cat.label)"
                 >
-                  <div class="cat-icon-box">{{ cat.icon }}</div>
+                  <div class="cat-icon-box" v-html="cat.icon"></div>
                   <div class="cat-details">
                     <h4>{{ cat.label }}</h4>
                     <p>{{ cat.desc }}</p>
@@ -413,7 +416,9 @@ const toggleFaq = (index) => {
               
               <div class="guided-inputs-wrapper">
                 <div class="floating-input-field">
-                  <span class="field-icon-neon">👤</span>
+                  <span class="field-icon-neon">
+                    <svg class="cyber-svg-icon input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </span>
                   <div class="input-block">
                     <input 
                       id="step2-name"
@@ -427,7 +432,9 @@ const toggleFaq = (index) => {
                 </div>
 
                 <div class="floating-input-field">
-                  <span class="field-icon-neon">📱</span>
+                  <span class="field-icon-neon">
+                    <svg class="cyber-svg-icon input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  </span>
                   <div class="input-block">
                     <input 
                       id="step2-phone"
@@ -441,7 +448,9 @@ const toggleFaq = (index) => {
                 </div>
 
                 <div class="floating-input-field">
-                  <span class="field-icon-neon">📧</span>
+                  <span class="field-icon-neon">
+                    <svg class="cyber-svg-icon input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </span>
                   <div class="input-block">
                     <input 
                       id="step2-email"
@@ -457,7 +466,7 @@ const toggleFaq = (index) => {
 
               <!-- Inline Step Alert -->
               <div v-if="error" class="step-validation-error">
-                <span>⚠️</span> {{ error }}
+                <svg class="cyber-svg-icon error-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {{ error }}
               </div>
 
               <div class="step-actions-footer">
@@ -477,7 +486,10 @@ const toggleFaq = (index) => {
               
               <!-- Quick Suggestions tags -->
               <div class="suggestion-tags-row">
-                <span class="suggest-label">💡 Gợi ý nhanh:</span>
+                <span class="suggest-label">
+                  <svg class="cyber-svg-icon suggest-lbl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6m-6 3h6m-7.5-6a6 6 0 1 1 9 0c0 2-1.5 3-2.5 4h-4c-1-1-2.5-2-2.5-4z"/></svg>
+                  Gợi ý nhanh:
+                </span>
                 <button 
                   v-for="tag in suggestionTags" 
                   :key="tag"
@@ -499,10 +511,14 @@ const toggleFaq = (index) => {
 
               <!-- Error & Success states -->
               <div v-if="error" class="form-feedback-alert error">
-                <span>⚠️ Lỗi:</span> {{ error }}
+                <span>
+                  <svg class="cyber-svg-icon alert-err-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Lỗi:
+                </span> {{ error }}
               </div>
               <div v-if="success" class="form-feedback-alert success">
-                <span>✓ Thành công:</span> Gửi tin nhắn thành công! Đội ngũ tư vấn sẽ gọi cho bạn trong tối đa 2 giờ.
+                <span>
+                  <svg class="cyber-svg-icon alert-ok-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Thành công:
+                </span> Gửi tin nhắn thành công! Đội ngũ tư vấn sẽ gọi cho bạn trong tối đa 2 giờ.
               </div>
 
               <div class="step-actions-footer">
@@ -520,7 +536,10 @@ const toggleFaq = (index) => {
                 </button>
               </div>
 
-              <p class="cyber-privacy-note">🔒 Dữ liệu cá nhân được mã hóa và bảo vệ nghiêm ngặt theo tiêu chuẩn ISO 27001.</p>
+              <p class="cyber-privacy-note">
+                <svg class="cyber-svg-icon privacy-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Dữ liệu cá nhân được mã hóa và bảo vệ nghiêm ngặt theo tiêu chuẩn ISO 27001.
+              </p>
             </div>
 
           </div>
@@ -528,7 +547,10 @@ const toggleFaq = (index) => {
           <!-- RIGHT SIDE: SHOWROOM PANEL -->
           <div class="showroom-guided-panel">
             <div class="showroom-brand-header">
-              <span class="pill-badge">🏬 HỆ THỐNG TRẢI NGHIỆM</span>
+              <span class="pill-badge">
+                <svg class="cyber-svg-icon pill-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                HỆ THỐNG TRẢI NGHIỆM
+              </span>
               <h3>Bản Đồ Showroom Predator</h3>
               <p>Chọn địa điểm showroom để cập nhật thông tin liên hệ và đặt lịch trực tiếp.</p>
             </div>
@@ -553,7 +575,7 @@ const toggleFaq = (index) => {
             <!-- Dynamic Showroom Info Card -->
             <div class="showroom-detail-glass-card">
               <div class="detail-row" v-for="info in infos" :key="info.label">
-                <div class="detail-icon" :style="{ backgroundColor: info.color }">{{ info.icon }}</div>
+                <div class="detail-icon" :style="{ backgroundColor: info.color }" v-html="info.icon"></div>
                 <div class="detail-text">
                   <span class="detail-label">{{ info.label }}</span>
                   <p class="detail-val" :class="{ bold: info.bold }">{{ info.value }}</p>
@@ -565,7 +587,7 @@ const toggleFaq = (index) => {
                 class="btn-visit-schedule" 
                 @click="bookShowroomVisit(selectedShowroom)"
               >
-                📅 Đặt Lịch Hẹn Trải Nghiệm Showroom
+                <svg class="cyber-svg-icon btn-sched-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Đặt Lịch Hẹn Trải Nghiệm Showroom
               </button>
             </div>
 
@@ -667,7 +689,7 @@ const toggleFaq = (index) => {
               :class="{ active: selectedFaqCategory === 'buying' }"
               @click="selectedFaqCategory = 'buying'"
             >
-              🛍️ Mua Hàng & Trả Góp
+              <svg class="cyber-svg-icon tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Mua Hàng & Trả Góp
             </button>
             <button 
               type="button" 
@@ -675,7 +697,7 @@ const toggleFaq = (index) => {
               :class="{ active: selectedFaqCategory === 'warranty' }"
               @click="selectedFaqCategory = 'warranty'"
             >
-              🛡️ Bảo Hành & Đổi Trả
+              <svg class="cyber-svg-icon tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Bảo Hành & Đổi Trả
             </button>
             <button 
               type="button" 
@@ -683,12 +705,14 @@ const toggleFaq = (index) => {
               :class="{ active: selectedFaqCategory === 'technical' }"
               @click="selectedFaqCategory = 'technical'"
             >
-              🛠️ Hỗ Trợ Kỹ Thuật
+              <svg class="cyber-svg-icon tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Hỗ Trợ Kỹ Thuật
             </button>
           </div>
 
           <div class="faq-search-box">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon">
+              <svg class="cyber-svg-icon faq-srch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
             <input 
               v-model="faqSearchQuery"
               type="text" 
@@ -721,7 +745,9 @@ const toggleFaq = (index) => {
           </div>
 
           <div v-if="filteredFaqs.length === 0" class="faq-empty-state">
-            <span class="icon">🔍</span>
+            <span class="icon">
+              <svg class="cyber-svg-icon faq-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
             <h5>Không tìm thấy câu hỏi phù hợp</h5>
             <p>Vui lòng thử lại với từ khóa khác hoặc liên hệ trực tiếp với chuyên gia qua guided form ở trên.</p>
           </div>
@@ -731,13 +757,18 @@ const toggleFaq = (index) => {
         <div class="support-footer-cta-card">
           <div class="glow-accent-overlay"></div>
           <div class="cta-card-content">
-            <span class="cta-emoji-box">💬</span>
+            <span class="cta-emoji-box">
+              <svg class="cyber-svg-icon cta-bubble-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
             <div class="cta-text-details">
               <h3>Bạn có yêu cầu đặc biệt khác?</h3>
               <p>Đội ngũ chuyên viên Predator luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
             </div>
             <div class="cta-actions-group">
-              <a href="tel:19008888" class="cta-phone-btn">📞 Gọi 1900 8888</a>
+              <a href="tel:19008888" class="cta-phone-btn">
+                <svg class="cyber-svg-icon cta-call-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Gọi 1900 8888
+              </a>
               <a href="#guidedContactForm" class="cta-form-btn">Gửi Form Ngay</a>
             </div>
           </div>
@@ -753,6 +784,101 @@ const toggleFaq = (index) => {
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ==================== GENERAL STYLE & TOKENS ==================== */
+:deep(.cyber-svg-icon) {
+  width: 1.1em;
+  height: 1.1em;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+  fill: none;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.2s, stroke 0.2s;
+}
+.badge-icon {
+  margin-right: 6px;
+  width: 11px;
+  height: 11px;
+  margin-top: -2px;
+}
+.input-field-icon {
+  color: var(--text-secondary);
+  width: 15px;
+  height: 15px;
+  opacity: 0.8;
+}
+.error-inline-icon, .alert-err-icon {
+  color: #dc2626;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  margin-top: -2px;
+}
+.alert-ok-icon {
+  color: #16a34a;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  margin-top: -2px;
+}
+.privacy-note-icon {
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  margin-top: -2px;
+}
+.pill-badge-icon {
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  margin-top: -2px;
+}
+.btn-sched-icon {
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  margin-top: -2px;
+}
+.cta-call-icon {
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  margin-top: -2px;
+}
+:deep(.detail-icon .cyber-svg-icon) {
+  width: 16px;
+  height: 16px;
+}
+.tab-icon {
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  margin-top: -2px;
+}
+.faq-srch-icon, .faq-empty-icon {
+  width: 14px;
+  height: 14px;
+}
+.cta-bubble-icon {
+  width: 18px;
+  height: 18px;
+  color: white;
+}
+.suggest-lbl-icon {
+  width: 13px;
+  height: 13px;
+  margin-right: 4px;
+  margin-top: -2px;
+  color: var(--accent);
+}
+:deep(.cat-icon-box .cyber-svg-icon) {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+:deep(.guided-category-card.active .cat-icon-box .cyber-svg-icon) {
+  color: white;
+}
+
 .contact-page {
   --primary: #2563EB;
   --primary-glow: rgba(37, 99, 235, 0.15);
@@ -1522,7 +1648,7 @@ const toggleFaq = (index) => {
 }
 .detail-icon {
   width: 36px; height: 36px;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;

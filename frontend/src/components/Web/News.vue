@@ -202,7 +202,14 @@ onMounted(async () => {
           <span class="current">Tạp chí công nghệ</span>
         </div>
 
-        <span class="header-badge">📡 PREDATOR CYBER-MEDIA HUB</span>
+        <span class="header-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #3b82f6;">
+            <circle cx="12" cy="12" r="2"/>
+            <path d="M12 2a10 10 0 0 0-7.07 17.07l1.41-1.41a8 8 0 1 1 11.32 0l1.41 1.41A10 10 0 0 0 12 2Z"/>
+            <path d="M12 6a6 6 0 0 0-4.24 10.24l1.41-1.41a4 4 0 1 1 5.66 0l1.41 1.41A6 6 0 0 0 12 6Z"/>
+          </svg>
+          PREDATOR CYBER-MEDIA HUB
+        </span>
         <h1>Trải nghiệm <span>vũ trụ công nghệ.</span></h1>
         <p class="header-description">Kênh truyền thông chính thức của Predator - Cập nhật những phát kiến phần cứng, trí tuệ nhân tạo local và cẩm nang công nghệ chuyên sâu.</p>
 
@@ -232,7 +239,13 @@ onMounted(async () => {
 
         <!-- Error -->
         <div v-else-if="errorMessage" class="magazine-error-state">
-          <span class="error-icon">⚠️</span>
+          <span class="error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="display: inline-block; vertical-align: middle; color: #ef4444;">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </span>
           <p>{{ errorMessage }}</p>
         </div>
 
@@ -249,12 +262,18 @@ onMounted(async () => {
                 </div>
 
                  <!-- Right: Content Side -->
-                 <div class="hero-content-side">
-                   <div class="hero-meta-row">
-                     <span class="hero-category-tag">{{ randomPost.category }}</span>
-                     <span class="meta-dot">•</span>
-                     <span class="hero-reading-time">⏱️ {{ getReadingTime(randomPost.content) }} phút đọc</span>
-                   </div>
+                  <div class="hero-content-side">
+                    <div class="hero-meta-row">
+                      <span class="hero-category-tag">{{ randomPost.category }}</span>
+                      <span class="meta-dot">•</span>
+                      <span class="hero-reading-time">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        {{ getReadingTime(randomPost.content) }} phút đọc
+                      </span>
+                    </div>
 
                    <h2 class="hero-headline">{{ randomPost.title }}</h2>
                    <p class="hero-abstract" v-if="randomPost.excerpt">{{ randomPost.excerpt }}</p>
@@ -276,25 +295,54 @@ onMounted(async () => {
           <!-- TRENDING MAGAZINE RADAR (Buying Guides & Expert picks) -->
           <div class="tech-radar-section" v-if="posts.length > 0">
             <div class="radar-header">
-              <h3>⚡ Tech Radar: Predator Khuyên Dùng</h3>
+              <h3>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display: inline-block; vertical-align: middle; margin-right: 8px; color: #f59e0b;">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                Tech Radar: Predator Khuyên Dùng
+              </h3>
               <p>Các cẩm nang lựa chọn thiết bị công nghệ chuyên nghiệp được biên soạn bởi chuyên gia Predator</p>
             </div>
 
             <div class="radar-grid">
               <div class="radar-card radar-glow-1">
-                <div class="radar-icon">💻</div>
+                <div class="radar-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="2" y1="20" x2="22" y2="20"/>
+                    <line x1="12" y1="17" x2="12" y2="20"/>
+                  </svg>
+                </div>
                 <h4>AI Laptops 2026</h4>
                 <p>Xu thế laptop tích hợp NPU tối ưu hóa sâu các công việc trí tuệ nhân tạo local.</p>
                 <span class="radar-link">Khám phá radar ➜</span>
               </div>
               <div class="radar-card radar-glow-2">
-                <div class="radar-icon">🎮</div>
+                <div class="radar-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="6" y1="12" x2="10" y2="12"/>
+                    <line x1="8" y1="10" x2="8" y2="14"/>
+                    <line x1="15" y1="13" x2="15.01" y2="13"/>
+                    <line x1="18" y1="11" x2="18.01" y2="11"/>
+                    <rect x="2" y="6" width="20" height="12" rx="3"/>
+                  </svg>
+                </div>
                 <h4>RTX 5000 Series</h4>
                 <p>Phân tích hiệu năng dòng card đồ họa kiến trúc Blackwell sắp ra mắt trên laptop gaming.</p>
                 <span class="radar-link">Xem đánh giá ➜</span>
               </div>
               <div class="radar-card radar-glow-3">
-                <div class="radar-icon">🚀</div>
+                <div class="radar-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5" />
+                    <path d="M12 12c2-2 3-5.5 3-5.5s-3.5 1-5.5 3" />
+                    <path d="M19 5c1.8-1.8 3-5 3-5s-3.2 1.2-5 3" />
+                    <path d="M14 15l-3.5-3.5" />
+                    <path d="M6.5 12.5l3.5 3.5" />
+                    <path d="M14 9l-2.5-2.5" />
+                    <path d="M9 14l2.5 2.5" />
+                  </svg>
+                </div>
                 <h4>Lunar Lake Guide</h4>
                 <p>Bí quyết khai phóng hiệu suất vi xử lý Intel Core Ultra thế hệ mới tiết kiệm pin tối đa.</p>
                 <span class="radar-link">Đọc cẩm nang ➜</span>
@@ -319,20 +367,39 @@ onMounted(async () => {
                 <div class="card-meta-line">
                   <span class="card-pub-date">{{ formatDate(post.published_at || post.created_at) }}</span>
                   <span class="meta-dot">•</span>
-                  <span class="card-read-time">⏱️ {{ getReadingTime(post.content) }} phút đọc</span>
+                  <span class="card-read-time">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {{ getReadingTime(post.content) }} phút đọc
+                  </span>
                 </div>
                 <h3 class="card-headline">{{ post.title }}</h3>
                 <p class="card-excerpt" v-if="post.excerpt">{{ post.excerpt }}</p>
 
                 <div class="card-bottom-row">
-                  <span class="card-author-name">👤 {{ post.author_name || post.tac_gia || 'Predator staff' }}</span>
+                  <span class="card-author-name">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    {{ post.author_name || post.tac_gia || 'Predator staff' }}
+                  </span>
                   <span class="card-read-more-link">Khám phá <span class="arrow">→</span></span>
                 </div>
               </div>
             </RouterLink>
 
             <div v-if="posts.length === 0" class="empty-state-card" style="grid-column: 1 / -1">
-              <span class="icon">📰</span>
+              <span class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: #94a3b8; display: inline-block; margin-bottom: 12px;">
+                  <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+                  <path d="M18 14h-8"/>
+                  <path d="M15 18h-5"/>
+                  <path d="M10 6h8v4h-8V6Z"/>
+                </svg>
+              </span>
               <h4>Không tìm thấy bài viết</h4>
               <p>Hiện chưa có bài viết nào thuộc chuyên mục này. Hãy quay lại sau để cập nhật các tin tức mới nhất.</p>
             </div>
@@ -379,7 +446,12 @@ onMounted(async () => {
       <aside class="magazine-sidebar">
         <!-- Editor's Weekly Picks -->
         <div class="sidebar-magazine-widget">
-          <h4 class="widget-magazine-title">🔥 BÀI VIẾT NỔI BẬT TRONG TUẦN</h4>
+          <h4 class="widget-magazine-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #ef4444;">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+            </svg>
+            BÀI VIẾT NỔI BẬT TRONG TUẦN
+          </h4>
           <div class="popular-magazine-list">
             <RouterLink
               v-for="(item, idx) in popularPosts"
@@ -393,7 +465,13 @@ onMounted(async () => {
               </div>
               <div class="pop-magazine-info">
                 <h5>{{ item.title }}</h5>
-                <div class="pop-views-badge">👁️ {{ item.views || 0 }} lượt xem</div>
+                <div class="pop-views-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #94a3b8;">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  {{ item.views || 0 }} lượt xem
+                </div>
               </div>
             </RouterLink>
 
@@ -405,7 +483,12 @@ onMounted(async () => {
 
         <!-- Chuyên mục (Sidebar tags) -->
         <div class="sidebar-magazine-widget">
-          <h4 class="widget-magazine-title">📂 KHÁM PHÁ CHUYÊN MỤC</h4>
+          <h4 class="widget-magazine-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #3b82f6;">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            KHÁM PHÁ CHUYÊN MỤC
+          </h4>
           <div class="cyber-tags-cloud">
             <button
               v-for="tag in categories"
@@ -419,9 +502,15 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Xu hướng tìm kiếm -->
+        <!-- Xuương tìm kiếm -->
         <div class="sidebar-magazine-widget">
-          <h4 class="widget-magazine-title">📈 XU HƯỚNG TÌM KIẾM</h4>
+          <h4 class="widget-magazine-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #10b981;">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+              <polyline points="16 7 22 7 22 13"/>
+            </svg>
+            XU HƯỚNG TÌM KIẾM
+          </h4>
           <div class="search-trends-list">
             <a href="/products?search=RTX%2040" class="trend-item">
               <span class="trend-rank">#1</span>
@@ -938,8 +1027,71 @@ onMounted(async () => {
   flex-direction: column;
 }
 .radar-icon {
-  font-size: 24px;
-  margin-bottom: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.radar-icon svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Color codes for each Tech Radar theme */
+.radar-glow-1 .radar-icon {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+}
+.radar-glow-2 .radar-icon {
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+}
+.radar-glow-3 .radar-icon {
+  background: rgba(249, 115, 22, 0.08);
+  color: #f97316;
+}
+
+/* Hover micro-animations */
+.radar-card:hover .radar-icon {
+  transform: scale(1.1) rotate(4deg);
+}
+.radar-card:hover .radar-icon svg {
+  transform: scale(1.1);
+}
+.radar-card.radar-glow-1:hover {
+  transform: translateY(-4px);
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.12);
+}
+.radar-card.radar-glow-1:hover .radar-icon {
+  background: #3b82f6;
+  color: #ffffff;
+}
+.radar-card.radar-glow-2:hover {
+  transform: translateY(-4px);
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+  box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12);
+}
+.radar-card.radar-glow-2:hover .radar-icon {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+.radar-card.radar-glow-3:hover {
+  transform: translateY(-4px);
+  background: #fff7ed;
+  border-color: #f97316;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.12);
+}
+.radar-card.radar-glow-3:hover .radar-icon {
+  background: #f97316;
+  color: #ffffff;
 }
 .radar-card h4 {
   font-family: var(--font-heading);
@@ -961,12 +1113,6 @@ onMounted(async () => {
   font-weight: 800;
   color: var(--primary);
   margin-top: auto;
-}
-.radar-card:hover {
-  transform: translateY(-3px);
-  background: #eef2f6;
-  border-color: var(--primary);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.12);
 }
 
 /* ==================== LISTING DIVIDER ==================== */
