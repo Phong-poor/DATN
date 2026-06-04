@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
@@ -505,30 +505,30 @@ async function resend() {
 
 .captcha-resend-box {
   width: 100%;
-  min-height: 76px;
+  min-height: 52px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: #fafafa;
   border: 1px solid #d1d5db;
   border-radius: 3px;
-  padding: 12px;
+  padding: 8px 12px;
   margin-top: 6px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .captcha-check {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   border: 2px solid #4b5563;
   border-radius: 3px;
   background: #ffffff;
   color: #ffffff;
   display: grid;
   place-items: center;
-  font-size: 19px;
+  font-size: 13px;
   font-weight: 900;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
@@ -546,12 +546,12 @@ async function resend() {
 
 .captcha-title {
   color: #111827;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .captcha-brand {
-  width: 92px;
+  width: 80px;
   display: grid;
   justify-items: center;
   gap: 1px;
@@ -559,20 +559,20 @@ async function resend() {
 }
 
 .captcha-brand svg {
-  width: 42px;
-  height: 24px;
+  width: 32px;
+  height: 18px;
 }
 
 .captcha-brand strong {
   color: #111827;
-  font-size: 10px;
-  letter-spacing: 1.4px;
+  font-size: 8px;
+  letter-spacing: 1.2px;
   line-height: 1;
 }
 
 .captcha-brand small {
   color: #374151;
-  font-size: 8px;
+  font-size: 7px;
   text-decoration: underline;
   white-space: nowrap;
 }
@@ -582,7 +582,7 @@ async function resend() {
   background: transparent;
   color: #64748b;
   padding: 1px 4px;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
 }
 
