@@ -187,6 +187,7 @@ class SanPhamController extends Controller
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
                 'ten_danhmuc'  => $sanpham->danhMuc->ten_danhmuc,
+                'id_danhmuc_cha' => $sanpham->danhMuc->id_danhmuc_cha,
             ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
@@ -389,6 +390,7 @@ class SanPhamController extends Controller
             'hinh_anhs.*.thutu'    => 'nullable|integer|min:0',
 
             'bienthes'                => 'nullable|array',
+            'bienthes.*.id_bienthe'   => 'nullable|integer',
             'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
             'bienthes.*.gia'          => 'required_with:bienthes|numeric|min:0',
             'bienthes.*.soluong'      => 'required_with:bienthes|integer|min:0',
@@ -450,17 +452,40 @@ class SanPhamController extends Controller
                 }
             }
 
-            BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            $existingIds = BienThe::where('id_sanpham', $sanpham->id_sanpham)->pluck('id_bienthe')->toArray();
+
+            $incomingIds = collect($request->bienthes)
+                ->pluck('id_bienthe')
+                ->filter()
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+
+            // Xóa những biến thể không được gửi lên (đã bị xóa ở giao diện)
+            $idsToDelete = array_diff($existingIds, $incomingIds);
+            if (!empty($idsToDelete)) {
+                BienThe::whereIn('id_bienthe', $idsToDelete)->delete();
+            }
 
             if ($request->has('bienthes') && is_array($request->bienthes)) {
                 foreach ($request->bienthes as $bt) {
-                    BienThe::create([
-                        'id_sanpham'      => $sanpham->id_sanpham,
-                        'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
-                        'gia'             => $bt['gia'],
-                        'soluong'         => $bt['soluong'],
-                        'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
-                    ]);
+                    if (!empty($bt['id_bienthe']) && in_array((int)$bt['id_bienthe'], $existingIds)) {
+                        // Cập nhật tại chỗ
+                        BienThe::where('id_bienthe', $bt['id_bienthe'])->update([
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    } else {
+                        // Tạo mới
+                        BienThe::create([
+                            'id_sanpham'      => $sanpham->id_sanpham,
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    }
                 }
             }
 

@@ -1712,6 +1712,12 @@ onMounted(() => {
 }
 
 .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
     background: linear-gradient(135deg, #3b82f6, #6366f1);
     color: white;
     font-size: 10px;
