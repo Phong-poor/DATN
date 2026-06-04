@@ -708,7 +708,36 @@ onUnmounted(() => {
         </section>
 
         <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
-        <section class="section combos-section">
+
+        <!-- 3. PRODUCT CATEGORIES (Rich dark luxury grid backdrop) -->
+        <section class="section category-section">
+            <div class="grid-container">
+                <div class="section-header scroll-reveal reveal-fade-up">
+                    <div class="label-wrapper">
+                        <span class="ambient-label">DANH MỤC</span>
+                        <h2>Phân Khúc Laptop Chuyên Biệt</h2>
+                        <p>Cấu hình mạnh mẽ, tối ưu hóa theo từng nhu cầu sử dụng thực tế của bạn.</p>
+                    </div>
+                </div>
+
+                <div class="category-cards-grid scroll-reveal reveal-stagger">
+                    <div class="category-premium-card" v-for="c in categories" :key="c.id_danhmuc"
+                        @click="router.push(`/products?cat=${c.id_danhmuc}`)">
+                        <div class="card-bg-image" :style="{ backgroundImage: 'url(' + getCategoryFallbackImage(c.ten_danhmuc) + ')' }"></div>
+                        <div class="card-gradient-shield"></div>
+                        <div class="category-card-content">
+                            <h3>{{ c.ten_danhmuc }}</h3>
+                            <p>{{ c.mota || 'Khám phá ngay cỗ máy lý tưởng phù hợp với phong cách của bạn.' }}</p>
+                            <span class="interactive-anchor">
+                                Xem Bộ Sưu Tập
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+<section class="section combos-section">
     <div class="grid-container">
         <div class="section-header scroll-reveal reveal-fade-up">
             <div class="label-wrapper">
@@ -767,35 +796,6 @@ onUnmounted(() => {
         </div>
     </div>
 </section>
-        <!-- 3. PRODUCT CATEGORIES (Rich dark luxury grid backdrop) -->
-        <section class="section category-section">
-            <div class="grid-container">
-                <div class="section-header scroll-reveal reveal-fade-up">
-                    <div class="label-wrapper">
-                        <span class="ambient-label">DANH MỤC</span>
-                        <h2>Phân Khúc Laptop Chuyên Biệt</h2>
-                        <p>Cấu hình mạnh mẽ, tối ưu hóa theo từng nhu cầu sử dụng thực tế của bạn.</p>
-                    </div>
-                </div>
-
-                <div class="category-cards-grid scroll-reveal reveal-stagger">
-                    <div class="category-premium-card" v-for="c in categories" :key="c.id_danhmuc"
-                        @click="router.push(`/products?cat=${c.id_danhmuc}`)">
-                        <div class="card-bg-image" :style="{ backgroundImage: 'url(' + getCategoryFallbackImage(c.ten_danhmuc) + ')' }"></div>
-                        <div class="card-gradient-shield"></div>
-                        <div class="category-card-content">
-                            <h3>{{ c.ten_danhmuc }}</h3>
-                            <p>{{ c.mota || 'Khám phá ngay cỗ máy lý tưởng phù hợp với phong cách của bạn.' }}</p>
-                            <span class="interactive-anchor">
-                                Xem Bộ Sưu Tập
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- 4. BEST SELLERS (Clean crisp white body background) -->
         <section class="section product-section">
             <div class="grid-container">
