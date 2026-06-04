@@ -369,20 +369,27 @@ const formatPrice = (p) => new Intl.NumberFormat('vi-VN', { style: 'currency', c
 const themVaoGioHang = async (product) => {
     const token = getToken()
     if (!token) {
-        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+        swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để tiến hành mua hàng!')
         localStorage.setItem('pendingCartItem', JSON.stringify({ id_bienthe: product.key_id, soluong: 1 }))
         router.push('/login')
         return
     }
 
     try {
-        await api.post('/gio-hang/them', { id_bienthe: product.key_id, soluong: 1 }, {
+        const res = await api.post('/gio-hang/them', { id_bienthe: product.key_id, soluong: 1 }, {
             headers: { Authorization: `Bearer ${token}` }
         })
-        swal.success('Thành công', `Đã thêm ${product.name} vào giỏ hàng thành công!`)
         window.dispatchEvent(new Event('cart-updated'))
+        // Lấy id_giohang từ response để chỉ checkout 1 sản phẩm
+        const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
+        if (cartItemId) {
+            router.push(`/checkout?buy_now=1&cart_item=${cartItemId}`)
+        } else {
+            // Fallback: dùng variant id nếu không có cart item id
+            router.push(`/checkout?buy_now=1&variant=${product.key_id}`)
+        }
     } catch (err) {
-        swal.error('Lỗi', err.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng.')
+        swal.error('Lỗi', err.response?.data?.message || 'Không thể mua sản phẩm.')
     }
 }
 

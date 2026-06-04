@@ -1,11 +1,16 @@
-﻿<template>
+<template>
   <div class="wishlist-page">
     <div class="wishlist-container">
 
       <!-- ===== PAGE HEADER ===== -->
       <div class="page-header">
         <div class="header-left">
-          <div class="header-label">💜 Bộ sưu tập của bạn</div>
+          <div class="header-label">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+            </svg>
+            Bộ sưu tập của bạn
+          </div>
           <h1 class="page-title">Yêu Thích</h1>
         </div>
         <div class="header-actions">
@@ -33,28 +38,46 @@
       <!-- ===== STATS SECTION ===== -->
       <div class="stats-row" v-if="!isLoading && wishlist.length > 0">
         <div class="stat-card">
-          <div class="stat-icon purple">💾</div>
+          <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+            </svg>
+          </div>
           <div class="stat-body">
             <div class="stat-val">{{ wishlist.length }}</div>
             <div class="stat-lbl">Sản phẩm đã lưu</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon green">✅</div>
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
           <div class="stat-body">
             <div class="stat-val">{{ wishlist.filter(i => i.bienthe?.soluong > 0).length }}</div>
             <div class="stat-lbl">Sản phẩm còn hàng</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon indigo">💰</div>
+          <div class="stat-icon indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+          </div>
           <div class="stat-body">
             <div class="stat-val">{{ formatPrice(wishlist.reduce((s, i) => s + (i.bienthe?.gia || 0) * (i.soluong || 1), 0)) }}</div>
             <div class="stat-lbl">Tổng giá trị</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon amber">🕐</div>
+          <div class="stat-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
           <div class="stat-body">
             <div class="stat-val">Hôm nay</div>
             <div class="stat-lbl">Cập nhật gần nhất</div>
@@ -339,12 +362,50 @@ const notifyMe = (item) => {
   swal.info('Thông báo', 'Hệ thống sẽ gửi thông báo khi sản phẩm có hàng lại!')
 }
 
+const fallbackCopyTextToClipboard = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.opacity = '0'
+  textArea.style.pointerEvents = 'none'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch (err) {
+    console.error('Fallback copy failed:', err)
+    document.body.removeChild(textArea)
+    return false
+  }
+}
+
 const shareList = () => {
   if (navigator.share) {
     navigator.share({ title: 'Danh sách yêu thích', url: window.location.href })
   } else {
-    navigator.clipboard?.writeText(window.location.href)
-    swal.toast('Đã sao chép link!')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => swal.toast('Đã sao chép link!'))
+        .catch((err) => {
+          console.warn('Clipboard writeText failed, trying fallback:', err)
+          if (fallbackCopyTextToClipboard(window.location.href)) {
+            swal.toast('Đã sao chép link!')
+          } else {
+            swal.error('Lỗi', 'Không thể copy link tự động')
+          }
+        })
+    } else {
+      if (fallbackCopyTextToClipboard(window.location.href)) {
+        swal.toast('Đã sao chép link!')
+      } else {
+        swal.error('Lỗi', 'Không thể copy link tự động')
+      }
+    }
   }
 }
 
@@ -505,13 +566,16 @@ const onImgError = (e) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
   flex-shrink: 0;
 }
-.stat-icon.purple { background: rgba(139, 92, 246, 0.1); }
-.stat-icon.green  { background: rgba(34, 197, 94, 0.1); }
-.stat-icon.indigo { background: rgba(99, 102, 241, 0.1); }
-.stat-icon.amber  { background: rgba(245, 158, 11, 0.1); }
+.stat-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.stat-icon.purple { background: rgba(139, 92, 246, 0.1); color: rgb(139, 92, 246); }
+.stat-icon.green  { background: rgba(34, 197, 94, 0.1); color: rgb(34, 197, 94); }
+.stat-icon.indigo { background: rgba(99, 102, 241, 0.1); color: rgb(99, 102, 241); }
+.stat-icon.amber  { background: rgba(245, 158, 11, 0.1); color: rgb(245, 158, 11); }
 
 .stat-val {
   font-family: 'Outfit', sans-serif;

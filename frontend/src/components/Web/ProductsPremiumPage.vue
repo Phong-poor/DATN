@@ -1,9 +1,10 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 import { storageUrl } from '@/services/urls'
+import { getToken } from '@/services/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -222,12 +223,6 @@ watch(maxPrice, (newMax) => {
 const filterOptions = {
   categories: ['Tất cả', 'Laptop Gaming', 'Workstation', 'MacBook', 'Laptop Văn phòng', 'Laptop Học sinh'],
   brands: ['Apple', 'ASUS', 'Lenovo', 'Dell', 'MSI', 'Acer', 'HP', 'Gigabyte'],
-  prices: [
-    { label: 'Dưới 30 triệu', value: 'below_30' },
-    { label: '30 - 50 triệu', value: '30_50' },
-    { label: '50 - 70 triệu', value: '50_70' },
-    { label: 'Trên 70 triệu', value: 'above_70' }
-  ],
   rams: ['8GB', '16GB', '32GB', '64GB'],
   ssds: ['256GB', '512GB', '1TB', '2TB'],
   cpus: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Apple M3', 'Apple M2'],
@@ -252,59 +247,51 @@ const heroBannerImages = [
   '/Gemini_Generated_Image_j1cibhj1cibhj1ci.png'
 ]
 
-// Premium flagship carousel data
-const flashSaleCarousel = ref([
-  {
-    name: 'ASUS ROG Strix SCAR 18 RTX 5090',
-    price: 129990000,
-    badge: 'FLAGSHIP',
-    tag: 'TOP TIER',
-    highlight: 'Hiệu năng desktop-class cho gaming 4K, AI và render nặng',
-    specs: ['Core Ultra 9', 'RTX 5090', '64GB RAM', '2TB SSD'],
-    route: { path: '/products', query: { category: 'Laptop Gaming' } },
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=500&q=80'
-  },
-  {
-    name: 'Dell Alienware m18 R2 Max Option',
-    price: 118990000,
-    badge: 'ELITE',
-    tag: 'PREMIUM',
-    highlight: 'Màn lớn, tản nhiệt khủng, cấu hình dành cho người chơi hệ tối đa',
-    specs: ['Core i9 HX', 'RTX 4090', '64GB RAM', '4TB SSD'],
-    route: { path: '/products', query: { category: 'Laptop Gaming' } },
-    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=500&q=80'
-  },
-  {
-    name: 'MacBook Pro 16 inch M4 Max 2026',
-    price: 104990000,
-    badge: 'PRO MAX',
-    tag: 'CREATOR',
-    highlight: 'Cấu hình cao nhất cho dựng phim, thiết kế và lập trình chuyên sâu',
-    specs: ['M4 Max', '48GB RAM', '2TB SSD', 'Liquid Retina XDR'],
-    route: { path: '/products', query: { category: 'MacBook' } },
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=500&q=80'
-  },
-  {
-    name: 'Lenovo Legion 9i Carbon RTX 4090',
-    price: 96990000,
-    badge: 'EXTREME',
-    tag: 'GAMING',
-    highlight: 'Khung cao cấp, màn Mini LED và GPU mạnh cho game thủ hardcore',
-    specs: ['Core i9 HX', 'RTX 4090', '32GB RAM', '2TB SSD'],
-    route: { path: '/products', query: { category: 'Laptop Gaming' } },
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=500&q=80'
-  },
-  {
-    name: 'MSI Titan 18 HX Dragon Edition',
-    price: 139990000,
-    badge: 'ULTRA LUX',
-    tag: 'LIMITED',
-    highlight: 'Dòng máy biểu tượng với cấu hình gần như không thỏa hiệp',
-    specs: ['Core Ultra 9', 'RTX 5090', '128GB RAM', '4TB SSD'],
-    route: { path: '/products', query: { category: 'Laptop Gaming' } },
-    image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=500&q=80'
-  }
-])
+const premiumBadges = ['ĐẮT NHẤT', 'FLAGSHIP', 'ELITE', 'PRO MAX', 'ULTRA']
+const premiumTags = ['TOP DB', 'CẤU HÌNH THẬT', 'MUA NGAY', 'HIGH-END', 'PREMIUM']
+const premiumPriceThreshold = 60000000
+
+const sortedPremiumSource = computed(() => {
+  const source = products.value.length ? products.value : fallbackProducts
+  return source
+    .filter(product => Number(product.gia) > 0)
+    .slice()
+    .sort((a, b) => Number(b.gia) - Number(a.gia))
+})
+
+const premiumProductsOverThreshold = computed(() => (
+  sortedPremiumSource.value.filter(product => Number(product.gia) >= premiumPriceThreshold)
+))
+
+const isUsingPremiumFallback = computed(() => (
+  products.value.length > 0 &&
+  premiumProductsOverThreshold.value.length === 0 &&
+  sortedPremiumSource.value.length > 0
+))
+
+const flashSaleCarousel = computed(() => {
+  const source = premiumProductsOverThreshold.value.length
+    ? premiumProductsOverThreshold.value
+    : sortedPremiumSource.value
+
+  return source
+    .slice(0, 10)
+    .map((product, index) => ({
+      id_sanpham: product.id_sanpham,
+      id_bienthe: product.id_bienthe,
+      name: product.tenSP,
+      price: Number(product.gia),
+      badge: premiumBadges[index] || 'PREMIUM',
+      tag: premiumTags[index] || product.brand,
+      highlight: product.promo || `Biến thể cao cấp nhất hiện có trong database của ${product.brand}.`,
+      specs: product.specs?.length ? product.specs.slice(0, 4) : ['Cấu hình cao cấp'],
+      image: product.image,
+      inStock: product.inStock,
+      variantName: product.variantName,
+      brand: product.brand,
+      category: product.category
+    }))
+})
 
 const currentFlashSaleIndex = ref(0)
 const flashSaleVisibleCount = 5
@@ -343,6 +330,7 @@ const flashDragOffset = ref(0)
 let flashWheelLocked = false
 
 const startFlashDrag = (event) => {
+  if (event.target?.closest?.('button, a, input, select, textarea, .flash-actions')) return
   isFlashDragging.value = true
   flashDragStartX.value = event.clientX
   flashDragOffset.value = 0
@@ -391,17 +379,17 @@ const prevAngle = () => {
 
 // Services pills row
 const servicesList = [
-  { title: 'Giao hàng hỏa tốc 2H', icon: '⚡', desc: 'Nhận hàng siêu tốc trong 2 giờ nội thành' },
-  { title: 'Trả góp 0% linh hoạt', icon: '💳', desc: 'Thủ tục đơn giản qua thẻ hoặc hồ sơ' },
-  { title: 'Bảo hành 24/7 toàn quốc', icon: '🛡️', desc: 'Hỗ trợ kỹ thuật chuyên nghiệp trọn đời' },
-  { title: 'Đổi trả trong 30 ngày', icon: '🔄', desc: 'Yên tâm mua sắm, đổi trả miễn phí dễ dàng' }
+  { title: 'Giao hàng hỏa tốc 2H', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`, desc: 'Nhận hàng siêu tốc trong 2 giờ nội thành' },
+  { title: 'Trả góp 0% linh hoạt', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`, desc: 'Thủ tục đơn giản qua thẻ hoặc hồ sơ' },
+  { title: 'Bảo hành 24/7 toàn quốc', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`, desc: 'Hỗ trợ kỹ thuật chuyên nghiệp trọn đời' },
+  { title: 'Đổi trả trong 30 ngày', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>`, desc: 'Yên tâm mua sắm, đổi trả miễn phí dễ dàng' }
 ]
 
 // Showroom highlights
 const showroomHighlights = [
-  { text: 'Trải nghiệm trực quan', desc: 'Đầy đủ các dòng máy cao cấp sẵn sàng trải nghiệm thực tế.', icon: '👁️' },
-  { text: 'Hệ thống demo đỉnh cao', desc: 'Setup ánh sáng neon Cyberpunk sống động, chuyên nghiệp.', icon: '💡' },
-  { text: 'Kỹ thuật viên tư vấn 1-1', desc: 'Đội ngũ kỹ sư hỗ trợ chuyên nghiệp giải đáp mọi thắc mắc.', icon: '👨‍💻' }
+  { text: 'Trải nghiệm trực quan', desc: 'Đầy đủ các dòng máy cao cấp sẵn sàng trải nghiệm thực tế.', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>` },
+  { text: 'Hệ thống demo đỉnh cao', desc: 'Setup ánh sáng neon Cyberpunk sống động, chuyên nghiệp.', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .3 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>` },
+  { text: 'Kỹ thuật viên tư vấn 1-1', desc: 'Đội ngũ kỹ sư hỗ trợ chuyên nghiệp giải đáp mọi thắc mắc.', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v1"/><path d="M19 16v1"/><path d="m20.5 12.5-.866-.5"/><path d="M17.5 14.5l-.866-.5"/><path d="m20.5 15.5-.866.5"/><path d="m17.5 13.5-.866.5"/></svg>` }
 ]
 
 // ===================== DỮ LIỆU ÄỒNG Bá»˜ VÃ€ XỬ LÝ LỌC =====================
@@ -423,16 +411,22 @@ const loadData = async () => {
           console.warn('Lỗi parse thông số kỹ thuật', e)
         }
 
-        // Lấy khoảng giá và cấu hình từ biến thể đầu tiên (hoặc giá trị gốc sản phẩm)
-        const giaSP = p.bien_thes && p.bien_thes.length > 0 ? p.bien_thes[0].gia : (p.gia || 25000000)
-        const imagePath = p.bien_thes && p.bien_thes.length > 0 && p.bien_thes[0].hinhanh ? p.bien_thes[0].hinhanh : p.hinhanh
+        const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+        const premiumVariant = variants.length
+          ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
+          : null
+
+        // Lấy giá và cấu hình từ biến thể đắt nhất để section flagship phản ánh dữ liệu thật trong database.
+        const giaSP = Number(premiumVariant?.gia || p.gia || 25000000)
+        const imagePath = premiumVariant?.hinhanh || p.hinhanh
 
         // Extract RAM & SSD từ biến thể hoặc thông số kỹ thuật
         let ram = '16GB'
         let ssd = '512GB'
-        if (p.bien_thes && p.bien_thes.length > 0) {
+        let variantSpecs = []
+        if (premiumVariant) {
           try {
-            const bt = p.bien_thes[0]
+            const bt = premiumVariant
             const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
             if (Array.isArray(tt)) {
               tt.forEach(attr => {
@@ -440,23 +434,26 @@ const loadData = async () => {
                 if (name.includes('ram')) ram = attr.giatri
                 if (name.includes('ssd') || name.includes('ổ cứng')) ssd = attr.giatri
               })
+              variantSpecs = tt.map(attr => attr.giatri).filter(Boolean)
             }
           } catch (e) {}
         }
 
         return {
           id_sanpham: p.id_sanpham,
+          id_bienthe: premiumVariant?.id_bienthe,
+          variantName: premiumVariant?.ten_bienthe,
           tenSP: p.tenSP,
           brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'Khác',
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop',
           gia: giaSP,
           oldPrice: Math.floor(giaSP * 1.15),
-          specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
+          specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD']),
           image: imagePath ? (imagePath.startsWith('http') ? imagePath : storageUrl(imagePath)) : 'https://via.placeholder.com/600',
           rating: 4.8,
           reviews: Math.floor(Math.random() * 80) + 15,
           promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
-          inStock: p.trangthai === 'hoat_dong' || p.soluong > 0,
+          inStock: p.trangthai === 'hoat_dong' || Number(premiumVariant?.soluong || 0) > 0,
           ram,
           ssd
         }
@@ -615,7 +612,14 @@ const goToSection = async (sectionId) => {
 }
 
 const goToPremiumProduct = (product) => {
-  router.push(product.route || { path: '/products', query: { q: product.name } })
+  if (product?.id_sanpham) {
+    router.push({
+      path: `/products/${product.id_sanpham}`,
+      query: product.id_bienthe ? { variant: product.id_bienthe } : {}
+    })
+    return
+  }
+  router.push({ path: '/products', query: { q: product?.name || '' } })
 }
 
 // Chuyển sang chi tiết sản phẩm
@@ -628,7 +632,7 @@ const getSwal = async () => {
   return module.default
 }
 
-const addToCart = async (product) => {
+const addToCart = async (product, options = {}) => {
   const token = getToken()
   const swal = await getSwal()
   if (!token) {
@@ -642,26 +646,52 @@ const addToCart = async (product) => {
   }
 
   try {
-    let variantId = product.id_sanpham
-    const res = await api.get(`/sanpham/${product.id_sanpham}`, { skipGlobalLoader: true })
-    if (res.data) {
+    let variantId = product.id_bienthe
+    if (!variantId) {
+      const res = await api.get(`/sanpham/${product.id_sanpham}`, { skipGlobalLoader: true })
       const variants = res.data.bien_thes || res.data.bienThes || []
       if (variants.length > 0) {
-        variantId = variants[0].id_bienthe
+        variantId = variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0].id_bienthe
       }
     }
 
-    await api.post('/gio-hang/them', {
+    if (!variantId) throw new Error('Sản phẩm chưa có biến thể để thêm vào giỏ hàng.')
+
+    const addResponse = await api.post('/gio-hang/them', {
       id_bienthe: variantId,
-      soluong: 1
+      soluong: 1,
+      buy_now: options.buyNow === true
     })
 
-    swal.toast('Đã thêm sản phẩm vào giỏ hàng!', 'success')
+    if (!options.silent) {
+      swal.toast('Đã thêm sản phẩm vào giỏ hàng!', 'success')
+    }
     window.dispatchEvent(new Event('cart-updated'))
+    if (options.redirectTo) {
+      const target = typeof options.redirectTo === 'function'
+        ? options.redirectTo(addResponse.data?.item, variantId)
+        : options.redirectTo
+      router.push(target)
+    }
   } catch (err) {
     console.error('Lỗi khi thêm vào giỏ hàng:', err)
     swal.error('Thất bại', err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.')
   }
+}
+
+const buyPremiumProduct = (product) => {
+  addToCart(product, {
+    redirectTo: (cartItem, variantId) => ({
+      path: '/checkout',
+      query: {
+        buy_now: '1',
+        variant: variantId,
+        cart_item: cartItem?.id_giohang
+      }
+    }),
+    buyNow: true,
+    silent: true
+  })
 }
 
 const toggleWishlist = async (product) => {
@@ -730,7 +760,12 @@ watch(() => route.query, (newQuery) => {
       }"
     >
       <div class="hero-copy">
-        <span class="eyebrow-badge">⚡ Predator Flagship</span>
+        <span class="eyebrow-badge">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Predator Flagship
+        </span>
         <h1>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
         <p>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải nghiệm gaming hoàn mỹ.</p>
         <div class="hero-actions">
@@ -782,6 +817,9 @@ watch(() => route.query, (newQuery) => {
           <span class="flash-fire-icon">◆</span>
           <h2>MÁY FLAGSHIP ĐẮT TIỀN NHẤT</h2>
           <p>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
+          <p v-if="isUsingPremiumFallback" class="premium-fallback-note">
+            Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}, đang hiển thị top sản phẩm đắt nhất trong database.
+          </p>
         </div>
 
         <div class="premium-rank-badge">
@@ -791,8 +829,8 @@ watch(() => route.query, (newQuery) => {
       </div>
 
       <!-- Premium Flagship Slider Wrapper -->
-      <div class="flash-sale-carousel-wrapper">
-        <button class="carousel-arrow prev" @click="prevFlashSale">
+      <div v-if="flashSaleCarousel.length > 0" class="flash-sale-carousel-wrapper">
+        <button class="carousel-arrow prev" @click="prevFlashSale" :disabled="flashSaleMaxIndex === 0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
 
@@ -814,7 +852,7 @@ watch(() => route.query, (newQuery) => {
           <div 
             class="flash-sale-card" 
             v-for="product in flashSaleCarousel" 
-            :key="product.name"
+            :key="product.id_bienthe || product.id_sanpham"
             @click="goToPremiumProduct(product)"
           >
             <!-- Premium Badge -->
@@ -838,7 +876,7 @@ watch(() => route.query, (newQuery) => {
               <!-- Price row -->
               <div class="flash-price-row">
                 <span class="price-discounted">{{ formatPrice(product.price) }}</span>
-                <span class="price-original">Cấu hình cao cấp</span>
+                <span class="price-original">{{ product.variantName || 'Biến thể cao cấp nhất' }}</span>
               </div>
 
               <!-- Premium Highlight -->
@@ -847,15 +885,30 @@ watch(() => route.query, (newQuery) => {
                 <span class="flash-progress-text">{{ product.highlight }}</span>
               </div>
 
-              <button class="flash-buy-btn" @click.stop="goToPremiumProduct(product)">Xem cấu hình</button>
+              <div class="flash-actions" @pointerdown.stop>
+                <button type="button" class="flash-buy-btn" @click.stop="goToPremiumProduct(product)">Xem cấu hình</button>
+                <button
+                  type="button"
+                  class="flash-buy-btn buy-now"
+                  :disabled="!product.inStock"
+                  @click.stop="buyPremiumProduct(product)"
+                >
+                  {{ product.inStock ? 'Mua ngay' : 'Hết hàng' }}
+                </button>
+              </div>
             </div>
           </div>
           </div>
         </div>
 
-        <button class="carousel-arrow next" @click="nextFlashSale">
+        <button class="carousel-arrow next" @click="nextFlashSale" :disabled="flashSaleMaxIndex === 0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
+      </div>
+
+      <div v-else class="premium-empty-state">
+        <span>Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}</span>
+        <p>Section này sẽ tự hiển thị ngay khi database có biến thể sản phẩm đạt mức giá này.</p>
       </div>
     </section>
 
@@ -938,7 +991,7 @@ watch(() => route.query, (newQuery) => {
     <section class="services-pills-wrap">
       <div class="services-pills-grid">
         <div class="service-pill-card" v-for="service in servicesList" :key="service.title">
-          <div class="service-pill-icon-box">{{ service.icon }}</div>
+          <div class="service-pill-icon-box" v-html="service.icon"></div>
           <div class="service-pill-text">
             <h4>{{ service.title }}</h4>
             <p>{{ service.desc }}</p>
@@ -991,7 +1044,12 @@ watch(() => route.query, (newQuery) => {
           <div class="filter-sidebar-card">
             <div class="filter-sidebar-header">
               <div class="header-title-wrap">
-                <span class="filter-icon">🔍</span>
+                <span class="filter-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" style="display: inline-block; vertical-align: middle;">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </span>
                 <h3>Bộ lọc</h3>
               </div>
               <button 
@@ -1006,7 +1064,7 @@ watch(() => route.query, (newQuery) => {
             <!-- Brand Filter -->
             <div class="filter-option-group">
               <h4>Thương hiệu</h4>
-              <div class="filter-pill-grid">
+              <div class="filter-pill-grid brand-pill-grid">
                 <button 
                   v-for="brand in filterOptions.brands" 
                   :key="brand" 
@@ -1051,13 +1109,6 @@ watch(() => route.query, (newQuery) => {
                       aria-label="Giá tối đa"
                     />
                   </div>
-                </div>
-                <!-- Price Presets for quick select -->
-                <div class="price-presets">
-                  <button class="preset-btn" @click="minPrice = 0; maxPrice = 30000000">Dưới 30tr</button>
-                  <button class="preset-btn" @click="minPrice = 30000000; maxPrice = 50000000">30 - 50tr</button>
-                  <button class="preset-btn" @click="minPrice = 50000000; maxPrice = 70000000">50 - 70tr</button>
-                  <button class="preset-btn" @click="minPrice = 70000000; maxPrice = 150000000">Trên 70tr</button>
                 </div>
               </div>
             </div>
@@ -1198,7 +1249,11 @@ watch(() => route.query, (newQuery) => {
           </div>
 
           <div v-else-if="filteredProducts.length === 0" class="catalog-empty-box">
-            <span class="empty-icon">📂</span>
+            <span class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: #94a3b8; display: inline-block; margin-bottom: 12px;">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            </span>
             <p>Không tìm thấy dòng máy tính phù hợp với bộ lọc đã chọn.</p>
             <button class="btn-glow btn-sm" @click="clearAllFilters">Xóa bộ lọc</button>
           </div>
@@ -1267,11 +1322,19 @@ watch(() => route.query, (newQuery) => {
                 <!-- Badge row 2: Freeship & Warranty -->
                 <div class="card-badge-row-2">
                   <span class="badge-ship-warranty">
-                    <span class="badge-icon">⚡</span>
+                    <span class="badge-icon">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" style="display: inline-block; vertical-align: middle;">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                      </svg>
+                    </span>
                     Freeship 2H
                   </span>
                   <span class="badge-ship-warranty">
-                    <span class="badge-icon">✨</span>
+                    <span class="badge-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10" style="display: inline-block; vertical-align: middle;">
+                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                      </svg>
+                    </span>
                     BH 24T
                   </span>
                 </div>
@@ -1326,7 +1389,7 @@ watch(() => route.query, (newQuery) => {
               v-for="hl in showroomHighlights" 
               :key="hl.text"
             >
-              <span class="highlight-icon">{{ hl.icon }}</span>
+              <span class="highlight-icon" v-html="hl.icon"></span>
               <div>
                 <strong>{{ hl.text }}</strong>
                 <p>{{ hl.desc }}</p>
@@ -1849,6 +1912,13 @@ p {
   margin: 6px 0;
 }
 
+.premium-fallback-note {
+  margin-top: 8px;
+  color: #b45309 !important;
+  font-size: 12px !important;
+  font-weight: 700;
+}
+
 .flash-fire-icon {
   font-size: 22px;
   margin-right: 6px;
@@ -1996,6 +2066,28 @@ p {
   box-shadow: none;
 }
 
+.premium-empty-state {
+  border: 1px dashed #cbd5e1;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  color: #64748b;
+}
+
+.premium-empty-state span {
+  display: block;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.premium-empty-state p {
+  margin: 0;
+  font-size: 13px;
+}
+
 /* Clean premium white cards */
 .flash-sale-card {
   flex: 0 0 var(--flash-card-width, calc((100% - 48px) / 5));
@@ -2068,6 +2160,12 @@ p {
   object-fit: contain;
 }
 
+.flash-card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .flash-product-title {
   font-size: 11.5px;
   font-weight: 700;
@@ -2103,6 +2201,7 @@ p {
   align-items: baseline;
   gap: 5px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .price-discounted {
@@ -2116,6 +2215,8 @@ p {
   color: #b45309;
   text-decoration: none;
   font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
 }
 
 /* Compact Progress Bar */
@@ -2150,6 +2251,13 @@ p {
   line-height: 1.25;
 }
 
+.flash-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: auto;
+}
+
 .flash-buy-btn {
   background: #0f172a;
   color: #ffffff;
@@ -2157,13 +2265,28 @@ p {
   font-size: 10.5px;
   border: none;
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 8px 7px;
   cursor: pointer;
   transition: background 0.2s ease;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .flash-buy-btn:hover {
   background: #1d4ed8;
+}
+
+.flash-buy-btn.buy-now {
+  background: #2563eb;
+}
+
+.flash-buy-btn.buy-now:hover {
+  background: #1d4ed8;
+}
+
+.flash-buy-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 /* ============================================================
@@ -2634,6 +2757,15 @@ p {
   gap: 5px;
 }
 
+.brand-pill-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.brand-pill-grid .filter-pill-btn {
+  font-size: 9.5px;
+  padding-inline: 2px;
+}
+
 /* For RAM and SSD, we can have 4 columns since the texts are shorter */
 .filter-option-group:nth-of-type(4) .filter-pill-grid,
 .filter-option-group:nth-of-type(5) .filter-pill-grid {
@@ -2753,33 +2885,6 @@ p {
 
 .price-slider-inputs input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.2);
-}
-
-.price-presets {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.preset-btn {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  color: #111827;
-  min-height: 28px;
-  padding: 4px;
-  border-radius: 4px;
-  font-size: 9.8px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.15s ease;
-}
-
-.preset-btn:hover {
-  background: #ffffff;
-  border-color: rgba(37, 99, 235, 0.38);
-  color: #0f172a;
 }
 
 /* Grid Area - Compact 4 Columns */

@@ -73,7 +73,7 @@ onUnmounted(() => {
               <span class="live-label">CORE SERVER: <span class="green-text">ONLINE</span></span>
             </div>
             <div class="widget-details">
-              <span class="stat-item">Gamers tr?c tuy?n: <strong>{{ liveUserCount }}</strong></span>
+              <span class="stat-item">Gamers trực tuyến: <strong>{{ liveUserCount }}</strong></span>
               <span class="stat-divider">|</span>
               <span class="stat-item">Ping: <strong class="cyan-text">14ms</strong></span>
             </div>
@@ -99,9 +99,9 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- COLUMN 2: C?A H�NG C�NG NGH? -->
+        <!-- COLUMN 2: CUA HANG CONG NGHE -->
         <div class="dir-col">
-          <h4 class="col-title">C?a H?ng C?ng Ngh?</h4>
+          <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
           <ul class="footer-links">
             <li><router-link to="/products?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
             <li><router-link to="/products?category=macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
@@ -111,9 +111,9 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 3: H? SINH TH�I VINATECH -->
+        <!-- COLUMN 3: HE SINH THAI VINATECH -->
         <div class="dir-col">
-          <h4 class="col-title">H? Sinh Th?i</h4>
+          <h4 class="col-title">Hệ Sinh Thái</h4>
           <ul class="footer-links">
             <li><router-link to="/interactive-labs" class="link-item">Predator Interactive Labs</router-link></li>
             <li><router-link to="/interactive-labs" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
@@ -123,9 +123,9 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 4: H? TR? K? THU?T & H?U M�I -->
+        <!-- COLUMN 4: HO TRO KY THUAT & HAU MAI -->
         <div class="dir-col">
-          <h4 class="col-title">H? Tr? K? Thu?t</h4>
+          <h4 class="col-title">Hỗ Trợ Kỹ Thuật</h4>
           <ul class="footer-links">
             <li><router-link to="/contact" class="link-item">Liên Hệ & Gửi Yêu Cầu Hỗ Trợ</router-link></li>
             <li><a href="#" class="link-item">Chính Sách Bảo Hành Ultimate Care</a></li>
@@ -137,14 +137,14 @@ onUnmounted(() => {
 
         <!-- COLUMN 5: NEWSLETTER & NEWS SOUNDWAVE HOTLINE -->
         <div class="dir-col newsletter-col">
-          <h4 class="col-title">B?n Tin Cyber-Tech</h4>
+          <h4 class="col-title">Bản Tin Cyber-Tech</h4>
           <p class="news-desc">Đăng ký ngay để nhận sớm voucher giảm giá 10% và cập nhật công nghệ AI mới nhất.</p>
           
           <div class="subscribe-box-glass">
             <span class="sub-mail-icon">@</span>
             <input type="email" placeholder="Địa chỉ email của bạn..." class="subscribe-input" />
             <button class="subscribe-btn">
-              <span>??NG K?</span>
+              <span>Đăng Ký</span>
               <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
@@ -158,7 +158,7 @@ onUnmounted(() => {
               <div class="hotline-number">
                 <span>1800 9999</span>
                 <!-- Soundwave dynamic animation bars -->
-                <div class="soundwave-container" title="T?ng ??i tr?c tuy?n ho?t ??ng">
+                <div class="soundwave-container" title="Tổng đài trực tuyến hoạt động">
                   <div class="soundwave-bar"></div>
                   <div class="soundwave-bar"></div>
                   <div class="soundwave-bar"></div>
@@ -166,7 +166,7 @@ onUnmounted(() => {
                   <div class="soundwave-bar"></div>
                 </div>
               </div>
-              <p class="hotline-note">H? tr? k? thu?t chuy?n s?u (mi?n ph? cu?c g?i)</p>
+              <p class="hotline-note">Hỗ trợ kỹ thuật chuyên sâu (miễn phí cuộc gọi)</p>
             </div>
           </div>
 
@@ -196,7 +196,7 @@ onUnmounted(() => {
 
           <div class="b-right">
             <!-- Payment gateway logos (Vivid glowing SVGs on hover) -->
-            <div class="payment-suite" aria-label="C?ng thanh to?n h? tr?">
+            <div class="payment-suite" aria-label="Cổng thanh toán hỗ trợ">
               <!-- VISA -->
               <div class="pay-logo visa" title="Visa Card">
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -215,11 +215,11 @@ onUnmounted(() => {
                 <span class="jcb-text">JCB</span>
               </div>
               <!-- MOMO -->
-              <div class="pay-logo momo" title="V? MoMo">
+              <div class="pay-logo momo" title="Ví MoMo">
                 <span class="momo-text">MoMo</span>
               </div>
               <!-- VNPAY -->
-              <div class="pay-logo vnpay" title="VNPAY C?ng thanh to?n">
+              <div class="pay-logo vnpay" title="VNPAY Cổng thanh toán">
                 <span class="vnpay-text">VNPAY</span>
               </div>
             </div>

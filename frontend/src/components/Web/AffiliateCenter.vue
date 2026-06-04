@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
@@ -110,17 +110,54 @@ const onProductSelectChange = () => {
   generatedLink.value = `${window.location.origin}/products/${selectedProductId.value}?ref=${code}`
 }
 
+const fallbackCopyTextToClipboard = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.opacity = '0'
+  textArea.style.pointerEvents = 'none'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch (err) {
+    console.error('Fallback copy failed:', err)
+    document.body.removeChild(textArea)
+    return false
+  }
+}
+
 const copyGeneratedLink = async () => {
   if (!generatedLink.value) return
   try {
-    await navigator.clipboard.writeText(generatedLink.value)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(generatedLink.value)
+    } else {
+      if (!fallbackCopyTextToClipboard(generatedLink.value)) {
+        throw new Error('Fallback copy failed')
+      }
+    }
     genCopied.value = true
     swal.toast('Đã sao chép link tiếp thị!', 'success')
     setTimeout(() => {
       genCopied.value = false
     }, 2000)
   } catch (e) {
-    swal.error('L?i sao chép', 'Không th? t? d?ng copy vào b? nh? t?m.')
+    console.warn('Không thể copy bằng navigator.clipboard, thử copy bằng fallback...', e)
+    if (fallbackCopyTextToClipboard(generatedLink.value)) {
+      genCopied.value = true
+      swal.toast('Đã sao chép link tiếp thị!', 'success')
+      setTimeout(() => {
+        genCopied.value = false
+      }, 2000)
+    } else {
+      swal.error('Lỗi sao chép', 'Không thể tự động copy vào bộ nhớ tạm.')
+    }
   }
 }
 
@@ -232,14 +269,29 @@ const activate = async () => {
 const copyLink = async () => {
   if (!data.value.ref_link) return
   try {
-    await navigator.clipboard.writeText(data.value.ref_link)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(data.value.ref_link)
+    } else {
+      if (!fallbackCopyTextToClipboard(data.value.ref_link)) {
+        throw new Error('Fallback copy failed')
+      }
+    }
     copied.value = true
     swal.toast('Đã sao chép link giới thiệu!', 'success')
     setTimeout(() => {
       copied.value = false
     }, 2000)
   } catch (e) {
-    swal.error('L?i sao chép', 'Không th? t? d?ng copy vào b? nh? t?m.')
+    console.warn('Không thể copy bằng navigator.clipboard, thử copy bằng fallback...', e)
+    if (fallbackCopyTextToClipboard(data.value.ref_link)) {
+      copied.value = true
+      swal.toast('Đã sao chép link giới thiệu!', 'success')
+      setTimeout(() => {
+        copied.value = false
+      }, 2000)
+    } else {
+      swal.error('Lỗi sao chép', 'Không thể tự động copy vào bộ nhớ tạm.')
+    }
   }
 }
 

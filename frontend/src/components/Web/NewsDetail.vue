@@ -209,19 +209,26 @@ const saveCache = (id) => {
 
 const fetchPost = async () => {
   const articleId = route.params.id
-  if (!articleId) return
+  if (!articleId) {
+    post.value = null
+    relatedPosts.value = []
+    errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
+    loading.value = false
+    return
+  }
 
   const hasCache = loadCache(articleId)
+  errorMessage.value = ''
   if (hasCache) {
     loading.value = false
   } else {
     loading.value = true
   }
-  errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
 
   try {
     const { data } = await api.get(`/news/${articleId}`, { skipGlobalLoader: true })
     post.value = data
+    errorMessage.value = ''
     applyArticleSeo(data)
     
     // T?i bài vi?t liên quan
@@ -237,6 +244,8 @@ const fetchPost = async () => {
       post.value = null
       relatedPosts.value = []
       errorMessage.value = 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
+    } else {
+      errorMessage.value = ''
     }
     loading.value = false
   }

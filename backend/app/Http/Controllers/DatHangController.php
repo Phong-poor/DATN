@@ -140,6 +140,10 @@ class DatHangController extends Controller
             'PTTT'   => 'required|string',
             'name'   => 'required|string',
             'phone'  => 'required|string',
+            'selected_cart_items' => 'nullable|array',
+            'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
+            'selected_variants' => 'nullable|array',
+            'selected_variants.*' => 'integer|exists:bienthe,id_bienthe',
         ]);
 
         $userId = Auth::id();
@@ -170,7 +174,26 @@ class DatHangController extends Controller
         // Gắn tên và sđt vào địa chỉ giao hàng để lưu lại
         $diaChiGiaoHang = $request->name . ' - ' . $request->phone . ' - ' . $diaChiGiaoHang;
 
-        $gioHangItems = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId)->get();
+        $selectedCartItems = collect($request->input('selected_cart_items', []))
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $selectedVariants = collect($request->input('selected_variants', []))
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $gioHangQuery = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId);
+        if ($selectedCartItems->isNotEmpty()) {
+            $gioHangQuery->whereIn('id_giohang', $selectedCartItems->all());
+        } elseif ($selectedVariants->isNotEmpty()) {
+            $gioHangQuery->whereIn('id_bienthe', $selectedVariants->all());
+        }
+
+        $gioHangItems = $gioHangQuery->get();
 
         if ($gioHangItems->isEmpty()) {
             return response()->json([
@@ -393,7 +416,13 @@ class DatHangController extends Controller
             }
 
             if (!$isMomoPayment) {
-                GioHang::where('user_id', $userId)->delete();
+                $deleteQuery = GioHang::where('user_id', $userId);
+                if ($selectedCartItems->isNotEmpty()) {
+                    $deleteQuery->whereIn('id_giohang', $selectedCartItems->all());
+                } elseif ($selectedVariants->isNotEmpty()) {
+                    $deleteQuery->whereIn('id_bienthe', $selectedVariants->all());
+                }
+                $deleteQuery->delete();
 
                 // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
                 if ($promoId) {

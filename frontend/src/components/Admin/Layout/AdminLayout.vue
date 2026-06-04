@@ -11,8 +11,11 @@
   >
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">N</div>
-        <span class="logo-text">Predator</span>
+        <img
+          src="/ChatGPT_Image_08_35_43_4_thg_6__2026-removebg-preview.png"
+          alt="Predator Group"
+          class="admin-logo-img"
+        />
       </div>
 
       <div class="menu-section">
@@ -263,7 +266,7 @@ const appearance = ref({
 })
 
 const menuConfig = [
-  { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   {
     label: 'Sản phẩm',
     icon: Package,
@@ -344,7 +347,7 @@ watch(
 )
 
 const quickApps = [
-  { label: 'Dashboard', path: '/admin' },
+  { label: 'Tổng quan', path: '/admin' },
   { label: 'Sản phẩm', path: '/admin/products' },
   { label: 'Đơn hàng', path: '/admin/orders' },
   { label: 'Khuyến mãi', path: '/admin/promotions' },
@@ -371,7 +374,7 @@ const adminVars = computed(() => {
   }
 })
 
-const userName = computed(() => user.value?.name || user.value?.ten || 'Admin')
+const userName = computed(() => 'Predator Group')
 const userEmail = computed(() => user.value?.email || user.value?.username || '')
 const userInitials = computed(() =>
   userName.value
@@ -597,9 +600,8 @@ onUnmounted(() => {
 .admin-layout { display: flex; height: 100vh; overflow: hidden; background: #f5f7fb; font-family: Inter, sans-serif; }
 .admin-layout.dark { background: #0f172a; }
 .sidebar { width: 260px; min-width: 260px; background: #071d52; padding: 20px 14px; height: 100vh; overflow: hidden; position: relative; display: flex; flex-direction: column; }
-.sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 4px 6px 16px; border-bottom: 1px solid #1e293b; margin-bottom: 4px; }
-.logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #34d399); color: #fff; display: grid; place-items: center; font-weight: 800; }
-.logo-text { color: #f1f5f9; font-size: 18px; font-weight: 700; }
+.sidebar-logo { display: flex; align-items: center; justify-content: center; padding: 2px 4px 16px; border-bottom: 1px solid #1e293b; margin-bottom: 4px; }
+.admin-logo-img { width: 220px; max-width: 100%; height: 74px; object-fit: contain; display: block; filter: drop-shadow(0 8px 18px rgba(0,0,0,.24)); }
 .menu-label { font-size: 11px; font-weight: 700; color: rgba(248, 250, 252, 0.8); letter-spacing: 1px; padding: 12px 12px 8px; margin: 0; }
 .menu-section { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 10px; }
 .menu-section { -ms-overflow-style: none; scrollbar-width: none; }

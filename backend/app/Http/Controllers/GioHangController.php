@@ -343,6 +343,7 @@ class GioHangController extends Controller
         $request->validate([
             'id_bienthe' => 'required|exists:bienthe,id_bienthe',
             'soluong'    => 'required|integer|min:1',
+            'buy_now'    => 'nullable|boolean',
         ]);
 
         $userId    = Auth::id();
@@ -365,7 +366,7 @@ class GioHangController extends Controller
             ->whereNull('combo_group_id')
             ->first();
 
-        if ($existing) {
+        if ($existing && !$request->boolean('buy_now')) {
             $existing->update(['soluong' => $existing->soluong + $soLuong]);
             $item = $existing;
         } else {

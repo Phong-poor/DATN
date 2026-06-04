@@ -314,9 +314,37 @@ const startTimers = () => {
 }
 
 // ===================== INTERACTIVE ACTIONS =====================
+const fallbackCopyTextToClipboard = (text) => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.opacity = '0'
+  textArea.style.pointerEvents = 'none'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch (err) {
+    console.error('Fallback copy failed:', err)
+    document.body.removeChild(textArea)
+    return false
+  }
+}
+
 const copyVoucherCode = async (code, id) => {
   try {
-    await navigator.clipboard.writeText(code)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(code)
+    } else {
+      if (!fallbackCopyTextToClipboard(code)) {
+        throw new Error('Clipboard API not available and fallback failed')
+      }
+    }
     copiedVoucherId.value = id
     swal.toastSuccess(`Đã copy mã: ${code}`)
     setTimeout(() => {
@@ -325,8 +353,18 @@ const copyVoucherCode = async (code, id) => {
       }
     }, 3000)
   } catch (err) {
-    console.error('Không thể copy mã:', err)
-    swal.error('Lỗi', 'Không thể copy mã tự động, vui lòng tự nhập.')
+    console.warn('Không thể copy bằng navigator.clipboard, thử copy bằng fallback...', err)
+    if (fallbackCopyTextToClipboard(code)) {
+      copiedVoucherId.value = id
+      swal.toastSuccess(`Đã copy mã: ${code}`)
+      setTimeout(() => {
+        if (copiedVoucherId.value === id) {
+          copiedVoucherId.value = null
+        }
+      }, 3000)
+    } else {
+      swal.error('Lỗi', 'Không thể copy mã tự động, vui lòng tự nhập.')
+    }
   }
 }
 
@@ -1785,17 +1823,17 @@ const initScrollReveal = () => {
   text-transform: uppercase;
 }
 
-.voucher-glass-card.shipping .voucher-badge { color: #34d399; background: rgba(16, 185, 129, 0.08); }
-.voucher-glass-card.payment .voucher-badge { color: #22d3ee; background: rgba(0, 229, 255, 0.08); }
-.voucher-glass-card.product .voucher-badge { color: #60a5fa; background: rgba(59, 130, 246, 0.08); }
+.voucher-glass-card.shipping .voucher-badge { color: #34d399 !important; background: rgba(16, 185, 129, 0.08); }
+.voucher-glass-card.payment .voucher-badge { color: #22d3ee !important; background: rgba(0, 229, 255, 0.08); }
+.voucher-glass-card.product .voucher-badge { color: #60a5fa !important; background: rgba(59, 130, 246, 0.08); }
 
 .voucher-code-label {
   font-size: 11.5px;
-  color: #94a3b8;
+  color: #94a3b8 !important;
 }
 
 .voucher-code-label strong {
-  color: var(--text-light);
+  color: #ffffff !important;
 }
 
 .voucher-body {
@@ -1807,11 +1845,12 @@ const initScrollReveal = () => {
   font-size: 18px;
   font-weight: 800;
   margin: 0 0 6px 0;
+  color: #ffffff !important;
 }
 
 .voucher-body p {
   font-size: 12.5px;
-  color: #94a3b8;
+  color: #cbd5e1 !important;
   line-height: 1.5;
   margin: 0;
 }

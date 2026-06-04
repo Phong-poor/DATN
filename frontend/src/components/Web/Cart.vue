@@ -9,6 +9,35 @@ const cart = ref([])
 const isLoading = ref(false)
 const coupon = ref('')
 const discount = ref(0)
+
+// ===================== SELECTION =====================
+const selectedIds = ref(new Set())
+
+const allItemIds = computed(() => {
+    return cart.value.filter(i => !i.id_combo).map(i => i.id_giohang)
+})
+
+const isAllSelected = computed(() => {
+    if (allItemIds.value.length === 0) return false
+    return allItemIds.value.every(id => selectedIds.value.has(id))
+})
+
+const selectedCount = computed(() => selectedIds.value.size)
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedIds.value = new Set()
+    } else {
+        selectedIds.value = new Set(allItemIds.value)
+    }
+}
+
+const toggleItem = (id) => {
+    const s = new Set(selectedIds.value)
+    if (s.has(id)) s.delete(id)
+    else s.add(id)
+    selectedIds.value = s
+}
 const appliedPromo = ref(null)
 
 const freeshipCoupon = ref('')
@@ -17,24 +46,24 @@ const appliedFreeshipPromo = ref(null)
 
 // L?y di?u ki?n t?i thi?u t? promotion freeship được ch?n (d?ng computed)
 const freeshipMinOrder = computed(() => {
-    // N?u dang �p m� freeship th� l?y dieu_kien c?a m� d�
+    // N?u dang p m freeship th l?y dieu_kien c?a m d
     if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
         return appliedFreeshipPromo.value.dieu_kien
     }
-    // N?u dang ch?n m� t? select (chua apply) th� l?y dieu_kien c?a m� d�
+    // N?u dang ch?n m t? select (chua apply) th l?y dieu_kien c?a m d
     if (freeshipCoupon.value) {
         const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
         if (p && p.dieu_kien > 0) return p.dieu_kien
     }
-    // N?u chua ch?n m� n�o, l?y dieu_kien nh? nh?t trong danh s�ch freeship
+    // N?u chua ch?n m no, l?y dieu_kien nh? nh?t trong danh sch freeship
     const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
     if (withCondition.length > 0) {
         return Math.min(...withCondition.map(p => p.dieu_kien))
     }
-    return 0 // Kh�ng c� di?u ki?n = mi?n ph� ship t?t c? don
+    return 0 // Khng c di?u ki?n = mi?n ph ship t?t c? don
 })
 
-// L?y di?u ki?n ri�ng cho t?ng m� freeship (d�ng khi ch?n m� c? th?)
+// L?y di?u ki?n ring cho t?ng m freeship (dng khi ch?n m c? th?)
 const getFreeshipMinOrder = (promo) => {
     if (!promo) return 0
     return promo.dieu_kien > 0 ? promo.dieu_kien : 0
@@ -49,7 +78,7 @@ const hienThiThongBao = (type, message) => {
     setTimeout(() => { thongBao.value.show = false }, 3000)
 }
 
-// ===================== GI? H�NG =====================
+// ===================== GI? HNG =====================
 const fetchGioHang = async () => {
     try {
         if (cart.value.length === 0) isLoading.value = true
@@ -111,7 +140,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
 
     group.soluong = soLuongMoi
     
-    // C?p nh?t s? lu?ng c?a t?ng m�n trong cache gi? h�ng c?c b?
+    // C?p nh?t s? lu?ng c?a t?ng mn trong cache gi? hng c?c b?
     cart.value.forEach(item => {
         if (item.combo_group_id === group.combo_group_id) {
             item.soluong = soLuongMoi
@@ -157,7 +186,7 @@ const capNhatSoLuong = async (item, delta) => {
         return
     }
 
-    // C?p nh?t state g?c trong cart.value d? k�ch ho?t t�nh to�n l?i subtotal/total
+    // C?p nh?t state g?c trong cart.value d? kch ho?t tnh ton l?i subtotal/total
     const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
     if (originalItem) {
         originalItem.soluong = soLuongMoi
@@ -168,7 +197,7 @@ const capNhatSoLuong = async (item, delta) => {
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
-    // T�nh l?i discount n?u d� �p m�
+    // Tnh l?i discount n?u d p m
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
 
@@ -185,8 +214,9 @@ const xoaSanPham = async (idGioHang) => {
     if (index === -1) return
     const item = cart.value[index]
     cart.value.splice(index, 1)
+    selectedIds.value.delete(idGioHang)
 
-    // T�nh l?i discount sau khi x�a
+    // Tính lại discount sau khi xóa
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
 
@@ -202,10 +232,11 @@ const xoaSanPham = async (idGioHang) => {
 
 const xoaTatCa = async () => {
     const isConfirmed = await swal.confirm('Xóa giỏ hàng', 'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi giỏ hàng?')
-  if (!isConfirmed) return
+    if (!isConfirmed) return
     try {
         await api.delete('/gio-hang/xoa-tat')
         cart.value = []
+        selectedIds.value = new Set()
         discount.value = 0
         appliedPromo.value = null
         coupon.value = ''
@@ -219,7 +250,19 @@ const xoaTatCa = async () => {
     }
 }
 
-// ===================== M� GI?M GI� =====================
+const xoaDaChon = async () => {
+    if (selectedIds.value.size === 0) return
+    const isConfirmed = await swal.confirm('Xóa sản phẩm đã chọn', `Bạn có chắc chắn muốn xóa ${selectedIds.value.size} sản phẩm đã chọn?`)
+    if (!isConfirmed) return
+
+    const ids = [...selectedIds.value]
+    for (const id of ids) {
+        await xoaSanPham(id)
+    }
+    selectedIds.value = new Set()
+}
+
+// ===================== M GI?M GI =====================
 const allPromos = ref([])
 
 const fetchPromotions = async () => {
@@ -231,7 +274,7 @@ const fetchPromotions = async () => {
     }
 }
 
-// T�nh s? ti?n gi?m d?a v�o promo object
+// Tnh s? ti?n gi?m d?a vo promo object
 const tinhDiscount = (promo) => {
     if (!promo) { discount.value = 0; return }
     const sub = subtotal.value
@@ -247,7 +290,7 @@ const tinhDiscount = (promo) => {
 const tinhFreeshipDiscount = (promo) => {
     if (!promo) { freeshipDiscount.value = 0; return }
     const minOrder = getFreeshipMinOrder(promo)
-    // Ki?m tra l?i di?u ki?n khi t�nh l?i (v� d? sau khi x�a s?n ph?m)
+    // Ki?m tra l?i di?u ki?n khi tnh l?i (v d? sau khi xa s?n ph?m)
     if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipDiscount.value = 0
         appliedFreeshipPromo.value = null
@@ -314,7 +357,7 @@ const apDungFreeshipTuSelect = () => {
     const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
     if (!promo) return
     const minOrder = getFreeshipMinOrder(promo)
-    // Ki?m tra di?u ki?n don h�ng t?i thi?u c?a m� n�y
+    // Ki?m tra di?u ki?n don hng t?i thi?u c?a m ny
     if (minOrder > 0 && subtotal.value < minOrder) {
         freeshipCoupon.value = ''
         hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(minOrder)} để dùng mã miễn phí vận chuyển này!`)
@@ -366,7 +409,7 @@ const autoApplyPromo = () => {
         }
     }
 
-    // 2. FREESHIP DISCOUNT (�p d?ng d?a tr�n dieu_kien c?a t?ng m�)
+    // 2. FREESHIP DISCOUNT (p d?ng d?a trn dieu_kien c?a t?ng m)
     let bestF = null
     let maxDF = 0
     freeshipPromosList.value.forEach(p => {
@@ -441,7 +484,7 @@ onMounted(() => {
   <!-- ===== TOAST NOTIFICATION ===== -->
   <transition name="toast-slide">
     <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
-      <span class="toast-icon">{{ thongBao.type === 'success' ? '?' : '?' }}</span>
+      <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '⚠' }}</span>
       {{ thongBao.message }}
     </div>
   </transition>
@@ -456,16 +499,16 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">??? Predator Laptop Store</div>
+              <div class="header-eyebrow">🎯 Predator Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
-                <span class="item-count-badge">{{ cart.length }} s?n ph?m</span>
+                <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
               </h1>
               <p class="header-sub">Kiểm tra sản phẩm trước khi thanh toán</p>
             </div>
             <div class="header-actions">
               <router-link to="/products" class="btn-continue">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                Tiếp tục mua s?m
+                Tiếp tục mua sắm
               </router-link>
               <button v-if="cart.length > 0" class="btn-clear-all" @click="xoaTatCa">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -473,21 +516,27 @@ onMounted(() => {
               </button>
             </div>
           </div>
-          <div class="trust-strip">
-            <span class="trust-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              Thanh toán bảo mật
-            </span>
-            <span class="trust-dot">•</span>
-            <span class="trust-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              Bảo hành chính hãng
-            </span>
-            <span class="trust-dot">•</span>
-            <span class="trust-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              Giao nhanh 2h
-            </span>
+
+          <!-- SELECTION TOOLBAR -->
+          <div class="selection-bar" v-if="cart.length > 0">
+            <label class="select-all-wrap">
+              <input
+                type="checkbox"
+                class="item-checkbox"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+              />
+              <span>Chọn tất cả ({{ allItemIds.length }})</span>
+            </label>
+            <transition name="fade">
+              <div class="selection-actions" v-if="selectedCount > 0">
+                <span class="selected-badge">{{ selectedCount }} đã chọn</span>
+                <button class="btn-delete-selected" @click="xoaDaChon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  Xóa đã chọn
+                </button>
+              </div>
+            </transition>
           </div>
         </div>
 
@@ -530,7 +579,7 @@ onMounted(() => {
           <p class="empty-sub">Khám phá những mẫu laptop mới nhất tại Predator và thêm sản phẩm bạn yêu thích vào giỏ hàng.</p>
           <router-link to="/products" class="empty-cta">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Tiếp tục mua s?m
+            Tiếp tục mua sắm
           </router-link>
         </div>
 
@@ -539,7 +588,20 @@ onMounted(() => {
           <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : entry.id_giohang">
 
             <!-- Standalone item -->
-            <div class="cart-item-card" v-if="!entry.isCombo">
+            <div
+              class="cart-item-card"
+              :class="{ 'is-selected': selectedIds.has(entry.id_giohang) }"
+              v-if="!entry.isCombo"
+            >
+              <!-- CHECKBOX -->
+              <label class="card-checkbox-wrap" @click.stop>
+                <input
+                  type="checkbox"
+                  class="item-checkbox"
+                  :checked="selectedIds.has(entry.id_giohang)"
+                  @change="toggleItem(entry.id_giohang)"
+                />
+              </label>
 
               <!-- IMAGE BOX -->
               <div class="item-image-box">
@@ -547,10 +609,10 @@ onMounted(() => {
                   {{ entry.ton_kho > 0 ? 'Còn hàng' : 'Hết hàng' }}
                 </div>
                 <img
-                  :src="entry.hinh_anh || 'https://via.placeholder.com/140'"
+                  :src="entry.hinh_anh || 'https://via.placeholder.com/90'"
                   :alt="entry.ten_san_pham"
                   class="item-img"
-                  @error="e => e.target.src = 'https://via.placeholder.com/140'"
+                  @error="e => e.target.src = 'https://via.placeholder.com/90'"
                 />
               </div>
 
@@ -569,7 +631,7 @@ onMounted(() => {
 
                 <!-- QUANTITY SELECTOR -->
                 <div class="qty-selector">
-                  <span class="qty-label">S? lu?ng</span>
+                  <span class="qty-label">Số lượng</span>
                   <div class="qty-controls">
                     <button class="qty-btn" @click="capNhatSoLuong(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -598,9 +660,9 @@ onMounted(() => {
 
             <!-- Combo grouped items -->
             <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
-              <!-- Banner qu� t?ng VIP (ch? hi?n khi l� uu d�i mi?n ph�) -->
+              <!-- Banner qu t?ng VIP (ch? hi?n khi l uu di mi?n ph) -->
               <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
-                <span class="gift-offer-icon">??</span>
+                <span class="gift-offer-icon">🎁</span>
                 <div class="gift-offer-text">
                   <strong>Quà Tặng Đặc Quyền VIP</strong>
                   <span>Miễn phí hoàn toàn - Kèm theo đơn hàng của bạn</span>
@@ -638,7 +700,7 @@ onMounted(() => {
               </div>
               <div class="combo-group-footer">
                 <div class="qty-section">
-                  <span>S? lu?ng:</span>
+                  <span>Số lượng:</span>
                   <div class="qty">
                     <button @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">-</button>
                     <span>{{ entry.soluong }}</span>
@@ -646,7 +708,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="total-section">
-                  <span class="lbl">Tr?n b?:</span>
+                  <span class="lbl">Trọn bộ:</span>
                   <span v-if="entry.gia_combo === 0" class="price-val free-combo-price">MIỄN PHÍ</span>
                   <span v-else class="price-val">{{ formatPrice(entry.gia_combo * entry.soluong) }}</span>
                 </div>
@@ -663,7 +725,7 @@ onMounted(() => {
         <div class="summary-card">
           <div class="summary-header">
             <h2 class="summary-title">Tóm tắt đơn hàng</h2>
-            <span class="summary-count">{{ cart.length }} s?n ph?m</span>
+            <span class="summary-count">{{ cart.length }} sản phẩm</span>
           </div>
 
           <!-- PRICE ROWS -->
@@ -744,7 +806,7 @@ onMounted(() => {
 
           <!-- TOTAL -->
           <div class="summary-total-row">
-            <span class="total-label">T?ng c?ng</span>
+            <span class="total-label">Tổng cộng</span>
             <div class="total-amount">{{ formatPrice(total) }}</div>
           </div>
 
@@ -779,7 +841,7 @@ onMounted(() => {
               <div class="trust-icon shield">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <span>B?o m?t SSL</span>
+              <span>Bảo mật SSL</span>
             </div>
             <div class="trust-badge">
               <div class="trust-icon check">
@@ -971,25 +1033,70 @@ onMounted(() => {
 .btn-clear-all svg { width: 13px; height: 13px; }
 .btn-clear-all:hover { background: #fee2e2; }
 
-/* TRUST STRIP */
-.trust-strip {
+/* SELECTION BAR */
+.selection-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-top: 14px;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
-.trust-item {
+.select-all-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  user-select: none;
+}
+.select-all-wrap:hover { color: var(--primary); }
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+.selected-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.btn-delete-selected {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
-  color: var(--text-3);
-  font-weight: 500;
+  padding: 6px 13px;
+  border-radius: 10px;
+  border: none;
+  background: #fef2f2;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--tr);
 }
-.trust-item svg { width: 12px; height: 12px; }
-.trust-dot { color: #cbd5e1; font-size: 14px; }
+.btn-delete-selected svg { width: 12px; height: 12px; }
+.btn-delete-selected:hover { background: #fee2e2; }
+
+/* Fade transition */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateX(10px); }
+
+/* Custom checkbox */
+.item-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
 
 /* SKELETON */
 .skeleton-list { display: flex; flex-direction: column; gap: 14px; }
@@ -1002,7 +1109,7 @@ onMounted(() => {
   padding: 20px;
   align-items: flex-start;
 }
-.sk-img { width: 130px; height: 130px; border-radius: 16px; background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; flex-shrink: 0; }
+.sk-img { width: 90px; height: 90px; border-radius: 12px; background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; flex-shrink: 0; }
 .sk-body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .sk-chips { display: flex; gap: 6px; }
 .sk-chip { height: 22px; width: 80px; border-radius: 8px; background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
@@ -1041,57 +1148,71 @@ onMounted(() => {
 .empty-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.35); }
 
 /* ITEMS LIST */
-.items-list { display: flex; flex-direction: column; gap: 14px; }
+.items-list { display: flex; flex-direction: column; gap: 12px; }
 
 /* CART ITEM CARD */
 .cart-item-card {
   background: var(--card);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  padding: 20px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  padding: 12px 14px;
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
   transition: var(--tr);
   position: relative;
 }
+.cart-item-card.is-selected {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+  box-shadow: 0 4px 16px rgba(99,102,241,0.12);
+}
 .cart-item-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1);
   border-color: #c7d2fe;
+}
+.cart-item-card.is-selected:hover { border-color: var(--primary-dark); }
+
+/* Checkbox inside card */
+.card-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 /* IMAGE BOX */
 .item-image-box {
-  width: 140px;
-  height: 140px;
+  width: 90px;
+  height: 90px;
   flex-shrink: 0;
   background: linear-gradient(145deg, #f8fafc 0%, #eef2ff 100%);
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 8px;
   position: relative;
   overflow: hidden;
 }
 .item-img {
   max-width: 100%;
-  max-height: 110px;
+  max-height: 72px;
   object-fit: contain;
   transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.08));
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
 }
-.cart-item-card:hover .item-img { transform: scale(1.05); }
+.cart-item-card:hover .item-img { transform: scale(1.06); }
 
 .stock-dot {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 6px;
+  left: 6px;
   font-size: 9px;
   font-weight: 800;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 20px;
   color: white;
   z-index: 2;
@@ -1108,15 +1229,15 @@ onMounted(() => {
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--primary);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 .item-name {
   font-family: var(--font-display);
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-1);
   line-height: 1.4;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1124,60 +1245,60 @@ onMounted(() => {
 }
 
 /* ATTRIBUTE CHIPS */
-.attr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.attr-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
 .attr-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: #111f35;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px 8px;
-  font-size: 10.5px;
+  gap: 3px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 9.5px;
 }
-.chip-key { color: var(--text-3); font-weight: 500; }
-.chip-val { color: var(--text-2); font-weight: 700; }
+.chip-key { color: #64748b; font-weight: 500; }
+.chip-val { color: #1e293b; font-weight: 700; }
 
 /* QUANTITY SELECTOR */
-.qty-selector { display: flex; align-items: center; gap: 12px; }
-.qty-label { font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+.qty-selector { display: flex; align-items: center; gap: 8px; }
+.qty-label { font-size: 11px; font-weight: 600; color: var(--text-2); }
 .qty-controls {
   display: flex;
   align-items: center;
   gap: 0;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 10px;
   overflow: hidden;
-  background: #0d1b2e;
+  background: #f8fafc;
 }
 .qty-btn {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-2);
+  color: #6366f1;
   transition: var(--tr);
 }
-.qty-btn svg { width: 14px; height: 14px; }
-.qty-btn:hover:not(:disabled) { background: #e0e7ff; color: var(--primary); }
+.qty-btn svg { width: 12px; height: 12px; }
+.qty-btn:hover:not(:disabled) { background: #eef2ff; color: var(--primary-dark); }
 .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .qty-num {
-  min-width: 38px;
+  min-width: 30px;
   text-align: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-1);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  color: #1e293b;
+  border-left: 1px solid #c7d2fe;
+  border-right: 1px solid #c7d2fe;
   padding: 0 4px;
-  line-height: 34px;
+  line-height: 28px;
 }
 
-/* ITEM RIGHT */
+
 .item-right {
   display: flex;
   flex-direction: column;

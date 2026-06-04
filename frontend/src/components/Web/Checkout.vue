@@ -16,6 +16,8 @@ const discount = ref(Number(route.query.discount) || 0)
 const freeshipCode = ref(route.query.freeship_code || '')
 const freeshipDiscount = ref(Number(route.query.freeship_discount) || 0)
 const shippingFee = ref(30000)
+const buyNowVariantId = computed(() => route.query.buy_now === '1' ? String(route.query.variant || '') : '')
+const buyNowCartItemId = computed(() => route.query.buy_now === '1' ? String(route.query.cart_item || '') : '')
 
 const isLoading = ref(true)
 const isSubmitting = ref(false)
@@ -363,8 +365,9 @@ const fetchCart = async () => {
         isLoading.value = true
         const response = await api.get('/gio-hang')
         if (response.data.success) {
-            cart.value = response.data.gio_hang.map(item => ({
+            let items = response.data.gio_hang.map(item => ({
                 id_giohang: item.id_giohang,
+                id_bienthe: item.id_bienthe,
                 name: getFullProductName(item),
                 desc: item.ten_bienthe,
                 price: item.gia,
@@ -377,6 +380,14 @@ const fetchCart = async () => {
                 gia_combo: item.gia_combo,
                 gia_goc: item.gia_goc
             }))
+
+            if (buyNowCartItemId.value) {
+                items = items.filter(item => String(item.id_giohang) === buyNowCartItemId.value)
+            } else if (buyNowVariantId.value) {
+                items = items.filter(item => String(item.id_bienthe) === buyNowVariantId.value)
+            }
+
+            cart.value = items
         }
     } catch (error) {
         console.error('Lỗi khi tải giỏ hàng:', error)
@@ -489,7 +500,9 @@ const confirmOrder = async () => {
             phone: form.value.phone,
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
-            freeship_code: freeshipCode.value
+            freeship_code: freeshipCode.value,
+            selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : undefined,
+            selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined
         })
 
         if (response.data.success) {
@@ -584,7 +597,9 @@ const confirmOrder = async () => {
             <label class="pay-item" :class="{ active: payment === 'cod' }">
               <input type="radio" value="cod" v-model="payment" />
               <div class="radio"></div>
-              <div class="pay-logo cod-logo">COD</div>
+              <div class="pay-logo">
+                <img src="/tải xuống (1).jpg" alt="COD" />
+              </div>
               <div class="pay-text">
                 <b>COD (Thanh toán khi nhận hàng)</b>
                 <p>Thanh toán tiền mặt khi nhận hàng</p>
@@ -594,7 +609,9 @@ const confirmOrder = async () => {
             <label class="pay-item" :class="{ active: payment === 'vnpay' }">
               <input type="radio" value="vnpay" v-model="payment" />
               <div class="radio"></div>
-              <div class="pay-logo vnpay-logo">VN</div>
+              <div class="pay-logo">
+                <img src="/tải xuống.jpg" alt="VNPay" />
+              </div>
               <div class="pay-text">
                 <b>Ví điện tử VNPay</b>
                 <p>Thanh toán nhanh qua cổng VNPay sandbox</p>
@@ -604,7 +621,9 @@ const confirmOrder = async () => {
             <label class="pay-item" :class="{ active: payment === 'momo' }">
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
-              <div class="pay-logo momo-logo">M</div>
+              <div class="pay-logo">
+                <img src="/tải xuống.png" alt="MoMo" />
+              </div>
               <div class="pay-text">
                 <b>MoMo Sandbox</b>
                 <p>Chuyển sang MoMo để chọn QR, ATM/Napas hoặc Visa/Mastercard/JCB</p>
@@ -799,21 +818,21 @@ const confirmOrder = async () => {
 
 /* CONTAINER */
 .container {
-  max-width: 1200px;
+  max-width: 1040px;
   margin: auto;
-  padding: 40px 24px;
+  padding: 28px 20px;
   display: flex;
-  gap: 30px;
+  gap: 24px;
   align-items: start;
 }
 
 .left {
-  flex: 1;
+  flex: 0 1 680px;
   min-width: 0;
 }
 
 .right {
-  width: 380px;
+  width: 340px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
@@ -826,10 +845,11 @@ const confirmOrder = async () => {
 
 /* BOX */
 .box {
-  background: #111f35;
-  padding: 24px;
-  border-radius: 14px;
-  margin-bottom: 20px;
+  background: #e5e7eb;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #cbd5e1;
 }
 
 .box-title {
@@ -837,12 +857,13 @@ const confirmOrder = async () => {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  color: #111827;
 }
 
 .step {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: #2563eb;
   color: white;
   border-radius: 50%;
@@ -855,8 +876,8 @@ const confirmOrder = async () => {
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 /* INPUT */
@@ -901,36 +922,36 @@ textarea {
 /* CUSTOM CHECKOUT INPUTS */
 .checkout-input {
   width: 100% !important;
-  height: 48px !important;
-  padding: 0 16px !important;
-  border: 1.5px solid #cbd5e1 !important;
-  background: #ffffff !important;
-  border-radius: 12px !important;
-  font-size: 14px !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid #d1d5db !important;
+  background: #f8fafc !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
   color: #1e293b !important;
   box-sizing: border-box !important;
-  margin-bottom: 14px !important;
+  margin-bottom: 10px !important;
   outline: none !important;
   transition: all 0.2s ease !important;
 }
 
 .checkout-input:focus {
   border-color: #2563eb !important;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
   background: #ffffff !important;
 }
 
 .checkout-textarea {
   width: 100% !important;
-  height: 100px !important;
-  padding: 14px 16px !important;
-  border: 1.5px solid #cbd5e1 !important;
-  background: #ffffff !important;
-  border-radius: 12px !important;
-  font-size: 14px !important;
+  height: 84px !important;
+  padding: 12px 14px !important;
+  border: 1px solid #d1d5db !important;
+  background: #f8fafc !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
   color: #1e293b !important;
   box-sizing: border-box !important;
-  margin-top: 12px !important;
+  margin-top: 8px !important;
   resize: none !important;
   outline: none !important;
   transition: all 0.2s ease !important;
@@ -938,7 +959,7 @@ textarea {
 
 .checkout-textarea:focus {
   border-color: #2563eb !important;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
   background: #ffffff !important;
 }
 
@@ -953,7 +974,7 @@ textarea {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: #334155;
 }
 
 .address-header {
@@ -1241,23 +1262,24 @@ textarea {
 .pay-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .pay-item {
   display: grid;
-  grid-template-columns: 28px 44px 1fr;
+  grid-template-columns: 24px 40px 1fr;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 12px;
-  background: #0d1b2e;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #d1d5db;
   cursor: pointer;
 }
 
 .pay-item.active {
-  background: #e0ecff;
-  border: 1px solid #2563eb;
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
 }
 
 .pay-item input {
@@ -1265,8 +1287,8 @@ textarea {
 }
 
 .radio {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid #94a3b8;
   position: relative;
@@ -1278,8 +1300,8 @@ textarea {
 
 .pay-item.active .radio::after {
   content: '';
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   background: #2563eb;
   border-radius: 50%;
   position: absolute;
@@ -1288,10 +1310,10 @@ textarea {
 }
 
 .pay-text p {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #64748b;
   line-height: 1.4;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 .pay-text {
@@ -1300,37 +1322,32 @@ textarea {
 
 .pay-text b {
   line-height: 1.35;
+  color: #1e293b;
+  font-size: 13.5px;
 }
 
 .pay-logo {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -.02em;
+  overflow: hidden;
+  background: transparent;
 }
 
-.cod-logo {
-  background: linear-gradient(135deg, #0f172a, #475569);
-}
-
-.vnpay-logo {
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
-}
-
-.momo-logo {
-  background: linear-gradient(135deg, #d1007f, #a50064);
+.pay-logo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 /* RIGHT */
 .summary {
   background: #eef2ff;
-  padding: 20px;
+  padding: 18px;
   border-radius: 12px;
 }
 
@@ -1366,9 +1383,9 @@ textarea {
 }
 
 .btn {
-  margin-top: 15px;
+  margin-top: 14px;
   width: 100%;
-  padding: 12px;
+  padding: 11px;
   background: #2563eb;
   color: white;
   border: none;
