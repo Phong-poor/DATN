@@ -9,12 +9,24 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
+    private function frontendUrl(string $path, array $query = []): string
+    {
+        $url = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . $path;
+
+        if (!empty($query)) {
+            $url .= '?' . http_build_query($query);
+        }
+
+        return $url;
+    }
+
     public function register(Request $request)
     {
         if ($request->has('phone')) {
@@ -94,7 +106,7 @@ class AuthController extends Controller
             ], 500);
         }
 
-        Mail::to($user->email)->send(new RegisterSuccessMail($user));
+        Mail::to($user->email)->queue(new RegisterSuccessMail($user));
 
         return response()->json([
             'message' => 'Đăng ký thành công! Email xác nhận đã được gửi.',
@@ -202,7 +214,8 @@ class AuthController extends Controller
             }
             $googleUser = $driver->user();
         } catch (\Throwable $e) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=google_callback_failed");
+            Log::warning('Google OAuth callback failed', ['message' => $e->getMessage()]);
+            return redirect($this->frontendUrl('/login', ['social_error' => 'google_callback_failed']));
         }
 
         $user = User::where('email', $googleUser->getEmail())->first();
@@ -240,15 +253,18 @@ class AuthController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=google_create_failed");
+            return redirect($this->frontendUrl('/login', ['social_error' => 'google_create_failed']));
         }
 
         if (!$user) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=google_user_not_found");
+            return redirect($this->frontendUrl('/login', ['social_error' => 'google_user_not_found']));
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login-success?token=$token");
+        return redirect($this->frontendUrl('/login-success', [
+            'token' => $token,
+            'provider' => 'google',
+        ]));
     }
 
     public function redirectFacebook(Request $request)
@@ -288,7 +304,10 @@ class AuthController extends Controller
             return response($html, 400)->header('Content-Type', 'text/html; charset=utf-8');
         }
 
-        $driver = Socialite::driver('facebook')->stateless()->scopes(['email']);
+        $driver = Socialite::driver('facebook')
+            ->stateless()
+            ->fields(['name', 'email', 'picture']);
+        $driver->setScopes(['public_profile']);
         if ($request->has('ref')) {
             $driver->with(['state' => $request->query('ref')]);
         }
@@ -298,13 +317,16 @@ class AuthController extends Controller
     public function handleFacebook(Request $request)
     {
         try {
-            $driver = Socialite::driver('facebook')->stateless();
+            $driver = Socialite::driver('facebook')
+                ->stateless()
+                ->fields(['name', 'email', 'picture']);
             if (app()->environment('local')) {
                 $driver->setHttpClient(new \GuzzleHttp\Client(['verify' => false]));
             }
             $facebookUser = $driver->user();
         } catch (\Throwable $e) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=facebook_callback_failed");
+            Log::warning('Facebook OAuth callback failed', ['message' => $e->getMessage()]);
+            return redirect($this->frontendUrl('/login', ['social_error' => 'facebook_callback_failed']));
         }
 
         $email = $facebookUser->getEmail();
@@ -319,7 +341,7 @@ class AuthController extends Controller
             if (!$user) {
                 $user = User::create([
                     'name' => $facebookUser->getName() ?: 'Facebook User',
-                    'email' => $email ?: 'fb_' . $facebookUser->getId() . '@noemail.local',
+                    'email' => $email ?: 'facebook_' . $facebookUser->getId() . '@noemail.predator.local',
                     'facebook_id' => $facebookUser->getId(),
                     'avatar' => $facebookUser->getAvatar(),
                     'password' => Str::random(16),
@@ -359,14 +381,18 @@ class AuthController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=facebook_create_failed");
+            Log::error('Facebook OAuth user persistence failed', ['message' => $e->getMessage()]);
+            return redirect($this->frontendUrl('/login', ['social_error' => 'facebook_create_failed']));
         }
 
         if (!$user) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login?social_error=facebook_user_not_found");
+            return redirect($this->frontendUrl('/login', ['social_error' => 'facebook_user_not_found']));
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . "/login-success?token=$token");
+        return redirect($this->frontendUrl('/login-success', [
+            'token' => $token,
+            'provider' => 'facebook',
+        ]));
     }
 }
