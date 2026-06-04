@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 
 import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
@@ -9,7 +10,14 @@ import AddressMapPicker from './AddressMapPicker.vue'
 import { storageUrl } from '@/services/urls'
 
 // ── Active tab ────────────────────────────────────────────
-const activeTab = ref('profile')
+const route = useRoute()
+const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
+    activeTab.value = newTab
+  }
+})
 
 const tabs = [
   { key: 'profile', label: 'Thông tin cá nhân', icon: 'person' },

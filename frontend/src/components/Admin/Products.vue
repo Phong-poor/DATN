@@ -830,14 +830,16 @@ const fieldErrors = ref({})
 /**
  * Watch parent category change - load child categories and reset child category selection
  */
-watch(() => form.value.parentCategory, async (newParentId) => {
+watch(() => form.value.parentCategory, async (newParentId, oldParentId) => {
   if (newParentId) {
     await fetchChildCategories(newParentId)
   } else {
     childCategories.value = []
   }
-  // Reset child category and brand when parent changes
-  form.value.category = ''
+  // Reset child category and brand when parent changes, but only if it's a manual change from the user (oldParentId exists)
+  if (oldParentId) {
+    form.value.category = ''
+  }
   filterBrandsLocally()
 })
 
@@ -1766,6 +1768,7 @@ const submitForm = async () => {
       }).filter(s => s.giatri),
 
       bienthes: generatedRows.value.map((row) => ({
+        id_bienthe: row.isExisting ? Number(row.id) : null,
         ten_bienthe: row.ten_bienthe || Object.values(row.attrs || {}).join(' - '),
         gia: row.price === '' || row.price === null ? null : Number(row.price),
         soluong: row.stock === '' || row.stock === null ? null : Number(row.stock),

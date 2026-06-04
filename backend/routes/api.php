@@ -329,6 +329,8 @@ Route::middleware(['auth:sanctum', 'admin'])
 
 
         // ===== ADMIN REVIEWS =====
+        Route::get('/reviews/ai-status', [DanhGiaController::class, 'getAiStatus']);
+        Route::post('/reviews/ai-status', [DanhGiaController::class, 'toggleAiStatus']);
         Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
         Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
