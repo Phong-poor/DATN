@@ -192,6 +192,7 @@ Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
 // ================= SẢN PHẨM =================
+Route::get('/mobile/home', [SanPhamController::class, 'mobileHome']);
     Route::get('/sanpham/init', [SanPhamController::class, 'init']);
     Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
