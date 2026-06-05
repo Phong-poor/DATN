@@ -2061,7 +2061,8 @@ const promoStatusMap = {
 .form-full { grid-column:1/-1; }
 .form-group { display:flex; flex-direction:column; gap:6px; }
 .form-group label { font-size:13px; font-weight:600; color:#94a3b8; }
-.form-group input,.form-group select { padding:10px 14px; border:1.5px solid rgba(255, 255, 255, 0.15); border-radius:10px; font-size:14px; color: #f1f5f9; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background: #111f35; }
+.form-group input,.form-group select { padding:10px 14px; border:1.5px solid rgba(255, 255, 255, 0.15); border-radius:10px; font-size:14px; color: #f1f5f9 !important; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background: #111f35; }
+.form-group input:disabled, .form-group select:disabled { opacity: 0.6; color: #64748b !important; cursor: not-allowed; }
 .form-group select option { background-color: #111f35; color: #cbd5e1; }
 .form-group select option:disabled { color: #64748b; }
 .form-group input:focus,.form-group select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
