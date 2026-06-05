@@ -140,7 +140,7 @@ const normalizeCategoryQuery = (category) => {
 }
 
 const applyRouteFilters = (query = route.query) => {
-  activeCategory.value = normalizeCategoryQuery(query.category)
+  activeCategory.value = normalizeCategoryQuery(query.category || route.meta?.category)
   searchQuery.value = query.q ? String(query.q) : ''
 }
 
@@ -731,8 +731,8 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateFlashSaleViewport)
 })
 
-watch(() => route.query, (newQuery) => {
-  applyRouteFilters(newQuery)
+watch(() => route.fullPath, () => {
+  applyRouteFilters()
 })
 </script>
 
@@ -1381,7 +1381,7 @@ watch(() => route.query, (newQuery) => {
     </section>
 
     <!-- ===================== PREMIUM SERVICES GRID SYSTEM ===================== -->
-    <section class="section-layout services-grid-system">
+    <section v-if="false" class="section-layout services-grid-system">
       <div class="services-grid-header">
         <span class="services-system-label">DỊCH VỤ XỨNG TẦM</span>
         <h2>Dịch vụ xứng tầm một hệ thống cao cấp</h2>

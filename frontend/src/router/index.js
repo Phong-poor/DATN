@@ -11,6 +11,7 @@ const MainLayout = () => import('../components/Layout/MainLayout.vue')
 // ── Web Pages ──
 const Home = () => import('../components/Web/Home.vue')
 const Producpage = () => import('../components/Web/ProductsPremiumPage.vue')
+const GamingPage = () => import('../components/Web/GamingPage.vue')
 const LandingPage = () => import('../components/Web/LandingPage.vue')
 const News = () => import('../components/Web/News.vue')
 const NewsDetail = () => import('../components/Web/NewsDetail.vue')
@@ -53,6 +54,8 @@ const routes = [
     children: [
       { path: '', name: 'home', component: Home },
       { path: 'products', name: 'products', component: Producpage },
+      { path: 'gaming', name: 'gaming', component: GamingPage },
+      { path: 'macbook', name: 'macbook', component: Producpage, meta: { category: 'MacBook' } },
       { path: 'products/:id', name: 'product-detail', component: ProductDetail },
       { path: 'news', name: 'news', component: News },
       { path: 'news/:id', name: 'news-detail', component: NewsDetail },
@@ -144,6 +147,8 @@ router.beforeEach((to, from, next) => {
     const publicPages = [
       '/',
       '/products',
+      '/gaming',
+      '/macbook',
       '/login',
       '/register',
       '/forgot-password',

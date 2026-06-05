@@ -868,11 +868,11 @@ onMounted(() => {
     </section>
 
     <!-- 11. FOOTER CTA SECTION (Business Enterprise setup banner) -->
-    <section class="ending-cta-section">
+    <section v-if="false" class="ending-cta-section">
       <div class="cta-banner-image-tint"></div>
       <div class="cta-banner-container scroll-reveal">
         <span class="cta-eyebrow">PREDATOR ENTERPRISE SOLUTIONS</span>
-        <h2>WORKSTATION ĐẲNG CẤP DOANH NGHIỆP</h2>
+        <h2>WORKSTATION</h2>
         <p>Kiến tạo sức mạnh xử lý không giới hạn, đảm bảo hoạt động liên tục 24/7 với chế độ bảo hành chuyên biệt ProSupport.</p>
         <button @click="scrollToSection('ws-catalog-section')" class="btn btn-primary-glow">
           Khám phá ngay

@@ -253,6 +253,10 @@ const navToCategory = (key) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
     router.push('/khuyen-mai')
+  } else if (key === 'gaming') {
+    router.push('/gaming')
+  } else if (key === 'macbook') {
+    router.push('/macbook')
   } else if (key === 'workstation') {
     router.push('/workstation')
   } else {
@@ -266,11 +270,21 @@ const navToMegaItem = (key, keyword) => {
     router.push({ path: '/khuyen-mai', query: keyword ? { q: keyword } : {} })
     return
   }
+  if (key === 'gaming') {
+    router.push({ path: '/gaming', query: keyword ? { q: keyword } : {} })
+    return
+  }
+  if (key === 'macbook') {
+    router.push({ path: '/macbook', query: keyword ? { q: keyword } : {} })
+    return
+  }
   router.push({ path: '/products', query: { category: menuCategoryMap[key] || key, q: keyword } })
 }
 
 const mobileMenuTarget = (key) => {
   if (key === 'sale') return '/khuyen-mai'
+  if (key === 'gaming') return '/gaming'
+  if (key === 'macbook') return '/macbook'
   if (key === 'workstation') return '/workstation'
   return { path: '/products', query: { category: menuCategoryMap[key] || key } }
 }
@@ -282,6 +296,9 @@ const isMenuCurrent = (key) => {
       (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
   }
 
+  if (key === 'gaming') return route.path === '/gaming'
+  if (key === 'macbook') return route.path === '/macbook' ||
+    (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'macbook')
   if (!['gaming', 'macbook'].includes(key)) return false
   const currentCategory = String(route.query.category || '').toLowerCase()
   return route.path === '/products' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
@@ -948,25 +965,14 @@ const warmProductsPageNow = () => {
   transition: all 0.2s;
   white-space: nowrap;
 }
-.nav-btn:hover, .nav-btn.active, .nav-btn.current {
-  background: rgba(37, 99, 235, 0.12);
+.nav-btn:hover, .nav-btn.active {
+  background: transparent;
   color: #60a5fa;
 }
 .nav-btn.current {
-  background: rgba(37, 99, 235, 0.18);
+  background: transparent;
   color: #60a5fa;
   font-weight: 700;
-  position: relative;
-}
-.nav-btn.current::after {
-  content: '';
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 2px;
-  height: 2px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
-  border-radius: 999px;
 }
 .nav-chevron {
   width: 12px; height: 12px;
@@ -987,24 +993,14 @@ const warmProductsPageNow = () => {
   white-space: nowrap;
   position: relative;
 }
-.nav-plain-link:hover { background: rgba(37, 99, 235, 0.12); color: #60a5fa; }
+.nav-plain-link:hover { background: transparent; color: #60a5fa; }
 
 /* Active route highlight */
 .nav-plain-link.router-link-active,
 .nav-plain-link.router-link-exact-active {
   color: #60a5fa;
-  background: rgba(37, 99, 235, 0.15);
+  background: transparent;
   font-weight: 700;
-}
-.nav-plain-link.router-link-exact-active::after {
-  content: '';
-  position: absolute;
-  bottom: 2px;
-  left: 12px;
-  right: 12px;
-  height: 2px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
-  border-radius: 2px;
 }
 
 /* MEGA DROPDOWN */
@@ -1636,7 +1632,7 @@ const warmProductsPageNow = () => {
 .mob-link.router-link-active,
 .mob-link.router-link-exact-active,
 .mob-link.current {
-  background: #eef2ff;
+  background: transparent;
   color: #2563eb;
   font-weight: 700;
 }
