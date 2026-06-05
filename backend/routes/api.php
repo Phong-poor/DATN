@@ -27,15 +27,16 @@ use App\Http\Controllers\SanPhamDaXemController;
 use App\Http\Controllers\AffiliateController;
 use App\Http\Controllers\AdminAffiliateController;
 use App\Http\Controllers\AdminAccountController;
-use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
 // use App\Http\Controllers\AffiliateController;
 // use App\Http\Controllers\AdminAffiliateController;
 // use App\Http\Controllers\AdminAccountController;
-// use App\Http\Controllers\BannerController;
+use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
+use App\Http\Controllers\GeocodeController;
 
+// Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
 
@@ -66,6 +67,7 @@ Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
+Route::get('/banners', [BannerController::class, 'index']);
 
 // Ảnh chat (phục vụ qua API, không phụ thuộc symlink storage/public)
 Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
@@ -73,6 +75,12 @@ Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachm
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::get('/address/suggestions', [GeocodeController::class, 'suggestions']);
+        Route::get('/address/geocode', [GeocodeController::class, 'geocode']);
+        Route::get('/address/reverse', [GeocodeController::class, 'reverse']);
+    });
 
     Route::get('/user/profile', [UserController::class, 'profile']);
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
@@ -199,6 +207,7 @@ Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOp
 Route::get('/sanpham', [SanPhamController::class, 'index']);
 Route::post('/sanpham', [SanPhamController::class, 'store']);
 Route::get('/sanpham/{id}', [SanPhamController::class, 'show']);
+Route::get('/sanpham/{id}/reviews', [DanhGiaController::class, 'index']);
 Route::put('/sanpham/{id}', [SanPhamController::class, 'update']);
 Route::delete('/sanpham/{id}', [SanPhamController::class, 'destroy']);
 
@@ -319,7 +328,6 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/combo-offers', [ComboController::class, 'storeOffer']);
         Route::put('/combo-offers/{id}', [ComboController::class, 'updateOffer']);
         Route::delete('/combo-offers/{id}', [ComboController::class, 'deleteOffer']);
-        Route::get('/sanpham/{id}/reviews', [App\Http\Controllers\DanhGiaController::class, 'index']);
         Route::get('/news', [NewsController::class, 'index']);
         Route::get('/news-stats', [NewsController::class, 'stats']);
         Route::post('/news/upload-image', [NewsController::class, 'uploadContentImage']);

@@ -1,8 +1,9 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser, updateUser } from '@/services/auth'
+import { geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 
@@ -37,6 +38,7 @@ const selectedWardCode = ref('')
 const provinces = ref([])
 const wards = ref([])
 const mapInitialPosition = ref(null)
+const lastGeocodedString = ref('')
 
 const defaultAddressForm = () => ({
     tinh_thanhpho: '',
@@ -189,27 +191,59 @@ const findProvinceCodeByName = (name) => findAddressCodeByName(provinces.value, 
 const findWardCodeByName = (name) => findAddressCodeByName(wards.value, name)
 
 const geocodeSelectedArea = async () => {
-    const parts = [addressForm.value.phuong_xa, addressForm.value.quan_huyen, addressForm.value.tinh_thanhpho]
-        .filter((item) => item && item !== 'Không xác định')
-    const query = [...parts, 'Việt Nam'].join(', ')
-    if (!query.trim()) return null
-
     locatingSelectedArea.value = true
     try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(query)}`)
-        const data = await res.json()
-        let location = data?.[0]
-        if (!location && addressForm.value.tinh_thanhpho) {
-            const provinceRes = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(`${addressForm.value.tinh_thanhpho}, Việt Nam`)}`)
-            const provinceData = await provinceRes.json()
-            location = provinceData?.[0]
+        const res = await geocodeWithFallback('', addressForm.value.phuong_xa, addressForm.value.quan_huyen, addressForm.value.tinh_thanhpho)
+        if (res && res.lat && res.lng) {
+            return { 
+                lat: Number(res.lat), 
+                lng: Number(res.lng),
+                geojson: res.geojson,
+                boundingbox: res.boundingbox
+            }
         }
-        if (!location) return null
-
-        return { lat: Number(location.lat), lng: Number(location.lon) }
+        return null
     } catch (error) {
         console.error('Lỗi tìm vị trí khu vực:', error)
         return null
+    } finally {
+        locatingSelectedArea.value = false
+    }
+}
+
+const buildCurrentGeocodeString = () => {
+    return [
+        addressForm.value.diachi_cuthe, 
+        addressForm.value.phuong_xa, 
+        addressForm.value.quan_huyen, 
+        addressForm.value.tinh_thanhpho
+    ].filter(Boolean).join(', ').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+const handleDetailBlur = async () => {
+    if (!addressForm.value.diachi_cuthe || addressForm.value.diachi_cuthe.trim().length < 3) return
+    if (locatingSelectedArea.value) return // Tránh double request
+    
+    const currentFullStr = buildCurrentGeocodeString()
+
+    if (currentFullStr === lastGeocodedString.value) return // Không gọi API nếu không đổi
+    
+    locatingSelectedArea.value = true
+    try {
+        const fallbackRes = await geocodeWithFallback(
+            addressForm.value.diachi_cuthe, 
+            addressForm.value.phuong_xa, 
+            addressForm.value.quan_huyen, 
+            addressForm.value.tinh_thanhpho
+        )
+        if (fallbackRes && Number.isFinite(Number(fallbackRes.lat)) && Number.isFinite(Number(fallbackRes.lng))) {
+            addressForm.value.latitude = Number(fallbackRes.lat)
+            addressForm.value.longitude = Number(fallbackRes.lng)
+            mapInitialPosition.value = { lat: addressForm.value.latitude, lng: addressForm.value.longitude }
+            lastGeocodedString.value = currentFullStr
+        }
+    } catch (error) {
+        console.error('Lỗi tìm vị trí chi tiết:', error)
     } finally {
         locatingSelectedArea.value = false
     }
@@ -779,7 +813,7 @@ const confirmOrder = async () => {
         </div>
         <div class="checkout-form-group checkout-form-full">
           <label>Địa chỉ chi tiết</label>
-          <input v-model="addressForm.diachi_cuthe" placeholder="Số nhà, tên đường..." required />
+          <input v-model="addressForm.diachi_cuthe" @blur="handleDetailBlur" placeholder="Số nhà, tên đường..." required />
         </div>
         <div class="inline-map-field">
           <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress" @open="openMapPicker" />

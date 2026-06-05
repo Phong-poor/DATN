@@ -1,14 +1,16 @@
 ﻿<script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import 'leaflet/dist/leaflet.css'
+import { reverseGeocodeLocation as fetchReverseGeocode } from '@/services/geocode'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   initialPosition: { type: Object, default: null },
   inline: { type: Boolean, default: false },
+  warningMessage: { type: String, default: '' },
 })
 
-const emit = defineEmits(['update:modelValue', 'selected', 'open'])
+const emit = defineEmits(['update:modelValue', 'selected', 'reversed', 'open'])
 
 const mapEl = ref(null)
 const loadingMap = ref(false)
@@ -23,12 +25,15 @@ let marker = null
 const defaultCenter = [16.047079, 108.20623]
 const defaultZoom = 6
 
+let polygonLayer = null
+
 const close = () => {
   if (props.inline) return
   emit('update:modelValue', false)
 }
 
-const setMarker = (latlng, zoom = 16) => {
+const setMarker = (latlngInfo, zoom = 16) => {
+  const latlng = { lat: latlngInfo.lat, lng: latlngInfo.lng }
   selectedLatLng.value = { lat: latlng.lat, lng: latlng.lng }
 
   if (!marker) {
@@ -36,11 +41,35 @@ const setMarker = (latlng, zoom = 16) => {
     marker.on('dragend', () => {
       selectedLatLng.value = marker.getLatLng()
     })
+    map.setView(latlng, zoom)
   } else {
     marker.setLatLng(latlng)
+    map.flyTo(latlng, zoom, { animate: true, duration: 1.0 })
   }
 
-  map.setView(latlng, zoom)
+  if (polygonLayer) {
+    map.removeLayer(polygonLayer)
+    polygonLayer = null
+  }
+
+  if (latlngInfo.geojson) {
+    polygonLayer = L.geoJSON(latlngInfo.geojson, {
+      style: {
+        color: '#3b82f6',
+        weight: 2,
+        opacity: 0.8,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.1
+      }
+    }).addTo(map)
+    map.fitBounds(polygonLayer.getBounds(), { padding: [20, 20], maxZoom: 14 })
+  } else if (latlngInfo.boundingbox) {
+    const bounds = [
+      [latlngInfo.boundingbox[0], latlngInfo.boundingbox[2]],
+      [latlngInfo.boundingbox[1], latlngInfo.boundingbox[3]]
+    ]
+    map.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 })
+  }
 }
 
 const setupDefaultIcon = () => {
@@ -56,7 +85,7 @@ const initMap = async () => {
   if (map) {
     await nextTick()
     setTimeout(() => map.invalidateSize(), 80)
-    if (props.initialPosition?.lat && props.initialPosition?.lng) {
+    if (props.initialPosition && Number.isFinite(props.initialPosition.lat) && Number.isFinite(props.initialPosition.lng)) {
       setMarker(props.initialPosition)
     }
     return
@@ -75,9 +104,9 @@ const initMap = async () => {
       attributionControl: true,
     }).setView(defaultCenter, defaultZoom)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap',
+      attribution: '&copy; Google Maps',
     }).addTo(map)
 
     map.on('click', (event) => {
@@ -86,7 +115,7 @@ const initMap = async () => {
 
     setTimeout(() => map.invalidateSize(), 120)
 
-    if (props.initialPosition?.lat && props.initialPosition?.lng) {
+    if (props.initialPosition && Number.isFinite(props.initialPosition.lat) && Number.isFinite(props.initialPosition.lng)) {
       setMarker(props.initialPosition)
     }
   } catch (error) {
@@ -98,26 +127,32 @@ const initMap = async () => {
 }
 
 const parseAddress = (data) => {
-  const address = data.address || {}
-  const province = address.province || address.state || address.city || address.municipality || address.region || ''
-  const district = address.county || address.city_district || address.district || address.borough || address.town || ''
-  const ward = address.ward || address.quarter || address.neighbourhood || address.suburb || address.village || address.hamlet || ''
-  const detail = [address.house_number, address.road || address.pedestrian || address.residential].filter(Boolean).join(' ')
-
   return {
-    province,
-    district,
-    ward,
-    detail,
-    fullAddress: data.display_name || [detail, ward, district, province].filter(Boolean).join(', '),
+    province: data.province || '',
+    district: data.district || '',
+    ward: data.ward || '',
+    detail: data.address || '',
+    fullAddress: data.display_name || [data.address, data.ward, data.district, data.province].filter(Boolean).join(', '),
     latitude: selectedLatLng.value.lat,
     longitude: selectedLatLng.value.lng,
   }
 }
 
-const confirmLocation = async () => {
+const confirmLocation = () => {
   if (!selectedLatLng.value) {
-    errorMessage.value = 'Vui lòng click bản đồ hoặc lấy vị trí hiện tại để chọn điểm giao hàng.'
+    errorMessage.value = 'Vui lòng click bản đồ hoặc kéo ghim để chọn đúng vị trí.'
+    return
+  }
+  emit('selected', {
+    latitude: selectedLatLng.value.lat,
+    longitude: selectedLatLng.value.lng,
+  })
+  if (!props.inline) close()
+}
+
+const reverseGeocodeLocation = async () => {
+  if (!selectedLatLng.value) {
+    errorMessage.value = 'Vui lòng click bản đồ hoặc lấy vị trí hiện tại.'
     return
   }
 
@@ -126,22 +161,15 @@ const confirmLocation = async () => {
 
   try {
     const { lat, lng } = selectedLatLng.value
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=vi`)
+    const data = await fetchReverseGeocode(lat, lng)
 
-    if (!response.ok) {
-      throw new Error('Không thể lấy địa chỉ từ vị trí đã chọn.')
-    }
-
-    const data = await response.json()
-
-    if (!data?.display_name && !data?.address) {
+    if (!data) {
       throw new Error('Không tìm thấy địa chỉ từ vị trí đã chọn.')
     }
 
-    emit('selected', parseAddress(data))
-    if (!props.inline) close()
+    emit('reversed', parseAddress(data))
   } catch (error) {
-    console.error('Lỗi xác nhận vị trí:', error)
+    console.error('Lỗi lấy địa chỉ ngược:', error)
     errorMessage.value = error.message || 'Không thể lấy địa chỉ từ vị trí đã chọn.'
   } finally {
     geocoding.value = false
@@ -153,8 +181,10 @@ watch(() => props.modelValue, (visible) => {
 })
 
 watch(() => props.initialPosition, (position) => {
-  if (position?.lat && position?.lng && map) {
-    setMarker(position)
+  if (position && Number.isFinite(position.lat) && Number.isFinite(position.lng) && map) {
+    if (props.inline || props.modelValue) {
+      setMarker(position)
+    }
   }
 })
 
@@ -184,8 +214,11 @@ onBeforeUnmount(() => {
       <p v-if="errorMessage" class="map-error">{{ errorMessage }}</p>
     </div>
     <div class="map-picker-footer inline-footer">
-      <button type="button" class="map-primary" :disabled="geocoding || loadingMap" @click="confirmLocation">
-        {{ geocoding ? 'Đang xác nhận...' : 'Xác nhận vị trí' }}
+      <button type="button" class="map-secondary" :disabled="geocoding || loadingMap" @click="reverseGeocodeLocation">
+        {{ geocoding ? 'Đang tải...' : 'Lấy địa chỉ từ vị trí này' }}
+      </button>
+      <button type="button" class="map-primary" :disabled="loadingMap" @click="confirmLocation">
+        Xác nhận vị trí
       </button>
     </div>
   </div>
@@ -202,8 +235,8 @@ onBeforeUnmount(() => {
       <div class="map-picker-body">
         <div v-if="loadingMap" class="map-loading">Đang tải bản đồ...</div>
         <div ref="mapEl" class="map-picker-canvas"></div>
-        <div class="map-helper">
-          <span>Vui lòng ghim địa chỉ chính xác để giao hàng thuận tiện hơn.</span>
+        <div class="map-helper" :class="{'map-warning': warningMessage}">
+          <span>{{ warningMessage || 'Vui lòng ghim địa chỉ chính xác để giao hàng thuận tiện hơn.' }}</span>
         </div>
         <p v-if="errorMessage" class="map-error">{{ errorMessage }}</p>
       </div>
@@ -211,8 +244,11 @@ onBeforeUnmount(() => {
       <div class="map-picker-footer">
         <div class="map-footer-actions">
           <button type="button" class="map-secondary" @click="close">Trở lại</button>
-          <button type="button" class="map-primary" :disabled="geocoding || loadingMap" @click="confirmLocation">
-            {{ geocoding ? 'Đang xác nhận...' : 'Xác nhận vị trí' }}
+          <button type="button" class="map-secondary" :disabled="geocoding || loadingMap" @click="reverseGeocodeLocation">
+            {{ geocoding ? 'Đang tải...' : 'Lấy địa chỉ từ vị trí này' }}
+          </button>
+          <button type="button" class="map-primary" :disabled="loadingMap" @click="confirmLocation">
+            Xác nhận vị trí
           </button>
         </div>
       </div>
@@ -236,7 +272,8 @@ onBeforeUnmount(() => {
 .inline-body .map-view-overlay { inset:0; border-radius:0; }
 .map-picker-body:hover .map-view-overlay { opacity:1; }
 .map-loading { position:absolute; inset:0 22px 14px; z-index:3; display:flex; align-items:center; justify-content:center; border-radius:14px; background:rgba(248,250,252,.86); color:#2563eb; font-weight:700; }
-.map-helper { margin-top:12px; padding:12px 14px; border-radius:12px; background:#fff7ed; color:#9a3412; font-size:13px; }
+.map-helper { margin-top:12px; padding:12px 14px; border-radius:12px; background:#eff6ff; color:#1d4ed8; font-size:13px; }
+.map-helper.map-warning { background:#fff7ed; color:#9a3412; }
 .map-error { margin:10px 0 0; color:#dc2626; font-size:13px; }
 .map-picker-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 22px 22px; }
 .inline-footer { padding:8px; justify-content:flex-end; background: #0d1b2e; }
@@ -256,4 +293,25 @@ onBeforeUnmount(() => {
   .map-footer-actions button,
   .map-picker-footer > button { flex:1; }
 }
+.map-view-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+.map-view-button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+.inline-body { position: relative; }
 </style>

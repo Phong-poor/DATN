@@ -45,6 +45,18 @@ return [
     'client_id' => env('FACEBOOK_CLIENT_ID'),
     'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
     'redirect' => env('FACEBOOK_REDIRECT_URI'),
-],
+    ],
+
+    'mapbox' => [
+        'key' => env('MAPBOX_API_KEY'),
+    ],
+
+    'tomtom' => [
+        'key' => env('TOMTOM_API_KEY'),
+    ],
+
+    'here' => [
+        'key' => env('HERE_API_KEY'),
+    ],
 
 ];

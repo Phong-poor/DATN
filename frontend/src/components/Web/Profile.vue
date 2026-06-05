@@ -8,6 +8,7 @@ import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { storageUrl } from '@/services/urls'
+import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 
 // ── Active tab ────────────────────────────────────────────
 const route = useRoute()
@@ -719,6 +720,106 @@ const addresses = ref([])
 
 const addressApiBaseUrl = 'https://provinces.open-api.vn/api/v2'
 
+const addressSuggestions = ref([])
+const showSuggestions = ref(false)
+const detailWarning = ref('')
+const searchingDetail = ref(false)
+let searchDetailTimeout = null
+let currentSearchController = null
+let searchRequestId = 0
+
+const handleDetailInput = () => {
+  showSuggestions.value = false
+  detailWarning.value = ''
+  
+  if (searchDetailTimeout) clearTimeout(searchDetailTimeout)
+  if (currentSearchController) {
+    currentSearchController.abort()
+  }
+  
+  const detailLength = addrForm.value.detail ? addrForm.value.detail.trim().length : 0;
+  if (detailLength < 3) {
+    addressSuggestions.value = []
+    searchingDetail.value = false
+    return
+  }
+  
+  searchDetailTimeout = setTimeout(async () => {
+    searchingDetail.value = true
+    const controller = new AbortController()
+    currentSearchController = controller
+    searchRequestId++
+    const currentReqId = searchRequestId
+    
+    try {
+      const parts = [addrForm.value.detail, addrForm.value.ward, addrForm.value.district, addrForm.value.province]
+        .filter(item => item && item !== 'Không xác định')
+      const query = [...parts, 'Việt Nam'].join(', ')
+      
+      const data = await searchSuggestions(query, controller.signal, {
+        province: addrForm.value.province !== 'Không xác định' ? addrForm.value.province : '',
+        ward: addrForm.value.ward !== 'Không xác định' ? addrForm.value.ward : ''
+      })
+      
+      if (controller.signal.aborted || currentReqId !== searchRequestId) return;
+      
+      let validResults = [];
+      if (data && data.length > 0) {
+        validResults = data.filter(item => (item.title || item.display_name || item.subtitle) && item.lat && item.lng);
+      }
+      
+      if (validResults.length > 0) {
+        addressSuggestions.value = validResults
+        showSuggestions.value = true
+        detailWarning.value = ''
+      } else {
+        addressSuggestions.value = []
+        showSuggestions.value = false
+        detailWarning.value = 'Không tìm thấy địa chỉ cụ thể, bản đồ sẽ ghim ở khu vực gần nhất.'
+        
+        // Cố gắng tìm vị trí fallback (Phường/Quận) và ghim bản đồ
+        const fallbackRes = await geocodeWithFallback(
+          addrForm.value.detail, 
+          addrForm.value.ward, 
+          addrForm.value.district, 
+          addrForm.value.province
+        )
+        if (fallbackRes && fallbackRes.lat && fallbackRes.lng && currentReqId === searchRequestId) {
+          addrForm.value.latitude = Number(fallbackRes.lat)
+          addrForm.value.longitude = Number(fallbackRes.lng)
+          mapInitialPosition.value = { lat: addrForm.value.latitude, lng: addrForm.value.longitude }
+        }
+      }
+    } catch (error) {
+      if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED' && !controller.signal.aborted) {
+        console.error('Lỗi tìm kiếm gợi ý:', error)
+      }
+      addressSuggestions.value = []
+      showSuggestions.value = false
+    } finally {
+      if (currentSearchController === controller) {
+        currentSearchController = null
+        searchingDetail.value = false
+      }
+    }
+  }, 900)
+}
+
+const selectSuggestion = (item) => {
+  showSuggestions.value = false
+  detailWarning.value = ''
+  
+  if (item.title || item.display_name) {
+    addrForm.value.detail = item.title || item.display_name
+  }
+
+  const lat = Number(item.lat)
+  const lng = Number(item.lng)
+  mapInitialPosition.value = { lat, lng }
+  addrForm.value.latitude = lat
+  addrForm.value.longitude = lng
+}
+
 const normalizeApiList = (data, keys = []) => {
   if (Array.isArray(data)) return data
 
@@ -833,24 +934,18 @@ const prepareAddressSelectors = async (address = null) => {
 }
 
 const geocodeSelectedArea = async () => {
-  const parts = [addrForm.value.ward, addrForm.value.district, addrForm.value.province]
-    .filter((item) => item && item !== 'Không xác định')
-  const query = [...parts, 'Việt Nam'].join(', ')
-  if (!query.trim()) return null
-
   locatingSelectedArea.value = true
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(query)}`)
-    const data = await res.json()
-    let location = data?.[0]
-    if (!location && addrForm.value.province) {
-      const provinceRes = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(`${addrForm.value.province}, Việt Nam`)}`)
-      const provinceData = await provinceRes.json()
-      location = provinceData?.[0]
+    const res = await geocodeWithFallback('', addrForm.value.ward, addrForm.value.district, addrForm.value.province)
+    if (res && res.lat && res.lng) {
+      return { 
+        lat: Number(res.lat), 
+        lng: Number(res.lng),
+        geojson: res.geojson,
+        boundingbox: res.boundingbox 
+      }
     }
-    if (!location) return null
-
-    return { lat: Number(location.lat), lng: Number(location.lon) }
+    return null
   } catch (error) {
     console.error('Lỗi tìm vị trí khu vực:', error)
     return null
@@ -956,6 +1051,9 @@ const openEditAddr = async (i) => {
 
 const cancelAddr = () => {
   showAddrForm.value = false
+  addressSuggestions.value = []
+  showSuggestions.value = false
+  detailWarning.value = ''
 }
 
 const saveAddr = async () => {
@@ -1434,7 +1532,19 @@ const promoStatusMap = {
                   </div>
                 </div>
               </div>
-              <div class="form-group form-full"><label>Địa chỉ chi tiết</label><input v-model="addrForm.detail" type="text" placeholder="Số nhà, tên đường..." required /></div>
+              <div class="form-group form-full" style="position: relative;">
+                <label>Địa chỉ chi tiết</label>
+                <input v-model="addrForm.detail" @input="handleDetailInput" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
+                <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm gợi ý...</small>
+                <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning }}</small>
+                
+                <div v-if="showSuggestions && addressSuggestions.length > 0" class="suggestions-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1050; max-height: 250px; overflow-y: auto; margin-top: 4px;">
+                  <div v-for="(item, idx) in addressSuggestions" :key="idx" @click="selectSuggestion(item)" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <strong style="font-size: 13px; color: #334155; display: block; margin-bottom: 2px;">{{ item.title || item.display_name || item.subtitle }}</strong>
+                    <span style="font-size: 11px; color: #64748b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.subtitle || item.display_name }}</span>
+                  </div>
+                </div>
+              </div>
               <div class="form-group form-full">
                 <label>Vị trí giao hàng</label>
                 <div class="inline-map-field">
@@ -1693,7 +1803,7 @@ const promoStatusMap = {
             </div>
             <div class="addr-card" v-for="(addr, i) in addresses" :key="addr.id" :class="{ 'is-default': addr.isDefault }">
               <div class="addr-head">
-                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name" style="line-height: 1.4; word-break: break-word;">{{ addr.detail }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}</span></div>
+                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name" style="line-height: 1.4; word-break: break-word;">{{ [addr.detail, addr.ward, addr.district, addr.province].filter(v => v && v !== 'Không xác định').join(', ') }}</span></div>
                 <span class="default-badge" v-if="addr.isDefault">Mặc định</span>
               </div>
               <p class="addr-full" style="color: #64748b; font-weight: 500; margin-top: 4px;">{{ addr.type === 'company' ? 'Công ty' : 'Nhà riêng' }}</p>
@@ -1922,14 +2032,14 @@ const promoStatusMap = {
   width:100%; display:flex; align-items:center; gap:10px;
   padding:11px 14px; border-radius:12px; border:none;
   background:transparent; cursor:pointer;
-  color:#374151; font-size:13.5px; font-weight:500;
+  color:#94a3b8; font-size:13.5px; font-weight:500;
   text-align:left; transition:all 0.18s;
 }
 .side-btn svg:not(.arrow) { width:17px; height:17px; stroke:#64748b; stroke-width:1.8; fill:none; flex-shrink:0; transition:stroke 0.18s; }
 .side-btn span { flex:1; }
 .side-btn .arrow { width:14px; height:14px; stroke:#d1d5db; stroke-width:2; fill:none; flex-shrink:0; opacity:0; transition:opacity 0.18s, stroke 0.18s; }
 .side-btn:hover { background: #111f35; color: #e2e8f0; }
-.side-btn:hover svg:not(.arrow) { stroke:#374151; }
+.side-btn:hover svg:not(.arrow) { stroke:#e2e8f0; }
 .side-btn:hover .arrow { opacity:1; }
 .side-btn.active { background:#eff6ff; color:#2563eb; font-weight:600; }
 .side-btn.active svg:not(.arrow) { stroke:#2563eb; }
@@ -1944,7 +2054,7 @@ const promoStatusMap = {
 .card-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; }
 
 /* PROFILE */
-.btn-edit { display:flex; align-items:center; gap:7px; padding:9px 18px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#374151; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-edit { display:flex; align-items:center; gap:7px; padding:9px 18px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#cbd5e1; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-edit:hover { background:#dbeafe; color:#2563eb; border-color:#bfdbfe; }
 .btn-edit svg { width:14px; height:14px; stroke:currentColor; stroke-width:2; fill:none; }
 .info-grid { display:flex; flex-direction:column; }
@@ -1958,15 +2068,18 @@ const promoStatusMap = {
 .form-row,.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .form-full { grid-column:1/-1; }
 .form-group { display:flex; flex-direction:column; gap:6px; }
-.form-group label { font-size:13px; font-weight:600; color:#374151; }
-.form-group input,.form-group select { padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; color: #e2e8f0; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background: #111f35; }
+.form-group label { font-size:13px; font-weight:600; color:#94a3b8; }
+.form-group input,.form-group select { padding:10px 14px; border:1.5px solid rgba(255, 255, 255, 0.15); border-radius:10px; font-size:14px; color: #f1f5f9 !important; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background: #111f35; }
+.form-group input:disabled, .form-group select:disabled { opacity: 0.6; color: #64748b !important; cursor: not-allowed; }
+.form-group select option { background-color: #111f35; color: #cbd5e1; }
+.form-group select option:disabled { color: #64748b; }
 .form-group input:focus,.form-group select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
 .form-group.error input { border-color:#ef4444; }
-.checkbox-label { display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; color:#374151; font-weight:500; }
+.checkbox-label { display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; color:#cbd5e1; font-weight:500; }
 .checkbox-label input[type="checkbox"] { width:16px; height:16px; accent-color:#2563eb; cursor:pointer; }
 .form-actions { display:flex; gap:12px; justify-content:flex-end; padding-top:8px; }
-.btn-cancel { padding:10px 22px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#374151; font-size:14px; font-weight:600; cursor:pointer; }
-.btn-cancel:hover { background:#e2e8f0; }
+.btn-cancel { padding:10px 22px; border-radius:10px; background: #111f35; border: 1px solid rgba(255,255,255,0.07); color:#94a3b8; font-size:14px; font-weight:600; cursor:pointer; }
+.btn-cancel:hover { background:rgba(255,255,255,0.08); color:#fff; }
 .btn-save { display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 24px; border-radius:10px; background:#2563eb; border:none; color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-save:hover { background:#1d4ed8; }
 .btn-save:disabled { opacity:0.7; cursor:not-allowed; }
@@ -2044,11 +2157,11 @@ const promoStatusMap = {
 .addr-sep { color:#cbd5e1; }
 .addr-phone { font-size:13px; color: #64748b; }
 .default-badge { font-size:11px; font-weight:700; color:#2563eb; background:#dbeafe; padding:3px 10px; border-radius:99px; }
-.addr-full { font-size:13px; color:#374151; margin:0 0 14px; line-height:1.5; }
+.addr-full { font-size:13px; color:#cbd5e1; margin:0 0 14px; line-height:1.5; }
 .addr-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.addr-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border: 1px solid rgba(255,255,255,0.07); background: #0d1b2e; color:#374151; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
+.addr-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border: 1px solid rgba(255,255,255,0.07); background: #0d1b2e; color:#94a3b8; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
 .addr-btn svg { width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
-.addr-btn:hover { background: #111f35; }
+.addr-btn:hover { background: #111f35; color: #fff; }
 .addr-btn-default:hover { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
 .addr-btn-delete:hover { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
 
@@ -2074,7 +2187,7 @@ const promoStatusMap = {
 .strength-fill { height:100%; border-radius:99px; transition:width 0.3s,background 0.3s; }
 .strength-label { font-size:12px; font-weight:600; min-width:72px; text-align:right; }
 .req-card { background: #111f35; border-radius:16px; border: 1px solid rgba(255,255,255,0.07); padding:20px; margin-bottom:12px; }
-.req-title { font-size:13px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px; }
+.req-title { font-size:13px; font-weight:700; color:#cbd5e1; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 14px; }
 .req-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; }
 .req-list li { display:flex; align-items:center; gap:10px; font-size:13px; color:#94a3b8; font-weight:500; transition:color 0.2s; }
 .req-list li svg { width:16px; height:16px; stroke:#cbd5e1; stroke-width:2.5; fill:none; flex-shrink:0; transition:stroke 0.2s; }
