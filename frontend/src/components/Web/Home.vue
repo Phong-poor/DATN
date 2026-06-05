@@ -511,6 +511,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <div class="home-wrapper">
     <GiftPopup v-if="showGift && availableGifts.length > 0" :promos-data="availableGifts" :delay="0" />
 
     <main class="premium-theme">
@@ -1104,6 +1105,7 @@ onUnmounted(() => {
             @close="showComboModal = false" 
         />
     </main>
+  </div>
 </template>
 
 <style scoped>
