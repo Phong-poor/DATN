@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SanPham;
+use App\Models\DanhMuc;
 use App\Models\BienThe;
 use App\Models\ThuocTinh;
 use App\Models\BienTheHinhAnh;
@@ -97,6 +98,72 @@ class SanPhamController extends Controller
     }
 
     // Trả về danh sách các giá trị thuộc tính có trong DB
+    public function mobileHome()
+    {
+        $payload = Cache::remember('mobile_home_v2', 120, function () {
+            $categories = DanhMuc::query()
+                ->select('id_danhmuc', 'ten_danhmuc', 'trangthai', 'id_danhmuc_cha')
+                ->orderBy('id_danhmuc')
+                ->get();
+
+            $products = SanPham::query()
+                ->select(
+                    'id_sanpham',
+                    'tenSP',
+                    'SKU',
+                    'hinhanh',
+                    'trangthai',
+                    'id_danhmuc',
+                    'id_thuonghieu'
+                )
+                ->with([
+                    'danhMuc:id_danhmuc,ten_danhmuc,trangthai,id_danhmuc_cha',
+                    'thuongHieu:id_thuonghieu,ten_thuonghieu',
+                    'bienThes:id_bienthe,id_sanpham,ten_bienthe,gia,soluong,thuoc_tinh_json',
+                ])
+                ->orderByDesc('id_sanpham')
+                ->limit(12)
+                ->get()
+                ->map(function ($product) {
+                    $variants = $product->bienThes
+                        ->sortByDesc(fn ($variant) => (int) $variant->soluong > 0)
+                        ->take(1)
+                        ->values()
+                        ->map(function ($variant) {
+                            return [
+                                'id_bienthe' => $variant->id_bienthe,
+                                'ten_bienthe' => $variant->ten_bienthe,
+                                'gia' => $variant->gia,
+                                'soluong' => $variant->soluong,
+                                'thuoc_tinh_json' => $variant->thuoc_tinh_json,
+                            ];
+                        });
+
+                    return [
+                        'id_sanpham' => $product->id_sanpham,
+                        'tenSP' => $product->tenSP,
+                        'SKU' => $product->SKU,
+                        'hinhanh' => $product->hinhanh,
+                        'trangthai' => $product->trangthai,
+                        'id_danhmuc' => $product->id_danhmuc,
+                        'id_thuonghieu' => $product->id_thuonghieu,
+                        'thong_so_ky_thuat' => [],
+                        'danh_muc' => $product->danhMuc,
+                        'thuong_hieu' => $product->thuongHieu,
+                        'hinh_anhs' => [],
+                        'bien_thes' => $variants,
+                    ];
+                });
+
+            return [
+                'products' => $products,
+                'categories' => $categories,
+            ];
+        });
+
+        return response()->json($payload);
+    }
+
     public function attributeOptions()
     {
         $options = Cache::remember('sanpham_attribute_options', 120, function () {
@@ -557,6 +624,7 @@ class SanPhamController extends Controller
 
         // Danh sách admin/frontend thường gọi /sanpham không query
         Cache::forget('sanpham_index_' . md5(json_encode([])));
+        Cache::forget('mobile_home_v2');
         Cache::forget('sanpham_attribute_options');
     }
 
