@@ -519,26 +519,11 @@ onUnmounted(() => {
         <div class="ticker-bar">
             <div class="ticker-track">
                 <template v-for="loop in 2" :key="loop">
-                    <template v-for="item in tickerItems" :key="`${loop}-${item}`">
-                        <span>{{ item }}</span>
+                    <span v-for="item in tickerItems" :key="`${loop}-${item}`" class="ticker-item">
+                        {{ item }}
                         <span class="ticker-dot">•</span>
-                    </template>
+                    </span>
                 </template>
-            </div>
-            <div class="ticker-track ticker-track-legacy">
-                <span>🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K</span>
-                <span class="ticker-dot">•</span>
-                <span>🛡️ BẢO HÀNH TOÀN DIỆN 24 THÁNG - 1 ĐỔI 1 TRONG 30 NGÀY</span>
-                <span class="ticker-dot">•</span>
-                <span>🔄 THU CŨ ĐỔI MỚI - TRỢ GIÁ LÊN ĐẾN 2 TRIỆU ĐỒNG</span>
-                <span class="ticker-dot">•</span>
-                <span>💳 TRẢ GÓP 0% LÃI SUẤT - DUYỆT HỒ SƠ CHỈ TRONG 5 PHÚT</span>
-                <span class="ticker-dot">•</span>
-                <span>🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K</span>
-                <span class="ticker-dot">•</span>
-                <span>🛡️ BẢO HÀNH TOÀN DIỆN 24 THÁNG - 1 ĐỔI 1 TRONG 30 NGÀY</span>
-                <span class="ticker-dot">•</span>
-                <span>🔄 THU CŨ ĐỔI MỚI - TRỢ GIÁ LÊN ĐẾN 2 TRIỆU ĐỒNG</span>
             </div>
         </div>
 
@@ -1501,15 +1486,16 @@ onUnmounted(() => {
 .ticker-bar {
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
-    padding: 10px 0;
+    padding: 6px 0;
     overflow: hidden;
+    display: flex;
+    align-items: center;
 }
 .ticker-track {
     display: inline-flex;
     align-items: center;
-    gap: 32px;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.15em;
     color: #334155;
@@ -1517,16 +1503,14 @@ onUnmounted(() => {
     will-change: transform;
     animation: run-ticker 34s linear infinite;
 }
-.ticker-track-legacy {
-    display: none;
-}
-.ticker-track span {
-    display: flex;
+.ticker-item {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 32px;
+    padding-right: 32px;
 }
 .ticker-dot {
-    color: var(--accent-blue);
+    color: var(--tn-primary);
 }
 @keyframes run-ticker {
     from { transform: translateX(0); }
@@ -2267,6 +2251,16 @@ onUnmounted(() => {
     margin-top: 48px;
     display: flex;
     justify-content: center;
+}
+.global-action-row .btn-premium-glass {
+    color: #000000 !important;
+    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.04);
+}
+.global-action-row .btn-premium-glass:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
 }
 
 

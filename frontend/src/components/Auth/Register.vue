@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
@@ -184,34 +184,58 @@ const loginFacebook = () => {
 
         <!-- NAME -->
         <div class="input-box">
-          <span>??</span>
-          <input v-model="name" placeholder="Nguyễn Văn A" />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </span>
+          <input v-model="name" name="name" autocomplete="name" placeholder="Nguyễn Văn A" />
         </div>
 
         <!-- EMAIL -->
         <div class="input-box">
-          <span>@</span>
-          <input v-model="email" placeholder="example@vinatech.vn" />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="3" />
+              <path d="M2 7l10 7 10-7" />
+            </svg>
+          </span>
+          <input v-model="email" type="email" name="email" autocomplete="email" placeholder="example@vinatech.vn" />
         </div>
 
         <!-- PHONE -->
         <div class="input-box">
-          <span>??</span>
-          <input v-model="phone" inputmode="numeric" maxlength="12" placeholder="0123 456 789" />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </span>
+          <input v-model="phone" type="tel" name="phone" autocomplete="tel" inputmode="numeric" maxlength="12" placeholder="0123 456 789" />
         </div>
         <p v-if="phone && !isValidPhone" class="field-hint error">
           Số điện thoại phải có 10 chữ số và bắt đầu bằng 0.
         </p>
 
         <div class="input-box" v-if="referralCode">
-          <span>??</span>
-          <input :value="referralCode" readonly />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+          </span>
+          <input :value="referralCode" name="referral_code" readonly />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>??</span>
-          <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="••••••••" />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
+          <input :type="showPassword ? 'text' : 'password'" v-model="password" name="new-password" autocomplete="new-password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -234,17 +258,17 @@ const loginFacebook = () => {
           <div class="strength-track">
             <div class="strength-fill" :style="{ width: passwordStrength.width, background: passwordStrength.color }"></div>
           </div>
-          <div class="strength-requirements">
-            <span v-for="item in passwordRequirements" :key="item.label" :class="{ ok: item.ok }">
-              {{ item.ok ? '✓' : '•' }} {{ item.label }}
-            </span>
-          </div>
         </div>
 
         <!-- CONFIRM -->
         <div class="input-box">
-          <span>??</span>
-          <input :type="showConfirm ? 'text' : 'password'" v-model="confirm" placeholder="Xác nhận mật khẩu" />
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
+          <input :type="showConfirm ? 'text' : 'password'" v-model="confirm" name="new-password-confirm" autocomplete="new-password" placeholder="Xác nhận mật khẩu" />
           <button class="eye-btn" @click="showConfirm = !showConfirm" type="button">
             <svg v-if="!showConfirm" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -461,6 +485,19 @@ h2 {
   background: transparent;
   outline: none;
   flex: 1;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.input-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #6366f1;
+}
+.input-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .field-hint {
@@ -475,31 +512,31 @@ h2 {
 }
 
 .password-strength {
-  margin: -4px 0 12px;
-  padding: 12px 14px;
-  background: #f8fafc;
-  border: 1px solid #e8edf5;
-  border-radius: 14px;
+  margin: -8px 0 12px;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .strength-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 12.5px;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .strength-head small {
   color: #94a3b8;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .strength-track {
-  height: 6px;
+  height: 3px;
   background: #e2e8f0;
   border-radius: 99px;
   overflow: hidden;
@@ -509,13 +546,6 @@ h2 {
   height: 100%;
   border-radius: inherit;
   transition: width 0.25s ease, background 0.25s ease;
-}
-
-.strength-requirements {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 12px;
-  margin-top: 10px;
 }
 
 .strength-requirements span {

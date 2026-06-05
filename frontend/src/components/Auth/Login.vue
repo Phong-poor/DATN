@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
@@ -254,14 +254,24 @@ const handleLogin = async () => {
 
         <!-- EMAIL -->
         <div class="input-box">
-          <span>@</span>
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="3"/>
+              <path d="M2 7l10 7 10-7"/>
+            </svg>
+          </span>
           <input v-model="email" type="email" name="username" autocomplete="username"
             placeholder="example@vinatech.vn" />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-box">
-          <span>??</span>
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
           <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
             autocomplete="current-password" placeholder="••••••••" />
           <button class="eye-btn" @click="showPassword = !showPassword" type="button">
@@ -463,18 +473,14 @@ const handleLogin = async () => {
   transition: color 0.2s;
 }
 
-.tabs span:hover {
-  color: #475569;
-}
+.tabs span:hover { color: #475569; }
 
 .tabs .active {
   color: #2563eb;
   border-bottom: 2px solid #2563eb;
 }
 
-h2 {
-  margin-bottom: 4px;
-}
+h2 { margin-bottom: 4px; }
 
 .sub {
   font-size: 13px;
@@ -492,16 +498,22 @@ h2 {
   margin-bottom: 14px;
 }
 
-.input-box span {
-  color: #64748b;
-}
-
 .input-box input {
   border: none;
   background: transparent;
   outline: none;
   flex: 1;
+  font-size: 14px;
+  color: #1e293b;
 }
+
+.input-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #6366f1;
+}
+.input-icon svg { width: 16px; height: 16px; }
 
 .eye-btn {
   background: none;
@@ -514,10 +526,7 @@ h2 {
   line-height: 1;
   transition: color 0.2s;
 }
-
-.eye-btn:hover {
-  color: #475569;
-}
+.eye-btn:hover { color: #475569; }
 
 .options {
   display: flex;
@@ -531,10 +540,7 @@ h2 {
   text-decoration: none;
   cursor: pointer;
 }
-
-.options a:hover {
-  text-decoration: underline;
-}
+.options a:hover { text-decoration: underline; }
 
 .btn {
   width: 100%;
@@ -548,10 +554,7 @@ h2 {
   margin-bottom: 20px;
   transition: opacity 0.2s;
 }
-
-.btn:hover {
-  opacity: 0.9;
-}
+.btn:hover { opacity: 0.9; }
 
 .divider {
   text-align: center;
@@ -581,20 +584,9 @@ h2 {
   transition: opacity 0.2s;
 }
 
-.btn-google {
-  background: #db4437;
-  color: white;
-}
-
-.btn-facebook {
-  background: #1877f2;
-  color: white;
-}
-
-.btn-google:hover,
-.btn-facebook:hover {
-  opacity: 0.88;
-}
+.btn-google { background: #db4437; color: white; }
+.btn-facebook { background: #1877f2; color: white; }
+.btn-google:hover, .btn-facebook:hover { opacity: 0.88; }
 
 .register {
   text-align: center;
@@ -608,10 +600,7 @@ h2 {
   cursor: pointer;
   font-weight: 600;
 }
-
-.register a:hover {
-  text-decoration: underline;
-}
+.register a:hover { text-decoration: underline; }
 
 @media (max-width: 768px) {
   .login-box {
@@ -619,16 +608,11 @@ h2 {
     width: 95%;
     height: auto;
   }
-
-  .left {
-    display: none;
-  }
+  .left { display: none; }
 }
 
 @media (max-width: 480px) {
-  .right {
-    padding: 24px 20px;
-  }
+  .right { padding: 24px 20px; }
 }
 
 /* MODAL */
@@ -661,15 +645,8 @@ h2 {
   margin: 0 auto 16px;
 }
 
-.modal-card.error .modal-icon {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.modal-card.success .modal-icon {
-  background: #dcfce7;
-  color: #22c55e;
-}
+.modal-card.error .modal-icon { background: #fee2e2; color: #ef4444; }
+.modal-card.success .modal-icon { background: #dcfce7; color: #22c55e; }
 
 .modal-title {
   font-size: 18px;
@@ -696,37 +673,19 @@ h2 {
   transition: opacity 0.2s;
 }
 
-.modal-btn.error {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.modal-btn.success {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
-}
-
-.modal-btn:hover {
-  opacity: 0.88;
-}
+.modal-btn.error { background: linear-gradient(90deg, #ef4444, #dc2626); color: white; }
+.modal-btn.success { background: linear-gradient(90deg, #2563eb, #7c3aed); color: white; }
+.modal-btn:hover { opacity: 0.88; }
 
 .modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.25s ease;
-}
+.modal-leave-active { transition: opacity 0.25s ease; }
 
 .modal-enter-active .modal-card,
-.modal-leave-active .modal-card {
-  transition: transform 0.25s ease;
-}
+.modal-leave-active .modal-card { transition: transform 0.25s ease; }
 
 .modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
+.modal-leave-to { opacity: 0; }
 
 .modal-enter-from .modal-card,
-.modal-leave-to .modal-card {
-  transform: scale(0.92) translateY(10px);
-}
+.modal-leave-to .modal-card { transform: scale(0.92) translateY(10px); }
 </style>

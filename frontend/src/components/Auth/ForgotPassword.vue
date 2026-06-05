@@ -1,5 +1,5 @@
-﻿<script setup>
-import { onMounted, ref } from 'vue'
+<script setup>
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
@@ -9,7 +9,14 @@ const email = ref('')
 const loading = ref(false)
 const captchaLoading = ref(false)
 const captcha = ref({ token: '', label: 'Xác minh bạn là con người', verified: false })
+const showCaptcha = ref(false)
 const router = useRouter()
+
+// Reset captcha if email changes
+watch(email, () => {
+  showCaptcha.value = false
+  captcha.value.verified = false
+})
 
 const modal = ref({
   show: false,
@@ -50,18 +57,31 @@ const loadCaptcha = async () => {
 onMounted(loadCaptcha)
 
 const verifyCaptcha = async () => {
-  if (captchaLoading.value) return
+  if (captchaLoading.value || loading.value) return
   if (!captcha.value.token) {
     await loadCaptcha()
     return
   }
   captcha.value.verified = !captcha.value.verified
+  if (captcha.value.verified) {
+    // Automatically submit when checked
+    await handleSubmit()
+  }
 }
 
 const handleSubmit = async () => {
   const emailError = validateEmail(email.value)
   if (emailError) {
     showModal('error', 'Email không hợp lệ', emailError)
+    return
+  }
+
+  // If captcha box is not shown yet, show it and return
+  if (!showCaptcha.value) {
+    showCaptcha.value = true
+    if (!captcha.value.token) {
+      await loadCaptcha()
+    }
     return
   }
 
@@ -107,6 +127,8 @@ const handleSubmit = async () => {
       'Không gửi được OTP'
 
     showModal('error', 'Lỗi', formatAuthMessage(errorMsg, 'Không gửi được OTP. Vui lòng thử lại.'))
+    // Reset captcha on failure
+    captcha.value.verified = false
     await loadCaptcha()
   } finally {
     loading.value = false
@@ -140,29 +162,32 @@ const handleSubmit = async () => {
         <input v-model="email" placeholder="example@vinatech.com" @keyup.enter="handleSubmit" />
       </div>
 
-      <div class="captcha-box">
-        <button
-          type="button"
-          class="captcha-check"
-          :class="{ checked: captcha.verified }"
-          @click="verifyCaptcha"
-          :disabled="captchaLoading"
-          aria-label="Xác minh bạn là con người"
-        >
-          <span v-if="captcha.verified">✓</span>
-        </button>
-        <span class="captcha-title">{{ captcha.label }}</span>
-        <div class="captcha-brand">
-          <svg viewBox="0 0 64 40" aria-hidden="true">
-            <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
-          </svg>
-          <strong>CLOUDFLARE</strong>
-          <small>Quyền riêng tư · Giúp đỡ</small>
-          <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading">
-            ?
+      <!-- CAPTCHA WITH TRANSITION -->
+      <Transition name="fade-slide">
+        <div class="captcha-box" v-if="showCaptcha">
+          <button
+            type="button"
+            class="captcha-check"
+            :class="{ checked: captcha.verified }"
+            @click="verifyCaptcha"
+            :disabled="captchaLoading || loading"
+            aria-label="Xác minh bạn là con người"
+          >
+            <span v-if="captcha.verified">✓</span>
           </button>
+          <span class="captcha-title">{{ captcha.label }}</span>
+          <div class="captcha-brand">
+            <svg viewBox="0 0 64 40" aria-hidden="true">
+              <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
+            </svg>
+            <strong>CLOUDFLARE</strong>
+            <small>Quyền riêng tư · Giúp đỡ</small>
+            <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading || loading">
+              ?
+            </button>
+          </div>
         </div>
-      </div>
+      </Transition>
 
       <!-- BUTTON -->
       <button class="btn" @click="handleSubmit" :disabled="loading">
@@ -253,6 +278,10 @@ const handleSubmit = async () => {
   border-radius: 50%;
 }
 
+.icon svg {
+  stroke: #2563eb;
+}
+
 h2 {
   font-size: 22px;
   margin-bottom: 8px;
@@ -289,30 +318,30 @@ h2 {
 }
 
 .captcha-box {
-  min-height: 76px;
+  min-height: 52px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: #fafafa;
   border: 1px solid #d1d5db;
   border-radius: 3px;
-  padding: 12px;
+  padding: 8px 12px;
   margin-bottom: 15px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .captcha-check {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   border: 2px solid #4b5563;
   border-radius: 3px;
   background: #ffffff;
   color: #ffffff;
   display: grid;
   place-items: center;
-  font-size: 19px;
+  font-size: 13px;
   font-weight: 900;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
@@ -330,12 +359,12 @@ h2 {
 
 .captcha-title {
   color: #111827;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .captcha-brand {
-  width: 92px;
+  width: 80px;
   display: grid;
   justify-items: center;
   gap: 1px;
@@ -343,20 +372,20 @@ h2 {
 }
 
 .captcha-brand svg {
-  width: 42px;
-  height: 24px;
+  width: 32px;
+  height: 18px;
 }
 
 .captcha-brand strong {
   color: #111827;
-  font-size: 10px;
-  letter-spacing: 1.4px;
+  font-size: 8px;
+  letter-spacing: 1.2px;
   line-height: 1;
 }
 
 .captcha-brand small {
   color: #374151;
-  font-size: 8px;
+  font-size: 7px;
   text-decoration: underline;
   white-space: nowrap;
 }
@@ -366,7 +395,7 @@ h2 {
   background: transparent;
   color: #64748b;
   padding: 1px 4px;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
 }
 
@@ -426,6 +455,18 @@ h2 {
   margin-top: 20px;
   font-size: 11px;
   color: #94a3b8;
+}
+
+/* FADE SLIDE TRANSITION */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* MODAL */

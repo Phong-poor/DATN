@@ -7,6 +7,45 @@ import api from '@/services/api'
 const route = useRoute()
 const router = useRouter()
 
+const safeRedirectPath = (path) => {
+  if (!path || typeof path !== 'string') return ''
+  if (!path.startsWith('/') || path.startsWith('/login') || path.startsWith('/login-success')) return ''
+  return path
+}
+
+const redirectAfterSocialLogin = async (user, token) => {
+  if (user?.role === 'admin') {
+    await router.replace('/admin')
+    return
+  }
+
+  const redirectPath = safeRedirectPath(sessionStorage.getItem('redirect_after_auth'))
+  sessionStorage.removeItem('redirect_after_auth')
+
+  if (redirectPath) {
+    await router.replace(redirectPath)
+    return
+  }
+
+  const pendingItemStr = localStorage.getItem('pendingCartItem')
+  if (pendingItemStr) {
+    try {
+      const pendingItem = JSON.parse(pendingItemStr)
+      await api.post('/gio-hang/them', pendingItem, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      localStorage.removeItem('pendingCartItem')
+      window.dispatchEvent(new Event('cart-updated'))
+      await router.replace('/cart')
+      return
+    } catch (err) {
+      console.error('Lỗi thêm pending item:', err)
+    }
+  }
+
+  await router.replace('/')
+}
+
 onMounted(() => {
   const token = route.query.token
 
@@ -29,25 +68,9 @@ const fetchUser = async (token) => {
 
     saveAuth(token, user)
 
-    const pendingItemStr = localStorage.getItem('pendingCartItem')
-    if (pendingItemStr) {
-      try {
-        const pendingItem = JSON.parse(pendingItemStr)
-        await api.post('/gio-hang/them', pendingItem, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        localStorage.removeItem('pendingCartItem')
-        window.dispatchEvent(new Event('cart-updated'))
-        router.push('/cart')
-        return
-      } catch (err) {
-        console.error('Lỗi thêm pending item:', err)
-      }
-    }
-
-    router.push('/')
+    await redirectAfterSocialLogin(user, token)
   } catch (e) {
-    console.error('Lỗi lấy profile sau login Google:', e)
+    console.error('Lỗi lấy profile sau đăng nhập mạng xã hội:', e)
     router.push('/login')
   }
 }
@@ -61,7 +84,7 @@ const fetchUser = async (token) => {
         <div class="spinner-glow"></div>
       </div>
       <h3 class="loading-title">Đang xác thực tài khoản</h3>
-      <p class="loading-subtitle">Hệ thống đang kết nối an toàn với Google và đồng bộ hóa tài khoản của bạn...</p>
+      <p class="loading-subtitle">Hệ thống đang kết nối an toàn và đồng bộ hóa tài khoản của bạn...</p>
     </div>
   </div>
 </template>

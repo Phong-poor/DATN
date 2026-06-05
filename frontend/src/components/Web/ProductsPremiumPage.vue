@@ -114,7 +114,6 @@ const selectedCpus = ref([])
 const selectedGpus = ref([])
 const selectedScreens = ref([])
 const selectedHzs = ref([])
-const selectedNeeds = ref([])
 const activeSort = ref('best_sellers')
 const searchQuery = ref('')
 const PRODUCTS_PER_PAGE = 16
@@ -188,10 +187,6 @@ const toggleHz = (hz) => {
   const idx = selectedHzs.value.indexOf(hz)
   idx > -1 ? selectedHzs.value.splice(idx, 1) : selectedHzs.value.push(hz)
 }
-const toggleNeed = (need) => {
-  const idx = selectedNeeds.value.indexOf(need)
-  idx > -1 ? selectedNeeds.value.splice(idx, 1) : selectedNeeds.value.push(need)
-}
 
 const clearAllFilters = () => {
   selectedBrands.value = []
@@ -203,7 +198,6 @@ const clearAllFilters = () => {
   selectedGpus.value = []
   selectedScreens.value = []
   selectedHzs.value = []
-  selectedNeeds.value = []
   searchQuery.value = ''
   activeCategory.value = 'Tất cả'
   router.replace({ path: '/products' })
@@ -228,8 +222,7 @@ const filterOptions = {
   cpus: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Apple M3', 'Apple M2'],
   gpus: ['RTX 4090', 'RTX 4080', 'RTX 4070', 'RTX 4060', 'RTX 4050'],
   screens: ['13.3 inch', '14 inch', '15.6 inch', '16 inch', '17.3 inch'],
-  hzs: ['60Hz', '120Hz', '144Hz', '165Hz', '240Hz'],
-  needs: ['Laptop Gaming', 'Workstation', 'MacBook', 'Laptop Văn phòng', 'Laptop Học sinh']
+  hzs: ['60Hz', '120Hz', '144Hz', '165Hz', '240Hz']
 }
 
 // ===================== DỮ LIỆU Äá»˜NG CỦA BẢN MẪU GIAO DIỆN =====================
@@ -516,17 +509,12 @@ const filteredProducts = computed(() => {
       return product.specs.some(spec => spec.toLowerCase().includes(hz.toLowerCase()))
     })
 
-    // 10. Lọc theo nhu cầu
-    const matchNeed = selectedNeeds.value.length === 0 || selectedNeeds.value.some(need => {
-      return product.category.toLowerCase().includes(need.toLowerCase())
-    })
-
     // 11. Lọc theo tìm kiếm (searchQuery)
     const matchSearch = !searchQuery.value || 
                         product.tenSP.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
                         product.brand.toLowerCase().includes(searchQuery.value.toLowerCase())
 
-    return matchCategory && matchBrand && matchPrice && matchRam && matchSsd && matchCpu && matchGpu && matchScreen && matchHz && matchNeed && matchSearch
+    return matchCategory && matchBrand && matchPrice && matchRam && matchSsd && matchCpu && matchGpu && matchScreen && matchHz && matchSearch
   })
 
   // SẮP XẾP (SORTING)
@@ -913,7 +901,7 @@ watch(() => route.query, (newQuery) => {
     </section>
 
     <!-- ===================== KHÁM PHÁ CHI TIẾT SẢN PHẨM ===================== -->
-    <section class="section-layout interactive-details-section">
+    <section class="interactive-details-section">
       <div class="glass-container-details">
         
         <!-- Left Side: Interactive image slider -->
@@ -1162,7 +1150,7 @@ watch(() => route.query, (newQuery) => {
             </div>
 
             <!-- GPU Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group gpu-filter-group">
               <h4>Card đồ họa GPU</h4>
               <div class="filter-pill-grid">
                 <button 
@@ -1209,21 +1197,6 @@ watch(() => route.query, (newQuery) => {
               </div>
             </div>
 
-            <!-- Needs Filter -->
-            <div class="filter-option-group">
-              <h4>Nhu cầu sử dụng</h4>
-              <div class="filter-pill-grid">
-                <button 
-                  v-for="need in filterOptions.needs" 
-                  :key="need" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedNeeds.includes(need) }"
-                  @click="toggleNeed(need)"
-                >
-                  {{ need }}
-                </button>
-              </div>
-            </div>
           </div>
         </aside>
 
@@ -2293,18 +2266,49 @@ p {
    4. INTERACTIVE ANGLE DETAIL CORNER
    ============================================================ */
 .interactive-details-section {
-  padding-top: 30px;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding: 50px 0;
+  background: linear-gradient(135deg, #020817 0%, #0f172a 40%, #0a1628 70%, #060d1a 100%);
+  overflow: hidden;
 }
 
 .glass-container-details {
-  background: #0f172a; /* Clean solid slate container */
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 40px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.08) inset,
+    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  padding: 50px max(24px, 8vw);
+  max-width: 1440px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 48px;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-container-details::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.06) 0%,
+    transparent 50%,
+    rgba(6, 182, 212, 0.04) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .interactive-slider-box {
@@ -2317,20 +2321,25 @@ p {
 }
 
 .badge-accent {
-  background: rgba(37, 99, 235, 0.1);
-  color: #3b82f6;
+  background: rgba(37, 99, 235, 0.18);
+  color: #60a5fa;
   font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
   display: inline-block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .slider-header-badge h3 {
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .interactive-image-viewer {
@@ -2437,6 +2446,14 @@ p {
   margin: 10px 0 16px;
   line-height: 1.25;
   color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+.interactive-copy-box > p {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 8px;
 }
 
 .advantages-checklist-group {
@@ -2468,13 +2485,15 @@ p {
 .checklist-item strong {
   display: block;
   font-size: 14.5px;
-  color: #ffffff;
-  margin-bottom: 2px;
+  color: #f1f5f9;
+  margin-bottom: 4px;
 }
 
 .checklist-item p {
-  font-size: 12.5px;
+  font-size: 13px;
   margin: 0;
+  color: #94a3b8;
+  line-height: 1.6;
 }
 
 /* ============================================================
@@ -2770,6 +2789,17 @@ p {
 .filter-option-group:nth-of-type(4) .filter-pill-grid,
 .filter-option-group:nth-of-type(5) .filter-pill-grid {
   grid-template-columns: repeat(4, 1fr);
+}
+
+.gpu-filter-group .filter-pill-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gpu-filter-group .filter-pill-btn {
+  font-size: 10px;
+  padding-inline: 4px;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .filter-pill-btn {
