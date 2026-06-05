@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SanPham;
+use App\Models\DanhMuc;
 use App\Models\BienThe;
 use App\Models\ThuocTinh;
 use App\Models\BienTheHinhAnh;
@@ -97,6 +98,72 @@ class SanPhamController extends Controller
     }
 
     // Trả về danh sách các giá trị thuộc tính có trong DB
+    public function mobileHome()
+    {
+        $payload = Cache::remember('mobile_home_v2', 120, function () {
+            $categories = DanhMuc::query()
+                ->select('id_danhmuc', 'ten_danhmuc', 'trangthai', 'id_danhmuc_cha')
+                ->orderBy('id_danhmuc')
+                ->get();
+
+            $products = SanPham::query()
+                ->select(
+                    'id_sanpham',
+                    'tenSP',
+                    'SKU',
+                    'hinhanh',
+                    'trangthai',
+                    'id_danhmuc',
+                    'id_thuonghieu'
+                )
+                ->with([
+                    'danhMuc:id_danhmuc,ten_danhmuc,trangthai,id_danhmuc_cha',
+                    'thuongHieu:id_thuonghieu,ten_thuonghieu',
+                    'bienThes:id_bienthe,id_sanpham,ten_bienthe,gia,soluong,thuoc_tinh_json',
+                ])
+                ->orderByDesc('id_sanpham')
+                ->limit(12)
+                ->get()
+                ->map(function ($product) {
+                    $variants = $product->bienThes
+                        ->sortByDesc(fn ($variant) => (int) $variant->soluong > 0)
+                        ->take(1)
+                        ->values()
+                        ->map(function ($variant) {
+                            return [
+                                'id_bienthe' => $variant->id_bienthe,
+                                'ten_bienthe' => $variant->ten_bienthe,
+                                'gia' => $variant->gia,
+                                'soluong' => $variant->soluong,
+                                'thuoc_tinh_json' => $variant->thuoc_tinh_json,
+                            ];
+                        });
+
+                    return [
+                        'id_sanpham' => $product->id_sanpham,
+                        'tenSP' => $product->tenSP,
+                        'SKU' => $product->SKU,
+                        'hinhanh' => $product->hinhanh,
+                        'trangthai' => $product->trangthai,
+                        'id_danhmuc' => $product->id_danhmuc,
+                        'id_thuonghieu' => $product->id_thuonghieu,
+                        'thong_so_ky_thuat' => [],
+                        'danh_muc' => $product->danhMuc,
+                        'thuong_hieu' => $product->thuongHieu,
+                        'hinh_anhs' => [],
+                        'bien_thes' => $variants,
+                    ];
+                });
+
+            return [
+                'products' => $products,
+                'categories' => $categories,
+            ];
+        });
+
+        return response()->json($payload);
+    }
+
     public function attributeOptions()
     {
         $options = Cache::remember('sanpham_attribute_options', 120, function () {
@@ -187,6 +254,7 @@ class SanPhamController extends Controller
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
                 'ten_danhmuc'  => $sanpham->danhMuc->ten_danhmuc,
+                'id_danhmuc_cha' => $sanpham->danhMuc->id_danhmuc_cha,
             ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
@@ -389,6 +457,7 @@ class SanPhamController extends Controller
             'hinh_anhs.*.thutu'    => 'nullable|integer|min:0',
 
             'bienthes'                => 'nullable|array',
+            'bienthes.*.id_bienthe'   => 'nullable|integer',
             'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
             'bienthes.*.gia'          => 'required_with:bienthes|numeric|min:0',
             'bienthes.*.soluong'      => 'required_with:bienthes|integer|min:0',
@@ -450,17 +519,40 @@ class SanPhamController extends Controller
                 }
             }
 
-            BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            $existingIds = BienThe::where('id_sanpham', $sanpham->id_sanpham)->pluck('id_bienthe')->toArray();
+
+            $incomingIds = collect($request->bienthes)
+                ->pluck('id_bienthe')
+                ->filter()
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+
+            // Xóa những biến thể không được gửi lên (đã bị xóa ở giao diện)
+            $idsToDelete = array_diff($existingIds, $incomingIds);
+            if (!empty($idsToDelete)) {
+                BienThe::whereIn('id_bienthe', $idsToDelete)->delete();
+            }
 
             if ($request->has('bienthes') && is_array($request->bienthes)) {
                 foreach ($request->bienthes as $bt) {
-                    BienThe::create([
-                        'id_sanpham'      => $sanpham->id_sanpham,
-                        'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
-                        'gia'             => $bt['gia'],
-                        'soluong'         => $bt['soluong'],
-                        'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
-                    ]);
+                    if (!empty($bt['id_bienthe']) && in_array((int)$bt['id_bienthe'], $existingIds)) {
+                        // Cập nhật tại chỗ
+                        BienThe::where('id_bienthe', $bt['id_bienthe'])->update([
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    } else {
+                        // Tạo mới
+                        BienThe::create([
+                            'id_sanpham'      => $sanpham->id_sanpham,
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    }
                 }
             }
 
@@ -532,6 +624,7 @@ class SanPhamController extends Controller
 
         // Danh sách admin/frontend thường gọi /sanpham không query
         Cache::forget('sanpham_index_' . md5(json_encode([])));
+        Cache::forget('mobile_home_v2');
         Cache::forget('sanpham_attribute_options');
     }
 

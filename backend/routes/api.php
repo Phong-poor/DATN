@@ -192,6 +192,7 @@ Route::put('/colors/{id}', [ColorController::class, 'update']);
 Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
 // ================= SẢN PHẨM =================
+Route::get('/mobile/home', [SanPhamController::class, 'mobileHome']);
     Route::get('/sanpham/init', [SanPhamController::class, 'init']);
     Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
@@ -329,6 +330,8 @@ Route::middleware(['auth:sanctum', 'admin'])
 
 
         // ===== ADMIN REVIEWS =====
+        Route::get('/reviews/ai-status', [DanhGiaController::class, 'getAiStatus']);
+        Route::post('/reviews/ai-status', [DanhGiaController::class, 'toggleAiStatus']);
         Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
         Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);
