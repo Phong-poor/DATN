@@ -93,7 +93,7 @@ const crumbs = computed(() => {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  padding: 12px 0;
+  padding: 6px 0;
   position: sticky;
   top: 68px; /* Height of sticky Header */
   z-index: 99;
@@ -104,7 +104,7 @@ const crumbs = computed(() => {
   max-width: 1300px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 30px;
+  padding: 0 24px;
   box-sizing: border-box;
 }
 
@@ -121,18 +121,18 @@ const crumbs = computed(() => {
 .breadcrumbs-item {
   display: flex;
   align-items: center;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 500;
   color: #64748b;
   min-width: 0;
 }
 
 .chevron-separator {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   stroke-width: 2.5;
   color: #94a3b8;
-  margin: 0 8px;
+  margin: 0 6px;
   flex-shrink: 0;
 }
 
@@ -157,8 +157,8 @@ const crumbs = computed(() => {
 }
 
 .home-icon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   stroke-width: 2.2;
 }
 
@@ -175,7 +175,7 @@ const crumbs = computed(() => {
 @media (max-width: 1024px) {
   .breadcrumbs-bar {
     top: 60px; /* Matches sticky responsive header */
-    padding: 10px 0;
+    padding: 5px 0;
   }
   .breadcrumbs-container {
     padding: 0 20px;
@@ -184,13 +184,13 @@ const crumbs = computed(() => {
 
 @media (max-width: 576px) {
   .breadcrumbs-bar {
-    padding: 8px 0;
+    padding: 4px 0;
   }
   .breadcrumbs-container {
     padding: 0 12px;
   }
   .breadcrumbs-item {
-    font-size: 12.5px;
+    font-size: 12px;
   }
   .breadcrumb-current {
     max-width: 130px; /* Clamps dynamic title nicely to fit small mobile screens */

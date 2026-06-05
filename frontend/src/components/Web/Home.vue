@@ -692,66 +692,6 @@ onUnmounted(() => {
             </div>
         </section>
 
-        <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
-        <section class="section combos-section">
-    <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up">
-            <div class="label-wrapper">
-                <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
-                <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
-                <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
-            </div>
-        </div>
-
-        <!-- Có combo thì hiện danh sách -->
-        <div v-if="combos && combos.length" class="combos-grid scroll-reveal reveal-stagger">
-            <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
-                <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
-
-                <div class="combo-home-img">
-                    <img
-                        :src="c.image_url || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'"
-                        alt="Combo accessories"
-                        @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')"
-                    />
-                </div>
-
-                <div class="combo-home-info">
-                    <h3>{{ c.ten_combo }}</h3>
-                    <p class="desc">{{ c.mota }}</p>
-
-                    <div class="bundle-items" v-if="c.products && c.products.length > 0">
-                        <div class="b-item-line">
-                            <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
-                                <span class="clickable-product" @click="router.push(`/products/${p.id}`)">
-                                    {{ p.tenSP }}
-                                </span>
-                                <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="price-row">
-                        <div class="price-box">
-                            <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
-                            <span class="price">{{ Number(c.giakhuyenmai || 0).toLocaleString('vi-VN') }}đ</span>
-                        </div>
-                        <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
-                            <span>Cấu hình Combo</span>
-                        </button>
-                    </div>
-                </div>
-            </article>
-        </div>
-
-        <!-- Không có combo thì vẫn hiện giao diện -->
-        <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
-            <div class="combo-empty-icon">🎁</div>
-            <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
-            <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng cập nhật database hoặc thêm combo trong trang quản trị.</p>
-        </div>
-    </div>
-</section>
         <!-- 3. PRODUCT CATEGORIES (Rich dark luxury grid backdrop) -->
         <section class="section category-section">
             <div class="grid-container">
@@ -777,6 +717,67 @@ onUnmounted(() => {
                             </span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
+        <section class="section combos-section">
+            <div class="grid-container">
+                <div class="section-header scroll-reveal reveal-fade-up">
+                    <div class="label-wrapper">
+                        <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
+                        <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
+                        <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
+                    </div>
+                </div>
+
+                <!-- Có combo thì hiện danh sách -->
+                <div v-if="combos && combos.length" class="combos-grid scroll-reveal reveal-stagger">
+                    <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
+                        <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
+
+                        <div class="combo-home-img">
+                            <img
+                                :src="c.image_url || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'"
+                                alt="Combo accessories"
+                                @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')"
+                            />
+                        </div>
+
+                        <div class="combo-home-info">
+                            <h3>{{ c.ten_combo }}</h3>
+                            <p class="desc">{{ c.mota }}</p>
+
+                            <div class="bundle-items" v-if="c.products && c.products.length > 0">
+                                <div class="b-item-line">
+                                    <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
+                                        <span class="clickable-product" @click="router.push(`/products/${p.id}`)">
+                                            {{ p.tenSP }}
+                                        </span>
+                                        <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="price-row">
+                                <div class="price-box">
+                                    <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
+                                    <span class="price">{{ Number(c.giakhuyenmai || 0).toLocaleString('vi-VN') }}đ</span>
+                                </div>
+                                <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
+                                    <span>Cấu hình Combo</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Không có combo thì vẫn hiện giao diện -->
+                <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
+                    <div class="combo-empty-icon">🎁</div>
+                    <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
+                    <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng cập nhật database hoặc thêm combo trong trang quản trị.</p>
                 </div>
             </div>
         </section>
