@@ -750,13 +750,7 @@ const warmProductsPageNow = () => {
                     </span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </router-link>
-                  <router-link to="/orders" @click="showUser = false" class="um-item">
-                    <span class="um-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                      Đơn hàng của tôi
-                    </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                  </router-link>
+
                   <router-link to="/affiliate" @click="showUser = false" class="um-item">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -1537,19 +1531,20 @@ const warmProductsPageNow = () => {
 .um-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px; border-radius: 10px;
-  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #94a3b8;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #e2e8f0;
   text-decoration: none; background: transparent;
   border: 1px solid transparent; cursor: pointer; width: 100%;
   transition: all 0.18s;
 }
 .um-left { display: flex; align-items: center; gap: 9px; }
 .um-left svg { width: 15px; height: 15px; flex-shrink: 0; }
-.um-item > svg { width: 13px; height: 13px; color: #475569; }
-.um-item:hover { background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
-.um-item.admin { background: rgba(139,92,246,0.08); color: #a78bfa; }
-.um-item.admin:hover { background: rgba(139,92,246,0.15); }
-.um-item.logout { color: #f87171; }
-.um-item.logout:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+.um-item > svg { width: 13px; height: 13px; color: #64748b; }
+.um-item:hover { background: rgba(37,99,235,0.35); border-color: rgba(96,165,250,0.5); color: #bfdbfe; }
+.um-item:hover > svg { color: #bfdbfe; }
+.um-item.admin { background: rgba(139,92,246,0.08); color: #c4b5fd; }
+.um-item.admin:hover { background: rgba(139,92,246,0.22); border-color: rgba(167,139,250,0.35); color: #c4b5fd; }
+.um-item.logout { color: #f87171; background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.2); }
+.um-item.logout:hover { background: rgba(220,38,38,0.5); border-color: rgba(239,68,68,0.7); color: #ffffff; }
 .um-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
 
 /* DROPDOWN TRANSITION */

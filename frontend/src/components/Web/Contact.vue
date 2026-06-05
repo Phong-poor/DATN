@@ -286,24 +286,7 @@ const toggleFaq = (index) => {
 <template>
   <div class="contact-page">
     
-    <!-- ===== BRAND PARTNERS FLOATING MARQUEE ===== -->
-    <div class="brands-ticker">
-      <div class="brands-ticker-track">
-        <span>Intel Core Ultra</span>
-        <span class="ticker-dot">•</span>
-        <span>NVIDIA RTX Studio</span>
-        <span class="ticker-dot">•</span>
-        <span>AMD Ryzen AI</span>
-        <span class="ticker-dot">•</span>
-        <span>ASUS Republic of Gamers</span>
-        <span class="ticker-dot">•</span>
-        <span>MSI Extreme Workstation</span>
-        <span class="ticker-dot">•</span>
-        <span>Dell XPS Professional</span>
-        <span class="ticker-dot">•</span>
-        <span>HP ZBook Power</span>
-      </div>
-    </div>
+
 
     <!-- ===== CYBER GRADIENT HERO ===== -->
     <section class="support-hero">
@@ -649,15 +632,42 @@ const toggleFaq = (index) => {
     <section class="tech-trust-banner">
       <div class="tech-trust-inner">
         <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của Predator</h4>
-        <div class="partners-logos-row">
-          <span>Intel</span>
-          <span>AMD</span>
-          <span>NVIDIA</span>
-          <span>ASUS ROG</span>
-          <span>MSI</span>
-          <span>Dell Enterprise</span>
-          <span>Lenovo Pro</span>
-          <span>HP ZBook</span>
+        <div class="partners-marquee-container">
+          <div class="partners-marquee-track">
+            <span>Intel</span>
+            <span class="ticker-dot">•</span>
+            <span>AMD</span>
+            <span class="ticker-dot">•</span>
+            <span>NVIDIA</span>
+            <span class="ticker-dot">•</span>
+            <span>ASUS ROG</span>
+            <span class="ticker-dot">•</span>
+            <span>MSI</span>
+            <span class="ticker-dot">•</span>
+            <span>Dell Enterprise</span>
+            <span class="ticker-dot">•</span>
+            <span>Lenovo Pro</span>
+            <span class="ticker-dot">•</span>
+            <span>HP ZBook</span>
+            
+            <!-- Loop Duplicate -->
+            <span class="ticker-dot">•</span>
+            <span>Intel</span>
+            <span class="ticker-dot">•</span>
+            <span>AMD</span>
+            <span class="ticker-dot">•</span>
+            <span>NVIDIA</span>
+            <span class="ticker-dot">•</span>
+            <span>ASUS ROG</span>
+            <span class="ticker-dot">•</span>
+            <span>MSI</span>
+            <span class="ticker-dot">•</span>
+            <span>Dell Enterprise</span>
+            <span class="ticker-dot">•</span>
+            <span>Lenovo Pro</span>
+            <span class="ticker-dot">•</span>
+            <span>HP ZBook</span>
+          </div>
         </div>
       </div>
     </section>
@@ -904,39 +914,13 @@ const toggleFaq = (index) => {
   position: relative;
 }
 
-/* Ticker Marquee Bar */
-.brands-ticker {
-  background: #f8fafc;
-  border-bottom: 1px solid #e6eef6;
-  padding: 10px 0;
-  overflow: hidden;
-  display: flex;
-}
-.brands-ticker-track {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  white-space: nowrap;
-  animation: tickerScroll 30s linear infinite;
-  color: #475569;
-  font-family: var(--font-heading);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.ticker-dot {
-  color: var(--secondary);
-}
-@keyframes tickerScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+
 
 /* ==================== CYBER GRADIENT HERO ==================== */
 .support-hero {
   position: relative;
   background: 
-    linear-gradient(135deg, rgba(15, 23, 42, 0.93) 0%, rgba(17, 24, 39, 0.88) 100%), 
+    linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(17, 24, 39, 0.8) 100%), 
     url('/elite_workspace.png') center/cover no-repeat;
   padding: 90px 24px 75px;
   text-align: center;
@@ -988,9 +972,7 @@ const toggleFaq = (index) => {
   color: #ffffff;
 }
 .highlight-text {
-  background: linear-gradient(135deg, #ffffff 30%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--secondary);
 }
 .hero-desc {
   font-size: 15px;
@@ -1049,11 +1031,15 @@ const toggleFaq = (index) => {
   grid-template-columns: repeat(7, auto);
   justify-content: space-between;
   align-items: center;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   padding: 20px 36px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 
+    0 15px 35px -5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 .stat-card {
   text-align: center;
@@ -1070,14 +1056,14 @@ const toggleFaq = (index) => {
 .stat-label {
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .stat-border-line {
   width: 1px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ==================== GUIDED CONTACT FORM AREA ==================== */
@@ -1113,9 +1099,7 @@ const toggleFaq = (index) => {
   margin: 0 0 10px 0;
 }
 .section-magazine-title h2 span {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary);
 }
 .section-magazine-title p {
   font-size: 14px;
@@ -1838,24 +1822,42 @@ const toggleFaq = (index) => {
   text-transform: uppercase;
   margin: 0 0 20px 0;
 }
-.partners-logos-row {
+.partners-marquee-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
 }
-.partners-logos-row span {
+.partners-marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  white-space: nowrap;
+  animation: techTickerScroll 25s linear infinite;
+}
+.partners-marquee-track span {
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 800;
-  color: #cbd5e1;
+  color: #000000;
   cursor: default;
   transition: var(--transition);
 }
-.partners-logos-row span:hover {
-  color: var(--text-secondary);
+.partners-marquee-track span:hover {
+  color: var(--primary);
   transform: scale(1.05);
+}
+.partners-marquee-track .ticker-dot {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+@keyframes techTickerScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* ==================== FAQ KNOWLEDGE CENTER ==================== */
@@ -2280,11 +2282,7 @@ const toggleFaq = (index) => {
   .tech-trust-banner {
     padding: 24px 16px;
   }
-  .partners-logos-row {
-    justify-content: center;
-    gap: 16px 20px;
-  }
-  .partners-logos-row span {
+  .partners-marquee-track span {
     font-size: 15px;
   }
   .faq-knowledge-center {

@@ -104,7 +104,7 @@ onUnmounted(() => {
           <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
           <ul class="footer-links">
             <li><router-link to="/products?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
-            <li><router-link to="/products?category=macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
+            <li><router-link to="/macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
             <li><router-link to="/products?category=workstation" class="link-item">Workstation Đồ Họa & Render</router-link></li>
             <li><router-link to="/products?category=gear" class="link-item">Gaming Gear & Phụ Kiện High-End</router-link></li>
             <li><router-link to="/products?category=office" class="link-item">Laptop Văn Phòng AI Intel Ultra</router-link></li>
