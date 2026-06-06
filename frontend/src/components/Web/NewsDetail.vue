@@ -82,7 +82,7 @@ const articleBlocks = computed(() => {
 })
 
 const articleImages = computed(() => articleBlocks.value.filter((block) => block.type === 'image'))
-const heroAlt = computed(() => post.value?.image_alt || post.value?.title || '?nh minh h?a bài vi?t VinaTech')
+const heroAlt = computed(() => post.value?.image_alt || post.value?.title || 'Ảnh minh họa bài viết VinaTech')
 
 const compactTitle = (title = '') => {
   const cleanTitle = title.trim()
@@ -122,7 +122,7 @@ const applyArticleSeo = (article) => {
   setSeo({
     title: compactTitle(article.title),
     description,
-    keywords: `${article.category}, tin t?c c?ng ngh?, t? v?n laptop, laptop VinaTech`,
+    keywords: `${article.category}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
     image: fullImageUrl,
     url: canonicalPath,
     type: 'article',
@@ -176,7 +176,7 @@ const fetchRelated = async (currentPost) => {
       .filter((item) => item.id !== currentPost.id)
       .slice(0, 3)
   } catch (error) {
-    console.error('L?i t?i bài vi?t liên quan:', error)
+    console.error('Lỗi tải bài viết liên quan:', error)
     relatedPosts.value = []
   }
 }
@@ -191,7 +191,7 @@ const loadCache = (id) => {
       return true
     }
   } catch (e) {
-    console.error('L?i load cache chi ti?t tin t?c:', e)
+    console.error('Lỗi load cache chi tiết tin tức:', e)
   }
   return false
 }
@@ -203,7 +203,7 @@ const saveCache = (id) => {
       relatedPosts: relatedPosts.value
     }))
   } catch (e) {
-    console.error('L?i save cache chi ti?t tin t?c:', e)
+    console.error('Lỗi save cache chi tiết tin tức:', e)
   }
 }
 
@@ -231,7 +231,7 @@ const fetchPost = async () => {
     errorMessage.value = ''
     applyArticleSeo(data)
     
-    // T?i bài vi?t liên quan
+    // Tải bài viết liên quan
     if (data?.category) {
       await fetchRelated(data)
     }
@@ -239,7 +239,7 @@ const fetchPost = async () => {
     saveCache(articleId)
     loading.value = false
   } catch (error) {
-    console.error('L?i t?i chi ti?t tin t?c:', error)
+    console.error('Lỗi tải chi tiết tin tức:', error)
     if (!post.value) {
       post.value = null
       relatedPosts.value = []
@@ -264,15 +264,15 @@ onMounted(() => {
 
 <template>
   <section class="detail-page">
-    <div v-if="loading" class="state-box">Đang tải bài vi?t...</div>
+    <div v-if="loading" class="state-box">Đang tải bài viết...</div>
 
     <div v-else-if="errorMessage" class="state-box">
       <p>{{ errorMessage }}</p>
-      <RouterLink to="/news">Quay l?i tin t?c</RouterLink>
+      <RouterLink to="/news">Quay lại tin tức</RouterLink>
     </div>
 
     <article v-else class="article-wrap h-entry hentry">
-      <RouterLink to="/news" class="back-link u-url">? Quay l?i tin t?c</RouterLink>
+      <RouterLink to="/news" class="back-link u-url">← Quay lại tin tức</RouterLink>
 
       <header class="article-head">
         <span class="category p-category">{{ post.category }}</span>
@@ -283,9 +283,9 @@ onMounted(() => {
             {{ formatDate(post.published_at || post.created_at) }}
           </time>
           <time v-if="post.updated_at" class="dt-updated updated" :datetime="post.updated_at">
-            C?p nh?t {{ formatDate(post.updated_at) }}
+            Cập nhật {{ formatDate(post.updated_at) }}
           </time>
-          <span>{{ post.views || 0 }} lu?t xem</span>
+          <span>{{ post.views || 0 }} lượt xem</span>
         </div>
       </header>
 
@@ -317,7 +317,7 @@ onMounted(() => {
       </div>
 
       <section class="article-gallery" v-if="articleImages.length">
-        <h2>Hình ?nh minh h?a trong bài</h2>
+        <h2>Hình ảnh minh họa trong bài</h2>
         <div class="gallery-grid">
           <figure v-for="image in articleImages" :key="image.src">
             <img :src="imageUrl(image.src)" :alt="image.alt" loading="lazy" decoding="async" />
@@ -327,12 +327,12 @@ onMounted(() => {
       </section>
 
       <section class="seo-summary">
-        <h2>Tóm t?t nhanh</h2>
+        <h2>Tóm tắt nhanh</h2>
         <p v-for="item in seoSummary" :key="item">{{ item }}</p>
       </section>
 
       <aside v-if="relatedPosts.length" class="related">
-        <h3>Bài vi?t liên quan</h3>
+        <h3>Bài viết liên quan</h3>
         <div class="related-grid">
           <RouterLink
             v-for="item in relatedPosts"
@@ -366,10 +366,12 @@ onMounted(() => {
 }
 
 .state-box {
-  background: #111f35;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  color: #64748b;
+  color: #334155;
   padding: 28px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
 .state-box a,
@@ -397,7 +399,7 @@ onMounted(() => {
 }
 
 .article-head h1 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 42px;
   line-height: 1.12;
   margin: 12px 0;
@@ -419,30 +421,32 @@ onMounted(() => {
 }
 
 .article-body {
-  background: #111f35;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  color: #cbd5e1;
+  color: #334155;
   font-size: 16px;
   line-height: 1.8;
   margin-top: 24px;
   padding: 32px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
 }
 
 .article-body .lead {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 19px;
   font-weight: 600;
 }
 
 .article-body h2 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 26px;
   line-height: 1.35;
   margin: 30px 0 12px;
 }
 
 .article-body h3 {
-  color: #1e3a8a;
+  color: #1d4ed8;
   font-size: 20px;
   line-height: 1.4;
   margin: 24px 0 10px;
@@ -481,14 +485,16 @@ onMounted(() => {
 }
 
 .article-gallery {
-  background: #111f35;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   margin-top: 20px;
   padding: 24px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
 }
 
 .article-gallery h2 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 22px;
   margin: 0 0 16px;
 }
@@ -514,14 +520,14 @@ onMounted(() => {
   background: #eef6ff;
   border: 1px solid #dbeafe;
   border-radius: 16px;
-  color: #cbd5e1;
+  color: #334155;
   line-height: 1.75;
   margin-top: 20px;
   padding: 24px 30px;
 }
 
 .seo-summary h2 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 22px;
   margin: 0 0 10px;
 }
@@ -535,7 +541,7 @@ onMounted(() => {
 }
 
 .related h3 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 22px;
 }
 
@@ -546,7 +552,8 @@ onMounted(() => {
 }
 
 .related-card {
-  background: #111f35;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   color: inherit;
   overflow: hidden;
@@ -570,7 +577,7 @@ onMounted(() => {
 }
 
 .related-card h4 {
-  color: #f1f5f9;
+  color: #0f172a;
   font-size: 14px;
   margin: 6px 0 0;
 }

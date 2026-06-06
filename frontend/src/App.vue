@@ -5,14 +5,14 @@
 
   <SupportWidget v-if="showChatbot && widgetsReady" />
   <ChatbotWidget v-if="showChatbot && widgetsReady" />
-  <AdminChatWidget v-if="showChatbot && widgetsReady" />
+  <AdminChatWidget v-if="showChatbot && adminChatReady" />
   <GlobalLoader />
   <ZaloWidget v-if="showChatbot && widgetsReady" />
   <FloatingContactMenu v-if="showChatbot && widgetsReady" />
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import GlobalLoader from '@/components/Layout/GlobalLoader.vue'
 const SupportWidget = defineAsyncComponent(() => import('@/components/Web/SupportWidget.vue'))
@@ -22,7 +22,10 @@ const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/ZaloWidge
 const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/FloatingContactMenu.vue'))
 const route = useRoute()
 const widgetsReady = ref(false)
+const adminChatReady = ref(false)
 let pageShowHandler = null
+let openAdminChatHandler = null
+let toggleAdminChatHandler = null
 
 const showChatbot = computed(() => {
   const hiddenRouteNames = ['login', 'register', 'forgot-password', 'otp-verify', 'reset-password', 'login-success']
@@ -44,15 +47,33 @@ onMounted(() => {
 
   const bootWidgets = () => { widgetsReady.value = true }
   if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(bootWidgets, { timeout: 1200 })
+    window.requestIdleCallback(bootWidgets, { timeout: 1800 })
   } else {
-    setTimeout(bootWidgets, 600)
+    setTimeout(bootWidgets, 1000)
   }
+
+  const ensureAdminChat = (eventName) => {
+    if (adminChatReady.value) return
+    adminChatReady.value = true
+    nextTick(() => {
+      window.dispatchEvent(new CustomEvent(eventName))
+    })
+  }
+  openAdminChatHandler = () => ensureAdminChat('open-admin-chat')
+  toggleAdminChatHandler = () => ensureAdminChat('toggle-admin-chat')
+  window.addEventListener('open-admin-chat', openAdminChatHandler)
+  window.addEventListener('toggle-admin-chat', toggleAdminChatHandler)
 })
 
 onUnmounted(() => {
   if (pageShowHandler) {
     window.removeEventListener('pageshow', pageShowHandler)
+  }
+  if (openAdminChatHandler) {
+    window.removeEventListener('open-admin-chat', openAdminChatHandler)
+  }
+  if (toggleAdminChatHandler) {
+    window.removeEventListener('toggle-admin-chat', toggleAdminChatHandler)
   }
 })
 </script>

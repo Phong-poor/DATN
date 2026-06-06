@@ -6,7 +6,7 @@ import echo from '@/services/echo'
 import { getToken, getUser } from '@/services/auth'
 import { onUnmounted } from 'vue'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 
 const activeTab = ref('all')
 const pageMode = ref('orders')
@@ -260,7 +260,8 @@ const getFullProductName = (item) => {
 
 const getProductImage = (item) => {
     const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
-    return sp.hinhanh ? storageUrl(sp.hinhanh) : 'https://via.placeholder.com/200'
+    const variant = item.bien_the || item.bienThe || null
+    return productImageUrl(sp, variant, 'https://via.placeholder.com/200')
 }
 
 onMounted(() => {

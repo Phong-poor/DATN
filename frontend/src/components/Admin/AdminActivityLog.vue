@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
-import { storageUrl } from '@/services/urls'
+import { normalizeImageUrl } from '@/services/urls'
 
 const loading = ref(false)
 const loadingAdmins = ref(false)
@@ -44,8 +44,7 @@ function timeAgo(isoString) {
 
 function getAvatarUrl(avatar) {
   if (!avatar) return null
-  if (avatar.startsWith('http')) return avatar
-  return `${storageUrl}/${avatar}`
+  return normalizeImageUrl(avatar, null)
 }
 
 async function fetchActiveAdmins() {

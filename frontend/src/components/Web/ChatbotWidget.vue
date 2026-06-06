@@ -91,7 +91,7 @@
 import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
-import { storageUrl } from '@/services/urls';
+import { productImageUrl, storageUrl } from '@/services/urls';
 
 const isOpen = ref(false);
 const isLoading = ref(false);

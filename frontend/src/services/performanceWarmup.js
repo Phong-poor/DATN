@@ -1,7 +1,7 @@
 import { getToken, getUser } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
-const idle = (task, timeout = 900) => {
+const idle = (task, timeout = 1600) => {
   if (typeof window === 'undefined') return
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(task, { timeout })
@@ -78,25 +78,8 @@ const preloadLinkTarget = (event) => {
 }
 
 const installLinkPrefetch = () => {
-  document.addEventListener('mouseover', preloadLinkTarget, { passive: true })
+  document.addEventListener('pointerover', preloadLinkTarget, { passive: true })
   document.addEventListener('touchstart', preloadLinkTarget, { passive: true })
-
-  if (!('IntersectionObserver' in window)) return
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return
-      const path = normalizePath(entry.target.getAttribute('href'))
-      if (path) preloadOnce(path)
-      observer.unobserve(entry.target)
-    })
-  }, { rootMargin: '240px' })
-
-  const observeLinks = () => {
-    document.querySelectorAll('a[href]').forEach((link) => observer.observe(link))
-  }
-  observeLinks()
-  const mutationObserver = new MutationObserver(observeLinks)
-  mutationObserver.observe(document.body, { childList: true, subtree: true })
 }
 
 const warmCoreRoutes = () => {
@@ -104,7 +87,7 @@ const warmCoreRoutes = () => {
 
   const user = getUser()
   const isAdmin = Boolean(getToken() && user?.role === 'admin')
-  const webQueue = ['/', '/products', '/cart', '/checkout', '/news', '/khuyen-mai', '/workstation']
+  const webQueue = ['/', '/products', '/news']
   const adminQueue = isAdmin
     ? ['/admin', '/admin/products', '/admin/orders', '/admin/users', '/admin/variants']
     : []
@@ -114,7 +97,7 @@ const warmCoreRoutes = () => {
   const step = () => {
     preloadOnce(queue[index])
     index += 1
-    if (index < queue.length) idle(step, 500)
+    if (index < queue.length) idle(step, 1200)
   }
   step()
 }
@@ -125,7 +108,12 @@ export const installPerformanceWarmup = () => {
   installLinkPrefetch()
 
   idle(() => {
-    prefetchProductsPage({ forceRefresh: false }).catch(() => {})
+    if (!hasSlowConnection()) {
+      prefetchProductsPage({ forceRefresh: false }).catch(() => {})
+    }
+  }, 1800)
+
+  idle(() => {
     warmCoreRoutes()
-  }, 350)
+  }, 3200)
 }

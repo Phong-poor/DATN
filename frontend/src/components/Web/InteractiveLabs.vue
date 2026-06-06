@@ -1419,7 +1419,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import api from '@/services/api';
-import { storageUrl } from '@/services/urls';
+import { productImageUrl } from '@/services/urls';
 import Swal from 'sweetalert2';
 
 const formatPrice = (p) => new Intl.NumberFormat('vi-VN').format(p) + 'd';
@@ -1557,7 +1557,7 @@ const fetchRealProducts = async () => {
         fullName: p.tenSP,
         price: firstBt.gia || p.gia_min || 20000000,
         cpu, gpu, gpu_spec: gpu, ram,
-        img: firstBt.hinhanh ? storageUrl(firstBt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : '/hero_3d_laptop.png'),
+        img: productImageUrl(p, firstBt, '/hero_3d_laptop.png'),
         metrics: { cpu: cpuScore, gpu: gpuScore, battery: batteryScore, portability: portScore, cooling: coolScore }
       };
     });

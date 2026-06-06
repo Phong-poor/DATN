@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
-import { storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 
 const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
@@ -447,11 +447,7 @@ const fetchProducts = async () => {
         totalVariants: variantCount,
         bienThes,
         status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
-        img: p.hinhanh
-        ? storageUrl(p.hinhanh)
-        : Array.isArray(p.hinh_anhs || p.hinhAnhs) && (p.hinh_anhs || p.hinhAnhs)[0]?.duongdan
-          ? storageUrl((p.hinh_anhs || p.hinhAnhs)[0].duongdan)
-          : 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200',
+        img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
       }
     })
     saveProductsCache()
@@ -1625,14 +1621,10 @@ const mapProductToForm = (product) => {
       ? product.hinhAnhs
       : []
 
-  imgPreview.value = product?.hinhanh
-    ? storageUrl(product.hinhanh)
-    : productImages[0]?.duongdan
-      ? storageUrl(productImages[0].duongdan)
-      : ''
+  imgPreview.value = productImageUrl(product, null, '')
 
   extraImagePreviews.value = productImages
-    .map(img => img?.duongdan ? storageUrl(img.duongdan) : '')
+    .map(img => normalizeImageUrl(img?.duongdan || img?.duong_dan, ''))
     .filter(Boolean)
 
   const bienThes = Array.isArray(product?.bien_thes) ? product.bien_thes : []

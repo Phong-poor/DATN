@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
-import { storageUrl } from '@/services/urls'
+import { imageFallbackUrl, normalizeImageUrl, productImageUrl } from '@/services/urls'
 import ComboSelectionModal from './ComboSelectionModal.vue'
 
 
@@ -219,9 +219,7 @@ const getSpecValue = (name) => {
 }
 
 const getImageUrl = (path) => {
-    if (!path) return 'https://via.placeholder.com/600'
-    if (path.startsWith('http') || path.startsWith('data:image')) return path
-    return storageUrl(path)
+    return normalizeImageUrl(path, 'https://via.placeholder.com/600')
 }
 
 const allImages = computed(() => {
@@ -720,7 +718,7 @@ const fetchRecentlyViewed = async () => {
                     fullName: fullNameBase,
                     specText: specText,
                     price: bt.gia,
-                    img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                    img: productImageUrl(p, bt, imageFallbackUrl),
                 })
             }
         })
@@ -840,7 +838,7 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
                         fullName: fullNameBase,
                         specText: specText,
                         price: bt.gia,
-                        img: bt.hinhanh ? getImageUrl(bt.hinhanh) : getImageUrl(p.hinhanh),
+                        img: productImageUrl(p, bt, imageFallbackUrl),
                         attributes: attributes, // Add variant attributes
                         thong_so_ky_thuat: tsktArray // Add product technical specs
                     })

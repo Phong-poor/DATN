@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import {
   Zap,
@@ -169,7 +169,7 @@ const loadPageData = async () => {
           } catch (e) {}
 
           const giaSP = p.bien_thes && p.bien_thes.length > 0 ? p.bien_thes[0].gia : (p.gia || 65000000)
-          const imagePath = p.bien_thes && p.bien_thes.length > 0 && p.bien_thes[0].hinhanh ? p.bien_thes[0].hinhanh : p.hinhanh
+          const firstVariant = p.bien_thes && p.bien_thes.length > 0 ? p.bien_thes[0] : null
 
           let ram = '32GB'
           let ssd = '1TB'
@@ -200,7 +200,7 @@ const loadPageData = async () => {
             gia: giaSP,
             oldPrice: Math.floor(giaSP * 1.1),
             specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [cpu, gpu, ram, ssd],
-            image: imagePath ? (imagePath.startsWith('http') ? imagePath : storageUrl(imagePath)) : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500',
+            image: productImageUrl(p, firstVariant, 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'),
             rating: 4.9,
             reviews: Math.floor(Math.random() * 30) + 12,
             promo: p.mota_ngan || 'Hỗ trợ trả góp 0% lãi suất + Tặng balo trạm cao cấp',
