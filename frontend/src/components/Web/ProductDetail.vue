@@ -1178,6 +1178,7 @@ const handleSelectVariantById = (idBienThe) => {
 </script>
 
 <template>
+  <div class="product-detail-wrapper">
 
     <!-- STICKY BUY BAR FOR HIGH CONVERSIONS -->
     <transition name="fade-slide-bar">
@@ -2352,7 +2353,7 @@ const handleSelectVariantById = (idBienThe) => {
             <p>Vui lòng đợi trong khi chúng tôi chuẩn bị giao diện trải nghiệm sản phẩm cao cấp.</p>
         </div>
     </div>
-
+  </div>
 </template>
 
 <style scoped>

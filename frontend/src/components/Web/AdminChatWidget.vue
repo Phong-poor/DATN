@@ -76,7 +76,7 @@
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import api from '@/services/api';
 import echo from '@/services/echo';
-import { getUser } from '@/services/auth';
+import { getUser, getToken } from '@/services/auth';
 import ChatMessageBody from '@/components/Chat/ChatMessageBody.vue';
 import ChatMessageRow from '@/components/Chat/ChatMessageRow.vue';
 import ChatComposer from '@/components/Chat/ChatComposer.vue';
@@ -103,26 +103,40 @@ const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value
 
 const refreshCurrentUser = () => {
   currentUser.value = getUser();
-  if (currentUser.value && !conversationId.value) {
+  if (!currentUser.value || !getToken()) {
+    if (conversationId.value && echo) {
+      echo.leaveChannel(`chat.${conversationId.value}`);
+    }
+    conversationId.value = null;
+    messages.value = [];
+  } else if (!conversationId.value) {
     loadMessages();
   }
 };
 
 const loadMessages = async () => {
+  const token = getToken();
+  if (!token || !currentUser.value) {
+    return;
+  }
   try {
     const res = await api.get('/chat/me');
-    conversationId.value = res.data.id;
-    messages.value = res.data.messages || [];
-    scrollToBottom();
-    
-    // Subscribe to real-time updates
-    subscribeToChannel();
+    if (res && res.data) {
+      conversationId.value = res.data.id;
+      messages.value = res.data.messages || [];
+      scrollToBottom();
+      
+      // Subscribe to real-time updates
+      subscribeToChannel();
+    }
   } catch (error) {
     console.error('Lỗi load tin nhắn:', error);
+    messages.value = [];
   }
 };
 
 const subscribeToChannel = () => {
+  if (!conversationId.value || !echo) return;
   bindChatChannel(
     echo,
     `chat.${conversationId.value}`,
@@ -160,6 +174,7 @@ const openImage = (url) => {
 
 const onComposerSend = async ({ text, items }) => {
   if (isLoading.value) return;
+  if (!getToken() || !currentUser.value) return;
 
   newMessage.value = '';
   stopChatTitleNotice();
@@ -186,10 +201,12 @@ const handleOpenAdminChat = () => {
   isOpen.value = true;
   stopChatTitleNotice();
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: true } }));
-  if (messages.value.length === 0) {
-    loadMessages();
-  } else {
-    scrollToBottom();
+  if (getToken() && currentUser.value) {
+    if (messages.value.length === 0) {
+      loadMessages();
+    } else {
+      scrollToBottom();
+    }
   }
 };
 
@@ -197,7 +214,7 @@ const handleToggleAdminChat = () => {
   isOpen.value = !isOpen.value;
   if (isOpen.value) stopChatTitleNotice();
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: isOpen.value } }));
-  if (isOpen.value) {
+  if (isOpen.value && getToken() && currentUser.value) {
     if (messages.value.length === 0) loadMessages();
     else scrollToBottom();
   }
@@ -221,7 +238,7 @@ onMounted(() => {
   window.addEventListener('user-updated', refreshCurrentUser);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
-  if (currentUser.value) loadMessages();
+  if (getToken() && currentUser.value) loadMessages();
 });
 
 onUnmounted(() => {
