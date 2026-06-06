@@ -12,8 +12,17 @@ const message = ref('')
 const error = ref('')
 const success = ref(false)
 const loading = ref(false)
+const captchaVisible = ref(false)
+const captchaVerified = ref(false)
 
 const currentFormStep = ref(1)
+
+const resetCaptcha = () => {
+  captchaVisible.value = false
+  captchaVerified.value = false
+}
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 const subjects = [
   'Tư vấn mua hàng',
@@ -50,6 +59,7 @@ const suggestionTags = computed(() => {
 
 const applySuggestion = (tag) => {
   message.value = tag
+  resetCaptcha()
 }
 
 // Validation before step change
@@ -70,18 +80,21 @@ const nextStep = () => {
       return
     }
     error.value = ''
+    resetCaptcha()
     currentFormStep.value = 3
   }
 }
 
 const prevStep = () => {
   if (currentFormStep.value > 1) {
+    resetCaptcha()
     currentFormStep.value--
   }
 }
 
 const selectCategory = (categoryLabel) => {
   subject.value = categoryLabel
+  resetCaptcha()
   // Auto transition to step 2 after a brief delay
   setTimeout(() => {
     currentFormStep.value = 2
@@ -108,6 +121,21 @@ async function submitForm() {
     success.value = false
     return
   }
+  error.value = ''
+  success.value = false
+  loading.value = true
+  await wait(3000)
+  loading.value = false
+  captchaVisible.value = true
+  captchaVerified.value = false
+}
+
+async function handleCaptchaChange() {
+  if (!captchaVerified.value || loading.value) return
+  await sendContactRequest()
+}
+
+async function sendContactRequest() {
   try {
     error.value = ''
     success.value = false
@@ -126,6 +154,7 @@ async function submitForm() {
       message.value = ''
       subject.value = 'Tư vấn mua hàng'
       currentFormStep.value = 1
+      resetCaptcha()
       setTimeout(() => { success.value = false }, 6000)
     } else {
       error.value = data.message || 'Gửi yêu cầu thất bại, vui lòng thử lại'
@@ -180,6 +209,7 @@ const infos = computed(() => [
 const bookShowroomVisit = (store) => {
   subject.value = 'Hợp tác kinh doanh'
   message.value = `Tôi muốn đăng ký lịch hẹn tư vấn và trải nghiệm phần cứng trực tiếp tại Showroom: ${store.name}.`
+  resetCaptcha()
   currentFormStep.value = 3 // Jump straight to descriptions
   const element = document.getElementById('guidedContactForm')
   if (element) {
@@ -487,9 +517,31 @@ const toggleFaq = (index) => {
               <div class="guided-textarea-field">
                 <textarea 
                   v-model="message"
+                  @input="resetCaptcha"
                   placeholder="Mô tả cấu hình bạn cần, lỗi thiết bị bạn gặp phải hoặc nhu cầu hợp tác cụ thể..."
                   required
                 ></textarea>
+              </div>
+
+              <div v-if="captchaVisible" class="human-captcha-box" :class="{ verified: captchaVerified }">
+                <label class="human-captcha-check">
+                  <input v-model="captchaVerified" type="checkbox" @change="handleCaptchaChange" />
+                  <span class="captcha-custom-check">
+                    <svg v-if="captchaVerified" class="cyber-svg-icon captcha-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  <span class="captcha-copy">
+                    <strong>Xác minh bạn là con người</strong>
+                    <small>Tick vào ô này rồi bấm gửi yêu cầu để tiếp tục.</small>
+                  </span>
+                </label>
+                <div class="captcha-brand">
+                  <svg class="captcha-cloud-icon" viewBox="0 0 64 44" aria-hidden="true">
+                    <path fill="#f38020" d="M47.8 18.6C46 9.9 38.2 3.4 29 3.4c-8.1 0-15.1 5-17.9 12.1C4.9 16.4.2 21.6.2 28c0 7 5.7 12.6 12.7 12.6h34.3c6.6 0 12-5.4 12-12 0-5.5-3.7-10.2-8.8-11.6-.8-.2-1.7.7-2.6 1.6Z"/>
+                    <path fill="#faae40" d="M31.2 40.6h20.2c6.8 0 12.3-5.5 12.3-12.3 0-5.9-4.2-10.8-9.7-12l-22.8 24.3Z" opacity=".9"/>
+                  </svg>
+                  <strong>PREDATOR VERIFY</strong>
+                  <span>Quyền riêng tư · Giúp đỡ</span>
+                </div>
               </div>
 
               <!-- Error & Success states -->
@@ -504,13 +556,14 @@ const toggleFaq = (index) => {
                 </span> Gửi tin nhắn thành công! Đội ngũ tư vấn sẽ gọi cho bạn trong tối đa 2 giờ.
               </div>
 
-              <div class="step-actions-footer">
+              <div v-if="!captchaVisible" class="step-actions-footer">
                 <button type="button" class="btn-step-prev" @click="prevStep">
                   ⬅ Quay Lại
                 </button>
                 <button 
                   type="button" 
                   class="btn-step-submit" 
+                  :class="{ loading: loading }"
                   :disabled="loading"
                   @click="submitForm"
                 >
@@ -1348,13 +1401,22 @@ const toggleFaq = (index) => {
   top: 0px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--text-secondary);
 }
 
 .floating-input-field:focus-within {
-  border-color: var(--primary);
+  border-color: #dbe7f3;
   background: #ffffff;
-  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.input-block input:-webkit-autofill,
+.input-block input:-webkit-autofill:hover,
+.input-block input:-webkit-autofill:focus,
+.input-block input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+  transition: background-color 9999s ease-out 0s;
 }
 
 .step-validation-error {
@@ -1432,6 +1494,107 @@ const toggleFaq = (index) => {
   color: var(--secondary);
 }
 
+.human-captcha-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(100%, 340px);
+  min-height: 72px;
+  padding: 12px 14px;
+  margin: -2px auto 18px;
+  border: 1px solid #cfd8e3;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition: var(--transition);
+}
+.human-captcha-box.verified {
+  border-color: #8bb7f0;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+.human-captcha-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-grow: 1;
+  min-width: 0;
+}
+.human-captcha-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.captcha-custom-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 2px solid #64748b;
+  background: #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.human-captcha-check:hover .captcha-custom-check {
+  border-color: #2563eb;
+}
+.human-captcha-box.verified .captcha-custom-check {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+.captcha-check-icon {
+  width: 15px;
+  height: 15px;
+}
+.captcha-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.captcha-copy strong {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+.captcha-copy small {
+  display: none;
+}
+.captcha-brand {
+  width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-align: center;
+  color: #111827;
+}
+.captcha-cloud-icon {
+  width: 30px;
+  height: 21px;
+  margin-bottom: 2px;
+}
+.captcha-brand strong {
+  font-family: Arial, sans-serif;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1.15;
+}
+.captcha-brand span {
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 8px;
+  line-height: 1.2;
+  color: #334155;
+  text-decoration: underline;
+}
 /* Form Action Footer */
 .step-actions-footer {
   margin-top: auto;
@@ -1487,23 +1650,40 @@ const toggleFaq = (index) => {
   cursor: pointer;
   transition: var(--transition);
   box-shadow: 0 4px 12px var(--secondary-glow);
+  min-width: 218px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-step-submit:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
 }
 .btn-step-submit:disabled {
-  opacity: 0.65;
   cursor: not-allowed;
+}
+.btn-step-submit.loading {
+  width: 82px;
+  min-width: 82px;
+  padding: 0;
+  border-radius: 10px;
+  background: #5fc4d5;
+  box-shadow: 0 8px 18px rgba(6, 182, 212, 0.2);
 }
 
 .spin-loader {
   display: inline-block;
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
   border-radius: 50%;
   border-top-color: white;
-  animation: spin 0.6s linear infinite;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .form-feedback-alert {
@@ -2272,6 +2452,24 @@ const toggleFaq = (index) => {
   }
   .step-actions-footer {
     gap: 8px;
+  }
+  .human-captcha-box {
+    width: min(100%, 320px);
+    min-height: 70px;
+    gap: 10px;
+    padding: 11px 12px;
+  }
+  .captcha-copy strong {
+    font-size: 12.5px;
+  }
+  .captcha-brand {
+    width: 78px;
+  }
+  .captcha-brand strong {
+    font-size: 8px;
+  }
+  .captcha-brand span {
+    font-size: 8px;
   }
   .btn-step-next, .btn-step-prev, .btn-step-submit {
     flex-grow: 1;
