@@ -7,7 +7,7 @@ import { getUser, updateUser, getToken } from '@/services/auth'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
-import { storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 
 // ── Active tab ────────────────────────────────────────────
@@ -74,7 +74,7 @@ const tempAvatarUrl = ref('')
 const sidebarAvatarUrl = computed(() => {
   if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
   if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return storageUrl(user.value.avatar)
+  return normalizeImageUrl(user.value.avatar, '')
 })
 
 const formAvatarUrl = computed(() => {
@@ -279,7 +279,7 @@ const fetchOrders = async () => {
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
-              img: item.bien_the?.san_pham?.hinhanh ? storageUrl(item.bien_the.san_pham.hinhanh) : 'https://via.placeholder.com/200'
+              img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://via.placeholder.com/200')
             }
           }),
           steps: [

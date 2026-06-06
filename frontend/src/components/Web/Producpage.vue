@@ -6,7 +6,7 @@ import Footer from '../Layout/Footer.vue'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 import { getPrefetchedProductsData, prefetchProductsPage } from '@/services/productsPrefetch'
 
 const thongBao = ref('')
@@ -112,7 +112,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: 0,
                 specs: [],
                 all_variants: [],
-                img: p.hinhanh ? storageUrl(p.hinhanh) : '',
+                img: productImageUrl(p, null, ''),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }]
@@ -189,7 +189,7 @@ const mapProducts = (rawProducts) => {
                 ram, cpu, gpu, kichthuoc, dophan, tamnen, pin, sac,
                 specs: specs,
                 all_variants: all_vars_info,
-                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : ''),
+                img: productImageUrl(p, bt, ''),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };

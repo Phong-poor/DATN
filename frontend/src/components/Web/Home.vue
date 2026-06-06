@@ -7,7 +7,7 @@ import GiftPopup from './GiftPopup.vue'
 import ComboSelectionModal from './ComboSelectionModal.vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { comboImageUrl, handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
@@ -31,9 +31,9 @@ const tickerItems = [
 ]
 
 // Proactive error handler for robust loading
-const handleImgError = (event, fallbackUrl) => {
-    event.target.src = fallbackUrl || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'
-}
+const handleImgError = (event, fallbackUrl) => handleImageFallback(event, fallbackUrl || imageFallbackUrl)
+const comboFallbackImage = imageFallbackUrl
+const getComboImage = (combo) => comboImageUrl(combo, comboFallbackImage)
 
 // Highly tailored premium slideshow in professional Vietnamese
 const slides = [
@@ -79,7 +79,14 @@ const slides = [
     }
 ]
 
-const categories = ref([])
+const defaultCategories = [
+    { id_danhmuc: 'gaming', ten_danhmuc: 'Laptop Gaming', mota: 'Cau hinh RTX, tan nhiet tot va man hinh tan so quet cao cho game thu.' },
+    { id_danhmuc: 'macbook', ten_danhmuc: 'MacBook', mota: 'Thiet ke mong nhe, pin lau va hieu nang on dinh cho cong viec hang ngay.' },
+    { id_danhmuc: 'workstation', ten_danhmuc: 'Workstation', mota: 'May tram cho do hoa, render, lap trinh va cac tac vu nang.' },
+    { id_danhmuc: 'office', ten_danhmuc: 'Laptop Van Phong', mota: 'Lua chon gon nhe, ben bi va toi uu chi phi cho hoc tap, lam viec.' }
+]
+
+const categories = ref([...defaultCategories])
 
 // Highly premium matching stock photos for categories
 const getCategoryFallbackImage = (catName) => {
@@ -117,6 +124,16 @@ const getCategoryFallbackImage = (catName) => {
     return 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800';
 };
 
+const getCategoryTarget = (category) => {
+    const id = String(category?.id_danhmuc || '').toLowerCase()
+    const name = String(category?.ten_danhmuc || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    if (id === 'gaming' || name.includes('gaming')) return '/gaming'
+    if (id === 'macbook' || name.includes('macbook')) return '/macbook'
+    if (id === 'workstation' || name.includes('workstation')) return '/workstation'
+    if (id === 'office' || name.includes('van phong')) return '/products?category=Laptop+van+phong'
+    return `/products?cat=${category.id_danhmuc}`
+}
+
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
@@ -133,7 +150,7 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500',
+                img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb'
             }];
@@ -187,7 +204,7 @@ const mapProducts = (rawProducts) => {
                 priceNum: bt.gia || 0,
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 specs: specs,
-                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
+                img: productImageUrl(p, bt),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb'
             };
@@ -217,8 +234,7 @@ const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-48
 
 const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
-    if (path.startsWith('http')) return path
-    return storageUrl(path)
+    return normalizeImageUrl(path, newsPlaceholderImage)
 }
 
 const loadCache = () => {
@@ -228,7 +244,7 @@ const loadCache = () => {
             const parsed = JSON.parse(cached)
             if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
             if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
-            if (parsed.categories) categories.value = parsed.categories
+            if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
             if (parsed.combos) combos.value = parsed.combos
         }
@@ -299,7 +315,8 @@ onMounted(async () => {
         })
         featuredAccessories.value = accessoriesList.slice(0, 10)
         
-        categories.value = (catRes.data?.data || catRes.data || []).slice(0, 4)
+        const apiCategories = (catRes.data?.data || catRes.data || []).slice(0, 4)
+        categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
         // Cập nhật combos
         combos.value = combosRes.data?.data || []
@@ -706,7 +723,7 @@ onUnmounted(() => {
 
                 <div class="category-cards-grid scroll-reveal reveal-stagger">
                     <div class="category-premium-card" v-for="c in categories" :key="c.id_danhmuc"
-                        @click="router.push(`/products?cat=${c.id_danhmuc}`)">
+                        @click="router.push(getCategoryTarget(c))">
                         <div class="card-bg-image" :style="{ backgroundImage: 'url(' + getCategoryFallbackImage(c.ten_danhmuc) + ')' }"></div>
                         <div class="card-gradient-shield"></div>
                         <div class="category-card-content">
@@ -740,9 +757,9 @@ onUnmounted(() => {
 
                         <div class="combo-home-img">
                             <img
-                                :src="c.image_url || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'"
-                                alt="Combo accessories"
-                                @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')"
+                                :src="getComboImage(c)"
+                                :alt="c.ten_combo || 'Combo accessories'"
+                                @error="handleImgError($event, comboFallbackImage)"
                             />
                         </div>
 

@@ -34,6 +34,10 @@ export const storageUrl = (path) => {
 
   }
 
+  if (raw.startsWith('/') && !raw.startsWith('/storage/')) {
+    return raw
+  }
+
 
 
   const normalizedPath = raw
@@ -50,6 +54,71 @@ export const storageUrl = (path) => {
 
   return `${backendBaseUrl}/storage/${normalizedPath}`
 
+}
+
+export const imageFallbackUrl = 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'
+
+export const normalizeImageUrl = (value, fallback = imageFallbackUrl) => {
+  if (!value) return fallback
+
+  const raw = String(value).trim()
+  if (!raw) return fallback
+
+  return storageUrl(raw)
+}
+
+export const firstImageUrl = (values = [], fallback = imageFallbackUrl) => {
+  const found = values.find((value) => String(value || '').trim())
+  return normalizeImageUrl(found, fallback)
+}
+
+export const productImageUrl = (product = {}, variant = null, fallback = imageFallbackUrl) => {
+  const gallery = product.hinh_anhs || product.hinhAnhs || []
+  const firstGallery = Array.isArray(gallery)
+    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+    : null
+  const firstGalleryImage = firstGallery?.duongdan
+    || firstGallery?.duong_dan
+    || firstGallery?.url
+    || firstGallery?.path
+    || firstGallery?.image
+    || ''
+
+  return firstImageUrl([
+    variant?.hinhanh,
+    variant?.image_url,
+    variant?.image,
+    product.hinhanh,
+    product.image_url,
+    product.image,
+    product.thumbnail,
+    firstGalleryImage,
+  ], fallback)
+}
+
+export const comboImageUrl = (combo = {}, fallback = imageFallbackUrl) => {
+  const products = Array.isArray(combo.products) ? combo.products : []
+  const productWithImage = products.find((product) =>
+    product?.hinhanh || product?.image_url || product?.image || product?.thumbnail
+  )
+
+  return firstImageUrl([
+    combo.hinhanh,
+    combo.image_url,
+    combo.image,
+    combo.thumbnail,
+    productWithImage?.hinhanh,
+    productWithImage?.image_url,
+    productWithImage?.image,
+    productWithImage?.thumbnail,
+  ], fallback)
+}
+
+export const handleImageFallback = (event, fallback = imageFallbackUrl) => {
+  const target = event?.target
+  if (!target || target.dataset.fallbackApplied === '1') return
+  target.dataset.fallbackApplied = '1'
+  target.src = fallback
 }
 
 

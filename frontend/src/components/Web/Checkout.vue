@@ -6,6 +6,7 @@ import { getUser, updateUser } from '@/services/auth'
 import { geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
+import { normalizeImageUrl } from '@/services/urls'
 
 
 
@@ -406,11 +407,11 @@ const fetchCart = async () => {
                 desc: item.ten_bienthe,
                 price: item.gia,
                 qty: item.soluong,
-                img: item.hinh_anh || 'https://via.placeholder.com/200',
+                img: normalizeImageUrl(item.hinh_anh, 'https://via.placeholder.com/200'),
                 id_combo: item.id_combo,
                 combo_group_id: item.combo_group_id,
                 ten_combo: item.ten_combo,
-                hinhanh_combo: item.hinhanh_combo,
+                hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
                 gia_combo: item.gia_combo,
                 gia_goc: item.gia_goc
             }))
@@ -466,7 +467,7 @@ const groupedCart = computed(() => {
                     combo_group_id: item.combo_group_id,
                     id_combo: item.id_combo,
                     ten_combo: item.ten_combo,
-                    hinhanh_combo: item.hinhanh_combo,
+                    hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
                     gia_combo: item.gia_combo,
                     qty: item.qty,
                     items: []

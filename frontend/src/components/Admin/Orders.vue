@@ -1,19 +1,18 @@
 <script setup>
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import * as XLSX from 'xlsx'
   
 import api from '../../services/api'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl, storageUrl } from '@/services/urls'
 import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
 const getOrderItemImage = (item) => {
   const bt = item?.bien_the || item?.bienThe
   const sp = bt?.san_pham || bt?.sanPham
-  return sp?.hinhanh ? storageUrl(sp.hinhanh) : 'https://via.placeholder.com/60'
+  return productImageUrl(sp, bt, 'https://via.placeholder.com/60')
 }
 
 const getOrderItemName = (item) => {
@@ -364,7 +363,8 @@ const getAvatarStyle = (name) => {
 }
 
 // ── XUẤT EXCEL ──────────────────────────────────────────────
-function exportExcel() {
+async function exportExcel() {
+    const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
     const tabLabel = activeTab.value
 

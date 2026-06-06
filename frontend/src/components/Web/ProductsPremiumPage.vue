@@ -3,11 +3,12 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 
 const router = useRouter()
 const route = useRoute()
+const MACBOOK_CATEGORY = 'MacBook'
 
 // ===================== DỮ LIỆU Äá»˜NG & ÄỒNG Bá»˜ BACKEND =====================
 const products = ref([])
@@ -118,6 +119,40 @@ const activeSort = ref('best_sellers')
 const searchQuery = ref('')
 const PRODUCTS_PER_PAGE = 16
 const currentPage = ref(1)
+const openCatalogFilters = ref(['brands'])
+
+const isMacbookRoute = computed(() => route.name === 'macbook' || route.path === '/macbook')
+const visibleCatalogCategories = computed(() => (
+  isMacbookRoute.value ? [MACBOOK_CATEGORY] : filterOptions.categories
+))
+
+const isCatalogFilterOpen = (key) => openCatalogFilters.value.includes(key)
+
+const toggleCatalogFilterGroup = (key) => {
+  const index = openCatalogFilters.value.indexOf(key)
+  if (index > -1) {
+    openCatalogFilters.value.splice(index, 1)
+  } else {
+    openCatalogFilters.value.push(key)
+  }
+}
+
+const handleCatalogFilterGroupClick = (event, key) => {
+  if (event.target.closest('.filter-pill-btn, .price-slider-wrapper, input')) return
+  toggleCatalogFilterGroup(key)
+}
+
+const hasCatalogFilterValue = (key) => {
+  if (key === 'brands') return selectedBrands.value.length > 0
+  if (key === 'price') return minPrice.value > 0 || maxPrice.value < 150000000
+  if (key === 'ram') return selectedRams.value.length > 0
+  if (key === 'ssd') return selectedSsds.value.length > 0
+  if (key === 'cpu') return selectedCpus.value.length > 0
+  if (key === 'gpu') return selectedGpus.value.length > 0
+  if (key === 'screen') return selectedScreens.value.length > 0
+  if (key === 'hz') return selectedHzs.value.length > 0
+  return false
+}
 
 const categoryAliasMap = {
   gaming: 'Laptop Gaming',
@@ -140,7 +175,14 @@ const normalizeCategoryQuery = (category) => {
 }
 
 const applyRouteFilters = (query = route.query) => {
-  activeCategory.value = normalizeCategoryQuery(query.category || route.meta?.category)
+  if (isMacbookRoute.value && query.category && typeof window !== 'undefined') {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('category')
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }
+  activeCategory.value = isMacbookRoute.value
+    ? MACBOOK_CATEGORY
+    : normalizeCategoryQuery(query.category || route.meta?.category)
   searchQuery.value = query.q ? String(query.q) : ''
 }
 
@@ -199,8 +241,9 @@ const clearAllFilters = () => {
   selectedScreens.value = []
   selectedHzs.value = []
   searchQuery.value = ''
-  activeCategory.value = 'Tất cả'
-  router.replace({ path: '/products' })
+  activeCategory.value = isMacbookRoute.value ? MACBOOK_CATEGORY : 'Tất cả'
+  openCatalogFilters.value = ['brands']
+  window.history.replaceState(window.history.state, '', isMacbookRoute.value ? '/macbook' : '/products')
 }
 
 watch(minPrice, (newMin) => {
@@ -411,7 +454,6 @@ const loadData = async () => {
 
         // Lấy giá và cấu hình từ biến thể đắt nhất để section flagship phản ánh dữ liệu thật trong database.
         const giaSP = Number(premiumVariant?.gia || p.gia || 25000000)
-        const imagePath = premiumVariant?.hinhanh || p.hinhanh
 
         // Extract RAM & SSD từ biến thể hoặc thông số kỹ thuật
         let ram = '16GB'
@@ -442,7 +484,7 @@ const loadData = async () => {
           gia: giaSP,
           oldPrice: Math.floor(giaSP * 1.15),
           specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD']),
-          image: imagePath ? (imagePath.startsWith('http') ? imagePath : storageUrl(imagePath)) : 'https://via.placeholder.com/600',
+          image: productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600'),
           rating: 4.8,
           reviews: Math.floor(Math.random() * 80) + 15,
           promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
@@ -581,15 +623,25 @@ const isQuickBrandActive = (brandName) => {
   return selectedBrands.value.includes(brandName)
 }
 
-const selectCategory = (category) => {
-  activeCategory.value = category
-  const nextQuery = { ...route.query }
-  if (category === 'Tất cả') {
-    delete nextQuery.category
+const updateCategoryQuerySilently = (category) => {
+  if (isMacbookRoute.value) return
+  const url = new URL(window.location.href)
+  if (category === filterOptions.categories[0]) {
+    url.searchParams.delete('category')
   } else {
-    nextQuery.category = category
+    url.searchParams.set('category', category)
   }
-  router.replace({ path: '/products', query: nextQuery })
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
+const selectCategory = (category) => {
+  if (isMacbookRoute.value) {
+    activeCategory.value = MACBOOK_CATEGORY
+    updateCategoryQuerySilently(MACBOOK_CATEGORY)
+    return
+  }
+  activeCategory.value = category
+  updateCategoryQuerySilently(category)
 }
 
 const goToSection = async (sectionId) => {
@@ -1013,7 +1065,7 @@ watch(() => route.fullPath, () => {
       <!-- Quick Category Pill Row -->
       <div class="catalog-pills-row">
         <button 
-          v-for="cat in filterOptions.categories" 
+          v-for="cat in visibleCatalogCategories" 
           :key="cat" 
           class="catalog-pill-btn"
           :class="{ active: activeCategory === cat }"
@@ -1041,7 +1093,7 @@ watch(() => route.fullPath, () => {
                 <h3>Bộ lọc</h3>
               </div>
               <button 
-                v-if="selectedBrands.length > 0 || minPrice > 0 || maxPrice < 150000000 || selectedRams.length > 0 || selectedSsds.length > 0 || searchQuery !== ''" 
+                v-if="selectedBrands.length > 0 || minPrice > 0 || maxPrice < 150000000 || selectedRams.length > 0 || selectedSsds.length > 0 || selectedCpus.length > 0 || selectedGpus.length > 0 || selectedScreens.length > 0 || selectedHzs.length > 0 || searchQuery !== ''" 
                 class="clear-all-link"
                 @click="clearAllFilters"
               >
@@ -1050,9 +1102,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- Brand Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('brands'), selected: hasCatalogFilterValue('brands') }" @click="handleCatalogFilterGroupClick($event, 'brands')">
               <h4>Thương hiệu</h4>
-              <div class="filter-pill-grid brand-pill-grid">
+              <div v-show="isCatalogFilterOpen('brands')" class="filter-pill-grid brand-pill-grid filter-dropdown-content">
                 <button 
                   v-for="brand in filterOptions.brands" 
                   :key="brand" 
@@ -1066,9 +1118,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- Price Filter Slider -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('price'), selected: hasCatalogFilterValue('price') }" @click="handleCatalogFilterGroupClick($event, 'price')">
               <h4>Khoảng giá</h4>
-              <div class="price-slider-wrapper">
+              <div v-show="isCatalogFilterOpen('price')" class="price-slider-wrapper filter-dropdown-content">
                 <div class="price-slider-display">
                   <span>{{ formatPrice(minPrice) }}</span>
                   <span>-</span>
@@ -1102,9 +1154,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- RAM Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ram'), selected: hasCatalogFilterValue('ram') }" @click="handleCatalogFilterGroupClick($event, 'ram')">
               <h4>Bộ nhớ RAM</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('ram')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="ram in filterOptions.rams" 
                   :key="ram" 
@@ -1118,9 +1170,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- SSD Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ssd'), selected: hasCatalogFilterValue('ssd') }" @click="handleCatalogFilterGroupClick($event, 'ssd')">
               <h4>Ổ cứng SSD</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('ssd')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="ssd in filterOptions.ssds" 
                   :key="ssd" 
@@ -1134,9 +1186,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- CPU Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('cpu'), selected: hasCatalogFilterValue('cpu') }" @click="handleCatalogFilterGroupClick($event, 'cpu')">
               <h4>Vi xử lý CPU</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('cpu')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="cpu in filterOptions.cpus" 
                   :key="cpu" 
@@ -1150,9 +1202,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- GPU Filter -->
-            <div class="filter-option-group gpu-filter-group">
+            <div class="filter-option-group gpu-filter-group" :class="{ open: isCatalogFilterOpen('gpu'), selected: hasCatalogFilterValue('gpu') }" @click="handleCatalogFilterGroupClick($event, 'gpu')">
               <h4>Card đồ họa GPU</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('gpu')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="gpu in filterOptions.gpus" 
                   :key="gpu" 
@@ -1166,9 +1218,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- Screen Size Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('screen'), selected: hasCatalogFilterValue('screen') }" @click="handleCatalogFilterGroupClick($event, 'screen')">
               <h4>Kích thước màn hình</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('screen')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="scr in filterOptions.screens" 
                   :key="scr" 
@@ -1182,9 +1234,9 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- Refresh Rate Filter -->
-            <div class="filter-option-group">
+            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('hz'), selected: hasCatalogFilterValue('hz') }" @click="handleCatalogFilterGroupClick($event, 'hz')">
               <h4>Tần số quét màn hình</h4>
-              <div class="filter-pill-grid">
+              <div v-show="isCatalogFilterOpen('hz')" class="filter-pill-grid filter-dropdown-content">
                 <button 
                   v-for="hz in filterOptions.hzs" 
                   :key="hz" 
@@ -1278,9 +1330,6 @@ watch(() => route.fullPath, () => {
 
                 <!-- Crossed out original price -->
                 <span class="footer-price-old">{{ formatPrice(prod.oldPrice) }}</span>
-
-                <!-- Installment monthly fee (Dynamically calculated based on price / 12) -->
-                <span class="installment-text">• Góp {{ formatPrice(Math.round(prod.gia / 12)) }}/t</span>
 
                 <!-- Badge row 1: Chính Hãng -->
                 <div class="card-badge-row-1">
@@ -2678,8 +2727,8 @@ p {
 /* Catalog Main Structure - Standard 4 Columns layout */
 .catalog-layout {
   display: grid;
-  grid-template-columns: 238px minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
   align-items: start;
 }
 
@@ -2693,8 +2742,8 @@ p {
 .filter-sidebar-card {
   background: rgba(226, 232, 240, 0.94);
   border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 11px;
   max-height: calc(100vh - 132px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2717,9 +2766,9 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.24);
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 }
 
 .header-title-wrap {
@@ -2734,7 +2783,7 @@ p {
 }
 
 .filter-sidebar-header h3 {
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   color: #0f172a;
 }
@@ -2757,23 +2806,76 @@ p {
 }
 
 .filter-option-group {
-  margin-bottom: 13px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-option-group.open,
+.filter-option-group.selected {
+  background: #EFF6FF;
+}
+
+.filter-option-group.selected {
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
 }
 
 .filter-option-group h4 {
-  font-size: 10.5px;
+  position: relative;
+  font-size: 10px;
   color: #111827;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 0 0 8px;
+  margin: 0;
+  padding: 5px 18px 5px 4px;
   font-weight: 700;
+  user-select: none;
+}
+
+.filter-option-group h4::after {
+  content: '›';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  color: #64748B;
+  font-size: 17px;
+  line-height: 1;
+  transition: transform 0.22s ease, color 0.22s ease;
+}
+
+.filter-option-group.open h4 {
+  color: #1D4ED8;
+}
+
+.filter-option-group.open h4::after {
+  color: #2563EB;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.filter-dropdown-content {
+  margin-top: 6px;
+  animation: filterDropdownIn 0.2s ease both;
+}
+
+@keyframes filterDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Compact Checkable Badges Grid */
 .filter-pill-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
+  gap: 4px;
 }
 
 .brand-pill-grid {
@@ -2806,10 +2908,10 @@ p {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.28);
   color: #111827;
-  min-height: 30px;
-  padding: 5px 3px;
+  min-height: 27px;
+  padding: 4px 3px;
   border-radius: 6px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
@@ -2826,10 +2928,10 @@ p {
 }
 
 .filter-pill-btn.active {
-  background: rgba(37, 99, 235, 0.1);
-  border-color: #2563eb;
-  color: #0f172a;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  background: #DBEAFE;
+  border-color: #60A5FA;
+  color: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 
 /* Premium Range Slider styling */
@@ -2955,21 +3057,21 @@ p {
 .catalog-product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 /* Premium Dark Card Product matching the user's screenshot exactly */
 .premium-product-card {
   background: rgba(226, 232, 240, 0.94);
   border: 1px solid rgba(148, 163, 184, 0.26);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: visible;
   display: flex;
   flex-direction: column;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  padding: 10px;
+  padding: 8px;
 }
 
 .premium-product-card:hover {
@@ -3004,7 +3106,7 @@ p {
   width: 100%;
   aspect-ratio: 1 / 0.78;
   background: #ffffff; /* Solid White square */
-  border-radius: 9px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3104,12 +3206,12 @@ p {
 }
 
 .product-card-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   line-height: 1.35;
   color: #0f172a;
-  margin-bottom: 6px;
-  height: 36px;
+  margin-bottom: 5px;
+  height: 34px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -3125,7 +3227,7 @@ p {
 }
 
 .footer-price-curr {
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 700;
   color: #0f172a;
 }
@@ -3146,14 +3248,6 @@ p {
   text-decoration: line-through;
   font-weight: 500;
   margin-top: 2px;
-  display: block;
-}
-
-.installment-text {
-  font-size: 11.5px;
-  color: #334155;
-  margin-top: 3px;
-  font-weight: 500;
   display: block;
 }
 

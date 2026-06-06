@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { getToken } from '@/services/auth'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 
 const router = useRouter()
 
@@ -35,7 +35,7 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
+                img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             }];
@@ -92,7 +92,7 @@ const mapProducts = (rawProducts) => {
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 price: bt.gia > 0 ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(bt.gia) : 'Liên hệ',
                 specs: specs,
-                img: bt.hinhanh ? storageUrl(bt.hinhanh) : (p.hinhanh ? storageUrl(p.hinhanh) : 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500'),
+                img: productImageUrl(p, bt, 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#dc2626' : '#2563eb'
             };

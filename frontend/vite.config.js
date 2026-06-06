@@ -9,6 +9,8 @@ export default defineConfig({
     root,
     plugins: [vue()],
     build: {
+        target: 'es2020',
+        cssCodeSplit: true,
         outDir: 'dist',
         emptyOutDir: true,
         rollupOptions: {
@@ -18,6 +20,7 @@ export default defineConfig({
                     if (id.includes('vue') || id.includes('vue-router') || id.includes('vuex')) {
                         return 'vendor-vue'
                     }
+                    if (id.includes('laravel-echo') || id.includes('pusher-js')) return 'vendor-realtime'
                     if (id.includes('sweetalert2')) return 'vendor-swal'
                     if (id.includes('leaflet')) return 'vendor-map'
                     if (id.includes('xlsx')) return 'vendor-xlsx'

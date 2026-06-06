@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import {
   Tag,
@@ -168,12 +168,6 @@ async function fetchPromotionsData() {
         }
 
         // Image resolver
-        let imagePath = ''
-        if (p.hinh_anhs && p.hinh_anhs.length > 0) {
-          imagePath = p.hinh_anhs[0].duong_dan
-        } else if (p.hinhanh) {
-          imagePath = p.hinhanh
-        }
 
         let ram = '16GB'
         let ssd = '512GB'
@@ -199,7 +193,7 @@ async function fetchPromotionsData() {
           gia: giaSP,
           oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
-          image: imagePath ? (imagePath.startsWith('http') ? imagePath : storageUrl(imagePath)) : 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500',
+          image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: 4.8,
           reviews: Math.floor(Math.random() * 80) + 15,
           promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',

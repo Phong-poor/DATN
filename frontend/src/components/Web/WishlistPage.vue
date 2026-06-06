@@ -215,7 +215,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl } from '@/services/urls'
 
 // --- STATE ---
 const wishlist = ref([])
@@ -349,8 +349,7 @@ const formatPrice = (value) => {
 }
 
 const getImage = (item) => {
-  const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
-  return imgPath ? storageUrl(imgPath) : ''
+  return productImageUrl(item.bienthe?.sanpham || item.bienthe?.sanPham || {}, item.bienthe, '')
 }
 
 const slideSuggest = (dir) => {

@@ -325,7 +325,18 @@ class AuthController extends Controller
             }
             $facebookUser = $driver->user();
         } catch (\Throwable $e) {
-            Log::warning('Facebook OAuth callback failed', ['message' => $e->getMessage()]);
+            Log::warning('Facebook OAuth callback failed', [
+                'message' => $e->getMessage(),
+                'callback_query' => $request->only([
+                    'error',
+                    'error_code',
+                    'error_message',
+                    'error_reason',
+                    'error_description',
+                    'code',
+                    'state',
+                ]),
+            ]);
             return redirect($this->frontendUrl('/login', ['social_error' => 'facebook_callback_failed']));
         }
 
