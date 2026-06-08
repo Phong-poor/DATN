@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
 import { imageFallbackUrl, normalizeImageUrl, productImageUrl } from '@/services/urls'
+import { findPrefetchedProductById } from '@/services/productsPrefetch'
 import ComboSelectionModal from './ComboSelectionModal.vue'
 
 
@@ -558,6 +559,37 @@ const fetchProductDetail = async () => {
     }
 }
 
+const applyWarmProduct = (data) => {
+    if (!data?.tenSP) return false
+    const variants = data.bien_thes || data.bienThes || []
+    product.value = { ...data, bienThes: variants }
+
+    if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
+
+    if (variants.length > 0) {
+        const variantId = route.query.variant
+        let targetVariant = variants[0]
+
+        if (variantId) {
+            const found = variants.find(v => String(v.id_bienthe) === String(variantId))
+            if (found) targetVariant = found
+        }
+
+        selectedVariant.value = targetVariant
+        const options = {}
+        getVariantAttributes(targetVariant).forEach(attr => {
+            options[attr.ten_thuoctinh] = attr.giatri
+        })
+        selectedOptions.value = options
+
+        if (targetVariant.hinhanh) {
+            selectedImage.value = getImageUrl(targetVariant.hinhanh)
+        }
+    }
+
+    return true
+}
+
 const loadPageData = async () => {
     const productId = route.params.id || 1
     // Tải cache ngay lập tức để hiển thị tức thì
@@ -565,7 +597,12 @@ const loadPageData = async () => {
     if (hasCache) {
         isLoading.value = false
     } else {
-        isLoading.value = true
+        const warmProduct = findPrefetchedProductById(productId)
+        if (applyWarmProduct(warmProduct)) {
+            isLoading.value = false
+        } else {
+            isLoading.value = true
+        }
     }
 
     try {

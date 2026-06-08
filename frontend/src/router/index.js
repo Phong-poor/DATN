@@ -127,6 +127,12 @@ const forceScrollTop = () => {
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 }
 
+const showRouteLoader = () => {
+  window.dispatchEvent(new CustomEvent('global-loader-show', {
+    detail: { immediate: true, minDuration: 260 }
+  }))
+}
+
 router.afterEach(() => {
   // Cưỡng bức cuộn lên đầu trang ngay khi chuyển trang xong ở mức router
   forceScrollTop()
@@ -140,6 +146,9 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
+    if (to.fullPath !== from.fullPath) {
+      showRouteLoader()
+    }
     forceScrollTop()
     const user = getUser()
     const token = getToken()

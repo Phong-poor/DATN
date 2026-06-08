@@ -159,6 +159,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser } from '@/services/auth';
+import swal from '@/services/swal';
 import {
   bindChatChannel,
   conversationPreviewFromMessage,
@@ -252,7 +253,8 @@ const toggleConversationSelection = (id) => {
 
 const deleteSelectedConversations = async () => {
   if (selectedConversationIds.value.length === 0 || deletingConversations.value) return;
-  if (!confirm(`Xóa ${selectedConversationIds.value.length} đoạn chat đã chọn?`)) return;
+  const confirmed = await swal.confirm('Xác nhận xóa', `Xóa ${selectedConversationIds.value.length} đoạn chat đã chọn?`);
+  if (!confirmed) return;
 
   deletingConversations.value = true;
   try {
@@ -267,7 +269,7 @@ const deleteSelectedConversations = async () => {
     cancelDeleteMode();
   } catch (error) {
     console.error('Lỗi xóa đoạn chat:', error);
-    alert('Không xóa được đoạn chat. Thử lại sau.');
+    swal.error('Không thể xóa', error?.response?.data?.message || 'Không xóa được đoạn chat. Thử lại sau.');
   } finally {
     deletingConversations.value = false;
   }

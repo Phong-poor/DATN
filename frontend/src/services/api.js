@@ -11,14 +11,21 @@ const api = axios.create({
   },
 })
 
-const GET_CACHE_TTL_MS = 60 * 1000
+const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
 const inFlightGetRequests = new Map()
 
 const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
 const shouldCacheGet = (config = {}) => config.method?.toLowerCase?.() === 'get' && config.cache !== false
+
+const stableStringify = (value) => {
+  if (!value || typeof value !== 'object') return value ? String(value) : ''
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  return `{${Object.keys(value).sort().map((key) => `${key}:${stableStringify(value[key])}`).join(',')}}`
+}
+
 const getCacheKey = (url, config = {}) => {
-  const params = config.params ? JSON.stringify(config.params) : ''
+  const params = config.params ? stableStringify(config.params) : ''
   return `${url || ''}?${params}`
 }
 
