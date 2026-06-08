@@ -1493,16 +1493,17 @@ watch(() => route.fullPath, () => {
 </template>
 
 <style scoped>
+
 /* ==================== SEARCH / SORTING HEADER & RATING / SPECS STYLING ==================== */
 .grid-sort-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  background: #ffffff;
+  background: var(--tn-surface);
   padding: 14px 20px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
@@ -1533,7 +1534,7 @@ watch(() => route.fullPath, () => {
   font-size: 13px;
   font-weight: 600;
   border: 1px solid #cbd5e1;
-  background-color: #ffffff;
+  background: var(--tn-surface);
   color: #334155;
   outline: none;
   cursor: pointer;
@@ -1565,13 +1566,13 @@ watch(() => route.fullPath, () => {
 }
 
 .product-specs-summary .spec-tag {
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   color: #475569;
   font-size: 10.5px;
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 5px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
 }
 
 /* ============================================================
@@ -1580,7 +1581,7 @@ watch(() => route.fullPath, () => {
    ============================================================ */
 
 .premium-page-shell {
-  background: #f8fafc;
+  background: var(--tn-bg);
   color: #0f172a;
   font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
   overflow-x: clip; /* clip does not prevent sticky position context */
@@ -1853,7 +1854,7 @@ p {
   height: 72px; /* Consistent card height */
   padding: 14px 24px;
   border-radius: 18px; /* Exact border-radius requested */
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid rgba(148, 163, 184, 0.22);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -2090,7 +2091,7 @@ p {
 
 .premium-empty-state {
   border: 1px dashed #cbd5e1;
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 12px;
   padding: 28px 24px;
   text-align: center;
@@ -2114,7 +2115,7 @@ p {
 .flash-sale-card {
   flex: 0 0 var(--flash-card-width, calc((100% - 48px) / 5));
   max-width: var(--flash-card-width, calc((100% - 48px) / 5));
-  background: #ffffff; /* Clean solid white background */
+  background: var(--tn-surface); /* Clean solid white background */
   color: #0f172a;
   border-radius: 12px;
   padding: 12px;
@@ -2122,7 +2123,7 @@ p {
   display: flex;
   flex-direction: column;
   position: relative;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
   will-change: transform, opacity;
   user-select: none;
@@ -2209,8 +2210,8 @@ p {
 }
 
 .flash-spec-pill {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface-2);
+  border: 1px solid var(--tn-border);
   color: #475569;
   padding: 2px 5px;
   border-radius: 4px;
@@ -2243,8 +2244,8 @@ p {
 
 /* Compact Progress Bar */
 .flash-progress-wrapper {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-bg);
+  border: 1px solid var(--tn-border);
   border-radius: 6px;
   min-height: 34px;
   position: relative;
@@ -2561,7 +2562,7 @@ p {
 }
 
 .service-pill-card {
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 12px;
   padding: 16px 20px;
@@ -2653,7 +2654,7 @@ p {
 .catalog-search-bar {
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   padding: 8px 14px;
@@ -2713,7 +2714,7 @@ p {
 }
 
 .catalog-pill-btn:hover {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-color: rgba(37, 99, 235, 0.38);
   color: #0f172a;
 }
@@ -2922,7 +2923,7 @@ p {
 }
 
 .filter-pill-btn:hover {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-color: rgba(37, 99, 235, 0.38);
   color: #0f172a;
 }
@@ -2990,7 +2991,7 @@ p {
   height: 14px;
   width: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 2px solid #2563eb;
   cursor: pointer;
   pointer-events: auto;
@@ -3007,7 +3008,7 @@ p {
   height: 14px;
   width: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 2px solid #2563eb;
   cursor: pointer;
   pointer-events: auto;
@@ -3105,7 +3106,7 @@ p {
 .card-media-box {
   width: 100%;
   aspect-ratio: 1 / 0.78;
-  background: #ffffff; /* Solid White square */
+  background: var(--tn-surface); /* Solid White square */
   border-radius: 8px;
   display: flex;
   align-items: center;

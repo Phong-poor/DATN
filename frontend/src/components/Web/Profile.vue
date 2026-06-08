@@ -2005,6 +2005,7 @@ const promoStatusMap = {
 </template>
 
 <style scoped>
+
 /* ── BASE ── */
 .page { min-height:100vh; background: #0d1b2e; padding:32px 30px; font-family:system-ui,sans-serif; }
 .container { max-width:1100px; margin:auto; display:grid; grid-template-columns:280px 1fr; gap:24px; align-items:start; }
@@ -2613,6 +2614,7 @@ const promoStatusMap = {
 </style>
 
 <style scoped>
+
 .category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .cat-tab:hover { color: #4f46e5; }

@@ -1004,6 +1004,7 @@ const initScrollReveal = () => {
 </template>
 
 <style scoped>
+
 /* ============================================================
    COLOR SYSTEM & GLOBAL TOKENS
    ============================================================ */
@@ -1609,7 +1610,7 @@ const initScrollReveal = () => {
 .flash-img-box {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: #ffffff;
+  background: var(--tn-surface);
   margin: 10px;
   border-radius: 10px;
   overflow: hidden;
@@ -2029,7 +2030,7 @@ const initScrollReveal = () => {
   width: 100px;
   height: 100px;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--tn-surface);
   padding: 8px;
   display: flex;
   align-items: center;
@@ -2148,7 +2149,7 @@ const initScrollReveal = () => {
 .prod-img-wrap {
   position: relative;
   aspect-ratio: 16 / 11;
-  background: #ffffff;
+  background: var(--tn-surface);
   margin: 12px;
   border-radius: 12px;
   overflow: hidden;
@@ -2601,7 +2602,7 @@ const initScrollReveal = () => {
   position: relative;
   border-radius: 28px;
   padding: 56px;
-  background: #ffffff;
+  background: var(--tn-surface);
   color: #0d1b2e;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
@@ -2656,15 +2657,15 @@ const initScrollReveal = () => {
   display: flex;
   width: 100%;
   max-width: 440px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface-2);
+  border: 1px solid var(--tn-border);
   border-radius: 12px;
   padding: 6px;
   transition: all 0.3s ease;
 }
 
 .newsletter-interactive-form:focus-within {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-color: var(--accent);
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
 }
@@ -2831,8 +2832,8 @@ const initScrollReveal = () => {
   .newsletter-glass-card { padding: 32px 20px; }
   .newsletter-interactive-form { flex-direction: column; gap: 12px; background: transparent; border: none; padding: 0; }
   .newsletter-interactive-form input {
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface-2);
+    border: 1px solid var(--tn-border);
     border-radius: 10px;
     padding: 12px;
     width: 100%;

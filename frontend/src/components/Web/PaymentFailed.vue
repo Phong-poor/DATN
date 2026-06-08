@@ -35,6 +35,7 @@ const orderId = route.query.order_id
 </template>
 
 <style scoped>
+
 .payment-failed-page {
   background: #0d1b2e;
   min-height: 80vh;

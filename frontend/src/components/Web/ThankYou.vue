@@ -61,6 +61,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+
 .thank-you-page {
   background: #0d1b2e;
   min-height: 80vh;

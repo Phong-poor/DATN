@@ -97,6 +97,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 .support-widget {
   position: fixed;
   right: 30px;

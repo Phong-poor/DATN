@@ -844,6 +844,7 @@ const toggleFaq = (index) => {
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ==================== GENERAL STYLE & TOKENS ==================== */
@@ -1169,7 +1170,7 @@ const toggleFaq = (index) => {
 
 /* LEFT: Guided Steps Box (light form variant) */
 .guided-form-glass-card {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 24px;
   border: 1px solid rgba(2,6,23,0.06);
   padding: 32px;
@@ -1198,7 +1199,7 @@ const toggleFaq = (index) => {
 .step-num {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border: 2px solid #e6eef6;
   color: var(--text-secondary);
   font-family: var(--font-heading);
@@ -1227,7 +1228,7 @@ const toggleFaq = (index) => {
 
 .step-node.active .step-num {
   border-color: var(--primary);
-  background: #f8fafc;
+  background: var(--tn-bg);
   color: var(--primary);
   box-shadow: 0 0 10px var(--primary-glow);
 }
@@ -1288,7 +1289,7 @@ const toggleFaq = (index) => {
   padding: 16px;
   border-radius: 14px;
   border: 1.5px solid #e6eef6;
-  background: #ffffff;
+  background: var(--tn-surface);
   cursor: pointer;
   transition: var(--transition);
   position: relative;
@@ -1296,7 +1297,7 @@ const toggleFaq = (index) => {
 .cat-icon-box {
   width: 44px; height: 44px;
   border-radius: 10px;
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   border: 1px solid #e6eef6;
   display: flex;
   align-items: center;
@@ -1323,14 +1324,14 @@ const toggleFaq = (index) => {
   border-radius: 50%;
   border: 1.5px solid #e6eef6;
   margin-left: auto;
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   transition: var(--transition);
   flex-shrink: 0;
 }
 
 .guided-category-card:hover {
   border-color: var(--primary);
-  background: #f8fafc;
+  background: var(--tn-bg);
   transform: translateX(3px);
 }
 .guided-category-card.active {
@@ -1363,7 +1364,7 @@ const toggleFaq = (index) => {
   border: 1.5px solid #e6eef6;
   border-radius: 14px;
   padding: 10px 16px;
-  background: #ffffff;
+  background: var(--tn-surface);
   transition: var(--transition);
 }
 .field-icon-neon {
@@ -1406,7 +1407,7 @@ const toggleFaq = (index) => {
 
 .floating-input-field:focus-within {
   border-color: #dbe7f3;
-  background: #ffffff;
+  background: var(--tn-surface);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 .input-block input:-webkit-autofill,
@@ -1450,7 +1451,7 @@ const toggleFaq = (index) => {
   padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid #e6eef6;
-  background: #ffffff;
+  background: var(--tn-surface);
   cursor: pointer;
   font-family: inherit;
   font-size: 11px;
@@ -1468,7 +1469,7 @@ const toggleFaq = (index) => {
   border: 1.5px solid #e6eef6;
   border-radius: 14px;
   padding: 12px;
-  background: #ffffff;
+  background: var(--tn-surface);
   margin-bottom: 18px;
   transition: var(--transition);
 }
@@ -1486,7 +1487,7 @@ const toggleFaq = (index) => {
 }
 .guided-textarea-field:focus-within {
   border-color: var(--primary);
-  background: #ffffff;
+  background: var(--tn-surface);
   box-shadow: 0 4px 12px rgba(37,99,235,0.06);
 }
 
@@ -1505,7 +1506,7 @@ const toggleFaq = (index) => {
   margin: -2px auto 18px;
   border: 1px solid #cfd8e3;
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--tn-surface);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   transition: var(--transition);
 }
@@ -1531,7 +1532,7 @@ const toggleFaq = (index) => {
   height: 24px;
   border-radius: 3px;
   border: 2px solid #64748b;
-  background: #ffffff;
+  background: var(--tn-surface);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1625,7 +1626,7 @@ const toggleFaq = (index) => {
   padding: 11px 18px;
   border-radius: 10px;
   border: 1.5px solid #e6eef6;
-  background: #f8fafc;
+  background: var(--tn-bg);
   color: var(--text-secondary);
   font-family: var(--font-heading);
   font-size: 13px;
@@ -1757,7 +1758,7 @@ const toggleFaq = (index) => {
   padding: 12px 18px;
   border-radius: 14px;
   border: 1.5px solid #e6eef6;
-  background: #ffffff;
+  background: var(--tn-surface);
   cursor: pointer;
   transition: var(--transition);
 }
@@ -1780,7 +1781,7 @@ const toggleFaq = (index) => {
 }
 
 .showroom-cyber-btn:hover {
-  background: #f8fafc;
+  background: var(--tn-bg);
   transform: translateX(3px);
   border-color: #cbd5e1;
 }
@@ -1796,7 +1797,7 @@ const toggleFaq = (index) => {
 
 /* Dynamic details card */
 .showroom-detail-glass-card {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 18px;
   padding: 20px;
   border: 1px solid #e6eef6;
@@ -1877,7 +1878,7 @@ const toggleFaq = (index) => {
   border: none;
 }
 .map-overlay-footer {
-  background: #f8fafc;
+  background: var(--tn-bg);
   border-top: 1px solid #e6eef6;
   padding: 8px;
   text-align: center;
@@ -1912,7 +1913,7 @@ const toggleFaq = (index) => {
   margin-top: 36px;
 }
 .expert-avatar-card {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 20px;
   border: 1px solid #e6eef6;
   padding: 24px;
@@ -1983,7 +1984,7 @@ const toggleFaq = (index) => {
 
 /* ==================== TECH TRUST BRAND BAR ==================== */
 .tech-trust-banner {
-  background: #f8fafc;
+  background: var(--tn-bg);
   border-top: 1px solid #e6eef6;
   border-bottom: 1px solid #e6eef6;
   padding: 32px 24px;
@@ -2043,7 +2044,7 @@ const toggleFaq = (index) => {
 /* ==================== FAQ KNOWLEDGE CENTER ==================== */
 .faq-knowledge-center {
   padding: 70px 24px;
-  background: #ffffff;
+  background: var(--tn-surface);
 }
 .faq-inner-max {
   max-width: 900px;
@@ -2069,7 +2070,7 @@ const toggleFaq = (index) => {
   padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid #e6eef6;
-  background: #f8fafc;
+  background: var(--tn-bg);
   cursor: pointer;
   font-family: inherit;
   font-size: 12.5px;
@@ -2092,7 +2093,7 @@ const toggleFaq = (index) => {
   border: 1.5px solid #e6eef6;
   border-radius: 10px;
   padding: 8px 14px;
-  background: #ffffff;
+  background: var(--tn-surface);
   width: 280px;
   transition: var(--transition);
 }
@@ -2111,7 +2112,7 @@ const toggleFaq = (index) => {
 }
 .faq-search-box:focus-within {
   border-color: var(--primary);
-  background: #ffffff;
+  background: var(--tn-surface);
   box-shadow: 0 4px 12px rgba(37,99,235,0.06);
 }
 
@@ -2123,7 +2124,7 @@ const toggleFaq = (index) => {
   margin-bottom: 40px;
 }
 .faq-cyber-accordion {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 16px;
   border: 1.5px solid #e6eef6;
   cursor: pointer;
@@ -2142,7 +2143,7 @@ const toggleFaq = (index) => {
   font-size: 11px;
   font-weight: 800;
   color: #475569;
-  background: #f8fafc;
+  background: var(--tn-bg);
   padding: 3px 6px;
   border-radius: 4px;
   transition: var(--transition);
@@ -2159,7 +2160,7 @@ const toggleFaq = (index) => {
 .accordion-trigger-icon {
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: #f8fafc;
+  background: var(--tn-bg);
   position: relative;
   transition: var(--transition);
   flex-shrink: 0;

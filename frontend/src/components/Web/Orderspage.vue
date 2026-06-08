@@ -574,6 +574,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
 .page {
     min-height: 100vh;
     background: #0d1b2e;
@@ -1115,12 +1116,14 @@ onUnmounted(() => {
 </style>
 
 <style scoped>
+
 .category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .cat-tab:hover { color: #4f46e5; }
 .cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 </style>
 <style scoped>
+
 .timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
 .tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
 .tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }

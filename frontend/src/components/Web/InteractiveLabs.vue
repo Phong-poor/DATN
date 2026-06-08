@@ -2443,6 +2443,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 /* Page Layout styles */
 .labs-page {
   position: relative;

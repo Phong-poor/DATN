@@ -292,6 +292,7 @@ const save = async () => {
 </template>
 
 <style scoped>
+
 .page {
     min-height: 100vh;
     background: #0d1b2e;

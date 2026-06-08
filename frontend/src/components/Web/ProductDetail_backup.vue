@@ -1215,6 +1215,7 @@ const modalComparisonData = computed(() => {
 <style scoped>
 
 
+
 /* ===== TOAST THÔNG BÁO ===== */
 .wishlist-btn {
     padding: 0 16px;
@@ -1294,7 +1295,7 @@ const modalComparisonData = computed(() => {
     width: 38px;
     height: 38px;
     border: none;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     font-size: 18px;
     cursor: pointer;
     transition: background 0.2s;
@@ -1394,7 +1395,7 @@ const modalComparisonData = computed(() => {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     display: flex;
     align-items: center;
@@ -1406,7 +1407,7 @@ const modalComparisonData = computed(() => {
 }
 
 .thumb-nav:hover:not(:disabled) {
-    background: #f8fafc;
+    background: var(--tn-bg);
     color: #2563eb;
     border-color: #2563eb;
 }
@@ -1598,7 +1599,7 @@ h1 {
 .spec-table-wrap {
     overflow: hidden;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
 }
 
 .spec-table {
@@ -1611,11 +1612,11 @@ h1 {
 }
 
 .spec-table tr:nth-child(even) {
-    background: #f8fafc;
+    background: var(--tn-bg);
 }
 
 .spec-table tr:hover {
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
 }
 
 .spec-table td {
@@ -1632,7 +1633,7 @@ h1 {
     width: 30%;
     font-weight: 600;
     color: #64748b;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
 }
 
 .spec-value {
@@ -1726,7 +1727,7 @@ h1 {
 }
 
 .img-box {
-    background: #f8fafc;
+    background: var(--tn-bg);
     padding: 10px;
     border-radius: 10px;
     margin-bottom: 12px;
@@ -1850,7 +1851,7 @@ h1 {
 
 .review-card {
     background: #fff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 16px;
@@ -1902,10 +1903,10 @@ h1 {
 .attr-tag {
     font-size: 12px;
     color: #475569;
-    background: #f8fafc;
+    background: var(--tn-bg);
     padding: 4px 10px;
     border-radius: 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     font-weight: 500;
 }
 
@@ -1939,7 +1940,7 @@ h1 {
 
 .pag-btn {
     padding: 8px 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     border-radius: 8px;
     font-size: 13px;
@@ -1968,7 +1969,7 @@ h1 {
 .pag-num {
     width: 36px;
     height: 36px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     border-radius: 8px;
     display: flex;
@@ -2008,9 +2009,9 @@ h1 {
 
 .comparison-table-wrapper {
     overflow-x: auto;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     border-radius: 12px;
-    background: #f8fafc;
+    background: var(--tn-bg);
     max-height: 600px;
     overflow-y: auto;
 }
@@ -2030,7 +2031,7 @@ h1 {
 }
 
 .comparison-table th {
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     font-weight: 700;
     color: #0f172a;
     font-size: 13px;
@@ -2038,7 +2039,7 @@ h1 {
 }
 
 .comparison-table tbody tr:hover {
-    background: #f8fafc;
+    background: var(--tn-bg);
 }
 
 .attr-col {
@@ -2064,7 +2065,7 @@ h1 {
     height: 60px;
     border-radius: 8px;
     object-fit: cover;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
 }
 
 .prod-info {
@@ -2134,14 +2135,14 @@ h1 {
 .compare-btn {
     margin-left: 10px;
     background: transparent;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     color: #0f172a;
     padding: 8px 12px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 700;
 }
-.compare-btn:hover { background: #f1f5f9 }
+.compare-btn:hover { background: var(--tn-surface-2); }
 
 .compare-modal-overlay {
     position: fixed;
@@ -2156,7 +2157,7 @@ h1 {
 
 .compare-modal {
     width: min(1200px, 100%);
-    background: #ffffff;
+    background: var(--tn-surface);
     border-radius: 12px;
     box-shadow: 0 20px 50px rgba(2,6,23,0.2);
     overflow: hidden;
@@ -2588,7 +2589,7 @@ h1 {
 
 .review-card {
     background: white;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     border-radius: 12px;
     padding: 20px;
     transition: all 0.2s;

@@ -353,6 +353,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
 .detail-page {
   background: #f5f7fb;
   min-height: 100vh;
@@ -366,8 +367,8 @@ onMounted(() => {
 }
 
 .state-box {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border);
   border-radius: 12px;
   color: #334155;
   padding: 28px;
@@ -421,8 +422,8 @@ onMounted(() => {
 }
 
 .article-body {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border);
   border-radius: 16px;
   color: #334155;
   font-size: 16px;
@@ -485,8 +486,8 @@ onMounted(() => {
 }
 
 .article-gallery {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border);
   border-radius: 16px;
   margin-top: 20px;
   padding: 24px;
@@ -552,8 +553,8 @@ onMounted(() => {
 }
 
 .related-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border);
   border-radius: 14px;
   color: inherit;
   overflow: hidden;

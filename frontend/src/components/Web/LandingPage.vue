@@ -2026,6 +2026,7 @@ const specsMatrix = [
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 .landing-premium {
@@ -3691,7 +3692,7 @@ h1, h2, h3, h4, h5 {
 .faq-icon::after {
   content: '';
   position: absolute;
-  background: #ffffff;
+  background: var(--tn-surface);
   transition: transform 0.3s ease;
 }
 .faq-icon::before { top: 8px; left: 0; right: 0; height: 2px; }
