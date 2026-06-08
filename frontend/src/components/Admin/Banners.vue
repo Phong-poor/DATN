@@ -177,6 +177,41 @@
 
                 <div class="form-row">
                   <div class="form-group">
+                    <label>DÒNG NHÃN HERO</label>
+                    <input v-model="form.eyebrow" placeholder="VD: PREMIUM LAPTOP STORE 2026" />
+                  </div>
+                  <div class="form-group">
+                    <label>DÒNG CHỮ XANH NỔI BẬT</label>
+                    <input v-model="form.highlight" placeholder="VD: Sự Tinh Tế Chuyên Sâu" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>MÔ TẢ HERO</label>
+                  <textarea v-model="form.description" rows="3" placeholder="Nhập đoạn mô tả hiển thị dưới tiêu đề banner"></textarea>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>SẢN PHẨM THẬT GẮN BANNER</label>
+                    <select v-model="form.product_id" @change="syncProductLink">
+                      <option value="">Chọn sản phẩm hiển thị bên phải</option>
+                      <option v-for="p in productOptions" :key="p.id" :value="p.id">
+                        {{ p.name }} - {{ formatPrice(p.price) }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>NÚT CHÍNH / NÚT PHỤ</label>
+                    <div class="inline-inputs">
+                      <input v-model="form.primary_label" placeholder="Mua ngay" />
+                      <input v-model="form.secondary_label" placeholder="Xem bộ sưu tập" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
                     <label>ĐƯỜNG DẪN LIÊN KẾT (URL)</label>
                     <input v-model="form.link_url" placeholder="VD: /products/macbook-pro-m3" />
                   </div>
@@ -228,6 +263,23 @@
                     </button>
                   </div>
                 </div>
+
+                <div class="banner-preview">
+                  <div class="preview-copy">
+                    <span>{{ form.eyebrow || 'PREMIUM LAPTOP STORE 2026' }}</span>
+                    <h4>{{ form.title || 'Sức Mạnh Hội Tụ' }}</h4>
+                    <strong>{{ form.highlight || form.subtitle || 'Sự Tinh Tế Chuyên Sâu' }}</strong>
+                    <p>{{ form.description || form.subtitle || 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.' }}</p>
+                  </div>
+                  <div class="preview-product">
+                    <img :src="selectedProduct?.image || '/hero_3d_laptop.png'" alt="preview product" />
+                    <div>
+                      <b>{{ selectedProduct?.name || 'Chọn sản phẩm thật' }}</b>
+                      <small>{{ selectedProduct ? formatPrice(selectedProduct.price) : 'Nút Thanh toán ngay sẽ lấy sản phẩm này' }}</small>
+                      <button type="button">Thanh toán ngay</button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="modal-footer">
@@ -251,7 +303,7 @@
 <script setup>
 import { onMounted, ref, computed } from "vue";
 import api from "@/services/api";
-import { storageUrl } from "@/services/urls";
+import { productImageUrl, storageUrl } from "@/services/urls";
 import swal from "@/services/swal";
 import BulkDeleteToolbar from "./BulkDeleteToolbar.vue";
 import { useAdminBulkDelete } from "@/services/adminBulkDelete";
@@ -261,12 +313,21 @@ const saving = ref(false);
 const showModal = ref(false);
 const editingId = ref(null);
 const banners = ref([]);
+const products = ref([]);
 const searchQuery = ref("");
 
 const defaultForm = () => ({
   title: "",
   subtitle: "",
+  eyebrow: "PREMIUM LAPTOP STORE 2026",
+  highlight: "Sự Tinh Tế Chuyên Sâu",
+  description: "Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.",
   link_url: "",
+  product_id: "",
+  primary_label: "Mua ngay",
+  secondary_label: "Xem bộ sưu tập",
+  product_badge: "TRENDING NOW",
+  product_feature: "RTX 40-Series",
   position: 0,
   is_active: true,
   starts_at: "",
@@ -278,6 +339,44 @@ const defaultForm = () => ({
 const form = ref(defaultForm());
 
 const mediaSrc = (path) => storageUrl(path);
+
+const productOptions = computed(() => {
+  return products.value.map((p) => {
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : [];
+    const variant = variants.find(v => Number(v.soluong || 0) > 0) || variants[0] || {};
+    return {
+      id: p.id_sanpham,
+      name: p.tenSP || `Sản phẩm #${p.id_sanpham}`,
+      price: Number(variant.gia || 0),
+      variantId: variant.id_bienthe || "",
+      brand: p.thuong_hieu?.ten_thuonghieu || "",
+      image: productImageUrl(p, variant),
+    };
+  });
+});
+
+const selectedProduct = computed(() => {
+  return productOptions.value.find(p => String(p.id) === String(form.value.product_id)) || null;
+});
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(price || 0));
+};
+
+const syncProductLink = () => {
+  if (form.value.product_id) {
+    form.value.link_url = `/products/${form.value.product_id}`;
+  }
+};
+
+const fetchProducts = async () => {
+  try {
+    const { data } = await api.get("/sanpham", { skipGlobalLoader: true });
+    products.value = Array.isArray(data) ? data : (data?.data || []);
+  } catch (e) {
+    products.value = [];
+  }
+};
 
 const fetchData = async () => {
   loading.value = true;
@@ -332,7 +431,15 @@ const openEdit = (item) => {
     ...defaultForm(),
     title: item.title || "",
     subtitle: item.subtitle || "",
+    eyebrow: item.eyebrow || "PREMIUM LAPTOP STORE 2026",
+    highlight: item.highlight || item.subtitle || "Sự Tinh Tế Chuyên Sâu",
+    description: item.description || "",
     link_url: item.link_url || "",
+    product_id: item.product_id || "",
+    primary_label: item.primary_label || "Mua ngay",
+    secondary_label: item.secondary_label || "Xem bộ sưu tập",
+    product_badge: item.product_badge || "TRENDING NOW",
+    product_feature: item.product_feature || "RTX 40-Series",
     position: Number(item.position || 0),
     is_active: Boolean(item.is_active),
     starts_at: item.starts_at ? item.starts_at.slice(0, 16) : "",
@@ -362,14 +469,21 @@ const toFormData = () => {
   const fd = new FormData();
   fd.append("title", form.value.title || "");
   fd.append("subtitle", form.value.subtitle || "");
+  fd.append("eyebrow", form.value.eyebrow || "");
+  fd.append("highlight", form.value.highlight || "");
+  fd.append("description", form.value.description || "");
   fd.append("link_url", form.value.link_url || "");
+  fd.append("product_id", form.value.product_id ? String(form.value.product_id) : "");
+  fd.append("primary_label", form.value.primary_label || "");
+  fd.append("secondary_label", form.value.secondary_label || "");
+  fd.append("product_badge", form.value.product_badge || "");
+  fd.append("product_feature", form.value.product_feature || "");
   fd.append("position", String(form.value.position || 0));
   fd.append("is_active", form.value.is_active ? "1" : "0");
   if (form.value.starts_at) fd.append("starts_at", form.value.starts_at);
   if (form.value.ends_at) fd.append("ends_at", form.value.ends_at);
   if (form.value.image) fd.append("image", form.value.image);
   if (form.value.mobile_image) fd.append("mobile_image", form.value.mobile_image);
-  if (editingId.value) fd.append("_method", "PUT");
   return fd;
 };
 
@@ -414,7 +528,10 @@ const remove = async (id) => {
   }
 };
 
-onMounted(fetchData);
+onMounted(() => {
+  fetchData();
+  fetchProducts();
+});
 </script>
 
 <style scoped>
@@ -764,7 +881,7 @@ td {
   background: #fff;
   border-radius: 20px;
   width: 100%;
-  max-width: 600px;
+  max-width: 760px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
@@ -866,7 +983,9 @@ td {
   color: #ef4444;
 }
 
-.form-group input {
+.form-group input,
+.form-group select,
+.form-group textarea {
   padding: 9px 12px;
   border: 1.5px solid #e2e8f0;
   border-radius: 10px;
@@ -877,12 +996,30 @@ td {
   width: 100%;
   background: #fff;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input,
+.form-group select {
   height: 38px;
 }
 
-.form-group input:focus {
+.form-group textarea {
+  min-height: 82px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.inline-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .file-input-wrapper {
@@ -957,6 +1094,102 @@ td {
 
 .toggle-btn.tg-yellow .tdot {
   background: #dc2626;
+}
+
+.banner-preview {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.82), rgba(15, 23, 42, 0.58)),
+    url('/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png') center/cover;
+  color: #fff;
+  min-height: 210px;
+  overflow: hidden;
+}
+
+.preview-copy span {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.35);
+  color: #38bdf8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.preview-copy h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 900;
+}
+
+.preview-copy strong {
+  display: block;
+  color: #22d3ee;
+  font-size: 22px;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.preview-copy p {
+  margin: 10px 0 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.preview-product {
+  position: relative;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 16px;
+  padding: 12px;
+  color: #0f172a;
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.25);
+}
+
+.preview-product img {
+  width: 100%;
+  height: 118px;
+  object-fit: contain;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.preview-product b,
+.preview-product small {
+  display: block;
+}
+
+.preview-product b {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.preview-product small {
+  margin-top: 2px;
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.preview-product button {
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #fff;
+  height: 34px;
+  font-weight: 800;
 }
 
 .modal-footer {

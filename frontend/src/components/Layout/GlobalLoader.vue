@@ -6,6 +6,8 @@ let loadingCount = 0
 let showTimeout = null
 let hideTimeout = null
 let maxTimeout = null
+let visibleAt = 0
+let minVisibleMs = 180
 
 const clearTimers = () => {
   clearTimeout(showTimeout)
@@ -17,16 +19,28 @@ const resetLoading = () => {
   loadingCount = 0
   clearTimers()
   isVisible.value = false
+  visibleAt = 0
+  minVisibleMs = 180
 }
 
-const startLoading = () => {
+const revealLoader = () => {
+  visibleAt = Date.now()
+  isVisible.value = true
+}
+
+const startLoading = (event) => {
+  const options = event?.detail || {}
+  const showImmediately = Boolean(options.immediate)
+  minVisibleMs = Number.isFinite(options.minDuration) ? options.minDuration : minVisibleMs
   loadingCount++
   if (loadingCount !== 1) return
 
   clearTimers()
-  showTimeout = setTimeout(() => {
-    isVisible.value = true
-  }, 450)
+  if (showImmediately) {
+    revealLoader()
+  } else {
+    showTimeout = setTimeout(revealLoader, 180)
+  }
 
   // Limit loading to 8s max to avoid stuck overlays
   maxTimeout = setTimeout(resetLoading, 8000)
@@ -37,10 +51,12 @@ const stopLoading = () => {
   if (loadingCount > 0) return
 
   clearTimeout(showTimeout)
+  const elapsed = visibleAt ? Date.now() - visibleAt : minVisibleMs
+  const wait = Math.max(40, minVisibleMs - elapsed)
   hideTimeout = setTimeout(() => {
     isVisible.value = false
     clearTimers()
-  }, 40)
+  }, wait)
 }
 
 onMounted(() => {

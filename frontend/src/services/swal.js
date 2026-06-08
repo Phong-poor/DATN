@@ -1,12 +1,19 @@
 import Swal from 'sweetalert2'
 
 const commonConfig = {
-  confirmButtonColor: '#2563eb',
-  cancelButtonColor: '#94a3b8',
-  buttonsStyling: true,
+  buttonsStyling: false,
+  width: 'min(430px, calc(100vw - 32px))',
   padding: '0',
-  background: 'transparent',
+  background: '#ffffff',
   color: '#0f172a',
+  showClass: {
+    popup: 'swal2-show',
+    backdrop: 'swal2-backdrop-show',
+  },
+  hideClass: {
+    popup: 'swal2-hide',
+    backdrop: 'swal2-backdrop-hide',
+  },
   customClass: {
     popup: 'swal2-custom-popup',
     title: 'swal2-custom-title',

@@ -27,3 +27,6 @@ yarn-error.log
 /.vscode
 /.zed
 /database/migrations
+!/database/migrations/
+!/database/migrations/2026_06_06_000001_upgrade_banners_for_home_hero.php
+!/database/migrations/2026_06_06_000002_seed_default_home_hero_banners.php
