@@ -261,6 +261,7 @@ const handleAddToCart = async () => {
 </template>
 
 <style scoped>
+
 .combo-modal-overlay {
   position: fixed;
   top: 0;
@@ -299,7 +300,7 @@ const handleAddToCart = async () => {
   position: absolute;
   top: 24px;
   right: 24px;
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   border: none;
   width: 36px;
   height: 36px;
@@ -366,7 +367,7 @@ const handleAddToCart = async () => {
 .product-config-card {
   position: relative;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   border-radius: 18px;
   padding: 20px;
 }
@@ -432,7 +433,7 @@ const handleAddToCart = async () => {
 
 .v-select-btn:hover {
   border-color: #cbd5e1;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 
 .v-select-btn.active {
@@ -475,7 +476,7 @@ const handleAddToCart = async () => {
 
 /* Summary Box */
 .combo-summary-box {
-  background: #f8fafc;
+  background: var(--tn-bg);
   border-radius: 20px;
   border: 1px solid #edf2f7;
   padding: 24px;
@@ -558,7 +559,7 @@ const handleAddToCart = async () => {
 }
 
 .qty-ctrl button:hover {
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
 }
 
 .qty-ctrl button:disabled {

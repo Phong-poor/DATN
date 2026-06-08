@@ -1,43 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 /* ============================================================
    TECHNOVА COLOR SYSTEM — Global Design Tokens
    ============================================================ */
 :root {
-  --font-sans: 'Be Vietnam Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-heading: var(--font-sans);
+  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', 'Inter', sans-serif;
   --font-body: var(--font-sans);
-  --font-display: var(--font-sans);
+  --font-display: var(--font-heading);
   --font-alt: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
 
-  /* --- TechNova Core Palette (Light Theme by Default) --- */
-  --tn-bg:           #F8FAFC;        /* Light background */
-  --tn-surface:      #ffffff;        /* White card / surface */
+  /* --- TechNova Core Palette (Premium Soft Light) --- */
+  --tn-bg:           #F8FAFC;        /* Soft Slate */
+  --tn-surface:      #ffffff;        /* Pure White */
   --tn-surface-2:    #f1f5f9;        /* Hover surface */
   --tn-border:       #E2E8F0;        /* Light border */
   --tn-border-hover: #cbd5e1;
 
-  /* --- TechNova Accent Blue --- */
-  --tn-primary:      #2563eb;
-  --tn-primary-hover:#1d4ed8;
-  --tn-primary-glow: rgba(37,99,235,0.15);
-  --tn-primary-muted:rgba(37,99,235,0.06);
+  /* --- TechNova Accent Blue (Electric Indigo) --- */
+  --tn-primary:      #4F46E5;        /* Electric Indigo */
+  --tn-primary-hover:#4338CA;
+  --tn-primary-glow: rgba(79, 70, 229, 0.15);
+  --tn-primary-muted:rgba(79, 70, 229, 0.08);
 
   /* --- Text --- */
-  --tn-text:         #0F172A;        /* Text Dark */
-  --tn-text-muted:   #64748B;        /* Text Muted */
+  --tn-text:         #0F172A;        /* Midnight Slate */
+  --tn-text-muted:   #64748B;        /* Cool Gray */
   --tn-text-faint:   #94a3b8;
 
   /* --- Status Colors --- */
-  --tn-red:          #ef4444;        /* Badge giảm giá / error */
-  --tn-green:        #10B981;        /* Success */
-  --tn-orange:       #f97316;        /* Flash sale / sale */
-  --tn-yellow:       #eab308;        /* Promo / warning */
+  --tn-red:          #ef4444;        
+  --tn-green:        #10B981;        
+  --tn-orange:       #f97316;        
+  --tn-yellow:       #eab308;        
 
   /* --- Legacy (giữ tương thích components cũ) --- */
   --text-color: #0F172A;
   --text-muted:  #64748B;
+  --bg-color: #F8FAFC;
 }
 
 *,
@@ -89,7 +90,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
   line-height: 1.25;
   letter-spacing: 0;
-  font-family: var(--font-sans) !important;
+  font-family: var(--font-heading) !important;
   color: var(--tn-text);
 }
 
@@ -280,7 +281,7 @@ body {
 #app h5,
 #app h6,
 .swal2-title {
-  font-family: var(--font-sans) !important;
+  font-family: var(--font-heading) !important;
   font-weight: 800;
   line-height: 1.22;
   letter-spacing: -0.025em;
@@ -602,4 +603,70 @@ body {
   background: #081B2F;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: none;
+}
+
+/* ============================================================
+   GLOBAL LAYOUT & SPACING SYSTEM
+   ============================================================ */
+.section {
+  padding: 80px 0;
+}
+
+.section-alt {
+  padding: 80px 0;
+  background-color: var(--tn-surface);
+}
+
+.grid-container,
+.container {
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Section Headers */
+.section-header {
+  margin-bottom: 48px;
+  text-align: left;
+}
+
+.section-header h2 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--tn-text);
+  margin-bottom: 12px;
+}
+
+.section-header p {
+  font-size: 16px;
+  color: var(--tn-text-muted);
+  max-width: 600px;
+  margin: 0;
+}
+
+.ambient-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tn-primary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+/* Generic Premium Cards */
+.card-premium {
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  border-color: var(--tn-border-hover);
 }

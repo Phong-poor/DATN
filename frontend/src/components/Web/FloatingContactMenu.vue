@@ -83,6 +83,7 @@ const triggerAction = (type) => {
 </script>
 
 <style scoped>
+
 /* ========== FLOATING MENU CONTAINER ========== */
 .floating-menu-container {
   position: fixed;

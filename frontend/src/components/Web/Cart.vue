@@ -873,6 +873,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1251,8 +1252,8 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--tn-surface-2);
+  border: 1px solid var(--tn-border);
   border-radius: 6px;
   padding: 2px 7px;
   font-size: 9.5px;
@@ -1270,7 +1271,7 @@ onMounted(() => {
   border: 1.5px solid #c7d2fe;
   border-radius: 10px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 .qty-btn {
   width: 28px;

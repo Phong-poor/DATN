@@ -819,6 +819,7 @@ const clearAll = () => {
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 * {
@@ -827,7 +828,7 @@ const clearAll = () => {
 
 .page {
     font-family: 'Inter', sans-serif;
-    background: #f8fafc;
+    background: var(--tn-bg);
     padding: 32px 0 60px;
     min-height: 100vh;
 }
@@ -881,7 +882,7 @@ const clearAll = () => {
 }
 .close-modal {
     background: white;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     padding: 6px 14px;
     border-radius: 8px;
     color: #64748b;
@@ -890,7 +891,7 @@ const clearAll = () => {
     cursor: pointer;
     transition: all 0.2s;
 }
-.close-modal:hover { background: #f1f5f9; }
+.close-modal:hover { background: var(--tn-surface-2); }
 .modal-body {
     padding: 20px 24px;
     overflow-y: auto;
@@ -938,7 +939,7 @@ const clearAll = () => {
     gap: 16px;
     padding: 16px 24px;
     border-top: 1px solid #e2e8f0;
-    background: #f8fafc;
+    background: var(--tn-bg);
     border-radius: 0 0 14px 14px;
     flex-shrink: 0;
 }
@@ -1021,7 +1022,7 @@ const clearAll = () => {
 .quick-brands::-webkit-scrollbar { height: 0; }
 .brand-pill {
     padding: 8px 14px;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     border-radius: 8px;
     border: 1.5px solid transparent;
     color: #475569;
@@ -1060,7 +1061,7 @@ const clearAll = () => {
 
 .divider {
     height: 1px;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     margin: 16px 0;
 }
 
@@ -1087,7 +1088,7 @@ const clearAll = () => {
 }
 
 .filter-group-header:hover {
-    background: #f8fafc;
+    background: var(--tn-bg);
 }
 
 .arrow-icon {
@@ -1168,7 +1169,7 @@ const clearAll = () => {
 .brand-tag {
     padding: 5px 12px;
     border-radius: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     font-size: 12px;
     font-weight: 500;
     color: #475569;
@@ -1198,7 +1199,7 @@ const clearAll = () => {
 .attr-tag {
     padding: 5px 14px;
     border-radius: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     font-size: 12px;
     font-weight: 600;
     color: #475569;
@@ -1296,7 +1297,7 @@ const clearAll = () => {
     gap: 8px;
     padding: 9px 14px;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     cursor: pointer;
 }
@@ -1360,7 +1361,7 @@ const clearAll = () => {
 }
 
 .img-box {
-    background: #f8fafc;
+    background: var(--tn-bg);
     padding: 14px;
     cursor: pointer;
     overflow: hidden;
@@ -1610,8 +1611,8 @@ const clearAll = () => {
 .empty-state button {
     padding: 10px 20px;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border: 1px solid var(--tn-border);
+    background: var(--tn-bg);
     cursor: pointer;
 }
 
@@ -1628,7 +1629,7 @@ const clearAll = () => {
     width: 36px;
     height: 36px;
     border-radius: 9px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     font-size: 13px;
     font-weight: 500;
@@ -1720,7 +1721,7 @@ const clearAll = () => {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: #fff;
     color: #334155;
     cursor: pointer;
@@ -1742,8 +1743,8 @@ const clearAll = () => {
 }
 
 .specs-box {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-bg);
+    border: 1px solid var(--tn-border);
     border-radius: 8px;
     padding: 10px;
     margin: 12px 0;
@@ -1777,7 +1778,7 @@ const clearAll = () => {
     color: #475569;
     background: #fff;
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     text-decoration: none;
     transition: all 0.2s;
     font-weight: 500;
@@ -1856,7 +1857,7 @@ const clearAll = () => {
 
 .btn-tat-ca {
     padding: 8px 16px;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     border: 1.5px solid transparent;
     border-radius: 8px;
     color: #475569;
@@ -1878,7 +1879,7 @@ const clearAll = () => {
     gap: 6px;
     padding: 8px 14px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     background: white;
     cursor: pointer;
 }

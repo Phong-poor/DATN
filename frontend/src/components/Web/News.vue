@@ -578,6 +578,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ==================== GENERAL CONFIG ==================== */
@@ -655,7 +656,7 @@ onMounted(async () => {
 
 /* ==================== EDITORIAL HEADER ==================== */
 .news-header {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-bottom: 1px solid #e2e8f0;
   padding: 24px 0 0 0;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
@@ -784,7 +785,7 @@ onMounted(async () => {
 .magazine-loader {
   padding: 60px;
   text-align: center;
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 24px;
   border: 1px solid #e6eef6;
   display: flex;
@@ -823,7 +824,7 @@ onMounted(async () => {
 /* ==================== FEATURED HERO STORY ==================== */
 .editorial-hero-showcase {
   border-radius: 28px;
-  background: #ffffff;
+  background: var(--tn-surface);
   overflow: hidden;
   border: 1px solid #e6eef6;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
@@ -841,7 +842,7 @@ onMounted(async () => {
 .hero-media-side {
   position: relative;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 .hero-featured-img {
   width: 100%;
@@ -878,7 +879,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #ffffff;
+  background: var(--tn-surface);
 }
 .hero-meta-row {
   display: flex;
@@ -992,7 +993,7 @@ onMounted(async () => {
 .tech-radar-section {
   padding: 24px;
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid #e6eef6;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
@@ -1019,7 +1020,7 @@ onMounted(async () => {
 .radar-card {
   padding: 20px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border: 1px solid #e6eef6;
   cursor: pointer;
   transition: var(--transition);
@@ -1144,7 +1145,7 @@ onMounted(async () => {
 }
 
 .magazine-card {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 20px;
   border: 1px solid #e6eef6;
   overflow: hidden;
@@ -1273,7 +1274,7 @@ onMounted(async () => {
 .empty-state-card {
   padding: 60px;
   text-align: center;
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 20px;
   border: 1.5px dashed #e6eef6;
   color: #64748b;
@@ -1310,7 +1311,7 @@ onMounted(async () => {
   padding: 10px 18px;
   border-radius: 12px;
   border: 1px solid #e6eef6;
-  background: #ffffff;
+  background: var(--tn-surface);
   cursor: pointer;
   font-family: var(--font-heading);
   font-size: 13px;
@@ -1338,7 +1339,7 @@ onMounted(async () => {
   height: 36px;
   border-radius: 10px;
   border: 1px solid #e6eef6;
-  background: #ffffff;
+  background: var(--tn-surface);
   cursor: pointer;
   font-family: var(--font-heading);
   font-size: 14px;
@@ -1372,7 +1373,7 @@ onMounted(async () => {
 }
 
 .sidebar-magazine-widget {
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 20px;
   padding: 24px;
   border: 1px solid #e6eef6;
@@ -1400,7 +1401,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border-radius: 16px;
   padding: 14px 12px;
   transition: var(--transition);
@@ -1428,7 +1429,7 @@ onMounted(async () => {
   height: 52px;
   border-radius: 8px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border: 1px solid #e6eef6;
   flex-shrink: 0;
 }
@@ -1478,7 +1479,7 @@ onMounted(async () => {
   padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid #e6eef6;
-  background: #f8fafc;
+  background: var(--tn-bg);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1509,7 +1510,7 @@ onMounted(async () => {
   position: relative;
   padding: 30px;
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid rgba(2,6,23,0.06);
   box-shadow: 0 10px 30px rgba(2,6,23,0.06);
   color: var(--text-primary);
@@ -1590,7 +1591,7 @@ onMounted(async () => {
   width: 100%;
   padding: 12px 16px;
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--tn-surface);
   border: 1px solid #e6eef6;
   color: var(--text-primary);
   font-size: 13px;
@@ -1600,7 +1601,7 @@ onMounted(async () => {
 }
 .newsletter-cyber-input:focus {
   border-color: var(--secondary);
-  background: #ffffff;
+  background: var(--tn-surface);
 }
 .newsletter-cyber-input::placeholder {
   color: #94a3b8;
@@ -1709,7 +1710,7 @@ onMounted(async () => {
   color: var(--text-secondary);
   padding: 10px 14px;
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border: 1px solid #e6eef6;
   transition: var(--transition);
 }
