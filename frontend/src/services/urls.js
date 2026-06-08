@@ -88,11 +88,11 @@ export const productImageUrl = (product = {}, variant = null, fallback = imageFa
     variant?.hinhanh,
     variant?.image_url,
     variant?.image,
+    firstGalleryImage,
     product.hinhanh,
     product.image_url,
     product.image,
     product.thumbnail,
-    firstGalleryImage,
   ], fallback)
 }
 

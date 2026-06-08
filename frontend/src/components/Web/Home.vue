@@ -36,7 +36,7 @@ const comboFallbackImage = imageFallbackUrl
 const getComboImage = (combo) => comboImageUrl(combo, comboFallbackImage)
 
 // Highly tailored premium slideshow in professional Vietnamese
-const slides = [
+const defaultSlides = [
     {
         eyebrow: 'PREMIUM LAPTOP STORE 2026',
         title: 'Sức Mạnh Hội Tụ',
@@ -229,6 +229,8 @@ const mapProducts = (rawProducts) => {
 
 const featuredProducts = ref([])
 const featuredAccessories = ref([])
+const allHomeProducts = ref([])
+const bannerSlides = ref([])
 const latestNews = ref([])
 const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800'
 
@@ -236,6 +238,24 @@ const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
     return normalizeImageUrl(path, newsPlaceholderImage)
 }
+
+const mapBannerToSlide = (banner = {}) => ({
+    id: banner.id,
+    eyebrow: banner.eyebrow || 'PREMIUM LAPTOP STORE 2026',
+    title: banner.title || 'Sức Mạnh Hội Tụ',
+    highlight: banner.highlight || banner.subtitle || 'Sự Tinh Tế Chuyên Sâu',
+    desc: banner.description || banner.subtitle || '',
+    img: normalizeImageUrl(banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mobileImg: normalizeImageUrl(banner.mobile_image || banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mediaType: banner.media_type || 'image',
+    mobileMediaType: banner.mobile_media_type || banner.media_type || 'image',
+    link: banner.link_url || '',
+    productId: banner.product_id ? String(banner.product_id) : '',
+    primary: banner.primary_label || 'Mua ngay',
+    secondary: banner.secondary_label || 'Xem bộ sưu tập',
+    productBadge: banner.product_badge || 'TRENDING NOW',
+    productFeature: banner.product_feature || 'RTX 40-Series',
+})
 
 const loadCache = () => {
     try {
@@ -247,6 +267,7 @@ const loadCache = () => {
             if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
             if (parsed.combos) combos.value = parsed.combos
+            if (parsed.bannerSlides) bannerSlides.value = parsed.bannerSlides
         }
     } catch (e) {
         console.error('Lỗi tải cache trang chủ:', e)
@@ -260,7 +281,8 @@ const saveCache = () => {
             featuredAccessories: featuredAccessories.value,
             categories: categories.value,
             latestNews: latestNews.value,
-            combos: combos.value
+            combos: combos.value,
+            bannerSlides: bannerSlides.value
         }))
     } catch (e) {
         console.error('Lỗi lưu cache trang chủ:', e)
@@ -291,17 +313,18 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, spRes, catRes, combosRes] = await Promise.all([
+        const [newsRes, productsBundle, combosRes, bannersRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 4 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
-            api.get('/sanpham').catch(e => { console.error('Sanpham API failed', e); return { data: [] }; }),
-            api.get('/danhmuc').catch(e => { console.error('Danhmuc API failed', e); return { data: { data: [] } }; }),
-            api.get('/combos').catch(e => { console.error('Combos API failed', e); return { data: { data: [] } }; })
+            prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
+            api.get('/combos').catch(e => { console.error('Combos API failed', e); return { data: { data: [] } }; }),
+            api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; })
         ])
 
         latestNews.value = newsRes.data?.data || []
         
-        const rawProducts = Array.isArray(spRes.data) ? spRes.data : (spRes.data?.data || [])
+        const rawProducts = productsBundle?.productsRaw || []
         const allProducts = mapProducts(rawProducts)
+        allHomeProducts.value = allProducts
         
         const laptopsList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
@@ -315,11 +338,13 @@ onMounted(async () => {
         })
         featuredAccessories.value = accessoriesList.slice(0, 10)
         
-        const apiCategories = (catRes.data?.data || catRes.data || []).slice(0, 4)
+        const apiCategories = (productsBundle?.categories || []).slice(0, 4)
         categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
         // Cập nhật combos
         combos.value = combosRes.data?.data || []
+        const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
+        bannerSlides.value = apiBanners.map(mapBannerToSlide)
         saveCache()
         setTimeout(initScrollReveal, 200)
     } catch (error) {
@@ -497,9 +522,25 @@ const flashSaleProducts = computed(() => {
 })
 
 const current = ref(0)
-const activeSlide = computed(() => slides[current.value] || {})
+const slides = computed(() => bannerSlides.value.length ? bannerSlides.value : defaultSlides)
+const activeSlide = computed(() => slides.value[current.value] || slides.value[0] || {})
+const heroProductFallbackImage = '/hero_3d_laptop.png'
+const activeHeroProduct = computed(() => {
+    const products = allHomeProducts.value.length ? allHomeProducts.value : (featuredProducts.value || [])
+    if (!products.length) return null
+    const slideProductId = activeSlide.value?.productId
+    if (slideProductId) {
+        const matched = products.find(product => String(product.id) === String(slideProductId))
+        if (matched) return matched
+    }
+    return products[current.value % products.length]
+})
 
 const handlePrimaryClick = (slide) => {
+    if (slide?.link) {
+        router.push(slide.link)
+        return
+    }
     if (slide.primary === 'Khám phá ngay') {
         window.location.href = 'http://localhost:5174'
     } else {
@@ -508,12 +549,26 @@ const handlePrimaryClick = (slide) => {
 }
 
 const handleSecondaryClick = (slide) => {
-    router.push('/products')
+    router.push(slide?.link || '/products')
+}
+
+const checkoutHeroProduct = (product) => {
+    if (!product?.key_id) {
+        router.push(product?.id ? `/products/${product.id}` : '/products')
+        return
+    }
+    themVaoGioHang(product)
 }
 
 let interval = null
-const nextSlide = () => { current.value = (current.value + 1) % slides.length }
-const prevSlide = () => { current.value = (current.value - 1 + slides.length) % slides.length }
+const nextSlide = () => {
+    const total = slides.value.length || 1
+    current.value = (current.value + 1) % total
+}
+const prevSlide = () => {
+    const total = slides.value.length || 1
+    current.value = (current.value - 1 + total) % total
+}
 const start = () => { stop(); interval = setInterval(nextSlide, 6000) }
 const stop = () => { if (interval) clearInterval(interval) }
 
@@ -573,7 +628,7 @@ onUnmounted(() => {
                                     {{ activeSlide.primary }}
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                                 </button>
-                                <button class="btn btn-premium-glass" @click="router.push('/products')">
+                                <button class="btn btn-premium-glass" @click="handleSecondaryClick(activeSlide)">
                                     {{ activeSlide.secondary }}
                                 </button>
                             </div>
@@ -598,17 +653,54 @@ onUnmounted(() => {
                         <!-- Device Showcase Panel -->
                         <div class="hero-device-wrapper">
                             <div class="glow-orb"></div>
-                            <div class="device-showcase-card">
-                                <img :src="activeSlide.deviceImg || activeSlide.img" :alt="activeSlide.title" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
-                            </div>
-                            <!-- Floating Badges -->
-                            <div class="ambient-card float-top">
-                                <span>Trending Now</span>
-                                <strong>RTX 40-Series</strong>
-                            </div>
-                            <div class="ambient-card float-bottom">
-                                <span>Tản Nhiệt Cao Cấp</span>
-                                <strong>Buồng Hơi Vapor</strong>
+                            <div class="device-showcase-card hero-product-card">
+                                <!-- Top-Right Badge: TRENDING NOW / RTX 40-Series -->
+                                <div class="ambient-card float-top">
+                                    <span>{{ activeSlide.productBadge || 'Trending Now' }}</span>
+                                    <strong>{{ activeSlide.productFeature || 'RTX 40-Series' }}</strong>
+                                </div>
+
+                                <div class="hero-product-visual">
+                                    <img :src="activeHeroProduct?.img || activeSlide.deviceImg || activeSlide.img || heroProductFallbackImage" :alt="activeHeroProduct?.name || activeSlide.title" @error="handleImgError($event, heroProductFallbackImage)" />
+                                </div>
+                                <div class="hero-product-info" v-if="activeHeroProduct">
+                                    <div class="hero-product-copy">
+                                        <span class="hero-product-brand">{{ activeHeroProduct.brandName || activeHeroProduct.category }}</span>
+                                        <strong class="hero-product-title">{{ activeHeroProduct.name }}</strong>
+                                        
+                                        <!-- Row of Specs tags with inline SVG icons -->
+                                        <div class="hero-product-specs">
+                                            <span class="spec-tag" v-for="spec in (activeHeroProduct.specs && activeHeroProduct.specs.length ? activeHeroProduct.specs : [{label: 'CPU', value: 'M5 Pro Chip'}, {label: 'Màn hình', value: '14.2&quot; Liquid Retina XDR'}, {label: 'RAM', value: '18GB Unified Memory'}, {label: 'SSD', value: '512GB SSD'}])" :key="spec.label">
+                                                <svg v-if="spec.label === 'CPU'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" stroke-width="2"></rect><rect x="9" y="9" width="6" height="6" stroke-width="2"></rect><path stroke-linecap="round" d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3" stroke-width="2"></path></svg>
+                                                <svg v-else-if="spec.label === 'Màn hình' || spec.label === 'Screen'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="13" rx="2" stroke-width="2"></rect><path stroke-linecap="round" d="M12 16v5M8 21h8" stroke-width="2"></path></svg>
+                                                <svg v-else-if="spec.label === 'RAM'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9h14M5 15h14M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/></svg>
+                                                <svg v-else class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                                                <span>{{ spec.value }}</span>
+                                            </span>
+                                        </div>
+
+                                        <em class="hero-product-price">{{ activeHeroProduct.priceNum > 0 ? formatPrice(activeHeroProduct.priceNum) : 'Liên hệ' }}</em>
+                                    </div>
+                                    
+                                    <!-- Bottom Row: Fan badge on the left, Checkout button on the right -->
+                                    <div class="hero-product-bottom-row">
+                                        <div class="ambient-card float-bottom">
+                                            <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M5.636 18.364L18.364 5.636" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                            <div class="badge-text">
+                                                <span>Tản Nhiệt Cao Cấp</span>
+                                                <strong>Buồng Hơi Vapor</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="hero-checkout-btn" type="button" @click.stop="checkoutHeroProduct(activeHeroProduct)">
+                                            <span>Thanh toán ngay</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1696,24 +1788,185 @@ onUnmounted(() => {
 .device-showcase-card {
     position: relative;
     z-index: 1;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(37,99,235,0.15);
-    background: #0f1626;
+    border-radius: 28px;
+    overflow: visible;
+    border: 1px solid rgba(34, 211, 238, 0.15);
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(34, 211, 238, 0.06);
+    background: rgba(11, 19, 32, 0.82);
+    backdrop-filter: blur(16px);
     animation: slow-floating 8s ease-in-out infinite;
-    width: min(100%, 520px);
+    width: min(100%, 410px);
 }
-.device-showcase-card img {
-    width: 100%;
-    height: clamp(260px, 31vh, 330px);
-    object-fit: cover;
+
+.hero-product-card {
+    padding: 16px;
+}
+
+.hero-product-visual {
+    position: relative;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 20px;
+    background: rgba(17, 24, 39, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hero-product-visual img {
+    position: relative;
+    z-index: 1;
+    max-width: 85%;
+    max-height: 160px;
+    object-fit: contain;
     display: block;
+    mix-blend-mode: normal;
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.35));
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.device-showcase-card:hover .hero-product-visual img {
+    transform: scale(1.05);
+}
+
+.hero-product-info {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+
+.hero-product-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.hero-product-brand {
+    color: #22d3ee !important;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    display: block;
+    -webkit-text-fill-color: currentColor;
+    text-shadow: none;
+}
+
+.hero-product-title {
+    color: #ffffff !important;
+    font-size: 15px;
+    line-height: 1.3;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    -webkit-text-fill-color: currentColor;
+    text-shadow: none;
+}
+
+.hero-product-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0;
+}
+
+.spec-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.spec-tag .spec-icon {
+    width: 11px;
+    height: 11px;
+    color: #22d3ee;
+    flex-shrink: 0;
+}
+
+.hero-product-price {
+    font-size: 18px;
+    color: #f97316 !important;
+    font-weight: 700;
+    font-style: normal;
+    margin-top: 2px;
+    display: block;
+    -webkit-text-fill-color: currentColor;
+    text-shadow: none;
+}
+
+.hero-checkout-btn {
+    position: relative;
+    min-height: 40px;
+    padding: 0 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-checkout-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.hero-checkout-btn svg {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.2s ease;
+}
+
+.hero-checkout-btn:hover svg {
+    transform: translateX(3px);
+}
+
+.hero-product-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    margin-top: 8px;
+}
+
 @keyframes slow-floating {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-12px); }
 }
+
 .ambient-card {
     position: absolute;
     z-index: 2;
@@ -1725,29 +1978,81 @@ onUnmounted(() => {
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     animation: slow-floating 8s ease-in-out infinite;
 }
-.ambient-card.float-top {
-    top: 20px;
-    right: -12px;
-    animation-delay: 1.5s;
+
+.device-showcase-card .float-top {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    padding: 6px 12px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: none;
 }
-.ambient-card.float-bottom {
-    bottom: 20px;
-    left: -12px;
-    animation-delay: 3s;
-}
-.ambient-card span {
+
+.device-showcase-card .float-top span {
     display: block;
-    font-size: 11px;
-    color: #94A3B8;
+    font-size: 8px;
+    color: #f97316;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 2px;
+    line-height: 1.2;
 }
-.ambient-card strong {
-    font-size: 14px;
+
+.device-showcase-card .float-top strong {
+    display: block;
+    font-size: 11px;
     color: #ffffff;
-    font-weight: 800;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+.hero-product-bottom-row .float-bottom {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    padding: 6px 12px;
+    border-radius: 10px;
+    box-shadow: none;
+    animation: none;
+}
+
+.hero-product-bottom-row .float-bottom .badge-icon {
+    width: 18px;
+    height: 18px;
+    color: #22d3ee;
+    flex-shrink: 0;
+}
+
+.hero-product-bottom-row .float-bottom .badge-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-product-bottom-row .float-bottom .badge-text span {
+    font-size: 8px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+    display: block;
+}
+
+.hero-product-bottom-row .float-bottom .badge-text strong {
+    font-size: 11px;
+    color: #ffffff;
+    font-weight: 700;
+    line-height: 1.2;
+    display: block;
 }
 
 .hero-navigation {
@@ -2980,7 +3285,14 @@ onUnmounted(() => {
     }
     .hero-text-block { max-width: 100%; text-align: center; }
     .hero-badge, .hero-buttons, .hero-trust-indicators { justify-content: center; }
-    .device-showcase-card img { height: 280px; }
+    .device-showcase-card {
+        width: min(100%, 380px);
+    }
+    .hero-product-visual,
+    .hero-product-visual img {
+        height: 200px;
+        min-height: 200px;
+    }
     .magazine-layout-grid {
         grid-template-columns: 1fr;
     }
@@ -3005,7 +3317,35 @@ onUnmounted(() => {
     .hero-viewport { padding: 40px 0 34px; }
     .hero-description { margin-bottom: 20px; }
     .hero-buttons { margin-bottom: 22px; }
-    .device-showcase-card img { height: 240px; }
+    .hero-product-card {
+        padding: 12px;
+    }
+    .hero-product-visual,
+    .hero-product-visual img {
+        height: 160px;
+        min-height: 160px;
+    }
+    .hero-product-info {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        margin: -6px 4px 2px;
+    }
+    .hero-product-bottom-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .hero-product-bottom-row .float-bottom {
+        justify-content: center;
+    }
+    .hero-checkout-btn {
+        width: 100%;
+        transform: none;
+    }
+    .hero-checkout-btn:hover {
+        transform: translateY(-2px);
+    }
     .section-header {
         flex-direction: column;
         align-items: flex-start;

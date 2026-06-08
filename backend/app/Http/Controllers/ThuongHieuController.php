@@ -48,8 +48,6 @@ class ThuongHieuController extends Controller
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Thêm thương hiệu thành công',
-            'data' => $danhmuc,
-            'message' => 'Thêm thương hiệu thành công',
             'data' => $thuonghieu
         ], 201);
     }
@@ -71,14 +69,12 @@ class ThuongHieuController extends Controller
 
         if (!$thuonghieu) {
             return response()->json(['message' => 'Không tìm thấy thương hiệu để sửa'], 404);
-            return response()->json(['message' => 'Không tìm thấy thương hiệu để sửa'], 404);
         }
 
         $validated = $request->validate([
             'ten_thuonghieu' => 'sometimes|required|string|max:255|unique:thuonghieu,ten_thuonghieu,' . $id . ',id_thuonghieu',
             'danh_muc_ids'   => 'nullable|array',
             'danh_muc_ids.*' => 'integer|exists:danhmuc,id_danhmuc',
-            'ten_thuonghieu' => 'sometimes|required|string|max:255|unique:thuonghieu,ten_thuonghieu,' . $id . ',id_thuonghieu',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048'
         ]);
 

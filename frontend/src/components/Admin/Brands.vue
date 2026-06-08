@@ -111,7 +111,6 @@
             <div class="modal-body">
               <div class="form-group">
                 <label class="form-label">Tên thương hiệu <span class="required">*</span></label>
-                <input class="form-input" type="text" v-model="form.ten_thuonghieu" placeholder="VD: Asus, Logitech..." />
                 <input class="form-input" type="text" v-model="form.ten_thuonghieu" placeholder="VD: Asus, HP, Lenovo, Apple..." />
               </div>
               
@@ -308,13 +307,11 @@ const saveBrand = async () => {
   }
 
   try {
-    const payload = {
-      ...form.value,
-      danh_muc_ids: form.value.danh_muc_ids.length > 0 ? form.value.danh_muc_ids : null
-    };
-
     const fd = new FormData();
     fd.append('ten_thuonghieu', form.value.ten_thuonghieu);
+    form.value.danh_muc_ids.forEach((id) => {
+      fd.append('danh_muc_ids[]', String(id));
+    });
     if (logoFile.value) {
       fd.append('logo', logoFile.value);
     }
@@ -322,14 +319,9 @@ const saveBrand = async () => {
     const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
     if (isEdit.value) {
-      await api.put(`/thuonghieu/${editId.value}`, payload);
-      alert('Cập nhật thành công!');
-      fd.append('_method', 'PUT');
       await api.post(`/admin/thuonghieu/${editId.value}`, fd, config);
       swal.success('Thành công', 'Cập nhật thương hiệu thành công!');
     } else {
-      await api.post('/thuonghieu', payload);
-      alert('Thêm mới thành công!');
       await api.post('/admin/thuonghieu', fd, config);
       swal.success('Thành công', 'Thêm mới thương hiệu thành công!');
     }

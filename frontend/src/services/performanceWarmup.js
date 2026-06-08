@@ -24,6 +24,14 @@ const routePreloads = {
     import('@/components/Layout/MainLayout.vue'),
     import('@/components/Web/ProductsPremiumPage.vue'),
   ]),
+  '/gaming': () => Promise.all([
+    import('@/components/Layout/MainLayout.vue'),
+    import('@/components/Web/GamingPage.vue'),
+  ]),
+  '/macbook': () => Promise.all([
+    import('@/components/Layout/MainLayout.vue'),
+    import('@/components/Web/ProductsPremiumPage.vue'),
+  ]),
   '/products/:id': () => import('@/components/Web/ProductDetail.vue'),
   '/cart': () => import('@/components/Web/Cart.vue'),
   '/checkout': () => import('@/components/Web/Checkout.vue'),
@@ -46,6 +54,10 @@ const routePreloads = {
   '/admin/variants': () => import('@/components/Admin/ProductVariants.vue'),
   '/admin/categories': () => import('@/components/Admin/Categories.vue'),
   '/admin/promotions': () => import('@/components/Admin/Promotions.vue'),
+  '/admin/banners': () => import('@/components/Admin/Banners.vue'),
+  '/admin/brands': () => import('@/components/Admin/Brands.vue'),
+  '/admin/contacts': () => import('@/components/Admin/Contact.vue'),
+  '/admin/reviews': () => import('@/components/Admin/ReviewManagement.vue'),
 }
 
 const preloadOnce = (() => {
@@ -74,7 +86,15 @@ const preloadLinkTarget = (event) => {
   const link = event.target?.closest?.('a[href]')
   if (!link) return
   const path = normalizePath(link.getAttribute('href'))
-  if (path) preloadOnce(path)
+  if (!path) return
+  preloadOnce(path)
+  prefetchRouteData(path)
+}
+
+const prefetchRouteData = (path) => {
+  if (['/', '/products', '/gaming', '/macbook', '/workstation', '/products/:id'].includes(path)) {
+    prefetchProductsPage({ forceRefresh: false }).catch(() => {})
+  }
 }
 
 const installLinkPrefetch = () => {
@@ -87,9 +107,9 @@ const warmCoreRoutes = () => {
 
   const user = getUser()
   const isAdmin = Boolean(getToken() && user?.role === 'admin')
-  const webQueue = ['/', '/products', '/news']
+  const webQueue = ['/', '/products', '/gaming', '/macbook', '/news']
   const adminQueue = isAdmin
-    ? ['/admin', '/admin/products', '/admin/orders', '/admin/users', '/admin/variants']
+    ? ['/admin', '/admin/products', '/admin/orders', '/admin/users', '/admin/variants', '/admin/banners', '/admin/brands']
     : []
 
   const queue = [...webQueue, ...adminQueue]
