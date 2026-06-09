@@ -18,9 +18,10 @@ class SanPhamController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = 'sanpham_index_' . md5(json_encode($request->all()));
+        $imageVersion = $this->sanPhamCacheVersion();
+        $cacheKey = 'sanpham_index_' . $imageVersion . '_' . md5(json_encode($request->all()));
         
-        $sanphams = Cache::remember($cacheKey, 120, function () use ($request) {
+        $sanphams = Cache::remember($cacheKey, 600, function () use ($request, $imageVersion) {
             $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
@@ -55,7 +56,7 @@ class SanPhamController extends Controller
             $products = $query->get();
             
             // Map to include thong_so_ky_thuat
-            return $products->map(function ($p) {
+            return $products->map(function ($p) use ($imageVersion) {
                 return [
                     'id_sanpham' => $p->id_sanpham,
                     'tenSP' => $p->tenSP,
@@ -66,6 +67,7 @@ class SanPhamController extends Controller
                     'id_danhmuc' => $p->id_danhmuc,
                     'id_thuonghieu' => $p->id_thuonghieu,
                     'thong_so_ky_thuat' => $p->thong_so_ky_thuat,
+                    'updated_at' => $imageVersion,
                     'danh_muc' => $p->danhMuc,
                     'thuong_hieu' => $p->thuongHieu,
                     'hinh_anhs' => $p->hinhAnhs,
@@ -100,7 +102,8 @@ class SanPhamController extends Controller
     // Trả về danh sách các giá trị thuộc tính có trong DB
     public function mobileHome()
     {
-        $payload = Cache::remember('mobile_home_v2', 120, function () {
+        $imageVersion = $this->sanPhamCacheVersion();
+        $payload = Cache::remember('mobile_home_v2_' . $imageVersion, 120, function () use ($imageVersion) {
             $categories = DanhMuc::query()
                 ->select('id_danhmuc', 'ten_danhmuc', 'trangthai', 'id_danhmuc_cha')
                 ->orderBy('id_danhmuc')
@@ -114,7 +117,7 @@ class SanPhamController extends Controller
                     'hinhanh',
                     'trangthai',
                     'id_danhmuc',
-                    'id_thuonghieu'
+                    'id_thuonghieu',
                 )
                 ->with([
                     'danhMuc:id_danhmuc,ten_danhmuc,trangthai,id_danhmuc_cha',
@@ -147,6 +150,7 @@ class SanPhamController extends Controller
                         'trangthai' => $product->trangthai,
                         'id_danhmuc' => $product->id_danhmuc,
                         'id_thuonghieu' => $product->id_thuonghieu,
+                        'updated_at' => $imageVersion,
                         'thong_so_ky_thuat' => [],
                         'danh_muc' => $product->danhMuc,
                         'thuong_hieu' => $product->thuongHieu,
@@ -202,7 +206,7 @@ class SanPhamController extends Controller
             return response()->json([]);
         }
 
-        $sanphams = Cache::remember('sanpham_search_' . md5($keyword), 120, function () use ($keyword) {
+        $sanphams = Cache::remember('sanpham_search_' . $this->sanPhamCacheVersion() . '_' . md5($keyword), 120, function () use ($keyword) {
             $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
                 ->pluck('id_sanpham')
                 ->toArray();
@@ -210,7 +214,8 @@ class SanPhamController extends Controller
             return SanPham::with([
                 'danhMuc',
                 'thuongHieu',
-                'bienThes'
+                'bienThes',
+                'hinhAnhs'
             ])
             ->where(function ($q) use ($keyword, $idsByBienThe) {
                 $q->where('tenSP', 'LIKE', "%{$keyword}%");
@@ -228,7 +233,7 @@ class SanPhamController extends Controller
 
     public function show($id)
     {
-        $result = Cache::remember("sanpham_show_{$id}", 120, function () use ($id) {
+        $result = Cache::remember("sanpham_show_{$id}", 600, function () use ($id) {
             $sanpham = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
@@ -238,7 +243,7 @@ class SanPhamController extends Controller
 
             if (!$sanpham) return null;
 
-            $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
+            $allThuocTinhs = ThuocTinh::select('id_thuoctinh', 'ten_thuoctinh')->get()->keyBy('ten_thuoctinh');
 
         $result = [
             'id_sanpham'     => $sanpham->id_sanpham,
@@ -250,6 +255,7 @@ class SanPhamController extends Controller
             'id_danhmuc'        => $sanpham->id_danhmuc,
             'id_thuonghieu'     => $sanpham->id_thuonghieu,
             'thong_so_ky_thuat' => $sanpham->thong_so_ky_thuat,
+            'updated_at'        => $this->sanPhamCacheVersion(),
 
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
@@ -375,7 +381,12 @@ class SanPhamController extends Controller
 
         try {
             $sku       = $this->generateUniqueSKU($request->id_thuonghieu);
-            $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+            $coverPath = null;
+            if ($request->filled('hinhanh')) {
+                $coverPath = str_starts_with($request->hinhanh, 'data:image')
+                    ? ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham')
+                    : ImageHelper::normalizePublicPath($request->hinhanh);
+            }
 
             $sanpham = SanPham::create([
                 'id_danhmuc'    => $request->id_danhmuc,
@@ -390,7 +401,10 @@ class SanPhamController extends Controller
 
             if ($request->has('hinh_anhs') && is_array($request->hinh_anhs)) {
                 foreach ($request->hinh_anhs as $index => $ha) {
-                    $imagePath = ImageHelper::saveBase64Image($ha['duongdan'] ?? null, 'uploads/sanpham');
+                    $rawImagePath = $ha['duongdan'] ?? null;
+                    $imagePath = $rawImagePath && str_starts_with($rawImagePath, 'data:image')
+                        ? ImageHelper::saveBase64Image($rawImagePath, 'uploads/sanpham')
+                        : ImageHelper::normalizePublicPath($rawImagePath);
                     if ($imagePath) {
                         BienTheHinhAnh::create([
                             'id_sanpham' => $sanpham->id_sanpham,
@@ -473,14 +487,13 @@ class SanPhamController extends Controller
         try {
             $coverPath = $sanpham->hinhanh;
 
-            if ($request->filled('hinhanh') && str_starts_with($request->hinhanh, 'data:image')) {
-                $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
-            }
-
-            if ($request->filled('hinhanh') && !str_starts_with($request->hinhanh, 'data:image')) {
-                $incoming = $request->hinhanh;
-                if (str_contains($incoming, '/storage/')) {
-                    $coverPath = ltrim(preg_replace('#^.*?/storage/#', '', $incoming), '/');
+            if ($request->has('hinhanh')) {
+                if (blank($request->hinhanh)) {
+                    $coverPath = null;
+                } elseif (str_starts_with($request->hinhanh, 'data:image')) {
+                    $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+                } else {
+                    $coverPath = ImageHelper::normalizePublicPath($request->hinhanh);
                 }
             }
 
@@ -504,9 +517,7 @@ class SanPhamController extends Controller
                     if (str_starts_with($imagePath, 'data:image')) {
                         $imagePath = ImageHelper::saveBase64Image($imagePath, 'uploads/sanpham');
                     } else {
-                        if (str_contains($imagePath, '/storage/')) {
-                            $imagePath = ltrim(preg_replace('#^.*?/storage/#', '', $imagePath), '/');
-                        }
+                        $imagePath = ImageHelper::normalizePublicPath($imagePath);
                     }
 
                     if ($imagePath) {
@@ -618,6 +629,8 @@ class SanPhamController extends Controller
 
     private function clearSanPhamCaches(?int $id = null): void
     {
+        Cache::put('sanpham_cache_bust', (string) microtime(true));
+
         if ($id) {
             Cache::forget("sanpham_show_{$id}");
         }
@@ -626,6 +639,14 @@ class SanPhamController extends Controller
         Cache::forget('sanpham_index_' . md5(json_encode([])));
         Cache::forget('mobile_home_v2');
         Cache::forget('sanpham_attribute_options');
+    }
+
+    private function sanPhamCacheVersion(): string
+    {
+        $cacheBust = Cache::get('sanpham_cache_bust', '0');
+        $count = SanPham::count();
+
+        return md5($cacheBust . '|' . $count);
     }
 
     private function generateUniqueSKU($id_thuonghieu)

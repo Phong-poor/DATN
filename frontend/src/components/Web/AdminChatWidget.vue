@@ -74,9 +74,11 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser, getToken } from '@/services/auth';
+import swal from '@/services/swal';
 import ChatMessageBody from '@/components/Chat/ChatMessageBody.vue';
 import ChatMessageRow from '@/components/Chat/ChatMessageRow.vue';
 import ChatComposer from '@/components/Chat/ChatComposer.vue';
@@ -96,10 +98,19 @@ const chatBody = ref(null);
 const messages = ref([]);
 const conversationId = ref(null);
 const CHAT_SEND_ENDPOINT = '/chat/send';
+const router = useRouter();
 
 const currentUser = ref(getUser());
 const authUserId = computed(() => currentUser.value?.id);
 const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+
+const ensureAuthenticated = () => {
+  currentUser.value = getUser();
+  if (getToken() && currentUser.value) return true;
+  swal.info('Cần đăng nhập', 'Bạn vui lòng đăng nhập để nhắn tin trực tiếp với admin.');
+  router.push('/login');
+  return false;
+};
 
 const refreshCurrentUser = () => {
   currentUser.value = getUser();
@@ -198,6 +209,7 @@ const onComposerSend = async ({ text, items }) => {
 };
 
 const handleOpenAdminChat = () => {
+  if (!ensureAuthenticated()) return;
   isOpen.value = true;
   stopChatTitleNotice();
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: true } }));
@@ -211,6 +223,7 @@ const handleOpenAdminChat = () => {
 };
 
 const handleToggleAdminChat = () => {
+  if (!isOpen.value && !ensureAuthenticated()) return;
   isOpen.value = !isOpen.value;
   if (isOpen.value) stopChatTitleNotice();
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: isOpen.value } }));

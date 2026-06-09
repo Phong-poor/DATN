@@ -87,7 +87,7 @@ class NewsController extends Controller
         if ($request->filled('image') && str_starts_with($request->image, 'data:image')) {
             $imagePath = ImageHelper::saveBase64Image($request->image, 'uploads/news');
         } elseif ($request->filled('image')) {
-            $imagePath = $request->image;
+            $imagePath = ImageHelper::normalizePublicPath($request->image);
         }
 
         $news = News::create([
@@ -133,8 +133,7 @@ class NewsController extends Controller
             } elseif (str_starts_with($request->image, 'data:image')) {
                 $imagePath = ImageHelper::saveBase64Image($request->image, 'uploads/news');
             } else {
-                $imagePath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $request->image), '/');
-                $imagePath = ltrim(str_replace('/storage/', '', $imagePath), '/');
+                $imagePath = ImageHelper::normalizePublicPath($request->image);
             }
         }
 

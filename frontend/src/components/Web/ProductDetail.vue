@@ -3,14 +3,14 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
-import { imageFallbackUrl, normalizeImageUrl, productImageUrl } from '@/services/urls'
-import { findPrefetchedProductById } from '@/services/productsPrefetch'
+import { imageFallbackUrl, normalizeImageUrl, productImageUrl, withImageVersion } from '@/services/urls'
+import { findPrefetchedProductById, prefetchProductsPage } from '@/services/productsPrefetch'
 import ComboSelectionModal from './ComboSelectionModal.vue'
 
 
 
 const route = useRoute()
-const isLoading = ref(true)
+const isLoading = ref(false)
 const router = useRouter()
 
 // ===================== STATE COMBO =====================
@@ -49,6 +49,7 @@ const hienThiThongBao = (type, message) => {
 
 // ===================== STATE SẢN PHẨM =====================
 const product = ref({
+    id_sanpham: route.params.id || null,
     tenSP: 'Đang tải...',
     gia: 0,
     SKU: '',
@@ -106,6 +107,58 @@ const getVariantAttributes = (variant) => {
     return Array.isArray(attr) ? attr : [];
 }
 
+const specLabelForValue = (value = '') => {
+    const text = String(value).toLowerCase()
+    if (text.includes('rtx') || text.includes('gtx') || text.includes('gpu')) return 'GPU'
+    if (text.includes('core') || text.includes('ryzen') || text.includes('intel') || text.includes('amd')) return 'CPU'
+    if (text.includes('ram') || text.includes('gb ram')) return 'RAM'
+    if (text.includes('ssd') || text.includes('tb') || text.includes('storage')) return 'SSD'
+    if (text.includes('hz')) return 'Tần số quét'
+    if (text.includes('oled') || text.includes('ips') || text.includes('inch')) return 'Màn hình'
+    return 'Thông số'
+}
+
+const specsArrayToTechnicalSpecs = (specs = []) => {
+    if (!Array.isArray(specs)) return []
+    return specs
+        .filter(Boolean)
+        .map((value, index) => ({
+            id_thuoctinh: `card-spec-${index}`,
+            ten_thuoctinh: specLabelForValue(value),
+            giatri: String(value),
+        }))
+}
+
+const enrichProductForDetail = (data = {}) => {
+    const cardSpecs = Array.isArray(data.specs) ? data.specs : []
+    const technicalSpecs = Array.isArray(data.thong_so_ky_thuat) && data.thong_so_ky_thuat.length > 0
+        ? data.thong_so_ky_thuat
+        : specsArrayToTechnicalSpecs(cardSpecs)
+    const existingVariants = data.bien_thes || data.bienThes || []
+    const fallbackVariant = {
+        id_bienthe: data.id_bienthe || data.id_sanpham || route.params.id,
+        ten_bienthe: data.variantName || data.tenSP || 'Cấu hình tiêu chuẩn',
+        gia: data.gia || 0,
+        soluong: data.inStock === false ? 0 : 1,
+        hinhanh: data.hinhanh || data.image || '',
+        thuoc_tinh: technicalSpecs.map((spec) => ({
+            id_thuoctinh: spec.id_thuoctinh,
+            ten_thuoctinh: spec.ten_thuoctinh,
+            giatri: spec.giatri,
+        })),
+    }
+    const variants = existingVariants.length > 0 ? existingVariants : (cardSpecs.length > 0 || data.isFallbackProduct ? [fallbackVariant] : [])
+
+    return {
+        ...data,
+        hinhanh: data.hinhanh || data.image || '',
+        hinh_anhs: data.hinh_anhs || data.hinhAnhs || [],
+        hinhAnhs: data.hinhAnhs || data.hinh_anhs || [],
+        thong_so_ky_thuat: technicalSpecs,
+        bienThes: variants,
+    }
+}
+
 const variantGroups = computed(() => {
     const variants = product.value.bienThes || []
     const map = new Map()
@@ -133,6 +186,13 @@ const findMatchingVariant = () => {
     ) || null
 }
 
+const replaceVariantQueryWithoutScroll = (variantId) => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    url.searchParams.set('variant', variantId)
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
 
 const handleSelectOption = (groupName, value) => {
     selectedOptions.value = { ...selectedOptions.value, [groupName]: value }
@@ -142,7 +202,7 @@ const handleSelectOption = (groupName, value) => {
         if (matched.hinhanh) {
             selectedImage.value = getImageUrl(matched.hinhanh)
         }
-        router.replace({ query: { ...route.query, variant: matched.id_bienthe } })
+        replaceVariantQueryWithoutScroll(matched.id_bienthe)
     }
 }
 
@@ -226,15 +286,27 @@ const getSpecValue = (name) => {
 }
 
 const getImageUrl = (path) => {
-    return normalizeImageUrl(path, 'https://via.placeholder.com/600')
+    return withImageVersion(
+        normalizeImageUrl(path, 'https://via.placeholder.com/600'),
+        product.value?.updated_at || product.value?.updatedAt
+    )
 }
 
 const allImages = computed(() => {
     if (!product.value) return []
-    let images = []
-    if (product.value.hinhanh) images.push(getImageUrl(product.value.hinhanh))
+    const images = []
+    const addImage = (path) => {
+        const url = getImageUrl(path)
+        if (url && !images.includes(url)) images.push(url)
+    }
+
+    addImage(product.value.hinhanh || product.value.image_url || product.value.image || product.value.thumbnail)
+
     const listHinhAnh = product.value.hinh_anhs || product.value.hinhAnhs || []
-    listHinhAnh.forEach(img => images.push(getImageUrl(img.duongdan)))
+    listHinhAnh.forEach(img => {
+        addImage(img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+    })
+
     return images.length > 0 ? images : ['https://via.placeholder.com/600']
 })
 
@@ -460,7 +532,7 @@ const loadCache = (productId) => {
         const cached = localStorage.getItem(`predator_product_detail_cache_${productId}`)
         if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed.product) product.value = parsed.product
+            if (parsed.product) product.value = enrichProductForDetail(parsed.product)
             if (parsed.reviews) reviews.value = parsed.reviews
             if (parsed.recentlyViewedProducts) recentlyViewedProducts.value = parsed.recentlyViewedProducts
             if (parsed.relatedProducts) relatedProducts.value = parsed.relatedProducts
@@ -511,13 +583,51 @@ const saveCache = (productId) => {
     }
 }
 
+const applyProductPayload = (data) => {
+    if (!data?.tenSP) return false
+    const enriched = enrichProductForDetail(data)
+    const variants = enriched.bienThes || []
+    product.value = enriched
+
+    if (product.value.tenSP) {
+        window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
+    }
+
+    if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
+
+    if (variants.length > 0) {
+        const variantId = route.query.variant
+        let targetVariant = variants[0]
+
+        if (variantId) {
+            const found = variants.find(v => String(v.id_bienthe) === String(variantId))
+            if (found) targetVariant = found
+        }
+
+        selectedVariant.value = targetVariant
+        const options = {}
+        getVariantAttributes(targetVariant).forEach(attr => {
+            options[attr.ten_thuoctinh] = attr.giatri
+        })
+        selectedOptions.value = options
+
+        if (targetVariant.hinhanh) {
+            selectedImage.value = getImageUrl(targetVariant.hinhanh)
+        }
+    }
+
+    return true
+}
+
 const fetchProductDetail = async () => {
     try {
         const productId = route.params.id || 1
         const response = await api.get(`/sanpham/${productId}`, { skipGlobalLoader: true })
         const data = response.data
-        const variants = data.bien_thes || data.bienThes || []
-        product.value = { ...data, bienThes: variants }
+        applyProductPayload(data)
+        const enriched = enrichProductForDetail(data)
+        const variants = enriched.bienThes || []
+        product.value = enriched
 
         if (product.value && product.value.tenSP) {
             window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
@@ -548,7 +658,9 @@ const fetchProductDetail = async () => {
 
         // Tải sản phẩm tương tự
         if (data.id_danhmuc) {
-            await fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
+            fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
+                .then(() => saveCache(productId))
+                .catch((err) => console.error('Lá»—i khi táº£i sáº£n pháº©m tÆ°Æ¡ng tá»±:', err))
         }
 
         // --- GHI NHẬN LƯỢT XEM SẢN PHẨM ---
@@ -567,8 +679,9 @@ const fetchProductDetail = async () => {
 
 const applyWarmProduct = (data) => {
     if (!data?.tenSP) return false
-    const variants = data.bien_thes || data.bienThes || []
-    product.value = { ...data, bienThes: variants }
+    const enriched = enrichProductForDetail(data)
+    const variants = enriched.bienThes || []
+    product.value = enriched
 
     if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
 
@@ -596,6 +709,36 @@ const applyWarmProduct = (data) => {
     return true
 }
 
+const showInstantDetailShell = (productId) => {
+    product.value = {
+        id_sanpham: productId,
+        tenSP: 'Dang tai san pham...',
+        gia: 0,
+        SKU: '',
+        hinhanh: '',
+        hinhAnhs: [],
+        bienThes: [],
+        thong_so_ky_thuat: [],
+        isPendingDetail: true,
+    }
+    selectedImage.value = 'https://via.placeholder.com/600'
+    selectedVariant.value = null
+    selectedOptions.value = {}
+    isLoading.value = false
+}
+
+const hydrateFromProductsList = async (productId) => {
+    try {
+        const cache = await prefetchProductsPage()
+        const warmProduct = (cache?.productsRaw || []).find((item) => String(item.id_sanpham) === String(productId))
+        if (applyWarmProduct(warmProduct)) {
+            saveCache(productId)
+        }
+    } catch (error) {
+        console.error('Loi tai nhanh san pham tu danh sach:', error)
+    }
+}
+
 const loadPageData = async () => {
     const productId = route.params.id || 1
     // Tải cache ngay lập tức để hiển thị tức thì
@@ -607,23 +750,39 @@ const loadPageData = async () => {
         if (applyWarmProduct(warmProduct)) {
             isLoading.value = false
         } else {
-            isLoading.value = true
+            showInstantDetailShell(productId)
+            hydrateFromProductsList(productId)
         }
     }
 
-    try {
-        await Promise.all([
-            fetchProductDetail(),
+    if (product.value?.isFallbackProduct) {
+        saveCache(productId)
+        isLoading.value = false
+        return
+    }
+
+    fetchProductDetail().then(() => {
+        if (!product.value?.id_sanpham) {
+            product.value = {
+                ...product.value,
+                tenSP: 'Khong tim thay san pham',
+                isNotFound: true,
+            }
+        }
+        saveCache(productId)
+        isLoading.value = false
+
+        Promise.allSettled([
             fetchRecentlyViewed(),
             fetchReviews(),
             fetchProductCombos(productId)
-        ]);
-        saveCache(productId)
-        isLoading.value = false
-    } catch (e) {
+        ]).then(() => {
+            saveCache(productId)
+        })
+    }).catch((e) => {
         console.error('Lỗi khi tải dữ liệu chi tiết sản phẩm:', e)
         isLoading.value = false
-    }
+    })
 }
 
 const showStickyBar = ref(false)
@@ -1212,7 +1371,7 @@ const handleSelectVariantById = (idBienThe) => {
         if (matched.hinhanh) {
             selectedImage.value = getImageUrl(matched.hinhanh)
         }
-        router.replace({ query: { ...route.query, variant: matched.id_bienthe } })
+        replaceVariantQueryWithoutScroll(matched.id_bienthe)
         soLuongMua.value = 1
         hienThiThongBao('success', `✨ Đã chuyển cấu hình: ${matched.ten_bienthe}`)
     }
@@ -1262,7 +1421,7 @@ const handleSelectVariantById = (idBienThe) => {
     <!-- TOP GLOW DECORATOR -->
     <div class="tech-glow-top"></div>
 
-    <div class="page" v-if="!isLoading && product.tenSP">
+    <div class="page">
         <div class="premium-hero-container">
             <div class="container">
                 <!-- Premium Breadcrumbs -->
@@ -1503,7 +1662,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
                                 <div class="option-header-row">
                                     <span class="option-label-title">{{ group.name }}</span>
-                                    <span class="option-selected-value">{{ selectedOptions[group.name] }}</span>
+                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
                                 </div>
 
                                 <!-- Color Dot Custom Buttons -->
@@ -2388,7 +2547,7 @@ const handleSelectVariantById = (idBienThe) => {
     </div>
 
     <!-- MAIN LOADING SCREEN -->
-    <div class="immersive-loader-screen" v-else>
+    <div class="immersive-loader-screen" v-if="false">
         <div class="loader-ripple-glow"></div>
         <div class="loader-content-wrap">
             <span class="loading-spinner"></span>
@@ -3206,34 +3365,53 @@ const handleSelectVariantById = (idBienThe) => {
 
 /* ==================== SELECTORS ==================== */
 .premium-selectors-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin: 14px 0 16px;
 }
 .premium-option-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: minmax(86px, 0.72fr) minmax(0, 1.28fr);
+    align-items: center;
+    gap: 8px 12px;
+    min-height: 52px;
+    padding: 10px 12px;
+    border: 1px solid #dbe5f0;
+    border-radius: 12px;
+    background: #ffffff;
 }
 .option-header-row {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
     font-size: 12px;
     font-weight: 750;
 }
 .option-label-title {
+    overflow: hidden;
+    max-width: 100%;
     color: var(--text-primary);
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .option-selected-value {
     color: var(--primary);
+    font-size: 11px;
     font-weight: 800;
+    line-height: 1.25;
 }
 
 .premium-color-selectors {
     display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
+    min-width: 0;
 }
 .color-selector-btn {
     width: 28px;
@@ -3272,11 +3450,15 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-pill-selectors {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
 }
 .pill-selector-btn {
-    padding: 6px 12px;
-    border-radius: 8px;
+    min-height: 34px;
+    max-width: 100%;
+    padding: 7px 12px;
+    border-radius: 10px;
     background: var(--tn-surface);
     border: 1.5px solid #d6e0ec;
     cursor: pointer;
@@ -3288,9 +3470,14 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
 }
 .pill-text {
+    overflow: hidden;
+    max-width: 100%;
     font-size: 12px;
     font-weight: 700;
     color: #0f172a;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     z-index: 1;
 }
 .active-indicator {
@@ -3312,7 +3499,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .pill-selector-btn.active {
     border-color: var(--primary);
-    box-shadow: 0 2px 8px var(--primary-glow);
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
 }
 .pill-selector-btn.active .pill-text {
     color: white;
@@ -5049,6 +5236,12 @@ const handleSelectVariantById = (idBienThe) => {
     .premium-product-title {
         font-size: 26px;
     }
+    .premium-selectors-wrapper {
+        grid-template-columns: 1fr;
+    }
+    .premium-option-group {
+        grid-template-columns: minmax(82px, 0.7fr) minmax(0, 1.3fr);
+    }
     .grid-2-columns {
         grid-template-columns: 1fr;
         gap: 32px;
@@ -5074,6 +5267,14 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 @media (max-width: 480px) {
+    .premium-option-group {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+    .premium-pill-selectors,
+    .premium-color-selectors {
+        justify-content: flex-start;
+    }
     .machine-info-matrix {
         grid-template-columns: 1fr;
     }

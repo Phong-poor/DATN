@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ImageHelper;
 use App\Models\BienTheHinhAnh;
+use App\Models\SanPham;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BienTheHinhAnhController extends Controller
 {
@@ -51,11 +53,9 @@ class BienTheHinhAnhController extends Controller
             'duongdan.required'   => 'Đường dẫn ảnh không được để trống.',
         ]);
 
-        $imagePath = $request->duongdan;
-
-        if (str_starts_with($request->duongdan, 'data:image')) {
-            $imagePath = ImageHelper::saveBase64Image($request->duongdan, 'uploads/sanpham');
-        }
+        $imagePath = str_starts_with($request->duongdan, 'data:image')
+            ? ImageHelper::saveBase64Image($request->duongdan, 'uploads/sanpham')
+            : ImageHelper::normalizePublicPath($request->duongdan);
 
         if (!$imagePath) {
             return response()->json([
@@ -68,6 +68,8 @@ class BienTheHinhAnhController extends Controller
             'duongdan'   => $imagePath,
             'thutu'      => $request->thutu ?? 0,
         ]);
+
+        $this->touchProductImageCaches((int) $request->id_sanpham);
 
         return response()->json([
             'message' => 'Thêm hình ảnh phụ thành công.',
@@ -91,11 +93,9 @@ class BienTheHinhAnhController extends Controller
             'thutu'      => 'nullable|integer|min:0',
         ]);
 
-        $imagePath = $request->duongdan;
-
-        if (str_starts_with($request->duongdan, 'data:image')) {
-            $imagePath = ImageHelper::saveBase64Image($request->duongdan, 'uploads/sanpham');
-        }
+        $imagePath = str_starts_with($request->duongdan, 'data:image')
+            ? ImageHelper::saveBase64Image($request->duongdan, 'uploads/sanpham')
+            : ImageHelper::normalizePublicPath($request->duongdan);
 
         if (!$imagePath) {
             return response()->json([
@@ -108,6 +108,8 @@ class BienTheHinhAnhController extends Controller
             'duongdan'   => $imagePath,
             'thutu'      => $request->thutu ?? 0,
         ]);
+
+        $this->touchProductImageCaches((int) $request->id_sanpham);
 
         return response()->json([
             'message' => 'Cập nhật hình ảnh phụ thành công.',
@@ -125,10 +127,18 @@ class BienTheHinhAnhController extends Controller
             ], 404);
         }
 
+        $productId = (int) $item->id_sanpham;
         $item->delete();
+        $this->touchProductImageCaches($productId);
 
         return response()->json([
             'message' => 'Xóa hình ảnh phụ thành công.'
         ]);
+    }
+    private function touchProductImageCaches(int $productId): void
+    {
+        Cache::put('sanpham_cache_bust', (string) microtime(true));
+        Cache::forget("sanpham_show_{$productId}");
+        Cache::forget('mobile_home_v2');
     }
 }

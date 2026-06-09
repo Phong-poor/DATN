@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Cpu, Wind, HardDrive, Cpu as MemoryIcon, ChevronRight } from 'lucide-react'
+import { Cpu, Wind, HardDrive, ChevronRight } from 'lucide-react'
 import quantumCoreImg from '../assets/quantum_core.png'
 import pcChassisImg from '../assets/pc_chassis.png'
 import neuralRamImg from '../assets/neural_ram.png'

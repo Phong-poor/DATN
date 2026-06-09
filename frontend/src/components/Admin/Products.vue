@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
 
 const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
@@ -550,6 +551,16 @@ const saveProductsCache = () => {
   }
 }
 
+const invalidateProductCaches = (productId = null) => {
+  try {
+    localStorage.removeItem(PRODUCTS_CACHE_KEY)
+  } catch {
+    // Ignore storage errors.
+  }
+
+  invalidateProductsPrefetchCache(productId)
+}
+
 const fetchProducts = async () => {
   if (isProductsFetching.value) return
   isProductsFetching.value = true
@@ -569,6 +580,7 @@ const fetchProducts = async () => {
         parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
         brand: p.thuong_hieu?.ten_thuonghieu || 'Chưa có thương hiệu',
         totalVariants: variantCount,
+        updated_at: p.updated_at,
         bienThes,
         status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
         img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
@@ -1927,10 +1939,13 @@ const submitForm = async () => {
     }
 
     if (isEditMode.value && editingProductId.value) {
+      invalidateProductCaches(editingProductId.value)
       await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
+      invalidateProductCaches(editingProductId.value)
       swal.success('Thành công', 'Cập nhật sản phẩm thành công')
     } else {
-      await api.post('/admin/sanpham', payload)
+      const response = await api.post('/admin/sanpham', payload)
+      invalidateProductCaches(response.data?.data?.id_sanpham || null)
       swal.success('Thành công', 'Thêm sản phẩm thành công')
     }
 

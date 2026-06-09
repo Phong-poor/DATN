@@ -15,12 +15,64 @@ const showGift = ref(false)
 const availableGifts = ref([])
 
 const combos = ref([])
+const comboCarouselRef = ref(null)
+const comboDragState = ref({
+    active: false,
+    startX: 0,
+    scrollLeft: 0
+})
 const showComboModal = ref(false)
 const selectedCombo = ref(null)
 
 const openCombo = (combo) => {
     selectedCombo.value = combo
     showComboModal.value = true
+}
+
+const scrollComboCarousel = (direction = 1) => {
+    const el = comboCarouselRef.value
+    if (!el) return
+    const firstCard = el.querySelector('.combo-home-card')
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : el.clientWidth * 0.8
+    const gap = 24
+    el.scrollBy({
+        left: direction * (cardWidth + gap),
+        behavior: 'smooth'
+    })
+}
+
+const handleComboWheel = (event) => {
+    const el = comboCarouselRef.value
+    if (!el || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return
+    event.preventDefault()
+    el.scrollBy({
+        left: event.deltaY,
+        behavior: 'smooth'
+    })
+}
+
+const startComboDrag = (event) => {
+    const el = comboCarouselRef.value
+    if (!el) return
+    comboDragState.value = {
+        active: true,
+        startX: event.clientX,
+        scrollLeft: el.scrollLeft
+    }
+    el.setPointerCapture?.(event.pointerId)
+}
+
+const moveComboDrag = (event) => {
+    const el = comboCarouselRef.value
+    if (!el || !comboDragState.value.active) return
+    const delta = event.clientX - comboDragState.value.startX
+    el.scrollLeft = comboDragState.value.scrollLeft - delta
+}
+
+const endComboDrag = (event) => {
+    const el = comboCarouselRef.value
+    comboDragState.value.active = false
+    el?.releasePointerCapture?.(event.pointerId)
 }
 
 const tickerItems = [
@@ -843,7 +895,23 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Có combo thì hiện danh sách -->
-                <div v-if="combos && combos.length" class="combos-grid scroll-reveal reveal-stagger">
+                <div v-if="combos && combos.length" class="combo-carousel-shell scroll-reveal reveal-stagger">
+                    <button class="combo-carousel-btn prev" type="button" aria-label="LÆ°á»›t combo trÆ°á»›c" @click="scrollComboCarousel(-1)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+
+                    <div
+                        ref="comboCarouselRef"
+                        class="combo-carousel-viewport"
+                        :class="{ dragging: comboDragState.active }"
+                        @wheel="handleComboWheel"
+                        @pointerdown="startComboDrag"
+                        @pointermove="moveComboDrag"
+                        @pointerup="endComboDrag"
+                        @pointercancel="endComboDrag"
+                        @pointerleave="endComboDrag"
+                    >
+                        <div class="combos-grid">
                     <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
                         <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
 
@@ -881,6 +949,12 @@ onUnmounted(() => {
                             </div>
                         </div>
                     </article>
+                        </div>
+                    </div>
+
+                    <button class="combo-carousel-btn next" type="button" aria-label="LÆ°á»›t combo tiáº¿p theo" @click="scrollComboCarousel(1)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
                 </div>
 
                 <!-- Không có combo thì vẫn hiện giao diện -->
@@ -1487,7 +1561,15 @@ onUnmounted(() => {
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08) !important;
 }
 .light-card .product-visuals {
+    min-height: 230px;
     background: var(--tn-bg) !important;
+    border-bottom: 1px solid var(--tn-border);
+}
+.light-card .product-main-img {
+    width: calc(100% - 28px);
+    height: calc(100% - 28px);
+    object-fit: cover;
+    border-radius: 14px;
 }
 .light-card .brand-sub {
     color: var(--text-muted-dark) !important;
@@ -1734,9 +1816,9 @@ onUnmounted(() => {
 }
 .gradient-text {
     display: block;
-    background: linear-gradient(135deg, var(--col-highlight) 0%, var(--col-accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #38bdf8;
+    -webkit-text-fill-color: currentColor;
+    text-shadow: 0 8px 26px rgba(56, 189, 248, 0.24);
 }
 .hero-description {
     font-size: 15px;
@@ -1807,25 +1889,29 @@ onUnmounted(() => {
 
 .hero-product-visual {
     position: relative;
-    min-height: 220px;
+    height: 238px;
+    min-height: 238px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border-radius: 20px;
-    background: rgba(17, 24, 39, 0.4);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(248, 250, 252, 0.08), rgba(15, 23, 42, 0.5));
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .hero-product-visual img {
     position: relative;
     z-index: 1;
-    max-width: 85%;
-    max-height: 160px;
-    object-fit: contain;
+    width: calc(100% - 36px);
+    height: calc(100% - 36px);
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    border-radius: 14px;
     display: block;
     mix-blend-mode: normal;
-    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.35));
+    filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.34));
     transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2365,6 +2451,15 @@ onUnmounted(() => {
     width: 80%;
     object-fit: contain;
     transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.premium-product-card.light-card .product-visuals {
+    height: 230px;
+}
+.premium-product-card.light-card .product-main-img {
+    width: calc(100% - 28px);
+    height: calc(100% - 28px);
+    object-fit: cover;
+    border-radius: 14px;
 }
 .premium-product-card:hover .product-main-img {
     transform: scale(1.08);
@@ -3289,10 +3384,13 @@ onUnmounted(() => {
     .device-showcase-card {
         width: min(100%, 380px);
     }
-    .hero-product-visual,
-    .hero-product-visual img {
+    .hero-product-visual {
         height: 200px;
         min-height: 200px;
+    }
+    .hero-product-visual img {
+        width: calc(100% - 28px);
+        height: calc(100% - 28px);
     }
     .magazine-layout-grid {
         grid-template-columns: 1fr;
@@ -3321,10 +3419,13 @@ onUnmounted(() => {
     .hero-product-card {
         padding: 12px;
     }
-    .hero-product-visual,
-    .hero-product-visual img {
+    .hero-product-visual {
         height: 160px;
         min-height: 160px;
+    }
+    .hero-product-visual img {
+        width: calc(100% - 24px);
+        height: calc(100% - 24px);
     }
     .hero-product-info {
         align-items: flex-start;
@@ -3432,11 +3533,74 @@ onUnmounted(() => {
     color: var(--tn-text);
 }
 
-.combos-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
+.combo-carousel-shell {
+    position: relative;
     margin-top: 26px;
+}
+
+.combo-carousel-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    cursor: grab;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 2px 6px;
+}
+
+.combo-carousel-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.combo-carousel-viewport.dragging {
+    cursor: grabbing;
+    scroll-behavior: auto;
+}
+
+.combos-grid {
+    display: flex;
+    gap: 20px;
+    margin: 0;
+    width: max-content;
+    min-width: 100%;
+}
+
+.combo-carousel-btn {
+    position: absolute;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: #1f2937;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 8;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.combo-carousel-btn.prev {
+    left: -22px;
+}
+
+.combo-carousel-btn.next {
+    right: -22px;
+}
+
+.combo-carousel-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.combo-carousel-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
 }
 
 .combo-home-card {
@@ -3449,8 +3613,10 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     flex-direction: column;
-    max-width: none;
-    width: 100%;
+    flex: 0 0 calc((100vw - 300px) / 4);
+    min-width: 280px;
+    max-width: 380px;
+    scroll-snap-align: start;
     margin: 0 auto;
 }
 
@@ -3630,27 +3796,45 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1280px) {
-    .combos-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+    .combo-home-card {
+        flex-basis: calc((100vw - 220px) / 3);
     }
 }
 
 @media (max-width: 1024px) {
-    .combos-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .combo-home-card {
+        flex-basis: calc((100vw - 120px) / 2);
     }
 }
 
 @media (max-width: 768px) {
     .combos-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 14px;
+    }
+
+    .combo-home-card {
+        flex-basis: min(82vw, 360px);
+        min-width: min(82vw, 360px);
+    }
+
+    .combo-carousel-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .combo-carousel-btn.prev {
+        left: -8px;
+    }
+
+    .combo-carousel-btn.next {
+        right: -8px;
     }
 }
 
 @media (max-width: 520px) {
-    .combos-grid {
-        grid-template-columns: 1fr;
+    .combo-home-card {
+        flex-basis: 86vw;
+        min-width: 86vw;
     }
 }
 </style>
