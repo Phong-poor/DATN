@@ -675,6 +675,7 @@ onMounted(loadAll)
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 .affiliate-page {
@@ -1372,7 +1373,7 @@ onMounted(loadAll)
   box-sizing: border-box !important;
   border-radius: 12px !important;
   border: 1px solid #cbd5e1 !important;
-  background: #ffffff !important;
+  background: var(--tn-surface) !important;
   font-size: 14px !important;
   color: #e2e8f0 !important;
   outline: none !important;
@@ -1399,7 +1400,7 @@ onMounted(loadAll)
   color: #1d4ed8;
 }
 .generated-copy-box {
-  background: #ffffff !important;
+  background: var(--tn-surface) !important;
 }
 .generated-input {
   color: #1d4ed8 !important;

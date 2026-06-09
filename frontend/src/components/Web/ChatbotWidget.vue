@@ -265,6 +265,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 .chatbot-container {
   position: fixed;
   bottom: 28px;

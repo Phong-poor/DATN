@@ -1278,6 +1278,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
 /* ─── ENTERPRISE HYBRID "DARK STORYTELLING & WHITE BODY" DESIGN SYSTEM ─── */
 
 .premium-theme {
@@ -1319,7 +1320,7 @@ onUnmounted(() => {
 
 /* ─── FLASH SALE LIGHT CONVERSION ─── */
 .flashsale-section {
-    background: #ffffff !important;
+    background: var(--tn-surface) !important;
     border-top: 1px solid var(--tn-border);
     border-bottom: 1px solid var(--tn-border);
 }
@@ -1345,7 +1346,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #ffffff;
+    background: var(--tn-surface);
     padding: 8px 16px;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
@@ -1358,7 +1359,7 @@ onUnmounted(() => {
     font-family: monospace !important;
     min-width: 2.2ch;
     text-align: center;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     padding: 4px 8px;
     border-radius: 6px;
     border: 1px solid var(--tn-border);
@@ -1384,7 +1385,7 @@ onUnmounted(() => {
 @media (max-width: 600px)  { .flash-cyber-grid { grid-template-columns: 1fr; } }
 
 .flash-cyber-card {
-    background: #ffffff;
+    background: var(--tn-surface);
     border-radius: 16px;
     border: 1px solid var(--tn-border);
     overflow: hidden;
@@ -1403,7 +1404,7 @@ onUnmounted(() => {
 /* Image Box — crisp white square container */
 .flash-img-box {
     position: relative;
-    background: #f8fafc;
+    background: var(--tn-bg);
     border-radius: 12px;
     margin: 14px 14px 0;
     aspect-ratio: 1 / 1;
@@ -1532,7 +1533,7 @@ onUnmounted(() => {
     height: 38px;
     min-width: 38px;
     border-radius: 10px;
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     border: 1px solid var(--tn-border);
     color: var(--tn-text);
     display: flex;
@@ -1561,8 +1562,8 @@ onUnmounted(() => {
 }
 .light-card .product-visuals {
     min-height: 230px;
-    background: #f8fafc !important;
-    border-bottom: 1px solid #edf2f7;
+    background: var(--tn-bg) !important;
+    border-bottom: 1px solid var(--tn-border);
 }
 .light-card .product-main-img {
     width: calc(100% - 28px);
@@ -1580,8 +1581,8 @@ onUnmounted(() => {
     color: var(--accent-blue) !important;
 }
 .light-card .spec-p-badge {
-    background: #f1f5f9 !important;
-    border: 1px solid #e2e8f0 !important;
+    background: var(--tn-surface-2) !important;
+    border: 1px solid var(--tn-border) !important;
 }
 .light-card .spec-lbl {
     color: var(--text-muted-dark) !important;
@@ -1678,7 +1679,7 @@ onUnmounted(() => {
 
 /* ─── TICKER PROMO (Always Premium Dark Luxury themed) ─── */
 .ticker-bar {
-    background: #ffffff;
+    background: var(--tn-surface);
     border-bottom: 1px solid #e2e8f0;
     padding: 6px 0;
     overflow: hidden;
@@ -2235,14 +2236,14 @@ onUnmounted(() => {
     margin-bottom: 56px;
 }
 .section-header.center {
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;
+    text-align: left;
 }
 .label-wrapper {
     max-width: 680px;
 }
 .label-wrapper.center {
-    margin: 0 auto;
+    margin: 0;
 }
 .ambient-label {
     display: inline-flex;
@@ -2393,7 +2394,7 @@ onUnmounted(() => {
     margin-bottom: 48px;
 }
 .tab-pill {
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid #cbd5e1;
     color: var(--text-muted-dark);
     padding: 10px 22px;
@@ -2795,10 +2796,10 @@ onUnmounted(() => {
 }
 .value-feature-card {
     position: relative;
-    background: #ffffff;
+    background: var(--tn-surface);
     padding: 32px 24px;
     border-radius: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     text-align: center;
     overflow: hidden;
     transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
@@ -2915,10 +2916,10 @@ onUnmounted(() => {
 }
 .magazine-main-article {
     position: relative;
-    background: #ffffff;
+    background: var(--tn-surface);
     border-radius: 24px;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     transition: all 0.3s;
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
     height: 100%;
@@ -3014,11 +3015,11 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 18px;
-    background: #ffffff;
+    background: var(--tn-surface);
     min-height: 0;
     padding: 16px 18px;
     border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     overflow: hidden;
     transition: all 0.3s;
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
@@ -3095,7 +3096,7 @@ onUnmounted(() => {
     gap: 24px;
 }
 .editorial-review-card {
-    background: #ffffff;
+    background: var(--tn-surface);
     padding: 36px 32px;
     border-radius: 24px;
     border: 1px solid var(--tn-border);
@@ -3603,7 +3604,7 @@ onUnmounted(() => {
 }
 
 .combo-home-card {
-    background: #ffffff;
+    background: var(--tn-surface);
     border-radius: 16px;
     overflow: hidden;
     border: 1px solid var(--tn-border);
@@ -3706,7 +3707,7 @@ onUnmounted(() => {
 }
 
 .bundle-items {
-    background: #f8fafc;
+    background: var(--tn-bg);
     border: 1px solid var(--tn-border);
     border-radius: 10px;
     padding: 9px 12px;

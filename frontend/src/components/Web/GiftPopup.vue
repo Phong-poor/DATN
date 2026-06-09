@@ -285,6 +285,7 @@ export default {
 </script>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
 *,

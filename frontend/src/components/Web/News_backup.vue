@@ -335,11 +335,12 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+
 /* ========== BASE ========== */
 * { box-sizing: border-box; }
 
 .news-page {
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   min-height: 100vh;
 }
 
@@ -410,7 +411,7 @@ onMounted(async () => {
 .state-box {
   background: white;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   padding: 28px;
   text-align: center;
   color: #64748b;
@@ -445,7 +446,7 @@ onMounted(async () => {
   background: white;
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   text-decoration: none;
   margin-bottom: 16px;
   transition: box-shadow 0.25s, transform 0.25s;
@@ -460,7 +461,7 @@ onMounted(async () => {
   position: relative;
   height: 240px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 
 .hero-img img {
@@ -539,7 +540,7 @@ onMounted(async () => {
   background: white;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   text-decoration: none;
   display: flex;
   flex-direction: column;
@@ -556,7 +557,7 @@ onMounted(async () => {
   position: relative;
   height: 150px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 
 .card-thumb img {
@@ -614,7 +615,7 @@ onMounted(async () => {
   height: 38px;
   padding: 0 6px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
   background: white;
   font-size: 14px;
   font-weight: 600;
@@ -628,7 +629,7 @@ onMounted(async () => {
 .pg-btn:hover:not(:disabled) {
   border-color: #2563eb;
   color: #2563eb;
-  background-color: #f8fafc;
+  background: var(--tn-bg);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
@@ -643,7 +644,7 @@ onMounted(async () => {
 .pg-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #f1f5f9;
+  background: var(--tn-surface-2);
   border-color: #e2e8f0;
   box-shadow: none;
   transform: none;
@@ -670,7 +671,7 @@ onMounted(async () => {
   background: white;
   border-radius: 14px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
 }
 
 .widget-title {
@@ -702,8 +703,8 @@ onMounted(async () => {
 
 .pop-thumb {
   width: 48px; height: 48px; border-radius: 8px;
-  overflow: hidden; background: #f8fafc; flex-shrink: 0;
-  border: 1px solid #e2e8f0;
+  overflow: hidden; background: var(--tn-bg); flex-shrink: 0;
+  border: 1px solid var(--tn-border);
 }
 
 .pop-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -721,7 +722,7 @@ onMounted(async () => {
 .cat-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .cat-tags button {
-  background: #f1f5f9; border: 1px solid #e2e8f0;
+  background: var(--tn-surface-2); border: 1px solid var(--tn-border);
   border-radius: 8px; color: #475569;
   font-size: 11px; font-weight: 600; padding: 5px 10px;
   cursor: pointer; transition: all 0.2s; font-family: inherit;

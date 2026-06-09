@@ -846,6 +846,7 @@ const confirmOrder = async () => {
 </template>
 
 <style scoped>
+
 .checkout-page {
   background: #f5f7fb;
   min-height: 100vh;
@@ -960,7 +961,7 @@ textarea {
   height: 42px !important;
   padding: 0 14px !important;
   border: 1px solid #d1d5db !important;
-  background: #f8fafc !important;
+  background: var(--tn-bg) !important;
   border-radius: 10px !important;
   font-size: 13px !important;
   color: #1e293b !important;
@@ -973,7 +974,7 @@ textarea {
 .checkout-input:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
-  background: #ffffff !important;
+  background: var(--tn-surface) !important;
 }
 
 .checkout-textarea {
@@ -981,7 +982,7 @@ textarea {
   height: 84px !important;
   padding: 12px 14px !important;
   border: 1px solid #d1d5db !important;
-  background: #f8fafc !important;
+  background: var(--tn-bg) !important;
   border-radius: 10px !important;
   font-size: 13px !important;
   color: #1e293b !important;
@@ -995,7 +996,7 @@ textarea {
 .checkout-textarea:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
-  background: #ffffff !important;
+  background: var(--tn-surface) !important;
 }
 
 .address-list {
@@ -1307,7 +1308,7 @@ textarea {
   gap: 12px;
   padding: 12px;
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--tn-bg);
   border: 1px solid #d1d5db;
   cursor: pointer;
 }
@@ -1510,7 +1511,7 @@ textarea {
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid #f1f5f9;
-  background: #f8fafc;
+  background: var(--tn-bg);
 }
 
 .checkout-child-item img {

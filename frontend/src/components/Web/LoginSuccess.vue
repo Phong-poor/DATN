@@ -90,6 +90,7 @@ const fetchUser = async (token) => {
 </template>
 
 <style scoped>
+
 .login-success-container {
   display: flex;
   align-items: center;

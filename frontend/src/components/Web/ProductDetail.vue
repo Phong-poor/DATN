@@ -93,13 +93,19 @@ const formatDate = (dateStr) => {
 
 
 // ===================== HELPERS BIẾN THỂ =====================
-const getVariantAttributes = (variant) =>
-    variant?.thuoc_tinh || variant?.attributes ||
-    (variant?.thuoc_tinh_json
-        ? (typeof variant.thuoc_tinh_json === 'string'
-            ? JSON.parse(variant.thuoc_tinh_json)
-            : variant.thuoc_tinh_json)
-        : [])
+const getVariantAttributes = (variant) => {
+    let attr = variant?.thuoc_tinh || variant?.attributes;
+    if (!attr && variant?.thuoc_tinh_json) {
+        try {
+            attr = typeof variant.thuoc_tinh_json === 'string' 
+                ? JSON.parse(variant.thuoc_tinh_json) 
+                : variant.thuoc_tinh_json;
+        } catch (e) {
+            attr = [];
+        }
+    }
+    return Array.isArray(attr) ? attr : [];
+}
 
 const specLabelForValue = (value = '') => {
     const text = String(value).toLowerCase()
@@ -2553,6 +2559,7 @@ const handleSelectVariantById = (idBienThe) => {
 </template>
 
 <style scoped>
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
@@ -2590,7 +2597,7 @@ const handleSelectVariantById = (idBienThe) => {
     height: 48px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--tn-border);
 }
 
 .sticky-meta {
@@ -2632,7 +2639,7 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
     border-radius: 12px;
     color: #2563EB;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid #dbeafe;
     overflow: visible;
 }
@@ -2650,8 +2657,8 @@ const handleSelectVariantById = (idBienThe) => {
 
 /* Benefits Box */
 .product-benefits-box {
-    background: #f8fafc;
-    border: 1px solid #E2E8F0;
+    background: var(--tn-bg);
+    border: 1px solid var(--tn-border);
     border-radius: 12px;
     padding: 14px 18px;
     margin: 14px 0;
@@ -2698,8 +2705,8 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #ffffff;
-    border: 1px solid #E2E8F0;
+    background: var(--tn-surface);
+    border: 1px solid var(--tn-border);
     border-radius: 10px;
     padding: 8px 12px;
 }
@@ -2749,8 +2756,8 @@ const handleSelectVariantById = (idBienThe) => {
     gap: 10px;
     padding: 10px 22px;
     border-radius: 14px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border: 1px solid var(--tn-border);
+    background: var(--tn-bg);
     color: #64748B;
     font-weight: 700;
     font-size: 13.5px;
@@ -2780,8 +2787,8 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .spec-detail-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface);
+    border: 1px solid var(--tn-border);
     border-left: 4px solid #2563eb; /* Premium blue accent line */
     border-radius: 16px;
     padding: 20px 24px;
@@ -2817,7 +2824,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* Benchmark system styling */
 .premium-benchmark-section {
     padding: 80px 0;
-    background: #ffffff;
+    background: var(--tn-surface);
     border-top: 1px solid #E2E8F0;
     border-bottom: 1px solid #E2E8F0;
 }
@@ -2836,8 +2843,8 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .benchmark-progress-card {
-    background: #f8fafc;
-    border: 1px solid #E2E8F0;
+    background: var(--tn-bg);
+    border: 1px solid var(--tn-border);
     border-radius: 16px;
     padding: 24px;
 }
@@ -2913,7 +2920,7 @@ const handleSelectVariantById = (idBienThe) => {
     --font-body: 'Inter', sans-serif;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    background-color: #ffffff;
+    background: var(--tn-surface);
     color: var(--text-primary);
     font-family: var(--font-body);
     overflow-x: clip;
@@ -3040,7 +3047,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: relative;
     aspect-ratio: 4/3;
     border-radius: 28px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid rgba(15, 23, 42, 0.08);
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06), inset 0 2px 4px rgba(255,255,255,0.8);
     display: flex;
@@ -3176,7 +3183,7 @@ const handleSelectVariantById = (idBienThe) => {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid #cbd5e1;
     color: var(--text-secondary);
     display: flex;
@@ -3203,7 +3210,7 @@ const handleSelectVariantById = (idBienThe) => {
     width: 72px;
     height: 72px;
     border-radius: 16px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 2px solid transparent;
     cursor: pointer;
     padding: 6px;
@@ -3278,7 +3285,7 @@ const handleSelectVariantById = (idBienThe) => {
     margin-bottom: 16px;
     width: fit-content;
     padding: 3px 10px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border-radius: 30px;
     border: 1px solid rgba(15, 23, 42, 0.08);
 }
@@ -3344,7 +3351,7 @@ const handleSelectVariantById = (idBienThe) => {
     gap: 8px;
     padding: 10px 16px;
     border-radius: 14px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid rgba(15, 23, 42, 0.08);
 }
 .signal-icon {
@@ -3452,7 +3459,7 @@ const handleSelectVariantById = (idBienThe) => {
     max-width: 100%;
     padding: 7px 12px;
     border-radius: 10px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1.5px solid #d6e0ec;
     cursor: pointer;
     position: relative;
@@ -3556,7 +3563,7 @@ const handleSelectVariantById = (idBienThe) => {
     border-radius: 10px;
     overflow: hidden;
     width: fit-content;
-    background: #ffffff;
+    background: var(--tn-surface);
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 .stepper-btn {
@@ -3665,8 +3672,8 @@ const handleSelectVariantById = (idBienThe) => {
     flex: 1;
     height: 36px;
     border-radius: 8px;
-    border: 1px solid #E2E8F0;
-    background: #f8fafc;
+    border: 1px solid var(--tn-border);
+    background: var(--tn-bg);
     font-size: 12px;
     font-weight: 800;
     color: #475569;
@@ -3686,7 +3693,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== SPECIFICATIONS SECTION ==================== */
 .premium-specs-section {
     padding: 80px 0;
-    background: #f8fafc;
+    background: var(--tn-bg);
     border-top: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;
 }
@@ -3725,8 +3732,8 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .specs-table-panel {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface);
+    border: 1px solid var(--tn-border);
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
     overflow: hidden;
@@ -3738,7 +3745,7 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: space-between;
     gap: 20px;
     padding: 18px 24px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border-bottom: 1px solid #e2e8f0;
 }
 
@@ -3755,8 +3762,8 @@ const handleSelectVariantById = (idBienThe) => {
     gap: 4px;
     padding: 3px;
     border-radius: 8px;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface-2);
+    border: 1px solid var(--tn-border);
     flex-shrink: 0;
 }
 
@@ -3778,14 +3785,14 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .specs-mode-btn.active {
-    background: #ffffff;
+    background: var(--tn-surface);
     color: var(--primary);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .tabbed-specs-layout {
     padding: 24px;
-    background: #ffffff;
+    background: var(--tn-surface);
 }
 
 .specs-columns-grid {
@@ -3793,8 +3800,8 @@ const handleSelectVariantById = (idBienThe) => {
     grid-template-columns: repeat(3, 1fr);
     gap: 0;
     border-radius: 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-bg);
+    border: 1px solid var(--tn-border);
     overflow: hidden;
 }
 
@@ -3900,13 +3907,13 @@ const handleSelectVariantById = (idBienThe) => {
     display: grid;
     grid-template-columns: 280px 1fr;
     min-height: 400px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border-top: 1px solid #e2e8f0;
 }
 
 .inline-compare-filter {
     padding: 16px;
-    background: #f8fafc;
+    background: var(--tn-bg);
     border-right: 1px solid #e2e8f0;
 }
 
@@ -3944,8 +3951,8 @@ const handleSelectVariantById = (idBienThe) => {
     align-items: center;
     padding: 8px;
     border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface);
+    border: 1px solid var(--tn-border);
     cursor: pointer;
     transition: var(--transition);
 }
@@ -4006,7 +4013,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .inline-compare-table th {
-    background: #f8fafc;
+    background: var(--tn-bg);
     color: #0f172a;
     font-family: var(--font-heading);
     font-size: 11px;
@@ -4028,7 +4035,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .inline-compare-table tr:nth-child(even) td {
-    background: #f8fafc;
+    background: var(--tn-bg);
 }
 
 .inline-compare-table tr:last-child td {
@@ -4079,7 +4086,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: relative;
     padding: 24px;
     border-radius: 20px;
-    background: #f8fafc;
+    background: var(--tn-bg);
     border: 1px solid #e6eef6;
     overflow: hidden;
     transition: var(--transition);
@@ -4097,7 +4104,7 @@ const handleSelectVariantById = (idBienThe) => {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--tn-surface);
     color: var(--primary);
     display: flex;
     align-items: center;
@@ -4137,7 +4144,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== PRODUCT HIGHLIGHTS ==================== */
 .premium-highlights-section {
     padding: 80px 0;
-    background: #ffffff;
+    background: var(--tn-surface);
 }
 
 .highlights-grid {
@@ -4147,7 +4154,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .highlight-item-card {
     border-radius: 24px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid #e6eef6;
     padding: 30px;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
@@ -4642,8 +4649,8 @@ const handleSelectVariantById = (idBienThe) => {
 
 .premium-product-card {
     border-radius: 20px;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: var(--tn-surface-2);
+    border: 1px solid var(--tn-border);
     padding: 16px;
     cursor: pointer;
     position: relative;
@@ -4680,7 +4687,7 @@ const handleSelectVariantById = (idBienThe) => {
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
-    background: #f8fafc;
+    background: var(--tn-bg);
 }
 .card-main-image {
     max-width: 90%;
@@ -4794,7 +4801,7 @@ const handleSelectVariantById = (idBienThe) => {
     padding: 8px 16px;
     border-radius: 10px;
     border: 1px solid #94a3b8;
-    background: #ffffff;
+    background: var(--tn-surface);
     cursor: pointer;
     font-size: 12.5px;
     font-weight: 800;
@@ -4822,7 +4829,7 @@ const handleSelectVariantById = (idBienThe) => {
     height: 34px;
     border-radius: 8px;
     border: 1px solid #cbd5e1;
-    background: #ffffff;
+    background: var(--tn-surface);
     cursor: pointer;
     font-family: var(--font-heading);
     font-size: 13px;
@@ -5173,7 +5180,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: relative;
     border-radius: 24px;
     padding: 40px;
-    background: #ffffff;
+    background: var(--tn-surface);
     border: 1px solid rgba(15, 23, 42, 0.06);
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
@@ -5480,7 +5487,7 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--tn-border);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     gap: 16px;
 }
@@ -5529,7 +5536,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .btn-view-combo {
-    background: #f1f5f9;
+    background: var(--tn-surface-2);
     color: #475569;
     border: 1px solid #cbd5e1;
     border-radius: 8px;

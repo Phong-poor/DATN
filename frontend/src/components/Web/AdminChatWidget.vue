@@ -269,6 +269,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 .admin-chat-container {
   position: fixed;
   bottom: 0px; 
@@ -283,7 +284,7 @@ onUnmounted(() => {
   right: 0;
   width: 350px;
   height: 500px;
-  background: #ffffff;
+  background: var(--tn-surface);
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(26, 39, 68, 0.18);
   display: flex;
@@ -383,7 +384,7 @@ onUnmounted(() => {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: #f8fafc;
+  background: var(--tn-bg);
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -426,7 +427,7 @@ onUnmounted(() => {
   background: white;
   color: #1e293b;
   border-bottom-left-radius: 4px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tn-border);
 }
 
 </style>

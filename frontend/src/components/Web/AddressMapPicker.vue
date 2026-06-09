@@ -257,6 +257,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+
 .map-picker-backdrop { position:fixed; inset:0; z-index:9030; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; }
 .map-picker-inline { width:100%; border: 1px solid rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; background: #111f35; }
 .map-picker-modal { width:min(760px,100%); background: #111f35; border-radius:18px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.28); }
@@ -310,7 +311,7 @@ onBeforeUnmount(() => {
   transition: all 0.2s;
 }
 .map-view-button:hover {
-  background: #f8fafc;
+  background: var(--tn-bg);
   border-color: #94a3b8;
 }
 .inline-body { position: relative; }

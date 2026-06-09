@@ -38,6 +38,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 .zalo-widget {
   position: fixed;
   right: 92px;
@@ -144,7 +145,7 @@ onUnmounted(() => {
 }
 
 :global(.swal2-cancel) {
-  background: #f1f5f9 !important;
+  background: var(--tn-surface-2) !important;
   color: #475569 !important;
 }
 

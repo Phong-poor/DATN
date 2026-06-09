@@ -35,7 +35,12 @@ function getColor(status) {
         confirmed: '#34d399',
         shipping: '#60a5fa',
         done: '#2563eb',
-        cancelled: '#f87171'
+        cancelled: '#f87171',
+        refund_pending: '#a855f7',
+        refund_pickup: '#fb923c',
+        refund_delivering: '#06b6d4',
+        refund_received: '#10b981',
+        refunded: '#ec4899'
     }[status] || '#ccc'
 }
 const isOpenPeriodDropdown = ref(false)
@@ -120,11 +125,23 @@ const stats = computed(() => {
 const cx = 60, cy = 60, r = 46
 const circumference = 2 * Math.PI * r
 
-const segments = computed(() => {
+const REFUND_STATUSES = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+
+const normalStatusesData = computed(() => {
     if (!data.value?.trang_thai) return []
-    const total = data.value.trang_thai.reduce((s, d) => s + d.count, 0) || 1
+    return data.value.trang_thai.filter(t => !REFUND_STATUSES.includes(t.status))
+})
+
+const refundStatusesData = computed(() => {
+    if (!data.value?.trang_thai) return []
+    return data.value.trang_thai.filter(t => REFUND_STATUSES.includes(t.status))
+})
+
+const normalSegments = computed(() => {
+    const list = normalStatusesData.value
+    const total = list.reduce((s, d) => s + d.count, 0) || 1
     let offset = 0
-    return data.value.trang_thai.map(d => {
+    return list.map(d => {
         const dash = (d.count / total) * circumference
         const gap = circumference - dash
         const seg = { ...d, dash, gap, offset, color: getColor(d.status) }
@@ -133,12 +150,44 @@ const segments = computed(() => {
     })
 })
 
-const centerStat = computed(() => {
-    const statusToShow = hoveredStatus.value || 'done'
-    const found = data.value?.trang_thai?.find(t => t.status === statusToShow)
+const refundSegments = computed(() => {
+    const list = refundStatusesData.value
+    const total = list.reduce((s, d) => s + d.count, 0) || 1
+    let offset = 0
+    return list.map(d => {
+        const dash = (d.count / total) * circumference
+        const gap = circumference - dash
+        const seg = { ...d, dash, gap, offset, color: getColor(d.status) }
+        offset += dash
+        return seg
+    })
+})
+
+const normalCenterStat = computed(() => {
+    const statusToShow = (hoveredStatus.value && !REFUND_STATUSES.includes(hoveredStatus.value)) 
+        ? hoveredStatus.value 
+        : 'done'
+    const found = normalStatusesData.value.find(t => t.status === statusToShow)
+    const list = normalStatusesData.value
+    const total = list.reduce((s, d) => s + d.count, 0) || 0
+    const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
     return {
-        pct: found?.pct ?? 0,
-        label: found?.label?.toUpperCase() ?? 'THÀNH CÔNG'
+        pct,
+        label: found?.label?.toUpperCase() ?? 'HOÀN THÀNH'
+    }
+})
+
+const refundCenterStat = computed(() => {
+    const statusToShow = (hoveredStatus.value && REFUND_STATUSES.includes(hoveredStatus.value)) 
+        ? hoveredStatus.value 
+        : 'refunded'
+    const found = refundStatusesData.value.find(t => t.status === statusToShow)
+    const list = refundStatusesData.value
+    const total = list.reduce((s, d) => s + d.count, 0) || 0
+    const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
+    return {
+        pct,
+        label: found?.label?.toUpperCase() ?? 'ĐÃ HOÀN TIỀN'
     }
 })
 
@@ -532,31 +581,63 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                 </div>
 
-                <!-- DONUT CHART -->
-                <div class="card donut-card">
-                    <div class="chart-title" style="margin-bottom:16px">Trạng thái đơn hàng</div>
-                    <div class="donut-wrap">
-                        <svg viewBox="0 0 120 120" class="donut-svg">
-                            <circle cx="60" cy="60" r="46" fill="none" stroke="#f1f5f9" stroke-width="14" />
-                            <circle v-for="seg in segments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
-                                :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
-                                :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
-                                @mouseenter="hoveredStatus = seg.status"
-                                @mouseleave="hoveredStatus = null"
-                                style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
-                                :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
-                            <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
-                                {{ centerStat.pct }}%
-                            </text>
-                            <text x="60" y="70" text-anchor="middle" font-size="7" fill="#94a3b8" font-weight="700">
-                                {{ centerStat.label }}
-                            </text>
-                        </svg>
+                <!-- RIGHT COLUMN -->
+                <div class="right-col">
+                    <!-- DONUT CHART 1: Trạng thái đơn hàng -->
+                    <div class="card donut-card">
+                        <div class="chart-title" style="margin-bottom: 10px;">Trạng thái đơn hàng</div>
+                        <div class="donut-wrap">
+                            <svg viewBox="0 0 120 120" class="donut-svg">
+                                <circle cx="60" cy="60" r="46" fill="none" stroke="#f1f5f9" stroke-width="14" />
+                                <circle v-for="seg in normalSegments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
+                                    :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
+                                    :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
+                                    @mouseenter="hoveredStatus = seg.status"
+                                    @mouseleave="hoveredStatus = null"
+                                    style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
+                                    :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
+                                <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
+                                    {{ normalCenterStat.pct }}%
+                                </text>
+                                <text x="60" y="70" text-anchor="middle" font-size="7" fill="#94a3b8" font-weight="700">
+                                    {{ normalCenterStat.label }}
+                                </text>
+                            </svg>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="legend-item" v-for="d in normalStatusesData" :key="d.status">
+                                <span class="legend-dot" :style="{ background: getColor(d.status) }"></span>
+                                <span>{{ d.label }} ({{ d.count }})</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="donut-legend">
-                        <div class="legend-item" v-for="d in data.trang_thai" :key="d.status">
-                            <span class="legend-dot" :style="{ background: getColor(d.status) }"></span>
-                            <span>{{ d.label }} ({{ d.count }})</span>
+
+                    <!-- DONUT CHART 2: Trạng thái hoàn trả -->
+                    <div class="card donut-card">
+                        <div class="chart-title" style="margin-bottom: 10px;">Trạng thái hoàn trả</div>
+                        <div class="donut-wrap">
+                            <svg viewBox="0 0 120 120" class="donut-svg">
+                                <circle cx="60" cy="60" r="46" fill="none" stroke="#f1f5f9" stroke-width="14" />
+                                <circle v-for="seg in refundSegments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
+                                    :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
+                                    :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
+                                    @mouseenter="hoveredStatus = seg.status"
+                                    @mouseleave="hoveredStatus = null"
+                                    style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
+                                    :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
+                                <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
+                                    {{ refundCenterStat.pct }}%
+                                </text>
+                                <text x="60" y="70" text-anchor="middle" font-size="7" fill="#94a3b8" font-weight="700">
+                                    {{ refundCenterStat.label }}
+                                </text>
+                            </svg>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="legend-item" v-for="d in refundStatusesData" :key="d.status">
+                                <span class="legend-dot" :style="{ background: getColor(d.status) }"></span>
+                                <span>{{ d.label }} ({{ d.count }})</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -871,6 +952,13 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     padding: 0 28px 16px;
 }
 
+.right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
 .card {
     background: white;
     border-radius: 14px;
@@ -984,7 +1072,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .revenue-svg {
     width: 100%;
-    height: 262px;
+    height: 360px;
 }
 
 .revenue-grid {
@@ -1081,17 +1169,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .donut-card {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+}
+
+.right-col .donut-card {
+    flex: 1;
 }
 
 .donut-wrap {
     display: flex;
     justify-content: center;
-    margin-bottom: 14px;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
 .donut-svg {
-    width: 130px;
-    height: 130px;
+    width: 110px !important;
+    height: 110px !important;
+    flex-shrink: 0;
 }
 
 .donut-legend {
