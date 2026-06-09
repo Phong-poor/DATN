@@ -96,19 +96,20 @@
             <th>LOẠI ƯU ĐÃI</th>
             <th>BẮT ĐẦU</th>
             <th>KẾT THÚC</th>
+            <th>HÌNH THỨC</th>
             <th>TRẠNG THÁI</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="7" class="empty-row">
+            <td colspan="8" class="empty-row">
               <div class="loading-spinner"></div>
               Đang tải...
             </td>
           </tr>
           <tr v-else-if="filteredPromos.length === 0">
-            <td colspan="7" class="empty-row">Không tìm thấy chương trình nào.</td>
+            <td colspan="8" class="empty-row">Không tìm thấy chương trình nào.</td>
           </tr>
           <tr v-else v-for="p in filteredPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
             <td class="select-col">
@@ -130,6 +131,11 @@
             </td>
             <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.startDate || '—') }}</td>
             <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.endDate || '—') }}</td>
+            <td>
+              <span :class="['status-badge', p.is_public == 1 ? 'status-running' : 'status-open']">
+                {{ p.is_public == 1 ? 'Công khai' : 'Có điều kiện' }}
+              </span>
+            </td>
             <td>
               <span :class="['status-badge', statusClass(p.status)]">
                 {{ statusLabel(p.status) }}
@@ -199,10 +205,7 @@
     </div>
 
     </template><!-- end list view -->
-
-    <!-- ══════════════════════════════════════════════════════
-         VIEW: FORM KHUYẾN MÃI (Thêm / Sửa)
-    ══════════════════════════════════════════════════════ -->
+    
     <template v-if="currentView === 'promo-form'">
       <!-- Inline form header -->
       <div class="inline-form-header">
@@ -254,14 +257,56 @@
           <div class="form-group">
             <label class="form-label">Giá trị <span class="req">*</span></label>
             <div class="input-suffix-wrap">
-              <input class="form-input" :class="{ err: errors.value }" v-model.number="form.value" type="number" min="0" placeholder="50" />
+              <input class="form-input" :class="{ err: errors.value }" 
+                type="text" 
+                :value="form.type === 'percent' || form.type === 'maxprice' ? form.value : formatVND(form.value)"
+                @input="form.value = (form.type === 'percent' || form.type === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
+                placeholder="50" />
               <span class="input-suffix">{{ form.type === 'percent' || form.type === 'maxprice' ? '%' : 'VNĐ' }}</span>
             </div>
             <p class="err-msg" v-if="errors.value">{{ errors.value }}</p>
           </div>
         </div>
 
-        <!-- Điều kiện đơn hàng -->
+        <!-- Hình thức hiển thị / phát hành -->
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="radio" :value="1" v-model="form.is_public" />
+                Công khai (Hiện trên web)
+              </label>
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="radio" :value="0" v-model="form.is_public" />
+                Tặng khi đủ điều kiện
+              </label>
+            </div>
+            <p class="form-hint">Tặng có điều kiện sẽ tự động tặng cho khách khi đặt hàng thành công.</p>
+          </div>
+        </div>
+
+        <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;" v-if="form.is_public === 0">
+          <div class="form-group">
+            <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
+            <div class="input-suffix-wrap">
+              <input class="form-input" 
+                type="text" 
+                :value="formatVND(form.dieu_kien_tang)" 
+                @input="form.dieu_kien_tang = parseVND($event.target.value)" 
+                placeholder="VD: 1.000.000" />
+              <span class="input-suffix">đ</span>
+            </div>
+            <p class="form-hint">Tổng tiền phải thanh toán của đơn hàng (sau giảm giá) đạt mức này sẽ được tặng voucher.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Giới hạn số lượng phát</label>
+            <input class="form-input" v-model.number="form.so_luong_phat" type="number" min="1" placeholder="Để trống = Không giới hạn" />
+            <p class="form-hint">Tổng số lượng khách được tặng mã này.</p>
+          </div>
+        </div>
+
+        <!-- Điều kiện đơn hàng (để sử dụng voucher) -->
         <div class="form-row condition-row" :class="{ 'freeship-row': form.category === 'freeship' }" v-if="form.category === 'product' || form.category === 'freeship'">
           <div class="form-group" v-if="form.category === 'product'">
             <label class="form-label">
@@ -287,9 +332,10 @@
               <input
                 class="form-input condition-input"
                 :class="{ err: errors.dieu_kien, 'freeship-input': form.category === 'freeship' }"
-                v-model.number="form.dieu_kien"
-                type="number" min="0"
-                :placeholder="form.category === 'freeship' ? 'VD: 30000000' : 'VD: 500000'"
+                type="text"
+                :value="formatVND(form.dieu_kien)"
+                @input="form.dieu_kien = parseVND($event.target.value)"
+                :placeholder="form.category === 'freeship' ? 'VD: 300.000' : 'VD: 500.000'"
               />
               <span class="input-suffix">đ</span>
             </div>
@@ -398,6 +444,7 @@ const defaultForm = () => ({
   startDate: '', endDate: '', status: 'running',
   mota: '', icon: '🏮', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
+  is_public: 1, dieu_kien_tang: '', so_luong_phat: ''
 })
 
 const form = ref(defaultForm())
@@ -408,8 +455,8 @@ const promos = ref([])
 const fetchPromos = async () => {
   loading.value = true
   try {
-    // GET /promotions là public — không cần token
-    const res = await api.get('/promotions')
+    // GET /admin/promotions
+    const res = await api.get('/admin/promotions')
     promos.value = res.data.map(p => ({
       ...p,
       startDate: formatDate(p.start_date),
@@ -542,6 +589,18 @@ function formatDate(d) {
   return `${dd}/${mm}/${yyyy}`
 }
 
+function formatVND(val) {
+  if (!val && val !== 0) return '';
+  const numStr = String(val).replace(/\D/g, '');
+  if (!numStr) return '';
+  return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+}
+
+function parseVND(val) {
+  if (!val) return '';
+  return Number(String(val).replace(/\D/g, ''));
+}
+
 // ================= VALIDATE =================
 function validate() {
   errors.value = {}
@@ -580,6 +639,9 @@ function openEdit(p) {
     endDate: toInputDate(p.endDate),
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
+    is_public: p.is_public !== undefined ? Number(p.is_public) : 1,
+    dieu_kien_tang: p.dieu_kien_tang || '',
+    so_luong_phat: p.so_luong_phat || ''
   }
   errors.value = {}
   currentView.value = 'promo-form'
@@ -608,6 +670,9 @@ async function savePromo() {
     mota:           form.value.mota,
     loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
     dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
+    is_public:      form.value.is_public,
+    dieu_kien_tang: form.value.is_public === 0 ? (form.value.dieu_kien_tang || null) : null,
+    so_luong_phat:  form.value.is_public === 0 ? (form.value.so_luong_phat || null) : null,
   }
 
   try {

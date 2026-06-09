@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
 import { normalizeImageUrl } from '@/services/urls'
+import { getToken } from '@/services/auth'
 
 
 // ===================== STATE =====================
@@ -268,8 +269,19 @@ const allPromos = ref([])
 
 const fetchPromotions = async () => {
     try {
-        const res = await api.get('/promotions')
-        allPromos.value = res.data
+        const token = getToken()
+        if (token) {
+            // Lấy danh sách voucher người dùng đang sở hữu
+            const res = await api.get('/user/vouchers')
+            // res.data.vouchers chứa danh sách { id, promotion: { ... } }
+            if (res.data && res.data.vouchers) {
+                allPromos.value = res.data.vouchers.map(v => v.promotion).filter(Boolean)
+            }
+        } else {
+            // Nếu là guest thì lấy danh sách public
+            const res = await api.get('/promotions')
+            allPromos.value = res.data
+        }
     } catch (err) {
         console.error('Lỗi tải khuyến mãi:', err)
     }
@@ -1465,7 +1477,7 @@ onMounted(() => {
   font-size: 12.5px;
   font-weight: 500;
   color: var(--text-1);
-  background: #0d1b2e;
+  background: #fff;
   cursor: pointer;
   outline: none;
   transition: var(--tr);
@@ -1476,7 +1488,7 @@ onMounted(() => {
   background-size: 16px;
   padding-right: 32px;
 }
-.coupon-select:focus { border-color: var(--primary); background-color: #111f35; box-shadow: 0 0 0 3px var(--primary-glow); }
+.coupon-select:focus { border-color: var(--primary); background-color: #fafafa; box-shadow: 0 0 0 3px var(--primary-glow); }
 .coupon-select.green { border-color: #86efac; background-color: #f0fdf4; color: #166534; }
 .coupon-select.green:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1540,7 +1552,7 @@ onMounted(() => {
   letter-spacing: 0.5px;
   border: 1.5px solid var(--border);
   color: var(--text-2);
-  background: #0d1b2e;
+  background: #fff;
 }
 .pay-method.visa   { border-color: #1a1f71; color: #1a1f71; }
 .pay-method.mc     { border-color: #eb001b; color: #eb001b; }
@@ -1559,7 +1571,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: #0d1b2e;
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
   font-size: 11px;

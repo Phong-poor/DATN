@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { productImageUrl } from '@/services/urls'
+import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import {
   Tag,
@@ -266,6 +267,9 @@ const allVouchers = computed(() => {
   }
 
   return list.filter(v => {
+    // 0. Ẩn voucher nhận có điều kiện (is_public = 0)
+    if (v.is_public === 0 || v.is_public === '0' || v.is_public === false) return false
+
     // 1. Tuyệt đối không hiện voucher sinh nhật
     if (v.category === 'birthday') return false
 
@@ -273,7 +277,7 @@ const allVouchers = computed(() => {
     if (!isVoucherValid(v) || !isVoucherStarted(v)) return false
 
     // 3. Nếu user chưa đăng nhập → hiện tất cả voucher còn hạn
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) return true
 
     // 4. Nếu user đã đăng nhập:
@@ -366,7 +370,7 @@ const startTimers = () => {
 // ===================== INTERACTIVE ACTIONS =====================
 // Fetch user's already-owned vouchers
 async function fetchUserVouchers() {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) return
   isLoadingUserVouchers.value = true
   try {
@@ -392,7 +396,7 @@ async function fetchUserVouchers() {
 
 // Claim (nhận) a voucher
 const claimVoucher = async (v) => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) {
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để nhận voucher!')
     router.push('/login')
@@ -403,7 +407,7 @@ const claimVoucher = async (v) => {
   try {
     await api.post('/user/vouchers/claim', { id_promotion: v.id })
     claimedVoucherId.value = v.id
-    swal.toastSuccess(`Đã lưu voucher "${v.name}" vào hồ sơ của bạn!`)
+    swal.success('Chúc mừng!', 'Chúc mừng nhận voucher thành công, đã lưu vô thông tin cá nhân!')
     await fetchUserVouchers()
     setTimeout(() => {
       if (claimedVoucherId.value === v.id) claimedVoucherId.value = null
@@ -417,7 +421,7 @@ const claimVoucher = async (v) => {
 }
 
 const addToCart = async (product) => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) {
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
     router.push('/login')
