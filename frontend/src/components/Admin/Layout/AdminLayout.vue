@@ -215,6 +215,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
 import AdminChatManager from '@/components/Admin/Layout/AdminChatManager.vue'
 import { storageUrl } from '@/services/urls'
+import { getLocale, setLocale as setAppLocale } from '@/services/i18n'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import {
@@ -251,7 +252,7 @@ const langMenuRef = ref(null)
 const appsMenuRef = ref(null)
 const notifyMenuRef = ref(null)
 
-const currentLocale = ref(localStorage.getItem('admin-locale') || 'vi')
+const currentLocale = ref(getLocale())
 const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
 
 const appearance = ref({
@@ -424,8 +425,7 @@ function toggleNotifyMenu() {
 
 function setLocale(locale) {
   currentLocale.value = locale
-  localStorage.setItem('admin-locale', locale)
-  document.documentElement.lang = locale
+  setAppLocale(locale)
   langMenuOpen.value = false
 }
 

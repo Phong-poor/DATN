@@ -72,6 +72,15 @@ export const firstImageUrl = (values = [], fallback = imageFallbackUrl) => {
   return normalizeImageUrl(found, fallback)
 }
 
+export const withImageVersion = (url, version) => {
+  if (!url || !version || url.startsWith('data:') || url.startsWith('blob:')) return url
+  const [withoutHash, hash = ''] = String(url).split('#')
+  const [base, query = ''] = withoutHash.split('?')
+  const params = new URLSearchParams(query)
+  params.set('v', version)
+  return `${base}?${params.toString()}${hash ? `#${hash}` : ''}`
+}
+
 export const productImageUrl = (product = {}, variant = null, fallback = imageFallbackUrl) => {
   const gallery = product.hinh_anhs || product.hinhAnhs || []
   const firstGallery = Array.isArray(gallery)
@@ -84,16 +93,18 @@ export const productImageUrl = (product = {}, variant = null, fallback = imageFa
     || firstGallery?.image
     || ''
 
-  return firstImageUrl([
+  const url = firstImageUrl([
     variant?.hinhanh,
     variant?.image_url,
     variant?.image,
-    firstGalleryImage,
     product.hinhanh,
     product.image_url,
     product.image,
     product.thumbnail,
+    firstGalleryImage,
   ], fallback)
+
+  return withImageVersion(url, product.updated_at || product.updatedAt || variant?.updated_at || variant?.updatedAt)
 }
 
 export const comboImageUrl = (combo = {}, fallback = imageFallbackUrl) => {
@@ -102,7 +113,7 @@ export const comboImageUrl = (combo = {}, fallback = imageFallbackUrl) => {
     product?.hinhanh || product?.image_url || product?.image || product?.thumbnail
   )
 
-  return firstImageUrl([
+  const url = firstImageUrl([
     combo.hinhanh,
     combo.image_url,
     combo.image,
@@ -112,6 +123,8 @@ export const comboImageUrl = (combo = {}, fallback = imageFallbackUrl) => {
     productWithImage?.image,
     productWithImage?.thumbnail,
   ], fallback)
+
+  return withImageVersion(url, combo.updated_at || combo.updatedAt || productWithImage?.updated_at || productWithImage?.updatedAt)
 }
 
 export const handleImageFallback = (event, fallback = imageFallbackUrl) => {

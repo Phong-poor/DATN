@@ -15,6 +15,11 @@ const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
 const inFlightGetRequests = new Map()
 
+export const clearApiGetCache = () => {
+  getCache.clear()
+  inFlightGetRequests.clear()
+}
+
 const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
 const shouldCacheGet = (config = {}) => config.method?.toLowerCase?.() === 'get' && config.cache !== false
 
@@ -32,8 +37,7 @@ const getCacheKey = (url, config = {}) => {
 api.interceptors.request.use((config) => {
   const method = config.method?.toLowerCase?.()
   if (method && method !== 'get') {
-    getCache.clear()
-    inFlightGetRequests.clear()
+    clearApiGetCache()
   }
 
   if (shouldShowGlobalLoader(config)) {

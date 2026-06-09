@@ -8,8 +8,8 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { editProfile as edit } from '@/lib/settingsRoutes';
 import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
