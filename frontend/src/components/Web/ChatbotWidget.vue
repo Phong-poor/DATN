@@ -1,5 +1,5 @@
 <template>
-  <div :class="['chatbot-container', supportPanelOpen ? 'support-open' : '']">
+  <div class="chatbot-container">
     <!-- Bubble Button hidden, handled by FloatingContactMenu -->
     <div v-if="false" class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
       @keydown.enter.prevent="toggleChat" @keydown.space.prevent="toggleChat"
@@ -7,11 +7,6 @@
       <i v-if="!isOpen && !isAdminOpen" class="chat-icon">💬</i>
       <i v-else class="close-icon">❌</i>
 
-
-      <!-- small support action inside bubble -->
-      <button class="bubble-support-action" type="button" @click.stop="dispatchToggleSupport" aria-label="Hỗ trợ">
-        ✨
-      </button>
     </div>
 
     <!-- Chat Window -->
@@ -92,6 +87,8 @@ import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { productImageUrl, storageUrl } from '@/services/urls';
+import { getToken } from '@/services/auth';
+import swal from '@/services/swal';
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -162,13 +159,14 @@ const toggleChat = () => {
 };
 
 const switchToAdmin = () => {
+  if (!getToken()) {
+    swal.info('Cần đăng nhập', 'Bạn vui lòng đăng nhập để nhắn tin trực tiếp với admin.')
+    router.push('/login')
+    return
+  }
   isOpen.value = false; // Close AI Chat
   currentChatMode.value = 'admin';
   window.dispatchEvent(new CustomEvent('open-admin-chat')); // Trigger Admin Chat
-};
-
-const dispatchToggleSupport = () => {
-  window.dispatchEvent(new CustomEvent('toggle-support'));
 };
 
 const formatMessage = (text) => {
@@ -257,21 +255,13 @@ onMounted(() => {
   window.addEventListener('open-chatbot', handleOpenChatEvent);
   window.addEventListener('open-admin-chat', handleOpenAdminChatEvent);
   window.addEventListener('admin-chat-state', handleAdminStateEvent);
-  window.addEventListener('support-opened', handleSupportOpenedEvent);
 });
 
 onUnmounted(() => {
   window.removeEventListener('open-chatbot', handleOpenChatEvent);
   window.removeEventListener('open-admin-chat', handleOpenAdminChatEvent);
   window.removeEventListener('admin-chat-state', handleAdminStateEvent);
-  window.removeEventListener('support-opened', handleSupportOpenedEvent);
 });
-
-// shift bubble when support panel opens to avoid overlap
-const supportPanelOpen = ref(false);
-const handleSupportOpenedEvent = (e) => {
-  supportPanelOpen.value = !!(e && e.detail && e.detail.open);
-};
 </script>
 
 <style scoped>
@@ -281,11 +271,6 @@ const handleSupportOpenedEvent = (e) => {
   right: 24px;
   z-index: 9999;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.chatbot-container.support-open {
-  right: 150px;
-  transition: right 0.18s ease;
 }
 
 /* ===== BUBBLE BUTTON ===== */
@@ -324,28 +309,6 @@ const handleSupportOpenedEvent = (e) => {
   background: rgba(37, 99, 235, 0.18);
   z-index: -1;
   animation: pulse 2.8s infinite;
-}
-
-.bubble-support-action {
-  position: absolute;
-  left: 5px;
-  bottom: 5px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,0.16);
-  color: white;
-  border: none;
-  font-size: 10px;
-  cursor: pointer;
-  opacity: 0.88;
-}
-
-.bubble-support-action:hover {
-  background: rgba(255,255,255,0.18);
 }
 
 @keyframes pulse {
@@ -401,10 +364,6 @@ const handleSupportOpenedEvent = (e) => {
   .chatbot-container {
     right: 18px;
     bottom: 20px;
-  }
-
-  .chatbot-container.support-open {
-    right: 18px;
   }
 
   .chatbot-bubble {

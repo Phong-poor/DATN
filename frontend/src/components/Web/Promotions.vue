@@ -30,7 +30,8 @@ import {
   Monitor,
   Star,
   AlertCircle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Percent
 } from 'lucide-vue-next'
 
 const router = useRouter()

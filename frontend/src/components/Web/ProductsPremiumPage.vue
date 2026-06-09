@@ -2169,17 +2169,29 @@ p {
 
 .flash-card-image-box {
   width: 100%;
-  height: 108px;
+  height: 132px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border-bottom: 1px solid #edf2f7;
+  overflow: hidden;
 }
 
 .flash-card-image-box img {
-  max-width: 84%;
-  max-height: 84%;
-  object-fit: contain;
+  width: calc(100% - 18px);
+  height: calc(100% - 18px);
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 10px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flash-sale-grid-slider:not(.dragging) .flash-sale-card:hover .flash-card-image-box img {
+  transform: scale(1.05);
 }
 
 .flash-card-content {
@@ -2392,9 +2404,9 @@ p {
 }
 
 .interactive-image-viewer {
-  background: #0b121f;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 16px;
+  background: #08111f;
+  border: 1px solid rgba(96, 165, 250, 0.16);
+  border-radius: 18px;
   height: 320px;
   display: flex;
   align-items: center;
@@ -2429,9 +2441,18 @@ p {
 .viewer-arrow.next { right: 12px; }
 
 .angle-display-image {
-  max-width: 85%;
-  max-height: 85%;
-  object-fit: contain;
+  width: calc(100% - 72px);
+  height: calc(100% - 52px);
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.42);
+  transition: transform 0.35s ease;
+}
+
+.interactive-image-viewer:hover .angle-display-image {
+  transform: scale(1.025);
 }
 
 .angle-selectors-row {
@@ -3104,21 +3125,30 @@ p {
 /* Perfect White Square Container for image */
 .card-media-box {
   width: 100%;
-  aspect-ratio: 1 / 0.78;
-  background: #ffffff; /* Solid White square */
-  border-radius: 8px;
+  aspect-ratio: 1 / 0.72;
+  background: #f8fafc;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #edf2f7;
+  box-shadow: none;
 }
 
 .card-media-box img {
-  max-width: 86%;
-  max-height: 82%;
-  object-fit: contain;
+  width: calc(100% - 18px);
+  height: calc(100% - 18px);
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 10px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-product-card:hover .card-media-box img {
+  transform: scale(1.05);
 }
 
 /* Hover overlay on image container */

@@ -156,7 +156,10 @@
             :key="prod.id_sanpham" 
             class="gaming-product-card scroll-reveal"
             :class="'stagger-' + (idx % 5)"
-            @click="viewDetail(prod.id_sanpham)"
+            @click="viewDetail(prod)"
+            @pointerenter="warmProductDetail(prod)"
+            @focusin="warmProductDetail(prod)"
+            @touchstart.passive="warmProductDetail(prod)"
           >
             <!-- Badge giảm giá góc trên trái -->
             <div class="product-badge" :class="getBadgeClass(prod)">
@@ -175,7 +178,7 @@
             
             <!-- Hình ảnh nền trắng sạch -->
             <div class="product-image-wrapper">
-              <img :src="prod.image" :alt="prod.tenSP" loading="lazy" class="product-img" />
+              <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
             </div>
 
             <!-- Tên sản phẩm -->
@@ -328,7 +331,10 @@
               :key="prod.id_sanpham" 
               class="gaming-product-card accessory-slide-card scroll-reveal"
               :class="'stagger-' + (idx % 4)"
-              @click="viewDetail(prod.id_sanpham)"
+              @click="viewDetail(prod)"
+              @pointerenter="warmProductDetail(prod)"
+              @focusin="warmProductDetail(prod)"
+              @touchstart.passive="warmProductDetail(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">
                 {{ getBadgeText(prod) }}
@@ -341,7 +347,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" class="product-img" />
+                <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -383,7 +389,10 @@
               :key="prod.id_sanpham" 
               class="gaming-product-card scroll-reveal"
               :class="'stagger-' + (idx % 4)"
-              @click="viewDetail(prod.id_sanpham)"
+              @click="viewDetail(prod)"
+              @pointerenter="warmProductDetail(prod)"
+              @focusin="warmProductDetail(prod)"
+              @touchstart.passive="warmProductDetail(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -394,7 +403,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" class="product-img" />
+                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -436,7 +445,10 @@
               :key="prod.id_sanpham" 
               class="gaming-product-card scroll-reveal"
               :class="'stagger-' + (idx % 4)"
-              @click="viewDetail(prod.id_sanpham)"
+              @click="viewDetail(prod)"
+              @pointerenter="warmProductDetail(prod)"
+              @focusin="warmProductDetail(prod)"
+              @touchstart.passive="warmProductDetail(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -447,7 +459,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" class="product-img" />
+                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -489,7 +501,10 @@
               :key="prod.id_sanpham" 
               class="gaming-product-card scroll-reveal"
               :class="'stagger-' + (idx % 4)"
-              @click="viewDetail(prod.id_sanpham)"
+              @click="viewDetail(prod)"
+              @pointerenter="warmProductDetail(prod)"
+              @focusin="warmProductDetail(prod)"
+              @touchstart.passive="warmProductDetail(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -500,7 +515,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" class="product-img" />
+                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -584,7 +599,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { prefetchProductsPage, prefetchProductDetail, preloadProductDetailPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
 import { productImageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 import {
@@ -629,6 +644,7 @@ const itemsPerPage = 20
 
 const localWishlistIds = ref([])
 const accessorySliderRef = ref(null)
+const warmedDetailIds = new Set()
 
 const consultant = ref({
   name: '',
@@ -915,6 +931,11 @@ const isGaming = (p) => {
          name.includes('stealth')
 }
 
+const normalizeFallbackProducts = () => fallbackProducts.map((product) => ({
+  ...product,
+  isFallbackProduct: true,
+}))
+
 // Load products
 const loadData = async () => {
   isLoading.value = true
@@ -961,9 +982,16 @@ const loadData = async () => {
 
       return {
         id_sanpham: p.id_sanpham,
+        id_danhmuc: p.id_danhmuc,
+        id_thuonghieu: p.id_thuonghieu,
         id_bienthe: premiumVariant?.id_bienthe,
         variantName: premiumVariant?.ten_bienthe,
         tenSP: p.tenSP,
+        hinhanh: p.hinhanh,
+        hinh_anhs: p.hinh_anhs || p.hinhAnhs || [],
+        bien_thes: variants,
+        danh_muc: p.danh_muc || p.danhMuc || null,
+        thuong_hieu: p.thuong_hieu || p.thuongHieu || null,
         brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'Khác',
         category: 'Laptop Gaming',
         gia: giaSP,
@@ -980,11 +1008,13 @@ const loadData = async () => {
     })
 
     const existingIds = new Set(mapped.map(m => m.id_sanpham))
-    const uniqueFallbacks = fallbackProducts.filter(fb => !existingIds.has(fb.id_sanpham))
+    const uniqueFallbacks = normalizeFallbackProducts().filter(fb => !existingIds.has(fb.id_sanpham))
     products.value = [...mapped, ...uniqueFallbacks]
+    preloadProductDetailPage().catch(() => {})
   } catch (err) {
     console.error('Lỗi khi tải sản phẩm:', err)
-    products.value = [...fallbackProducts]
+    products.value = normalizeFallbackProducts()
+    preloadProductDetailPage().catch(() => {})
   } finally {
     isLoading.value = false
   }
@@ -1161,8 +1191,32 @@ const getBadgeClass = (product) => {
   return 'badge-flash-sale'
 }
 
-const viewDetail = (id) => {
-  router.push(`/products/${id}`)
+const warmProductDetail = (product) => {
+  const id = product?.id_sanpham || product?.id
+  if (!id || warmedDetailIds.has(id)) return
+
+  warmedDetailIds.add(id)
+  primeProductDetailFromCard(product)
+  preloadProductDetailPage().catch(() => warmedDetailIds.delete(id))
+  if (product?.isFallbackProduct) return
+  prefetchProductDetail(id).catch(() => warmedDetailIds.delete(id))
+}
+
+const viewDetail = (productOrId) => {
+  const isProduct = productOrId && typeof productOrId === 'object'
+  const id = isProduct ? productOrId.id_sanpham : productOrId
+  if (!id) return
+
+  if (isProduct) {
+    primeProductDetailFromCard(productOrId)
+    warmProductDetail(productOrId)
+  }
+
+  const variant = isProduct ? productOrId.id_bienthe : null
+  router.push({
+    path: `/products/${id}`,
+    query: variant ? { variant } : {}
+  })
 }
 
 // Cart, Buy, Wishlist Operations
@@ -1916,19 +1970,21 @@ onMounted(() => {
 
 /* Image background white clean */
 .product-image-wrapper {
-  height: 142px;
+  height: 176px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 12px;
   margin-bottom: 16px;
-  background: #ffffff;
+  background: #f8fafc;
+  border-radius: 12px;
   overflow: hidden;
 }
 .product-img {
-  max-height: 100%;
-  max-width: 100%;
-  object-fit: contain;
+  width: calc(100% - 18px);
+  height: calc(100% - 18px);
+  object-fit: cover;
+  border-radius: 10px;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gaming-product-card:hover .product-img {
@@ -2060,17 +2116,22 @@ onMounted(() => {
 
 .gaming-product-card .product-image-wrapper {
   width: 100%;
-  aspect-ratio: 1 / 0.78;
+  aspect-ratio: 1 / 0.72;
   height: auto;
   margin: 0 0 9px;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+  border-radius: 12px;
+  border-bottom: 1px solid #edf2f7;
+  box-shadow: none;
 }
 
 .gaming-product-card .product-img {
-  max-width: 86%;
-  max-height: 82%;
+  width: calc(100% - 18px);
+  height: calc(100% - 18px);
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 10px;
 }
 
 .gaming-product-card .wishlist-heart-btn {
