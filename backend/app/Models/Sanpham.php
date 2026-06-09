@@ -43,4 +43,15 @@ class SanPham extends Model
     {
         return $this->hasMany(BienTheHinhAnh::class, 'id_sanpham', 'id_sanpham');
     }
+    public function reviews()
+    {
+        return $this->hasManyThrough(
+            DanhGia::class,
+            BienThe::class,
+            'id_sanpham',
+            'id_bienthe',
+            'id_sanpham',
+            'id_bienthe'
+        );
+    }
 }

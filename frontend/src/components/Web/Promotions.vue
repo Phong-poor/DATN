@@ -131,7 +131,7 @@ async function fetchPromotionsData() {
     }
 
     // 2. Load products from API
-    const prodResponse = await api.get('/san-pham')
+    const prodResponse = await api.get('/sanpham')
     let rawProducts = []
     if (prodResponse.data && Array.isArray(prodResponse.data.data)) {
       rawProducts = prodResponse.data.data
@@ -195,8 +195,8 @@ async function fetchPromotionsData() {
           oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
           image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
-          rating: 4.8,
-          reviews: Math.floor(Math.random() * 80) + 15,
+          rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
+          reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',
           inStock: p.trangthai === 'hoat_dong' || p.soluong > 0
         }
