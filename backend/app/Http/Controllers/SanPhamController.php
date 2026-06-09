@@ -27,8 +27,15 @@ class SanPhamController extends Controller
                 'thuongHieu',
                 'bienThes',
                 'hinhAnhs'
-            ])->orderByDesc('id_sanpham');
-
+            ])
+            ->withAvg(['reviews as rating_avg' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }], 'danhgia')
+            ->withCount(['reviews as rating_count' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }])
+            ->orderByDesc('id_sanpham');
+        
         $attributesToFilter = [
             'ram'      => 'ram',
             'cpu'      => 'cpu',
@@ -71,7 +78,9 @@ class SanPhamController extends Controller
                     'danh_muc' => $p->danhMuc,
                     'thuong_hieu' => $p->thuongHieu,
                     'hinh_anhs' => $p->hinhAnhs,
-                    'bien_thes' => $p->bienThes
+                    'bien_thes' => $p->bienThes,
+                    'rating_avg' => $p->rating_avg ? round((float)$p->rating_avg, 1) : null,
+                    'rating_count' => $p->rating_count ?? 0,
                 ];
             });
         });
@@ -217,6 +226,12 @@ class SanPhamController extends Controller
                 'bienThes',
                 'hinhAnhs'
             ])
+            ->withAvg(['reviews as rating_avg' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }], 'danhgia')
+            ->withCount(['reviews as rating_count' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }])
             ->where(function ($q) use ($keyword, $idsByBienThe) {
                 $q->where('tenSP', 'LIKE', "%{$keyword}%");
 

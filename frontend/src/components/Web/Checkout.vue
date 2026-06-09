@@ -633,7 +633,7 @@ const confirmOrder = async () => {
               <input type="radio" value="cod" v-model="payment" />
               <div class="radio"></div>
               <div class="pay-logo">
-                <img src="/tải xuống (1).jpg" alt="COD" />
+                <img src="/payment/cod.png" alt="COD" />
               </div>
               <div class="pay-text">
                 <b>COD (Thanh toán khi nhận hàng)</b>
@@ -645,7 +645,7 @@ const confirmOrder = async () => {
               <input type="radio" value="vnpay" v-model="payment" />
               <div class="radio"></div>
               <div class="pay-logo">
-                <img src="/tải xuống.jpg" alt="VNPay" />
+                <img src="/payment/vnpay.png" alt="VNPay" />
               </div>
               <div class="pay-text">
                 <b>Ví điện tử VNPay</b>
@@ -657,7 +657,7 @@ const confirmOrder = async () => {
               <input type="radio" value="momo" v-model="payment" />
               <div class="radio"></div>
               <div class="pay-logo">
-                <img src="/tải xuống.png" alt="MoMo" />
+                <img src="/payment/momo.png" alt="MoMo" />
               </div>
               <div class="pay-text">
                 <b>MoMo Sandbox</b>
