@@ -4,8 +4,8 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { toUrl } from '@/lib/utils';
 import { editAppearance, editProfile, editSecurity } from '@/lib/settingsRoutes';
+import { toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [

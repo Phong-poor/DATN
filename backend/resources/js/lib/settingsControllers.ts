@@ -1,8 +1,10 @@
 import {
     queryParams,
-    type RouteDefinition,
-    type RouteFormDefinition,
-    type RouteQueryOptions,
+} from '@/wayfinder';
+import type {
+    RouteDefinition,
+    RouteFormDefinition,
+    RouteQueryOptions,
 } from '@/wayfinder';
 
 type MutationMethod = 'patch' | 'put' | 'delete';

@@ -1,4 +1,5 @@
-import { queryParams, type RouteDefinition, type RouteQueryOptions } from '@/wayfinder';
+import { queryParams } from '@/wayfinder';
+import type { RouteDefinition, RouteQueryOptions } from '@/wayfinder';
 
 const makeEditRoute = (url: string) => {
     const edit = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
