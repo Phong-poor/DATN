@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
-import { getUser, updateUser } from '@/services/auth'
+import { getUser, updateUser, getToken } from '@/services/auth'
 import { geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { normalizeImageUrl } from '@/services/urls'
+
+const isUserLoggedIn = computed(() => Boolean(getToken()))
 
 
 
@@ -598,7 +600,7 @@ const confirmOrder = async () => {
 
           <input class="checkout-input" v-model="form.email" placeholder="Email" />
 
-          <div class="address-list" v-if="addresses.length || loadingAddresses">
+          <div class="address-list" v-if="isUserLoggedIn || loadingAddresses">
             <div class="address-header">
               <p class="address-title">Địa chỉ giao hàng</p>
               <div class="address-actions">
@@ -608,13 +610,6 @@ const confirmOrder = async () => {
               </div>
             </div>
             <p v-if="loadingAddresses" class="address-loading">Đang tải địa chỉ...</p>
-            <div v-else-if="selectedAddress" class="address-card active selected-address">
-              <div>
-                <b style="line-height: 1.4; display: block; margin-bottom: 4px;">{{ formatAddress(selectedAddress) }}</b>
-                <span style="color: #64748b; font-size: 13px;">{{ selectedAddress.loai_diachi === 'company' ? 'Công ty' : 'Nhà riêng' }}</span>
-                <span v-if="selectedAddress.mac_dinh" class="default-tag">Mặc định</span>
-              </div>
-            </div>
           </div>
 
           <textarea class="checkout-textarea" v-model="form.address" placeholder="Địa chỉ nhận hàng"></textarea>
@@ -759,11 +754,13 @@ const confirmOrder = async () => {
     </div>
   </div>
 
-  <div v-if="showAddressModal" class="modal-backdrop" @click.self="showAddressModal = false">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3>Chọn địa chỉ giao hàng</h3>
-        <button type="button" class="modal-close" @click="showAddressModal = false">×</button>
+  <div v-if="showAddressModal" class="overlay" @click.self="showAddressModal = false" style="z-index: 9015;">
+    <div class="modal address-modal">
+      <div class="modal-head">
+        <h2 class="modal-title">Chọn địa chỉ giao hàng</h2>
+        <button type="button" class="close-btn" @click="showAddressModal = false">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
       <div class="modal-body address-choices">
         <label
@@ -775,68 +772,81 @@ const confirmOrder = async () => {
           <input type="radio" :value="addr.id_diachi" v-model="selectedAddressId" @change="chooseAddress(addr)" />
           <div>
             <b style="line-height: 1.4; display: block; margin-bottom: 4px;">{{ formatAddress(addr) }}</b>
-            <span style="color: #64748b; font-size: 13px;">{{ addr.loai_diachi === 'company' ? 'Công ty' : 'Nhà riêng' }}</span>
+            <span>{{ addr.loai_diachi === 'company' ? 'Công ty' : 'Nhà riêng' }}</span>
             <span v-if="addr.mac_dinh" class="default-tag">Mặc định</span>
           </div>
           <button type="button" class="address-update-btn" @click.stop.prevent="openEditAddressModal(addr)">Cập nhật</button>
         </label>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" @click="openAddAddressModal">Thêm địa chỉ mới</button>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 28px 28px; border-top: none;">
+        <button type="button" class="btn-cancel" @click="showAddressModal = false">Hủy</button>
+        <button type="button" class="btn-save" @click="openAddAddressModal">Thêm địa chỉ mới</button>
       </div>
     </div>
   </div>
 
-  <div v-if="showAddAddressModal" class="modal-backdrop" @click.self="showAddAddressModal = false">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3>{{ editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới' }}</h3>
-        <button type="button" class="modal-close" @click="showAddAddressModal = false">×</button>
+  <div v-if="showAddAddressModal" class="overlay" @click.self="showAddAddressModal = false" style="z-index: 9015;">
+    <div class="modal address-modal">
+      <div class="modal-head">
+        <h2 class="modal-title">{{ editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+        <button type="button" class="close-btn" @click="showAddAddressModal = false">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
-      <form class="modal-body add-address-form" @submit.prevent="saveNewAddress">
-        <div class="checkout-form-group checkout-form-full">
-          <div class="region-picker-row">
-            <div class="region-picker-field">
-              <label>Tỉnh/Thành phố</label>
-              <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required @change="handleProvinceChange">
-                <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố' }}</option>
-                <option v-for="province in provinces" :key="province.code" :value="province.code">{{ province.name }}</option>
-              </select>
-            </div>
-            <div class="region-picker-field">
-              <label>Phường/Xã</label>
-              <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required @change="handleWardChange">
-                <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}</option>
-                <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
-              </select>
+      <div class="modal-body">
+        <form class="address-modal-form" @submit.prevent="saveNewAddress">
+          <div class="form-group form-full">
+            <div class="region-picker-row">
+              <div class="region-picker-field">
+                <label>Tỉnh/Thành phố</label>
+                <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required @change="handleProvinceChange">
+                  <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố' }}</option>
+                  <option v-for="province in provinces" :key="province.code" :value="province.code">{{ province.name }}</option>
+                </select>
+              </div>
+              <div class="region-picker-field">
+                <label>Phường/Xã</label>
+                <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required @change="handleWardChange">
+                  <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}</option>
+                  <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="checkout-form-group checkout-form-full">
-          <label>Địa chỉ chi tiết</label>
-          <input v-model="addressForm.diachi_cuthe" @blur="handleDetailBlur" placeholder="Số nhà, tên đường..." required />
-        </div>
-        <div class="inline-map-field">
-          <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress" @open="openMapPicker" />
-          <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
-          <small v-else-if="addressForm.full_address">{{ addressForm.full_address }}</small>
-        </div>
-        <div class="checkout-form-group">
-          <label>Loại địa chỉ</label>
-          <select v-model="addressForm.loai_diachi" required>
-            <option value="home">Nhà riêng</option>
-            <option value="company">Công ty</option>
-          </select>
-        </div>
-        <label class="modal-checkbox">
-          <input type="checkbox" v-model="addressForm.mac_dinh" />
-          <span>Đặt làm địa chỉ mặc định</span>
-        </label>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" @click="showAddAddressModal = false">Hủy</button>
-          <button type="submit" class="btn-primary" :disabled="savingAddress">{{ savingAddress ? 'Đang lưu...' : 'Hoàn thành' }}</button>
-        </div>
-      </form>
+          <div class="form-group form-full">
+            <label>Địa chỉ chi tiết</label>
+            <input v-model="addressForm.diachi_cuthe" @blur="handleDetailBlur" placeholder="Số nhà, tên đường..." required />
+          </div>
+          <div class="form-group form-full">
+            <label>Vị trí giao hàng</label>
+            <div class="inline-map-field">
+              <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress" @open="openMapPicker" />
+              <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
+              <small v-else-if="addressForm.full_address">{{ addressForm.full_address }}</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Loại địa chỉ</label>
+            <select v-model="addressForm.loai_diachi" required>
+              <option value="home">Nhà riêng</option>
+              <option value="company">Công ty</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="addressForm.mac_dinh" />
+              <span>Đặt làm địa chỉ mặc định</span>
+            </label>
+          </div>
+          <div class="form-actions form-full address-modal-actions">
+            <button type="button" class="btn-cancel" @click="showAddAddressModal = false">Hủy</button>
+            <button type="submit" class="btn-save" :disabled="savingAddress">
+              <svg v-if="savingAddress" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              {{ savingAddress ? 'Đang lưu...' : 'Lưu địa chỉ' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -917,7 +927,7 @@ const confirmOrder = async () => {
 }
 
 /* INPUT */
-input {
+input:not([type="radio"]):not([type="checkbox"]) {
   width: 100%;
   height: 44px;
   padding: 0 14px;
@@ -1002,15 +1012,14 @@ textarea {
 .address-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 12px 0;
+  gap: 12px;
 }
 
 .address-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #334155;
+  color: #1e293b;
 }
 
 .address-header {
@@ -1037,26 +1046,26 @@ textarea {
   padding: 0;
 }
 
-.address-loading {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-}
-
 .address-card {
   display: grid;
   grid-template-columns: 20px 1fr auto;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 10px;
-  background: #0d1b2e;
+  padding: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.address-card:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .address-card.active {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.04);
 }
 
 .selected-address {
@@ -1067,127 +1076,282 @@ textarea {
 .address-update-btn {
   border: none;
   background: transparent;
-  color: #2563eb;
+  color: #38bdf8;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
   white-space: nowrap;
+  font-size: 13px;
 }
 
 .address-choices {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .address-card input {
   width: 16px;
   height: 16px;
   margin: 2px 0 0;
+  accent-color: #38bdf8;
 }
 
 .address-card b {
   display: block;
-  font-size: 13px;
-  color: #f1f5f9;
-}
-
-.address-card p {
-  margin: 4px 0;
-  font-size: 13px;
-  color: #94a3b8;
-  line-height: 1.4;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .address-card span {
   display: inline-block;
   margin-right: 6px;
   font-size: 11px;
-  color: #2563eb;
-  background: #dbeafe;
+  color: #22d3ee;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: 99px;
+  font-weight: 700;
 }
 
 .address-card .default-tag {
-  color: #15803d;
-  background: #dcfce7;
+  color: #22d3ee;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
 }
 
-.modal-backdrop {
+/* MODAL OVERLAY */
+.overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  background: rgba(5, 11, 21, 0.75);
+  z-index: 9015;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.modal-box {
-  width: min(620px, 100%);
-  max-height: 90vh;
-  overflow: auto;
-  background: #111f35;
-  border-radius: 16px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
+.modal {
+  background: #0f1c30;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
-.modal-header {
+.modal-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 24px 28px 0;
 }
 
-.modal-header h3 {
-  margin: 0;
+.modal-title {
   font-size: 18px;
+  font-weight: 800;
+  color: #ffffff !important;
+  margin: 0 0 4px;
+  letter-spacing: -0.2px;
 }
 
-.modal-close {
+.close-btn {
   width: 32px;
   height: 32px;
-  border: none;
   border-radius: 50%;
-  background: #111f35;
-  color: #cbd5e1;
-  font-size: 22px;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.close-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.5;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 20px 28px 28px;
 }
 
-.add-address-form {
+.address-modal {
+  max-width: 720px;
+}
+
+.address-modal-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
-.add-address-form input,
-.add-address-form select {
-  margin-bottom: 0;
+.address-modal-form .form-group {
+  margin: 0;
 }
 
-.checkout-form-group {
+.address-modal-form input,
+.address-modal-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.address-modal-actions {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* FORMS */
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.checkout-form-group label,
-.region-picker-field label {
-  color: #cbd5e1;
-  font-size: 13px;
+.form-group label {
+  font-size: 12.5px;
   font-weight: 600;
+  color: #94a3b8 !important;
+  letter-spacing: 0.2px;
 }
 
-.checkout-form-full {
+.form-group input,
+.form-group select {
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 11px;
+  font-size: 13.5px;
+  color: #ffffff !important;
+  outline: none;
+  transition: all 0.2s ease;
+  background: rgba(13, 27, 46, 0.5) !important;
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  opacity: 0.5;
+  color: #64748b !important;
+  cursor: not-allowed;
+}
+
+.form-group select option {
+  background-color: #0f1c2e;
+  color: #e2e8f0;
+}
+
+.form-group select option:disabled {
+  color: #64748b;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  background: rgba(13, 27, 46, 0.8) !important;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 600;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-cancel {
+  padding: 9px 19px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  color: #94a3b8 !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 21px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2) !important;
+}
+
+.btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(6, 182, 212, 0.3) !important;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spin {
+  width: 16px;
+  height: 16px;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  fill: none;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.form-full {
   grid-column: 1 / -1;
 }
 
@@ -1204,94 +1368,11 @@ textarea {
   min-width: 0;
 }
 
-.modal-checkbox,
-.modal-footer,
-.map-placeholder,
-.inline-map-field {
-  grid-column: 1 / -1;
-}
-
 .inline-map-field small {
   display: block;
   margin-top: 6px;
   color: #64748b;
   font-size: 12px;
-}
-
-.map-placeholder {
-  min-height: 88px;
-  width: 100%;
-  border: 1px dashed #cbd5e1;
-  border-radius: 12px;
-  background: linear-gradient(135deg,#f8fafc 25%,#f1f5f9 25%,#f1f5f9 50%,#f8fafc 50%,#f8fafc 75%,#f1f5f9 75%);
-  background-size: 32px 32px;
-  color: #64748b;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.map-placeholder small {
-  max-width: 90%;
-  color: #94a3b8;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.map-placeholder:disabled {
-  opacity: .65;
-  cursor: not-allowed;
-}
-
-.modal-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #cbd5e1;
-}
-
-.modal-checkbox input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 0 20px 20px;
-}
-
-.add-address-form .modal-footer {
-  padding: 8px 0 0;
-}
-
-.btn-secondary,
-.btn-primary {
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  border: 1px solid #cbd5e1;
-  background: #111f35;
-  color: #cbd5e1;
-}
-
-.btn-primary {
-  border: 1px solid #2563eb;
-  background: #2563eb;
-  color: #fff;
 }
 
 /* PAYMENT */
