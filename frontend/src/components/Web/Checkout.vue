@@ -543,6 +543,15 @@ const confirmOrder = async () => {
         })
 
         if (response.data.success) {
+            const grantedVouchers = response.data.granted_vouchers || [];
+            if (grantedVouchers.length > 0) {
+                const voucherNames = grantedVouchers.map(v => v.name).join(', ');
+                await swal.success(
+                    'Chúc mừng!',
+                    `Bạn đã nhận được voucher: ${voucherNames} khi mua hàng thành công!`
+                );
+            }
+
             if (response.data.payUrl) {
                 window.location.href = response.data.payUrl;
             } else {

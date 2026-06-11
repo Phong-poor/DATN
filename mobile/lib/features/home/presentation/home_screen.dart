@@ -6,9 +6,6 @@ import '../../../shared/models/category.dart';
 import '../../../shared/models/product.dart';
 import '../../../shared/widgets/commerce_widgets.dart';
 import '../../../shared/widgets/state_content.dart';
-import '../../auth/presentation/auth_controller.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../../cart/presentation/cart_screen.dart';
 import '../../explore/presentation/chat_assistant_screen.dart';
 import '../../explore/presentation/contact_screen.dart';
 import '../../explore/presentation/news_screen.dart';
@@ -61,23 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _openCart() async {
-    final auth = AppScope.of(context).authController;
-    if (auth.status != AuthStatus.authenticated) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const LoginScreen()));
-      if (!mounted || auth.status != AuthStatus.authenticated) return;
-    }
-    if (!mounted) return;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const CartScreen()));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           if (_error != null && _products.isEmpty)
@@ -98,14 +82,20 @@ class _HomeScreenState extends State<HomeScreen> {
             RefreshIndicator(
               onRefresh: () => _load(refresh: true),
               child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(child: _HomeHeader(onCartTap: _openCart)),
-                  const SliverToBoxAdapter(child: _AnnouncementStrip()),
+                  const SliverToBoxAdapter(child: _HomeHeader()),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 18, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                      child: _HeroBanner(onTap: _openProducts),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
                       child: SectionHeader(
-                        title: 'Danh mục nổi bật',
+                        title: 'Danh mục',
                         actionLabel: 'Xem tất cả',
                         onAction: _openProducts,
                       ),
@@ -113,12 +103,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 86,
+                      height: 92,
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         scrollDirection: Axis.horizontal,
                         itemCount: _categories.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final category = _categories[index];
                           return CategoryIconTile(
@@ -131,25 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(14, 18, 14, 0),
+                      padding: EdgeInsets.fromLTRB(14, 10, 14, 0),
                       child: _QuickUtilities(),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 18, 14, 0),
-                      child: _HeroBanner(onTap: _openProducts),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(14, 12, 14, 4),
-                      child: _ServiceStrip(),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 20, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(14, 18, 14, 10),
                       child: SectionHeader(
                         title: 'Gợi ý hôm nay',
                         subtitle: 'Laptop chính hãng dành cho bạn',
@@ -176,9 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            mainAxisExtent: 274,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            mainAxisExtent: 218,
                           ),
                     ),
                   ),
@@ -198,17 +176,194 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 6),
+          child: Row(
+            children: [
+              const Expanded(child: BrandMark(compact: true)),
+              _HeaderIconButton(
+                tooltip: 'Tìm kiếm',
+                icon: Icons.search_rounded,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProductListScreen(autofocus: true),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              _HeaderIconButton(
+                tooltip: 'Yêu thích',
+                icon: Icons.favorite_border_rounded,
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tính năng Yêu thích đang phát triển'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 42,
+      height: 42,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 27, color: const Color(0xFF3F4857)),
+      ),
+    );
+  }
+}
+
+class _HeroBanner extends StatelessWidget {
+  const _HeroBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 154,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.heroSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.82)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withValues(alpha: 0.08),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -6,
+                  bottom: -2,
+                  width: 178,
+                  height: 128,
+                  child: Image.asset(
+                    'assets/images/hero_laptop.png',
+                    cacheWidth: 560,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 142, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Experience Power:',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppColors.text,
+                              fontSize: 16,
+                              height: 1.05,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Predator laptops',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppColors.text,
+                              fontSize: 16,
+                              height: 1.05,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Laptop gaming mạnh mẽ, màn hình sắc nét.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          height: 1.3,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 32,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _QuickUtilities extends StatelessWidget {
   const _QuickUtilities();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -263,20 +418,21 @@ class _QuickUtility extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withValues(alpha: 0.11),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 22),
+                child: Icon(icon, color: color, size: 23),
               ),
               const SizedBox(height: 7),
               Text(
@@ -285,243 +441,14 @@ class _QuickUtility extends StatelessWidget {
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 10,
-                  height: 1.15,
+                  fontSize: 11,
+                  height: 1.12,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.onCartTap});
-
-  final VoidCallback onCartTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.surface,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Expanded(child: BrandMark(compact: true)),
-                  IconButton(
-                    tooltip: 'Thông báo',
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Chưa có thông báo mới')),
-                    ),
-                    icon: const Icon(Icons.notifications_none_outlined),
-                  ),
-                  IconButton(
-                    tooltip: 'Giỏ hàng',
-                    onPressed: onCartTap,
-                    icon: const Icon(Icons.shopping_cart_outlined),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              CommerceSearchField(
-                readOnly: true,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ProductListScreen(autofocus: true),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AnnouncementStrip extends StatelessWidget {
-  const _AnnouncementStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.primary,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: const Row(
-        children: [
-          Icon(Icons.bolt, color: Colors.white, size: 16),
-          SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              'Freeship đơn từ 300K • Trả góp 0% • Bảo hành chính hãng',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 218,
-      child: Material(
-        color: AppColors.navy,
-        borderRadius: BorderRadius.circular(8),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Stack(
-            children: [
-              Positioned(
-                right: -34,
-                bottom: -5,
-                width: 235,
-                height: 175,
-                child: Image.asset(
-                  'assets/images/hero_laptop.png',
-                  cacheWidth: 720,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(18),
-                child: SizedBox(
-                  width: 175,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const StatusPill(
-                        label: 'PREMIUM LAPTOP 2026',
-                        color: AppColors.primary,
-                      ),
-                      const Spacer(),
-                      const Text(
-                        'Sức mạnh hội tụ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          height: 1.05,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Laptop cao cấp cho gaming, sáng tạo và công việc.',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Color(0xFFCBD5E1),
-                          fontSize: 11,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Khám phá ngay',
-                          style: TextStyle(
-                            color: AppColors.navy,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ServiceStrip extends StatelessWidget {
-  const _ServiceStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Row(
-        children: [
-          _ServiceItem(
-            Icons.local_shipping_outlined,
-            'Giao nhanh',
-            AppColors.primary,
-          ),
-          _ServiceItem(
-            Icons.verified_user_outlined,
-            'Chính hãng',
-            AppColors.success,
-          ),
-          _ServiceItem(
-            Icons.credit_card_outlined,
-            'Trả góp 0%',
-            AppColors.warning,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ServiceItem extends StatelessWidget {
-  const _ServiceItem(this.icon, this.label, this.color);
-
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-          ),
-        ],
       ),
     );
   }
