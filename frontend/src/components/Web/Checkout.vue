@@ -7,6 +7,7 @@ import { geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { normalizeImageUrl } from '@/services/urls'
+import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
 const isUserLoggedIn = computed(() => Boolean(getToken()))
 
@@ -111,9 +112,7 @@ const fetchProvinces = async () => {
 
     loadingProvinces.value = true
     try {
-        const res = await fetch(`${addressApiBaseUrl}/p/`)
-        const data = await res.json()
-        provinces.value = normalizeApiList(data, ['provinces'])
+        provinces.value = await fetchAddressProvinces()
     } catch (error) {
         console.error('Lỗi tải tỉnh/thành:', error)
         swal.error('Lỗi địa chỉ', 'Không thể tải danh sách tỉnh/thành.')
@@ -130,16 +129,7 @@ const fetchWardsByProvince = async (provinceCode) => {
 
     loadingWards.value = true
     try {
-        const res = await fetch(`${addressApiBaseUrl}/p/${provinceCode}?depth=2`)
-        const data = await res.json()
-        const districts = normalizeApiList(data, ['districts'])
-        const directWards = normalizeApiList(data, ['wards'])
-        wards.value = directWards.length
-            ? directWards
-            : districts.flatMap((district) => normalizeApiList(district, ['wards']).map((ward) => ({
-                ...ward,
-                districtName: district.name,
-            })))
+        wards.value = await fetchAddressWardsByProvince(provinceCode)
     } catch (error) {
         console.error('Lỗi tải phường/xã:', error)
         swal.error('Lỗi địa chỉ', 'Không thể tải danh sách phường/xã.')
@@ -337,7 +327,7 @@ const saveNewAddress = async () => {
     try {
         const payload = {
             tinh_thanhpho: addressForm.value.tinh_thanhpho || addressForm.value.full_address || 'Không xác định',
-            quan_huyen: addressForm.value.quan_huyen || 'Không xác định',
+            quan_huyen: addressForm.value.quan_huyen || '',
             phuong_xa: addressForm.value.phuong_xa || addressForm.value.full_address || 'Không xác định',
             diachi_cuthe: addressForm.value.diachi_cuthe,
             latitude: addressForm.value.latitude,
