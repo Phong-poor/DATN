@@ -3768,4 +3768,20 @@ const promoStatusMap = {
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .cat-tab:hover { color: #4f46e5; }
 .cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+
+.empty-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 15px;
+}
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  stroke-width: 1.2;
+}
 </style>
