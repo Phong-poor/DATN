@@ -9,6 +9,7 @@ import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
+import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
 // ── Active tab ────────────────────────────────────────────
 const route = useRoute()
@@ -837,9 +838,7 @@ const fetchProvinces = async () => {
 
   loadingProvinces.value = true
   try {
-    const res = await fetch(`${addressApiBaseUrl}/p/`)
-    const data = await res.json()
-    provinces.value = normalizeApiList(data, ['provinces'])
+    provinces.value = await fetchAddressProvinces()
   } catch (error) {
     console.error('Lỗi tải tỉnh/thành:', error)
     showToast('Không thể tải danh sách tỉnh/thành.')
@@ -856,16 +855,7 @@ const fetchWardsByProvince = async (provinceCode) => {
 
   loadingWards.value = true
   try {
-    const res = await fetch(`${addressApiBaseUrl}/p/${provinceCode}?depth=2`)
-    const data = await res.json()
-    const districts = normalizeApiList(data, ['districts'])
-    const directWards = normalizeApiList(data, ['wards'])
-    wards.value = directWards.length
-      ? directWards
-      : districts.flatMap((district) => normalizeApiList(district, ['wards']).map((ward) => ({
-        ...ward,
-        districtName: district.name,
-      })))
+    wards.value = await fetchAddressWardsByProvince(provinceCode)
   } catch (error) {
     console.error('Lỗi tải phường/xã:', error)
     showToast('Không thể tải danh sách phường/xã.')
@@ -984,7 +974,7 @@ const mapAddressFromApi = (addr) => ({
 
 const mapAddressToApi = () => ({
   tinh_thanhpho: addrForm.value.province || addrForm.value.fullAddress || 'Không xác định',
-  quan_huyen: addrForm.value.district || 'Không xác định',
+  quan_huyen: addrForm.value.district || '',
   phuong_xa: addrForm.value.ward || addrForm.value.fullAddress || 'Không xác định',
   diachi_cuthe: addrForm.value.detail,
   latitude: addrForm.value.latitude,
