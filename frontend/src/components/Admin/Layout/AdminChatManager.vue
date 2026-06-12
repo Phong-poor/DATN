@@ -294,8 +294,22 @@ const bumpConversation = (msg) => {
   }
   conversations.value[idx].last_message = conversationPreviewFromMessage(msg);
   conversations.value[idx].updated_at = msg.created_at;
+  
+  if (Number(msg.sender_id) === Number(conversations.value[idx].user.id)) {
+    conversations.value[idx].user.online = true;
+    conversations.value[idx].user.last_active_at = msg.created_at;
+  }
+
   const conv = conversations.value.splice(idx, 1)[0];
   conversations.value.unshift(conv);
+
+  if (selectedConversation.value && selectedConversation.value.id === msg.conversation_id) {
+    if (Number(msg.sender_id) === Number(selectedConversation.value.user.id)) {
+      selectedConversation.value.user.online = true;
+      selectedConversation.value.user.last_active_at = msg.created_at;
+    }
+  }
+
   if (!selectedConversation.value || selectedConversation.value.id !== msg.conversation_id) {
     conv.unread_count = (conv.unread_count || 0) + 1;
     startChatTitleNotice();
@@ -311,7 +325,18 @@ const subscribeToGlobal = () => {
 };
 
 const subscribeToConversation = (id) => {
-  bindChatChannel(echo, `chat.${id}`, currentMessages, authUserId.value, () => scrollToBottom());
+  bindChatChannel(echo, `chat.${id}`, currentMessages, authUserId.value, (msg) => {
+    scrollToBottom();
+    if (selectedConversation.value && Number(msg.sender_id) === Number(selectedConversation.value.user.id)) {
+      selectedConversation.value.user.online = true;
+      selectedConversation.value.user.last_active_at = msg.created_at;
+    }
+    const idx = conversations.value.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      conversations.value[idx].user.online = true;
+      conversations.value[idx].user.last_active_at = msg.created_at;
+    }
+  });
 };
 
 const openImage = (url) => {

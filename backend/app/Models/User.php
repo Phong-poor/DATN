@@ -13,6 +13,8 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
 
+    protected $appends = ['online'];
+
     protected $fillable = [
         'name',
         'email',
@@ -75,5 +77,13 @@ class User extends Authenticatable
     public function affiliateWithdrawRequests()
     {
         return $this->hasMany(AffiliateWithdrawRequest::class, 'affiliate_user_id');
+    }
+
+    public function getOnlineAttribute(): bool
+    {
+        if (!$this->last_active_at) {
+            return false;
+        }
+        return $this->last_active_at->diffInMinutes(now()) < 5;
     }
 }
