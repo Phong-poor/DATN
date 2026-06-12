@@ -10,8 +10,7 @@ const MainLayout = () => import('../components/Layout/MainLayout.vue')
 
 // ── Web Pages ──
 const Home = () => import('../components/Web/Home.vue')
-const Producpage = () => import('../components/Web/Producpage.vue')
-const ProductsPremiumPage = () => import('../components/Web/ProductsPremiumPage.vue')
+const Producpage = () => import('../components/Web/ProductsPremiumPage.vue')
 const GamingPage = () => import('../components/Web/GamingPage.vue')
 const LandingPage = () => import('../components/Web/LandingPage.vue')
 const News = () => import('../components/Web/News.vue')
@@ -54,9 +53,9 @@ const routes = [
     component: MainLayout,
     children: [
       { path: '', name: 'home', component: Home },
-      { path: 'products', name: 'products', component: ProductsPremiumPage },
+      { path: 'products', name: 'products', component: Producpage },
       { path: 'gaming', name: 'gaming', component: GamingPage },
-      { path: 'macbook', name: 'macbook', component: ProductsPremiumPage, meta: { category: 'MacBook' } },
+      { path: 'macbook', name: 'macbook', component: Producpage, meta: { category: 'MacBook' } },
       { path: 'products/:id', name: 'product-detail', component: ProductDetail },
       { path: 'news', name: 'news', component: News },
       { path: 'news/:id', name: 'news-detail', component: NewsDetail },
@@ -103,7 +102,6 @@ const routes = [
       { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue'), meta: { title: 'Quản lý biến thể' } },
       { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue'), meta: { title: 'Quản lý danh mục' } },
       { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue'), meta: { title: 'Quản lý khuyến mãi' } },
-      { path: 'birthday-codes', name: 'admin-birthday-codes', component: () => import('../components/Admin/BirthdayCodes.vue'), meta: { title: 'Gửi mã sinh nhật' } },
       { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/ComboManagement.vue'), meta: { title: 'Quản lý Combo' } },
       { path: 'banners', name: 'admin-banners', component: () => import('../components/Admin/Banners.vue'), meta: { title: 'Quản lý banner' } },
       { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue'), meta: { title: 'Quản lý liên hệ' } },
@@ -139,7 +137,7 @@ router.afterEach(() => {
   // Cưỡng bức cuộn lên đầu trang ngay khi chuyển trang xong ở mức router
   forceScrollTop()
   requestAnimationFrame(forceScrollTop)
-  
+
   // Thực hiện cuộn phụ sau 120ms để bù đắp sự thay đổi chiều cao do các tiến trình render bất đồng bộ (API/Transitions)
   setTimeout(() => {
     forceScrollTop()
@@ -148,55 +146,50 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
-    const skipRouteLoader = sessionStorage.getItem('skip_next_route_loader') === '1'
-    if (skipRouteLoader) {
-      sessionStorage.removeItem('skip_next_route_loader')
-    }
+  const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/')
+  if (shouldShowRouteLoader) {
+    showRouteLoader()
+  }
+  forceScrollTop()
+  const user = getUser()
+  const token = getToken()
 
-    const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/') && !skipRouteLoader
-    if (shouldShowRouteLoader) {
-      showRouteLoader()
-    }
-    forceScrollTop()
-    const user = getUser()
-    const token = getToken()
+  const publicPages = [
+    '/',
+    '/products',
+    '/gaming',
+    '/macbook',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/otp-verify',
+    '/reset-password',
+    '/login-success',
+    '/news',
+    '/contact',
+    '/cart',
+    '/thank-you',
+    '/payment-failed',
+    '/interactive-labs',
+    '/khuyen-mai',
+    '/workstation',
+  ]
 
-    const publicPages = [
-      '/',
-      '/products',
-      '/gaming',
-      '/macbook',
-      '/login',
-      '/register',
-      '/forgot-password',
-      '/otp-verify',
-      '/reset-password',
-      '/login-success',
-      '/news',
-      '/contact',
-      '/cart',
-      '/thank-you',
-      '/payment-failed',
-      '/interactive-labs',
-      '/khuyen-mai',
-      '/workstation',
-    ]
+  const isPublic =
+    publicPages.includes(to.path) ||
+    to.path.startsWith('/products/') ||
+    to.path.startsWith('/news/')
 
-    const isPublic =
-      publicPages.includes(to.path) ||
-      to.path.startsWith('/products/') ||
-      to.path.startsWith('/news/')
+  if (!isPublic && !token) {
+    return next('/login')
+  }
 
-    if (!isPublic && !token) {
-      return next('/login')
-    }
+  if (to.matched.some(route => route.meta.requiresAdmin)) {
+    if (!user || !token) return next('/login')
+    if (user.role !== 'admin') return next('/')
+  }
 
-    if (to.matched.some(route => route.meta.requiresAdmin)) {
-      if (!user || !token) return next('/login')
-      if (user.role !== 'admin') return next('/')
-    }
-
-    next()
+  next()
 })
 
 export default router

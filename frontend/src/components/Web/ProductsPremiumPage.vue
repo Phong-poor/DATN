@@ -121,9 +121,17 @@ const PRODUCTS_PER_PAGE = 16
 const currentPage = ref(1)
 const openCatalogFilters = ref(['brands'])
 
-const isMacbookRoute = computed(() => route.name === 'macbook' || route.path === '/macbook')
+const isMacbookRoute = computed(() => route.name === 'macbook' || route.path === '/macbook' || route.meta?.category === 'MacBook')
 const visibleCatalogCategories = computed(() => (
   isMacbookRoute.value ? [MACBOOK_CATEGORY] : filterOptions.categories
+))
+const visibleCatalogBrands = computed(() => (
+  isMacbookRoute.value ? ['Apple'] : filterOptions.brands
+))
+const visibleCatalogCpus = computed(() => (
+  isMacbookRoute.value
+    ? ['Apple M1', 'Apple M2', 'Apple M3', 'Apple M4', 'Apple M5', 'Apple M2 Ultra', 'Apple M3 Max']
+    : filterOptions.cpus
 ))
 
 const isCatalogFilterOpen = (key) => openCatalogFilters.value.includes(key)
@@ -808,8 +816,8 @@ watch(() => route.fullPath, () => {
     <section
       class="hero-banner"
       :style="{
-        '--hero-bg-1': `url('${heroBannerImages[0]}')`,
-        '--hero-bg-2': `url('${heroBannerImages[0]}')`
+        '--hero-bg-1': `url('${currentHeroImage}')`,
+        '--hero-bg-2': `url('${currentHeroImage}')`
       }"
     >
       <div class="hero-copy">
@@ -863,7 +871,7 @@ watch(() => route.fullPath, () => {
     </section>
 
     <!-- ===================== BRAND LOGOS ROW ===================== -->
-    <section class="brand-logos-row-wrap" v-if="!isMacbookRoute">
+    <section class="brand-logos-row-wrap">
       <div class="brand-logos-marquee-viewport">
         <div class="brand-logos-track">
           <template v-for="copy in 4" :key="'brand-loop-' + copy">
@@ -1118,7 +1126,7 @@ watch(() => route.fullPath, () => {
               <h4>Thương hiệu</h4>
               <div v-show="isCatalogFilterOpen('brands')"
                 class="filter-pill-grid brand-pill-grid filter-dropdown-content">
-                <button v-for="brand in filterOptions.brands" :key="brand" class="filter-pill-btn"
+                <button v-for="brand in visibleCatalogBrands" :key="brand" class="filter-pill-btn"
                   :class="{ active: selectedBrands.includes(brand) }" @click="toggleBrand(brand)">
                   {{ brand }}
                 </button>
@@ -1183,7 +1191,7 @@ watch(() => route.fullPath, () => {
               @click="handleCatalogFilterGroupClick($event, 'cpu')">
               <h4>Vi xử lý CPU</h4>
               <div v-show="isCatalogFilterOpen('cpu')" class="filter-pill-grid filter-dropdown-content">
-                <button v-for="cpu in filterOptions.cpus" :key="cpu" class="filter-pill-btn"
+                <button v-for="cpu in visibleCatalogCpus" :key="cpu" class="filter-pill-btn"
                   :class="{ active: selectedCpus.includes(cpu) }" @click="toggleCpu(cpu)">
                   {{ cpu }}
                 </button>
@@ -1191,7 +1199,7 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- GPU Filter -->
-            <div class="filter-option-group gpu-filter-group"
+            <div v-if="!isMacbookRoute" class="filter-option-group gpu-filter-group"
               :class="{ open: isCatalogFilterOpen('gpu'), selected: hasCatalogFilterValue('gpu') }"
               @click="handleCatalogFilterGroupClick($event, 'gpu')">
               <h4>Card đồ họa GPU</h4>
