@@ -67,7 +67,7 @@
             </svg>
           </div>
           <div class="stat-body">
-            <div class="stat-val">{{ formatPrice(wishlist.reduce((s, i) => s + (i.bienthe?.gia || 0) * (i.soluong || 1), 0)) }}</div>
+            <div class="stat-val">{{ formatPrice(wishlist.reduce((s, i) => s + (Number(i.bienthe?.gia) || 0), 0)) }}</div>
             <div class="stat-lbl">Tổng giá trị</div>
           </div>
         </div>
