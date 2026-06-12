@@ -703,30 +703,30 @@ const onImgError = (e) => {
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   transition: var(--transition);
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.08);
   border-color: #c7d2fe;
 }
 
 /* Recently Added tag */
 .recently-added-tag {
   position: absolute;
-  top: 14px;
-  left: -1px;
+  top: 12px;
+  left: 12px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   font-family: 'Outfit', sans-serif;
   font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 4px 10px 4px 11px;
-  border-radius: 0 6px 6px 0;
+  padding: 4px 8px;
+  border-radius: 20px;
   z-index: 3;
   box-shadow: 0 2px 8px var(--primary-glow);
 }
@@ -761,41 +761,49 @@ const onImgError = (e) => {
 
 .stock-badge {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.5px;
   padding: 4px 10px;
   border-radius: 20px;
-  color: #fff;
   z-index: 3;
 }
-.stock-badge.in-stock  { background: var(--success); box-shadow: 0 2px 8px rgba(34,197,94,0.35); }
-.stock-badge.out-stock { background: var(--danger);  box-shadow: 0 2px 8px rgba(239,68,68,0.35); }
+.stock-badge.in-stock  { 
+  background: rgba(34, 197, 94, 0.08); 
+  color: #16a34a; 
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.stock-badge.out-stock { 
+  background: rgba(239, 68, 68, 0.08); 
+  color: #dc2626; 
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
 
 .btn-remove {
   position: absolute;
-  bottom: 14px;
-  right: 14px;
+  bottom: 12px;
+  right: 12px;
   width: 32px;
   height: 32px;
-  border-radius: 10px;
-  border: 1.5px solid var(--border);
-  background: rgba(255,255,255,0.95);
+  border-radius: 50%;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-3);
+  color: #64748b;
   transition: var(--transition);
   z-index: 3;
   backdrop-filter: blur(4px);
 }
 .btn-remove:hover {
   background: #fef2f2;
-  border-color: var(--danger);
-  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  transform: scale(1.05);
 }
 .btn-remove svg { width: 14px; height: 14px; }
 
@@ -818,21 +826,22 @@ const onImgError = (e) => {
 
 .product-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-1);
-  line-height: 1.35;
+  line-height: 1.4;
   margin-bottom: 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  height: 39.2px;
 }
 
 /* SPECS GRID */
 .specs-grid {
-  background: #0d1b2e;
-  border: 1px solid var(--border);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 8px 10px;
   margin-bottom: 10px;
@@ -848,12 +857,12 @@ const onImgError = (e) => {
   font-size: 10.5px;
 }
 .spec-key {
-  color: var(--text-3);
+  color: #64748b;
   font-weight: 500;
 }
 .spec-val {
-  color: var(--text-2);
-  font-weight: 700;
+  color: #1e293b;
+  font-weight: 600;
   text-align: right;
   max-width: 60%;
 }
@@ -893,32 +902,32 @@ const onImgError = (e) => {
   justify-content: space-between;
   margin-bottom: 10px;
   padding: 7px 10px;
-  background: #0d1b2e;
+  background: #f8fafc;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid #e2e8f0;
 }
 
 .qty-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-2);
+  color: #475569;
 }
 
 .qty-stepper {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 .qty-stepper button {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
-  border: 1.5px solid var(--border);
-  background: #111f35;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
-  color: var(--text-2);
+  color: #475569;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -937,9 +946,9 @@ const onImgError = (e) => {
 .qty-stepper span {
   min-width: 24px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-1);
+  color: #0f172a;
 }
 
 /* ACTION BUTTONS */
@@ -949,43 +958,43 @@ const onImgError = (e) => {
 
 .btn-add-cart {
   width: 100%;
-  padding: 9px;
-  border-radius: 11px;
+  padding: 10px;
+  border-radius: 12px;
   border: none;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
   font-family: 'Outfit', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  box-shadow: 0 3px 10px var(--primary-glow);
-  transition: var(--transition);
-}
-.btn-add-cart svg { width: 13px; height: 13px; }
-.btn-add-cart:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-}
-
-.btn-notify {
-  width: 100%;
-  padding: 9px;
-  border-radius: 11px;
-  border: 1.5px solid var(--border);
-  background: #0d1b2e;
-  color: var(--text-3);
-  font-family: 'Outfit', sans-serif;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+  transition: var(--transition);
+}
+.btn-add-cart svg { width: 13px; height: 13px; }
+.btn-add-cart:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+.btn-notify {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: var(--transition);
 }
 .btn-notify svg { width: 12px; height: 12px; }
