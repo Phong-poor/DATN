@@ -21,7 +21,7 @@
             <li 
               v-for="item in sidebarItems" 
               :key="item.value"
-              :class="{ active: currentSidebarFilter === item.value }"
+              :class="{ active: currentSidebarFilter === item.value || activeAccessoryFilter === item.value }"
               @click="selectSidebarFilter(item.value)"
             >
               <component :is="item.icon" class="item-icon" />
@@ -242,6 +242,15 @@
           >
             <ChevronLeft /> Trước
           </button>
+          <button
+            v-for="page in paginationPages"
+            :key="page"
+            class="page-number-btn"
+            :class="{ active: currentPage === page }"
+            @click="changePage(page)"
+          >
+            {{ page }}
+          </button>
           <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
           <button 
             class="page-btn" 
@@ -310,11 +319,11 @@
       <div class="gaming-container">
         
         <!-- ASUS Grid -->
-        <div class="brand-subgrid-row accessory-slider-row" v-if="accessoryProducts.length > 0">
+        <div id="accessories-section" class="brand-subgrid-row accessory-slider-row" v-if="accessoryProducts.length > 0">
           <div class="subgrid-header accessory-slider-header">
             <div>
               <span class="accessory-eyebrow">Gaming gear</span>
-              <h3>Phụ kiện gaming</h3>
+              <h3>Phụ kiện</h3>
             </div>
             <div class="accessory-slider-actions">
               <button class="accessory-slider-btn" @click="scrollAccessorySlider('prev')" aria-label="Phụ kiện trước">
@@ -637,10 +646,11 @@ const isLoading = ref(true)
 const products = ref([])
 const activeSlideIndex = ref(0)
 const currentSidebarFilter = ref('all')
+const activeAccessoryFilter = ref('all')
 const activeTabFilter = ref('best-seller')
 const sortBy = ref('featured')
 const currentPage = ref(1)
-const itemsPerPage = 20
+const itemsPerPage = 15
 
 const localWishlistIds = ref([])
 const accessorySliderRef = ref(null)
@@ -914,11 +924,53 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
 }
 
+const normalizeSearchText = (value = '') => {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+const getProductCategoryName = (p = {}) => {
+  return p.danh_muc?.ten_danhmuc ||
+    p.danhMuc?.ten_danhmuc ||
+    p.danhmuc?.tenDM ||
+    p.category ||
+    ''
+}
+
+const getProductBrandName = (p = {}) => {
+  return p.thuong_hieu?.ten_thuonghieu ||
+    p.thuongHieu?.ten_thuonghieu ||
+    p.thuonghieu?.tenTH ||
+    p.brand ||
+    'Khac'
+}
+
+const isAccessoryLike = (p = {}) => {
+  const text = normalizeSearchText(`${p.tenSP || ''} ${getProductCategoryName(p)}`)
+  return (
+    text.includes('phu kien') ||
+    text.includes('gaming gear') ||
+    text.includes('ban phim') ||
+    text.includes('keyboard') ||
+    text.includes('chuot') ||
+    text.includes('mouse') ||
+    text.includes('tai nghe') ||
+    text.includes('headphone') ||
+    text.includes('headset') ||
+    text.includes('mousepad') ||
+    text.includes('ban di') ||
+    text.includes('lot chuot')
+  )
+}
+
 const isGaming = (p) => {
-  const cat = (p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || '').toLowerCase()
-  const name = (p.tenSP || '').toLowerCase()
+  const cat = normalizeSearchText(getProductCategoryName(p))
+  const name = normalizeSearchText(p.tenSP || '')
   return cat.includes('gaming') || 
          cat.includes('laptop gaming') || 
+         isAccessoryLike(p) ||
          name.includes('tuf') || 
          name.includes('rog') || 
          name.includes('predator') || 
@@ -940,7 +992,7 @@ const normalizeFallbackProducts = () => fallbackProducts.map((product) => ({
 const loadData = async () => {
   isLoading.value = true
   try {
-    const cache = await prefetchProductsPage()
+    const cache = await prefetchProductsPage({ forceRefresh: true })
     let rawList = []
     if (cache && cache.productsRaw) {
       rawList = cache.productsRaw.filter(p => isGaming(p))
@@ -980,6 +1032,9 @@ const loadData = async () => {
         } catch (e) {}
       }
 
+      const categoryName = getProductCategoryName(p)
+      const brandName = getProductBrandName(p)
+
       return {
         id_sanpham: p.id_sanpham,
         id_danhmuc: p.id_danhmuc,
@@ -992,8 +1047,8 @@ const loadData = async () => {
         bien_thes: variants,
         danh_muc: p.danh_muc || p.danhMuc || null,
         thuong_hieu: p.thuong_hieu || p.thuongHieu || null,
-        brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'Khác',
-        category: 'Laptop Gaming',
+        brand: brandName,
+        category: categoryName || 'Laptop Gaming',
         gia: giaSP,
         oldPrice: Math.floor(giaSP * 1.15),
         specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, '144Hz']),
@@ -1021,8 +1076,10 @@ const loadData = async () => {
 }
 
 // ===================== DYNAMIC FILTER COMPUTEDS =====================
+const productCatalogItems = computed(() => products.value.filter(p => !isAccessoryLike(p)))
+
 const filteredProducts = computed(() => {
-  let list = products.value
+  let list = productCatalogItems.value
 
   // Apply Sidebar brand/GPU/accessory filters
   if (currentSidebarFilter.value !== 'all') {
@@ -1069,7 +1126,23 @@ const paginatedProducts = computed(() => {
 })
 
 const totalPages = computed(() => {
-  return Math.ceil(filteredProducts.value.length / itemsPerPage)
+  return Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage))
+})
+
+const paginationPages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  const maxVisible = 5
+  const pages = []
+  let start = Math.max(1, current - Math.floor(maxVisible / 2))
+  const end = Math.min(total, start + maxVisible - 1)
+  start = Math.max(1, end - maxVisible + 1)
+
+  for (let page = start; page <= end; page++) {
+    pages.push(page)
+  }
+
+  return pages
 })
 
 // Accessory slider products
@@ -1093,15 +1166,46 @@ const isAccessoryProduct = (p) => {
   )
 }
 
-const accessoryProducts = computed(() => products.value.filter(isAccessoryProduct))
+const accessoryMatchesFilter = (product, filter) => {
+  if (!filter || filter === 'all') return true
+
+  const text = normalizeSearchText(`${product.tenSP || ''} ${product.category || ''}`)
+  if (filter === 'banphim') return text.includes('ban phim') || text.includes('keyboard')
+  if (filter === 'chuot') {
+    return (text.includes('chuot') || text.includes('mouse')) &&
+      !text.includes('lot chuot') &&
+      !text.includes('ban di') &&
+      !text.includes('mousepad')
+  }
+  if (filter === 'tainghe') return text.includes('tai nghe') || text.includes('headphone') || text.includes('headset')
+  if (filter === 'lotchuot') return text.includes('lot chuot') || text.includes('ban di') || text.includes('mousepad')
+  return true
+}
+
+const accessoryProducts = computed(() => {
+  return products.value
+    .filter(isAccessoryLike)
+    .filter(product => accessoryMatchesFilter(product, activeAccessoryFilter.value))
+})
 const msiProducts = computed(() => [])
 const acerProducts = computed(() => [])
 const lenovoProducts = computed(() => [])
 
 // ===================== EVENT ACTIONS =====================
+const accessoryFilterValues = ['banphim', 'chuot', 'tainghe', 'lotchuot']
+
 const selectSidebarFilter = (val) => {
-  currentSidebarFilter.value = currentSidebarFilter.value === val ? 'all' : val
   currentPage.value = 1
+
+  if (accessoryFilterValues.includes(val)) {
+    activeAccessoryFilter.value = activeAccessoryFilter.value === val ? 'all' : val
+    currentSidebarFilter.value = 'all'
+    scrollToAccessoriesSection()
+    return
+  }
+
+  activeAccessoryFilter.value = 'all'
+  currentSidebarFilter.value = currentSidebarFilter.value === val ? 'all' : val
   goToProductsSection()
 }
 
@@ -1113,19 +1217,21 @@ const selectTabFilter = (val) => {
 
 const resetFilters = () => {
   currentSidebarFilter.value = 'all'
+  activeAccessoryFilter.value = 'all'
   activeTabFilter.value = 'best-seller'
   currentPage.value = 1
   scrollProductsPanelToTop()
 }
 
 const filterByBrandFromLogo = (brandVal) => {
+  activeAccessoryFilter.value = 'all'
   currentSidebarFilter.value = brandVal
   currentPage.value = 1
   goToProductsSection()
 }
 
 const changePage = (page) => {
-  currentPage.value = page
+  currentPage.value = Math.min(Math.max(1, page), totalPages.value)
   scrollProductsPanelToTop()
 }
 
@@ -1138,9 +1244,18 @@ const goToProductsSection = () => {
 
 const scrollProductsPanelToTop = () => {
   requestAnimationFrame(() => {
-    const panel = document.querySelector('.gaming-products-scroll-panel')
-    if (panel) {
-      panel.scrollTo({ top: 0, behavior: 'smooth' })
+    const section = document.getElementById('products-section')
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+}
+
+const scrollToAccessoriesSection = () => {
+  requestAnimationFrame(() => {
+    const section = document.getElementById('accessories-section')
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   })
 }
@@ -1371,7 +1486,7 @@ const triggerScrollReveal = () => {
 }
 
 // Watchers to trigger scroll reveal when elements are dynamically rendered
-watch([isLoading, currentPage, currentSidebarFilter, activeTabFilter], () => {
+watch([isLoading, currentPage, currentSidebarFilter, activeTabFilter, activeAccessoryFilter], () => {
   triggerScrollReveal()
 })
 
@@ -1795,26 +1910,8 @@ onMounted(() => {
   -webkit-backdrop-filter: blur(12px);
 }
 .gaming-products-scroll-panel {
-  max-height: calc(100vh - 280px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 28px 8px 8px 0;
-  scrollbar-gutter: stable;
-  scroll-behavior: smooth;
-}
-.gaming-products-scroll-panel::-webkit-scrollbar {
-  width: 8px;
-}
-.gaming-products-scroll-panel::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 999px;
-}
-.gaming-products-scroll-panel::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-}
-.gaming-products-scroll-panel::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  overflow: visible;
+  padding: 28px 0 8px;
 }
 .filter-header-left h2 {
   font-size: 20px;
@@ -2294,10 +2391,12 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 24px;
 }
-.page-btn {
+.page-btn,
+.page-number-btn {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   padding: 8px 16px;
@@ -2311,14 +2410,34 @@ onMounted(() => {
   border-radius: 8px;
   transition: all 0.2s ease;
 }
-.page-btn:hover:not(:disabled) {
+.page-number-btn {
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+  font-weight: 800;
+}
+.page-btn:hover:not(:disabled),
+.page-number-btn:hover,
+.page-number-btn.active {
   background: #eff6ff;
   color: #2563eb;
   border-color: #2563eb;
 }
+.page-number-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+}
 .page-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.page-info {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 4px;
 }
 
 /* SKELETONS */

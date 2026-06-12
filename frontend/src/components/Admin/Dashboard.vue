@@ -5,8 +5,63 @@ import echo from '@/services/echo'
 
 // State
 const period = ref('all')          // all | week | month | year
-const loading = ref(true)
-const data = ref(null)
+const DASHBOARD_CACHE_PREFIX = 'predator_admin_dashboard_'
+const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
+
+const statusLabels = [
+    ['pending', 'Chờ xác nhận'],
+    ['confirmed', 'Đã xác nhận'],
+    ['shipping', 'Đang giao'],
+    ['done', 'Hoàn thành'],
+    ['cancelled', 'Hủy đơn'],
+    ['refund_pending', 'Yêu cầu hoàn trả'],
+    ['refund_pickup', 'Chờ lấy hàng hoàn'],
+    ['refund_delivering', 'Đang giao hoàn'],
+    ['refund_received', 'Đã nhận hoàn'],
+    ['refunded', 'Đã hoàn tiền'],
+]
+
+const createDashboardShell = (selectedPeriod = 'all') => ({
+    period: selectedPeriod,
+    doanh_thu: '0đ',
+    khach_hang: 0,
+    bien_the: 0,
+    trang_thai: statusLabels.map(([status, label]) => ({ status, label, count: 0, pct: 0 })),
+    bieu_do: [],
+    bieu_do_khach_hang: [],
+    bieu_do_san_pham: [],
+    don_hang: [],
+    san_pham: [],
+})
+
+const getDashboardCacheKey = (selectedPeriod) => `${DASHBOARD_CACHE_PREFIX}${selectedPeriod}`
+
+const readDashboardCache = (selectedPeriod) => {
+    try {
+        const raw = localStorage.getItem(getDashboardCacheKey(selectedPeriod))
+        if (!raw) return null
+        const cached = JSON.parse(raw)
+        if (!cached?.data || Date.now() - cached.cachedAt > DASHBOARD_CACHE_TTL_MS) return null
+        return cached.data
+    } catch (_) {
+        return null
+    }
+}
+
+const writeDashboardCache = (selectedPeriod, payload) => {
+    try {
+        localStorage.setItem(getDashboardCacheKey(selectedPeriod), JSON.stringify({
+            cachedAt: Date.now(),
+            data: payload,
+        }))
+    } catch (_) {
+        // Dashboard cache is a speed boost only.
+    }
+}
+
+const loading = ref(false)
+const data = ref(readDashboardCache(period.value) || createDashboardShell(period.value))
+const errorMessage = ref('')
 const searchQuery = ref('')
 const hoveredStatus = ref(null) // Để quản lý trạng thái đang hover
 const chartTab = ref('sales')   // sales | customers | products
@@ -15,16 +70,39 @@ const today = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: 'l
 
 // Fetch
 async function fetchDashboard() {
+    const selectedPeriod = period.value
+    const cached = readDashboardCache(selectedPeriod)
+    if (cached) {
+        data.value = cached
+    } else if (!data.value || data.value.period !== selectedPeriod) {
+        data.value = createDashboardShell(selectedPeriod)
+    }
+
     loading.value = true
+    errorMessage.value = ''
     try {
         const res = await api.get('/admin/dashboard', { 
-            params: { period: period.value } 
+            params: { period: selectedPeriod },
+            cache: false,
         })
 
-        data.value = res.data.data
+        if (period.value !== selectedPeriod) return
+
+        if (!res.data?.data) {
+            throw new Error(res.data?.message || 'Máy chủ chưa trả dữ liệu dashboard.')
+        }
+
+        data.value = {
+            ...createDashboardShell(selectedPeriod),
+            ...(res.data.data || {}),
+        }
+        writeDashboardCache(selectedPeriod, data.value)
 
     } catch (e) {
         console.error('Dashboard fetch error:', e)
+        errorMessage.value = e.response?.data?.message
+            || e.message
+            || 'Không thể kết nối database để tải dữ liệu dashboard.'
     } finally {
         loading.value = false
     }
@@ -84,7 +162,9 @@ onUnmounted(() => {
     echo.leaveChannel('admin-orders')
     document.removeEventListener('click', closePeriodDropdown)
 })
-watch(period, fetchDashboard)
+watch(period, () => {
+    fetchDashboard()
+})
 
 // Stats cards
 const stats = computed(() => {
@@ -367,13 +447,15 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
             </div>
         </div>
 
-        <!-- Subtle background loader (top of the page) -->
-        <div v-if="loading && data" class="background-loader-bar"></div>
+        <!-- Subtle background loader only, content remains visible while refreshing -->
+        <div v-if="loading" class="background-loader-bar"></div>
 
-        <!-- Loading skeleton (only on initial load) -->
-        <div v-if="loading && !data" class="loading-wrap">
-            <div class="spinner"></div>
-            <span>Đang tải dữ liệu...</span>
+        <div v-if="errorMessage" class="dashboard-error">
+            <div>
+                <b>Chưa lấy được dữ liệu database</b>
+                <span>{{ errorMessage }}</span>
+            </div>
+            <button type="button" @click="fetchDashboard">Tải lại</button>
         </div>
 
         <template v-if="data">
@@ -698,7 +780,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <b class="product-price">{{ p.gia }}</b>
                             </div>
                         </div>
-                        <div v-if="!data.san_pham_ban_chay?.length" class="empty-row">
+                        <div v-if="!data.san_pham?.length" class="empty-row">
                             Chưa có dữ liệu trong kỳ này
                         </div>
                     </div>
@@ -835,6 +917,49 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     to {
         transform: rotate(360deg);
     }
+}
+
+.dashboard-error {
+    margin: 0 28px 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.dashboard-error div {
+    display: grid;
+    gap: 3px;
+}
+
+.dashboard-error b {
+    font-size: 13px;
+}
+
+.dashboard-error span {
+    font-size: 12px;
+    color: #b91c1c;
+}
+
+.dashboard-error button {
+    border: none;
+    border-radius: 999px;
+    background: #dc2626;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.dashboard-error button:hover {
+    background: #b91c1c;
 }
 
 /* PERIOD BAR */

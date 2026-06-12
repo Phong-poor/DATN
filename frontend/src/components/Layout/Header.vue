@@ -419,7 +419,7 @@ onMounted(() => {
   const warmProductsPage = () => {
     const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
-    import('../Web/ProductsPremiumPage.vue')
+    import('../Web/Producpage.vue')
     prefetchProductsPage().catch(() => {})
   }
   if ('requestIdleCallback' in window) {
@@ -514,7 +514,7 @@ const handleLogout = async () => {
 const warmProductsPageNow = () => {
   const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
   if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
-  import('../Web/ProductsPremiumPage.vue')
+  import('../Web/Producpage.vue')
   prefetchProductsPage().catch(() => {})
 }
 </script>
@@ -849,6 +849,11 @@ const warmProductsPageNow = () => {
 
 /* ============================= ANNOUNCEMENT BAR ============================= */
 .ann-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
   background: #0f172a;
   height: 34px;
   display: flex;
@@ -888,8 +893,10 @@ const warmProductsPageNow = () => {
 
 /* ============================= MAIN HEADER ============================= */
 .header {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: 34px;
+  left: 0;
+  right: 0;
   z-index: 1000;
   background: rgba(13, 27, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
@@ -1696,6 +1703,9 @@ const warmProductsPageNow = () => {
 
 @media (max-width: 600px) {
   .ann-bar { display: none; }
+  .header {
+    top: 0;
+  }
   .header-inner {
     width: calc(100% - 32px);
     padding: 0;

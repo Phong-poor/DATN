@@ -3536,6 +3536,7 @@ onUnmounted(() => {
 .combo-carousel-shell {
     position: relative;
     margin-top: 26px;
+    --combo-card-gap: 24px;
 }
 
 .combo-carousel-viewport {
@@ -3546,7 +3547,7 @@ onUnmounted(() => {
     scrollbar-width: none;
     cursor: grab;
     -webkit-overflow-scrolling: touch;
-    padding: 0 2px 6px;
+    padding: 0 2px 8px;
 }
 
 .combo-carousel-viewport::-webkit-scrollbar {
@@ -3560,9 +3561,9 @@ onUnmounted(() => {
 
 .combos-grid {
     display: flex;
-    gap: 20px;
+    gap: var(--combo-card-gap);
     margin: 0;
-    width: max-content;
+    width: 100%;
     min-width: 100%;
 }
 
@@ -3613,11 +3614,10 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     flex-direction: column;
-    flex: 0 0 calc((100vw - 300px) / 4);
-    min-width: 280px;
-    max-width: 380px;
+    flex: 0 0 calc((100% - (var(--combo-card-gap) * 3)) / 4);
+    min-width: 0;
+    max-width: none;
     scroll-snap-align: start;
-    margin: 0 auto;
 }
 
 .combo-home-card:hover {
@@ -3796,20 +3796,24 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1280px) {
+    .combo-carousel-shell {
+        --combo-card-gap: 20px;
+    }
+
     .combo-home-card {
-        flex-basis: calc((100vw - 220px) / 3);
+        flex-basis: calc((100% - (var(--combo-card-gap) * 2)) / 3);
     }
 }
 
 @media (max-width: 1024px) {
     .combo-home-card {
-        flex-basis: calc((100vw - 120px) / 2);
+        flex-basis: calc((100% - var(--combo-card-gap)) / 2);
     }
 }
 
 @media (max-width: 768px) {
-    .combos-grid {
-        gap: 14px;
+    .combo-carousel-shell {
+        --combo-card-gap: 14px;
     }
 
     .combo-home-card {

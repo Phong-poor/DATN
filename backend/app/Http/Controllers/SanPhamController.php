@@ -410,7 +410,6 @@ class SanPhamController extends Controller
                             'id_sanpham' => $sanpham->id_sanpham,
                             'duongdan'   => $imagePath,
                             'thutu'      => $ha['thutu'] ?? $index,
-                            'macdinh'    => $ha['macdinh'] ?? 0,
                         ]);
                     }
                 }

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
@@ -26,9 +26,9 @@ const swal = new Proxy({}, {
   },
 })
 
-/* ═══════════════════════════════════════
-   DANH SÁCH SẢN PHẨM
-═══════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DANH SÃCH Sáº¢N PHáº¨M
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
@@ -43,9 +43,9 @@ const isOpenStatusDropdown = ref(false)
 const isOpenCategoryDropdown = ref(false)
 
 const getSelectedCategoryLabel = () => {
-  if (!selectedCategory.value) return 'Tất cả danh mục'
+  if (!selectedCategory.value) return 'Táº¥t cáº£ danh má»¥c'
   const found = categories.value.find(c => String(c.id_danhmuc) === String(selectedCategory.value))
-  return found ? found.ten_danhmuc : 'Tất cả danh mục'
+  return found ? found.ten_danhmuc : 'Táº¥t cáº£ danh má»¥c'
 }
 
 // Custom Tree Select States
@@ -79,7 +79,7 @@ const selectAllOptions = (typeId, options) => {
   // Auto switch to Variant mode if multiple options exist
   if (options.length > 1 && !variationTierIds.value.has(tIdStr)) {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
+      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -128,9 +128,9 @@ const selectTreeCategory = (child) => {
 }
 
 const getSelectedCategoryName = () => {
-  if (!form.value.category) return 'Chọn danh mục'
+  if (!form.value.category) return 'Chá»n danh má»¥c'
   const child = categories.value.find(c => String(c.id_danhmuc) === String(form.value.category))
-  if (!child) return 'Chọn danh mục'
+  if (!child) return 'Chá»n danh má»¥c'
   const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
   return parent ? `${parent.ten_danhmuc} > ${child.ten_danhmuc}` : child.ten_danhmuc
 }
@@ -185,8 +185,8 @@ const isProductsFetching = ref(false)
 const categories = ref([])
 const parentCategories = ref([])
 const childCategories = ref([])
-const allBrands = ref([]) // Lưu toàn bộ brand
-const brands = ref([]) // Hiển thị trên select
+const allBrands = ref([]) // LÆ°u toÃ n bá»™ brand
+const brands = ref([]) // Hiá»ƒn thá»‹ trÃªn select
 const colors = ref([])
 const readingExtraImages = ref(false)
 const variantLoading = ref(false)
@@ -334,8 +334,6 @@ watch([searchQuery, selectedStatus, selectedCategory, selectedParentTab], () => 
 })
 
 const getErrorMessage = (error, fallback) => {
-  if (error?.response?.data?.message) return error.response.data.message
-
   const errors = error?.response?.data?.errors
   if (errors && typeof errors === 'object') {
     const firstKey = Object.keys(errors)[0]
@@ -344,12 +342,15 @@ const getErrorMessage = (error, fallback) => {
     }
   }
 
+  if (error?.response?.data?.message) return error.response.data.message
+  if (error?.response?.data?.error) return error.response.data.error
+
   return fallback
 }
 
-/* ═══════════════════════════════════════
-   NHẬP XUẤT EXCEL
-   ═══════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   NHáº¬P XUáº¤T EXCEL
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const handleExportExcel = async () => {
   if (isExporting.value) return
   isExporting.value = true
@@ -359,17 +360,17 @@ const handleExportExcel = async () => {
     const data = res.data
 
     if (!data || data.length === 0) {
-      swal.warning('Không có dữ liệu', 'Không có dữ liệu để xuất')
+      swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘á»ƒ xuáº¥t')
       return
     }
 
     // Map data to user-friendly column names
     const worksheetData = data.map(item => ({
-      'ID Biến Thể': item.id_bienthe,
-      'Tên Sản Phẩm': item.tenSP,
-      'Biến Thể': item.ten_bienthe,
-      'Giá': item.gia,
-      'Số Lượng': item.soluong
+      'ID Biáº¿n Thá»ƒ': item.id_bienthe,
+      'TÃªn Sáº£n Pháº©m': item.tenSP,
+      'Biáº¿n Thá»ƒ': item.ten_bienthe,
+      'GiÃ¡': item.gia,
+      'Sá»‘ LÆ°á»£ng': item.soluong
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData)
@@ -380,7 +381,7 @@ const handleExportExcel = async () => {
     XLSX.writeFile(workbook, `Kho_Hang_Predator_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
-    swal.error('Lỗi', 'Lỗi khi xuất file Excel')
+    swal.error('Lá»—i', 'Lá»—i khi xuáº¥t file Excel')
   } finally {
     isExporting.value = false
   }
@@ -407,27 +408,27 @@ const handleImportExcel = async (e) => {
 
       // Transform to backend format
       const updates = jsonData.map(row => ({
-        id_bienthe: row['ID Biến Thể'],
-        gia: row['Giá'],
-        soluong: row['Số Lượng']
+        id_bienthe: row['ID Biáº¿n Thá»ƒ'],
+        gia: row['GiÃ¡'],
+        soluong: row['Sá»‘ LÆ°á»£ng']
       })).filter(item => item.id_bienthe)
 
       if (updates.length === 0) {
-        swal.warning('Không hợp lệ', "Không tìm thấy dữ liệu hợp lệ trong file Excel")
+        swal.warning('KhÃ´ng há»£p lá»‡', "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u há»£p lá»‡ trong file Excel")
         return
       }
 
-      const isConfirmed = await swal.confirm('Xác nhận cập nhật', `Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)
+      const isConfirmed = await swal.confirm('XÃ¡c nháº­n cáº­p nháº­t', `Báº¡n cÃ³ cháº¯c muá»‘n cáº­p nháº­t ${updates.length} biáº¿n thá»ƒ tá»« Excel?`)
       if (!isConfirmed) {
         return
       }
 
       const res = await api.post('/admin/sanpham/import-stock', { updates })
-      swal.success('Thành công', res.data.message || 'Cập nhật tồn kho thành công')
+      swal.success('ThÃ nh cÃ´ng', res.data.message || 'Cáº­p nháº­t tá»“n kho thÃ nh cÃ´ng')
       await fetchProducts()
     } catch (error) {
       console.error(error)
-      swal.error('Lỗi', 'Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.')
+      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c hoáº·c import file Excel. HÃ£y kiá»ƒm tra Ä‘á»‹nh dáº¡ng file.')
     } finally {
       isImporting.value = false
       e.target.value = ''
@@ -437,13 +438,13 @@ const handleImportExcel = async (e) => {
   reader.readAsArrayBuffer(file)
 }
 
-/* ═══════════════════════════════════════
-   NHẬP XUẤT EXCEL BIẾN THỂ (TRONG MODAL)
-   ═══════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   NHáº¬P XUáº¤T EXCEL BIáº¾N THá»‚ (TRONG MODAL)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const handleExportVariantsExcel = async () => {
   const headers = tableHeaders.value
   if (!headers.length) {
-    swal.warning('Không có dữ liệu', 'Không có thuộc tính để xuất')
+    swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ thuá»™c tÃ­nh Ä‘á»ƒ xuáº¥t')
     return
   }
 
@@ -453,7 +454,7 @@ const handleExportVariantsExcel = async () => {
     headers.forEach(h => {
       item[h.label] = row.attrs[h.id] || ''
     })
-    item['Giá'] = row.price
+    item['GiÃ¡'] = row.price
     item['Kho'] = row.stock
     return item
   })
@@ -505,21 +506,21 @@ const handleImportVariantsExcel = (e) => {
           generatedRows.value.push({
             id: `${Date.now()}-${Math.random()}`,
             attrs,
-            price: rowData['Giá'] || '',
+            price: rowData['GiÃ¡'] || '',
             stock: rowData['Kho'] || '',
             ten_bienthe: headers.map(h => attrs[h.id]).join(' - '),
             isExisting: false,
-            _manualPrice: rowData['Giá'] !== undefined,
+            _manualPrice: rowData['GiÃ¡'] !== undefined,
             _manualStock: rowData['Kho'] !== undefined
           })
           added++
         }
       })
 
-      swal.success('Nhập biến thể', `Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
+      swal.success('Nháº­p biáº¿n thá»ƒ', `ThÃªm má»›i ${added} cáº¥u hÃ¬nh, bá» qua ${skipped} cáº¥u hÃ¬nh Ä‘Ã£ cÃ³.`)
     } catch (err) {
       console.error(err)
-      swal.error('Lỗi', 'Lỗi khi đọc file Excel biến thể')
+      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c file Excel biáº¿n thá»ƒ')
     } finally {
       e.target.value = ''
     }
@@ -575,20 +576,20 @@ const fetchProducts = async () => {
         id: p.id_sanpham,
         name: p.tenSP,
         sku: p.SKU || '',
-        category: p.danh_muc?.ten_danhmuc || 'Chưa có danh mục',
+        category: p.danh_muc?.ten_danhmuc || 'ChÆ°a cÃ³ danh má»¥c',
         categoryId: p.id_danhmuc ?? '',
         parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
-        brand: p.thuong_hieu?.ten_thuonghieu || 'Chưa có thương hiệu',
+        brand: p.thuong_hieu?.ten_thuonghieu || 'ChÆ°a cÃ³ thÆ°Æ¡ng hiá»‡u',
         totalVariants: variantCount,
         updated_at: p.updated_at,
         bienThes,
-        status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
+        status: String(p.trangthai) === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
         img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
       }
     })
     saveProductsCache()
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không tải được danh sách sản phẩm.')
+    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c danh sÃ¡ch sáº£n pháº©m.')
   } finally {
     isProductsFetching.value = false
   }
@@ -622,7 +623,7 @@ const fetchBrands = async () => {
 }
 
 /**
- * Fetch parent categories (danh mục cha)
+ * Fetch parent categories (danh má»¥c cha)
  */
 const fetchParentCategories = async () => {
   try {
@@ -671,7 +672,7 @@ const filterBrandsLocally = () => {
   }
 
   brands.value = allBrands.value.filter(brand => {
-    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Áp dụng tất cả
+    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Ãp dá»¥ng táº¥t cáº£
     const ids = brand.danh_muc_ids.map(Number)
     return ids.includes(currentCategoryId) || ids.includes(currentParentId)
   })
@@ -699,20 +700,20 @@ const fetchColors = async () => {
 
 const removeProduct = async (id, name = '') => {
   const confirmed = await swal.confirm(
-    'Xác nhận xóa',
-    `Bạn có chắc muốn xóa sản phẩm${name ? ` "${name}"` : ''} không?`
+    'XÃ¡c nháº­n xÃ³a',
+    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a sáº£n pháº©m${name ? ` "${name}"` : ''} khÃ´ng?`
   )
 
   if (!confirmed) return
 
   try {
     await api.delete(`/admin/sanpham/${id}`)
-    swal.success('Thành công', 'Xóa sản phẩm thành công')
+    swal.success('ThÃ nh cÃ´ng', 'XÃ³a sáº£n pháº©m thÃ nh cÃ´ng')
     await fetchProducts()
   } catch (error) {
-    const msg = getErrorMessage(error, 'Không xóa được sản phẩm.')
+    const msg = getErrorMessage(error, 'KhÃ´ng xÃ³a Ä‘Æ°á»£c sáº£n pháº©m.')
     formError.value = msg
-    swal.error('Xóa thất bại', msg)
+    swal.error('XÃ³a tháº¥t báº¡i', msg)
   }
 }
 
@@ -731,21 +732,21 @@ const deleteProductsByIds = async (ids) => {
 
   if (failed.length) {
     swal.warning(
-      'Xóa chưa hoàn tất',
-      `Đã xóa ${uniqueIds.length - failed.length}/${uniqueIds.length} sản phẩm. Một số sản phẩm có thể đang có dữ liệu liên quan.`
+      'XÃ³a chÆ°a hoÃ n táº¥t',
+      `ÄÃ£ xÃ³a ${uniqueIds.length - failed.length}/${uniqueIds.length} sáº£n pháº©m. Má»™t sá»‘ sáº£n pháº©m cÃ³ thá»ƒ Ä‘ang cÃ³ dá»¯ liá»‡u liÃªn quan.`
     )
     return
   }
 
-  swal.success('Thành công', `Đã xóa ${uniqueIds.length} sản phẩm.`)
+  swal.success('ThÃ nh cÃ´ng', `ÄÃ£ xÃ³a ${uniqueIds.length} sáº£n pháº©m.`)
 }
 
 const removeSelectedProducts = async () => {
   if (!selectedProductIds.value.length || isBulkDeleting.value) return
 
   const confirmed = await swal.confirm(
-    'Xóa sản phẩm đã chọn',
-    `Bạn có chắc muốn xóa ${selectedProductIds.value.length} sản phẩm đã chọn không?`
+    'XÃ³a sáº£n pháº©m Ä‘Ã£ chá»n',
+    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a ${selectedProductIds.value.length} sáº£n pháº©m Ä‘Ã£ chá»n khÃ´ng?`
   )
 
   if (!confirmed) return
@@ -763,10 +764,10 @@ const removeAllFilteredProducts = async () => {
 
   const total = filteredProducts.value.length
   const confirmed = await swal.confirm(
-    'Xóa toàn bộ sản phẩm',
+    'XÃ³a toÃ n bá»™ sáº£n pháº©m',
     selectedStatus.value || selectedCategory.value || searchQuery.value
-      ? `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm đang lọc không?`
-      : `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm trong danh sách không?`
+      ? `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m Ä‘ang lá»c khÃ´ng?`
+      : `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m trong danh sÃ¡ch khÃ´ng?`
   )
 
   if (!confirmed) return
@@ -779,25 +780,25 @@ const removeAllFilteredProducts = async () => {
   }
 }
 
-/* ═══════════════════════════════════════
-   NHÓM THUỘC TÍNH & LOẠI THUỘC TÍNH
-═══════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   NHÃ“M THUá»˜C TÃNH & LOáº I THUá»˜C TÃNH
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const baseAttributeGroups = ref([])
 const attributeGroups = ref([])
 
 const groupIconMap = {
-  'Cấu hình': '💻',
-  'Màn hình': '🖥️',
-  'Pin & Sạc': '🔋',
-  'Kết nối': '📡',
-  'Phụ kiện': '🖱️',
-  'Màu sắc': '🎨',
+  'Cáº¥u hÃ¬nh': 'ðŸ’»',
+  'MÃ n hÃ¬nh': 'ðŸ–¥ï¸',
+  'Pin & Sáº¡c': 'ðŸ”‹',
+  'Káº¿t ná»‘i': 'ðŸ“¡',
+  'Phá»¥ kiá»‡n': 'ðŸ–±ï¸',
+  'MÃ u sáº¯c': 'ðŸŽ¨',
 }
 
 const colorPool = ['blue', 'green', 'amber', 'pink', 'purple', 'teal']
 
 const getGroupIcon = (name) => {
-  return groupIconMap[name] || '📦'
+  return groupIconMap[name] || 'ðŸ“¦'
 }
 
 const getTypeColor = (name) => {
@@ -847,12 +848,12 @@ const buildAttributeGroups = () => {
     colors.value.length > 0
       ? {
         id: 'color-group',
-        name: 'Màu sắc',
-        icon: getGroupIcon('Màu sắc'),
+        name: 'MÃ u sáº¯c',
+        icon: getGroupIcon('MÃ u sáº¯c'),
         attrTypes: [
           {
             id: 'color-type',
-            label: 'Màu sắc',
+            label: 'MÃ u sáº¯c',
             color: 'pink',
             options: colors.value.map((c) => ({
               label: c.name,
@@ -932,15 +933,15 @@ const fetchAttributeGroups = async () => {
       selectedGroupId.value = attributeGroups.value[0].id
     }
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không tải được dữ liệu biến thể.')
+    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c dá»¯ liá»‡u biáº¿n thá»ƒ.')
   } finally {
     variantLoading.value = false
   }
 }
 
-/* ═══════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODAL & FORM
-═══════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const showModal = ref(false)
 const currentView = ref('list') // 'list' | 'product-form'
 const formError = ref('')
@@ -956,7 +957,7 @@ const defaultForm = () => ({
   parentCategory: '',
   category: '',
   brand: '',
-  status: 'Đang bán',
+  status: 'Äang bÃ¡n',
   img: '',
   images: [],
   weight: '',
@@ -975,7 +976,7 @@ watch(() => form.value.category, async (newCategoryId) => {
       form.value.parentCategory = String(child.id_danhmuc_cha)
       
       const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
-      if (parent && parent.ten_danhmuc.toLowerCase().includes('phụ kiện')) {
+      if (parent && parent.ten_danhmuc.toLowerCase().includes('phá»¥ kiá»‡n')) {
         variationTierIds.value.add('color-type')
       }
     }
@@ -1012,46 +1013,46 @@ const validateTopForm = () => {
   const errors = defaultFieldErrors()
 
   if (!imgPreview.value && !form.value.img) {
-    errors.img = 'Vui lòng chọn ảnh sản phẩm'
+    errors.img = 'Vui lÃ²ng chá»n áº£nh sáº£n pháº©m'
   }
 
   if (form.value.images.length > MAX_EXTRA_IMAGES) {
-    errors.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
+    errors.images = `Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a ${MAX_EXTRA_IMAGES} áº£nh phá»¥`
   }
 
   if (!form.value.name.trim()) {
-    errors.name = 'Tên sản phẩm không được để trống'
+    errors.name = 'TÃªn sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'
   } else if (form.value.name.trim().length < 3) {
-    errors.name = 'Tên sản phẩm phải có ít nhất 3 ký tự'
+    errors.name = 'TÃªn sáº£n pháº©m pháº£i cÃ³ Ã­t nháº¥t 3 kÃ½ tá»±'
   } else if (form.value.name.trim().length > 255) {
-    errors.name = 'Tên sản phẩm không được vượt quá 255 ký tự'
+    errors.name = 'TÃªn sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 255 kÃ½ tá»±'
   }
 
   if (!form.value.brand) {
-    errors.brand = 'Vui lòng chọn thương hiệu'
+    errors.brand = 'Vui lÃ²ng chá»n thÆ°Æ¡ng hiá»‡u'
   }
 
   if (!form.value.parentCategory) {
-    errors.parentCategory = 'Vui lòng chọn danh mục cha'
+    errors.parentCategory = 'Vui lÃ²ng chá»n danh má»¥c cha'
   }
 
   if (!form.value.category) {
-    errors.category = 'Vui lòng chọn danh mục con'
+    errors.category = 'Vui lÃ²ng chá»n danh má»¥c con'
   }
 
-  if (!['Đang bán', 'Nháp'].includes(form.value.status)) {
-    errors.status = 'Trạng thái không hợp lệ'
+  if (!['Äang bÃ¡n', 'NhÃ¡p'].includes(form.value.status)) {
+    errors.status = 'Tráº¡ng thÃ¡i khÃ´ng há»£p lá»‡'
   }
 
   if (form.value.weight !== '' && form.value.weight !== null) {
     const weight = Number(form.value.weight)
 
     if (Number.isNaN(weight)) {
-      errors.weight = 'Khối lượng phải là số'
+      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lÃ  sá»‘'
     } else if (weight <= 0) {
-      errors.weight = 'Khối lượng phải lớn hơn 0'
+      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lá»›n hÆ¡n 0'
     } else if (weight > 1000) {
-      errors.weight = 'Khối lượng không hợp lệ'
+      errors.weight = 'Khá»‘i lÆ°á»£ng khÃ´ng há»£p lá»‡'
     }
   }
 
@@ -1073,13 +1074,13 @@ const onFileChange = e => {
   fieldErrors.value.img = ''
 
   if (!allowedImageTypes.includes(file.type)) {
-    fieldErrors.value.img = 'Ảnh sản phẩm chỉ chấp nhận PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
 
   if (file.size > MAX_MAIN_IMAGE_SIZE) {
-    fieldErrors.value.img = 'Ảnh sản phẩm không được vượt quá 5MB'
+    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
@@ -1100,21 +1101,21 @@ const onExtraFilesChange = async (e) => {
 
   const totalAfterAdd = form.value.images.length + files.length
   if (totalAfterAdd > MAX_EXTRA_IMAGES) {
-    fieldErrors.value.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
+    fieldErrors.value.images = `Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a ${MAX_EXTRA_IMAGES} áº£nh phá»¥`
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidTypeFile = files.find(file => !allowedImageTypes.includes(file.type))
   if (invalidTypeFile) {
-    fieldErrors.value.images = 'Ảnh phụ chỉ chấp nhận PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.images = 'áº¢nh phá»¥ chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidSizeFile = files.find(file => file.size > MAX_EXTRA_IMAGE_SIZE)
   if (invalidSizeFile) {
-    fieldErrors.value.images = 'Mỗi ảnh phụ không được vượt quá 5MB'
+    fieldErrors.value.images = 'Má»—i áº£nh phá»¥ khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
@@ -1128,7 +1129,7 @@ const onExtraFilesChange = async (e) => {
           const reader = new FileReader()
 
           reader.onload = (ev) => resolve(ev.target.result)
-          reader.onerror = () => reject(new Error('Không đọc được file ảnh'))
+          reader.onerror = () => reject(new Error('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c file áº£nh'))
 
           reader.readAsDataURL(file)
         })
@@ -1139,7 +1140,7 @@ const onExtraFilesChange = async (e) => {
     extraImagePreviews.value = [...extraImagePreviews.value, ...base64Images]
   } catch (error) {
     console.error(error)
-    fieldErrors.value.images = 'Không đọc được một hoặc nhiều ảnh phụ'
+    fieldErrors.value.images = 'KhÃ´ng Ä‘á»c Ä‘Æ°á»£c má»™t hoáº·c nhiá»u áº£nh phá»¥'
   } finally {
     readingExtraImages.value = false
 
@@ -1167,13 +1168,13 @@ const removeExtraImage = index => {
   }
 }
 
-/* ═══════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    VARIANT STATE
-═══════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const vsPhase = ref(1)
 const selectedGroupId = ref(null)
 const selectedOptions = ref({})
-const variationTierIds = ref(new Set()) // Lưu ID thuộc tính dùng làm Biến thể (max 2)
+const variationTierIds = ref(new Set()) // LÆ°u ID thuá»™c tÃ­nh dÃ¹ng lÃ m Biáº¿n thá»ƒ (max 2)
 const generatedRows = ref([])
 const editVariantHeaders = ref([])
 const VARIANTS_PER_PAGE = 15
@@ -1194,7 +1195,7 @@ const toggleVariationTier = (typeId) => {
     }
   } else {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
+      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -1232,13 +1233,13 @@ const addManualVariant = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
+    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU) trÆ°á»›c khi thÃªm thá»§ cÃ´ng.')
     return
   }
   
   const attrs = {}
   headers.forEach(h => {
-    // Lấy giá trị đầu tiên trong bộ chọn để làm mặc định
+    // Láº¥y giÃ¡ trá»‹ Ä‘áº§u tiÃªn trong bá»™ chá»n Ä‘á»ƒ lÃ m máº·c Ä‘á»‹nh
     attrs[h.id] = Array.from(selectedOptions.value[h.id] || [])[0] || null
   })
 
@@ -1249,7 +1250,7 @@ const addManualVariant = () => {
     stock: ''
   })
   
-  // Chuyển đến trang cuối
+  // Chuyá»ƒn Ä‘áº¿n trang cuá»‘i
   variantCurrentPage.value = variantTotalPages.value
 }
 
@@ -1340,9 +1341,9 @@ const findAttrTypeByName = (name) => {
   const normalized = String(name || '').trim().toLowerCase()
 
   if (
-    normalized === 'màu sắc' ||
+    normalized === 'mÃ u sáº¯c' ||
     normalized === 'mau sac' ||
-    normalized === 'màu' ||
+    normalized === 'mÃ u' ||
     normalized === 'mau'
   ) {
     return allAttrTypes.value.find(t => String(t.id) === 'color-type') || null
@@ -1396,11 +1397,11 @@ const toggleOption = (typeId, value) => {
   const isTier = variationTierIds.value.has(typeId)
 
   if (isTier) {
-    // Chế độ chọn nhiều (Biến thể)
+    // Cháº¿ Ä‘á»™ chá»n nhiá»u (Biáº¿n thá»ƒ)
     if (set.has(value)) set.delete(value)
     else set.add(value)
   } else {
-    // Chế độ chọn duy nhất (Thông số kỹ thuật)
+    // Cháº¿ Ä‘á»™ chá»n duy nháº¥t (ThÃ´ng sá»‘ ká»¹ thuáº­t)
     if (set.has(value)) {
       set.delete(value)
     } else {
@@ -1440,7 +1441,7 @@ const validateVariantSelections = () => {
   let isValid = true
 
   if (!groupsHavingSelection.value.length) {
-    fieldErrors.value.variants = 'Vui lòng chọn ít nhất 1 giá trị thuộc tính'
+    fieldErrors.value.variants = 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ thuá»™c tÃ­nh'
     fieldErrors.value.variantGroups = {}
     return false
   }
@@ -1450,7 +1451,7 @@ const validateVariantSelections = () => {
       const selectedCount = selectedOptions.value[type.id]?.size ?? 0
 
       if (selectedCount < 1) {
-        variantGroupErrors[type.id] = `Vui lòng chọn ít nhất 1 giá trị cho ${type.label}`
+        variantGroupErrors[type.id] = `Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ cho ${type.label}`
         isValid = false
       }
     })
@@ -1459,7 +1460,7 @@ const validateVariantSelections = () => {
   fieldErrors.value.variantGroups = variantGroupErrors
   fieldErrors.value.variants = isValid
     ? ''
-    : 'Trong mỗi nhóm đã chọn, mọi loại thuộc tính phải có ít nhất 1 giá trị'
+    : 'Trong má»—i nhÃ³m Ä‘Ã£ chá»n, má»i loáº¡i thuá»™c tÃ­nh pháº£i cÃ³ Ã­t nháº¥t 1 giÃ¡ trá»‹'
 
   return isValid
 }
@@ -1498,7 +1499,7 @@ const generateVariants = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
+    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU)')
     return
   }
 
@@ -1546,14 +1547,14 @@ const generateVariants = () => {
 const rebuildSelectedOptionsFromRows = () => {
   const nextSelectedOptions = {}
 
-  // 1. Bảo tồn các Thông số kỹ thuật hiện có (không phải Biến thể)
+  // 1. Báº£o tá»“n cÃ¡c ThÃ´ng sá»‘ ká»¹ thuáº­t hiá»‡n cÃ³ (khÃ´ng pháº£i Biáº¿n thá»ƒ)
   Object.keys(selectedOptions.value || {}).forEach(attrId => {
     if (!variationTierIds.value.has(String(attrId))) {
       nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
     }
   })
 
-  // 2. Nạp lại các Biến thể từ cấu hình bảng
+  // 2. Náº¡p láº¡i cÃ¡c Biáº¿n thá»ƒ tá»« cáº¥u hÃ¬nh báº£ng
   generatedRows.value.forEach((row) => {
     Object.entries(row.attrs || {}).forEach(([attrId, value]) => {
       attrId = String(attrId)
@@ -1671,7 +1672,7 @@ const markManualStock = (row) => {
 
 const validateVariantRows = () => {
   if (!generatedRows.value.length) {
-    fieldErrors.value.variantRows = 'Vui lòng tạo ít nhất 1 biến thể'
+    fieldErrors.value.variantRows = 'Vui lÃ²ng táº¡o Ã­t nháº¥t 1 biáº¿n thá»ƒ'
     return false
   }
 
@@ -1679,6 +1680,7 @@ const validateVariantRows = () => {
     const hasPrice = row.price !== '' && row.price !== null && row.price !== undefined
     const hasStock = row.stock !== '' && row.stock !== null && row.stock !== undefined
 
+    if (!hasPrice || !hasStock) return true
     if (hasPrice && Number(row.price) <= 0) return true
     if (hasStock && Number(row.stock) < 0) return true
 
@@ -1686,7 +1688,7 @@ const validateVariantRows = () => {
   })
 
   if (invalidRow) {
-    fieldErrors.value.variantRows = 'Giá phải > 0, kho phải >= 0 nếu có nhập'
+    fieldErrors.value.variantRows = 'Vui long nhap du gia rieng > 0 va kho >= 0 cho tat ca bien the'
     return false
   }
 
@@ -1694,9 +1696,9 @@ const validateVariantRows = () => {
   return true
 }
 
-/* ═══════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    RESET / OPEN / CLOSE / SUBMIT
-═══════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const resetForm = () => {
   form.value = defaultForm()
   imgPreview.value = ''
@@ -1750,7 +1752,7 @@ const openEditModal = async (id) => {
     currentView.value = 'product-form'
   } catch (error) {
     console.error(error)
-    swal.error('Lỗi', getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
+    swal.error('Lá»—i', getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c thÃ´ng tin sáº£n pháº©m Ä‘á»ƒ sá»­a.'))
   }
 }
 
@@ -1760,7 +1762,7 @@ const mapProductToForm = (product) => {
     parentCategory: String(product?.danh_muc?.id_danhmuc_cha ?? ''),
     category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
     brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
-    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Đang bán' : 'Nháp',
+    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
     img: '',
     images: [],
     weight: product?.khoiluong ?? '',
@@ -1820,7 +1822,7 @@ const mapProductToForm = (product) => {
 
       return {
         id: matchedAttr?.id ?? item.id_thuoctinh ?? item.ten_thuoctinh ?? `attr_${index}`,
-        label: item.ten_thuoctinh ?? `Thuộc tính ${index + 1}`,
+        label: item.ten_thuoctinh ?? `Thuá»™c tÃ­nh ${index + 1}`,
         color: matchedAttr?.color ?? colorPool[index % colorPool.length],
       }
     })
@@ -1828,13 +1830,13 @@ const mapProductToForm = (product) => {
     editVariantHeaders.value = []
   }
 
-  // 1. Phân biệt các thuộc tính đang làm Biến thể
+  // 1. PhÃ¢n biá»‡t cÃ¡c thuá»™c tÃ­nh Ä‘ang lÃ m Biáº¿n thá»ƒ
   variationTierIds.value = new Set(editVariantHeaders.value.map(h => String(h.id)))
 
-  // 2. Nạp giá trị biến thể vào selectedOptions
+  // 2. Náº¡p giÃ¡ trá»‹ biáº¿n thá»ƒ vÃ o selectedOptions
   rebuildSelectedOptionsFromRows()
 
-  // 3. Nạp Thông số kỹ thuật vào selectedOptions
+  // 3. Náº¡p ThÃ´ng sá»‘ ká»¹ thuáº­t vÃ o selectedOptions
   let specs = []
   if (Array.isArray(product?.thong_so_ky_thuat)) {
     specs = product.thong_so_ky_thuat
@@ -1860,7 +1862,7 @@ const mapProductToForm = (product) => {
     selectedOptions.value = nextSelected
   }
 
-  // 4. Lưu Snapshot sau khi đã nạp đầy đủ Biến thể + Thông số
+  // 4. LÆ°u Snapshot sau khi Ä‘Ã£ náº¡p Ä‘áº§y Ä‘á»§ Biáº¿n thá»ƒ + ThÃ´ng sá»‘
   selectedOptionsSnapshot.value = cloneSelectedOptions(selectedOptions.value)
 
   variantCurrentPage.value = 1
@@ -1889,7 +1891,7 @@ const submitForm = async () => {
   const isTopFormValid = validateTopForm()
   const isVariantRowsValid = validateVariantRows()
   if (!isTopFormValid || !isVariantRowsValid) {
-    formError.value = 'Vui lòng kiểm tra lại thông tin sản phẩm'
+    formError.value = 'Vui lÃ²ng kiá»ƒm tra láº¡i thÃ´ng tin sáº£n pháº©m'
     return
   }
 
@@ -1898,7 +1900,7 @@ const submitForm = async () => {
       id_danhmuc: Number(form.value.category),
       id_thuonghieu: Number(form.value.brand),
       tenSP: form.value.name.trim(),
-      trangthai: form.value.status === 'Đang bán' ? 1 : 0,
+      trangthai: form.value.status === 'Äang bÃ¡n' ? 1 : 0,
       hinhanh: form.value.img || imgPreview.value || '',
       khoiluong: form.value.weight ? Number(form.value.weight) : null,
 
@@ -1942,11 +1944,11 @@ const submitForm = async () => {
       invalidateProductCaches(editingProductId.value)
       await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
       invalidateProductCaches(editingProductId.value)
-      swal.success('Thành công', 'Cập nhật sản phẩm thành công')
+      swal.success('ThÃ nh cÃ´ng', 'Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng')
     } else {
       const response = await api.post('/admin/sanpham', payload)
       invalidateProductCaches(response.data?.data?.id_sanpham || null)
-      swal.success('Thành công', 'Thêm sản phẩm thành công')
+      swal.success('ThÃ nh cÃ´ng', 'ThÃªm sáº£n pháº©m thÃ nh cÃ´ng')
     }
 
     await fetchProducts()
@@ -1954,9 +1956,9 @@ const submitForm = async () => {
     closeModal()
   } catch (error) {
     console.error(error)
-    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
-      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
-      : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    swal.error('Lá»—i', getErrorMessage(error, isEditMode.value
+      ? 'CÃ³ lá»—i xáº£y ra khi cáº­p nháº­t sáº£n pháº©m'
+      : 'CÃ³ lá»—i xáº£y ra khi thÃªm sáº£n pháº©m'))
   }
 }
 
@@ -1976,15 +1978,15 @@ onMounted(() => {
 <template>
   <div class="admin">
 
-    <!-- ══════════════════════════════════════════════════════
-         VIEW: DANH SÁCH sản phẩm (top, stats, filter, table)
-    ══════════════════════════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         VIEW: DANH SÃCH sáº£n pháº©m (top, stats, filter, table)
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <template v-if="currentView === 'list'">
 
     <div class="top">
       <div>
-        <h1>Quản lý sản phẩm</h1>
-        <p>Cập nhật và theo dõi danh mục thiết bị công nghệ 2026</p>
+        <h1>Quáº£n lÃ½ sáº£n pháº©m</h1>
+        <p>Cáº­p nháº­t vÃ  theo dÃµi danh má»¥c thiáº¿t bá»‹ cÃ´ng nghá»‡ 2026</p>
       </div>
       <div class="excel-actions">
         <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
@@ -1995,7 +1997,7 @@ onMounted(() => {
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isExporting ? 'Đang xuất...' : 'Xuất Excel' }}
+          {{ isExporting ? 'Äang xuáº¥t...' : 'Xuáº¥t Excel' }}
         </button>
 
         <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
@@ -2006,48 +2008,48 @@ onMounted(() => {
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isImporting ? 'Đang nhập...' : 'Nhập Excel' }}
+          {{ isImporting ? 'Äang nháº­p...' : 'Nháº­p Excel' }}
         </button>
         <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls"
           @change="handleImportExcel" />
 
-        <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
+        <button class="add-btn" @click="openModal">+ ThÃªm sáº£n pháº©m</button>
       </div>
     </div>
 
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">📦</span>
+        <span class="stat-icon blue">ðŸ“¦</span>
         <div>
-          <p>Tổng sản phẩm</p>
+          <p>Tá»•ng sáº£n pháº©m</p>
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange clickable-stat" @click="openLowStockModal">
-        <span class="stat-icon red">⚠️</span>
+        <span class="stat-icon red">âš ï¸</span>
         <div>
-          <p>Sắp hết hàng</p>
+          <p>Sáº¯p háº¿t hÃ ng</p>
           <b>{{ lowStockStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
 
       <div class="stat-card stat-teal">
-        <span class="stat-icon purple">🏭</span>
+        <span class="stat-icon purple">ðŸ­</span>
         <div>
-          <p>Kho lưu trữ</p>
+          <p>Kho lÆ°u trá»¯</p>
           <b>{{ totalInventoryStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
     </div>
 
-    <!-- Tabs danh mục cha -->
+    <!-- Tabs danh má»¥c cha -->
     <div class="parent-tabs">
       <button 
         class="parent-tab-btn" 
         :class="{ active: selectedParentTab === '' }" 
         @click="selectParentTab('')"
       >
-        Tất cả sản phẩm
+        Táº¥t cáº£ sáº£n pháº©m
       </button>
       <button 
         v-for="parentCat in parentCategories" 
@@ -2067,21 +2069,21 @@ onMounted(() => {
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
-        <input v-model="searchQuery" placeholder="Tìm kiếm tên sản phẩm, SKU..." />
+        <input v-model="searchQuery" placeholder="TÃ¬m kiáº¿m tÃªn sáº£n pháº©m, SKU..." />
       </div>
       <!-- Custom Status Dropdown -->
       <div class="custom-dropdown">
         <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown; isOpenCategoryDropdown = false">
-          <span>{{ selectedStatus || 'Tất cả trạng thái' }}</span>
+          <span>{{ selectedStatus || 'Táº¥t cáº£ tráº¡ng thÃ¡i' }}</span>
           <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Tất cả trạng thái</li>
-            <li :class="{ active: selectedStatus === 'Đang bán' }" @click="selectedStatus = 'Đang bán'; isOpenStatusDropdown = false">Đang bán</li>
-            <li :class="{ active: selectedStatus === 'Nháp' }" @click="selectedStatus = 'Nháp'; isOpenStatusDropdown = false">Nháp</li>
+            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Táº¥t cáº£ tráº¡ng thÃ¡i</li>
+            <li :class="{ active: selectedStatus === 'Äang bÃ¡n' }" @click="selectedStatus = 'Äang bÃ¡n'; isOpenStatusDropdown = false">Äang bÃ¡n</li>
+            <li :class="{ active: selectedStatus === 'NhÃ¡p' }" @click="selectedStatus = 'NhÃ¡p'; isOpenStatusDropdown = false">NhÃ¡p</li>
           </ul>
         </transition>
       </div>
@@ -2096,7 +2098,7 @@ onMounted(() => {
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Tất cả danh mục</li>
+            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Táº¥t cáº£ danh má»¥c</li>
             <li v-for="category in filteredCategoriesForDropdown" :key="category.id_danhmuc" 
                 :class="{ active: String(selectedCategory) === String(category.id_danhmuc) }" 
                 @click="selectedCategory = category.id_danhmuc; isOpenCategoryDropdown = false">
@@ -2109,21 +2111,21 @@ onMounted(() => {
 
     <div class="product-bulk-toolbar">
       <div class="bulk-summary">
-        <span class="bulk-summary-icon">✓</span>
+        <span class="bulk-summary-icon">âœ“</span>
         <div>
-          <b>{{ selectedProductIds.length }} sản phẩm đã chọn</b>
-          <p>Tick từng dòng hoặc chọn toàn bộ {{ paginatedProducts.length }} sản phẩm trên trang hiện tại.</p>
+          <b>{{ selectedProductIds.length }} sáº£n pháº©m Ä‘Ã£ chá»n</b>
+          <p>Tick tá»«ng dÃ²ng hoáº·c chá»n toÃ n bá»™ {{ paginatedProducts.length }} sáº£n pháº©m trÃªn trang hiá»‡n táº¡i.</p>
         </div>
       </div>
       <div class="bulk-toolbar-actions">
         <button class="bulk-btn ghost" :disabled="!selectedProductIds.length || isBulkDeleting" @click="clearProductSelection">
-          Bỏ chọn
+          Bá» chá»n
         </button>
         <button class="bulk-btn danger" :disabled="!selectedProductIds.length || isBulkDeleting" @click="removeSelectedProducts">
-          {{ isBulkDeleting ? 'Đang xóa...' : `Xóa đã chọn (${selectedProductIds.length})` }}
+          {{ isBulkDeleting ? 'Äang xÃ³a...' : `XÃ³a Ä‘Ã£ chá»n (${selectedProductIds.length})` }}
         </button>
         <button class="bulk-btn danger-outline" :disabled="!filteredProducts.length || isBulkDeleting" @click="removeAllFilteredProducts">
-          Xóa toàn bộ
+          XÃ³a toÃ n bá»™
         </button>
       </div>
     </div>
@@ -2136,17 +2138,17 @@ onMounted(() => {
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedProducts.length" @change="toggleCurrentPageSelection" />
             </th>
             <th>STT</th>
-            <th>Sản phẩm</th>
-            <th>Danh mục</th>
-            <th>Thương hiệu</th>
-            <th>Tổng biến thể</th>
-            <th>Trạng thái</th>
-            <th>Thao tác</th>
+            <th>Sáº£n pháº©m</th>
+            <th>Danh má»¥c</th>
+            <th>ThÆ°Æ¡ng hiá»‡u</th>
+            <th>Tá»•ng biáº¿n thá»ƒ</th>
+            <th>Tráº¡ng thÃ¡i</th>
+            <th>Thao tÃ¡c</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!paginatedProducts.length">
-            <td colspan="8" class="empty">Không tìm thấy sản phẩm nào.</td>
+            <td colspan="8" class="empty">KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m nÃ o.</td>
           </tr>
           <tr v-for="(p, i) in paginatedProducts" :key="p.id" :class="{ 'row-selected': selectedProductIds.includes(p.id) }">
             <td class="select-col">
@@ -2165,20 +2167,20 @@ onMounted(() => {
             <td><span class="price">{{ p.brand }}</span></td>
             <td>
               <div class="stock-cell">
-                <span>{{ p.totalVariants }} biến thể</span>
+                <span>{{ p.totalVariants }} biáº¿n thá»ƒ</span>
               </div>
             </td>
-            <td><span class="status-badge" :class="p.status === 'Đang bán' ? 'active' : 'draft'">{{ p.status }}</span>
+            <td><span class="status-badge" :class="p.status === 'Äang bÃ¡n' ? 'active' : 'draft'">{{ p.status }}</span>
             </td>
             <td>
               <div class="actions">
-                <button class="act-btn" title="Sửa" @click="openEditModal(p.id)">
+                <button class="act-btn" title="Sá»­a" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
-                <button class="act-btn danger" title="Xóa" @click="removeProduct(p.id, p.name)">
+                <button class="act-btn danger" title="XÃ³a" @click="removeProduct(p.id, p.name)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -2194,7 +2196,7 @@ onMounted(() => {
     </div>
 
     <div class="pagination">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
+      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">â€¹</button>
 
       <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
         :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
@@ -2202,29 +2204,29 @@ onMounted(() => {
         {{ p }}
       </button>
 
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
+      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">â€º</button>
     </div>
 
     </template><!-- end list view -->
 
-    <!-- ══════════════════════════════════════════════════════
-         VIEW: FORM SẢN PHẨM (Thêm / Sửa)
-    ══════════════════════════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         VIEW: FORM Sáº¢N PHáº¨M (ThÃªm / Sá»­a)
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <template v-if="currentView === 'product-form'">
       <!-- Inline form header -->
       <div class="inline-form-header">
         <button class="back-btn" @click="closeModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
-          Quay lại danh sách
+          Quay láº¡i danh sÃ¡ch
         </button>
-        <h1>{{ isEditMode ? '✏️ Chỉnh sửa sản phẩm' : '➕ Thêm sản phẩm mới' }}</h1>
-        <p>{{ isEditMode ? 'Cập nhật thông tin và biến thể của sản phẩm' : 'Điền đầy đủ thông tin để thêm sản phẩm vào hệ thống' }}</p>
+        <h1>{{ isEditMode ? 'âœï¸ Chá»‰nh sá»­a sáº£n pháº©m' : 'âž• ThÃªm sáº£n pháº©m má»›i' }}</h1>
+        <p>{{ isEditMode ? 'Cáº­p nháº­t thÃ´ng tin vÃ  biáº¿n thá»ƒ cá»§a sáº£n pháº©m' : 'Äiá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin Ä‘á»ƒ thÃªm sáº£n pháº©m vÃ o há»‡ thá»‘ng' }}</p>
       </div>
 
       <div class="inline-form-body">
 
             <div class="form-group">
-              <label>Ảnh sản phẩm</label>
+              <label>áº¢nh sáº£n pháº©m</label>
               <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
               <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
@@ -2232,14 +2234,14 @@ onMounted(() => {
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
-                <small>PNG, JPG, WEBP — tối đa 5MB</small>
+                <p>KÃ©o tháº£ hoáº·c <span>báº¥m Ä‘á»ƒ chá»n áº£nh</span></p>
+                <small>PNG, JPG, WEBP â€” tá»‘i Ä‘a 5MB</small>
               </div>
               <div v-else class="img-preview-wrap">
                 <img :src="imgPreview" class="img-preview" alt="preview" />
                 <div class="img-actions">
-                  <button class="img-change" @click="triggerFileInput">Đổi ảnh</button>
-                  <button class="img-remove-btn" @click="removeImg">Xóa</button>
+                  <button class="img-change" @click="triggerFileInput">Äá»•i áº£nh</button>
+                  <button class="img-remove-btn" @click="removeImg">XÃ³a</button>
                 </div>
               </div>
               <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
@@ -2247,7 +2249,7 @@ onMounted(() => {
 
 
             <div class="form-group">
-              <label>Hình ảnh phụ</label>
+              <label>HÃ¬nh áº£nh phá»¥</label>
               <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
                 @change="onExtraFilesChange" />
               <div class="upload-zone" @click="triggerExtraFileInput">
@@ -2256,31 +2258,31 @@ onMounted(() => {
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn nhiều ảnh</span></p>
-                <small>PNG, JPG, WEBP — có thể chọn nhiều ảnh</small>
+                <p>KÃ©o tháº£ hoáº·c <span>báº¥m Ä‘á»ƒ chá»n nhiá»u áº£nh</span></p>
+                <small>PNG, JPG, WEBP â€” cÃ³ thá»ƒ chá»n nhiá»u áº£nh</small>
               </div>
               <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
               <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
                 <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
                   <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
-                  <button class="multi-preview-remove" @click="removeExtraImage(index)">×</button>
+                  <button class="multi-preview-remove" @click="removeExtraImage(index)">Ã—</button>
                 </div>
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label>Tên sản phẩm <span class="required">*</span></label>
+                <label>TÃªn sáº£n pháº©m <span class="required">*</span></label>
                 <input v-model="form.name" placeholder="VD: VinaPro Laptop X2"
                   :class="{ 'input-error': fieldErrors.name }" />
                 <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
               </div>
               <div class="form-group">
-                <label>Danh mục sản phẩm <span class="required">*</span></label>
+                <label>Danh má»¥c sáº£n pháº©m <span class="required">*</span></label>
                 <div class="custom-tree-select" :class="{ 'has-error': fieldErrors.category }">
                   <div class="tree-select-trigger" @click.stop="isOpenTreeSelect = !isOpenTreeSelect">
                     <span class="trigger-label">
-                      <span class="folder-icon">📁</span>
+                      <span class="folder-icon">ðŸ“</span>
                       {{ getSelectedCategoryName() }}
                     </span>
                     <svg class="chevron" :class="{ open: isOpenTreeSelect }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2298,16 +2300,16 @@ onMounted(() => {
                         </svg>
                         <input 
                           v-model="treeSearchQuery" 
-                          placeholder="Tìm kiếm danh mục..." 
+                          placeholder="TÃ¬m kiáº¿m danh má»¥c..." 
                           class="tree-search-input"
                         />
-                        <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">×</button>
+                        <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">Ã—</button>
                       </div>
 
                       <!-- Tree list -->
                       <div class="tree-list-container">
                         <div v-if="filteredTreeCategories.length === 0" class="tree-empty">
-                          Không tìm thấy danh mục nào.
+                          KhÃ´ng tÃ¬m tháº¥y danh má»¥c nÃ o.
                         </div>
                         <div 
                           v-for="parent in filteredTreeCategories" 
@@ -2320,9 +2322,9 @@ onMounted(() => {
                             @click="toggleParentExpand(parent.id_danhmuc_cha)"
                           >
                             <span class="tree-toggle-icon">
-                              {{ isParentExpanded(parent.id_danhmuc_cha) ? '▼' : '▶' }}
+                              {{ isParentExpanded(parent.id_danhmuc_cha) ? 'â–¼' : 'â–¶' }}
                             </span>
-                            <span class="tree-folder-icon">📁</span>
+                            <span class="tree-folder-icon">ðŸ“</span>
                             <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
                           </div>
 
@@ -2339,7 +2341,7 @@ onMounted(() => {
                                 :class="{ selected: String(form.category) === String(child.id_danhmuc) }"
                                 @click="selectTreeCategory(child)"
                               >
-                                <span class="tree-leaf-icon">📄</span>
+                                <span class="tree-leaf-icon">ðŸ“„</span>
                                 <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
                               </div>
                             </div>
@@ -2354,9 +2356,9 @@ onMounted(() => {
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Thương hiệu <span class="required">*</span></label>
+                <label>ThÆ°Æ¡ng hiá»‡u <span class="required">*</span></label>
                 <select v-model="form.brand" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
-                  <option value="">-- Chọn thương hiệu --</option>
+                  <option value="">-- Chá»n thÆ°Æ¡ng hiá»‡u --</option>
                   <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
                     {{ brand.ten_thuonghieu }}
                   </option>
@@ -2364,16 +2366,16 @@ onMounted(() => {
                 <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
               </div>
               <div class="form-group">
-                <label>Khối lượng</label>
+                <label>Khá»‘i lÆ°á»£ng</label>
                 <input v-model="form.weight" type="number" min="0" step="0.01" placeholder="VD: 2.5" />
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Trạng thái</label>
+                <label>Tráº¡ng thÃ¡i</label>
                 <select v-model="form.status" :class="{ 'input-error': fieldErrors.status }">
-                  <option>Đang bán</option>
-                  <option>Nháp</option>
+                  <option>Äang bÃ¡n</option>
+                  <option>NhÃ¡p</option>
                 </select>
                 <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
               </div>
@@ -2384,32 +2386,32 @@ onMounted(() => {
               <div class="vs-header">
                 <div class="vs-title">
                   <span class="vs-bar"></span>
-                  Biến thể sản phẩm
+                  Biáº¿n thá»ƒ sáº£n pháº©m
                   <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
-                    Cấp biến thể: {{ variationTierIds.size }}/3
+                    Cáº¥p biáº¿n thá»ƒ: {{ variationTierIds.size }}/3
                   </span>
                 </div>
 
                 <div class="vs-steps">
                   <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
-                    <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
-                    Chọn giá trị
+                    <span class="vss-dot">{{ vsPhase === 2 ? 'âœ“' : '1' }}</span>
+                    Chá»n giÃ¡ trá»‹
                   </span>
                   <span class="vss-line"></span>
                   <span class="vss" :class="{ active: vsPhase === 2 }">
                     <span class="vss-dot">2</span>
-                    Điền giá &amp; kho
+                    Äiá»n giÃ¡ &amp; kho
                   </span>
                 </div>
               </div>
 
               <template v-if="vsPhase === 1">
                 <div v-if="variantLoading" class="group-placeholder">
-                  <span>Đang tải dữ liệu biến thể...</span>
+                  <span>Äang táº£i dá»¯ liá»‡u biáº¿n thá»ƒ...</span>
                 </div>
 
                 <div v-else-if="attributeGroups.length === 0" class="group-placeholder">
-                  <span>Không tìm thấy nhóm thuộc tính tương thích cho danh mục này.</span>
+                  <span>KhÃ´ng tÃ¬m tháº¥y nhÃ³m thuá»™c tÃ­nh tÆ°Æ¡ng thÃ­ch cho danh má»¥c nÃ y.</span>
                 </div>
 
                 <div v-else class="accordion-container">
@@ -2425,7 +2427,7 @@ onMounted(() => {
                         <span class="accordion-icon">{{ g.icon }}</span>
                         <span class="accordion-name">{{ g.name }}</span>
                         <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">
-                          Đang chọn {{ selectedCountInGroup(g) }}
+                          Äang chá»n {{ selectedCountInGroup(g) }}
                         </span>
                       </div>
                       <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2447,9 +2449,9 @@ onMounted(() => {
                               </div>
                               
                               <!-- Toggle Switch SKU/Spec -->
-                              <div class="mode-switch-wrapper" title="Biến thể (SKU): được chọn nhiều để tạo tổ hợp. Thông số: chỉ được chọn tối đa 1.">
+                              <div class="mode-switch-wrapper" title="Biáº¿n thá»ƒ (SKU): Ä‘Æ°á»£c chá»n nhiá»u Ä‘á»ƒ táº¡o tá»• há»£p. ThÃ´ng sá»‘: chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 1.">
                                 <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">
-                                  {{ variationTierIds.has(String(t.id)) ? '⚡ Biến thể' : '📝 Thông số' }}
+                                  {{ variationTierIds.has(String(t.id)) ? 'âš¡ Biáº¿n thá»ƒ' : 'ðŸ“ ThÃ´ng sá»‘' }}
                                 </span>
                                 <label class="switch-control">
                                   <input 
@@ -2473,7 +2475,7 @@ onMounted(() => {
                                   @click="toggleOption(t.id, getOptionValue(opt))"
                                 >
                                   <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }">
-                                    <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span>
+                                    <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">âœ“</span>
                                   </span>
                                   <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
                                 </button>
@@ -2500,8 +2502,8 @@ onMounted(() => {
 
                             <!-- Quick Action Buttons -->
                             <div class="fst-actions-col">
-                              <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chọn tất cả</button>
-                              <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bỏ chọn</button>
+                              <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chá»n táº¥t cáº£</button>
+                              <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bá» chá»n</button>
                             </div>
                           </div>
                         </div>
@@ -2518,21 +2520,21 @@ onMounted(() => {
                           <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
                           <b>{{ selectedOptions[t.id]?.size }}</b>
                         </span>
-                        <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">×</span>
+                        <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">Ã—</span>
                       </template>
-                      <span class="cf-eq">= <b>{{ comboCount }} biến thể</b></span>
+                      <span class="cf-eq">= <b>{{ comboCount }} biáº¿n thá»ƒ</b></span>
                     </span>
                   </div>
 
                   <!-- Live Combo Preview Section -->
                   <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
-                    <div class="preview-title">👁️ Xem trước các tổ hợp phân loại (tối đa 15):</div>
+                    <div class="preview-title">ðŸ‘ï¸ Xem trÆ°á»›c cÃ¡c tá»• há»£p phÃ¢n loáº¡i (tá»‘i Ä‘a 15):</div>
                     <div class="preview-tags-list">
                       <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">
                         {{ name }}
                       </span>
                       <span v-if="liveComboPreview.length > 15" class="preview-tag-more">
-                        + {{ liveComboPreview.length - 15 }} tổ hợp khác...
+                        + {{ liveComboPreview.length - 15 }} tá»• há»£p khÃ¡c...
                       </span>
                     </div>
                   </div>
@@ -2542,13 +2544,13 @@ onMounted(() => {
                       {{ fieldErrors.variants }}
                     </span>
                     <span v-else class="p1-hint">
-                      Mở rộng các nhóm accordion bên trên; hệ thống sẽ tự động gộp tất cả lựa chọn để tạo SKU
+                      Má»Ÿ rá»™ng cÃ¡c nhÃ³m accordion bÃªn trÃªn; há»‡ thá»‘ng sáº½ tá»± Ä‘á»™ng gá»™p táº¥t cáº£ lá»±a chá»n Ä‘á»ƒ táº¡o SKU
                     </span>
 
                     <div class="p1-action-buttons">
                       <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
                         @click="continueVariantTable">
-                        Quay lại biến thể
+                        Quay láº¡i biáº¿n thá»ƒ
                       </button>
 
                       <button class="btn-generate" @click="generateVariants">
@@ -2557,7 +2559,7 @@ onMounted(() => {
                           <rect x="1" y="1" width="12" height="12" rx="2" />
                           <polyline points="3.5,7 5.5,9 10.5,4.5" />
                         </svg>
-                        {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
+                        {{ isEditMode ? 'Cáº­p nháº­t tá»• há»£p' : `Tá»± Ä‘á»™ng sinh tá»• há»£p` }}
                       </button>
                     </div>
                   </div>
@@ -2571,11 +2573,11 @@ onMounted(() => {
                       width="11" height="11">
                       <polyline points="7.5,1.5 3,6 7.5,10.5" />
                     </svg>
-                    {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
+                    {{ isEditMode ? 'Quay láº¡i chá»n / chá»‰nh biáº¿n thá»ƒ' : 'Chá»‰nh láº¡i lá»±a chá»n' }}
                   </button>
 
                   <div class="modal-excel-actions">
-                    <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
+                    <button class="btn-xl-sm btn-xl-export" title="Xuáº¥t danh sÃ¡ch biáº¿n thá»ƒ ra Excel"
                       @click="handleExportVariantsExcel">
                       <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
                         fill="none">
@@ -2583,10 +2585,10 @@ onMounted(() => {
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
-                      Xuất Excel
+                      Xuáº¥t Excel
                     </button>
                     <button class="btn-xl-sm btn-xl-import"
-                      title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
+                      title="Nháº­p danh sÃ¡ch biáº¿n thá»ƒ tá»« Excel (Tá»± Ä‘á»™ng check trÃ¹ng)"
                       @click="triggerImportVariantsExcel">
                       <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
                         fill="none">
@@ -2594,7 +2596,7 @@ onMounted(() => {
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
-                      Nhập Excel (Check trùng)
+                      Nháº­p Excel (Check trÃ¹ng)
                     </button>
                     <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
                       @change="handleImportVariantsExcel" />
@@ -2604,17 +2606,17 @@ onMounted(() => {
                 <div class="p2-controls">
                   <div class="p2-info">
                     <template v-if="isEditMode">
-                      Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
+                      Äang hiá»ƒn thá»‹ <b>{{ generatedRows.length }}</b> biáº¿n thá»ƒ hiá»‡n cÃ³.
                     </template>
                     <template v-else>
-                      Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
+                      ÄÃ£ táº¡o <b>{{ generatedRows.length }}</b> tá»• há»£p thá»±c táº¿.
                     </template>
                   </div>
 
                   <div class="bulk-stack">
                     <div class="bulk-bar">
-                      <span class="bulk-lbl">Giá/kho chung:</span>
-                      <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
+                      <span class="bulk-lbl">GiÃ¡/kho chung:</span>
+                      <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="GiÃ¡ chung (â‚«)" />
                       <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
                     </div>
                     <div class="bulk-actions">
@@ -2624,14 +2626,14 @@ onMounted(() => {
                           <circle cx="7" cy="7" r="5.5" />
                           <polyline points="4.5,7 6,8.5 9.5,5" />
                         </svg>
-                        Chỉ điền ô trống
+                        Chá»‰ Ä‘iá»n Ã´ trá»‘ng
                       </button>
                       <button class="btn-apply-solid" @click="applyRulesToAll(true)">
                         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
                           stroke-linecap="round" width="12" height="12">
                           <polyline points="1.5,7 5,10.5 12.5,3" />
                         </svg>
-                        Áp dụng tất cả
+                        Ãp dá»¥ng táº¥t cáº£
                       </button>
                     </div>
                   </div>
@@ -2647,7 +2649,7 @@ onMounted(() => {
                         <th v-for="t in tableHeaders" :key="t.id">
                           <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
                         </th>
-                        <th class="th-price">Giá riêng (₫)</th>
+                        <th class="th-price">GiÃ¡ riÃªng (â‚«)</th>
                         <th class="th-stock">Kho</th>
                         <th class="th-del"></th>
                       </tr>
@@ -2677,8 +2679,8 @@ onMounted(() => {
                         </td>
 
                         <td class="td-del">
-                          <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
-                            ×
+                          <button class="btn-row-del" @click="removeVariantRow(ri)" title="XÃ³a phiÃªn báº£n nÃ y">
+                            Ã—
                           </button>
                         </td>
                       </tr>
@@ -2688,7 +2690,7 @@ onMounted(() => {
 
                 <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
                   <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
-                    ‹
+                    â€¹
                   </button>
 
                   <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
@@ -2699,13 +2701,13 @@ onMounted(() => {
 
                   <button :disabled="variantCurrentPage === variantTotalPages"
                     @click="goToVariantPage(variantCurrentPage + 1)">
-                    ›
+                    â€º
                   </button>
                 </div>
 
                 <div class="p2-foot">
                   <span class="p2-count">
-                    <b>{{ generatedRows.length }}</b> biến thể —
+                    <b>{{ generatedRows.length }}</b> biáº¿n thá»ƒ â€”
                     trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
                   </span>
                 </div>
@@ -2713,31 +2715,31 @@ onMounted(() => {
             </div>
             
             <div v-else class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8;">
-              <p>Vui lòng chọn danh mục sản phẩm trước khi cấu hình biến thể.</p>
+              <p>Vui lÃ²ng chá»n danh má»¥c sáº£n pháº©m trÆ°á»›c khi cáº¥u hÃ¬nh biáº¿n thá»ƒ.</p>
             </div>
 
             <p v-if="fieldErrors.variantRows" class="field-error">
               {{ fieldErrors.variantRows }}
             </p>
-            <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
+            <p v-if="formError" class="form-error">âš  {{ formError }}</p>
 
           <!-- Inline footer actions -->
           <div class="inline-form-footer">
-            <button class="btn-cancel" @click="closeModal">Hủy</button>
+            <button class="btn-cancel" @click="closeModal">Há»§y</button>
             <button class="btn-submit" @click="submitForm">
-              {{ isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm' }}
+              {{ isEditMode ? 'LÆ°u thay Ä‘á»•i' : 'ThÃªm sáº£n pháº©m' }}
             </button>
           </div>
       </div><!-- end inline-form-body -->
     </template><!-- end product-form -->
 
-    <!-- Modal Danh sách sản phẩm sắp hết hàng -->
+    <!-- Modal Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng -->
     <Teleport to="body">
       <div v-if="showLowStockModal" class="modal-overlay" @click.self="closeLowStockModal">
         <div class="modal modal-wide">
           <div class="modal-header">
-            <h3>Danh sách sản phẩm sắp hết hàng</h3>
-            <button class="modal-close" @click="closeLowStockModal">×</button>
+            <h3>Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng</h3>
+            <button class="modal-close" @click="closeLowStockModal">Ã—</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
@@ -2745,14 +2747,14 @@ onMounted(() => {
                 <thead>
                   <tr>
                     <th>STT</th>
-                    <th>Hình ảnh</th>
-                    <th>Tên SP</th>
-                    <th>Hành động</th>
+                    <th>HÃ¬nh áº£nh</th>
+                    <th>TÃªn SP</th>
+                    <th>HÃ nh Ä‘á»™ng</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="!lowStockProducts.length">
-                    <td colspan="4" class="empty">Không có sản phẩm nào sắp hết hàng.</td>
+                    <td colspan="4" class="empty">KhÃ´ng cÃ³ sáº£n pháº©m nÃ o sáº¯p háº¿t hÃ ng.</td>
                   </tr>
                   <tr v-for="(p, i) in lowStockProducts" :key="p.id">
                     <td>{{ i + 1 }}</td>
@@ -2765,7 +2767,7 @@ onMounted(() => {
                     <td>
                       <button class="btn-apply-solid"
                         style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer;"
-                        @click="openLowStockVariantsModal(p)">Xem chi tiết</button>
+                        @click="openLowStockVariantsModal(p)">Xem chi tiáº¿t</button>
                     </td>
                   </tr>
                 </tbody>
@@ -2776,27 +2778,27 @@ onMounted(() => {
       </div>
     </Teleport>
 
-    <!-- Modal Danh sách biến thể sắp hết hàng -->
+    <!-- Modal Danh sÃ¡ch biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng -->
     <Teleport to="body">
       <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
         <div class="modal">
           <div class="modal-header">
-            <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
-            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
+            <h3>Biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng - {{ selectedLowStockProduct?.name }}</h3>
+            <button class="modal-close" @click="closeLowStockVariantsModal">Ã—</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Tên biến thể</th>
-                    <th>Số lượng</th>
+                    <th>TÃªn biáº¿n thá»ƒ</th>
+                    <th>Sá»‘ lÆ°á»£ng</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
                     :key="v.id_bienthe || v.id">
-                    <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
+                    <td><b>{{ v.ten_bienthe || 'Biáº¿n thá»ƒ' }}</b></td>
                     <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
                   </tr>
                 </tbody>
@@ -2817,7 +2819,7 @@ onMounted(() => {
   font-family: 'Segoe UI', sans-serif;
 }
 
-/* ── Inline Form Header ── */
+/* â”€â”€ Inline Form Header â”€â”€ */
 .inline-form-header {
   margin-bottom: 28px;
   padding-bottom: 20px;
@@ -2859,7 +2861,7 @@ onMounted(() => {
   color: #0f172a;
 }
 
-/* ── Inline Form Body ── */
+/* â”€â”€ Inline Form Body â”€â”€ */
 .inline-form-body {
   background: white;
   border-radius: 16px;
@@ -2868,7 +2870,7 @@ onMounted(() => {
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
-/* ── Inline Form Footer ── */
+/* â”€â”€ Inline Form Footer â”€â”€ */
 .inline-form-footer {
   display: flex;
   justify-content: flex-end;
@@ -2878,11 +2880,11 @@ onMounted(() => {
   border-top: 1px solid #e2e8f0;
 }
 
-/* ═══════════════════════════════════════
-   INLINE FORM — Form Elements Redesign
-══════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   INLINE FORM â€” Form Elements Redesign
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Mỗi form-group trong inline-form-body là 1 card riêng */
+/* Má»—i form-group trong inline-form-body lÃ  1 card riÃªng */
 .inline-form-body > .form-group,
 .inline-form-body > .products-selection-section {
   background: white;
@@ -3283,7 +3285,7 @@ onMounted(() => {
   border-color: #2563eb;
 }
 
-/* ── Custom Premium Dropdown ── */
+/* â”€â”€ Custom Premium Dropdown â”€â”€ */
 .custom-dropdown {
   position: relative;
   min-width: 170px;
@@ -4704,7 +4706,8 @@ tbody td {
 }
 
 .th-stock {
-  width: 76px;
+  width: 108px;
+  min-width: 108px;
 }
 
 .th-act {
@@ -4738,7 +4741,7 @@ tbody td {
   border-radius: 10px;
 }
 
-/* ── PHASE 1 FOOTER ── */
+/* â”€â”€ PHASE 1 FOOTER â”€â”€ */
 .p1-footer {
   display: flex;
   flex-direction: column;
@@ -4838,8 +4841,10 @@ tbody td {
 }
 
 .vt-num {
-  width: 50px;
-  text-align: right;
+  width: 100%;
+  min-width: 76px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .ra-del {
@@ -5146,7 +5151,7 @@ tbody td {
   gap: 8px;
 }
 
-/* ── PARENT CATEGORY TABS ── */
+/* â”€â”€ PARENT CATEGORY TABS â”€â”€ */
 .parent-tabs {
   display: flex;
   gap: 12px;

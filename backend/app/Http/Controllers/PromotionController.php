@@ -101,6 +101,26 @@ class PromotionController extends Controller
             ], 422);
         }
 
+        if ($promo->category === 'birthday') {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn cần đăng nhập để sử dụng mã sinh nhật.'
+                ], 401);
+            }
+            $hasVoucher = UserVoucher::where('id_user', $user->id)
+                ->where('id_promotion', $promo->id)
+                ->where('trang_thai', 0)
+                ->exists();
+            if (!$hasVoucher) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.'
+                ], 422);
+            }
+        }
+
         // Kiểm tra ngày hết hạn
         if ($promo->end_date && now()->gt($promo->end_date)) {
             return response()->json([

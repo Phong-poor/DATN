@@ -290,6 +290,19 @@ class DatHangController extends Controller
                 ->first();
 
             if ($promo) {
+                if ($promo->category === 'birthday') {
+                    $hasVoucher = UserVoucher::where('id_user', $userId)
+                        ->where('id_promotion', $promo->id)
+                        ->where('trang_thai', 0)
+                        ->exists();
+                    if (!$hasVoucher) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.'
+                        ], 400);
+                    }
+                }
+
                 if ($promo->category === 'freeship') {
                     return response()->json(['success' => false, 'message' => 'Mã này là mã freeship, không áp dụng cho đơn hàng.'], 400);
                 }
