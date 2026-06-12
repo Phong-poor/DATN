@@ -1,6 +1,7 @@
 <template>
   <div class="page">
-    <!-- TOPBAR -->
+    <template v-if="!showForm">
+      <!-- TOPBAR -->
     <div class="topbar">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -131,52 +132,21 @@
         </table>
       </div>
     </div>
+    </template>
 
-    <!-- PAGINATION -->
-    <div class="pagination" v-if="totalPages > 1">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
+    <!-- FORM VIEW -->
+    <template v-else>
+      <div class="inline-form-header">
+        <button class="back-btn" @click="closeForm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          Quay lại danh sách
+        </button>
+        <h1><span class="icon" style="color: #4f46e5; margin-right: 8px;">+</span> {{ editingId ? "Cập nhật Banner" : "Thêm Banner mới" }}</h1>
+        <p>Điền đầy đủ thông tin để thiết lập banner hiển thị trên hệ thống</p>
+      </div>
 
-      <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
-        :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-        @click="p !== '...' && goToPage(p)">
-        {{ p }}
-      </button>
-
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
-    </div>
-
-    <!-- MODAL OVERLAY -->
-    <Teleport to="body">
-      <transition name="fade">
-        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-          <transition name="slide-up">
-            <div class="modal" v-if="showModal">
-              <div class="modal-header">
-                <div class="modal-header-left">
-                  <div class="modal-icon" :class="editingId ? 'icon-edit' : 'icon-add'">
-                    <svg v-if="editingId" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 class="modal-title">{{ editingId ? "Cập nhật Banner" : "Thêm Banner mới" }}</h3>
-                    <p class="modal-subtitle">Thiết lập hình ảnh/video quảng cáo trên trang chủ</p>
-                  </div>
-                </div>
-                <button class="modal-close" @click="closeModal">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              <div class="modal-body">
+      <div class="inline-form-body">
+        <div class="form-card">
                 <div class="form-row">
                   <div class="form-group">
                     <label>TIÊU ĐỀ BANNER <span class="req">*</span></label>
@@ -245,22 +215,37 @@
                   </div>
                 </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>MEDIA DESKTOP (ẢNH/VIDEO) <span class="req" v-if="!editingId">*</span></label>
-                    <div class="file-input-wrapper">
-                      <input type="file" accept="image/*,video/*" @change="onFileChange($event, 'image')" />
-                      <span class="file-hint" v-if="form.image && form.image.name">✓ {{ form.image.name }}</span>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label>MEDIA MOBILE (ẢNH/VIDEO)</label>
-                    <div class="file-input-wrapper">
-                      <input type="file" accept="image/*,video/*" @change="onFileChange($event, 'mobile_image')" />
-                      <span class="file-hint" v-if="form.mobile_image && form.mobile_image.name">✓ {{ form.mobile_image.name }}</span>
-                    </div>
+                <div class="form-group">
+                  <label>MEDIA DESKTOP (ẢNH/VIDEO) <span class="req" v-if="!editingId">*</span></label>
+                  <div class="upload-zone" @click="desktopMediaRef.click()">
+                    <input ref="desktopMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'image')" style="display:none" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+                    <p v-if="form.image && form.image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.image.name }}</p>
                   </div>
                 </div>
+                
+                <div class="form-group" style="margin-top: 24px;">
+                  <label>MEDIA MOBILE (ẢNH/VIDEO)</label>
+                  <div class="upload-zone" @click="mobileMediaRef.click()">
+                    <input ref="mobileMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'mobile_image')" style="display:none" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+                    <p v-if="form.mobile_image && form.mobile_image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.mobile_image.name }}</p>
+                  </div>
+                </div>
+                
+                <div style="height: 24px;"></div>
 
                 <div class="form-group">
                   <label>TRẠNG THÁI HIỂN THỊ</label>
@@ -295,8 +280,8 @@
                 </div>
               </div>
 
-              <div class="modal-footer">
-                <button class="btn-cancel" @click="closeModal">Hủy</button>
+              <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+                <button class="btn-cancel" @click="closeForm">Hủy</button>
                 <button class="btn-submit" :disabled="saving" @click="save">
                   <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -305,11 +290,8 @@
                   {{ saving ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Tạo banner") }}
                 </button>
               </div>
-            </div>
-          </transition>
         </div>
-      </transition>
-    </Teleport>
+    </template>
   </div>
 </template>
 
@@ -323,8 +305,10 @@ import { useAdminBulkDelete } from "@/services/adminBulkDelete";
 
 const loading = ref(false);
 const saving = ref(false);
-const showModal = ref(false);
+const showForm = ref(false);
 const editingId = ref(null);
+const desktopMediaRef = ref(null);
+const mobileMediaRef = ref(null);
 const banners = ref([]);
 const products = ref([]);
 const searchQuery = ref("");
@@ -481,7 +465,7 @@ const {
 const openCreate = () => {
   editingId.value = null;
   form.value = defaultForm();
-  showModal.value = true;
+  showForm.value = true;
 };
 
 const openEdit = (item) => {
@@ -504,11 +488,11 @@ const openEdit = (item) => {
     starts_at: item.starts_at ? item.starts_at.slice(0, 16) : "",
     ends_at: item.ends_at ? item.ends_at.slice(0, 16) : "",
   };
-  showModal.value = true;
+  showForm.value = true;
 };
 
-const closeModal = () => {
-  showModal.value = false;
+const closeForm = () => {
+  showForm.value = false;
 };
 
 const onFileChange = (event, key) => {
@@ -565,7 +549,7 @@ const save = async () => {
     } else {
       await api.post("/admin/banners", payload, config);
     }
-    closeModal();
+    closeForm();
     await fetchData();
     swal.success("Thành công", editingId.value ? "Cập nhật banner thành công" : "Thêm banner mới thành công");
   } catch (e) {
@@ -1346,45 +1330,85 @@ td {
   transform: translateY(8px) scale(0.98);
 }
 
-/* PAGINATION SYSTEM */
-.pagination {
-  display: flex;
-  gap: 6px;
-  margin-top: 20px;
-  justify-content: flex-end;
+/* ═══ INLINE FORM ═══ */
+.inline-form-header {
+  margin-bottom: 24px;
 }
-
-.pagination button {
-  width: 34px;
-  height: 34px;
+.inline-form-header h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 16px 0 6px;
+  display: flex;
+  align-items: center;
+}
+.inline-form-header p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #e2e8f0;
   background: white;
   font-size: 13px;
+  font-weight: 600;
+  color: #475569;
   cursor: pointer;
-  color: #334155;
   transition: all .2s;
+  font-family: inherit;
 }
-
-.pagination button:hover {
-  border-color: #4f46e5;
-  color: #4f46e5;
+.back-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
 }
-
-.pg-active {
-  background: #4f46e5 !important;
-  border-color: #4f46e5 !important;
-  color: white !important;
+.form-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8edf5;
+  padding: 32px 36px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
-
-.pagination button:disabled {
-  opacity: .45;
-  cursor: not-allowed;
+.upload-zone {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
-
-.pg-dots {
-  border-color: transparent !important;
-  background: transparent !important;
-  color: #94a3b8 !important;
+.upload-zone:hover {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+.upload-zone svg {
+  width: 32px;
+  height: 32px;
+  color: #6366f1;
+  margin-bottom: 8px;
+}
+.upload-zone p {
+  margin: 0;
+  font-size: 14px;
+  color: #475569;
+}
+.upload-zone span {
+  color: #6366f1;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.upload-zone small {
+  color: #94a3b8;
+  font-size: 12px;
 }
 </style>
