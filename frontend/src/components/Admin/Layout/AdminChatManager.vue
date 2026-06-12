@@ -160,6 +160,8 @@ import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser } from '@/services/auth';
 import swal from '@/services/swal';
+import { normalizeImageUrl } from '@/services/urls';
+
 import {
   bindChatChannel,
   conversationPreviewFromMessage,
@@ -351,7 +353,12 @@ const toggleList = () => {
 };
 
 const getAvatar = (user) => {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+  if (user && user.avatar) {
+    if (user.avatar.startsWith('http')) return user.avatar;
+    return normalizeImageUrl(user.avatar);
+  }
+  const name = user ? (user.name || user.email || 'User') : 'User';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
 };
 
 const formatTime = (time) => {
