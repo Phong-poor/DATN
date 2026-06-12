@@ -1,4 +1,4 @@
-<template>
+  <template>
   <main class="gaming-page">
     <!-- Breadcrumbs -->
     <nav class="gaming-breadcrumbs">
@@ -105,6 +105,120 @@
 
     <!-- SECTION 3 & 4 - SẢN PHẨM NỔI BẬT & GRID -->
     <section class="gaming-catalog-section" id="products-section">
+      <!-- FILTER MODAL (copy từ Producpage.vue) -->
+      <transition name="modal-fade">
+        <div v-if="showFilterModal" class="filter-modal-overlay" @click.self="showFilterModal = false">
+          <div class="filter-modal">
+            <div class="modal-header">
+              <h3>Tất cả bộ lọc</h3>
+              <button class="close-modal" @click="showFilterModal = false">✕ Đóng</button>
+            </div>
+            <div class="modal-body">
+              <!-- DANH MỤC -->
+              <div class="modal-section" v-if="categories.length > 0">
+                <p class="modal-section-title">Danh mục</p>
+                <div class="modal-chips">
+                  <span v-for="c in categories" :key="c.id_danhmuc" class="modal-chip"
+                    :class="{ active: selectedCategories.includes(String(c.id_danhmuc)) }"
+                    @click="toggleList('cat', c.id_danhmuc)">
+                    {{ c.ten_danhmuc }}
+                  </span>
+                </div>
+              </div>
+              <!-- THƯƠNG HIỆU -->
+              <div class="modal-section" v-if="brands.length > 0">
+                <p class="modal-section-title">Hãng</p>
+                <div class="modal-chips">
+                  <span v-for="b in brands" :key="b.id_thuonghieu" class="modal-chip"
+                    :class="{ active: selectedBrands.includes(String(b.id_thuonghieu)) }"
+                    @click="toggleList('brand', b.id_thuonghieu)">
+                    {{ b.ten_thuonghieu === 'Levono' ? 'Lenovo' : b.ten_thuonghieu }}
+                  </span>
+                </div>
+              </div>
+              <!-- MỨC GIÁ -->
+              <div class="modal-section">
+                <p class="modal-section-title">Giá</p>
+                <div class="modal-chips">
+                  <span class="modal-chip" :class="{ active: selectedPriceRange === '' }" @click="selectedPriceRange = ''">Tất cả</span>
+                  <span class="modal-chip" :class="{ active: selectedPriceRange === 'under20' }" @click="selectedPriceRange = 'under20'">Dưới 20 triệu</span>
+                  <span class="modal-chip" :class="{ active: selectedPriceRange === '20to50' }" @click="selectedPriceRange = '20to50'">20 - 50 triệu</span>
+                  <span class="modal-chip" :class="{ active: selectedPriceRange === 'above50' }" @click="selectedPriceRange = 'above50'">Trên 50 triệu</span>
+                </div>
+              </div>
+              <!-- RAM -->
+              <div class="modal-section" v-if="attrOptions.ram.length > 0">
+                <p class="modal-section-title">RAM</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.ram" :key="r" class="modal-chip"
+                    :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- CPU -->
+              <div class="modal-section" v-if="attrOptions.cpu.length > 0">
+                <p class="modal-section-title">CPU</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.cpu" :key="r" class="modal-chip"
+                    :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- GPU -->
+              <div class="modal-section" v-if="attrOptions.gpu.length > 0">
+                <p class="modal-section-title">GPU</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.gpu" :key="r" class="modal-chip"
+                    :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- Kích thước -->
+              <div class="modal-section" v-if="attrOptions.kichthuoc.length > 0">
+                <p class="modal-section-title">Kích thước màn hình</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.kichthuoc" :key="r" class="modal-chip"
+                    :class="{ active: selectedKichThuoc.includes(r) }" @click="toggleList('kichthuoc', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- Tấm nền -->
+              <div class="modal-section" v-if="attrOptions.tamnen.length > 0">
+                <p class="modal-section-title">Tấm nền</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.tamnen" :key="r" class="modal-chip"
+                    :class="{ active: selectedTamNen.includes(r) }" @click="toggleList('tamnen', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- Độ phân giải -->
+              <div class="modal-section" v-if="attrOptions.dophan.length > 0">
+                <p class="modal-section-title">Độ phân giải</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.dophan" :key="r" class="modal-chip"
+                    :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- Pin -->
+              <div class="modal-section" v-if="attrOptions.pin.length > 0">
+                <p class="modal-section-title">Pin</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.pin" :key="r" class="modal-chip"
+                    :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r }}</span>
+                </div>
+              </div>
+              <!-- Sạc -->
+              <div class="modal-section" v-if="attrOptions.sac.length > 0">
+                <p class="modal-section-title">Sạc</p>
+                <div class="modal-chips">
+                  <span v-for="r in attrOptions.sac" :key="r" class="modal-chip"
+                    :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="modal-btn-clear" @click="clearAllFilters">Xóa bộ lọc</button>
+              <button class="modal-btn-apply" @click="() => { applyFilters(); showFilterModal = false; }">Xác nhận</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <div class="gaming-container">
         
         <!-- Header sản phẩm nổi bật có tab lọc và xem tất cả -->
@@ -126,142 +240,327 @@
           </div>
           
           <div class="filter-header-right">
-            <button class="btn-view-all-link" @click="resetFilters">
+            <button class="btn-view-all-link" @click="clearAllFilters">
               Xem tất cả <span class="arrow">&gt;</span>
             </button>
           </div>
         </div>
 
-        <div class="gaming-products-scroll-panel">
-        <!-- Product Grid / Loading / Empty State -->
-        <div v-if="isLoading" class="gaming-loading-container">
-          <div class="gaming-skeleton-card" v-for="n in 8" :key="n">
-            <div class="skeleton-image"></div>
-            <div class="skeleton-title"></div>
-            <div class="skeleton-specs"></div>
-            <div class="skeleton-price"></div>
-          </div>
-        </div>
-        
-        <div v-else-if="filteredProducts.length === 0" class="gaming-empty-container">
-          <Search class="empty-icon" />
-          <h3>Không tìm thấy sản phẩm</h3>
-          <p>Thử điều chỉnh bộ lọc hoặc chọn danh mục khác</p>
-          <button class="btn btn-primary-gaming" @click="resetFilters">Đặt lại bộ lọc</button>
-        </div>
+        <div class="catalog-layout">
+          <!-- Left Sidebar Filter -->
+          <aside class="catalog-filter-sidebar">
+            <div class="filter-sidebar-card">
+              <div class="filter-sidebar-header">
+                <div class="header-title-wrap">
+                  <span class="filter-icon">🔍</span>
+                  <h3>Bộ lọc</h3>
+                </div>
+                <button 
+                  v-if="hasAnyFilter" 
+                  class="clear-all-link"
+                  @click="clearAllFilters"
+                >
+                  Xóa lọc
+                </button>
+              </div>
 
-        <div v-else class="gaming-product-grid">
-          <div 
-            v-for="(prod, idx) in paginatedProducts" 
-            :key="prod.id_sanpham" 
-            class="gaming-product-card scroll-reveal"
-            :class="'stagger-' + (idx % 5)"
-            @click="viewDetail(prod)"
-            @pointerenter="warmProductDetail(prod)"
-            @focusin="warmProductDetail(prod)"
-            @touchstart.passive="warmProductDetail(prod)"
-          >
-            <!-- Badge giảm giá góc trên trái -->
-            <div class="product-badge" :class="getBadgeClass(prod)">
-              {{ getBadgeText(prod) }}
+              <!-- Brand Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('brands'), selected: selectedBrands.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'brands')">
+                <h4>Thương hiệu</h4>
+                <div v-show="isCatalogFilterOpen('brands')" class="filter-pill-grid brand-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="brand in brands" 
+                    :key="brand.id_thuonghieu" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedBrands.includes(String(brand.id_thuonghieu)) }"
+                    @click="toggleList('brand', brand.id_thuonghieu)"
+                  >
+                    {{ brand.ten_thuonghieu === 'Levono' ? 'Lenovo' : brand.ten_thuonghieu }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Price Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('price'), selected: minPrice > 0 || maxPrice < 150000000 }" @click="handleCatalogFilterGroupClick($event, 'price')">
+                <h4>Khoảng giá</h4>
+                <div v-show="isCatalogFilterOpen('price')" class="price-slider-wrapper filter-dropdown-content" @click.stop>
+                  <div class="price-slider-display">
+                    <span>{{ formatPrice(minPrice) }}</span>
+                    <span>-</span>
+                    <span>{{ formatPrice(maxPrice) }}</span>
+                  </div>
+                  <div class="price-slider-container">
+                    <div class="price-slider-track" :style="{
+                      left: `${(minPrice / 150000000) * 100}%`,
+                      right: `${100 - (maxPrice / 150000000) * 100}%`
+                    }"></div>
+                    <div class="price-slider-inputs">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="150000000" 
+                        step="1000000" 
+                        v-model.number="minPrice" 
+                        aria-label="Giá tối thiểu"
+                      />
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="150000000" 
+                        step="1000000" 
+                        v-model.number="maxPrice" 
+                        aria-label="Giá tối đa"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RAM Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ram'), selected: selectedRAMs.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'ram')">
+                <h4>Bộ nhớ RAM</h4>
+                <div v-show="isCatalogFilterOpen('ram')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="ram in attrOptions.ram" 
+                    :key="ram" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedRAMs.includes(ram) }"
+                    @click="toggleList('ram', ram)"
+                  >
+                    {{ ram }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- SSD Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ssd'), selected: selectedSsds.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'ssd')">
+                <h4>Ổ cứng SSD</h4>
+                <div v-show="isCatalogFilterOpen('ssd')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="ssd in attrOptions.ssd" 
+                    :key="ssd" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedSsds.includes(ssd) }"
+                    @click="toggleList('ssd', ssd)"
+                  >
+                    {{ ssd }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- CPU Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('cpu'), selected: selectedCPUs.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'cpu')">
+                <h4>Vi xử lý CPU</h4>
+                <div v-show="isCatalogFilterOpen('cpu')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="cpu in attrOptions.cpu" 
+                    :key="cpu" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedCPUs.includes(cpu) }"
+                    @click="toggleList('cpu', cpu)"
+                  >
+                    {{ cpu }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- GPU Filter -->
+              <div class="filter-option-group gpu-filter-group" :class="{ open: isCatalogFilterOpen('gpu'), selected: selectedGPUs.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'gpu')">
+                <h4>Card đồ họa GPU</h4>
+                <div v-show="isCatalogFilterOpen('gpu')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="gpu in attrOptions.gpu" 
+                    :key="gpu" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedGPUs.includes(gpu) }"
+                    @click="toggleList('gpu', gpu)"
+                  >
+                    {{ gpu }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Screen Size Filter -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('kichthuoc'), selected: selectedKichThuoc.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'kichthuoc')">
+                <h4>Kích thước màn hình</h4>
+                <div v-show="isCatalogFilterOpen('kichthuoc')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="sz in attrOptions.kichthuoc" 
+                    :key="sz" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedKichThuoc.includes(sz) }"
+                    @click="toggleList('kichthuoc', sz)"
+                  >
+                    {{ sz }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Screen Panel Filter (Tấm nền) -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('tamnen'), selected: selectedTamNen.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'tamnen')">
+                <h4>Tấm nền màn hình</h4>
+                <div v-show="isCatalogFilterOpen('tamnen')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="tn in attrOptions.tamnen" 
+                    :key="tn" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedTamNen.includes(tn) }"
+                    @click="toggleList('tamnen', tn)"
+                  >
+                    {{ tn }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Resolution Filter (Độ phân giải) -->
+              <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('dophan'), selected: selectedDoPhanGiai.length > 0 }" @click="handleCatalogFilterGroupClick($event, 'dophan')">
+                <h4>Độ phân giải</h4>
+                <div v-show="isCatalogFilterOpen('dophan')" class="filter-pill-grid filter-dropdown-content">
+                  <button 
+                    v-for="dp in attrOptions.dophan" 
+                    :key="dp" 
+                    class="filter-pill-btn"
+                    :class="{ active: selectedDoPhanGiai.includes(dp) }"
+                    @click="toggleList('dophan', dp)"
+                  >
+                    {{ dp }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Right Product Grid Area -->
+          <div class="catalog-grid-area">
+            <!-- Product Grid / Loading / Empty State -->
+            <div v-if="isLoading" class="gaming-loading-container">
+              <div class="gaming-skeleton-card" v-for="n in 8" :key="n">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-title"></div>
+                <div class="skeleton-specs"></div>
+                <div class="skeleton-price"></div>
+              </div>
             </div>
             
-            <!-- Tim yêu thích góc trên phải -->
-            <button 
-              class="wishlist-heart-btn" 
-              :class="{ active: isInWishlist(prod) }"
-              @click.stop="toggleWishlistLocal(prod)"
-              title="Yêu thích"
-            >
-              <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
-            </button>
-            
-            <!-- Hình ảnh nền trắng sạch -->
-            <div class="product-image-wrapper">
-              <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
+            <div v-else-if="filteredProducts.length === 0" class="gaming-empty-container">
+              <Search class="empty-icon" />
+              <h3>Không tìm thấy sản phẩm</h3>
+              <p>Thử điều chỉnh bộ lọc hoặc chọn danh mục khác</p>
+              <button class="btn btn-primary-gaming" @click="clearAllFilters">Đặt lại bộ lọc</button>
             </div>
 
-            <!-- Tên sản phẩm -->
-            <h3 class="product-name">{{ prod.tenSP }}</h3>
-
-            <!-- Thông số nhanh (Specs pills bo tròn) -->
-            <div class="product-specs-pills">
-              <span 
-                v-for="(spec, sIdx) in prod.specs" 
-                :key="sIdx" 
-                class="spec-pill"
+            <div v-else class="gaming-product-grid">
+              <div 
+                v-for="(prod, idx) in paginatedProducts" 
+                :key="prod.id_sanpham" 
+                class="gaming-product-card scroll-reveal"
+                :class="'stagger-' + (idx % 5)"
+                @click="viewDetail(prod)"
+                @pointerenter="warmProductDetail(prod)"
+                @focusin="warmProductDetail(prod)"
+                @touchstart.passive="warmProductDetail(prod)"
               >
-                {{ spec }}
-              </span>
+                <!-- Badge giảm giá góc trên trái -->
+                <div class="product-badge" :class="getBadgeClass(prod)">
+                  {{ getBadgeText(prod) }}
+                </div>
+                
+                <!-- Tim yêu thích góc trên phải -->
+                <button 
+                  class="wishlist-heart-btn" 
+                  :class="{ active: isInWishlist(prod) }"
+                  @click.stop="toggleWishlistLocal(prod)"
+                  title="Yêu thích"
+                >
+                  <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
+                </button>
+                
+                <!-- Hình ảnh nền trắng sạch -->
+                <div class="product-image-wrapper">
+                  <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
+                </div>
+
+                <!-- Tên sản phẩm -->
+                <h3 class="product-name">{{ prod.tenSP }}</h3>
+
+                <!-- Thông số nhanh (Specs pills bo tròn) -->
+                <div class="product-specs-pills">
+                  <span 
+                    v-for="(spec, sIdx) in prod.specs" 
+                    :key="sIdx" 
+                    class="spec-pill"
+                  >
+                    {{ spec }}
+                  </span>
+                </div>
+
+                <!-- Đánh giá sao -->
+                <div class="product-rating">
+                  <div class="stars">
+                    <span v-for="star in 5" :key="star" class="star" :class="{ filled: star <= Math.round(prod.rating) }">★</span>
+                  </div>
+                  <span class="reviews-count">({{ prod.reviews }})</span>
+                </div>
+
+                <!-- Giá cả và nút giỏ hàng góc dưới phải -->
+                <div class="product-bottom-row">
+                  <div class="product-pricing">
+                    <div class="price-row">
+                      <span class="price-new">{{ formatPrice(prod.gia) }}</span>
+                    </div>
+                    <div class="price-old-row" v-if="prod.oldPrice">
+                      <span class="price-old">{{ formatPrice(prod.oldPrice) }}</span>
+                    </div>
+                    <div class="card-badge-row-1">
+                      <span class="badge-chinh-hang">✓ Chính Hãng</span>
+                    </div>
+                    <div class="card-badge-row-2">
+                      <span class="badge-ship-warranty">⚡ Freeship 2H</span>
+                      <span class="badge-ship-warranty">✦ BH 24T</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Nút giỏ hàng góc dưới phải -->
+                  <button 
+                    class="card-cart-btn" 
+                    @click.stop="addToCart(prod)" 
+                    title="Thêm vào giỏ hàng"
+                  >
+                    <ShoppingCart />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Đánh giá sao -->
-            <div class="product-rating">
-              <div class="stars">
-                <span v-for="star in 5" :key="star" class="star" :class="{ filled: star <= Math.round(prod.rating) }">★</span>
-              </div>
-              <span class="reviews-count">({{ prod.reviews }})</span>
-            </div>
-
-            <!-- Giá cả và nút giỏ hàng góc dưới phải -->
-            <div class="product-bottom-row">
-              <div class="product-pricing">
-                <div class="price-row">
-                  <span class="price-new">{{ formatPrice(prod.gia) }}</span>
-                </div>
-                <div class="price-old-row" v-if="prod.oldPrice">
-                  <span class="price-old">{{ formatPrice(prod.oldPrice) }}</span>
-                </div>
-                <div class="card-badge-row-1">
-                  <span class="badge-chinh-hang">✓ Chính Hãng</span>
-                </div>
-                <div class="card-badge-row-2">
-                  <span class="badge-ship-warranty">⚡ Freeship 2H</span>
-                  <span class="badge-ship-warranty">✦ BH 24T</span>
-                </div>
-              </div>
-              
-              <!-- Nút giỏ hàng góc dưới phải -->
+            <!-- Pagination -->
+            <div class="pagination-container" v-if="filteredProducts.length > itemsPerPage">
               <button 
-                class="card-cart-btn" 
-                @click.stop="addToCart(prod)" 
-                title="Thêm vào giỏ hàng"
+                class="page-btn" 
+                :disabled="currentPage === 1" 
+                @click="changePage(currentPage - 1)"
               >
-                <ShoppingCart />
+                <ChevronLeft /> Trước
+              </button>
+              <button
+                v-for="page in paginationPages"
+                :key="page"
+                class="page-number-btn"
+                :class="{ active: currentPage === page }"
+                @click="changePage(page)"
+              >
+                {{ page }}
+              </button>
+              <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+              <button 
+                class="page-btn" 
+                :disabled="currentPage === totalPages" 
+                @click="changePage(currentPage + 1)"
+              >
+                Sau <ChevronRight />
               </button>
             </div>
           </div>
         </div>
-
-        <!-- Pagination -->
-        <div class="pagination-container" v-if="filteredProducts.length > itemsPerPage">
-          <button 
-            class="page-btn" 
-            :disabled="currentPage === 1" 
-            @click="changePage(currentPage - 1)"
-          >
-            <ChevronLeft /> Trước
-          </button>
-          <button
-            v-for="page in paginationPages"
-            :key="page"
-            class="page-number-btn"
-            :class="{ active: currentPage === page }"
-            @click="changePage(page)"
-          >
-            {{ page }}
-          </button>
-          <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
-          <button 
-            class="page-btn" 
-            :disabled="currentPage === totalPages" 
-            @click="changePage(currentPage + 1)"
-          >
-            Sau <ChevronRight />
-          </button>
-        </div>
-        </div>
-
       </div>
     </section>
 
@@ -652,6 +951,149 @@ const sortBy = ref('featured')
 const currentPage = ref(1)
 const itemsPerPage = 15
 
+// ===================== FILTER MODAL STATE =====================
+const showFilterModal = ref(false)
+
+// danh mục/hãng/thuộc tính được điền từ API (tạm placeholder để không crash UI)
+const categories = ref([])
+const brands = ref([])
+
+const selectedBrands = ref([])
+const selectedCategories = ref([])
+const selectedPriceRange = ref('')
+const minPrice = ref(0)
+const maxPrice = ref(150000000)
+
+watch(minPrice, (newMin) => {
+  if (newMin > maxPrice.value - 5000000) minPrice.value = maxPrice.value - 5000000
+})
+watch(maxPrice, (newMax) => {
+  if (newMax < minPrice.value + 5000000) maxPrice.value = minPrice.value + 5000000
+})
+
+const selectedRAMs = ref([])
+const selectedSsds = ref([])
+const selectedCPUs = ref([])
+const selectedGPUs = ref([])
+const selectedKichThuoc = ref([])
+const selectedTamNen = ref([])
+const selectedDoPhanGiai = ref([])
+const selectedPin = ref([])
+const selectedSac = ref([])
+
+const attrOptions = ref({
+  ram: ['8GB', '16GB', '32GB', '64GB'],
+  cpu: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Ryzen 5'],
+  gpu: ['RTX 4090', 'RTX 4080', 'RTX 4070', 'RTX 4060', 'RTX 4050'],
+  kichthuoc: ['14 inch', '15.6 inch', '16 inch', '17.3 inch', '18 inch'],
+  tamnen: ['IPS', 'OLED', 'Mini LED'],
+  dophan: ['1920x1080', '2560x1440', '3840x2160'],
+  pin: ['4-cell', '6-cell'],
+  sac: ['65W', '90W', '150W']
+})
+
+const toggleList = (type, val) => {
+  const map = {
+    cat: selectedCategories,
+    brand: selectedBrands,
+    ram: selectedRAMs,
+    ssd: selectedSsds,
+    cpu: selectedCPUs,
+    gpu: selectedGPUs,
+    kichthuoc: selectedKichThuoc,
+    tamnen: selectedTamNen,
+    dophan: selectedDoPhanGiai,
+    pin: selectedPin,
+    sac: selectedSac
+  }
+  const target = map[type]
+  if (!target) return
+  const strVal = String(val)
+  const idx = target.value.indexOf(strVal)
+  if (idx > -1) {
+    target.value.splice(idx, 1)
+  } else {
+    target.value.push(strVal)
+  }
+}
+
+const applyFilters = () => {
+  currentPage.value = 1
+}
+
+const openCatalogFilters = ref(['brands', 'price'])
+
+const isCatalogFilterOpen = (key) => openCatalogFilters.value.includes(key)
+
+const toggleCatalogFilterGroup = (key) => {
+  const index = openCatalogFilters.value.indexOf(key)
+  if (index > -1) {
+    openCatalogFilters.value.splice(index, 1)
+  } else {
+    openCatalogFilters.value.push(key)
+  }
+}
+
+const handleCatalogFilterGroupClick = (event, key) => {
+  if (event.target.closest('.filter-pill-btn')) return
+  toggleCatalogFilterGroup(key)
+}
+
+const hasAnyFilter = computed(() =>
+  selectedBrands.value.length > 0 ||
+  selectedCategories.value.length > 0 ||
+  selectedRAMs.value.length > 0 ||
+  selectedSsds.value.length > 0 ||
+  selectedCPUs.value.length > 0 ||
+  selectedGPUs.value.length > 0 ||
+  selectedKichThuoc.value.length > 0 ||
+  selectedDoPhanGiai.value.length > 0 ||
+  selectedTamNen.value.length > 0 ||
+  selectedPin.value.length > 0 ||
+  selectedSac.value.length > 0 ||
+  selectedPriceRange.value !== '' ||
+  minPrice.value > 0 ||
+  maxPrice.value < 150000000
+)
+
+const clearAllFilters = () => {
+  selectedBrands.value = []
+  selectedCategories.value = []
+  selectedRAMs.value = []
+  selectedSsds.value = []
+  selectedCPUs.value = []
+  selectedGPUs.value = []
+  selectedKichThuoc.value = []
+  selectedDoPhanGiai.value = []
+  selectedTamNen.value = []
+  selectedPin.value = []
+  selectedSac.value = []
+  selectedPriceRange.value = ''
+  minPrice.value = 0
+  maxPrice.value = 150000000
+  currentPage.value = 1
+}
+
+watch([
+  selectedBrands,
+  selectedCategories,
+  selectedRAMs,
+  selectedSsds,
+  selectedCPUs,
+  selectedGPUs,
+  selectedKichThuoc,
+  selectedDoPhanGiai,
+  selectedTamNen,
+  selectedPin,
+  selectedSac,
+  selectedPriceRange,
+  minPrice,
+  maxPrice
+], () => {
+  currentPage.value = 1
+})
+>>>>>>> 8b2c87f8625a4d7a5953042180587d74e146b199
+
 const localWishlistIds = ref([])
 const accessorySliderRef = ref(null)
 const warmedDetailIds = new Set()
@@ -983,20 +1425,67 @@ const isGaming = (p) => {
          name.includes('stealth')
 }
 
-const normalizeFallbackProducts = () => fallbackProducts.map((product) => ({
-  ...product,
-  isFallbackProduct: true,
-}))
+const normalizeFallbackProducts = () => fallbackProducts.map((product) => {
+  let ram = '16GB'
+  let ssd = '512GB'
+  let cpu = ''
+  let gpu = ''
+  let kichthuoc = ''
+  let dophan = ''
+  let tamnen = ''
+  let pin = ''
+  let sac = ''
+
+  if (product.specs) {
+    product.specs.forEach(s => {
+      const ls = s.toLowerCase()
+      if (ls.includes('ram')) ram = s
+      else if (ls.includes('ssd')) ssd = s
+      else if (ls.includes('core') || ls.includes('ryzen')) cpu = s
+      else if (ls.includes('rtx') || ls.includes('gtx') || ls.includes('graphics')) gpu = s
+      else if (ls.includes('inch')) kichthuoc = s
+      else if (ls.includes('ips') || ls.includes('oled') || ls.includes('led')) tamnen = s
+    })
+  }
+
+  return {
+    ...product,
+    isFallbackProduct: true,
+    ram,
+    ssd,
+    cpu,
+    gpu,
+    kichthuoc,
+    dophan,
+    tamnen,
+    pin,
+    sac
+  }
+})
 
 // Load products
 const loadData = async () => {
   isLoading.value = true
   try {
-    const cache = await prefetchProductsPage({ forceRefresh: true })
+    const [cache, catRes, brandRes, attrRes] = await Promise.all([
+      prefetchProductsPage({ forceRefresh: true }),
+      api.get('/danhmuc', { skipGlobalLoader: true }),
+      api.get('/thuonghieu', { skipGlobalLoader: true }),
+      api.get('/sanpham/attribute-options', { skipGlobalLoader: true })
+    ])
+
+    categories.value = catRes.data?.data || catRes.data || []
+    brands.value = brandRes.data?.data || brandRes.data || []
+    attrOptions.value = attrRes.data || attrOptions.value
     let rawList = []
     if (cache && cache.productsRaw) {
       rawList = cache.productsRaw.filter(p => isGaming(p))
     }
+
+    const brandMap = new Map()
+    brands.value.forEach(b => {
+      brandMap.set(b.ten_thuonghieu.toLowerCase(), String(b.id_thuonghieu))
+    })
     
     const mapped = rawList.map(p => {
       let generalSpecs = []
@@ -1016,6 +1505,13 @@ const loadData = async () => {
 
       let ram = '16GB'
       let ssd = '512GB'
+      let cpu = ''
+      let gpu = ''
+      let kichthuoc = ''
+      let dophan = ''
+      let tamnen = ''
+      let pin = ''
+      let sac = ''
       let variantSpecs = []
       if (premiumVariant) {
         try {
@@ -1025,7 +1521,14 @@ const loadData = async () => {
             tt.forEach(attr => {
               const name = (attr.ten_thuoctinh || '').toLowerCase()
               if (name.includes('ram')) ram = attr.giatri
-              if (name.includes('ssd') || name.includes('ổ cứng')) ssd = attr.giatri
+              else if (name.includes('ssd') || name.includes('ổ cứng')) ssd = attr.giatri
+              else if (name.includes('cpu') || name.includes('vi xử lý')) cpu = attr.giatri
+              else if (name.includes('gpu') || name.includes('card đồ họa')) gpu = attr.giatri
+              else if (name.includes('kích thước') || name.includes('màn hình')) kichthuoc = attr.giatri
+              else if (name.includes('độ phân giải')) dophan = attr.giatri
+              else if (name.includes('tấm nền')) tamnen = attr.giatri
+              else if (name.includes('pin')) pin = attr.giatri
+              else if (name.includes('sạc')) sac = attr.giatri
             })
             variantSpecs = tt.map(attr => attr.giatri).filter(Boolean)
           }
@@ -1053,17 +1556,37 @@ const loadData = async () => {
         oldPrice: Math.floor(giaSP * 1.15),
         specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, '144Hz']),
         image: productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600'),
-        rating: 4.7,
-        reviews: Math.floor(Math.random() * 80) + 15,
+        rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.7,
+        reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
         promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
         inStock: p.trangthai === 'hoat_dong' || Number(premiumVariant?.soluong || 0) > 0,
         ram,
-        ssd
+        ssd,
+        cpu,
+        gpu,
+        kichthuoc,
+        dophan,
+        tamnen,
+        pin,
+        sac
       }
     })
 
     const existingIds = new Set(mapped.map(m => m.id_sanpham))
-    const uniqueFallbacks = normalizeFallbackProducts().filter(fb => !existingIds.has(fb.id_sanpham))
+    const uniqueFallbacks = normalizeFallbackProducts().map(fb => {
+      const brandName = fb.brand.toLowerCase()
+      let matchedId = ''
+      for (const [name, id] of brandMap.entries()) {
+        if (brandName.includes(name) || name.includes(brandName)) {
+          matchedId = id
+          break
+        }
+      }
+      return {
+        ...fb,
+        id_thuonghieu: matchedId || fb.id_thuonghieu || ''
+      }
+    }).filter(fb => !existingIds.has(fb.id_sanpham))
     products.value = [...mapped, ...uniqueFallbacks]
     preloadProductDetailPage().catch(() => {})
   } catch (err) {
@@ -1081,7 +1604,7 @@ const productCatalogItems = computed(() => products.value.filter(p => !isAccesso
 const filteredProducts = computed(() => {
   let list = productCatalogItems.value
 
-  // Apply Sidebar brand/GPU/accessory filters
+  // Apply Sidebar brand/GPU/accessory filters (from existing sidebar categories)
   if (currentSidebarFilter.value !== 'all') {
     const val = currentSidebarFilter.value.toLowerCase().replace(/\s+/g, '')
     if (val.startsWith('rtx')) {
@@ -1115,6 +1638,44 @@ const filteredProducts = computed(() => {
     list = list.filter(p => p.gia < 35000000)
   } else if (tabVal === 'high-rating') {
     list = list.filter(p => p.rating >= 4.7)
+  }
+
+  // Apply dynamic attribute sidebar filters
+  if (selectedBrands.value.length > 0) {
+    list = list.filter(p => selectedBrands.value.includes(String(p.id_thuonghieu)))
+  }
+  if (selectedCategories.value.length > 0) {
+    list = list.filter(p => selectedCategories.value.includes(String(p.id_danhmuc)))
+  }
+  if (selectedRAMs.value.length > 0) {
+    list = list.filter(p => selectedRAMs.value.includes(p.ram))
+  }
+  if (selectedSsds.value.length > 0) {
+    list = list.filter(p => selectedSsds.value.includes(p.ssd))
+  }
+  if (selectedCPUs.value.length > 0) {
+    list = list.filter(p => selectedCPUs.value.includes(p.cpu))
+  }
+  if (selectedGPUs.value.length > 0) {
+    list = list.filter(p => selectedGPUs.value.includes(p.gpu))
+  }
+  if (selectedKichThuoc.value.length > 0) {
+    list = list.filter(p => selectedKichThuoc.value.includes(p.kichthuoc))
+  }
+  if (selectedDoPhanGiai.value.length > 0) {
+    list = list.filter(p => selectedDoPhanGiai.value.includes(p.dophan))
+  }
+  if (selectedTamNen.value.length > 0) {
+    list = list.filter(p => selectedTamNen.value.includes(p.tamnen))
+  }
+  if (selectedPin.value.length > 0) {
+    list = list.filter(p => selectedPin.value.includes(p.pin))
+  }
+  if (selectedSac.value.length > 0) {
+    list = list.filter(p => selectedSac.value.includes(p.sac))
+  }
+  if (minPrice.value > 0 || maxPrice.value < 150000000) {
+    list = list.filter(p => p.gia >= minPrice.value && p.gia <= maxPrice.value)
   }
 
   return list
@@ -2918,6 +3479,286 @@ onMounted(() => {
   box-shadow: 0 16px 28px rgba(37, 99, 235, 0.36);
 }
 
+/* ============================================================
+   CATALOG SIDEBAR & GRID LAYOUT (MacBook Style)
+   ============================================================ */
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.catalog-filter-sidebar {
+  position: sticky;
+  top: 112px;
+  z-index: 10;
+  align-self: start;
+}
+
+.filter-sidebar-card {
+  background: rgba(226, 232, 240, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 11px;
+  max-height: calc(100vh - 132px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.45) transparent;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(14px);
+}
+
+.filter-sidebar-card::-webkit-scrollbar {
+  width: 5px;
+}
+
+.filter-sidebar-card::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.38);
+  border-radius: 999px;
+}
+
+.filter-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  padding-bottom: 8px;
+}
+
+.header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.filter-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.filter-sidebar-header h3 {
+  font-size: 13px;
+  margin: 0;
+  color: #0f172a;
+}
+
+.clear-all-link {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.clear-all-link:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.filter-option-group {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-option-group.open,
+.filter-option-group.selected {
+  background: #eff6ff;
+}
+
+.filter-option-group.selected {
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
+}
+
+.filter-option-group h4 {
+  position: relative;
+  font-size: 10px;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+  padding: 5px 18px 5px 4px;
+  font-weight: 700;
+  user-select: none;
+}
+
+.filter-option-group h4::after {
+  content: '›';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1;
+  transition: transform 0.22s ease, color 0.22s ease;
+}
+
+.filter-option-group.open h4 {
+  color: #1d4ed8;
+}
+
+.filter-option-group.open h4::after {
+  color: #2563eb;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.filter-dropdown-content {
+  margin-top: 6px;
+  animation: filterDropdownIn 0.2s ease both;
+}
+
+@keyframes filterDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-pill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.brand-pill-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.filter-pill-btn {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #111827;
+  min-height: 27px;
+  padding: 4px 3px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-pill-btn:hover {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.38);
+  color: #0f172a;
+}
+
+.filter-pill-btn.active {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.catalog-grid-area {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Price Range Slider styling */
+.price-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-slider-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px dashed rgba(37, 99, 235, 0.15);
+}
+
+.price-slider-container {
+  position: relative;
+  height: 5px;
+  background: rgba(148, 163, 184, 0.28);
+  border-radius: 3px;
+  margin: 8px 0 16px;
+}
+
+.price-slider-track {
+  position: absolute;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 3px;
+}
+
+.price-slider-inputs {
+  position: relative;
+  height: 0;
+}
+
+.price-slider-inputs input[type="range"] {
+  position: absolute;
+  top: -5px;
+  width: 100%;
+  height: 5px;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.price-slider-inputs input[type="range"]::-webkit-slider-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease;
+}
+
+.price-slider-inputs input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.price-slider-inputs input[type="range"]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease;
+}
+
+.price-slider-inputs input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
 /* RESPONSIVE LAYOUTS */
 @media (max-width: 1400px) {
   .gaming-product-grid {
@@ -2948,6 +3789,12 @@ onMounted(() => {
 }
 
 @media (max-width: 992px) {
+  .catalog-layout {
+    grid-template-columns: 1fr;
+  }
+  .catalog-filter-sidebar {
+    position: static;
+  }
   .hero-grid {
     grid-template-columns: 1fr;
   }

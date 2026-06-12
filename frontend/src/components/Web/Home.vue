@@ -204,7 +204,9 @@ const mapProducts = (rawProducts) => {
                 specs: [],
                 img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500'),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
-                badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb'
+                badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
+                rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
+                rating_count: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0
             }];
         }
 
@@ -258,7 +260,9 @@ const mapProducts = (rawProducts) => {
                 specs: specs,
                 img: productImageUrl(p, bt),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
-                badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb'
+                badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
+                rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
+                rating_count: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0
             };
         });
     });
@@ -1026,9 +1030,11 @@ onUnmounted(() => {
 
                             <!-- Rating stars -->
                             <div class="rating-strip">
-                                <span class="stars">★★★★★</span>
-                                <span class="rating-val">4.9</span>
-                                <span class="rating-count">(42 đánh giá)</span>
+                                <span class="stars">
+                                    <span v-for="star in 5" :key="star" :style="{ color: star <= Math.round(p.rating_avg || 5) ? '#fbbf24' : '#cbd5e1' }">★</span>
+                                </span>
+                                <span class="rating-val" style="margin-left: 4px;">{{ p.rating_avg > 0 ? p.rating_avg.toFixed(1) : '5.0' }}</span>
+                                <span class="rating-count">({{ p.rating_count || 0 }} đánh giá)</span>
                             </div>
 
                             <!-- Installment badge -->

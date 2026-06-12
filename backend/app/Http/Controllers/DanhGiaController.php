@@ -114,6 +114,8 @@ class DanhGiaController extends Controller
             'trangthai'  => $aiResult['trangthai']
         ]);
 
+        $this->clearProductCacheByReview($danhGia);
+
         $msg = 'Cảm ơn bạn đã đánh giá sản phẩm! Đánh giá của bạn sẽ được hiển thị sau khi được duyệt.';
         if ($aiResult['trangthai'] === 'approved') {
             $msg = 'Cảm ơn bạn đã đánh giá sản phẩm! Đánh giá của bạn chứa phản hồi tích cực và đã được duyệt hiển thị tự động.';
@@ -140,6 +142,8 @@ class DanhGiaController extends Controller
         $review = DanhGia::findOrFail($id);
         $review->update(['trangthai' => $request->trangthai]);
 
+        $this->clearProductCacheByReview($review);
+
         return response()->json([
             'success' => true,
             'message' => 'Cập nhật trạng thái đánh giá thành công!',
@@ -158,6 +162,8 @@ class DanhGiaController extends Controller
         if (Auth::user()->role !== 'admin' && $review->user_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa đánh giá này.'], 403);
         }
+
+        $this->clearProductCacheByReview($review);
 
         $review->delete();
 
@@ -282,5 +288,22 @@ class DanhGiaController extends Controller
             'active' => $request->active,
             'message' => $request->active ? 'Đã kích hoạt Trợ lý AI Smart Reply thành công!' : 'Đã hủy kích hoạt Trợ lý AI Smart Reply!'
         ]);
+    }
+
+    /**
+     * Clear all product-related caches when reviews are updated.
+     */
+    private function clearProductCacheByReview($review)
+    {
+        if ($review) {
+            $review->load('bienThe');
+            if ($review->bienThe) {
+                $productId = $review->bienThe->id_sanpham;
+                \Illuminate\Support\Facades\Cache::forget("sanpham_show_{$productId}");
+            }
+        }
+        \Illuminate\Support\Facades\Cache::put('sanpham_cache_bust', (string) microtime(true));
+        \Illuminate\Support\Facades\Cache::forget('sanpham_index_' . md5(json_encode([])));
+        \Illuminate\Support\Facades\Cache::forget('mobile_home_v2');
     }
 }

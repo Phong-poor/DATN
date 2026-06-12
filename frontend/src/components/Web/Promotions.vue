@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { productImageUrl } from '@/services/urls'
+import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import {
   Tag,
@@ -52,8 +53,15 @@ const esHours = ref('01')
 const esMinutes = ref('32')
 const esSeconds = ref('08')
 
-// Copied voucher state to manage buttons feedback
-const copiedVoucherId = ref(null)
+// Claimed voucher state
+const claimedVoucherId = ref(null)
+const claimingId = ref(null)
+// user's owned vouchers: { id_promotion, trang_thai, ngay_nhan, promotion: {...} }
+const userVouchers = ref([])
+// Set of promotion IDs user already owns with trang_thai != het_han
+const ownedActiveIds = ref(new Set())
+// Loading user vouchers
+const isLoadingUserVouchers = ref(false)
 
 // Stats counters (for dynamic increment count animation)
 const displayedProductsCount = ref(0)
@@ -112,6 +120,7 @@ const magazineArticles = [
 onMounted(() => {
   fetchPromotionsData()
   startTimers()
+  fetchUserVouchers()
 })
 
 onUnmounted(() => {
@@ -123,7 +132,7 @@ async function fetchPromotionsData() {
   isLoading.value = true
   try {
     // 1. Load vouchers from backend API
-    const promoResponse = await api.get('/khuyen-mai/danh-sach')
+    const promoResponse = await api.get('/promotions')
     if (promoResponse.data && Array.isArray(promoResponse.data.data)) {
       backendPromotions.value = promoResponse.data.data
     } else if (promoResponse.data && Array.isArray(promoResponse.data)) {
@@ -131,7 +140,7 @@ async function fetchPromotionsData() {
     }
 
     // 2. Load products from API
-    const prodResponse = await api.get('/san-pham')
+    const prodResponse = await api.get('/sanpham')
     let rawProducts = []
     if (prodResponse.data && Array.isArray(prodResponse.data.data)) {
       rawProducts = prodResponse.data.data
@@ -195,8 +204,8 @@ async function fetchPromotionsData() {
           oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
           image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
-          rating: 4.8,
-          reviews: Math.floor(Math.random() * 80) + 15,
+          rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
+          reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',
           inStock: p.trangthai === 'hoat_dong' || p.soluong > 0
         }
@@ -230,14 +239,65 @@ function generateFallbackProducts() {
 }
 
 // ===================== COMPUTED PROPERTIES =====================
+// Helper: format date
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+// Helper: check if a voucher is still valid (not expired)
+function isVoucherValid(v) {
+  if (!v.end_date) return true // no end date = always valid
+  return new Date(v.end_date) >= new Date()
+}
+
+// Helper: check if a voucher has started
+function isVoucherStarted(v) {
+  if (!v.start_date) return true
+  return new Date(v.start_date) <= new Date()
+}
+
 const allVouchers = computed(() => {
   const list = [...backendPromotions.value]
-  fallbackVouchers.forEach(fv => {
-    if (!list.some(v => v.code === fv.code)) {
-      list.push(fv)
+  // Only add fallbacks if no backend data
+  if (list.length === 0) {
+    fallbackVouchers.forEach(fv => {
+      if (!list.some(v => v.code === fv.code)) list.push(fv)
+    })
+  }
+
+  return list.filter(v => {
+    // 0. Ẩn voucher nhận có điều kiện (is_public = 0)
+    if (v.is_public === 0 || v.is_public === '0' || v.is_public === false) return false
+
+    // 1. Tuyệt đối không hiện voucher sinh nhật
+    if (v.category === 'birthday') return false
+
+    // 2. Voucher phải còn hạn
+    if (!isVoucherValid(v) || !isVoucherStarted(v)) return false
+
+    // 3. Nếu user chưa đăng nhập → hiện tất cả voucher còn hạn
+    const token = getToken()
+    if (!token) return true
+
+    // 4. Nếu user đã đăng nhập:
+    // - Chưa sở hữu → hiện
+    // - Đã sở hữu còn hiệu lực (trang_thai != 'het_han' && trang_thai != 2) → không hiện
+    // - Đã sở hữu nhưng đã hết hạn → hiện lại để nhận
+    const owned = userVouchers.value.find(uv =>
+      Number(uv.id_promotion) === Number(v.id)
+    )
+    if (!owned) return true // chưa sở hữu → hiện
+
+    // Đã sở hữu: kiểm tra trang_thai
+    // trang_thai = 0: chưa dùng, 1: đã dùng, 2/het_han: hết hạn
+    const status = String(owned.trang_thai)
+    if (status === '2' || status === 'het_han' || status === 'expired') {
+      return true // đã sở hữu nhưng hết hạn → hiện để nhận lại
     }
+    return false // đã sở hữu còn hiệu lực → không hiện
   })
-  return list
 })
 
 const filteredProducts = computed(() => {
@@ -309,62 +369,60 @@ const startTimers = () => {
 }
 
 // ===================== INTERACTIVE ACTIONS =====================
-const fallbackCopyTextToClipboard = (text) => {
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  textArea.style.position = 'fixed'
-  textArea.style.top = '0'
-  textArea.style.left = '0'
-  textArea.style.opacity = '0'
-  textArea.style.pointerEvents = 'none'
-  document.body.appendChild(textArea)
-  textArea.focus()
-  textArea.select()
+// Fetch user's already-owned vouchers
+async function fetchUserVouchers() {
+  const token = getToken()
+  if (!token) return
+  isLoadingUserVouchers.value = true
   try {
-    const successful = document.execCommand('copy')
-    document.body.removeChild(textArea)
-    return successful
-  } catch (err) {
-    console.error('Fallback copy failed:', err)
-    document.body.removeChild(textArea)
-    return false
+    const res = await api.get('/user/vouchers')
+    userVouchers.value = Array.isArray(res.data?.vouchers)
+      ? res.data.vouchers
+      : Array.isArray(res.data) ? res.data : []
+    // Build set of active-owned IDs
+    ownedActiveIds.value = new Set(
+      userVouchers.value
+        .filter(uv => {
+          const s = String(uv.trang_thai)
+          return s !== '2' && s !== 'het_han' && s !== 'expired'
+        })
+        .map(uv => Number(uv.id_promotion))
+    )
+  } catch (e) {
+    // Not logged in or error → ignore
+  } finally {
+    isLoadingUserVouchers.value = false
   }
 }
 
-const copyVoucherCode = async (code, id) => {
+// Claim (nhận) a voucher
+const claimVoucher = async (v) => {
+  const token = getToken()
+  if (!token) {
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để nhận voucher!')
+    router.push('/login')
+    return
+  }
+  if (claimingId.value === v.id) return
+  claimingId.value = v.id
   try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(code)
-    } else {
-      if (!fallbackCopyTextToClipboard(code)) {
-        throw new Error('Clipboard API not available and fallback failed')
-      }
-    }
-    copiedVoucherId.value = id
-    swal.toastSuccess(`Đã copy mã: ${code}`)
+    await api.post('/user/vouchers/claim', { id_promotion: v.id })
+    claimedVoucherId.value = v.id
+    swal.success('Chúc mừng!', 'Chúc mừng nhận voucher thành công, đã lưu vô thông tin cá nhân!')
+    await fetchUserVouchers()
     setTimeout(() => {
-      if (copiedVoucherId.value === id) {
-        copiedVoucherId.value = null
-      }
+      if (claimedVoucherId.value === v.id) claimedVoucherId.value = null
     }, 3000)
   } catch (err) {
-    console.warn('Không thể copy bằng navigator.clipboard, thử copy bằng fallback...', err)
-    if (fallbackCopyTextToClipboard(code)) {
-      copiedVoucherId.value = id
-      swal.toastSuccess(`Đã copy mã: ${code}`)
-      setTimeout(() => {
-        if (copiedVoucherId.value === id) {
-          copiedVoucherId.value = null
-        }
-      }, 3000)
-    } else {
-      swal.error('Lỗi', 'Không thể copy mã tự động, vui lòng tự nhập.')
-    }
+    const msg = err.response?.data?.message || 'Không thể nhận voucher này.'
+    swal.error('Lỗi', msg)
+  } finally {
+    claimingId.value = null
   }
 }
 
 const addToCart = async (product) => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   if (!token) {
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
     router.push('/login')
@@ -739,13 +797,17 @@ const initScrollReveal = () => {
     <!-- 5. VOUCHER CENTER -->
     <section class="section voucher-center-section">
       <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up">
+        <div class="section-header scroll-reveal reveal-fade-up" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
           <span class="ambient-label">
             <Tag class="pill-icon" />
             Voucher Center
           </span>
           <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
-          <p class="section-sub">Nhấp Copy mã và áp dụng ở bước thanh toán để nhận thêm ưu đãi cộng dồn cực kỳ hấp dẫn.</p>
+          <p class="section-sub">Nhấn <strong>Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+        </div>
+
+        <div v-if="allVouchers.length === 0" style="text-align:center; padding: 40px 0; color: #94a3b8; font-size: 15px;">
+          Hiện không có voucher nào phù hợp.
         </div>
 
         <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
@@ -753,31 +815,39 @@ const initScrollReveal = () => {
             <div class="voucher-glow-accent"></div>
             <div class="voucher-header">
               <div class="voucher-badge">
-                {{ v.category === 'shipping' ? 'Freeship' : v.category === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
+                {{ v.category === 'freeship' ? 'Freeship' : v.category === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
               </div>
               <div class="voucher-code-label">
                 Code: <strong>{{ v.code }}</strong>
               </div>
             </div>
 
-            <div class="voucher-body">
+            <div class="voucher-body" style="text-align: left;">
               <h3>{{ v.name }}</h3>
-              <p>{{ v.desc }}</p>
+              <p>{{ v.mota || v.desc }}</p>
+              <p v-if="v.end_date" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
+                <Clock class="pill-icon" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"/>
+                HSD: {{ formatDate(v.end_date) }}
+              </p>
             </div>
 
             <div class="voucher-footer">
               <button
-                @click="copyVoucherCode(v.code, v.id)"
+                @click="claimVoucher(v)"
                 class="btn-copy-code"
-                :class="{ 'copied': copiedVoucherId === v.id }"
+                :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
+                :disabled="claimingId === v.id"
               >
-                <template v-if="copiedVoucherId === v.id">
+                <template v-if="claimedVoucherId === v.id">
                   <Check class="copy-icon" />
-                  Đã copy!
+                  Đã nhận!
+                </template>
+                <template v-else-if="claimingId === v.id">
+                  Đang xử lý...
                 </template>
                 <template v-else>
-                  <Copy class="copy-icon" />
-                  Copy Mã
+                  <Gift class="copy-icon" />
+                  Nhận Voucher
                 </template>
               </button>
             </div>
@@ -2840,5 +2910,12 @@ const initScrollReveal = () => {
     width: 100%;
   }
   .btn-newsletter-submit { width: 100%; padding: 12px 0; }
+}
+
+/* Voucher button loading state */
+.btn-copy-code.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 </style>

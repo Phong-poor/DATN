@@ -32,6 +32,8 @@ class PromotionController extends Controller
         $claimedIds = UserVoucher::where('id_user', $userId)->pluck('id_promotion');
 
         $available = Promotion::whereIn('status', ['running', 'open'])
+            ->where('is_public', 1) // Chỉ trả về voucher công khai
+            ->where('category', '!=', 'birthday') // Không trả về mã sinh nhật
             ->whereNotIn('id', $claimedIds)
             ->orderBy('id', 'desc')
             ->get();
@@ -39,47 +41,20 @@ class PromotionController extends Controller
         return response()->json($available);
     }
 
-    /**
-     * POST /api/user/vouchers/claim
-     */
-    public function claimVoucher(Request $request)
+
+    // GET /api/promotions — public & admin
+    public function index(Request $request)
     {
-        $request->validate([
-            'id_promotion' => 'required|exists:promotions,id'
-        ]);
+        // Ẩn mã sinh nhật trong mọi trường hợp vì có mục đích riêng
+        $query = Promotion::where('category', '!=', 'birthday')->orderBy('id', 'desc');
 
-        $userId = $request->user()->id;
-        $promoId = $request->id_promotion;
-
-        $exists = UserVoucher::where('id_user', $userId)
-            ->where('id_promotion', $promoId)
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn đã nhận mã giảm giá này rồi.'
-            ], 422);
+        if ($request->is('api/admin/*')) {
+            // Admin thấy tất cả (trừ birthday), bao gồm cả is_public = 0
+            return response()->json($query->get());
         }
-
-        $userVoucher = UserVoucher::create([
-            'id_user'      => $userId,
-            'id_promotion' => $promoId,
-            'trang_thai'   => 0,
-            'ngay_nhan'    => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Đã lưu mã giảm giá vào hồ sơ của bạn!',
-            'voucher' => $userVoucher
-        ]);
-    }
-
-    // GET /api/promotions — public
-    public function index()
-    {
-        return response()->json(Promotion::orderBy('id', 'desc')->get());
+        
+        // Public chỉ thấy is_public = 1
+        return response()->json($query->where('is_public', 1)->get());
     }
 
     // POST /api/apply-promo — public, kiểm tra mã giảm giá
@@ -174,6 +149,73 @@ class PromotionController extends Controller
         ]);
     }
 
+    // POST /api/user/vouchers/claim
+    public function claimVoucher(Request $request)
+    {
+        $user = $request->user();
+        $request->validate([
+            'id_promotion' => 'required|exists:promotions,id'
+        ]);
+
+        $promo = Promotion::find($request->id_promotion);
+
+        if (!$promo) {
+            return response()->json(['success' => false, 'message' => 'Voucher không tồn tại.'], 404);
+        }
+
+        if ($promo->is_public == 0) {
+            return response()->json(['success' => false, 'message' => 'Không thể nhận voucher này.'], 403);
+        }
+
+        if ($promo->category === 'birthday') {
+            return response()->json(['success' => false, 'message' => 'Không thể nhận mã sinh nhật.'], 403);
+        }
+
+        // Check date
+        if ($promo->end_date && \Carbon\Carbon::parse($promo->end_date)->isPast()) {
+            return response()->json(['success' => false, 'message' => 'Voucher đã hết hạn.'], 400);
+        }
+
+        if ($promo->start_date && \Carbon\Carbon::parse($promo->start_date)->isFuture()) {
+            return response()->json(['success' => false, 'message' => 'Voucher chưa tới thời gian nhận.'], 400);
+        }
+
+        // Check so_luong_phat
+        if ($promo->so_luong_phat > 0) {
+            $claimedCount = UserVoucher::where('id_promotion', $promo->id)->count();
+            if ($claimedCount >= $promo->so_luong_phat) {
+                return response()->json(['success' => false, 'message' => 'Voucher đã hết lượt phát.'], 400);
+            }
+        }
+
+        // Check if user already owns it
+        $existing = UserVoucher::where('id_user', $user->id)
+                               ->where('id_promotion', $promo->id)
+                               ->first();
+
+        if ($existing) {
+            if ($existing->trang_thai == 2 || $existing->trang_thai === 'het_han' || $existing->trang_thai === 'expired') {
+                $existing->update([
+                    'trang_thai' => 0,
+                    'ngay_nhan' => now()
+                ]);
+                return response()->json(['success' => true, 'message' => 'Đã nhận lại voucher thành công.']);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Bạn đã có voucher này rồi.'], 400);
+            }
+        }
+
+        // Create
+        UserVoucher::create([
+            'id_user' => $user->id,
+            'id_promotion' => $promo->id,
+            'trang_thai' => 0,
+            'ngay_nhan' => now()
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Nhận voucher thành công.']);
+    }
+
     // POST /api/admin/promotions
     public function store(Request $request)
     {
@@ -187,6 +229,9 @@ class PromotionController extends Controller
             'end_date'       => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien'      => 'nullable|numeric|min:0',
+            'is_public'      => 'boolean',
+            'dieu_kien_tang' => 'nullable|numeric|min:0',
+            'so_luong_phat'  => 'nullable|integer|min:1',
         ]);
 
         $promo = Promotion::create([
@@ -201,6 +246,9 @@ class PromotionController extends Controller
             'mota'           => $request->mota,
             'loai_dieu_kien' => $request->category === 'product' ? $request->loai_dieu_kien : null,
             'dieu_kien'      => in_array($request->category, ['product', 'freeship']) ? $request->dieu_kien : null,
+            'is_public'      => $request->has('is_public') ? $request->is_public : 1,
+            'dieu_kien_tang' => $request->dieu_kien_tang,
+            'so_luong_phat'  => $request->so_luong_phat,
         ]);
 
         return response()->json([
@@ -225,6 +273,9 @@ class PromotionController extends Controller
             'end_date'       => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien'      => 'nullable|numeric|min:0',
+            'is_public'      => 'boolean',
+            'dieu_kien_tang' => 'nullable|numeric|min:0',
+            'so_luong_phat'  => 'nullable|integer|min:1',
         ]);
 
         $promo->update([
@@ -239,6 +290,9 @@ class PromotionController extends Controller
             'mota'           => $request->mota,
             'loai_dieu_kien' => $request->category === 'product' ? $request->loai_dieu_kien : null,
             'dieu_kien'      => in_array($request->category, ['product', 'freeship']) ? $request->dieu_kien : null,
+            'is_public'      => $request->has('is_public') ? $request->is_public : 1,
+            'dieu_kien_tang' => $request->dieu_kien_tang,
+            'so_luong_phat'  => $request->so_luong_phat,
         ]);
 
         return response()->json([

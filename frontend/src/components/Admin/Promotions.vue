@@ -1,6 +1,11 @@
 <template>
   <div class="page">
 
+    <!-- ═══════════════════════════════════
+         VIEW: DANH SÁCH KHUYẾN MÃI
+    ═══════════════════════════════════ -->
+    <template v-if="currentView === 'list'">
+
     <!-- TOPBAR -->
     <div class="topbar">
       <div class="search-box">
@@ -91,19 +96,20 @@
             <th>LOẠI ƯU ĐÃI</th>
             <th>BẮT ĐẦU</th>
             <th>KẾT THÚC</th>
+            <th>HÌNH THỨC</th>
             <th>TRẠNG THÁI</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="7" class="empty-row">
+            <td colspan="8" class="empty-row">
               <div class="loading-spinner"></div>
               Đang tải...
             </td>
           </tr>
           <tr v-else-if="filteredPromos.length === 0">
-            <td colspan="7" class="empty-row">Không tìm thấy chương trình nào.</td>
+            <td colspan="8" class="empty-row">Không tìm thấy chương trình nào.</td>
           </tr>
           <tr v-else v-for="p in filteredPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
             <td class="select-col">
@@ -125,6 +131,11 @@
             </td>
             <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.startDate || '—') }}</td>
             <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.endDate || '—') }}</td>
+            <td>
+              <span :class="['status-badge', p.is_public == 1 ? 'status-running' : 'status-open']">
+                {{ p.is_public == 1 ? 'Công khai' : 'Có điều kiện' }}
+              </span>
+            </td>
             <td>
               <span :class="['status-badge', statusClass(p.status)]">
                 {{ statusLabel(p.status) }}
@@ -193,168 +204,198 @@
       </div>
     </div>
 
-    <!-- ═══════════ MODAL ═══════════ -->
-    <transition name="fade">
-      <div class="overlay" v-if="showModal" @click.self="closeModal">
-        <transition name="slide-up">
-          <div class="modal" v-if="showModal">
-
-            <div class="modal-header">
-              <div class="modal-header-left">
-                <div class="modal-icon" :class="isEdit ? 'icon-edit' : 'icon-create'">
-                  <svg v-if="!isEdit" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </div>
-                <div>
-                  <h3 class="modal-title">{{ isEdit ? 'Chỉnh sửa khuyến mãi' : 'Tạo khuyến mãi mới' }}</h3>
-                  <p class="modal-subtitle">{{ isEdit ? 'Cập nhật thông tin chương trình ưu đãi' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
-                </div>
-              </div>
-              <button class="modal-close" @click="closeModal">
-                <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-
-            <div class="modal-body">
-
-              <div class="form-group">
-                <label class="form-label">Loại Voucher <span class="req">*</span></label>
-                <select class="form-input" v-model="form.category" @change="onCategoryChange">
-                  <option value="product">Giảm giá sản phẩm</option>
-                  <option value="birthday">Mã Sinh nhật</option>
-                  <option value="freeship">Miễn phí vận chuyển (Freeship)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Tên Voucher <span class="req">*</span></label>
-                <input class="form-input" :class="{ err: errors.name }" v-model="form.name" placeholder="VD: Tết 2026 Sale" @input="autoCode"/>
-                <p class="err-msg" v-if="errors.name">{{ errors.name }}</p>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Mã Voucher <span class="req">*</span></label>
-                <div style="display: flex; gap: 8px;">
-                  <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase" :readonly="form.category === 'birthday'"/>
-                  <button type="button" @click="generateRandomCode" style="padding: 0 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; white-space: nowrap;" :disabled="form.category === 'birthday'">Tạo ngẫu nhiên</button>
-                </div>
-                <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
-                <p class="form-hint">Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
-              </div>
-
-              <div class="form-row" v-if="form.category !== 'freeship'">
-                <div class="form-group">
-                  <label class="form-label">Loại ưu đãi <span class="req">*</span></label>
-                  <select class="form-input" v-model="form.type" :disabled="form.category === 'birthday'">
-                    <option value="percent">Giảm %</option>
-                    <option value="fixed">Giảm theo giá tiền</option>
-                    <option value="maxprice">Giảm % tối đa</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Giá trị <span class="req">*</span></label>
-                  <div class="input-suffix-wrap">
-                    <input class="form-input" :class="{ err: errors.value }" v-model.number="form.value" type="number" min="0" placeholder="50" />
-                    <span class="input-suffix">{{ form.type === 'percent' || form.type === 'maxprice' ? '%' : 'VNĐ' }}</span>
-                  </div>
-                  <p class="err-msg" v-if="errors.value">{{ errors.value }}</p>
-                </div>
-              </div>
-
-              <!-- ĐIỀU KIỆN ĐƠN HÀNG: hiện với category = product hoặc freeship -->
-              <div class="form-row condition-row" :class="{ 'freeship-row': form.category === 'freeship' }" v-if="form.category === 'product' || form.category === 'freeship'">
-                <div class="form-group" v-if="form.category === 'product'">
-                  <label class="form-label">
-                    <span class="condition-badge">🎯 Điều kiện đơn hàng</span>
-                  </label>
-                  <select class="form-input condition-select" v-model="form.loai_dieu_kien">
-                    <option value=">=">≥ Tạm tính từ (lớn hơn hoặc bằng)</option>
-                    <option value=">">＞ Tạm tính hơn (lớn hơn)</option>
-                    <option value="=">＝ Tạm tính bằng đúng</option>
-                  </select>
-                </div>
-                <div class="form-group" v-if="form.category === 'freeship'">
-                  <label class="form-label">
-                    <span class="condition-badge freeship-badge">🚚 Điều kiện miễn phí ship</span>
-                  </label>
-                  <p class="form-hint" style="margin-bottom:4px">Khách hàng phải đạt tạm tính tối thiểu mới dùng được mã freeship này.</p>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">
-                    {{ form.category === 'freeship' ? 'Đơn hàng tối thiểu (VNĐ)' : 'Giá trị điều kiện (VNĐ)' }}
-                  </label>
-                  <div class="input-suffix-wrap">
-                    <input
-                      class="form-input condition-input"
-                      :class="{ err: errors.dieu_kien, 'freeship-input': form.category === 'freeship' }"
-                      v-model.number="form.dieu_kien"
-                      type="number" min="0"
-                      :placeholder="form.category === 'freeship' ? 'VD: 30000000' : 'VD: 500000'"
-                    />
-                    <span class="input-suffix">đ</span>
-                  </div>
-                  <p class="err-msg" v-if="errors.dieu_kien">{{ errors.dieu_kien }}</p>
-                  <p class="form-hint">
-                    {{ form.category === 'freeship'
-                      ? 'Để trống = freeship cho mọi đơn hàng. Nhập số để giới hạn điều kiện tối thiểu.'
-                      : 'Để trống nếu không cần điều kiện tạm tính.' }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Ngày bắt đầu & Ngày kết thúc: chỉ hiện cho freeship/product, birthday luôn mở -->
-              <div class="form-row" v-if="form.category !== 'birthday'">
-                <div class="form-group">
-                  <label class="form-label">Ngày bắt đầu</label>
-                  <input class="form-input" type="date" v-model="form.startDate"/>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Ngày kết thúc</label>
-                  <input class="form-input" type="date" v-model="form.endDate"/>
-                </div>
-              </div>
-              <div class="form-group" v-if="form.category === 'birthday'">
-                <div class="birthday-status-info">
-                  <span class="birthday-icon">🎂</span>
-                  <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
-                </div>
-              </div>
-
-
-
-              <div class="form-group">
-                <label class="form-label">Mô tả</label>
-                <textarea class="form-input form-textarea" v-model="form.mota" rows="3" placeholder="Mô tả ngắn về chương trình khuyến mãi..."></textarea>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Biểu tượng</label>
-                <div class="icon-picker">
-                  <button
-                    v-for="ic in iconOptions" :key="ic.icon"
-                    class="icon-option"
-                    :class="{ 'icon-option-active': form.icon === ic.icon }"
-                    :style="{ background: ic.bg }"
-                    @click="form.icon = ic.icon; form.iconBg = ic.bg"
-                  >{{ ic.icon }}</button>
-                </div>
-              </div>
-
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-cancel" @click="closeModal">Hủy</button>
-              <button class="btn-save" @click="savePromo" :disabled="saving">
-                <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                <svg v-else viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                {{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo khuyến mãi') }}
-              </button>
-            </div>
-
-          </div>
-        </transition>
+    </template><!-- end list view -->
+    
+    <template v-if="currentView === 'promo-form'">
+      <!-- Inline form header -->
+      <div class="inline-form-header">
+        <button class="back-btn" @click="closeModal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          Quay lại danh sách
+        </button>
+        <h1>{{ isEdit ? '✏️ Chỉnh sửa khuyến mãi' : '➕ Tạo khuyến mãi mới' }}</h1>
+        <p>{{ isEdit ? 'Cập nhật thông tin chương trình ưu đãi' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
       </div>
-    </transition>
+
+      <div class="inline-form-body">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Loại Voucher <span class="req">*</span></label>
+            <select class="form-input" v-model="form.category" @change="onCategoryChange">
+              <option value="product">Giảm giá sản phẩm</option>
+              <option value="birthday">Mã Sinh nhật</option>
+              <option value="freeship">Miễn phí vận chuyển (Freeship)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tên Voucher <span class="req">*</span></label>
+            <input class="form-input" :class="{ err: errors.name }" v-model="form.name" placeholder="VD: Tết 2026 Sale" @input="autoCode"/>
+            <p class="err-msg" v-if="errors.name">{{ errors.name }}</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mã Voucher <span class="req">*</span></label>
+          <div class="code-input-row">
+            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase" :readonly="form.category === 'birthday'"/>
+            <button type="button" class="btn-gen-code" @click="generateRandomCode" :disabled="form.category === 'birthday'">Tạo ngẫu nhiên</button>
+          </div>
+          <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
+          <p class="form-hint">Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
+        </div>
+
+        <div class="form-row" v-if="form.category !== 'freeship'">
+          <div class="form-group">
+            <label class="form-label">Loại ưu đãi <span class="req">*</span></label>
+            <select class="form-input" v-model="form.type" :disabled="form.category === 'birthday'">
+              <option value="percent">Giảm %</option>
+              <option value="fixed">Giảm theo giá tiền</option>
+              <option value="maxprice">Giảm % tối đa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Giá trị <span class="req">*</span></label>
+            <div class="input-suffix-wrap">
+              <input class="form-input" :class="{ err: errors.value }" 
+                type="text" 
+                :value="form.type === 'percent' || form.type === 'maxprice' ? form.value : formatVND(form.value)"
+                @input="form.value = (form.type === 'percent' || form.type === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
+                placeholder="50" />
+              <span class="input-suffix">{{ form.type === 'percent' || form.type === 'maxprice' ? '%' : 'VNĐ' }}</span>
+            </div>
+            <p class="err-msg" v-if="errors.value">{{ errors.value }}</p>
+          </div>
+        </div>
+
+        <!-- Hình thức hiển thị / phát hành -->
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="radio" :value="1" v-model="form.is_public" />
+                Công khai (Hiện trên web)
+              </label>
+              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="radio" :value="0" v-model="form.is_public" />
+                Tặng khi đủ điều kiện
+              </label>
+            </div>
+            <p class="form-hint">Tặng có điều kiện sẽ tự động tặng cho khách khi đặt hàng thành công.</p>
+          </div>
+        </div>
+
+        <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;" v-if="form.is_public === 0">
+          <div class="form-group">
+            <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
+            <div class="input-suffix-wrap">
+              <input class="form-input" 
+                type="text" 
+                :value="formatVND(form.dieu_kien_tang)" 
+                @input="form.dieu_kien_tang = parseVND($event.target.value)" 
+                placeholder="VD: 1.000.000" />
+              <span class="input-suffix">đ</span>
+            </div>
+            <p class="form-hint">Tổng tiền phải thanh toán của đơn hàng (sau giảm giá) đạt mức này sẽ được tặng voucher.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Giới hạn số lượng phát</label>
+            <input class="form-input" v-model.number="form.so_luong_phat" type="number" min="1" placeholder="Để trống = Không giới hạn" />
+            <p class="form-hint">Tổng số lượng khách được tặng mã này.</p>
+          </div>
+        </div>
+
+        <!-- Điều kiện đơn hàng (để sử dụng voucher) -->
+        <div class="form-row condition-row" :class="{ 'freeship-row': form.category === 'freeship' }" v-if="form.category === 'product' || form.category === 'freeship'">
+          <div class="form-group" v-if="form.category === 'product'">
+            <label class="form-label">
+              <span class="condition-badge">🎯 Điều kiện đơn hàng</span>
+            </label>
+            <select class="form-input condition-select" v-model="form.loai_dieu_kien">
+              <option value=">=">≥ Tạm tính từ (lớn hơn hoặc bằng)</option>
+              <option value=">">＞ Tạm tính hơn (lớn hơn)</option>
+              <option value="=">＝ Tạm tính bằng đúng</option>
+            </select>
+          </div>
+          <div class="form-group" v-if="form.category === 'freeship'">
+            <label class="form-label">
+              <span class="condition-badge freeship-badge">🚚 Điều kiện miễn phí ship</span>
+            </label>
+            <p class="form-hint" style="margin-bottom:4px">Khách hàng phải đạt tạm tính tối thiểu mới dùng được mã freeship này.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              {{ form.category === 'freeship' ? 'Đơn hàng tối thiểu (VNĐ)' : 'Giá trị điều kiện (VNĐ)' }}
+            </label>
+            <div class="input-suffix-wrap">
+              <input
+                class="form-input condition-input"
+                :class="{ err: errors.dieu_kien, 'freeship-input': form.category === 'freeship' }"
+                type="text"
+                :value="formatVND(form.dieu_kien)"
+                @input="form.dieu_kien = parseVND($event.target.value)"
+                :placeholder="form.category === 'freeship' ? 'VD: 300.000' : 'VD: 500.000'"
+              />
+              <span class="input-suffix">đ</span>
+            </div>
+            <p class="err-msg" v-if="errors.dieu_kien">{{ errors.dieu_kien }}</p>
+            <p class="form-hint">
+              {{ form.category === 'freeship'
+                ? 'Để trống = freeship cho mọi đơn hàng. Nhập số để giới hạn điều kiện tối thiểu.'
+                : 'Để trống nếu không cần điều kiện tạm tính.' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Ngày bắt đầu & Kết thúc -->
+        <div class="form-row" v-if="form.category !== 'birthday'">
+          <div class="form-group">
+            <label class="form-label">Ngày bắt đầu</label>
+            <input class="form-input" type="date" v-model="form.startDate"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ngày kết thúc</label>
+            <input class="form-input" type="date" v-model="form.endDate"/>
+          </div>
+        </div>
+        <div class="form-group" v-if="form.category === 'birthday'">
+          <div class="birthday-status-info">
+            <span class="birthday-icon">🎂</span>
+            <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mô tả</label>
+          <textarea class="form-input form-textarea" v-model="form.mota" rows="4" placeholder="Mô tả ngắn về chương trình khuyến mãi..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Biểu tượng</label>
+          <div class="icon-picker">
+            <button
+              v-for="ic in iconOptions" :key="ic.icon"
+              class="icon-option"
+              :class="{ 'icon-option-active': form.icon === ic.icon }"
+              :style="{ background: ic.bg }"
+              @click="form.icon = ic.icon; form.iconBg = ic.bg"
+            >{{ ic.icon }}</button>
+          </div>
+        </div>
+
+        <!-- Inline footer actions -->
+        <div class="inline-form-footer">
+          <button class="btn-cancel" @click="closeModal">Hủy</button>
+          <button class="btn-save" @click="savePromo" :disabled="saving">
+            <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            {{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo khuyến mãi') }}
+          </button>
+        </div>
+
+      </div><!-- end inline-form-body -->
+    </template><!-- end promo-form -->
 
   </div>
 </template>
@@ -369,7 +410,7 @@ import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
 
 const searchQuery = ref('')
-const showModal = ref(false)
+const currentView = ref('list') // 'list' | 'promo-form'
 const isEdit = ref(false)
 const editId = ref(null)
 const loading = ref(false)
@@ -403,6 +444,7 @@ const defaultForm = () => ({
   startDate: '', endDate: '', status: 'running',
   mota: '', icon: '🏮', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
+  is_public: 1, dieu_kien_tang: '', so_luong_phat: ''
 })
 
 const form = ref(defaultForm())
@@ -413,8 +455,8 @@ const promos = ref([])
 const fetchPromos = async () => {
   loading.value = true
   try {
-    // GET /promotions là public — không cần token
-    const res = await api.get('/promotions')
+    // GET /admin/promotions
+    const res = await api.get('/admin/promotions')
     promos.value = res.data.map(p => ({
       ...p,
       startDate: formatDate(p.start_date),
@@ -547,6 +589,18 @@ function formatDate(d) {
   return `${dd}/${mm}/${yyyy}`
 }
 
+function formatVND(val) {
+  if (!val && val !== 0) return '';
+  const numStr = String(val).replace(/\D/g, '');
+  if (!numStr) return '';
+  return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+}
+
+function parseVND(val) {
+  if (!val) return '';
+  return Number(String(val).replace(/\D/g, ''));
+}
+
 // ================= VALIDATE =================
 function validate() {
   errors.value = {}
@@ -563,7 +617,7 @@ function openCreate() {
   editId.value = null
   form.value = defaultForm()
   errors.value = {}
-  showModal.value = true
+  currentView.value = 'promo-form'
 }
 
 function openEdit(p) {
@@ -585,13 +639,16 @@ function openEdit(p) {
     endDate: toInputDate(p.endDate),
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
+    is_public: p.is_public !== undefined ? Number(p.is_public) : 1,
+    dieu_kien_tang: p.dieu_kien_tang || '',
+    so_luong_phat: p.so_luong_phat || ''
   }
   errors.value = {}
-  showModal.value = true
+  currentView.value = 'promo-form'
 }
 
 function closeModal() {
-  showModal.value = false
+  currentView.value = 'list'
 }
 
 async function savePromo() {
@@ -613,6 +670,9 @@ async function savePromo() {
     mota:           form.value.mota,
     loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
     dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
+    is_public:      form.value.is_public,
+    dieu_kien_tang: form.value.is_public === 0 ? (form.value.dieu_kien_tang || null) : null,
+    so_luong_phat:  form.value.is_public === 0 ? (form.value.so_luong_phat || null) : null,
   }
 
   try {
@@ -882,4 +942,152 @@ select.form-input { cursor: pointer; }
 .birthday-status-info { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1.5px solid #f59e0b; border-radius: 12px; font-size: 13px; color: #92400e; }
 .birthday-icon { font-size: 22px; flex-shrink: 0; }
 .birthday-status-info strong { color: #b45309; }
+
+/* ═══ INLINE FORM ═══ */
+.inline-form-header {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.inline-form-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 4px;
+}
+.inline-form-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+.back-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.inline-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inline-form-body > .form-group,
+.inline-form-body > .form-row > .form-group {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #edf0f7;
+  padding: 20px 22px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inline-form-body > .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.inline-form-body .form-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inline-form-body .form-input {
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+  background: #f9fafb;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+.inline-form-body .form-input:focus {
+  border-color: #4f46e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+.inline-form-body .form-input.err {
+  border-color: #f87171;
+  background: #fff5f5;
+}
+.inline-form-body .form-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.code-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.code-input-row .form-input {
+  flex: 1;
+}
+.btn-gen-code {
+  padding: 0 16px;
+  height: 44px;
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.btn-gen-code:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+.btn-gen-code:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inline-form-body > .condition-row {
+  background: #f5f3ff;
+  border: 1.5px dashed #a5b4fc;
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.inline-form-body > .condition-row.freeship-row {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.inline-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 8px;
+}
 </style>

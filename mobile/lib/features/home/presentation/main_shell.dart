@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_dependencies.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../cart/presentation/cart_screen.dart';
@@ -63,45 +64,74 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: List.generate(
-          _screens.length,
-          (index) => _loadedIndexes.contains(index)
-              ? _screens[index]
-              : const SizedBox.shrink(),
+      extendBody: true,
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 86),
+        child: IndexedStack(
+          index: _index,
+          children: List.generate(
+            _screens.length,
+            (index) => _loadedIndexes.contains(index)
+                ? _screens[index]
+                : const SizedBox.shrink(),
+          ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _select,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: 0.75),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.navy.withValues(alpha: 0.12),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: NavigationBar(
+                selectedIndex: _index,
+                onDestinationSelected: _select,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: 'Trang chủ',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.grid_view_outlined),
+                    selectedIcon: Icon(Icons.grid_view),
+                    label: 'Danh mục',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.devices_outlined),
+                    selectedIcon: Icon(Icons.devices),
+                    label: 'Sản phẩm',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.shopping_cart_outlined),
+                    selectedIcon: Icon(Icons.shopping_cart),
+                    label: 'Giỏ hàng',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline),
+                    selectedIcon: Icon(Icons.person),
+                    label: 'Tài khoản',
+                  ),
+                ],
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
-            label: 'Danh mục',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.devices_outlined),
-            selectedIcon: Icon(Icons.devices),
-            label: 'Sản phẩm',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
-            label: 'Giỏ hàng',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Tài khoản',
-          ),
-        ],
+        ),
       ),
     );
   }

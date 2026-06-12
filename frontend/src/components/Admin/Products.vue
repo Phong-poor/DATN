@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
@@ -49,7 +49,6 @@ const getSelectedCategoryLabel = () => {
 }
 
 // Custom Tree Select States
-const isOpenTreeSelect = ref(false)
 const treeSearchQuery = ref('')
 const expandedParentIds = ref(new Set())
 
@@ -123,7 +122,6 @@ const isParentExpanded = (parentId) => {
 
 const selectTreeCategory = (child) => {
   form.value.category = String(child.id_danhmuc)
-  isOpenTreeSelect.value = false
   treeSearchQuery.value = ''
 }
 
@@ -163,9 +161,6 @@ const closeDropdowns = (e) => {
   if (!e.target.closest('.custom-dropdown')) {
     isOpenStatusDropdown.value = false
     isOpenCategoryDropdown.value = false
-  }
-  if (!e.target.closest('.custom-tree-select')) {
-    isOpenTreeSelect.value = false
   }
 }
 
@@ -970,6 +965,8 @@ const fieldErrors = ref({})
  * Watch child category change - automatically assign parent category, filter brands, and rebuild attribute groups
  */
 watch(() => form.value.category, async (newCategoryId) => {
+  fieldErrors.value.category = ''
+  fieldErrors.value.parentCategory = ''
   if (newCategoryId) {
     const child = categories.value.find(c => String(c.id_danhmuc) === String(newCategoryId))
     if (child && child.id_danhmuc_cha) {
@@ -1016,16 +1013,18 @@ const validateTopForm = () => {
     errors.img = 'Vui lÃ²ng chá»n áº£nh sáº£n pháº©m'
   }
 
-  if (form.value.images.length > MAX_EXTRA_IMAGES) {
-    errors.images = `Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a ${MAX_EXTRA_IMAGES} áº£nh phá»¥`
+  const imagesArr = Array.isArray(form.value.images) ? form.value.images : []
+  if (imagesArr.length > MAX_EXTRA_IMAGES) {
+    errors.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
   }
 
-  if (!form.value.name.trim()) {
-    errors.name = 'TÃªn sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng'
-  } else if (form.value.name.trim().length < 3) {
-    errors.name = 'TÃªn sáº£n pháº©m pháº£i cÃ³ Ã­t nháº¥t 3 kÃ½ tá»±'
-  } else if (form.value.name.trim().length > 255) {
-    errors.name = 'TÃªn sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 255 kÃ½ tá»±'
+  const nameVal = form.value.name ? String(form.value.name).trim() : ''
+  if (!nameVal) {
+    errors.name = 'Tên sản phẩm không được để trống'
+  } else if (nameVal.length < 3) {
+    errors.name = 'Tên sản phẩm phải có ít nhất 3 ký tự'
+  } else if (nameVal.length > 255) {
+    errors.name = 'Tên sản phẩm không được vượt quá 255 ký tự'
   }
 
   if (!form.value.brand) {
@@ -1044,7 +1043,7 @@ const validateTopForm = () => {
     errors.status = 'Tráº¡ng thÃ¡i khÃ´ng há»£p lá»‡'
   }
 
-  if (form.value.weight !== '' && form.value.weight !== null) {
+  if (form.value.weight !== '' && form.value.weight !== null && form.value.weight !== undefined) {
     const weight = Number(form.value.weight)
 
     if (Number.isNaN(weight)) {
@@ -1720,7 +1719,6 @@ const resetForm = () => {
     ? attributeGroups.value[0].id
     : null
 
-  isOpenTreeSelect.value = false
   treeSearchQuery.value = ''
   expandedParentIds.value = new Set()
 
@@ -2225,497 +2223,510 @@ onMounted(() => {
 
       <div class="inline-form-body">
 
-            <div class="form-group">
-              <label>áº¢nh sáº£n pháº©m</label>
-              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-              <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>KÃ©o tháº£ hoáº·c <span>báº¥m Ä‘á»ƒ chá»n áº£nh</span></p>
-                <small>PNG, JPG, WEBP â€” tá»‘i Ä‘a 5MB</small>
-              </div>
-              <div v-else class="img-preview-wrap">
-                <img :src="imgPreview" class="img-preview" alt="preview" />
-                <div class="img-actions">
-                  <button class="img-change" @click="triggerFileInput">Äá»•i áº£nh</button>
-                  <button class="img-remove-btn" @click="removeImg">XÃ³a</button>
-                </div>
-              </div>
-              <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
-            </div>
-
-
-            <div class="form-group">
-              <label>HÃ¬nh áº£nh phá»¥</label>
-              <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
-                @change="onExtraFilesChange" />
-              <div class="upload-zone" @click="triggerExtraFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>KÃ©o tháº£ hoáº·c <span>báº¥m Ä‘á»ƒ chá»n nhiá»u áº£nh</span></p>
-                <small>PNG, JPG, WEBP â€” cÃ³ thá»ƒ chá»n nhiá»u áº£nh</small>
-              </div>
-              <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
-              <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
-                <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
-                  <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
-                  <button class="multi-preview-remove" @click="removeExtraImage(index)">Ã—</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-row">
+            <!-- Khối Hình ảnh (Tràn rộng ở trên cùng) -->
+            <div class="form-section-card images-section-card">
+              <div class="form-section-title">🖼️ Hình ảnh sản phẩm</div>
               <div class="form-group">
-                <label>TÃªn sáº£n pháº©m <span class="required">*</span></label>
-                <input v-model="form.name" placeholder="VD: VinaPro Laptop X2"
-                  :class="{ 'input-error': fieldErrors.name }" />
-                <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
+                <label>Ảnh sản phẩm <span class="required">*</span></label>
+                <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
+                <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
+                  <small>PNG, JPG, WEBP — tối đa 5MB</small>
+                </div>
+                <div v-else class="img-preview-wrap">
+                  <button class="img-remove-btn" @click="removeImg">Xóa</button>
+                  <img :src="imgPreview" class="img-preview" alt="preview" />
+                </div>
+                <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
               </div>
+
               <div class="form-group">
-                <label>Danh má»¥c sáº£n pháº©m <span class="required">*</span></label>
-                <div class="custom-tree-select" :class="{ 'has-error': fieldErrors.category }">
-                  <div class="tree-select-trigger" @click.stop="isOpenTreeSelect = !isOpenTreeSelect">
-                    <span class="trigger-label">
-                      <span class="folder-icon">ðŸ“</span>
-                      {{ getSelectedCategoryName() }}
-                    </span>
-                    <svg class="chevron" :class="{ open: isOpenTreeSelect }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
+                <label>Hình ảnh phụ</label>
+                <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
+                  @change="onExtraFilesChange" />
+                <div class="upload-zone" @click="triggerExtraFileInput">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p>Kéo thả hoặc <span>bấm để chọn nhiều ảnh</span></p>
+                  <small>PNG, JPG, WEBP — có thể chọn nhiều ảnh</small>
+                </div>
+                <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
+                <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
+                  <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
+                    <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
+                    <button class="multi-preview-remove" @click="removeExtraImage(index)">×</button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="product-form-grid">
+              <!-- Cột chính (Trái) -->
+              <div class="form-main-col">
+                <!-- Khối Thông tin cơ bản -->
+                <div class="form-section-card">
+                  <div class="form-section-title">📝 Thông tin cơ bản</div>
+                  <div class="form-group">
+                    <label>Tên sản phẩm <span class="required">*</span></label>
+                    <input v-model="form.name" @input="fieldErrors.name = ''" placeholder="VD: VinaPro Laptop X2"
+                      :class="{ 'input-error': fieldErrors.name }" />
+                    <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
+                  </div>
+
+                  <div class="form-fields-row-3">
+                    <div class="form-group">
+                      <label>Thương hiệu <span class="required">*</span></label>
+                      <select v-model="form.brand" @change="fieldErrors.brand = ''" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
+                        <option value="">-- Chọn thương hiệu --</option>
+                        <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
+                          {{ brand.ten_thuonghieu }}
+                        </option>
+                      </select>
+                      <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Khối lượng (kg)</label>
+                      <input v-model="form.weight" type="number" min="0" step="0.01" @input="fieldErrors.weight = ''" placeholder="VD: 2.5" />
+                      <p v-if="fieldErrors.weight" class="field-error">{{ fieldErrors.weight }}</p>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Trạng thái</label>
+                      <select v-model="form.status" @change="fieldErrors.status = ''" :class="{ 'input-error': fieldErrors.status }">
+                        <option>Đang bán</option>
+                        <option>Nháp</option>
+                      </select>
+                      <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột phụ (Phải) -->
+              <div class="form-sidebar-col">
+                <div class="form-section-card sticky-sidebar-card">
+                  <div class="form-section-title">📁 Danh mục sản phẩm <span class="required">*</span></div>
                   
-                  <transition name="fade-slide">
-                    <div v-if="isOpenTreeSelect" class="tree-select-dropdown" @click.stop>
-                      <!-- Search Input -->
-                      <div class="tree-search-wrapper">
-                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <circle cx="11" cy="11" r="8" />
-                          <path d="m21 21-4.35-4.35" />
-                        </svg>
-                        <input 
-                          v-model="treeSearchQuery" 
-                          placeholder="TÃ¬m kiáº¿m danh má»¥c..." 
-                          class="tree-search-input"
-                        />
-                        <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">Ã—</button>
-                      </div>
+                  <!-- selected category info badge -->
+                  <div class="selected-category-badge" :class="{ 'has-selected': form.category }">
+                    <span class="badge-icon">📁</span>
+                    <span class="badge-text">
+                      {{ form.category ? getSelectedCategoryName() : 'Chưa chọn danh mục sản phẩm' }}
+                    </span>
+                  </div>
 
-                      <!-- Tree list -->
-                      <div class="tree-list-container">
-                        <div v-if="filteredTreeCategories.length === 0" class="tree-empty">
-                          KhÃ´ng tÃ¬m tháº¥y danh má»¥c nÃ o.
-                        </div>
+                  <div class="tree-select-static-container" :class="{ 'has-error': fieldErrors.category }">
+                    <!-- Search Input -->
+                    <div class="tree-search-wrapper">
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      <input 
+                        v-model="treeSearchQuery" 
+                        placeholder="Tìm kiếm nhanh danh mục..." 
+                        class="tree-search-input"
+                      />
+                      <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">×</button>
+                    </div>
+
+                    <!-- Tree list -->
+                    <div class="tree-list-container">
+                      <div v-if="filteredTreeCategories.length === 0" class="tree-empty">
+                        Không tìm thấy danh mục nào.
+                      </div>
+                      <div 
+                        v-for="parent in filteredTreeCategories" 
+                        :key="parent.id_danhmuc_cha" 
+                        class="tree-parent-node"
+                      >
+                        <!-- Parent header row -->
                         <div 
-                          v-for="parent in filteredTreeCategories" 
-                          :key="parent.id_danhmuc_cha" 
-                          class="tree-parent-node"
+                          class="tree-parent-row" 
+                          @click="toggleParentExpand(parent.id_danhmuc_cha)"
                         >
-                          <!-- Parent header row -->
+                          <span class="tree-toggle-icon">
+                            {{ isParentExpanded(parent.id_danhmuc_cha) ? '▼' : '▶' }}
+                          </span>
+                          <span class="tree-folder-icon">📁</span>
+                          <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
+                        </div>
+
+                        <!-- Child list container -->
+                        <transition name="collapse">
                           <div 
-                            class="tree-parent-row" 
-                            @click="toggleParentExpand(parent.id_danhmuc_cha)"
+                            v-show="isParentExpanded(parent.id_danhmuc_cha)" 
+                            class="tree-children-list"
                           >
-                            <span class="tree-toggle-icon">
-                              {{ isParentExpanded(parent.id_danhmuc_cha) ? 'â–¼' : 'â–¶' }}
-                            </span>
-                            <span class="tree-folder-icon">ðŸ“</span>
-                            <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
-                          </div>
-
-                          <!-- Child list container -->
-                          <transition name="collapse">
                             <div 
-                              v-show="isParentExpanded(parent.id_danhmuc_cha)" 
-                              class="tree-children-list"
+                              v-for="child in parent.children" 
+                              :key="child.id_danhmuc" 
+                              class="tree-child-node"
+                              :class="{ selected: String(form.category) === String(child.id_danhmuc) }"
+                              @click="selectTreeCategory(child)"
                             >
-                              <div 
-                                v-for="child in parent.children" 
-                                :key="child.id_danhmuc" 
-                                class="tree-child-node"
-                                :class="{ selected: String(form.category) === String(child.id_danhmuc) }"
-                                @click="selectTreeCategory(child)"
-                              >
-                                <span class="tree-leaf-icon">ðŸ“„</span>
-                                <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
-                              </div>
+                              <span class="tree-leaf-icon">📄</span>
+                              <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
                             </div>
-                          </transition>
+                          </div>
+                        </transition>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section-card variants-section-card" v-if="form.category">
+              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
+              <div class="vs-wrapper">
+                <div class="vs-header">
+                  <div class="vs-title">
+                    <span class="vs-bar"></span>
+                    Biến thể sản phẩm
+                    <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
+                      Cấp biến thể: {{ variationTierIds.size }}/3
+                    </span>
+                  </div>
+
+                  <div class="vs-steps">
+                    <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
+                      <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
+                      Chọn giá trị
+                    </span>
+                    <span class="vss-line"></span>
+                    <span class="vss" :class="{ active: vsPhase === 2 }">
+                      <span class="vss-dot">2</span>
+                      Điền giá &amp; kho
+                    </span>
+                  </div>
+                </div>
+
+                <template v-if="vsPhase === 1">
+                  <div v-if="variantLoading" class="group-placeholder">
+                    <span>Đang tải dữ liệu biến thể...</span>
+                  </div>
+
+                  <div v-else-if="attributeGroups.length === 0" class="group-placeholder">
+                    <span>Không tìm thấy nhóm thuộc tính tương thích cho danh mục này.</span>
+                  </div>
+
+                  <div v-else class="accordion-container">
+                    <div 
+                      v-for="g in attributeGroups" 
+                      :key="g.id" 
+                      class="accordion-item"
+                      :class="{ 'is-open': activeAccordionGroups.has(String(g.id)) }"
+                    >
+                      <!-- Accordion Header -->
+                      <div class="accordion-header" @click="toggleAccordionGroup(g.id)">
+                        <div class="accordion-title">
+                          <span class="accordion-icon">{{ g.icon }}</span>
+                          <span class="accordion-name">{{ g.name }}</span>
+                          <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">
+                            Đang chọn {{ selectedCountInGroup(g) }}
+                          </span>
                         </div>
+                        <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
                       </div>
-                    </div>
-                  </transition>
-                </div>
-                <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>ThÆ°Æ¡ng hiá»‡u <span class="required">*</span></label>
-                <select v-model="form.brand" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
-                  <option value="">-- Chá»n thÆ°Æ¡ng hiá»‡u --</option>
-                  <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
-                    {{ brand.ten_thuonghieu }}
-                  </option>
-                </select>
-                <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
-              </div>
-              <div class="form-group">
-                <label>Khá»‘i lÆ°á»£ng</label>
-                <input v-model="form.weight" type="number" min="0" step="0.01" placeholder="VD: 2.5" />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Tráº¡ng thÃ¡i</label>
-                <select v-model="form.status" :class="{ 'input-error': fieldErrors.status }">
-                  <option>Äang bÃ¡n</option>
-                  <option>NhÃ¡p</option>
-                </select>
-                <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
-              </div>
-              <div class="form-group"></div>
-            </div>
 
-            <div class="vs-wrapper" v-if="form.category">
-              <div class="vs-header">
-                <div class="vs-title">
-                  <span class="vs-bar"></span>
-                  Biáº¿n thá»ƒ sáº£n pháº©m
-                  <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
-                    Cáº¥p biáº¿n thá»ƒ: {{ variationTierIds.size }}/3
-                  </span>
-                </div>
-
-                <div class="vs-steps">
-                  <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
-                    <span class="vss-dot">{{ vsPhase === 2 ? 'âœ“' : '1' }}</span>
-                    Chá»n giÃ¡ trá»‹
-                  </span>
-                  <span class="vss-line"></span>
-                  <span class="vss" :class="{ active: vsPhase === 2 }">
-                    <span class="vss-dot">2</span>
-                    Äiá»n giÃ¡ &amp; kho
-                  </span>
-                </div>
-              </div>
-
-              <template v-if="vsPhase === 1">
-                <div v-if="variantLoading" class="group-placeholder">
-                  <span>Äang táº£i dá»¯ liá»‡u biáº¿n thá»ƒ...</span>
-                </div>
-
-                <div v-else-if="attributeGroups.length === 0" class="group-placeholder">
-                  <span>KhÃ´ng tÃ¬m tháº¥y nhÃ³m thuá»™c tÃ­nh tÆ°Æ¡ng thÃ­ch cho danh má»¥c nÃ y.</span>
-                </div>
-
-                <div v-else class="accordion-container">
-                  <div 
-                    v-for="g in attributeGroups" 
-                    :key="g.id" 
-                    class="accordion-item"
-                    :class="{ 'is-open': activeAccordionGroups.has(String(g.id)) }"
-                  >
-                    <!-- Accordion Header -->
-                    <div class="accordion-header" @click="toggleAccordionGroup(g.id)">
-                      <div class="accordion-title">
-                        <span class="accordion-icon">{{ g.icon }}</span>
-                        <span class="accordion-name">{{ g.name }}</span>
-                        <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">
-                          Äang chá»n {{ selectedCountInGroup(g) }}
-                        </span>
-                      </div>
-                      <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </div>
-
-                    <!-- Accordion Body -->
-                    <transition name="collapse">
-                      <div v-show="activeAccordionGroups.has(String(g.id))" class="accordion-body">
-                        <div class="flat-select-table">
-                          <div v-for="t in g.attrTypes" :key="t.id" class="fst-row">
-                            <div class="fst-label">
-                              <div class="fst-label-top">
-                                <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                                <span v-if="selectedOptions[t.id]?.size" class="fst-count">
-                                  {{ selectedOptions[t.id].size }}
-                                </span>
-                              </div>
-                              
-                              <!-- Toggle Switch SKU/Spec -->
-                              <div class="mode-switch-wrapper" title="Biáº¿n thá»ƒ (SKU): Ä‘Æ°á»£c chá»n nhiá»u Ä‘á»ƒ táº¡o tá»• há»£p. ThÃ´ng sá»‘: chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 1.">
-                                <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">
-                                  {{ variationTierIds.has(String(t.id)) ? 'âš¡ Biáº¿n thá»ƒ' : 'ðŸ“ ThÃ´ng sá»‘' }}
-                                </span>
-                                <label class="switch-control">
-                                  <input 
-                                    type="checkbox" 
-                                    :checked="variationTierIds.has(String(t.id))" 
-                                    @change="toggleVariationTier(t.id)" 
-                                  />
-                                  <span class="switch-slider"></span>
-                                </label>
-                              </div>
-                            </div>
-
-                            <div class="fst-options-wrap">
-                              <!-- Color Swatches Visual Layout -->
-                              <div v-if="t.id === 'color-type'" class="color-swatches-grid">
-                                <button 
-                                  v-for="opt in t.options" 
-                                  :key="getOptionValue(opt)"
-                                  class="color-swatch-btn"
-                                  :class="{ selected: isSelected(t.id, getOptionValue(opt)) }"
-                                  @click="toggleOption(t.id, getOptionValue(opt))"
-                                >
-                                  <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }">
-                                    <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">âœ“</span>
+                      <!-- Accordion Body -->
+                      <transition name="collapse">
+                        <div v-show="activeAccordionGroups.has(String(g.id))" class="accordion-body">
+                          <div class="flat-select-table">
+                            <div v-for="t in g.attrTypes" :key="t.id" class="fst-row">
+                              <div class="fst-label">
+                                <div class="fst-label-top">
+                                  <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                                  <span v-if="selectedOptions[t.id]?.size" class="fst-count">
+                                    {{ selectedOptions[t.id].size }}
                                   </span>
-                                  <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
-                                </button>
+                                </div>
+                                
+                                <!-- Toggle Switch SKU/Spec -->
+                                <div class="mode-switch-wrapper" title="Biến thể (SKU): được chọn nhiều để tạo tổ hợp. Thông số: chỉ được chọn tối đa 1.">
+                                  <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">
+                                    {{ variationTierIds.has(String(t.id)) ? '⚡ Biến thể' : '📝 Thông số' }}
+                                  </span>
+                                  <label class="switch-control">
+                                    <input 
+                                      type="checkbox" 
+                                      :checked="variationTierIds.has(String(t.id))" 
+                                      @change="toggleVariationTier(t.id)" 
+                                    />
+                                    <span class="switch-slider"></span>
+                                  </label>
+                                </div>
                               </div>
 
-                              <!-- Standard Options Buttons Layout -->
-                              <div v-else class="fst-options">
-                                <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="[
-                                  'vbtn-' + t.color,
-                                  { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }
-                                ]" @click="toggleOption(t.id, getOptionValue(opt))">
-                                  <svg v-if="isSelected(t.id, getOptionValue(opt))" viewBox="0 0 10 10" fill="none"
-                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="9" height="9">
-                                    <polyline points="1,5 3.5,7.5 9,2" />
-                                  </svg>
-                                  <span>{{ getOptionLabel(opt) }}</span>
-                                </button>
+                              <div class="fst-options-wrap">
+                                <!-- Color Swatches Visual Layout -->
+                                <div v-if="t.id === 'color-type'" class="color-swatches-grid">
+                                  <button 
+                                    v-for="opt in t.options" 
+                                    :key="getOptionValue(opt)"
+                                    class="color-swatch-btn"
+                                    :class="{ selected: isSelected(t.id, getOptionValue(opt)) }"
+                                    @click="toggleOption(t.id, getOptionValue(opt))"
+                                  >
+                                    <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }">
+                                      <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span>
+                                    </span>
+                                    <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
+                                  </button>
+                                </div>
+
+                                <!-- Standard Options Buttons Layout -->
+                                <div v-else class="fst-options">
+                                  <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="[
+                                    'vbtn-' + t.color,
+                                    { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }
+                                  ]" @click="toggleOption(t.id, getOptionValue(opt))">
+                                    <svg v-if="isSelected(t.id, getOptionValue(opt))" viewBox="0 0 10 10" fill="none"
+                                      stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="9" height="9">
+                                      <polyline points="1,5 3.5,7.5 9,2" />
+                                    </svg>
+                                    <span>{{ getOptionLabel(opt) }}</span>
+                                  </button>
+                                </div>
+
+                                <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
+                                  {{ fieldErrors.variantGroups[t.id] }}
+                                </p>
                               </div>
 
-                              <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
-                                {{ fieldErrors.variantGroups[t.id] }}
-                              </p>
-                            </div>
-
-                            <!-- Quick Action Buttons -->
-                            <div class="fst-actions-col">
-                              <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chá»n táº¥t cáº£</button>
-                              <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bá» chá»n</button>
+                              <!-- Quick Action Buttons -->
+                              <div class="fst-actions-col">
+                                <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chọn tất cả</button>
+                                <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bỏ chọn</button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </transition>
+                      </transition>
+                    </div>
                   </div>
-                </div>
 
-                <div class="p1-footer">
-                  <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
-                    <span class="combo-formula">
-                      <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
-                        <span class="cf-item">
-                          <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
-                          <b>{{ selectedOptions[t.id]?.size }}</b>
+                  <div class="p1-footer">
+                    <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
+                      <span class="combo-formula">
+                        <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
+                          <span class="cf-item">
+                            <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
+                            <b>{{ selectedOptions[t.id]?.size }}</b>
+                          </span>
+                          <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">×</span>
+                        </template>
+                        <span class="cf-eq">= <b>{{ comboCount }} biến thể</b></span>
+                      </span>
+                    </div>
+
+                    <!-- Live Combo Preview Section -->
+                    <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
+                      <div class="preview-title">👁️ Xem trước các tổ hợp phân loại (tối đa 15):</div>
+                      <div class="preview-tags-list">
+                        <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">
+                          {{ name }}
                         </span>
-                        <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">Ã—</span>
+                        <span v-if="liveComboPreview.length > 15" class="preview-tag-more">
+                          + {{ liveComboPreview.length - 15 }} tổ hợp khác...
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="p1-actions">
+                      <span v-if="fieldErrors.variants" class="field-error">
+                        {{ fieldErrors.variants }}
+                      </span>
+                      <span v-else class="p1-hint">
+                        Mở rộng các nhóm accordion bên trên; hệ thống sẽ tự động gộp tất cả lựa chọn để tạo SKU
+                      </span>
+
+                      <div class="p1-action-buttons">
+                        <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
+                          @click="continueVariantTable">
+                          Quay lại biến thể
+                        </button>
+
+                        <button class="btn-generate" @click="generateVariants">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2"
+                            stroke-linecap="round" width="13" height="13">
+                            <rect x="1" y="1" width="12" height="12" rx="2" />
+                            <polyline points="3.5,7 5.5,9 10.5,4.5" />
+                          </svg>
+                          {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-if="vsPhase === 2">
+                  <div class="p2-toolbar">
+                    <button class="btn-back" @click="backToSelect">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        width="11" height="11">
+                        <polyline points="7.5,1.5 3,6 7.5,10.5" />
+                      </svg>
+                      {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
+                    </button>
+
+                    <div class="modal-excel-actions">
+                      <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
+                        @click="handleExportVariantsExcel">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                          fill="none">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Xuất Excel
+                      </button>
+                      <button class="btn-xl-sm btn-xl-import"
+                        title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
+                        @click="triggerImportVariantsExcel">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                          fill="none">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Nhập Excel (Check trùng)
+                      </button>
+                      <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
+                        @change="handleImportVariantsExcel" />
+                    </div>
+                  </div>
+
+                  <div class="p2-controls">
+                    <div class="p2-info">
+                      <template v-if="isEditMode">
+                        Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
                       </template>
-                      <span class="cf-eq">= <b>{{ comboCount }} biáº¿n thá»ƒ</b></span>
-                    </span>
-                  </div>
+                      <template v-else>
+                        Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
+                      </template>
+                    </div>
 
-                  <!-- Live Combo Preview Section -->
-                  <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
-                    <div class="preview-title">ðŸ‘ï¸ Xem trÆ°á»›c cÃ¡c tá»• há»£p phÃ¢n loáº¡i (tá»‘i Ä‘a 15):</div>
-                    <div class="preview-tags-list">
-                      <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">
-                        {{ name }}
-                      </span>
-                      <span v-if="liveComboPreview.length > 15" class="preview-tag-more">
-                        + {{ liveComboPreview.length - 15 }} tá»• há»£p khÃ¡c...
-                      </span>
+                    <div class="bulk-stack">
+                      <div class="bulk-bar">
+                        <span class="bulk-lbl">Giá/kho chung:</span>
+                        <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
+                        <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
+                      </div>
+                      <div class="bulk-actions">
+                        <button class="btn-apply-outline" @click="applyRulesToAll(false)">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" width="12" height="12">
+                            <circle cx="7" cy="7" r="5.5" />
+                            <polyline points="4.5,7 6,8.5 9.5,5" />
+                          </svg>
+                          Chỉ điền ô trống
+                        </button>
+                        <button class="btn-apply-solid" @click="applyRulesToAll(true)">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" width="12" height="12">
+                            <polyline points="1.5,7 5,10.5 12.5,3" />
+                          </svg>
+                          Áp dụng tất cả
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="p1-actions">
-                    <span v-if="fieldErrors.variants" class="field-error">
-                      {{ fieldErrors.variants }}
-                    </span>
-                    <span v-else class="p1-hint">
-                      Má»Ÿ rá»™ng cÃ¡c nhÃ³m accordion bÃªn trÃªn; há»‡ thá»‘ng sáº½ tá»± Ä‘á»™ng gá»™p táº¥t cáº£ lá»±a chá»n Ä‘á»ƒ táº¡o SKU
-                    </span>
 
-                    <div class="p1-action-buttons">
-                      <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
-                        @click="continueVariantTable">
-                        Quay láº¡i biáº¿n thá»ƒ
-                      </button>
+                  <div class="vt-scroll">
 
-                      <button class="btn-generate" @click="generateVariants">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2"
-                          stroke-linecap="round" width="13" height="13">
-                          <rect x="1" y="1" width="12" height="12" rx="2" />
-                          <polyline points="3.5,7 5.5,9 10.5,4.5" />
-                        </svg>
-                        {{ isEditMode ? 'Cáº­p nháº­t tá»• há»£p' : `Tá»± Ä‘á»™ng sinh tá»• há»£p` }}
-                      </button>
-                    </div>
+                    <table class="vt-table">
+                      <thead>
+                        <tr>
+                          <th class="th-no">#</th>
+                          <th v-for="t in tableHeaders" :key="t.id">
+                            <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                          </th>
+                          <th class="th-price">Giá riêng (₫)</th>
+                          <th class="th-stock">Kho</th>
+                          <th class="th-del"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
+                          <td class="td-no">
+                            <span class="row-no">
+                              {{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}
+                            </span>
+                          </td>
+
+                          <td v-for="t in tableHeaders" :key="t.id">
+                            <span class="val-chip" :class="'vc-' + t.color">
+                              {{ row.attrs[t.id] || '' }}
+                            </span>
+                          </td>
+
+                          <td>
+                            <input :value="formatCurrency(row.price)" type="text" class="vt-input"
+                              @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
+                          </td>
+
+                          <td>
+                            <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
+                              @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
+                          </td>
+
+                          <td class="td-del">
+                            <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
+                              ×
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              </template>
 
-              <template v-if="vsPhase === 2">
-                <div class="p2-toolbar">
-                  <button class="btn-back" @click="backToSelect">
-                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                      width="11" height="11">
-                      <polyline points="7.5,1.5 3,6 7.5,10.5" />
-                    </svg>
-                    {{ isEditMode ? 'Quay láº¡i chá»n / chá»‰nh biáº¿n thá»ƒ' : 'Chá»‰nh láº¡i lá»±a chá»n' }}
-                  </button>
-
-                  <div class="modal-excel-actions">
-                    <button class="btn-xl-sm btn-xl-export" title="Xuáº¥t danh sÃ¡ch biáº¿n thá»ƒ ra Excel"
-                      @click="handleExportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                        fill="none">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      Xuáº¥t Excel
+                  <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
+                    <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
+                      ‹
                     </button>
-                    <button class="btn-xl-sm btn-xl-import"
-                      title="Nháº­p danh sÃ¡ch biáº¿n thá»ƒ tá»« Excel (Tá»± Ä‘á»™ng check trÃ¹ng)"
-                      @click="triggerImportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                        fill="none">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Nháº­p Excel (Check trÃ¹ng)
+
+                    <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
+                      :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
+                      @click="p !== '...' && goToVariantPage(p)">
+                      {{ p }}
                     </button>
-                    <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
-                      @change="handleImportVariantsExcel" />
-                  </div>
-                </div>
 
-                <div class="p2-controls">
-                  <div class="p2-info">
-                    <template v-if="isEditMode">
-                      Äang hiá»ƒn thá»‹ <b>{{ generatedRows.length }}</b> biáº¿n thá»ƒ hiá»‡n cÃ³.
-                    </template>
-                    <template v-else>
-                      ÄÃ£ táº¡o <b>{{ generatedRows.length }}</b> tá»• há»£p thá»±c táº¿.
-                    </template>
+                    <button :disabled="variantCurrentPage === variantTotalPages"
+                      @click="goToVariantPage(variantCurrentPage + 1)">
+                      ›
+                    </button>
                   </div>
 
-                  <div class="bulk-stack">
-                    <div class="bulk-bar">
-                      <span class="bulk-lbl">GiÃ¡/kho chung:</span>
-                      <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="GiÃ¡ chung (â‚«)" />
-                      <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
-                    </div>
-                    <div class="bulk-actions">
-                      <button class="btn-apply-outline" @click="applyRulesToAll(false)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                          stroke-linecap="round" width="12" height="12">
-                          <circle cx="7" cy="7" r="5.5" />
-                          <polyline points="4.5,7 6,8.5 9.5,5" />
-                        </svg>
-                        Chá»‰ Ä‘iá»n Ã´ trá»‘ng
-                      </button>
-                      <button class="btn-apply-solid" @click="applyRulesToAll(true)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                          stroke-linecap="round" width="12" height="12">
-                          <polyline points="1.5,7 5,10.5 12.5,3" />
-                        </svg>
-                        Ãp dá»¥ng táº¥t cáº£
-                      </button>
-                    </div>
+                  <div class="p2-foot">
+                    <span class="p2-count">
+                      <b>{{ generatedRows.length }}</b> biến thể —
+                      trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
+                    </span>
                   </div>
-                </div>
-
-
-                <div class="vt-scroll">
-
-                  <table class="vt-table">
-                    <thead>
-                      <tr>
-                        <th class="th-no">#</th>
-                        <th v-for="t in tableHeaders" :key="t.id">
-                          <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                        </th>
-                        <th class="th-price">GiÃ¡ riÃªng (â‚«)</th>
-                        <th class="th-stock">Kho</th>
-                        <th class="th-del"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
-                        <td class="td-no">
-                          <span class="row-no">
-                            {{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}
-                          </span>
-                        </td>
-
-                        <td v-for="t in tableHeaders" :key="t.id">
-                          <span class="val-chip" :class="'vc-' + t.color">
-                            {{ row.attrs[t.id] || '' }}
-                          </span>
-                        </td>
-
-                        <td>
-                          <input :value="formatCurrency(row.price)" type="text" class="vt-input"
-                            @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
-                        </td>
-
-                        <td>
-                          <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
-                            @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
-                        </td>
-
-                        <td class="td-del">
-                          <button class="btn-row-del" @click="removeVariantRow(ri)" title="XÃ³a phiÃªn báº£n nÃ y">
-                            Ã—
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
-                  <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
-                    â€¹
-                  </button>
-
-                  <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
-                    :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-                    @click="p !== '...' && goToVariantPage(p)">
-                    {{ p }}
-                  </button>
-
-                  <button :disabled="variantCurrentPage === variantTotalPages"
-                    @click="goToVariantPage(variantCurrentPage + 1)">
-                    â€º
-                  </button>
-                </div>
-
-                <div class="p2-foot">
-                  <span class="p2-count">
-                    <b>{{ generatedRows.length }}</b> biáº¿n thá»ƒ â€”
-                    trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
-                  </span>
-                </div>
-              </template>
+                </template>
+              </div>
             </div>
             
-            <div v-else class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8;">
-              <p>Vui lÃ²ng chá»n danh má»¥c sáº£n pháº©m trÆ°á»›c khi cáº¥u hÃ¬nh biáº¿n thá»ƒ.</p>
+            <div class="form-section-card variants-section-card empty-placeholder" v-else>
+              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
+              <div class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8; border: none; background: transparent;">
+                <p>Vui lòng chọn danh mục sản phẩm ở cột bên phải trước khi cấu hình biến thể.</p>
+              </div>
             </div>
 
             <p v-if="fieldErrors.variantRows" class="field-error">
@@ -2863,7 +2874,7 @@ onMounted(() => {
 
 /* â”€â”€ Inline Form Body â”€â”€ */
 .inline-form-body {
-  background: white;
+  background: #f8fafc;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
   padding: 28px;
@@ -2884,35 +2895,74 @@ onMounted(() => {
    INLINE FORM â€” Form Elements Redesign
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Má»—i form-group trong inline-form-body lÃ  1 card riÃªng */
-.inline-form-body > .form-group,
-.inline-form-body > .products-selection-section {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 22px 24px !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  border-top: none !important;
-  margin-top: 0 !important;
-  gap: 12px;
+/* Product Form Grid Layout */
+.product-form-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
 }
 
-/* 2-col grid */
-.inline-form-body > .form-row,
-.inline-form-body > .form-cols-2 {
+.form-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-sidebar-col {
+  position: sticky;
+  top: 20px;
+}
+
+/* Section Card Design */
+.form-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+/* Grid for images uploader */
+.images-upload-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-.inline-form-body > .form-row > .form-group,
-.inline-form-body > .form-cols-2 > .form-group {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 22px 24px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  gap: 10px;
+/* 3-column row for basic info fields */
+.form-fields-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.images-section-card {
+  margin-bottom: 24px;
+}
+
+.variants-section-card {
+  margin-top: 24px;
+}
+
+.variants-section-card .vs-wrapper {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 /* Label */
@@ -5193,76 +5243,62 @@ tbody td {
   border: 1px solid rgba(37, 99, 235, 0.1);
 }
 
-/* Custom Tree Select Component */
-.custom-tree-select {
-  position: relative;
-  width: 100%;
+/* Custom Tree Select Component (Static View) */
+.always-visible-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.tree-select-trigger {
-  display: flex;
+.selected-category-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  transition: all 0.2s ease;
   width: 100%;
-  padding: 12px 16px;
-  background-color: #f9fafb;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
   box-sizing: border-box;
 }
 
-.tree-select-trigger:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+.selected-category-badge.has-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
-.custom-tree-select.has-error .tree-select-trigger {
-  border-color: #f87171;
-  background: #fff5f5;
+.selected-category-badge .badge-icon {
+  font-size: 15px;
 }
 
-.trigger-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #0f172a;
-}
-
-.folder-icon {
-  font-size: 16px;
-}
-
-.tree-select-trigger .chevron {
-  width: 16px;
-  height: 16px;
-  color: #64748b;
-  transition: transform 0.2s;
-}
-
-.tree-select-trigger .chevron.open {
-  transform: rotate(180deg);
-}
-
-/* Dropdown Panel */
-.tree-select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 6px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+.tree-select-static-container {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  z-index: 50;
-  max-height: 400px;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.tree-select-static-container:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.tree-select-static-container.has-error {
+  border-color: #f87171;
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.08);
 }
 
 /* Search Bar */

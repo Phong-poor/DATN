@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx'
 import swal from '@/services/swal'
 
 const activeTab = ref('Biến thể cấu hình')
+const newButtonLabel = computed(() => activeTab.value === 'Biến thể cấu hình' ? 'Thêm biến thể mới' : 'Thêm màu mới')
+const newButtonModalType = computed(() => activeTab.value === 'Biến thể cấu hình' ? 'variant' : 'color')
 const isOpenAttributeDropdown = ref(false)
 
 const showModal = ref(false)
@@ -41,14 +43,65 @@ const selectedColor = ref(null)
 
 // ── Filter ──
 const selectedAttribute = ref('')
+const selectedGroup = ref('')
+const variantSearchQuery = ref('')
+const filterSearchQuery = ref('')
+
+const selectGroup = (groupName) => {
+  selectedGroup.value = groupName
+  selectedAttribute.value = ''
+  isOpenAttributeDropdown.value = false
+}
+
+const selectAttribute = (attrName) => {
+  selectedGroup.value = ''
+  selectedAttribute.value = attrName
+  isOpenAttributeDropdown.value = false
+}
+
+const clearFilters = () => {
+  selectedGroup.value = ''
+  selectedAttribute.value = ''
+  isOpenAttributeDropdown.value = false
+}
+
+const filteredGroupedAttributes = computed(() => {
+  const query = filterSearchQuery.value.toLowerCase().trim()
+  const map = {}
+  attrs.value.forEach(a => {
+    if (query && !a.name.toLowerCase().includes(query) && !a.group.toLowerCase().includes(query)) {
+      return
+    }
+    if (!map[a.group]) {
+      map[a.group] = []
+    }
+    map[a.group].push(a.name)
+  })
+  return map
+})
 
 const filteredVariants = computed(() => {
-  if (!selectedAttribute.value) return variants.value
-  return variants.value.filter(item => item.type === selectedAttribute.value)
+  let result = variants.value
+  if (selectedGroup.value) {
+    const groupAttrs = attrs.value
+      .filter(a => a.group === selectedGroup.value)
+      .map(a => a.name)
+    result = result.filter(item => groupAttrs.includes(item.type))
+  } else if (selectedAttribute.value) {
+    result = result.filter(item => item.type === selectedAttribute.value)
+  }
+  if (variantSearchQuery.value.trim()) {
+    const q = variantSearchQuery.value.toLowerCase().trim()
+    result = result.filter(item => 
+      item.name.toLowerCase().includes(q) || 
+      item.type.toLowerCase().includes(q)
+    )
+  }
+  return result
 })
 
 // Reset về trang 1 khi đổi filter
-watch(selectedAttribute, () => { variantPage.value = 1 })
+watch([selectedAttribute, selectedGroup, variantSearchQuery], () => { variantPage.value = 1 })
 
 // ── Pagination ──
 const PER_PAGE = 6
@@ -742,15 +795,6 @@ async function handleImportFile(e) {
         <h1>Quản lý biến thể &amp; Màu sắc</h1>
         <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp VinaTech 2026.</p>
       </div>
-      <div class="action-row">
-        <button class="btn-new" @click="openModal(activeTab === 'Biến thể cấu hình' ? 'variant' : 'color')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {{ activeTab === 'Biến thể cấu hình' ? 'Thêm biến thể mới' : 'Thêm màu sắc mới' }}
-        </button>
-      </div>
     </div>
 
     <!-- ══ TOP TABLES: GROUP + ATTR ══ -->
@@ -927,10 +971,19 @@ async function handleImportFile(e) {
 
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }"
-        @click="activeTab = 'Biến thể cấu hình'">Biến thể cấu hình</button>
-      <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
-        @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
+      <div class="tab-buttons">
+        <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }"
+          @click="activeTab = 'Biến thể cấu hình'">Biến thể cấu hình</button>
+        <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
+          @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
+      </div>
+      <button class="btn-new" @click="openModal(newButtonModalType)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        {{ newButtonLabel }}
+      </button>
     </div>
 
     <!-- MAIN LAYOUT -->
@@ -941,27 +994,51 @@ async function handleImportFile(e) {
           <div class="card-header">
             <div class="card-title"><span class="bar blue"></span>Danh sách biến thể</div>
             <div class="card-header-right">
+              <!-- Search box for variants -->
+              <div class="variant-search-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input v-model="variantSearchQuery" placeholder="Tìm tên biến thể..." class="variant-search-input" />
+              </div>
+              
               <!-- ── FILTER SELECT ── -->
               <div class="filter-wrap attribute-filter-dropdown">
                 <div class="dropdown-trigger" @click.stop="isOpenAttributeDropdown = !isOpenAttributeDropdown">
                   <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                   </svg>
-                  <span class="selected-val">{{ selectedAttribute || 'Tất cả loại' }}</span>
+                  <span class="selected-val">{{ selectedGroup ? `Nhóm: ${selectedGroup}` : (selectedAttribute || 'Tất cả loại') }}</span>
                   <svg class="chevron" :class="{ open: isOpenAttributeDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </div>
                 <transition name="fade-slide">
                   <ul v-if="isOpenAttributeDropdown" class="dropdown-menu">
-                    <li :class="{ active: selectedAttribute === '' }" @click="selectedAttribute = ''; isOpenAttributeDropdown = false">
+                    <!-- Search input inside dropdown -->
+                    <div class="dropdown-search" @click.stop>
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      <input v-model="filterSearchQuery" placeholder="Tìm thuộc tính..." />
+                    </div>
+                    
+                    <li :class="{ active: selectedAttribute === '' && selectedGroup === '' }" @click="clearFilters">
                       Tất cả loại
                     </li>
-                    <li v-for="opt in variantTypeOptions" :key="opt"
-                      :class="{ active: selectedAttribute === opt }"
-                      @click="selectedAttribute = opt; isOpenAttributeDropdown = false">
-                      {{ opt }}
-                    </li>
+                    
+                    <div v-for="(groupAttrs, groupName) in filteredGroupedAttributes" :key="groupName" class="dropdown-group">
+                      <div class="dropdown-group-title" :class="{ active: selectedGroup === groupName }" @click="selectGroup(groupName)">
+                        {{ groupName }}
+                      </div>
+                      <li v-for="opt in groupAttrs" :key="opt"
+                        :class="{ active: selectedAttribute === opt }"
+                        @click="selectAttribute(opt)">
+                        {{ opt }}
+                      </li>
+                    </div>
                   </ul>
                 </transition>
               </div>
@@ -1054,7 +1131,6 @@ async function handleImportFile(e) {
         <div v-else class="card">
           <div class="card-header">
             <div class="card-title"><span class="bar purple"></span>Bảng màu sản phẩm</div>
-            <button class="btn-new-sm purple-btn" @click="openModal('color')">+ Thêm màu</button>
           </div>
           <table>
             <thead>
@@ -1642,8 +1718,14 @@ async function handleImportFile(e) {
 
 .tabs {
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
   padding: 0 32px 14px;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 4px;
 }
 
 .tab {
@@ -1770,6 +1852,7 @@ async function handleImportFile(e) {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   max-height: 240px;
   overflow-y: auto;
+  min-width: 210px;
 }
 
 /* Custom Scrollbar for Dropdown Menu */
@@ -1806,6 +1889,121 @@ async function handleImportFile(e) {
   background: #475569;
   color: white;
   font-weight: 600;
+}
+
+/* ── Search inputs and grouped items ── */
+.variant-search-wrap {
+  position: relative;
+  width: 180px;
+}
+
+.variant-search-wrap svg.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.variant-search-wrap input.variant-search-input {
+  width: 100%;
+  padding: 7px 12px 7px 30px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  background: white;
+  transition: all .2s ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.variant-search-wrap input.variant-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.attribute-filter-dropdown .dropdown-search {
+  position: relative;
+  padding: 4px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.attribute-filter-dropdown .dropdown-search svg.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.attribute-filter-dropdown .dropdown-search input {
+  width: 100%;
+  padding: 6px 10px 6px 26px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #0f172a;
+  outline: none;
+  background: #f8fafc;
+  font-family: inherit;
+}
+
+.attribute-filter-dropdown .dropdown-search input:focus {
+  border-color: #3b82f6;
+  background: white;
+}
+
+.attribute-filter-dropdown .dropdown-group {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attribute-filter-dropdown .dropdown-group-title {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.attribute-filter-dropdown .dropdown-group-title:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.attribute-filter-dropdown .dropdown-group-title.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.attribute-filter-dropdown .dropdown-group li {
+  padding-left: 20px;
+  position: relative;
+}
+
+.attribute-filter-dropdown .dropdown-group li::before {
+  content: "•";
+  position: absolute;
+  left: 10px;
+  color: #cbd5e1;
 }
 
 /* Dropdown Transitions */

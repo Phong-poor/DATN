@@ -52,7 +52,7 @@
           <thead>
             <tr>
               <th class="select-col">
-                <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredBanners.length" @change="toggleCurrentPageSelection" />
+                <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedBanners.length" @change="toggleCurrentPageSelection" />
               </th>
               <th>MEDIA</th>
               <th>TIÊU ĐỀ / PHỤ ĐỀ</th>
@@ -73,7 +73,7 @@
             <tr v-else-if="filteredBanners.length === 0">
               <td colspan="8" class="empty">Chưa có banner nào hiển thị.</td>
             </tr>
-            <tr v-else v-for="item in filteredBanners" :key="item.id" :class="{ 'row-selected': selectedIds.includes(item.id) }">
+            <tr v-else v-for="item in paginatedBanners" :key="item.id" :class="{ 'row-selected': selectedIds.includes(item.id) }">
               <td class="select-col">
                 <input type="checkbox" :checked="selectedIds.includes(item.id)" @change="toggleItemSelection(item.id)" />
               </td>
@@ -130,6 +130,19 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="pagination" v-if="totalPages > 1">
+      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
+
+      <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
+        :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
+        @click="p !== '...' && goToPage(p)">
+        {{ p }}
+      </button>
+
+      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
     </div>
 
     <!-- MODAL OVERLAY -->
@@ -301,7 +314,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import api from "@/services/api";
 import { productImageUrl, storageUrl } from "@/services/urls";
 import swal from "@/services/swal";
@@ -315,6 +328,10 @@ const editingId = ref(null);
 const banners = ref([]);
 const products = ref([]);
 const searchQuery = ref("");
+
+// ─── PAGINATION ──────────────────────
+const currentPage = ref(1);
+const pageSize = 5;
 
 const defaultForm = () => ({
   title: "",
@@ -401,6 +418,47 @@ const filteredBanners = computed(() => {
   );
 });
 
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredBanners.value.length / pageSize))
+);
+
+const paginatedBanners = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredBanners.value.slice(start, start + pageSize);
+});
+
+const pageItems = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 3) {
+    return [1, 2, 3, '...', total - 2, total - 1, total];
+  }
+  if (current >= total - 2) {
+    return [1, 2, 3, '...', total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
+});
+
+const goToPage = (page) => {
+  if (page < 1) {
+    currentPage.value = 1;
+    return;
+  }
+  if (page > totalPages.value) {
+    currentPage.value = totalPages.value;
+    return;
+  }
+  currentPage.value = page;
+};
+
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
+
 const {
   selectedIds,
   isBulkDeleting,
@@ -413,6 +471,7 @@ const {
 } = useAdminBulkDelete({
   items: banners,
   filteredItems: filteredBanners,
+  pageItems: paginatedBanners,
   getId: item => item.id,
   endpoint: id => `/admin/banners/${id}`,
   entityLabel: 'banner',
@@ -522,6 +581,9 @@ const remove = async (id) => {
   try {
     await api.delete(`/admin/banners/${id}`);
     await fetchData();
+    if (paginatedBanners.value.length === 0 && currentPage.value > 1) {
+      currentPage.value--;
+    }
     swal.success("Đã xóa", "Xóa banner thành công");
   } catch (e) {
     swal.error("Thất bại", e?.response?.data?.message || "Không thể xóa banner");
@@ -1282,5 +1344,47 @@ td {
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(8px) scale(0.98);
+}
+
+/* PAGINATION SYSTEM */
+.pagination {
+  display: flex;
+  gap: 6px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.pagination button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+  color: #334155;
+  transition: all .2s;
+}
+
+.pagination button:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.pg-active {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: white !important;
+}
+
+.pagination button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.pg-dots {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
 }
 </style>

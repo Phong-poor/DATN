@@ -469,6 +469,49 @@ class DatHangController extends Controller
                     ->increment('da_su_dung');
             }
 
+            // ── Tặng voucher có điều kiện (is_public = 0) ────────────────
+            // Chỉ tặng nếu thanh toán thành công (hoặc COD)
+            // Tạm thời tặng luôn khi tạo đơn, tuỳ vào requirement
+            $conditionalPromos = Promotion::where('is_public', 0)
+                ->where('category', '!=', 'birthday')
+                ->whereIn('status', ['running', 'open'])
+                ->where(function($q) {
+                    $q->whereNull('start_date')->orWhere('start_date', '<=', now());
+                })
+                ->where(function($q) {
+                    $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+                })
+                ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
+                ->get();
+
+            $grantedVouchers = [];
+
+            foreach ($conditionalPromos as $cpromo) {
+                // Kiểm tra giới hạn số lượng phát
+                if ($cpromo->so_luong_phat > 0) {
+                    $claimedCount = UserVoucher::where('id_promotion', $cpromo->id)->count();
+                    if ($claimedCount >= $cpromo->so_luong_phat) {
+                        continue; // Đã hết lượt phát
+                    }
+                }
+
+                // Kiểm tra xem user đã sở hữu chưa
+                $exists = UserVoucher::where('id_user', $userId)
+                    ->where('id_promotion', $cpromo->id)
+                    ->exists();
+
+                if (!$exists) {
+                    UserVoucher::create([
+                        'id_user'      => $userId,
+                        'id_promotion' => $cpromo->id,
+                        'trang_thai'   => 0,
+                        'ngay_nhan'    => now(),
+                    ]);
+                    $grantedVouchers[] = $cpromo;
+                }
+            }
+            // ─────────────────────────────────────────────────────────────
+
             DB::commit();
 
             // Invalidate dashboard cache
@@ -500,6 +543,7 @@ class DatHangController extends Controller
                 'order'     => $donHang,
                 'payUrl'    => $payUrl,
                 'giam_gia'  => $giamGia,
+                'granted_vouchers' => $grantedVouchers,
             ]);
 
         } catch (\Exception $e) {
