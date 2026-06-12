@@ -471,7 +471,7 @@ const loadData = async () => {
               })
               variantSpecs = tt.map(attr => attr.giatri).filter(Boolean)
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         return {
@@ -508,13 +508,13 @@ const loadData = async () => {
 const filteredProducts = computed(() => {
   let list = products.value.filter(product => {
     // 1. Lọc theo danh mục nút tròn (activeCategory)
-    const matchCategory = activeCategory.value === 'Tất cả' || 
-                          product.category.toLowerCase().includes(activeCategory.value.toLowerCase()) ||
-                          (activeCategory.value === 'MacBook' && product.brand.toLowerCase() === 'apple')
+    const matchCategory = activeCategory.value === 'Tất cả' ||
+      product.category.toLowerCase().includes(activeCategory.value.toLowerCase()) ||
+      (activeCategory.value === 'MacBook' && product.brand.toLowerCase() === 'apple')
 
     // 2. Lọc theo thương hiệu (selectedBrands)
-    const matchBrand = selectedBrands.value.length === 0 || 
-                       selectedBrands.value.some(b => product.brand.toLowerCase() === b.toLowerCase())
+    const matchBrand = selectedBrands.value.length === 0 ||
+      selectedBrands.value.some(b => product.brand.toLowerCase() === b.toLowerCase())
 
     // 3. Lọc theo khoảng giá (minPrice - maxPrice slider)
     const matchPrice = product.gia >= minPrice.value && product.gia <= maxPrice.value
@@ -522,13 +522,13 @@ const filteredProducts = computed(() => {
     // 4. Lọc theo RAM (selectedRams)
     const matchRam = selectedRams.value.length === 0 || selectedRams.value.some(ram => {
       return (product.ram && product.ram.toLowerCase().includes(ram.toLowerCase())) ||
-             product.specs.some(spec => spec.toLowerCase().includes(ram.toLowerCase()))
+        product.specs.some(spec => spec.toLowerCase().includes(ram.toLowerCase()))
     })
 
     // 5. Lọc theo SSD (selectedSsds)
     const matchSsd = selectedSsds.value.length === 0 || selectedSsds.value.some(ssd => {
       return (product.ssd && product.ssd.toLowerCase().includes(ssd.toLowerCase())) ||
-             product.specs.some(spec => spec.toLowerCase().includes(ssd.toLowerCase()))
+        product.specs.some(spec => spec.toLowerCase().includes(ssd.toLowerCase()))
     })
 
     // 6. Lọc theo CPU
@@ -552,9 +552,9 @@ const filteredProducts = computed(() => {
     })
 
     // 11. Lọc theo tìm kiếm (searchQuery)
-    const matchSearch = !searchQuery.value || 
-                        product.tenSP.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                        product.brand.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchSearch = !searchQuery.value ||
+      product.tenSP.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      product.brand.toLowerCase().includes(searchQuery.value.toLowerCase())
 
     return matchCategory && matchBrand && matchPrice && matchRam && matchSsd && matchCpu && matchGpu && matchScreen && matchHz && matchSearch
   })
@@ -790,29 +790,28 @@ watch(() => route.fullPath, () => {
 
 <template>
   <div class="premium-page-shell">
-    
+
     <!-- ===================== HERO VIEWPORT ===================== -->
-    <section
-      class="hero-banner"
-      :style="{
-        '--hero-bg-1': `url('${heroBannerImages[0]}')`,
-        '--hero-bg-2': `url('${heroBannerImages[0]}')`
-      }"
-    >
+    <section class="hero-banner" :style="{
+      '--hero-bg-1': `url('${heroBannerImages[0]}')`,
+      '--hero-bg-2': `url('${heroBannerImages[0]}')`
+    }">
       <div class="hero-copy">
         <span class="eyebrow-badge">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"
+            style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
           </svg>
           Predator Flagship
         </span>
         <h1>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
-        <p>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải nghiệm gaming hoàn mỹ.</p>
+        <p>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải
+          nghiệm gaming hoàn mỹ.</p>
         <div class="hero-actions">
           <button class="btn-glow" @click="goToSection('catalog-section')">Chọn theo nhu cầu</button>
           <button class="btn-outline" @click="goToSection('showroom-section')">Tham quan showroom</button>
         </div>
-        
+
         <div class="hero-specs-grid">
           <div class="spec-stat-card">
             <span class="spec-stat-title">RTX 40 Series</span>
@@ -835,14 +834,9 @@ watch(() => route.fullPath, () => {
       <div class="brand-logos-marquee-viewport">
         <div class="brand-logos-track">
           <template v-for="copy in 4" :key="'brand-loop-' + copy">
-            <div 
-              v-for="brand in brandLogos" 
-              :key="copy + '-' + brand.name" 
-              class="brand-logo-item" 
-              :class="{ active: isQuickBrandActive(brand.name) }"
-              @click="selectQuickBrand(brand.name)"
-              :title="brand.name"
-            >
+            <div v-for="brand in brandLogos" :key="copy + '-' + brand.name" class="brand-logo-item"
+              :class="{ active: isQuickBrandActive(brand.name) }" @click="selectQuickBrand(brand.name)"
+              :title="brand.name">
               <img :src="brand.logo" :alt="brand.name" class="brand-logo-img" loading="lazy" />
             </div>
           </template>
@@ -858,7 +852,8 @@ watch(() => route.fullPath, () => {
           <h2>MÁY FLAGSHIP ĐẮT TIỀN NHẤT</h2>
           <p>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
           <p v-if="isUsingPremiumFallback" class="premium-fallback-note">
-            Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}, đang hiển thị top sản phẩm đắt nhất trong database.
+            Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}, đang hiển thị top sản phẩm đắt nhất trong
+            database.
           </p>
         </div>
 
@@ -871,78 +866,64 @@ watch(() => route.fullPath, () => {
       <!-- Premium Flagship Slider Wrapper -->
       <div v-if="flashSaleCarousel.length > 0" class="flash-sale-carousel-wrapper">
         <button class="carousel-arrow prev" @click="prevFlashSale" :disabled="flashSaleMaxIndex === 0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
 
-        <div
-          class="flash-sale-viewport"
-          ref="flashSaleViewportRef"
-          @pointerdown="startFlashDrag"
-          @pointermove="moveFlashDrag"
-          @pointerup="endFlashDrag"
-          @pointercancel="endFlashDrag"
-          @pointerleave="endFlashDrag"
-          @wheel.prevent="handleFlashWheel"
-        >
-          <div
-            class="flash-sale-grid-slider"
-            :class="{ dragging: isFlashDragging }"
-            :style="flashSaleTrackStyle"
-          >
-          <div 
-            class="flash-sale-card" 
-            v-for="product in flashSaleCarousel" 
-            :key="product.id_bienthe || product.id_sanpham"
-            @click="goToPremiumProduct(product)"
-          >
-            <!-- Premium Badge -->
-            <div class="flash-card-badge-row">
-              <span class="flash-sale-badge">{{ product.badge }}</span>
-              <span class="flash-sale-tag">{{ product.tag }}</span>
-            </div>
-
-            <div class="flash-card-image-box">
-              <img :src="product.image" :alt="product.name" />
-            </div>
-
-            <div class="flash-card-content">
-              <h3 class="flash-product-title">{{ product.name }}</h3>
-              
-              <!-- Specs pills -->
-              <div class="flash-specs-list">
-                <span class="flash-spec-pill" v-for="spec in product.specs" :key="spec">{{ spec }}</span>
+        <div class="flash-sale-viewport" ref="flashSaleViewportRef" @pointerdown="startFlashDrag"
+          @pointermove="moveFlashDrag" @pointerup="endFlashDrag" @pointercancel="endFlashDrag"
+          @pointerleave="endFlashDrag" @wheel.prevent="handleFlashWheel">
+          <div class="flash-sale-grid-slider" :class="{ dragging: isFlashDragging }" :style="flashSaleTrackStyle">
+            <div class="flash-sale-card" v-for="product in flashSaleCarousel"
+              :key="product.id_bienthe || product.id_sanpham" @click="goToPremiumProduct(product)">
+              <!-- Premium Badge -->
+              <div class="flash-card-badge-row">
+                <span class="flash-sale-badge">{{ product.badge }}</span>
+                <span class="flash-sale-tag">{{ product.tag }}</span>
               </div>
 
-              <!-- Price row -->
-              <div class="flash-price-row">
-                <span class="price-discounted">{{ formatPrice(product.price) }}</span>
-                <span class="price-original">{{ product.variantName || 'Biến thể cao cấp nhất' }}</span>
+              <div class="flash-card-image-box">
+                <img :src="product.image" :alt="product.name" />
               </div>
 
-              <!-- Premium Highlight -->
-              <div class="flash-progress-wrapper">
-                <div class="flash-progress-bar" style="width: 100%"></div>
-                <span class="flash-progress-text">{{ product.highlight }}</span>
-              </div>
+              <div class="flash-card-content">
+                <h3 class="flash-product-title">{{ product.name }}</h3>
 
-              <div class="flash-actions" @pointerdown.stop>
-                <button type="button" class="flash-buy-btn" @click.stop="goToPremiumProduct(product)">Xem cấu hình</button>
-                <button
-                  type="button"
-                  class="flash-buy-btn buy-now"
-                  :disabled="!product.inStock"
-                  @click.stop="buyPremiumProduct(product)"
-                >
-                  {{ product.inStock ? 'Mua ngay' : 'Hết hàng' }}
-                </button>
+                <!-- Specs pills -->
+                <div class="flash-specs-list">
+                  <span class="flash-spec-pill" v-for="spec in product.specs" :key="spec">{{ spec }}</span>
+                </div>
+
+                <!-- Price row -->
+                <div class="flash-price-row">
+                  <span class="price-discounted">{{ formatPrice(product.price) }}</span>
+                  <span class="price-original">{{ product.variantName || 'Biến thể cao cấp nhất' }}</span>
+                </div>
+
+                <!-- Premium Highlight -->
+                <div class="flash-progress-wrapper">
+                  <div class="flash-progress-bar" style="width: 100%"></div>
+                  <span class="flash-progress-text">{{ product.highlight }}</span>
+                </div>
+
+                <div class="flash-actions" @pointerdown.stop>
+                  <button type="button" class="flash-buy-btn" @click.stop="goToPremiumProduct(product)">Xem cấu
+                    hình</button>
+                  <button type="button" class="flash-buy-btn buy-now" :disabled="!product.inStock"
+                    @click.stop="buyPremiumProduct(product)">
+                    {{ product.inStock ? 'Mua ngay' : 'Hết hàng' }}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
 
         <button class="carousel-arrow next" @click="nextFlashSale" :disabled="flashSaleMaxIndex === 0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
       </div>
 
@@ -955,38 +936,38 @@ watch(() => route.fullPath, () => {
     <!-- ===================== KHÁM PHÁ CHI TIẾT SẢN PHẨM ===================== -->
     <section class="interactive-details-section">
       <div class="glass-container-details">
-        
+
         <!-- Left Side: Interactive image slider -->
         <div class="interactive-slider-box">
           <div class="slider-header-badge">
             <span class="badge-accent">TRỰC QUAN SHOT</span>
             <h3>Khám phá Thiết kế & Góc Nhìn Chi Tiết</h3>
           </div>
-          
+
           <div class="interactive-image-viewer">
             <button class="viewer-arrow prev" @click="prevAngle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
             </button>
-            
-            <img :src="interactiveAngles[activeAngleIndex].img" :alt="interactiveAngles[activeAngleIndex].label" class="angle-display-image" />
-            
+
+            <img :src="interactiveAngles[activeAngleIndex].img" :alt="interactiveAngles[activeAngleIndex].label"
+              class="angle-display-image" />
+
             <button class="viewer-arrow next" @click="nextAngle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </div>
-          
+
           <!-- Angle Selectors Buttons -->
           <div class="angle-selectors-row">
-            <button 
-              v-for="(angle, idx) in interactiveAngles" 
-              :key="angle.label" 
-              class="angle-selector-btn"
-              :class="{ active: activeAngleIndex === idx }"
-              @click="activeAngleIndex = idx"
-            >
+            <button v-for="(angle, idx) in interactiveAngles" :key="angle.label" class="angle-selector-btn"
+              :class="{ active: activeAngleIndex === idx }" @click="activeAngleIndex = idx">
               {{ angle.label }}
             </button>
-            
+
             <button class="btn-3d-visual">
               <span>View 3D 360°</span>
             </button>
@@ -997,8 +978,10 @@ watch(() => route.fullPath, () => {
         <div class="interactive-copy-box">
           <span class="section-subtitle-cyan">Độc quyền tại Predator</span>
           <h2>Góc nhìn thực tế từ tương lai</h2>
-          <p>Mỗi chi tiết thiết kế trên các dòng laptop flagship đều được hoàn thiện từ nhôm hàng không CNC cứng cáp, các khe gió và tản nhiệt tối ưu cho luồng khí tối đa.</p>
-          
+          <p>Mỗi chi tiết thiết kế trên các dòng laptop flagship đều được hoàn thiện từ nhôm hàng không CNC cứng cáp,
+            các
+            khe gió và tản nhiệt tối ưu cho luồng khí tối đa.</p>
+
           <div class="advantages-checklist-group">
             <div class="checklist-item">
               <span class="check-icon">✓</span>
@@ -1042,7 +1025,7 @@ watch(() => route.fullPath, () => {
 
     <!-- ===================== MAIN PREMIUM CATALOG DIRECTORY ===================== -->
     <section id="catalog-section" class="section-layout catalog-section-wrapper">
-      
+
       <!-- Catalog Header Row -->
       <div class="catalog-header-row">
         <div>
@@ -1050,34 +1033,28 @@ watch(() => route.fullPath, () => {
           <h2>Danh sách Laptop Premium</h2>
           <p>Khám phá hệ thống máy tính cao cấp tích hợp cấu hình đỉnh cao nhất</p>
         </div>
-        
+
         <!-- Search bar inside catalog -->
         <div class="catalog-search-bar">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm model, CPU, RTX..." 
-            v-model="searchQuery"
-          />
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input type="text" placeholder="Tìm kiếm model, CPU, RTX..." v-model="searchQuery" />
         </div>
       </div>
 
       <!-- Quick Category Pill Row -->
       <div class="catalog-pills-row">
-        <button 
-          v-for="cat in visibleCatalogCategories" 
-          :key="cat" 
-          class="catalog-pill-btn"
-          :class="{ active: activeCategory === cat }"
-          @click="selectCategory(cat)"
-        >
+        <button v-for="cat in visibleCatalogCategories" :key="cat" class="catalog-pill-btn"
+          :class="{ active: activeCategory === cat }" @click="selectCategory(cat)">
           {{ cat }}
         </button>
       </div>
 
       <!-- Catalog Main Layout -->
       <div class="catalog-layout">
-        
+
         <!-- Left Sidebar Filter -->
         <!-- Left Sidebar Filter -->
         <aside class="catalog-filter-sidebar">
@@ -1085,40 +1062,39 @@ watch(() => route.fullPath, () => {
             <div class="filter-sidebar-header">
               <div class="header-title-wrap">
                 <span class="filter-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" style="display: inline-block; vertical-align: middle;">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"
+                    style="display: inline-block; vertical-align: middle;">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
                 </span>
                 <h3>Bộ lọc</h3>
               </div>
-              <button 
-                v-if="selectedBrands.length > 0 || minPrice > 0 || maxPrice < 150000000 || selectedRams.length > 0 || selectedSsds.length > 0 || selectedCpus.length > 0 || selectedGpus.length > 0 || selectedScreens.length > 0 || selectedHzs.length > 0 || searchQuery !== ''" 
-                class="clear-all-link"
-                @click="clearAllFilters"
-              >
+              <button
+                v-if="selectedBrands.length > 0 || minPrice > 0 || maxPrice < 150000000 || selectedRams.length > 0 || selectedSsds.length > 0 || selectedCpus.length > 0 || selectedGpus.length > 0 || selectedScreens.length > 0 || selectedHzs.length > 0 || searchQuery !== ''"
+                class="clear-all-link" @click="clearAllFilters">
                 Xóa lọc
               </button>
             </div>
 
             <!-- Brand Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('brands'), selected: hasCatalogFilterValue('brands') }" @click="handleCatalogFilterGroupClick($event, 'brands')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('brands'), selected: hasCatalogFilterValue('brands') }"
+              @click="handleCatalogFilterGroupClick($event, 'brands')">
               <h4>Thương hiệu</h4>
-              <div v-show="isCatalogFilterOpen('brands')" class="filter-pill-grid brand-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="brand in filterOptions.brands" 
-                  :key="brand" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedBrands.includes(brand) }"
-                  @click="toggleBrand(brand)"
-                >
+              <div v-show="isCatalogFilterOpen('brands')"
+                class="filter-pill-grid brand-pill-grid filter-dropdown-content">
+                <button v-for="brand in filterOptions.brands" :key="brand" class="filter-pill-btn"
+                  :class="{ active: selectedBrands.includes(brand) }" @click="toggleBrand(brand)">
                   {{ brand }}
                 </button>
               </div>
             </div>
 
             <!-- Price Filter Slider -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('price'), selected: hasCatalogFilterValue('price') }" @click="handleCatalogFilterGroupClick($event, 'price')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('price'), selected: hasCatalogFilterValue('price') }"
+              @click="handleCatalogFilterGroupClick($event, 'price')">
               <h4>Khoảng giá</h4>
               <div v-show="isCatalogFilterOpen('price')" class="price-slider-wrapper filter-dropdown-content">
                 <div class="price-slider-display">
@@ -1132,118 +1108,88 @@ watch(() => route.fullPath, () => {
                     right: `${100 - (maxPrice / 150000000) * 100}%`
                   }"></div>
                   <div class="price-slider-inputs">
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="150000000" 
-                      step="1000000" 
-                      v-model.number="minPrice" 
-                      aria-label="Giá tối thiểu"
-                    />
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="150000000" 
-                      step="1000000" 
-                      v-model.number="maxPrice" 
-                      aria-label="Giá tối đa"
-                    />
+                    <input type="range" min="0" max="150000000" step="1000000" v-model.number="minPrice"
+                      aria-label="Giá tối thiểu" />
+                    <input type="range" min="0" max="150000000" step="1000000" v-model.number="maxPrice"
+                      aria-label="Giá tối đa" />
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- RAM Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ram'), selected: hasCatalogFilterValue('ram') }" @click="handleCatalogFilterGroupClick($event, 'ram')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('ram'), selected: hasCatalogFilterValue('ram') }"
+              @click="handleCatalogFilterGroupClick($event, 'ram')">
               <h4>Bộ nhớ RAM</h4>
               <div v-show="isCatalogFilterOpen('ram')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="ram in filterOptions.rams" 
-                  :key="ram" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedRams.includes(ram) }"
-                  @click="toggleRam(ram)"
-                >
+                <button v-for="ram in filterOptions.rams" :key="ram" class="filter-pill-btn"
+                  :class="{ active: selectedRams.includes(ram) }" @click="toggleRam(ram)">
                   {{ ram }}
                 </button>
               </div>
             </div>
 
             <!-- SSD Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('ssd'), selected: hasCatalogFilterValue('ssd') }" @click="handleCatalogFilterGroupClick($event, 'ssd')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('ssd'), selected: hasCatalogFilterValue('ssd') }"
+              @click="handleCatalogFilterGroupClick($event, 'ssd')">
               <h4>Ổ cứng SSD</h4>
               <div v-show="isCatalogFilterOpen('ssd')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="ssd in filterOptions.ssds" 
-                  :key="ssd" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedSsds.includes(ssd) }"
-                  @click="toggleSsd(ssd)"
-                >
+                <button v-for="ssd in filterOptions.ssds" :key="ssd" class="filter-pill-btn"
+                  :class="{ active: selectedSsds.includes(ssd) }" @click="toggleSsd(ssd)">
                   {{ ssd }}
                 </button>
               </div>
             </div>
 
             <!-- CPU Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('cpu'), selected: hasCatalogFilterValue('cpu') }" @click="handleCatalogFilterGroupClick($event, 'cpu')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('cpu'), selected: hasCatalogFilterValue('cpu') }"
+              @click="handleCatalogFilterGroupClick($event, 'cpu')">
               <h4>Vi xử lý CPU</h4>
               <div v-show="isCatalogFilterOpen('cpu')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="cpu in filterOptions.cpus" 
-                  :key="cpu" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedCpus.includes(cpu) }"
-                  @click="toggleCpu(cpu)"
-                >
+                <button v-for="cpu in filterOptions.cpus" :key="cpu" class="filter-pill-btn"
+                  :class="{ active: selectedCpus.includes(cpu) }" @click="toggleCpu(cpu)">
                   {{ cpu }}
                 </button>
               </div>
             </div>
 
             <!-- GPU Filter -->
-            <div class="filter-option-group gpu-filter-group" :class="{ open: isCatalogFilterOpen('gpu'), selected: hasCatalogFilterValue('gpu') }" @click="handleCatalogFilterGroupClick($event, 'gpu')">
+            <div class="filter-option-group gpu-filter-group"
+              :class="{ open: isCatalogFilterOpen('gpu'), selected: hasCatalogFilterValue('gpu') }"
+              @click="handleCatalogFilterGroupClick($event, 'gpu')">
               <h4>Card đồ họa GPU</h4>
               <div v-show="isCatalogFilterOpen('gpu')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="gpu in filterOptions.gpus" 
-                  :key="gpu" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedGpus.includes(gpu) }"
-                  @click="toggleGpu(gpu)"
-                >
+                <button v-for="gpu in filterOptions.gpus" :key="gpu" class="filter-pill-btn"
+                  :class="{ active: selectedGpus.includes(gpu) }" @click="toggleGpu(gpu)">
                   {{ gpu }}
                 </button>
               </div>
             </div>
 
             <!-- Screen Size Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('screen'), selected: hasCatalogFilterValue('screen') }" @click="handleCatalogFilterGroupClick($event, 'screen')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('screen'), selected: hasCatalogFilterValue('screen') }"
+              @click="handleCatalogFilterGroupClick($event, 'screen')">
               <h4>Kích thước màn hình</h4>
               <div v-show="isCatalogFilterOpen('screen')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="scr in filterOptions.screens" 
-                  :key="scr" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedScreens.includes(scr) }"
-                  @click="toggleScreen(scr)"
-                >
+                <button v-for="scr in filterOptions.screens" :key="scr" class="filter-pill-btn"
+                  :class="{ active: selectedScreens.includes(scr) }" @click="toggleScreen(scr)">
                   {{ scr }}
                 </button>
               </div>
             </div>
 
             <!-- Refresh Rate Filter -->
-            <div class="filter-option-group" :class="{ open: isCatalogFilterOpen('hz'), selected: hasCatalogFilterValue('hz') }" @click="handleCatalogFilterGroupClick($event, 'hz')">
+            <div class="filter-option-group"
+              :class="{ open: isCatalogFilterOpen('hz'), selected: hasCatalogFilterValue('hz') }"
+              @click="handleCatalogFilterGroupClick($event, 'hz')">
               <h4>Tần số quét màn hình</h4>
               <div v-show="isCatalogFilterOpen('hz')" class="filter-pill-grid filter-dropdown-content">
-                <button 
-                  v-for="hz in filterOptions.hzs" 
-                  :key="hz" 
-                  class="filter-pill-btn"
-                  :class="{ active: selectedHzs.includes(hz) }"
-                  @click="toggleHz(hz)"
-                >
+                <button v-for="hz in filterOptions.hzs" :key="hz" class="filter-pill-btn"
+                  :class="{ active: selectedHzs.includes(hz) }" @click="toggleHz(hz)">
                   {{ hz }}
                 </button>
               </div>
@@ -1256,7 +1202,9 @@ watch(() => route.fullPath, () => {
         <div class="catalog-grid-area">
           <!-- Sorting and Count Bar -->
           <div class="grid-sort-header-row">
-            <span class="results-count">Đang hiển thị <b>{{ paginatedProducts.length }}</b>/<b>{{ filteredProducts.length }}</b> sản phẩm</span>
+            <span class="results-count">Đang hiển thị <b>{{ paginatedProducts.length }}</b>/<b>{{
+                filteredProducts.length
+                }}</b> sản phẩm</span>
             <div class="sort-dropdown-wrap">
               <label for="catalog-sort-select">Sắp xếp theo:</label>
               <select id="catalog-sort-select" v-model="activeSort" class="premium-sort-select">
@@ -1275,8 +1223,9 @@ watch(() => route.fullPath, () => {
 
           <div v-else-if="filteredProducts.length === 0" class="catalog-empty-box">
             <span class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: #94a3b8; display: inline-block; margin-bottom: 12px;">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"
+                style="color: #94a3b8; display: inline-block; margin-bottom: 12px;">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
               </svg>
             </span>
             <p>Không tìm thấy dòng máy tính phù hợp với bộ lọc đã chọn.</p>
@@ -1284,8 +1233,9 @@ watch(() => route.fullPath, () => {
           </div>
 
           <div v-else class="catalog-product-grid">
-            <article class="premium-product-card" v-for="prod in paginatedProducts" :key="prod.id_sanpham" @click="viewDetail(prod.id_sanpham)">
-              
+            <article class="premium-product-card" v-for="prod in paginatedProducts" :key="prod.id_sanpham"
+              @click="viewDetail(prod.id_sanpham)">
+
               <!-- Card Top Badge - BEST SELLER -->
               <div class="card-badge-overlay" v-if="prod.gia % 3 === 0 || prod.gia > 60000000">
                 <span class="badge-best-seller">BEST SELLER</span>
@@ -1294,10 +1244,11 @@ watch(() => route.fullPath, () => {
               <!-- Product Image Container (Perfect White Square Box) -->
               <div class="card-media-box">
                 <img :src="prod.image" :alt="prod.tenSP" />
-                
+
                 <button class="hover-heart-btn" @click.stop="toggleWishlist(prod)" title="Thêm vào yêu thích">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    <path
+                      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                 </button>
 
@@ -1321,11 +1272,12 @@ watch(() => route.fullPath, () => {
                 <div class="product-specs-summary" v-if="prod.specs && prod.specs.length > 0">
                   <span v-for="spec in prod.specs.slice(0, 4)" :key="spec" class="spec-tag">{{ spec }}</span>
                 </div>
-                
+
                 <!-- Price Area with Discount Badge -->
                 <div class="card-price-row">
                   <span class="footer-price-curr">{{ formatPrice(prod.gia) }}</span>
-                  <span class="badge-discount">-{{ Math.round((prod.oldPrice - prod.gia) / prod.oldPrice * 100) }}%</span>
+                  <span class="badge-discount">-{{ Math.round((prod.oldPrice - prod.gia) / prod.oldPrice * 100)
+                    }}%</span>
                 </div>
 
                 <!-- Crossed out original price -->
@@ -1335,7 +1287,7 @@ watch(() => route.fullPath, () => {
                 <div class="card-badge-row-1">
                   <span class="badge-chinh-hang">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="check-icon-svg">
-                      <polyline points="20 6 9 17 4 12"/>
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                     Chính Hãng
                   </span>
@@ -1345,16 +1297,19 @@ watch(() => route.fullPath, () => {
                 <div class="card-badge-row-2">
                   <span class="badge-ship-warranty">
                     <span class="badge-icon">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" style="display: inline-block; vertical-align: middle;">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"
+                        style="display: inline-block; vertical-align: middle;">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                       </svg>
                     </span>
                     Freeship 2H
                   </span>
                   <span class="badge-ship-warranty">
                     <span class="badge-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10" style="display: inline-block; vertical-align: middle;">
-                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10"
+                        height="10" style="display: inline-block; vertical-align: middle;">
+                        <path
+                          d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                       </svg>
                     </span>
                     BH 24T
@@ -1365,8 +1320,9 @@ watch(() => route.fullPath, () => {
               <!-- Floating Cart circular button in bottom right corner on hover -->
               <button class="card-hover-cart-btn" @click.stop="addToCart(prod)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                 </svg>
               </button>
 
@@ -1376,18 +1332,15 @@ watch(() => route.fullPath, () => {
 
           <!-- Catalog Pagination -->
           <div class="catalog-pagination-row" v-if="filteredProducts.length > PRODUCTS_PER_PAGE">
-            <button class="pagination-arrow prev" :disabled="currentPage === 1" @click="goToCatalogPage(currentPage - 1)">&lt;</button>
-            <button
-              v-for="(page, index) in visibleCatalogPages"
-              :key="`catalog-page-${page}-${index}`"
-              class="pagination-number"
-              :class="{ active: currentPage === page, dots: page === '...' }"
-              :disabled="page === '...'"
-              @click="goToCatalogPage(page)"
-            >
+            <button class="pagination-arrow prev" :disabled="currentPage === 1"
+              @click="goToCatalogPage(currentPage - 1)">&lt;</button>
+            <button v-for="(page, index) in visibleCatalogPages" :key="`catalog-page-${page}-${index}`"
+              class="pagination-number" :class="{ active: currentPage === page, dots: page === '...' }"
+              :disabled="page === '...'" @click="goToCatalogPage(page)">
               {{ page }}
             </button>
-            <button class="pagination-arrow next" :disabled="currentPage === totalCatalogPages" @click="goToCatalogPage(currentPage + 1)">&gt;</button>
+            <button class="pagination-arrow next" :disabled="currentPage === totalCatalogPages"
+              @click="goToCatalogPage(currentPage + 1)">&gt;</button>
           </div>
         </div>
 
@@ -1397,20 +1350,18 @@ watch(() => route.fullPath, () => {
     <!-- ===================== SHOWROOM IMMERSIVE BANNER ===================== -->
     <section id="showroom-section" class="showroom-immersive-banner">
       <div class="showroom-immersive-overlay"></div>
-      
+
       <div class="showroom-immersive-container">
         <!-- Left: Copy content -->
         <div class="showroom-immersive-copy">
           <span class="showroom-tag-neon">PREDATOR SHOWROOM</span>
           <h2>Trải nghiệm trực tiếp tại Showroom Predator</h2>
-          <p>Đến ngay cửa hàng không gian tương lai của Predator để tận tay trải nghiệm các dòng máy tính gaming khủng nhất và nhận tư vấn cấu hình tối ưu từ chuyên gia của chúng tôi.</p>
-          
+          <p>Đến ngay cửa hàng không gian tương lai của Predator để tận tay trải nghiệm các dòng máy tính gaming khủng
+            nhất
+            và nhận tư vấn cấu hình tối ưu từ chuyên gia của chúng tôi.</p>
+
           <div class="showroom-highlights-checklist">
-            <div 
-              class="showroom-highlight-card" 
-              v-for="hl in showroomHighlights" 
-              :key="hl.text"
-            >
+            <div class="showroom-highlight-card" v-for="hl in showroomHighlights" :key="hl.text">
               <span class="highlight-icon" v-html="hl.icon"></span>
               <div>
                 <strong>{{ hl.text }}</strong>
@@ -1418,10 +1369,10 @@ watch(() => route.fullPath, () => {
               </div>
             </div>
           </div>
-          
+
           <button class="btn-glow" @click="router.push('/contact')">Đăng ký trải nghiệm ngay</button>
         </div>
-        
+
         <!-- Right: Neon Image -->
         <div class="showroom-immersive-visual">
           <img src="/Gemini_Generated_Image_v5vppjv5vppjv5vp (2).png" alt="Predator laptop showroom" />
@@ -1442,10 +1393,13 @@ watch(() => route.fullPath, () => {
           <div class="composite-card-info">
             <span class="box-badge-blue">HOT LINE</span>
             <h3>Giao hàng hỏa tốc 2H</h3>
-            <p>Hệ thống vận hành thần tốc, trao tay hộp sản phẩm nguyên seal bọc túi chống sốc chuyên dụng đến tận cửa phòng khách của bạn trong vòng 2 giờ tại nội thành.</p>
+            <p>Hệ thống vận hành thần tốc, trao tay hộp sản phẩm nguyên seal bọc túi chống sốc chuyên dụng đến tận cửa
+              phòng
+              khách của bạn trong vòng 2 giờ tại nội thành.</p>
           </div>
           <div class="composite-card-media">
-            <img src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80" alt="Premium Luxury Cardboard box opening" />
+            <img src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80"
+              alt="Premium Luxury Cardboard box opening" />
           </div>
         </div>
 
@@ -1459,7 +1413,8 @@ watch(() => route.fullPath, () => {
                 <p>Hỗ trợ đa dạng thẻ tín dụng, xét duyệt từ xa nhanh gọn qua ứng dụng điện thoại.</p>
               </div>
               <div class="composite-card-media-half">
-                <img src="https://images.unsplash.com/photo-1589758438368-0ad531db3366?auto=format&fit=crop&w=600&q=80" alt="Sleek Credit cards mockup" />
+                <img src="https://images.unsplash.com/photo-1589758438368-0ad531db3366?auto=format&fit=crop&w=600&q=80"
+                  alt="Sleek Credit cards mockup" />
               </div>
             </div>
 
@@ -1470,7 +1425,8 @@ watch(() => route.fullPath, () => {
                 <p>Yên tâm tuyệt đối với bảo hiểm phần cứng chuyên sâu 24 tháng chính hãng.</p>
               </div>
               <div class="composite-card-media-half">
-                <img src="https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&w=600&q=80" alt="Modern support shield render" />
+                <img src="https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&w=600&q=80"
+                  alt="Modern support shield render" />
               </div>
             </div>
           </div>
@@ -1479,10 +1435,13 @@ watch(() => route.fullPath, () => {
           <div class="composite-card card-full-bottom">
             <div class="composite-card-info">
               <h3>Hỗ trợ kỹ thuật 24/7</h3>
-              <p>Dịch vụ tư vấn phần cứng và khắc phục sự cố phần mềm thông qua TeamViewer/UltraViewer bất kể ngày đêm bởi đội ngũ kỹ thuật viên cao cấp giàu kinh nghiệm của Predator.</p>
+              <p>Dịch vụ tư vấn phần cứng và khắc phục sự cố phần mềm thông qua TeamViewer/UltraViewer bất kể ngày đêm
+                bởi
+                đội ngũ kỹ thuật viên cao cấp giàu kinh nghiệm của Predator.</p>
             </div>
             <div class="composite-card-media-wide">
-              <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1000&q=80" alt="Creative cozy PC desk workstation setup" />
+              <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1000&q=80"
+                alt="Creative cozy PC desk workstation setup" />
             </div>
           </div>
         </div>
@@ -1493,7 +1452,6 @@ watch(() => route.fullPath, () => {
 </template>
 
 <style scoped>
-
 /* ==================== SEARCH / SORTING HEADER & RATING / SPECS STYLING ==================== */
 .grid-sort-header-row {
   display: flex;
@@ -1584,12 +1542,16 @@ watch(() => route.fullPath, () => {
   background: var(--tn-bg);
   color: #0f172a;
   font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-  overflow-x: clip; /* clip does not prevent sticky position context */
+  overflow-x: clip;
+  /* clip does not prevent sticky position context */
   padding-bottom: 80px;
 }
 
 /* Base Typography & Layout */
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-weight: 700;
   letter-spacing: -0.015em;
   color: #0f172a;
@@ -1609,12 +1571,14 @@ p {
 
 /* Solid Professional Buttons (No Flashy Gradients) */
 .btn-glow {
-  background: #2563eb; /* Clean solid royal tech blue */
+  background: #2563eb;
+  /* Clean solid royal tech blue */
   color: #ffffff;
   padding: 12px 26px;
   font-size: 13.5px;
   font-weight: 700;
-  border-radius: 8px; /* High-end sharp corner radius */
+  border-radius: 8px;
+  /* High-end sharp corner radius */
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
@@ -1694,7 +1658,7 @@ p {
     linear-gradient(0deg, rgba(7, 12, 22, 0.04), rgba(7, 12, 22, 0.04));
 }
 
-.hero-banner > * {
+.hero-banner>* {
   position: relative;
   z-index: 1;
 }
@@ -1776,7 +1740,8 @@ p {
 }
 
 .spec-stat-card {
-  background: #0f172a; /* Clean solid slate dark box */
+  background: #0f172a;
+  /* Clean solid slate dark box */
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   padding: 10px;
@@ -1803,15 +1768,43 @@ p {
 }
 
 @keyframes heroBgOne {
-  0%, 44% { opacity: 1; transform: scale(1.03); }
-  55%, 94% { opacity: 0; transform: scale(1.07); }
-  100% { opacity: 1; transform: scale(1.03); }
+
+  0%,
+  44% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+
+  55%,
+  94% {
+    opacity: 0;
+    transform: scale(1.07);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
 }
 
 @keyframes heroBgTwo {
-  0%, 44% { opacity: 0; transform: scale(1.07); }
-  55%, 94% { opacity: 1; transform: scale(1.03); }
-  100% { opacity: 0; transform: scale(1.07); }
+
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(1.07);
+  }
+
+  55%,
+  94% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.07);
+  }
 }
 
 /* ============================================================
@@ -1850,17 +1843,21 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--brand-card-width); /* Consistent card width */
-  height: 72px; /* Consistent card height */
+  width: var(--brand-card-width);
+  /* Consistent card width */
+  height: 72px;
+  /* Consistent card height */
   padding: 14px 24px;
-  border-radius: 18px; /* Exact border-radius requested */
+  border-radius: 18px;
+  /* Exact border-radius requested */
   background: var(--tn-surface);
   border: 1px solid rgba(148, 163, 184, 0.22);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   flex-shrink: 0;
   position: relative;
-  overflow: hidden; /* Exact overflow requested */
+  overflow: hidden;
+  /* Exact overflow requested */
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 
@@ -1874,9 +1871,11 @@ p {
 }
 
 .brand-logo-item:hover {
-  transform: translateY(-4px) scale(1.05); /* Smooth hover scale */
+  transform: translateY(-4px) scale(1.05);
+  /* Smooth hover scale */
   border-color: rgba(37, 99, 235, 0.42);
-  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.22); /* Hover glow effect */
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.22);
+  /* Hover glow effect */
 }
 
 .brand-logo-item:hover::after {
@@ -1894,7 +1893,8 @@ p {
   height: 100%;
   max-width: 118px;
   max-height: 44px;
-  object-fit: contain; /* Exact object-fit requested */
+  object-fit: contain;
+  /* Exact object-fit requested */
   filter: none;
   transition: all 0.3s ease;
   opacity: 1;
@@ -1912,6 +1912,7 @@ p {
   0% {
     transform: translateX(0);
   }
+
   100% {
     transform: translateX(calc(-1 * var(--brand-count) * (var(--brand-card-width) + var(--brand-gap))));
   }
@@ -2115,7 +2116,8 @@ p {
 .flash-sale-card {
   flex: 0 0 var(--flash-card-width, calc((100% - 48px) / 5));
   max-width: var(--flash-card-width, calc((100% - 48px) / 5));
-  background: var(--tn-surface); /* Clean solid white background */
+  background: var(--tn-surface);
+  /* Clean solid white background */
   color: #0f172a;
   border-radius: 12px;
   padding: 12px;
@@ -2363,12 +2365,10 @@ p {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.06) 0%,
-    transparent 50%,
-    rgba(6, 182, 212, 0.04) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(99, 102, 241, 0.06) 0%,
+      transparent 50%,
+      rgba(6, 182, 212, 0.04) 100%);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -2401,7 +2401,7 @@ p {
   font-weight: 700;
   color: #ffffff;
   line-height: 1.3;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .interactive-image-viewer {
@@ -2438,8 +2438,13 @@ p {
   border-color: #2563eb;
 }
 
-.viewer-arrow.prev { left: 12px; }
-.viewer-arrow.next { right: 12px; }
+.viewer-arrow.prev {
+  left: 12px;
+}
+
+.viewer-arrow.next {
+  right: 12px;
+}
 
 .angle-display-image {
   width: calc(100% - 72px);
@@ -2517,10 +2522,10 @@ p {
   margin: 10px 0 16px;
   line-height: 1.25;
   color: #ffffff;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
-.interactive-copy-box > p {
+.interactive-copy-box>p {
   color: #cbd5e1;
   font-size: 14px;
   line-height: 1.7;
@@ -2887,6 +2892,7 @@ p {
     opacity: 0;
     transform: translateY(-5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -3113,7 +3119,8 @@ p {
 }
 
 .badge-best-seller {
-  background: #f59e0b; /* Solid refined gold (no shiny glow) */
+  background: #f59e0b;
+  /* Solid refined gold (no shiny glow) */
   color: #0f172a;
   font-size: 10px;
   font-weight: 700;
@@ -3678,7 +3685,7 @@ p {
     min-height: auto;
     padding: 36px 24px 34px;
   }
-  
+
   .hero-visual {
     height: 300px;
   }
@@ -3696,7 +3703,7 @@ p {
   .services-composite-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .large-box-left {
     height: 420px;
   }
@@ -3773,7 +3780,7 @@ p {
   .composite-row-top {
     grid-template-columns: 1fr;
   }
-  
+
   .card-half-top {
     height: auto;
   }
@@ -3795,11 +3802,20 @@ p {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>
