@@ -26,6 +26,9 @@ class Promotion extends Model
         'mota',
         'loai_dieu_kien',
         'dieu_kien',
+        'is_public',
+        'dieu_kien_tang',
+        'so_luong_phat',
     ];
 
     public $timestamps = false;
