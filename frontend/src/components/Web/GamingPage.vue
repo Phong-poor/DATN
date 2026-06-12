@@ -1092,7 +1092,6 @@ watch([
 ], () => {
   currentPage.value = 1
 })
->>>>>>> 8b2c87f8625a4d7a5953042180587d74e146b199
 
 const localWishlistIds = ref([])
 const accessorySliderRef = ref(null)
