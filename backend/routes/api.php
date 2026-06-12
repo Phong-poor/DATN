@@ -35,6 +35,7 @@ use App\Http\Controllers\MomoController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\BirthdayCodeController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -310,6 +311,17 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/promotions', [PromotionController::class, 'store']);
         Route::put('/promotions/{id}', [PromotionController::class, 'update']);
         Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
+
+        // ===== ADMIN BIRTHDAY CODES =====
+        Route::get('/birthday-codes', [BirthdayCodeController::class, 'index']);
+        Route::post('/birthday-codes/scan', [BirthdayCodeController::class, 'scan']);
+        Route::post('/birthday-codes/send', [BirthdayCodeController::class, 'send']);
+        Route::post('/birthday-codes/send-bulk', [BirthdayCodeController::class, 'sendBulk']);
+        Route::post('/birthday-codes/resend', [BirthdayCodeController::class, 'resend']);
+        Route::post('/birthday-codes/run-auto-now', [BirthdayCodeController::class, 'runAutoNow']);
+        Route::get('/birthday-codes/logs', [BirthdayCodeController::class, 'logs']);
+        Route::get('/birthday-codes/settings', [BirthdayCodeController::class, 'getSettingsApi']);
+        Route::post('/birthday-codes/settings', [BirthdayCodeController::class, 'saveSettingsApi']);
         Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
         Route::get('/banners', [BannerController::class, 'adminIndex']);

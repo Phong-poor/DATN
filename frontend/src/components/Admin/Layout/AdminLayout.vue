@@ -6,6 +6,7 @@
       `width-${appearance.content_width}`,
       `sidebar-${appearance.sidebar_style}`,
       `anim-${appearance.animation_level}`,
+      adminIntroActive && 'intro-active',
     ]"
     :style="adminVars"
   >
@@ -246,6 +247,8 @@ const userMenuOpen = ref(false)
 const langMenuOpen = ref(false)
 const appsMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
+const adminIntroActive = ref(false)
+let adminIntroTimer = null
 
 const userMenuRef = ref(null)
 const langMenuRef = ref(null)
@@ -286,6 +289,7 @@ const menuConfig = [
     children: [
       { path: '/admin/orders', label: 'Đơn hàng', badge: 'CORE' },
       { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'SALES' },
+      { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'SALES' },
       { path: '/admin/combos', label: 'Quản lý Combo', badge: 'SALES' },
       { path: '/admin/affiliates', label: 'Affiliate', badge: 'MARKETING' },
     ]
@@ -579,6 +583,15 @@ function handleSettingsUpdated(event) {
 }
 
 onMounted(async () => {
+  if (sessionStorage.getItem('admin_intro_animation') === '1') {
+    sessionStorage.removeItem('admin_intro_animation')
+    adminIntroActive.value = true
+    adminIntroTimer = window.setTimeout(() => {
+      adminIntroActive.value = false
+      adminIntroTimer = null
+    }, 1400)
+  }
+
   document.addEventListener('mousedown', handleClickOutside)
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
@@ -589,6 +602,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (adminIntroTimer) {
+    clearTimeout(adminIntroTimer)
+    adminIntroTimer = null
+  }
+
   document.removeEventListener('mousedown', handleClickOutside)
   window.removeEventListener('user-updated', refreshUser)
   window.removeEventListener('admin-settings-updated', handleSettingsUpdated)
@@ -914,4 +932,73 @@ a { text-decoration: none; }
 .admin-layout.dark .topbar-home-link { background: #0f172a; border-color: rgba(255,255,255,.08); color: #38bdf8; }
 .admin-layout.dark .dropdown-item, .admin-layout.dark .notify-item { background: #1e293b; border-color: rgba(255,255,255,.08); color: #e2e8f0; }
 .admin-layout.dark .notify-item.unread, .admin-layout.dark .dropdown-item.active, .admin-layout.dark .dropdown-item:hover { background: rgba(37, 99, 235, 0.15); }
+
+.admin-layout.intro-active {
+  animation: adminIntroBase 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-layout.intro-active .sidebar {
+  animation: adminIntroSidebar 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-layout.intro-active .admin-topbar {
+  animation: adminIntroTopbar 0.82s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.admin-layout.intro-active .main > :not(.admin-topbar) {
+  animation: adminIntroContent 0.96s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+}
+
+@keyframes adminIntroBase {
+  0% {
+    background: #eef4ff;
+  }
+  100% {
+    background: #f8fafc;
+  }
+}
+
+@keyframes adminIntroSidebar {
+  0% {
+    opacity: 0;
+    transform: translate3d(-34px, 0, 0);
+    filter: saturate(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: saturate(1);
+  }
+}
+
+@keyframes adminIntroTopbar {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes adminIntroContent {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout.intro-active,
+  .admin-layout.intro-active .sidebar,
+  .admin-layout.intro-active .admin-topbar,
+  .admin-layout.intro-active .main > :not(.admin-topbar) {
+    animation-duration: 0.01ms !important;
+  }
+}
 </style>

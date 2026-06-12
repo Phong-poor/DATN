@@ -94,9 +94,8 @@ const crumbs = computed(() => {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   padding: 6px 0;
-  position: sticky;
-  top: 68px; /* Height of sticky Header */
-  z-index: 99;
+  position: relative;
+  z-index: 2;
   transition: all 0.3s ease;
 }
 
@@ -163,7 +162,7 @@ const crumbs = computed(() => {
 }
 
 .breadcrumb-current {
-  color: #f1f5f9;
+  color: #1e293b;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -174,7 +173,6 @@ const crumbs = computed(() => {
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 1024px) {
   .breadcrumbs-bar {
-    top: 60px; /* Matches sticky responsive header */
     padding: 5px 0;
   }
   .breadcrumbs-container {

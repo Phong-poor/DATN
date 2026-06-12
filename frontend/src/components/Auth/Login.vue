@@ -12,6 +12,9 @@ const password = ref('')
 const remember = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
+const adminOpening = ref(false)
+const webOpening = ref(false)
+const socialOpening = ref(false)
 
 const modal = ref({
   show: false,
@@ -42,15 +45,23 @@ const showModal = (type, title, message, onConfirm = null) => {
 }
 
 const loginGoogle = () => {
+  if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
+  socialOpening.value = true
   const refCode = localStorage.getItem('affiliate_ref') || ''
   const endpoint = refCode ? `/auth/google?ref=${encodeURIComponent(refCode)}` : '/auth/google'
-  window.location.href = `${api.defaults.baseURL}${endpoint}`
+  setTimeout(() => {
+    window.location.href = `${api.defaults.baseURL}${endpoint}`
+  }, 620)
 }
 
 const loginFacebook = () => {
+  if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
+  socialOpening.value = true
   const refCode = localStorage.getItem('affiliate_ref') || ''
   const endpoint = refCode ? `/auth/facebook?ref=${encodeURIComponent(refCode)}` : '/auth/facebook'
-  window.location.href = `${api.defaults.baseURL}${endpoint}`
+  setTimeout(() => {
+    window.location.href = `${api.defaults.baseURL}${endpoint}`
+  }, 620)
 }
 
 const closeModal = () => {
@@ -75,18 +86,93 @@ const safeRedirectPath = (path) => {
   return path
 }
 
+const isAdminUser = (user) => String(user?.role || '').toLowerCase() === 'admin'
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+let adminPreloadPromise = null
+let adminDashboardPreloadPromise = null
+
+const DASHBOARD_CACHE_PREFIX = 'predator_admin_dashboard_'
+
+const writeDashboardCache = (selectedPeriod, payload) => {
+  try {
+    localStorage.setItem(`${DASHBOARD_CACHE_PREFIX}${selectedPeriod}`, JSON.stringify({
+      cachedAt: Date.now(),
+      data: payload,
+    }))
+  } catch (_) {
+    // Cache is only used to make the admin dashboard appear instantly.
+  }
+}
+
+const preloadAdminRoute = () => {
+  if (!adminPreloadPromise) {
+    adminPreloadPromise = Promise.allSettled([
+      import('../Admin/Layout/AdminLayout.vue'),
+      import('../Admin/Dashboard.vue')
+    ])
+  }
+
+  return adminPreloadPromise
+}
+
+const preloadAdminDashboardData = () => {
+  if (!adminDashboardPreloadPromise) {
+    adminDashboardPreloadPromise = api.get('/admin/dashboard', {
+      params: { period: 'all' },
+      cache: false
+    })
+      .then((res) => {
+        if (res.data?.data) {
+          writeDashboardCache('all', res.data.data)
+        }
+
+        return res
+      })
+      .catch(() => null)
+  }
+
+  return adminDashboardPreloadPromise
+}
+
+const playAdminOpening = async () => {
+  adminOpening.value = true
+
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  await wait(prefersReducedMotion ? 120 : 1160)
+}
+
+const playWebOpening = async () => {
+  webOpening.value = true
+
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  await wait(prefersReducedMotion ? 120 : 1040)
+}
+
 const redirectAfterLogin = async (user, token) => {
   const redirectPath = safeRedirectPath(
     route.query.redirect || sessionStorage.getItem('redirect_after_auth')
   )
   sessionStorage.removeItem('redirect_after_auth')
 
-  if (user?.role === 'admin') {
+  if (isAdminUser(user)) {
+    const adminReady = preloadAdminRoute()
+    const dashboardReady = preloadAdminDashboardData()
+    await Promise.all([
+      playAdminOpening(),
+      adminReady,
+      Promise.race([dashboardReady, wait(1250)])
+    ])
+    sessionStorage.setItem('skip_next_route_loader', '1')
+    sessionStorage.setItem('admin_intro_animation', '1')
     await router.replace('/admin')
     return
   }
 
   if (redirectPath) {
+    await playWebOpening()
+    sessionStorage.setItem('web_intro_animation', '1')
     await router.replace(redirectPath)
     return
   }
@@ -103,6 +189,8 @@ const redirectAfterLogin = async (user, token) => {
 
       localStorage.removeItem('pendingCartItem')
       window.dispatchEvent(new Event('cart-updated'))
+      await playWebOpening()
+      sessionStorage.setItem('web_intro_animation', '1')
       await router.replace('/cart')
       return
     } catch (err) {
@@ -110,11 +198,16 @@ const redirectAfterLogin = async (user, token) => {
     }
   }
 
+  await playWebOpening()
+  sessionStorage.setItem('web_intro_animation', '1')
   await router.replace('/')
 }
 
 
 onMounted(() => {
+  const preloadWhenIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 250))
+  preloadWhenIdle(() => preloadAdminRoute())
+
   if (route.query.social_error) {
     const messageByCode = {
       google_callback_failed: 'Không thể xác thực Google. Vui lòng thử lại.',
@@ -140,10 +233,10 @@ onMounted(() => {
   }
 
   if (user && token) {
-    if (user.role === 'admin') {
-      router.push('/admin')
+    if (isAdminUser(user)) {
+      router.replace('/admin')
     } else {
-      router.push('/')
+      router.replace('/')
     }
 
     return
@@ -169,9 +262,10 @@ const handleLogin = async () => {
     return
   }
 
-  if (loading.value) return
+  if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
 
   loading.value = true
+  preloadAdminRoute()
 
   try {
     const res = await api.post('/login', {
@@ -221,7 +315,7 @@ const handleLogin = async () => {
 <template>
   <div class="page">
 
-    <div class="login-box">
+    <div class="login-box" :class="{ 'admin-opening': adminOpening, 'web-opening': webOpening, 'social-opening': socialOpening }">
 
       <!-- LEFT -->
       <div class="left">
@@ -245,8 +339,8 @@ const handleLogin = async () => {
       <div class="right">
 
         <div class="tabs">
-          <span class="active" @click="router.push('/login')">Đăng nhập</span>
-          <span @click="router.push('/register')">Đăng ký</span>
+          <span class="active" @click="!adminOpening && !webOpening && !socialOpening && router.push('/login')">Đăng nhập</span>
+          <span @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Đăng ký</span>
         </div>
 
         <h2>Chào mừng trở lại</h2>
@@ -295,19 +389,19 @@ const handleLogin = async () => {
             <input type="checkbox" v-model="remember" />
             Ghi nhớ đăng nhập
           </label>
-          <a @click="router.push('/forgot-password')">Quên mật khẩu?</a>
+          <a @click="!adminOpening && !webOpening && !socialOpening && router.push('/forgot-password')">Quên mật khẩu?</a>
         </div>
 
         <!-- BUTTON -->
-        <button class="btn" @click="handleLogin" :disabled="loading">
-          {{ loading ? 'Đang đăng nhập...' : 'Đăng Nhập Ngay' }}
+        <button class="btn" @click="handleLogin" :disabled="loading || adminOpening || webOpening || socialOpening">
+          {{ adminOpening ? 'Đang mở trang quản trị...' : (webOpening ? 'Đang mở trang chủ...' : (socialOpening ? 'Đang kết nối...' : (loading ? 'Đang đăng nhập...' : 'Đăng Nhập Ngay'))) }}
         </button>
 
         <div class="divider">HOẶC TIẾP TỤC VỚI</div>
 
         <!-- SOCIAL -->
         <div class="social">
-          <button @click="loginGoogle" class="btn-google">
+          <button @click="loginGoogle" class="btn-google" :disabled="adminOpening || webOpening || socialOpening">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
               <path fill="#fff"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -321,7 +415,7 @@ const handleLogin = async () => {
             Google
           </button>
 
-          <button @click="loginFacebook" class="btn-facebook">
+          <button @click="loginFacebook" class="btn-facebook" :disabled="adminOpening || webOpening || socialOpening">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#fff">
               <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
             </svg>
@@ -331,7 +425,7 @@ const handleLogin = async () => {
 
         <p class="register">
           Bạn chưa có tài khoản?
-          <a @click="router.push('/register')">Tạo tài khoản mới</a>
+          <a @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Tạo tài khoản mới</a>
         </p>
 
       </div>
@@ -375,6 +469,29 @@ const handleLogin = async () => {
   justify-content: center;
   background: #f4f7fc;
   font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(37, 99, 235, 0.12), transparent 34%),
+    linear-gradient(135deg, #f8fbff, #eef4ff);
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.85s ease, transform 1s ease;
+  pointer-events: none;
+}
+
+.page:has(.login-box.admin-opening)::before,
+.page:has(.login-box.web-opening)::before,
+.page:has(.login-box.social-opening)::before {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .login-box {
@@ -386,6 +503,20 @@ const handleLogin = async () => {
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 5;
+  transform-origin: center;
+  transition: box-shadow 0.35s ease, filter 0.35s ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.login-box.admin-opening,
+.login-box.web-opening,
+.login-box.social-opening {
+  box-shadow: 0 30px 90px rgba(37, 99, 235, 0.22);
+  pointer-events: none;
+  animation: loginShellFade 1.08s cubic-bezier(0.72, 0, 0.16, 1) forwards;
 }
 
 .left {
@@ -397,6 +528,11 @@ const handleLogin = async () => {
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition:
+    transform 1.02s cubic-bezier(0.72, 0, 0.16, 1),
+    opacity 0.82s ease;
 }
 
 .left h1 {
@@ -458,6 +594,26 @@ const handleLogin = async () => {
 
 .right {
   padding: 40px;
+  background: #ffffff;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition:
+    transform 1.02s cubic-bezier(0.72, 0, 0.16, 1),
+    opacity 0.82s ease;
+}
+
+.login-box.admin-opening .left,
+.login-box.web-opening .left,
+.login-box.social-opening .left {
+  transform: translate3d(-94%, 0, 0) scale(0.985);
+  opacity: 0;
+}
+
+.login-box.admin-opening .right,
+.login-box.web-opening .right,
+.login-box.social-opening .right {
+  transform: translate3d(94%, 0, 0) scale(0.985);
+  opacity: 0;
 }
 
 .tabs {
@@ -588,6 +744,13 @@ h2 { margin-bottom: 4px; }
 .btn-facebook { background: #1877f2; color: white; }
 .btn-google:hover, .btn-facebook:hover { opacity: 0.88; }
 
+.btn:disabled,
+.btn-google:disabled,
+.btn-facebook:disabled {
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
 .register {
   text-align: center;
   font-size: 12px;
@@ -602,6 +765,13 @@ h2 { margin-bottom: 4px; }
 }
 .register a:hover { text-decoration: underline; }
 
+@keyframes loginShellFade {
+  0% { transform: scale(1); opacity: 1; }
+  48% { transform: scale(1.01); opacity: 1; }
+  78% { transform: scale(1.025); opacity: 0.42; }
+  100% { transform: scale(1.035); opacity: 0; }
+}
+
 @media (max-width: 768px) {
   .login-box {
     grid-template-columns: 1fr;
@@ -609,6 +779,22 @@ h2 { margin-bottom: 4px; }
     height: auto;
   }
   .left { display: none; }
+
+  .login-box.admin-opening .right,
+  .login-box.web-opening .right,
+  .login-box.social-opening .right {
+    transform: translate3d(0, -56px, 0) scale(0.965);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-box,
+  .left,
+  .right {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 480px) {
