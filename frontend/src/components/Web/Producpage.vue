@@ -593,10 +593,14 @@ const clearAll = () => {
                             <div class="modal-section">
                                 <p class="modal-section-title">Giá</p>
                                 <div class="modal-chips">
-                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '' }" @click="selectedPriceRange = ''">Tất cả</span>
-                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'under20' }" @click="selectedPriceRange = 'under20'">Dưới 20 triệu</span>
-                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '20to50' }" @click="selectedPriceRange = '20to50'">20 - 50 triệu</span>
-                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'above50' }" @click="selectedPriceRange = 'above50'">Trên 50 triệu</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '' }"
+                                        @click="selectedPriceRange = ''">Tất cả</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'under20' }"
+                                        @click="selectedPriceRange = 'under20'">Dưới 20 triệu</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === '20to50' }"
+                                        @click="selectedPriceRange = '20to50'">20 - 50 triệu</span>
+                                    <span class="modal-chip" :class="{ active: selectedPriceRange === 'above50' }"
+                                        @click="selectedPriceRange = 'above50'">Trên 50 triệu</span>
                                 </div>
                             </div>
                             <!-- RAM -->
@@ -604,7 +608,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">RAM</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.ram" :key="r" class="modal-chip"
-                                        :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r }}</span>
+                                        :class="{ active: selectedRAMs.includes(r) }" @click="toggleList('ram', r)">{{ r
+                                        }}</span>
                                 </div>
                             </div>
                             <!-- CPU -->
@@ -612,7 +617,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">CPU</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.cpu" :key="r" class="modal-chip"
-                                        :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r }}</span>
+                                        :class="{ active: selectedCPUs.includes(r) }" @click="toggleList('cpu', r)">{{ r
+                                        }}</span>
                                 </div>
                             </div>
                             <!-- GPU -->
@@ -620,7 +626,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">GPU</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.gpu" :key="r" class="modal-chip"
-                                        :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r }}</span>
+                                        :class="{ active: selectedGPUs.includes(r) }" @click="toggleList('gpu', r)">{{ r
+                                        }}</span>
                                 </div>
                             </div>
                             <!-- Kích thước -->
@@ -628,7 +635,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">Kích thước màn hình</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.kichthuoc" :key="r" class="modal-chip"
-                                        :class="{ active: selectedKichThuoc.includes(r) }" @click="toggleList('kichthuoc', r)">{{ r }}</span>
+                                        :class="{ active: selectedKichThuoc.includes(r) }"
+                                        @click="toggleList('kichthuoc', r)">{{ r }}</span>
                                 </div>
                             </div>
                             <!-- Tấm nền -->
@@ -636,7 +644,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">Tấm nền</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.tamnen" :key="r" class="modal-chip"
-                                        :class="{ active: selectedTamNen.includes(r) }" @click="toggleList('tamnen', r)">{{ r }}</span>
+                                        :class="{ active: selectedTamNen.includes(r) }"
+                                        @click="toggleList('tamnen', r)">{{ r }}</span>
                                 </div>
                             </div>
                             <!-- Độ phân giải -->
@@ -644,7 +653,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">Độ phân giải</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.dophan" :key="r" class="modal-chip"
-                                        :class="{ active: selectedDoPhanGiai.includes(r) }" @click="toggleList('dophan', r)">{{ r }}</span>
+                                        :class="{ active: selectedDoPhanGiai.includes(r) }"
+                                        @click="toggleList('dophan', r)">{{ r }}</span>
                                 </div>
                             </div>
                             <!-- Pin -->
@@ -652,7 +662,8 @@ const clearAll = () => {
                                 <p class="modal-section-title">Pin</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.pin" :key="r" class="modal-chip"
-                                        :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r }}</span>
+                                        :class="{ active: selectedPin.includes(r) }" @click="toggleList('pin', r)">{{ r
+                                        }}</span>
                                 </div>
                             </div>
                             <!-- Sạc -->
@@ -660,13 +671,15 @@ const clearAll = () => {
                                 <p class="modal-section-title">Sạc</p>
                                 <div class="modal-chips">
                                     <span v-for="r in attrOptions.sac" :key="r" class="modal-chip"
-                                        :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r }}</span>
+                                        :class="{ active: selectedSac.includes(r) }" @click="toggleList('sac', r)">{{ r
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button class="modal-btn-clear" @click="clearAll">Xóa bộ lọc</button>
-                            <button class="modal-btn-apply" @click="() => { applyFilters(); showFilterModal = false; }">Xác nhận</button>
+                            <button class="modal-btn-apply"
+                                @click="() => { applyFilters(); showFilterModal = false; }">Xác nhận</button>
                         </div>
                     </div>
                 </div>
@@ -688,12 +701,18 @@ const clearAll = () => {
                 <div class="filter-sort-bar">
                     <!-- Nút Lọc -->
                     <button class="btn-open-filter" @click="showFilterModal = true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
                         Lọc
-                        <span v-if="selectedCategories.length + selectedBrands.length + selectedRAMs.length + selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length + selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length + (selectedPriceRange ? 1 : 0) > 0" class="filter-count">
-                            {{ selectedCategories.length + selectedBrands.length + selectedRAMs.length + selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length + selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length + (selectedPriceRange ? 1 : 0) }}
+                        <span
+                            v-if="selectedCategories.length + selectedBrands.length + selectedRAMs.length + selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length + selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length + (selectedPriceRange ? 1 : 0) > 0"
+                            class="filter-count">
+                            {{ selectedCategories.length + selectedBrands.length + selectedRAMs.length +
+                                selectedCPUs.length + selectedGPUs.length + selectedKichThuoc.length +
+                                selectedDoPhanGiai.length + selectedTamNen.length + selectedPin.length + selectedSac.length
+                                + (selectedPriceRange ? 1 : 0) }}
                         </span>
                     </button>
 
@@ -819,7 +838,6 @@ const clearAll = () => {
 </template>
 
 <style scoped>
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 * {
@@ -847,7 +865,10 @@ const clearAll = () => {
 /* ===== FILTER MODAL ===== */
 .filter-modal-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.45);
     z-index: 2000;
     display: flex;
@@ -856,16 +877,18 @@ const clearAll = () => {
     padding: 48px 20px;
     overflow-y: auto;
 }
+
 .filter-modal {
     background: white;
     border-radius: 14px;
     width: 100%;
     max-width: 860px;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
     max-height: 85vh;
 }
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -874,12 +897,14 @@ const clearAll = () => {
     border-bottom: 1px solid #e2e8f0;
     flex-shrink: 0;
 }
+
 .modal-header h3 {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
     color: #0f172a;
 }
+
 .close-modal {
     background: white;
     border: 1px solid var(--tn-border);
@@ -891,7 +916,11 @@ const clearAll = () => {
     cursor: pointer;
     transition: all 0.2s;
 }
-.close-modal:hover { background: var(--tn-surface-2); }
+
+.close-modal:hover {
+    background: var(--tn-surface-2);
+}
+
 .modal-body {
     padding: 20px 24px;
     overflow-y: auto;
@@ -900,6 +929,7 @@ const clearAll = () => {
     flex-direction: column;
     gap: 20px;
 }
+
 .modal-section-title {
     font-size: 13px;
     font-weight: 700;
@@ -908,11 +938,13 @@ const clearAll = () => {
     letter-spacing: 0.07em;
     margin: 0 0 10px;
 }
+
 .modal-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
+
 .modal-chip {
     padding: 7px 14px;
     border-radius: 8px;
@@ -924,15 +956,18 @@ const clearAll = () => {
     background: white;
     transition: all 0.2s;
 }
+
 .modal-chip:hover {
     border-color: #2563eb;
     color: #2563eb;
 }
+
 .modal-chip.active {
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     color: white;
     border-color: transparent;
 }
+
 .modal-footer {
     display: flex;
     justify-content: center;
@@ -943,6 +978,7 @@ const clearAll = () => {
     border-radius: 0 0 14px 14px;
     flex-shrink: 0;
 }
+
 .modal-btn-clear {
     background: white;
     border: 1.5px solid #e2e8f0;
@@ -954,7 +990,12 @@ const clearAll = () => {
     cursor: pointer;
     transition: all 0.2s;
 }
-.modal-btn-clear:hover { background: #fef2f2; border-color: #ef4444; }
+
+.modal-btn-clear:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
+
 .modal-btn-apply {
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     border: none;
@@ -966,11 +1007,21 @@ const clearAll = () => {
     cursor: pointer;
     transition: opacity 0.2s;
 }
-.modal-btn-apply:hover { opacity: 0.9; }
+
+.modal-btn-apply:hover {
+    opacity: 0.9;
+}
 
 /* Modal transition */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.2s;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
+}
 
 /* ===== FILTER + SORT BAR ===== */
 .filter-sort-bar {
@@ -980,6 +1031,7 @@ const clearAll = () => {
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
+
 .btn-open-filter {
     display: flex;
     align-items: center;
@@ -997,8 +1049,17 @@ const clearAll = () => {
     transition: all 0.2s;
     flex-shrink: 0;
 }
-.btn-open-filter svg { width: 15px; height: 15px; stroke: #2563eb; }
-.btn-open-filter:hover { background: #eff6ff; }
+
+.btn-open-filter svg {
+    width: 15px;
+    height: 15px;
+    stroke: #2563eb;
+}
+
+.btn-open-filter:hover {
+    background: #eff6ff;
+}
+
 .filter-count {
     display: inline-flex;
     align-items: center;
@@ -1012,6 +1073,7 @@ const clearAll = () => {
     font-weight: 700;
     margin-left: 2px;
 }
+
 .quick-brands {
     display: flex;
     gap: 8px;
@@ -1019,7 +1081,11 @@ const clearAll = () => {
     flex: 1;
     min-width: 0;
 }
-.quick-brands::-webkit-scrollbar { height: 0; }
+
+.quick-brands::-webkit-scrollbar {
+    height: 0;
+}
+
 .brand-pill {
     padding: 8px 14px;
     background: var(--tn-surface-2);
@@ -1032,7 +1098,11 @@ const clearAll = () => {
     white-space: nowrap;
     transition: all 0.2s;
 }
-.brand-pill:hover { background: #e2e8f0; }
+
+.brand-pill:hover {
+    background: #e2e8f0;
+}
+
 .brand-pill.active {
     background: white;
     border-color: #2563eb;
@@ -1418,7 +1488,8 @@ const clearAll = () => {
 }
 
 .price-row {
-    margin-top: auto; /* Pin to bottom */
+    margin-top: auto;
+    /* Pin to bottom */
     display: flex;
     align-items: baseline;
     gap: 8px;
