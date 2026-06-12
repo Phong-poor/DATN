@@ -1,5 +1,6 @@
 <template>
   <div
+    :id="msg.id ? `msg-row-${msg.id}` : (msg._clientKey ? `msg-row-${msg._clientKey}` : null)"
     class="chat-message-row"
     :class="[sideClass, { 'is-own': isOwn }]"
   >

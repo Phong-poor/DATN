@@ -116,9 +116,33 @@
             </div>
           </div>
           <div class="conv-header-actions">
+            <button type="button" class="action-btn" aria-label="Tìm kiếm tin nhắn" title="Tìm kiếm tin nhắn" @click="showMessageSearch = !showMessageSearch" style="margin-right: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; display: block;">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+            </button>
             <button type="button" class="action-btn" aria-label="Đóng" @click="closeConversation">✕</button>
           </div>
         </div>
+
+        <!-- Message Search Bar -->
+        <transition name="slide-down">
+          <div v-if="showMessageSearch" class="message-search-bar">
+            <input
+              type="text"
+              v-model="searchMessageQuery"
+              placeholder="Tìm kiếm nội dung tin nhắn..."
+              ref="searchMsgInput"
+              @keyup.enter="nextMatch"
+            />
+            <div v-if="searchMessageQuery.trim()" class="search-navigation">
+              <span class="search-count">{{ matchesCount > 0 ? currentMatchIndex + 1 : 0 }}/{{ matchesCount }}</span>
+              <button type="button" class="nav-btn" @click="prevMatch" title="Kết quả trước">▲</button>
+              <button type="button" class="nav-btn" @click="nextMatch" title="Kết quả tiếp">▼</button>
+            </div>
+            <button type="button" class="search-close-btn" @click="closeMessageSearch">✕</button>
+          </div>
+        </transition>
 
         <div class="conv-body" ref="convBody">
           <ChatMessageRow
@@ -133,6 +157,14 @@
             @updated="(m) => patchMessage(currentMessages, m)"
             @deleted="(id) => removeMessageById(currentMessages, id)"
           >
+            <template #body="{ msg: rowMsg }">
+              <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
+                <span v-html="formatMessage(rowMsg.message || '', searchMessageQuery)"></span>
+                <template v-if="rowMsg.message" #caption>
+                  <span v-html="formatMessage(rowMsg.message, searchMessageQuery)"></span>
+                </template>
+              </ChatMessageBody>
+            </template>
             <template v-if="!isOwnMessage(msg)" #avatar>
               <div class="msg-avatar-small">
                 <img :src="getAvatar(selectedConversation.user)" alt="User" />
@@ -155,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser } from '@/services/auth';
@@ -188,6 +220,87 @@ const CHAT_SEND_ENDPOINT = '/admin/chat/send';
 
 const user = getUser();
 const authUserId = computed(() => user?.id);
+
+// Message search state and logic
+const showMessageSearch = ref(false);
+const searchMessageQuery = ref('');
+const currentMatchIndex = ref(-1);
+const searchMsgInput = ref(null);
+
+const searchMatches = computed(() => {
+  if (!searchMessageQuery.value.trim()) return [];
+  const query = searchMessageQuery.value.trim().toLowerCase();
+  return currentMessages.value
+    .map((msg, index) => ({ msg, index }))
+    .filter(item => item.msg.message && item.msg.message.toLowerCase().includes(query));
+});
+
+const matchesCount = computed(() => searchMatches.value.length);
+
+watch(searchMessageQuery, (newVal) => {
+  if (newVal.trim()) {
+    currentMatchIndex.value = searchMatches.value.length - 1; // Default to last match
+    scrollToMatch();
+  } else {
+    currentMatchIndex.value = -1;
+  }
+});
+
+const scrollToMatch = () => {
+  if (currentMatchIndex.value === -1 || searchMatches.value.length === 0) return;
+  const match = searchMatches.value[currentMatchIndex.value];
+  if (!match) return;
+
+  nextTick(() => {
+    const el = document.getElementById(`msg-row-${match.msg.id || match.msg._clientKey}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('pulse-match');
+      setTimeout(() => {
+        el.classList.remove('pulse-match');
+      }, 1500);
+    }
+  });
+};
+
+const nextMatch = () => {
+  if (matchesCount.value === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % matchesCount.value;
+  scrollToMatch();
+};
+
+const prevMatch = () => {
+  if (matchesCount.value === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + matchesCount.value) % matchesCount.value;
+  scrollToMatch();
+};
+
+const closeMessageSearch = () => {
+  showMessageSearch.value = false;
+  searchMessageQuery.value = '';
+  currentMatchIndex.value = -1;
+};
+
+const formatMessage = (text, query = '') => {
+  if (!text) return '';
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+    
+  let formatted = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  if (query && query.trim()) {
+    const escapedQuery = query.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    formatted = formatted.replace(regex, '<mark class="search-highlight">$1</mark>');
+  }
+  
+  formatted = formatted.replace(/\n/g, '<br/>');
+  return formatted;
+};
 
 const conversations = ref([]);
 const currentMessages = ref([]);
@@ -283,6 +396,7 @@ const closeConversation = () => {
   }
   selectedConversation.value = null;
   currentMessages.value = [];
+  closeMessageSearch();
 };
 
 const bumpConversation = (msg) => {
@@ -922,4 +1036,102 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+/* Message Search Bar styles */
+.message-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.message-search-bar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+.message-search-bar input:focus {
+  border-color: #0084ff;
+}
+
+.search-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.search-count {
+  font-size: 12px;
+  color: #64748b;
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+.nav-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.nav-btn:hover {
+  background: #f1f5f9;
+}
+
+.search-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: #64748b;
+  padding: 4px;
+}
+
+.search-close-btn:hover {
+  color: #0f172a;
+}
+
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: all 0.25s ease;
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Search Highlight styles */
+:deep(.search-highlight) {
+  background-color: #fef08a !important;
+  color: #0f172a !important;
+  padding: 1px 2px;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+:deep(.pulse-match) {
+  animation: pulse-match-anim 1.5s ease-in-out;
+}
+
+@keyframes pulse-match-anim {
+  0% { background-color: transparent; }
+  25% { background-color: rgba(254, 240, 138, 0.4); }
+  50% { background-color: transparent; }
+  75% { background-color: rgba(254, 240, 138, 0.4); }
+  100% { background-color: transparent; }
+}
 </style>
