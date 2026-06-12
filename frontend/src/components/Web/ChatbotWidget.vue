@@ -1,5 +1,5 @@
 <template>
-  <div class="chatbot-container">
+  <div class="chatbot-container" ref="chatWidgetRef">
     <!-- Bubble Button hidden, handled by FloatingContactMenu -->
     <div v-if="false" class="chatbot-bubble glow-effect" role="button" tabindex="0" @click="toggleChat"
       @keydown.enter.prevent="toggleChat" @keydown.space.prevent="toggleChat"
@@ -72,8 +72,26 @@
           <form @submit.prevent="sendMessage" class="input-form">
             <input type="text" v-model="newMessage" placeholder="Trò chuyện với Mia (ví dụ: tư vấn laptop văn phòng)..."
               :disabled="isLoading" autocomplete="off" />
+            
+            <!-- Emoji Picker -->
+            <div class="emoji-picker-container">
+              <button type="button" class="emoji-trigger-btn" aria-label="Chọn biểu cảm" @click.stop="toggleEmojiPicker">
+                😀
+              </button>
+              <div v-if="showEmojiPicker" class="emoji-picker-popover" @mousedown.stop>
+                <div class="emoji-list">
+                  <span v-for="emoji in emojis" :key="emoji" class="emoji-item" @click="addEmoji(emoji)">
+                    {{ emoji }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <button type="submit" :disabled="!newMessage.trim() || isLoading" class="send-btn">
-              ➤
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                <path d="m22 2-7 20-4-9-9-4Z"/>
+                <path d="M22 2 11 13"/>
+              </svg>
             </button>
           </form>
         </div>
@@ -89,6 +107,45 @@ import api from '@/services/api';
 import { productImageUrl, storageUrl } from '@/services/urls';
 import { getToken } from '@/services/auth';
 import swal from '@/services/swal';
+
+const chatWidgetRef = ref(null);
+const showEmojiPicker = ref(false);
+
+const emojis = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+  '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+  '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+  '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+  '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+  '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
+  '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+  '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+  '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
+  '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾',
+  '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿',
+  '😾', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️', '🤞',
+  '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
+  '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
+  '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂',
+  '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋',
+  '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎',
+  '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖', '💘'
+];
+
+const toggleEmojiPicker = () => {
+  showEmojiPicker.value = !showEmojiPicker.value;
+};
+
+const addEmoji = (emoji) => {
+  newMessage.value += emoji;
+  showEmojiPicker.value = false;
+};
+
+const handleClickOutside = (e) => {
+  if (chatWidgetRef.value && !chatWidgetRef.value.contains(e.target)) {
+    showEmojiPicker.value = false;
+  }
+};
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -255,12 +312,15 @@ onMounted(() => {
   window.addEventListener('open-chatbot', handleOpenChatEvent);
   window.addEventListener('open-admin-chat', handleOpenAdminChatEvent);
   window.addEventListener('admin-chat-state', handleAdminStateEvent);
+  document.addEventListener('mousedown', handleClickOutside);
 });
 
 onUnmounted(() => {
   window.removeEventListener('open-chatbot', handleOpenChatEvent);
   window.removeEventListener('open-admin-chat', handleOpenAdminChatEvent);
   window.removeEventListener('admin-chat-state', handleAdminStateEvent);
+  document.removeEventListener('mousedown', handleClickOutside);
+  stopChatTitleNotice();
 });
 </script>
 
@@ -703,5 +763,83 @@ onUnmounted(() => {
 .send-btn:disabled {
   background: #cbd5e1;
   cursor: not-allowed;
+}
+
+/* ===== EMOJI PICKER ===== */
+.emoji-picker-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.emoji-trigger-btn {
+  background: transparent;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.emoji-trigger-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.emoji-picker-popover {
+  position: absolute;
+  bottom: 42px;
+  right: -6px;
+  width: 240px;
+  height: 180px;
+  background: #111f35;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.emoji-picker-popover::-webkit-scrollbar {
+  width: 4px;
+}
+
+.emoji-picker-popover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.emoji-picker-popover::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border-radius: 4px;
+}
+
+.emoji-list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  font-size: 19px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.emoji-item:hover {
+  transform: scale(1.22);
+  background: rgba(37, 99, 235, 0.15);
 }
 </style>

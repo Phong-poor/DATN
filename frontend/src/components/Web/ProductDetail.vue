@@ -63,6 +63,25 @@ const selectedImage = ref('https://via.placeholder.com/600')
 const selectedVariant = ref(null)
 const selectedOptions = ref({})
 
+const activeDropdown = ref(null)
+const toggleDropdown = (groupName) => {
+    if (activeDropdown.value === groupName) {
+        activeDropdown.value = null
+    } else {
+        activeDropdown.value = groupName
+    }
+}
+const selectOptionAndClose = (groupName, value) => {
+    handleSelectOptionWithReset(groupName, value)
+    activeDropdown.value = null
+}
+const closeAllDropdowns = (e) => {
+    if (!e.target.closest('.premium-variant-dropdown')) {
+        activeDropdown.value = null
+    }
+}
+
+
 // ===================== REVIEWS STATE =====================
 const reviews = ref([])
 const fetchReviews = async () => {
@@ -844,6 +863,7 @@ onMounted(() => {
     loadPageData()
     startAutoSlide()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
+    document.addEventListener('click', closeAllDropdowns)
 })
 
 onUnmounted(() => {
@@ -851,6 +871,7 @@ onUnmounted(() => {
     stopRotationLoop()
     stopTiltSmoothing()
     window.removeEventListener('scroll', handleScrollSticky)
+    document.removeEventListener('click', closeAllDropdowns)
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -1544,6 +1565,127 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
+                        <!-- Variant Selectors Option Groups -->
+                        <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
+                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
+                                <div class="option-header-row">
+                                    <span class="option-label-title">{{ group.name }}</span>
+                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
+                                </div>
+
+                                <div class="premium-variant-dropdown">
+                                    <div class="dropdown-trigger" @click.stop="toggleDropdown(group.name)" :class="{ active: activeDropdown === group.name }">
+                                        <div class="selected-info-container">
+                                            <span v-if="group.name === 'Màu sắc' && selectedOptions[group.name]" class="selected-color-dot" :style="{ backgroundColor: (group.values.find(v => v.giatri === selectedOptions[group.name])?.ma_mau || '#ccc') }"></span>
+                                            <span class="selected-value-text">{{ selectedOptions[group.name] || 'Chọn ' + group.name }}</span>
+                                        </div>
+                                        <span class="dropdown-arrow-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
+                                                <polyline points="6 9 12 15 18 9"></polyline>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <transition name="dropdown-fade">
+                                        <div class="dropdown-menu-list" v-show="activeDropdown === group.name">
+                                            <div v-for="item in group.values" :key="item.giatri"
+                                                 :class="['dropdown-item-option', { active: selectedOptions[group.name] === item.giatri }]"
+                                                 @click="selectOptionAndClose(group.name, item.giatri)">
+                                                <span v-if="group.name === 'Màu sắc'" class="item-color-dot" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
+                                                <span class="item-text-label">{{ item.giatri }}</span>
+                                                <span v-if="selectedOptions[group.name] === item.giatri" class="checkmark-active">✓</span>
+                                            </div>
+                                        </div>
+                                    </transition>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Option Group fallback if none -->
+                        <div class="premium-selectors-wrapper" v-else>
+                            <p class="updating-text">Thông số biến thể đang được đồng bộ...</p>
+                        </div>
+
+                        <!-- Stock Status -->
+                        <div class="premium-stock-banner" v-if="selectedVariant">
+                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
+                                <span class="pulse-green-dot"></span>
+                                <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
+                            </div>
+                            <div v-else class="stock-status out-of-stock">
+                                <span class="pulse-red-dot"></span>
+                                <span class="stock-text">Hiện tại hết hàng - Liên hệ CSKH hỗ trợ</span>
+                            </div>
+                        </div>
+
+                        <!-- Qty and CTAs buy buttons -->
+                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
+                            <!-- Qty Control -->
+                            <div class="premium-qty-stepper">
+                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                                <span class="stepper-value">{{ soLuongMua }}</span>
+                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Buttons action grid -->
+                            <div class="actions-grid">
+                                <button class="btn-buy-now btn-glow-primary"
+                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
+                                        @click="themVaoGioHang">
+                                    <span class="btn-ripple-bg"></span>
+                                    <span v-if="dangThem" class="loading-spin-circle"></span>
+                                    <span v-else class="btn-content-text">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                                            <circle cx="9" cy="21" r="1"></circle>
+                                            <circle cx="20" cy="21" r="1"></circle>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                        </svg>
+                                        THÊM VÀO GIỎ HÀNG
+                                    </span>
+                                </button>
+
+                                <button class="btn-installment">
+                                    <span class="top-tag">LÃI SUẤT 0%</span>
+                                    <span class="main-text">TRẢ GÓP ONLINE</span>
+                                </button>
+                            </div>
+
+                            <!-- Wishlist & Compare floating actions -->
+                            <div class="floating-shortcuts-row">
+                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
+                                    <span class="icon">
+                                        <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                        </svg>
+                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                                        </svg>
+                                    </span>
+                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
+                                </button>
+
+                                <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="m17 2 4 4-4 4"/>
+                                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+                                            <path d="m7 22-4-4 4-4"/>
+                                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                                        </svg>
+                                    </span>
+                                    <span>So sánh specs</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- BOX ƯU ĐÃI ĐI KÈM (VIP Bundles Up-sell) -->
                         <div class="product-benefits-box">
                             <h4 class="benefits-title">
@@ -1657,122 +1799,6 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
-                        <!-- Variant Selectors Option Groups -->
-                        <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
-                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
-                                <div class="option-header-row">
-                                    <span class="option-label-title">{{ group.name }}</span>
-                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
-                                </div>
-
-                                <!-- Color Dot Custom Buttons -->
-                                <div v-if="group.name === 'Màu sắc'" class="premium-color-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri"
-                                            :class="['color-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
-                                            @click="handleSelectOptionWithReset(group.name, item.giatri)"
-                                            :title="item.giatri">
-                                        <span class="color-core" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
-                                        <span class="color-ring-glow"></span>
-                                    </button>
-                                </div>
-
-                                <!-- Custom Pill Buttons for RAM / SSD / Specs -->
-                                <div v-else class="premium-pill-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri"
-                                            :class="['pill-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
-                                            @click="handleSelectOptionWithReset(group.name, item.giatri)">
-                                        <span class="pill-text">{{ item.giatri }}</span>
-                                        <span class="active-indicator"></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Option Group fallback if none -->
-                        <div class="premium-selectors-wrapper" v-else>
-                            <p class="updating-text">Thông số biến thể đang được đồng bộ...</p>
-                        </div>
-
-                        <!-- Stock Status -->
-                        <div class="premium-stock-banner" v-if="selectedVariant">
-                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
-                                <span class="pulse-green-dot"></span>
-                                <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
-                            </div>
-                            <div v-else class="stock-status out-of-stock">
-                                <span class="pulse-red-dot"></span>
-                                <span class="stock-text">Hiện tại hết hàng - Liên hệ CSKH hỗ trợ</span>
-                            </div>
-                        </div>
-
-                        <!-- Qty and CTAs buy buttons -->
-                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
-                            <!-- Qty Control -->
-                            <div class="premium-qty-stepper">
-                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                                <span class="stepper-value">{{ soLuongMua }}</span>
-                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Buttons action grid -->
-                            <div class="actions-grid">
-                                <button class="btn-buy-now btn-glow-primary"
-                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
-                                        @click="themVaoGioHang">
-                                    <span class="btn-ripple-bg"></span>
-                                    <span v-if="dangThem" class="loading-spin-circle"></span>
-                                    <span v-else class="btn-content-text">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-                                            <circle cx="9" cy="21" r="1"></circle>
-                                            <circle cx="20" cy="21" r="1"></circle>
-                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                        </svg>
-                                        THÊM VÀO GIỎ HÀNG
-                                    </span>
-                                </button>
-
-                                <button class="btn-installment">
-                                    <span class="top-tag">LÃI SUẤT 0%</span>
-                                    <span class="main-text">TRẢ GÓP ONLINE</span>
-                                </button>
-                            </div>
-
-                            <!-- Wishlist & Compare floating actions -->
-                            <div class="floating-shortcuts-row">
-                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
-                                    <span class="icon">
-                                        <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                                        </svg>
-                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                                        </svg>
-                                    </span>
-                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
-                                </button>
-
-                                <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
-                                    <span class="icon">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="m17 2 4 4-4 4"/>
-                                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
-                                            <path d="m7 22-4-4 4-4"/>
-                                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
-                                        </svg>
-                                    </span>
-                                    <span>So sánh specs</span>
-                                </button>
-                            </div>
-                        </div>
 
 <!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
                         <div v-if="selectedVariantOffers.length > 0" class="variant-offers-box">
@@ -3038,14 +3064,12 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    position: sticky;
-    top: 100px;
-    z-index: 10;
+    position: relative;
 }
 
 .main-image-viewport {
     position: relative;
-    aspect-ratio: 4/3;
+    aspect-ratio: 1/1;
     border-radius: 28px;
     background: var(--tn-surface);
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -5422,7 +5446,8 @@ const handleSelectVariantById = (idBienThe) => {
     padding: 20px;
 }
 .main-showcase-image {
-    max-width: 92%;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 /* Responsive product title */
@@ -5430,13 +5455,6 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: clamp(20px, 3.6vw, 32px);
 }
 
-/* Keep gallery visible while the purchase details scroll on wide screens */
-.gallery-column {
-    position: sticky;
-    top: 112px;
-    align-self: start;
-    z-index: 2;
-}
 
 /* Slightly smaller, interactive thumbnails */
 .thumb-card {
@@ -5904,5 +5922,162 @@ const handleSelectVariantById = (idBienThe) => {
     stroke-linejoin: round;
     display: inline-block;
     vertical-align: middle;
+}
+
+/* Custom Premium Dropdown for Variants */
+.premium-variant-dropdown {
+    position: relative;
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 14px;
+}
+
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--tn-surface, #ffffff);
+    border: 1.5px solid var(--tn-border, #e2e8f0);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.dropdown-trigger:hover {
+    border-color: var(--primary, #2563eb);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+    transform: translateY(-1px);
+}
+
+.dropdown-trigger.active {
+    border-color: var(--primary, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background: var(--tn-bg, #f8fafc);
+}
+
+.selected-info-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.selected-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.selected-value-text {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    flex-grow: 1;
+    text-align: left;
+}
+
+.dropdown-arrow-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    transition: transform 0.25s ease;
+}
+
+.dropdown-trigger.active .dropdown-arrow-icon {
+    transform: rotate(180deg);
+    color: var(--primary, #2563eb);
+}
+
+.dropdown-menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    background: var(--tn-surface, #ffffff);
+    border: 1px solid var(--tn-border, #e2e8f0);
+    border-radius: 10px;
+    z-index: 99;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    padding: 6px;
+    animation: dropdownSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item-option {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    margin-bottom: 2px;
+}
+
+.dropdown-item-option:last-child {
+    margin-bottom: 0;
+}
+
+.dropdown-item-option:hover {
+    background: var(--tn-bg, #f1f5f9);
+    color: var(--primary, #2563eb);
+}
+
+.dropdown-item-option.active {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--primary, #2563eb);
+    font-weight: 600;
+}
+
+.item-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.item-text-label {
+    font-size: 13px;
+    flex-grow: 1;
+    color: inherit;
+}
+
+.checkmark-active {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--primary, #2563eb);
+    margin-left: 8px;
+}
+
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
 }
 </style>
