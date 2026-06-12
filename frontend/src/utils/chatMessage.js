@@ -189,9 +189,9 @@ export const bindChatChannel = (echo, channelName, messagesRef, authUserId, onIn
 
   echo.private(channelName)
     .listen('.message.sent', (e) => {
-      if (e.message.sender_id === authUserId) return
+      if (Number(e.message.sender_id) === Number(authUserId)) return
       const list = messagesRef.value
-      if (!list.some((m) => m.id === e.message.id)) {
+      if (!list.some((m) => Number(m.id) === Number(e.message.id))) {
         list.push(e.message)
       }
       onIncoming?.(e.message)

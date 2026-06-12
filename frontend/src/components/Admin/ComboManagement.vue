@@ -14,6 +14,8 @@ const currentView = ref('list')
 // --- State (Combos) ---
 const combos = ref([])
 const search = ref('')
+const comboCurrentPage = ref(1)
+const comboItemsPerPage = ref(5)
 const isEditMode = ref(false)
 const editingComboId = ref(null)
 const productsPool = ref([]) // Toàn bộ sản phẩm phụ kiện để chọn
@@ -118,6 +120,25 @@ const filteredCombos = computed(() => {
   return combos.value.filter(c => c.ten_combo.toLowerCase().includes(q) || (c.mota && c.mota.toLowerCase().includes(q)))
 })
 
+const comboTotalPages = computed(() => Math.max(1, Math.ceil(filteredCombos.value.length / comboItemsPerPage.value)))
+const comboPageStart = computed(() => filteredCombos.value.length ? (comboCurrentPage.value - 1) * comboItemsPerPage.value + 1 : 0)
+const comboPageEnd = computed(() => Math.min(comboCurrentPage.value * comboItemsPerPage.value, filteredCombos.value.length))
+const paginatedCombos = computed(() => {
+  const start = (comboCurrentPage.value - 1) * comboItemsPerPage.value
+  return filteredCombos.value.slice(start, start + comboItemsPerPage.value)
+})
+const comboVisiblePages = computed(() => {
+  const total = comboTotalPages.value
+  const current = comboCurrentPage.value
+  const from = Math.max(1, current - 2)
+  const to = Math.min(total, from + 4)
+  return Array.from({ length: to - from + 1 }, (_, index) => from + index)
+})
+
+const changeComboPage = (page) => {
+  comboCurrentPage.value = Math.min(Math.max(1, page), comboTotalPages.value)
+}
+
 // --- Filtered Promo Offers List ---
 const filteredOffers = computed(() => {
   if (!offersSearch.value.trim()) return offers.value
@@ -162,6 +183,16 @@ watch(selectedOriginalPriceTotal, (newTotal) => {
     form.value.giakhuyenmai = suggested
   } else {
     form.value.giakhuyenmai = ''
+  }
+})
+
+watch(search, () => {
+  comboCurrentPage.value = 1
+})
+
+watch(comboTotalPages, (total) => {
+  if (comboCurrentPage.value > total) {
+    comboCurrentPage.value = total
   }
 })
 
@@ -678,15 +709,96 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Combos Grid -->
-      <div class="combo-grid">
+      <!-- Combos Admin List -->
+      <div class="combo-list-panel">
         <div v-if="!filteredCombos.length" class="empty-state">
           <div class="empty-icon">📦</div>
           <h3>Không tìm thấy combo nào</h3>
           <p>Hãy thử từ khóa khác hoặc tạo combo phụ kiện mới.</p>
         </div>
 
-        <div v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
+        <table v-else class="combo-admin-table">
+          <thead>
+            <tr>
+              <th style="width: 86px;">Ảnh</th>
+              <th>Thông tin combo</th>
+              <th>Sản phẩm trong combo</th>
+              <th style="width: 150px;">Giá combo</th>
+              <th style="width: 140px;">Trạng thái</th>
+              <th style="width: 120px; text-align: center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="combo in paginatedCombos" :key="combo.id_combo" :class="{ 'row-inactive': combo.trangthai === 0 || combo.is_in_stock === false }">
+              <td>
+                <img class="combo-list-thumb" :src="storageUrl(combo.hinhanh) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400'" :alt="combo.ten_combo" />
+              </td>
+              <td>
+                <div class="combo-list-info">
+                  <b>{{ combo.ten_combo }}</b>
+                  <span>{{ combo.mota || 'Không có mô tả cho combo này.' }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="combo-product-stack">
+                  <span v-for="p in combo.products" :key="p.id_sanpham">{{ p.tenSP }}</span>
+                  <small v-if="!combo.products || combo.products.length === 0">Chưa có sản phẩm</small>
+                </div>
+              </td>
+              <td>
+                <b class="combo-list-price">{{ Number(combo.giakhuyenmai).toLocaleString('vi-VN') }}đ</b>
+              </td>
+              <td>
+                <div class="combo-status-stack">
+                  <span class="badge" :class="combo.trangthai === 1 ? 'badge-success' : 'badge-draft'">
+                    {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}
+                  </span>
+                  <span v-if="combo.is_in_stock === false" class="badge badge-expired-red">Thiếu hàng</span>
+                </div>
+              </td>
+              <td>
+                <div class="actions" style="justify-content: center;">
+                  <button class="act-btn" title="Sửa" @click="openEditModal(combo)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button class="act-btn danger" title="Xóa" @click="deleteCombo(combo.id_combo)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="filteredCombos.length" class="combo-pagination">
+          <div class="pagination-summary">
+            Hiển thị {{ comboPageStart }}-{{ comboPageEnd }} / {{ filteredCombos.length }} combo
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" :disabled="comboCurrentPage === 1" @click="changeComboPage(comboCurrentPage - 1)">
+              ‹
+            </button>
+            <button
+              v-for="page in comboVisiblePages"
+              :key="page"
+              class="page-btn"
+              :class="{ active: page === comboCurrentPage }"
+              @click="changeComboPage(page)"
+            >
+              {{ page }}
+            </button>
+            <button class="page-btn" :disabled="comboCurrentPage === comboTotalPages" @click="changeComboPage(comboCurrentPage + 1)">
+              ›
+            </button>
+          </div>
+        </div>
+        <div v-if="false" v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
           <div class="combo-badge" :class="combo.trangthai === 1 ? 'active' : 'draft'">
             {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}
           </div>
@@ -1578,6 +1690,179 @@ onMounted(() => {
 }
 
 /* ── Combo Grid & Cards ── */
+.combo-list-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow-x: auto;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.combo-admin-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.combo-admin-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.combo-admin-table th {
+  padding: 14px 16px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.combo-admin-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.combo-admin-table tbody tr {
+  transition: background-color .2s ease;
+}
+
+.combo-admin-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.combo-admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.combo-admin-table tr.row-inactive {
+  opacity: .68;
+  background: #fafafa;
+}
+
+.combo-list-thumb {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.combo-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.combo-list-info b {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.combo-list-info span {
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.combo-product-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 360px;
+}
+
+.combo-product-stack span,
+.combo-product-stack small {
+  color: #475569;
+  font-size: 12.5px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.combo-product-stack span::before {
+  content: "•";
+  color: #2563eb;
+  font-weight: 900;
+  margin-right: 7px;
+}
+
+.combo-list-price {
+  color: #2563eb;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.combo-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.combo-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-summary {
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.page-btn:hover:not(:disabled),
+.page-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, .18);
+}
+
+.page-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .combo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

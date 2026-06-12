@@ -270,7 +270,6 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'destroy']);
         Route::post('/thuonghieu', [ThuongHieuController::class, 'store']);
         Route::post('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
-        Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
         Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
         Route::post('/nhomthuoctinh', [ThuocTinhController::class, 'addNhom']);
         Route::put('/nhomthuoctinh/{id}', [ThuocTinhController::class, 'updateNhom']);
@@ -316,8 +315,6 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/banners', [BannerController::class, 'adminIndex']);
         Route::post('/banners', [BannerController::class, 'store']);
         Route::post('/banners/{id}', [BannerController::class, 'update']);
-        Route::put('/banners/{id}', [BannerController::class, 'update']);
-        Route::patch('/banners/{id}', [BannerController::class, 'update']);
         Route::delete('/banners/{id}', [BannerController::class, 'destroy']);
 
         // ===== ADMIN COMBOS =====

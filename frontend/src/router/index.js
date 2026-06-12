@@ -146,7 +146,8 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
-    if (to.fullPath !== from.fullPath) {
+    const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/')
+    if (shouldShowRouteLoader) {
       showRouteLoader()
     }
     forceScrollTop()

@@ -6,6 +6,7 @@ import router from './router/index.js'
 import { initGoogleAnalytics } from './services/analytics'
 import { installPerformanceWarmup } from './services/performanceWarmup'
 import { installScrollEffects } from './services/scrollEffects'
+import { installI18n } from './services/i18n'
 
 initGoogleAnalytics()
 
@@ -70,3 +71,4 @@ createApp(App)
 
 installPerformanceWarmup()
 installScrollEffects(router)
+installI18n(router)

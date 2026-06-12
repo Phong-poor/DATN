@@ -14,6 +14,7 @@ class BienTheHinhAnh extends Model
         'id_sanpham',
         'duongdan',
         'thutu',
+        'macdinh',
     ];
 
     public function sanPham()

@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Percent, Shield, TrendingUp, Zap } from 'lucide-react'
+import { ChevronRight, Shield, TrendingUp, Zap } from 'lucide-react'
 
 export default function WhyChooseUs() {
   const benefits = [

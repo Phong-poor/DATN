@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
 
 const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
@@ -47,6 +48,115 @@ const getSelectedCategoryLabel = () => {
   return found ? found.ten_danhmuc : 'Tất cả danh mục'
 }
 
+// Custom Tree Select States
+const treeSearchQuery = ref('')
+const expandedParentIds = ref(new Set())
+
+// Custom Accordion & Variant UI states
+const activeAccordionGroups = ref(new Set())
+
+const toggleAccordionGroup = (groupId) => {
+  const gIdStr = String(groupId)
+  if (activeAccordionGroups.value.has(gIdStr)) {
+    activeAccordionGroups.value.delete(gIdStr)
+  } else {
+    activeAccordionGroups.value.add(gIdStr)
+  }
+  activeAccordionGroups.value = new Set(activeAccordionGroups.value)
+}
+
+const selectAllOptions = (typeId, options) => {
+  const tIdStr = String(typeId)
+  if (!selectedOptions.value[tIdStr]) {
+    selectedOptions.value[tIdStr] = new Set()
+  }
+  const set = selectedOptions.value[tIdStr]
+  options.forEach(opt => {
+    set.add(getOptionValue(opt))
+  })
+  
+  // Auto switch to Variant mode if multiple options exist
+  if (options.length > 1 && !variationTierIds.value.has(tIdStr)) {
+    if (variationTierIds.value.size >= 3) {
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
+      return
+    }
+    variationTierIds.value.add(tIdStr)
+  }
+  
+  selectedOptions.value = { ...selectedOptions.value }
+}
+
+const clearAllOptions = (typeId) => {
+  const tIdStr = String(typeId)
+  if (selectedOptions.value[tIdStr]) {
+    selectedOptions.value[tIdStr].clear()
+    selectedOptions.value = { ...selectedOptions.value }
+  }
+}
+
+const liveComboPreview = computed(() => {
+  const headers = variationHeaders.value
+  if (!headers.length) return []
+  
+  const arrays = headers.map(t => [...(selectedOptions.value[t.id] || [])])
+  if (arrays.some(a => a.length === 0)) return []
+  
+  const combos = cartesian(arrays)
+  return combos.map(combo => combo.join(' - '))
+})
+
+const toggleParentExpand = (parentId) => {
+  const pIdStr = String(parentId)
+  if (expandedParentIds.value.has(pIdStr)) {
+    expandedParentIds.value.delete(pIdStr)
+  } else {
+    expandedParentIds.value.add(pIdStr)
+  }
+  expandedParentIds.value = new Set(expandedParentIds.value)
+}
+
+const isParentExpanded = (parentId) => {
+  return expandedParentIds.value.has(String(parentId))
+}
+
+const selectTreeCategory = (child) => {
+  form.value.category = String(child.id_danhmuc)
+  treeSearchQuery.value = ''
+}
+
+const getSelectedCategoryName = () => {
+  if (!form.value.category) return 'Chọn danh mục'
+  const child = categories.value.find(c => String(c.id_danhmuc) === String(form.value.category))
+  if (!child) return 'Chọn danh mục'
+  const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
+  return parent ? `${parent.ten_danhmuc} > ${child.ten_danhmuc}` : child.ten_danhmuc
+}
+
+const filteredTreeCategories = computed(() => {
+  const query = treeSearchQuery.value.trim().toLowerCase()
+  if (!query) {
+    return categoriesTree.value
+  }
+
+  const result = []
+  categoriesTree.value.forEach(parent => {
+    const parentMatches = parent.ten_danhmuc.toLowerCase().includes(query)
+    const matchingChildren = parent.children.filter(child => child.ten_danhmuc.toLowerCase().includes(query))
+
+    if (parentMatches || matchingChildren.length > 0) {
+      expandedParentIds.value.add(String(parent.id_danhmuc_cha))
+      result.push({
+        ...parent,
+        children: parentMatches ? parent.children : matchingChildren
+      })
+    }
+  })
+
+  expandedParentIds.value = new Set(expandedParentIds.value)
+  return result
+})
+
 const closeDropdowns = (e) => {
   if (!e.target.closest('.custom-dropdown')) {
     isOpenStatusDropdown.value = false
@@ -85,6 +195,16 @@ const importVariantsExcelRef = ref(null)
 const filteredCategoriesForDropdown = computed(() => {
   if (!selectedParentTab.value) return categories.value
   return categories.value.filter(c => String(c.id_danhmuc_cha) === String(selectedParentTab.value))
+})
+
+const categoriesTree = computed(() => {
+  if (!parentCategories.value.length || !categories.value.length) return []
+  return parentCategories.value.map(parent => {
+    return {
+      ...parent,
+      children: categories.value.filter(child => String(child.id_danhmuc_cha) === String(parent.id_danhmuc_cha))
+    }
+  }).filter(parent => parent.children.length > 0)
 })
 
 const filteredProducts = computed(() =>
@@ -426,6 +546,16 @@ const saveProductsCache = () => {
   }
 }
 
+const invalidateProductCaches = (productId = null) => {
+  try {
+    localStorage.removeItem(PRODUCTS_CACHE_KEY)
+  } catch {
+    // Ignore storage errors.
+  }
+
+  invalidateProductsPrefetchCache(productId)
+}
+
 const fetchProducts = async () => {
   if (isProductsFetching.value) return
   isProductsFetching.value = true
@@ -445,6 +575,7 @@ const fetchProducts = async () => {
         parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
         brand: p.thuong_hieu?.ten_thuonghieu || 'Chưa có thương hiệu',
         totalVariants: variantCount,
+        updated_at: p.updated_at,
         bienThes,
         status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
         img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
@@ -732,6 +863,12 @@ const buildAttributeGroups = () => {
     ? [...filteredBaseGroups, colorGroup]
     : [...filteredBaseGroups]
 
+  if (attributeGroups.value.length > 0) {
+    const nextActive = new Set(activeAccordionGroups.value)
+    attributeGroups.value.forEach(g => nextActive.add(String(g.id)))
+    activeAccordionGroups.value = nextActive
+  }
+
   if (!selectedGroupId.value && attributeGroups.value.length > 0) {
     selectedGroupId.value = attributeGroups.value[0].id
   }
@@ -824,25 +961,24 @@ const form = ref(defaultForm())
 const fieldErrors = ref({})
 
 /**
- * Watch parent category change - load child categories and reset child category selection
- */
-watch(() => form.value.parentCategory, async (newParentId, oldParentId) => {
-  if (newParentId) {
-    await fetchChildCategories(newParentId)
-  } else {
-    childCategories.value = []
-  }
-  // Reset child category and brand when parent changes, but only if it's a manual change from the user (oldParentId exists)
-  if (oldParentId) {
-    form.value.category = ''
-  }
-  filterBrandsLocally()
-})
-
-/**
- * Watch child category change - filter brands and rebuild attribute groups
+ * Watch child category change - automatically assign parent category, filter brands, and rebuild attribute groups
  */
 watch(() => form.value.category, async (newCategoryId) => {
+  fieldErrors.value.category = ''
+  fieldErrors.value.parentCategory = ''
+  if (newCategoryId) {
+    const child = categories.value.find(c => String(c.id_danhmuc) === String(newCategoryId))
+    if (child && child.id_danhmuc_cha) {
+      form.value.parentCategory = String(child.id_danhmuc_cha)
+      
+      const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
+      if (parent && parent.ten_danhmuc.toLowerCase().includes('phụ kiện')) {
+        variationTierIds.value.add('color-type')
+      }
+    }
+  } else {
+    form.value.parentCategory = ''
+  }
   filterBrandsLocally()
   buildAttributeGroups()
 })
@@ -876,15 +1012,17 @@ const validateTopForm = () => {
     errors.img = 'Vui lòng chọn ảnh sản phẩm'
   }
 
-  if (form.value.images.length > MAX_EXTRA_IMAGES) {
+  const imagesArr = Array.isArray(form.value.images) ? form.value.images : []
+  if (imagesArr.length > MAX_EXTRA_IMAGES) {
     errors.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
   }
 
-  if (!form.value.name.trim()) {
+  const nameVal = form.value.name ? String(form.value.name).trim() : ''
+  if (!nameVal) {
     errors.name = 'Tên sản phẩm không được để trống'
-  } else if (form.value.name.trim().length < 3) {
+  } else if (nameVal.length < 3) {
     errors.name = 'Tên sản phẩm phải có ít nhất 3 ký tự'
-  } else if (form.value.name.trim().length > 255) {
+  } else if (nameVal.length > 255) {
     errors.name = 'Tên sản phẩm không được vượt quá 255 ký tự'
   }
 
@@ -904,7 +1042,7 @@ const validateTopForm = () => {
     errors.status = 'Trạng thái không hợp lệ'
   }
 
-  if (form.value.weight !== '' && form.value.weight !== null) {
+  if (form.value.weight !== '' && form.value.weight !== null && form.value.weight !== undefined) {
     const weight = Number(form.value.weight)
 
     if (Number.isNaN(weight)) {
@@ -1044,14 +1182,21 @@ const basePrice = ref('')
 const baseStock = ref('')
 
 const toggleVariationTier = (typeId) => {
-  if (variationTierIds.value.has(typeId)) {
-    variationTierIds.value.delete(typeId)
+  const tIdStr = String(typeId)
+  if (variationTierIds.value.has(tIdStr)) {
+    variationTierIds.value.delete(tIdStr)
+    // Coerce selected options of this type to at most 1 element when switched to Specification mode
+    if (selectedOptions.value[tIdStr] && selectedOptions.value[tIdStr].size > 1) {
+      const firstVal = Array.from(selectedOptions.value[tIdStr])[0]
+      selectedOptions.value[tIdStr] = new Set([firstVal])
+      selectedOptions.value = { ...selectedOptions.value }
+    }
   } else {
     if (variationTierIds.value.size >= 3) {
       swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
-    variationTierIds.value.add(typeId)
+    variationTierIds.value.add(tIdStr)
   }
 }
 
@@ -1564,12 +1709,16 @@ const resetForm = () => {
   selectedOptionsSnapshot.value = {}
   generatedRows.value = []
   editVariantHeaders.value = []
+  variationTierIds.value = new Set()
 
   basePrice.value = ''
   baseStock.value = ''
   selectedGroupId.value = attributeGroups.value.length > 0
     ? attributeGroups.value[0].id
     : null
+
+  treeSearchQuery.value = ''
+  expandedParentIds.value = new Set()
 
   if (fileInputRef.value) fileInputRef.value.value = ''
   if (extraFileInputRef.value) extraFileInputRef.value.value = ''
@@ -1613,6 +1762,12 @@ const mapProductToForm = (product) => {
     img: '',
     images: [],
     weight: product?.khoiluong ?? '',
+  }
+
+  if (product?.danh_muc?.id_danhmuc_cha) {
+    expandedParentIds.value = new Set([String(product.danh_muc.id_danhmuc_cha)])
+  } else {
+    expandedParentIds.value = new Set()
   }
 
   const productImages = Array.isArray(product?.hinh_anhs)
@@ -1782,10 +1937,13 @@ const submitForm = async () => {
     }
 
     if (isEditMode.value && editingProductId.value) {
+      invalidateProductCaches(editingProductId.value)
       await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
+      invalidateProductCaches(editingProductId.value)
       swal.success('Thành công', 'Cập nhật sản phẩm thành công')
     } else {
-      await api.post('/admin/sanpham', payload)
+      const response = await api.post('/admin/sanpham', payload)
+      invalidateProductCaches(response.data?.data?.id_sanpham || null)
       swal.success('Thành công', 'Thêm sản phẩm thành công')
     }
 
@@ -2063,391 +2221,510 @@ onMounted(() => {
 
       <div class="inline-form-body">
 
-            <div class="form-group">
-              <label>Ảnh sản phẩm</label>
-              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-              <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
-                <small>PNG, JPG, WEBP — tối đa 5MB</small>
-              </div>
-              <div v-else class="img-preview-wrap">
-                <img :src="imgPreview" class="img-preview" alt="preview" />
-                <div class="img-actions">
-                  <button class="img-change" @click="triggerFileInput">Đổi ảnh</button>
+            <!-- Khối Hình ảnh (Tràn rộng ở trên cùng) -->
+            <div class="form-section-card images-section-card">
+              <div class="form-section-title">🖼️ Hình ảnh sản phẩm</div>
+              <div class="form-group">
+                <label>Ảnh sản phẩm <span class="required">*</span></label>
+                <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
+                <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
+                  <small>PNG, JPG, WEBP — tối đa 5MB</small>
+                </div>
+                <div v-else class="img-preview-wrap">
                   <button class="img-remove-btn" @click="removeImg">Xóa</button>
+                  <img :src="imgPreview" class="img-preview" alt="preview" />
                 </div>
+                <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
               </div>
-              <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
-            </div>
 
-
-            <div class="form-group">
-              <label>Hình ảnh phụ</label>
-              <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
-                @change="onExtraFilesChange" />
-              <div class="upload-zone" @click="triggerExtraFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn nhiều ảnh</span></p>
-                <small>PNG, JPG, WEBP — có thể chọn nhiều ảnh</small>
-              </div>
-              <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
-              <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
-                <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
-                  <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
-                  <button class="multi-preview-remove" @click="removeExtraImage(index)">×</button>
+              <div class="form-group">
+                <label>Hình ảnh phụ</label>
+                <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
+                  @change="onExtraFilesChange" />
+                <div class="upload-zone" @click="triggerExtraFileInput">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p>Kéo thả hoặc <span>bấm để chọn nhiều ảnh</span></p>
+                  <small>PNG, JPG, WEBP — có thể chọn nhiều ảnh</small>
                 </div>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Tên sản phẩm <span class="required">*</span></label>
-                <input v-model="form.name" placeholder="VD: VinaPro Laptop X2"
-                  :class="{ 'input-error': fieldErrors.name }" />
-                <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
-              </div>
-              <div class="form-group">
-                <label>Danh mục Cha <span class="required">*</span></label>
-                <select v-model="form.parentCategory" :class="{ 'input-error': fieldErrors.parentCategory }">
-                  <option value="">-- Chọn danh mục cha --</option>
-                  <option v-for="parentCat in parentCategories" :key="parentCat.id_danhmuc_cha"
-                    :value="String(parentCat.id_danhmuc_cha)">
-                    {{ parentCat.ten_danhmuc }}
-                  </option>
-                </select>
-                <p v-if="fieldErrors.parentCategory" class="field-error">{{ fieldErrors.parentCategory }}</p>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Danh mục Con <span class="required">*</span></label>
-                <select v-model="form.category" :class="{ 'input-error': fieldErrors.category }"
-                  :disabled="!form.parentCategory">
-                  <option value="">-- Chọn danh mục con --</option>
-                  <option v-for="category in childCategories" :key="category.id_danhmuc"
-                    :value="String(category.id_danhmuc)">
-                    {{ category.ten_danhmuc }}
-                  </option>
-                </select>
-                <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
-              </div>
-              <div class="form-group">
-                <label>Thương hiệu <span class="required">*</span></label>
-                <select v-model="form.brand" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
-                  <option value="">-- Chọn thương hiệu --</option>
-                  <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
-                    {{ brand.ten_thuonghieu }}
-                  </option>
-                </select>
-                <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Khối lượng</label>
-                <input v-model="form.weight" type="number" min="0" step="0.01" placeholder="VD: 2.5" />
-              </div>
-              <div class="form-group">
-                <label>Trạng thái</label>
-                <select v-model="form.status" :class="{ 'input-error': fieldErrors.status }">
-                  <option>Đang bán</option>
-                  <option>Nháp</option>
-                </select>
-                <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
+                <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
+                <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
+                  <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
+                    <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
+                    <button class="multi-preview-remove" @click="removeExtraImage(index)">×</button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="vs-wrapper" v-if="form.category">
-              <div class="vs-header">
-                <div class="vs-title">
-                  <span class="vs-bar"></span>
-                  Biến thể sản phẩm
-                  <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
-                    Cấp biến thể: {{ variationTierIds.size }}/3
-                  </span>
-                </div>
+            <div class="product-form-grid">
+              <!-- Cột chính (Trái) -->
+              <div class="form-main-col">
+                <!-- Khối Thông tin cơ bản -->
+                <div class="form-section-card">
+                  <div class="form-section-title">📝 Thông tin cơ bản</div>
+                  <div class="form-group">
+                    <label>Tên sản phẩm <span class="required">*</span></label>
+                    <input v-model="form.name" @input="fieldErrors.name = ''" placeholder="VD: VinaPro Laptop X2"
+                      :class="{ 'input-error': fieldErrors.name }" />
+                    <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
+                  </div>
 
-                <div class="vs-steps">
-                  <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
-                    <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
-                    Chọn giá trị
-                  </span>
-                  <span class="vss-line"></span>
-                  <span class="vss" :class="{ active: vsPhase === 2 }">
-                    <span class="vss-dot">2</span>
-                    Điền giá &amp; kho
-                  </span>
-                </div>
-              </div>
-
-              <template v-if="vsPhase === 1">
-                <div v-if="variantLoading" class="group-placeholder">
-                  <span>Đang tải dữ liệu biến thể...</span>
-                </div>
-
-                <div v-else class="group-tabs">
-                  <button v-for="g in attributeGroups" :key="g.id" class="gtab"
-                    :class="{ 'gtab-active': selectedGroupId === g.id }" @click="selectGroup(g.id)">
-                    <span class="gtab-icon">{{ g.icon }}</span>
-                    <span class="gtab-name">{{ g.name }}</span>
-                    <span v-if="selectedCountInGroup(g) > 0" class="gtab-badge">
-                      {{ selectedCountInGroup(g) }}
-                    </span>
-                  </button>
-                </div>
-
-                <div v-if="displayAttrTypes.length" class="flat-select-table">
-                  <div v-for="t in displayAttrTypes" :key="t.id" class="fst-row">
-                    <div class="fst-label">
-                      <div class="fst-label-top">
-                        <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                        <span v-if="selectedOptions[t.id]?.size" class="fst-count">
-                          {{ selectedOptions[t.id].size }}
-                        </span>
-                      </div>
-                      <button class="tier-toggle-btn" :class="{ 'is-tier': variationTierIds.has(t.id) }"
-                        @click="toggleVariationTier(t.id)"
-                        title="Dùng thuộc tính này để tạo các phiên bản (SKU) khác nhau về giá/kho">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12"
-                          height="12">
-                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                        </svg>
-                        <span>{{ variationTierIds.has(t.id) ? 'Đang làm Biến thể' : 'Làm Biến thể?' }}</span>
-                      </button>
+                  <div class="form-fields-row-3">
+                    <div class="form-group">
+                      <label>Thương hiệu <span class="required">*</span></label>
+                      <select v-model="form.brand" @change="fieldErrors.brand = ''" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
+                        <option value="">-- Chọn thương hiệu --</option>
+                        <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
+                          {{ brand.ten_thuonghieu }}
+                        </option>
+                      </select>
+                      <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
                     </div>
 
-                    <div class="fst-options-wrap">
-                      <div class="fst-options">
-                        <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="[
-                          'vbtn-' + t.color,
-                          { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }
-                        ]" @click="toggleOption(t.id, getOptionValue(opt))">
-                          <svg v-if="isSelected(t.id, getOptionValue(opt))" viewBox="0 0 10 10" fill="none"
-                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="9" height="9">
-                            <polyline points="1,5 3.5,7.5 9,2" />
-                          </svg>
+                    <div class="form-group">
+                      <label>Khối lượng (kg)</label>
+                      <input v-model="form.weight" type="number" min="0" step="0.01" @input="fieldErrors.weight = ''" placeholder="VD: 2.5" />
+                      <p v-if="fieldErrors.weight" class="field-error">{{ fieldErrors.weight }}</p>
+                    </div>
 
-                          <span v-if="getOptionHex(opt)" class="color-option">
-                            <span class="color-dot" :style="{ background: getOptionHex(opt) }"></span>
-                            {{ getOptionLabel(opt) }}
+                    <div class="form-group">
+                      <label>Trạng thái</label>
+                      <select v-model="form.status" @change="fieldErrors.status = ''" :class="{ 'input-error': fieldErrors.status }">
+                        <option>Đang bán</option>
+                        <option>Nháp</option>
+                      </select>
+                      <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột phụ (Phải) -->
+              <div class="form-sidebar-col">
+                <div class="form-section-card sticky-sidebar-card">
+                  <div class="form-section-title">📁 Danh mục sản phẩm <span class="required">*</span></div>
+                  
+                  <!-- selected category info badge -->
+                  <div class="selected-category-badge" :class="{ 'has-selected': form.category }">
+                    <span class="badge-icon">📁</span>
+                    <span class="badge-text">
+                      {{ form.category ? getSelectedCategoryName() : 'Chưa chọn danh mục sản phẩm' }}
+                    </span>
+                  </div>
+
+                  <div class="tree-select-static-container" :class="{ 'has-error': fieldErrors.category }">
+                    <!-- Search Input -->
+                    <div class="tree-search-wrapper">
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      <input 
+                        v-model="treeSearchQuery" 
+                        placeholder="Tìm kiếm nhanh danh mục..." 
+                        class="tree-search-input"
+                      />
+                      <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">×</button>
+                    </div>
+
+                    <!-- Tree list -->
+                    <div class="tree-list-container">
+                      <div v-if="filteredTreeCategories.length === 0" class="tree-empty">
+                        Không tìm thấy danh mục nào.
+                      </div>
+                      <div 
+                        v-for="parent in filteredTreeCategories" 
+                        :key="parent.id_danhmuc_cha" 
+                        class="tree-parent-node"
+                      >
+                        <!-- Parent header row -->
+                        <div 
+                          class="tree-parent-row" 
+                          @click="toggleParentExpand(parent.id_danhmuc_cha)"
+                        >
+                          <span class="tree-toggle-icon">
+                            {{ isParentExpanded(parent.id_danhmuc_cha) ? '▼' : '▶' }}
                           </span>
-                          <span v-else>
-                            {{ getOptionLabel(opt) }}
+                          <span class="tree-folder-icon">📁</span>
+                          <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
+                        </div>
+
+                        <!-- Child list container -->
+                        <transition name="collapse">
+                          <div 
+                            v-show="isParentExpanded(parent.id_danhmuc_cha)" 
+                            class="tree-children-list"
+                          >
+                            <div 
+                              v-for="child in parent.children" 
+                              :key="child.id_danhmuc" 
+                              class="tree-child-node"
+                              :class="{ selected: String(form.category) === String(child.id_danhmuc) }"
+                              @click="selectTreeCategory(child)"
+                            >
+                              <span class="tree-leaf-icon">📄</span>
+                              <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
+                            </div>
+                          </div>
+                        </transition>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section-card variants-section-card" v-if="form.category">
+              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
+              <div class="vs-wrapper">
+                <div class="vs-header">
+                  <div class="vs-title">
+                    <span class="vs-bar"></span>
+                    Biến thể sản phẩm
+                    <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
+                      Cấp biến thể: {{ variationTierIds.size }}/3
+                    </span>
+                  </div>
+
+                  <div class="vs-steps">
+                    <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
+                      <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
+                      Chọn giá trị
+                    </span>
+                    <span class="vss-line"></span>
+                    <span class="vss" :class="{ active: vsPhase === 2 }">
+                      <span class="vss-dot">2</span>
+                      Điền giá &amp; kho
+                    </span>
+                  </div>
+                </div>
+
+                <template v-if="vsPhase === 1">
+                  <div v-if="variantLoading" class="group-placeholder">
+                    <span>Đang tải dữ liệu biến thể...</span>
+                  </div>
+
+                  <div v-else-if="attributeGroups.length === 0" class="group-placeholder">
+                    <span>Không tìm thấy nhóm thuộc tính tương thích cho danh mục này.</span>
+                  </div>
+
+                  <div v-else class="accordion-container">
+                    <div 
+                      v-for="g in attributeGroups" 
+                      :key="g.id" 
+                      class="accordion-item"
+                      :class="{ 'is-open': activeAccordionGroups.has(String(g.id)) }"
+                    >
+                      <!-- Accordion Header -->
+                      <div class="accordion-header" @click="toggleAccordionGroup(g.id)">
+                        <div class="accordion-title">
+                          <span class="accordion-icon">{{ g.icon }}</span>
+                          <span class="accordion-name">{{ g.name }}</span>
+                          <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">
+                            Đang chọn {{ selectedCountInGroup(g) }}
                           </span>
+                        </div>
+                        <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
+
+                      <!-- Accordion Body -->
+                      <transition name="collapse">
+                        <div v-show="activeAccordionGroups.has(String(g.id))" class="accordion-body">
+                          <div class="flat-select-table">
+                            <div v-for="t in g.attrTypes" :key="t.id" class="fst-row">
+                              <div class="fst-label">
+                                <div class="fst-label-top">
+                                  <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                                  <span v-if="selectedOptions[t.id]?.size" class="fst-count">
+                                    {{ selectedOptions[t.id].size }}
+                                  </span>
+                                </div>
+                                
+                                <!-- Toggle Switch SKU/Spec -->
+                                <div class="mode-switch-wrapper" title="Biến thể (SKU): được chọn nhiều để tạo tổ hợp. Thông số: chỉ được chọn tối đa 1.">
+                                  <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">
+                                    {{ variationTierIds.has(String(t.id)) ? '⚡ Biến thể' : '📝 Thông số' }}
+                                  </span>
+                                  <label class="switch-control">
+                                    <input 
+                                      type="checkbox" 
+                                      :checked="variationTierIds.has(String(t.id))" 
+                                      @change="toggleVariationTier(t.id)" 
+                                    />
+                                    <span class="switch-slider"></span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div class="fst-options-wrap">
+                                <!-- Color Swatches Visual Layout -->
+                                <div v-if="t.id === 'color-type'" class="color-swatches-grid">
+                                  <button 
+                                    v-for="opt in t.options" 
+                                    :key="getOptionValue(opt)"
+                                    class="color-swatch-btn"
+                                    :class="{ selected: isSelected(t.id, getOptionValue(opt)) }"
+                                    @click="toggleOption(t.id, getOptionValue(opt))"
+                                  >
+                                    <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }">
+                                      <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span>
+                                    </span>
+                                    <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
+                                  </button>
+                                </div>
+
+                                <!-- Standard Options Buttons Layout -->
+                                <div v-else class="fst-options">
+                                  <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="[
+                                    'vbtn-' + t.color,
+                                    { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }
+                                  ]" @click="toggleOption(t.id, getOptionValue(opt))">
+                                    <svg v-if="isSelected(t.id, getOptionValue(opt))" viewBox="0 0 10 10" fill="none"
+                                      stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="9" height="9">
+                                      <polyline points="1,5 3.5,7.5 9,2" />
+                                    </svg>
+                                    <span>{{ getOptionLabel(opt) }}</span>
+                                  </button>
+                                </div>
+
+                                <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
+                                  {{ fieldErrors.variantGroups[t.id] }}
+                                </p>
+                              </div>
+
+                              <!-- Quick Action Buttons -->
+                              <div class="fst-actions-col">
+                                <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chọn tất cả</button>
+                                <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bỏ chọn</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
+
+                  <div class="p1-footer">
+                    <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
+                      <span class="combo-formula">
+                        <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
+                          <span class="cf-item">
+                            <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
+                            <b>{{ selectedOptions[t.id]?.size }}</b>
+                          </span>
+                          <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">×</span>
+                        </template>
+                        <span class="cf-eq">= <b>{{ comboCount }} biến thể</b></span>
+                      </span>
+                    </div>
+
+                    <!-- Live Combo Preview Section -->
+                    <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
+                      <div class="preview-title">👁️ Xem trước các tổ hợp phân loại (tối đa 15):</div>
+                      <div class="preview-tags-list">
+                        <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">
+                          {{ name }}
+                        </span>
+                        <span v-if="liveComboPreview.length > 15" class="preview-tag-more">
+                          + {{ liveComboPreview.length - 15 }} tổ hợp khác...
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="p1-actions">
+                      <span v-if="fieldErrors.variants" class="field-error">
+                        {{ fieldErrors.variants }}
+                      </span>
+                      <span v-else class="p1-hint">
+                        Mở rộng các nhóm accordion bên trên; hệ thống sẽ tự động gộp tất cả lựa chọn để tạo SKU
+                      </span>
+
+                      <div class="p1-action-buttons">
+                        <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
+                          @click="continueVariantTable">
+                          Quay lại biến thể
+                        </button>
+
+                        <button class="btn-generate" @click="generateVariants">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2"
+                            stroke-linecap="round" width="13" height="13">
+                            <rect x="1" y="1" width="12" height="12" rx="2" />
+                            <polyline points="3.5,7 5.5,9 10.5,4.5" />
+                          </svg>
+                          {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
                         </button>
                       </div>
-
-                      <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
-                        {{ fieldErrors.variantGroups[t.id] }}
-                      </p>
                     </div>
                   </div>
-                </div>
+                </template>
 
-                <div v-else class="group-placeholder">
-                  <span>Không có dữ liệu loại thuộc tính</span>
-                </div>
+                <template v-if="vsPhase === 2">
+                  <div class="p2-toolbar">
+                    <button class="btn-back" @click="backToSelect">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        width="11" height="11">
+                        <polyline points="7.5,1.5 3,6 7.5,10.5" />
+                      </svg>
+                      {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
+                    </button>
 
-                <div class="p1-footer">
-                  <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
-                    <span class="combo-formula">
-                      <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
-                        <span class="cf-item">
-                          <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
-                          <b>{{ selectedOptions[t.id]?.size }}</b>
-                        </span>
-                        <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">×</span>
+                    <div class="modal-excel-actions">
+                      <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
+                        @click="handleExportVariantsExcel">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                          fill="none">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Xuất Excel
+                      </button>
+                      <button class="btn-xl-sm btn-xl-import"
+                        title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
+                        @click="triggerImportVariantsExcel">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
+                          fill="none">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Nhập Excel (Check trùng)
+                      </button>
+                      <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
+                        @change="handleImportVariantsExcel" />
+                    </div>
+                  </div>
+
+                  <div class="p2-controls">
+                    <div class="p2-info">
+                      <template v-if="isEditMode">
+                        Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
                       </template>
-                      <span class="cf-eq">= <b>{{ comboCount }} biến thể</b></span>
-                    </span>
-                  </div>
+                      <template v-else>
+                        Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
+                      </template>
+                    </div>
 
-                  <div class="p1-actions">
-                    <span v-if="fieldErrors.variants" class="field-error">
-                      {{ fieldErrors.variants }}
-                    </span>
-                    <span v-else class="p1-hint">
-                      Có thể chọn nhiều tab; hệ thống sẽ gộp tất cả lựa chọn để tạo biến thể
-                    </span>
-
-                    <div class="p1-action-buttons">
-                      <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
-                        @click="continueVariantTable">
-                        Quay lại biến thể
-                      </button>
-
-                      <button class="btn-generate" @click="generateVariants">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2"
-                          stroke-linecap="round" width="13" height="13">
-                          <rect x="1" y="1" width="12" height="12" rx="2" />
-                          <polyline points="3.5,7 5.5,9 10.5,4.5" />
-                        </svg>
-                        {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
-                      </button>
+                    <div class="bulk-stack">
+                      <div class="bulk-bar">
+                        <span class="bulk-lbl">Giá/kho chung:</span>
+                        <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
+                        <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
+                      </div>
+                      <div class="bulk-actions">
+                        <button class="btn-apply-outline" @click="applyRulesToAll(false)">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" width="12" height="12">
+                            <circle cx="7" cy="7" r="5.5" />
+                            <polyline points="4.5,7 6,8.5 9.5,5" />
+                          </svg>
+                          Chỉ điền ô trống
+                        </button>
+                        <button class="btn-apply-solid" @click="applyRulesToAll(true)">
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" width="12" height="12">
+                            <polyline points="1.5,7 5,10.5 12.5,3" />
+                          </svg>
+                          Áp dụng tất cả
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </template>
 
-              <template v-if="vsPhase === 2">
-                <div class="p2-toolbar">
-                  <button class="btn-back" @click="backToSelect">
-                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                      width="11" height="11">
-                      <polyline points="7.5,1.5 3,6 7.5,10.5" />
-                    </svg>
-                    {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
-                  </button>
 
-                  <div class="modal-excel-actions">
-                    <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
-                      @click="handleExportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                        fill="none">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      Xuất Excel
+                  <div class="vt-scroll">
+
+                    <table class="vt-table">
+                      <thead>
+                        <tr>
+                          <th class="th-no">#</th>
+                          <th v-for="t in tableHeaders" :key="t.id">
+                            <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                          </th>
+                          <th class="th-price">Giá riêng (₫)</th>
+                          <th class="th-stock">Kho</th>
+                          <th class="th-del"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
+                          <td class="td-no">
+                            <span class="row-no">
+                              {{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}
+                            </span>
+                          </td>
+
+                          <td v-for="t in tableHeaders" :key="t.id">
+                            <span class="val-chip" :class="'vc-' + t.color">
+                              {{ row.attrs[t.id] || '' }}
+                            </span>
+                          </td>
+
+                          <td>
+                            <input :value="formatCurrency(row.price)" type="text" class="vt-input"
+                              @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
+                          </td>
+
+                          <td>
+                            <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
+                              @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
+                          </td>
+
+                          <td class="td-del">
+                            <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
+                              ×
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
+                    <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
+                      ‹
                     </button>
-                    <button class="btn-xl-sm btn-xl-import"
-                      title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
-                      @click="triggerImportVariantsExcel">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                        fill="none">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Nhập Excel (Check trùng)
+
+                    <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
+                      :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
+                      @click="p !== '...' && goToVariantPage(p)">
+                      {{ p }}
                     </button>
-                    <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
-                      @change="handleImportVariantsExcel" />
-                  </div>
-                </div>
 
-                <div class="p2-controls">
-                  <div class="p2-info">
-                    <template v-if="isEditMode">
-                      Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
-                    </template>
-                    <template v-else>
-                      Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
-                    </template>
+                    <button :disabled="variantCurrentPage === variantTotalPages"
+                      @click="goToVariantPage(variantCurrentPage + 1)">
+                      ›
+                    </button>
                   </div>
 
-                  <div class="bulk-stack">
-                    <div class="bulk-bar">
-                      <span class="bulk-lbl">Giá/kho chung:</span>
-                      <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
-                      <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
-                    </div>
-                    <div class="bulk-actions">
-                      <button class="btn-apply-outline" @click="applyRulesToAll(false)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                          stroke-linecap="round" width="12" height="12">
-                          <circle cx="7" cy="7" r="5.5" />
-                          <polyline points="4.5,7 6,8.5 9.5,5" />
-                        </svg>
-                        Chỉ điền ô trống
-                      </button>
-                      <button class="btn-apply-solid" @click="applyRulesToAll(true)">
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                          stroke-linecap="round" width="12" height="12">
-                          <polyline points="1.5,7 5,10.5 12.5,3" />
-                        </svg>
-                        Áp dụng tất cả
-                      </button>
-                    </div>
+                  <div class="p2-foot">
+                    <span class="p2-count">
+                      <b>{{ generatedRows.length }}</b> biến thể —
+                      trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
+                    </span>
                   </div>
-                </div>
-
-
-                <div class="vt-scroll">
-
-                  <table class="vt-table">
-                    <thead>
-                      <tr>
-                        <th class="th-no">#</th>
-                        <th v-for="t in tableHeaders" :key="t.id">
-                          <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                        </th>
-                        <th class="th-price">Giá riêng (₫)</th>
-                        <th class="th-stock">Kho</th>
-                        <th class="th-del"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
-                        <td class="td-no">
-                          <span class="row-no">
-                            {{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}
-                          </span>
-                        </td>
-
-                        <td v-for="t in tableHeaders" :key="t.id">
-                          <span class="val-chip" :class="'vc-' + t.color">
-                            {{ row.attrs[t.id] || '' }}
-                          </span>
-                        </td>
-
-                        <td>
-                          <input :value="formatCurrency(row.price)" type="text" class="vt-input"
-                            @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
-                        </td>
-
-                        <td>
-                          <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
-                            @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
-                        </td>
-
-                        <td class="td-del">
-                          <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
-                            ×
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
-                  <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
-                    ‹
-                  </button>
-
-                  <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
-                    :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-                    @click="p !== '...' && goToVariantPage(p)">
-                    {{ p }}
-                  </button>
-
-                  <button :disabled="variantCurrentPage === variantTotalPages"
-                    @click="goToVariantPage(variantCurrentPage + 1)">
-                    ›
-                  </button>
-                </div>
-
-                <div class="p2-foot">
-                  <span class="p2-count">
-                    <b>{{ generatedRows.length }}</b> biến thể —
-                    trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
-                  </span>
-                </div>
-              </template>
+                </template>
+              </div>
             </div>
             
-            <div v-else class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8;">
-              <p>Vui lòng chọn danh mục sản phẩm trước khi cấu hình biến thể.</p>
+            <div class="form-section-card variants-section-card empty-placeholder" v-else>
+              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
+              <div class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8; border: none; background: transparent;">
+                <p>Vui lòng chọn danh mục sản phẩm ở cột bên phải trước khi cấu hình biến thể.</p>
+              </div>
             </div>
 
             <p v-if="fieldErrors.variantRows" class="field-error">
@@ -2595,7 +2872,7 @@ onMounted(() => {
 
 /* ── Inline Form Body ── */
 .inline-form-body {
-  background: white;
+  background: #f8fafc;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
   padding: 28px;
@@ -2616,35 +2893,74 @@ onMounted(() => {
    INLINE FORM — Form Elements Redesign
 ══════════════════════════════════════ */
 
-/* Mỗi form-group trong inline-form-body là 1 card riêng */
-.inline-form-body > .form-group,
-.inline-form-body > .products-selection-section {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 22px 24px !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  border-top: none !important;
-  margin-top: 0 !important;
-  gap: 12px;
+/* Product Form Grid Layout */
+.product-form-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
 }
 
-/* 2-col grid */
-.inline-form-body > .form-row,
-.inline-form-body > .form-cols-2 {
+.form-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-sidebar-col {
+  position: sticky;
+  top: 20px;
+}
+
+/* Section Card Design */
+.form-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+/* Grid for images uploader */
+.images-upload-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-.inline-form-body > .form-row > .form-group,
-.inline-form-body > .form-cols-2 > .form-group {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 22px 24px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  gap: 10px;
+/* 3-column row for basic info fields */
+.form-fields-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.images-section-card {
+  margin-bottom: 24px;
+}
+
+.variants-section-card {
+  margin-top: 24px;
+}
+
+.variants-section-card .vs-wrapper {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 /* Label */
@@ -4920,6 +5236,562 @@ tbody td {
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
   border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+/* Custom Tree Select Component (Static View) */
+.always-visible-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selected-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.selected-category-badge.has-selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.selected-category-badge .badge-icon {
+  font-size: 15px;
+}
+
+.tree-select-static-container {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.tree-select-static-container:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.tree-select-static-container.has-error {
+  border-color: #f87171;
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.08);
+}
+
+/* Search Bar */
+.tree-search-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+  gap: 8px;
+}
+
+.tree-search-wrapper .search-icon {
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.tree-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.clear-search-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.clear-search-btn:hover {
+  color: #475569;
+}
+
+/* Tree List Container */
+.tree-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  max-height: 320px;
+}
+
+.tree-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Tree Parent Node */
+.tree-parent-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-parent-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  user-select: none;
+}
+
+.tree-parent-row:hover {
+  background-color: #f1f5f9;
+}
+
+.tree-toggle-icon {
+  font-size: 10px;
+  color: #64748b;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.tree-folder-icon {
+  font-size: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.tree-parent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Children Container */
+.tree-children-list {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Tree Leaf Nodes (Children) */
+.tree-child-node {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s, color 0.15s;
+  user-select: none;
+  margin-bottom: 2px;
+}
+
+.tree-child-node:hover {
+  background-color: #f8fafc;
+}
+
+.tree-child-node.selected {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.tree-child-node.selected .tree-child-name {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.tree-leaf-icon {
+  font-size: 14px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.tree-child-name {
+  font-size: 13px;
+  color: #475569;
+  z-index: 2;
+}
+
+/* WinRAR Connector Lines (Dashed Lines) */
+.tree-child-node::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: -6px;
+  height: calc(100% + 10px);
+  width: 0;
+  border-left: 1.5px dashed #cbd5e1;
+  z-index: 1;
+}
+
+.tree-child-node:last-child::before {
+  height: 22px; /* stops at the horizontal line */
+}
+
+.tree-child-node::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 16px;
+  width: 14px;
+  height: 0;
+  border-top: 1.5px dashed #cbd5e1;
+  z-index: 1;
+}
+
+/* Accordion Container */
+.accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.accordion-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.accordion-item.is-open {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.accordion-item.is-open .accordion-header {
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+}
+
+.accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accordion-icon {
+  font-size: 18px;
+}
+
+.accordion-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.accordion-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #dbeafe;
+}
+
+.accordion-header .chevron {
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.accordion-header .chevron.open {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  padding: 20px;
+  background: #ffffff;
+}
+
+/* Switch Control (Spec vs Variant) */
+.mode-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  width: fit-content;
+}
+
+.mode-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 76px;
+  transition: color 0.15s;
+}
+
+.mode-label.active {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.switch-control {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.switch-control input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.switch-control input:checked + .switch-slider {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+}
+
+.switch-control input:checked + .switch-slider:before {
+  transform: translateX(18px);
+}
+
+/* Actions Column (Select All / Clear) */
+.fst-actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100px;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.quick-act-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.quick-act-btn.select-all {
+  color: #2563eb;
+}
+
+.quick-act-btn.select-all:hover {
+  background: #eff6ff;
+}
+
+.quick-act-btn.clear-all {
+  color: #64748b;
+}
+
+.quick-act-btn.clear-all:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.quick-act-btn.clear-all:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* Color Swatches Grid */
+.color-swatches-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.color-swatch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.color-swatch-btn:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.color-swatch-btn.selected {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.swatch-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.color-swatch-btn:hover .swatch-circle {
+  transform: scale(1.1);
+}
+
+.swatch-check {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.swatch-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.color-swatch-btn.selected .swatch-label {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Live Combo Preview Panel */
+.live-preview-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 10px 0;
+}
+
+.preview-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.preview-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preview-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.preview-tag-more {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 4px 8px;
+  align-self: center;
+}
+
+/* Collapse Transition */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 
 </style>

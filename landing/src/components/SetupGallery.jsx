@@ -1,4 +1,4 @@
-import { Monitor, Cpu, Sparkles, LayoutGrid } from 'lucide-react'
+import { Monitor, Cpu, Sparkles } from 'lucide-react'
 import setupImg from '../assets/setup_gallery.png'
 
 export default function SetupGallery() {

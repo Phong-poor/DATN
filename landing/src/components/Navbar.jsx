@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Cpu, Menu, X, ShoppingCart, Shield, Zap } from 'lucide-react'
+import { Cpu, Menu, X, ShoppingCart } from 'lucide-react'
 import { useMagneticButton } from '../hooks/useAnimations'
 
 export default function Navbar() {

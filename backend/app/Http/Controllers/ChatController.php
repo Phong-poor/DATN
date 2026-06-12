@@ -36,7 +36,14 @@ class ChatController extends Controller
     public function getConversations()
     {
         return Conversation::with(['user'])
-            ->orderBy('updated_at', 'desc')
+            ->withCount([
+                'messages as unread_count' => function ($query) {
+                    $query->where('is_read', false)
+                        ->where('sender_id', '!=', Auth::id());
+                },
+            ])
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
             ->get();
     }
 
@@ -51,6 +58,8 @@ class ChatController extends Controller
         if (Auth::user()->role !== 'admin' && $conversation->user_id !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
+
+        $this->markConversationRead($conversationId);
 
         return ChatMessage::with('sender')
             ->where('conversation_id', $conversationId)
@@ -70,10 +79,12 @@ class ChatController extends Controller
 
         // Lấy tin nhắn tách biệt để tránh vòng lặp JSON (Recursion)
         $messages = ChatMessage::with('sender')
-            ->where('conversation_id', $conversation)
+            ->where('conversation_id', $conversation->id)
             ->orderBy('created_at', 'asc')
             ->take(50)
             ->get();
+
+        $this->markConversationRead($conversation->id);
 
         return response()->json([
             'id' => $conversation->id,
@@ -117,21 +128,25 @@ class ChatController extends Controller
         }
 
         $attachments = array_values(array_filter($request->input('attachments_base64', [])));
+        $text = trim((string) ($request->message ?? ''));
+
+        if ($text === '' && empty($attachments)) {
+            return response()->json(['message' => 'Vui lòng nhập tin nhắn hoặc chọn tệp đính kèm.'], 422);
+        }
 
         // Chỉ gửi text, không có ảnh
         if (empty($attachments)) {
             $message = ChatMessage::create([
                 'conversation_id' => $conversationId,
                 'sender_id' => $user->id,
-                'message' => $request->message ?? '',
+                'message' => $text,
                 'is_read' => false,
                 'attachment_path' => null,
                 'attachment_name' => null,
             ]);
 
-            $lastMessage = $request->message ?? '';
             $conversation->update([
-                'last_message' => $lastMessage,
+                'last_message' => $text,
                 'last_message_at' => now(),
             ]);
 
@@ -148,7 +163,6 @@ class ChatController extends Controller
         }
 
         $createdMessages = [];
-        $text = $request->message ?? '';
 
         $attachmentNames = $request->input('attachment_names', []);
 
@@ -309,6 +323,14 @@ class ChatController extends Controller
             'last_message' => $preview,
             'last_message_at' => $latest->created_at,
         ]);
+    }
+
+    private function markConversationRead(int $conversationId): void
+    {
+        ChatMessage::where('conversation_id', $conversationId)
+            ->where('sender_id', '!=', Auth::id())
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
     }
 
     private function saveChatAttachment(?string $base64, ?string $originalName = null): ?array

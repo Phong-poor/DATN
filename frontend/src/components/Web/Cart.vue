@@ -493,16 +493,16 @@ onMounted(() => {
 </script>
 
 <template>
+  <div class="cart-root">
+    <!-- ===== TOAST NOTIFICATION ===== -->
+    <transition name="toast-slide">
+      <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
+        <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '⚠' }}</span>
+        {{ thongBao.message }}
+      </div>
+    </transition>
 
-  <!-- ===== TOAST NOTIFICATION ===== -->
-  <transition name="toast-slide">
-    <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
-      <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '⚠' }}</span>
-      {{ thongBao.message }}
-    </div>
-  </transition>
-
-  <div class="cart-page">
+    <div class="cart-page">
     <div class="cart-wrap">
 
       <!-- ===== LEFT: CART ITEMS ===== -->
@@ -881,7 +881,7 @@ onMounted(() => {
 
     </div>
   </div>
-
+</div>
 </template>
 
 <style scoped>
@@ -1254,6 +1254,7 @@ onMounted(() => {
   margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

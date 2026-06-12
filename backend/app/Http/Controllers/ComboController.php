@@ -161,7 +161,9 @@ class ComboController extends Controller
         try {
             $coverPath = null;
             if ($request->filled('hinhanh')) {
-                $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+                $coverPath = str_starts_with($request->hinhanh, 'data:image')
+                    ? ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham')
+                    : ImageHelper::normalizePublicPath($request->hinhanh);
             }
 
             $combo = Combo::create([
@@ -220,14 +222,13 @@ class ComboController extends Controller
         try {
             $coverPath = $combo->hinhanh;
 
-            if ($request->filled('hinhanh') && str_starts_with($request->hinhanh, 'data:image')) {
-                $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
-            }
-
-            if ($request->filled('hinhanh') && !str_starts_with($request->hinhanh, 'data:image')) {
-                $incoming = $request->hinhanh;
-                if (str_contains($incoming, '/storage/')) {
-                    $coverPath = ltrim(preg_replace('#^.*?/storage/#', '', $incoming), '/');
+            if ($request->has('hinhanh')) {
+                if (blank($request->hinhanh)) {
+                    $coverPath = null;
+                } elseif (str_starts_with($request->hinhanh, 'data:image')) {
+                    $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+                } else {
+                    $coverPath = ImageHelper::normalizePublicPath($request->hinhanh);
                 }
             }
 

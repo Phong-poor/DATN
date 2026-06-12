@@ -1,5 +1,5 @@
 import { useTilt, useMagneticButton } from '../hooks/useAnimations'
-import { Cpu, Zap, Shield, ArrowDown, ChevronRight } from 'lucide-react'
+import { Zap, ArrowDown, ChevronRight } from 'lucide-react'
 import quantumCoreImg from '../assets/quantum_core.png'
 
 export default function HeroSection() {

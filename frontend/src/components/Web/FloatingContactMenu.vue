@@ -26,17 +26,6 @@
           <span class="option-icon">Zalo</span>
         </button>
 
-        <!-- Option 3: Support Widget -->
-        <button 
-          type="button" 
-          class="menu-option-btn support-btn" 
-          @click="triggerAction('support')"
-          aria-label="Gọi điện & Tư vấn"
-        >
-          <span class="menu-tooltip">Liên hệ</span>
-          <span class="option-icon">📞</span>
-        </button>
-
       </div>
     </transition>
 
@@ -75,8 +64,6 @@ const triggerAction = (type) => {
     window.dispatchEvent(new CustomEvent('open-chatbot'))
   } else if (type === 'zalo') {
     window.dispatchEvent(new CustomEvent('open-zalo'))
-  } else if (type === 'support') {
-    window.dispatchEvent(new CustomEvent('toggle-support'))
   }
   isOpen.value = false
 }
@@ -321,15 +308,6 @@ const triggerAction = (type) => {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: -0.2px;
-}
-
-.support-btn {
-  background: #10b981;
-  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
-}
-
-.support-btn:hover {
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
 }
 
 .option-icon {
