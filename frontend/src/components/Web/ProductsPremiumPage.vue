@@ -283,12 +283,25 @@ const heroBannerImages = [
   '/Gemini_Generated_Image_j1cibhj1cibhj1ci.png'
 ]
 
+const currentHeroImage = computed(() => {
+  if (isMacbookRoute.value) {
+    return '/hero_macbook_setup.png'
+  }
+  return heroBannerImages[0]
+})
+
 const premiumBadges = ['ĐẮT NHẤT', 'FLAGSHIP', 'ELITE', 'PRO MAX', 'ULTRA']
 const premiumTags = ['TOP DB', 'CẤU HÌNH THẬT', 'MUA NGAY', 'HIGH-END', 'PREMIUM']
 const premiumPriceThreshold = 60000000
 
 const sortedPremiumSource = computed(() => {
-  const source = products.value.length ? products.value : fallbackProducts
+  let source = products.value.length ? products.value : fallbackProducts
+  if (isMacbookRoute.value) {
+    source = source.filter(product => 
+      product.category.toLowerCase().includes('macbook') || 
+      product.brand.toLowerCase() === 'apple'
+    )
+  }
   return source
     .filter(product => Number(product.gia) > 0)
     .slice()
@@ -792,27 +805,47 @@ watch(() => route.fullPath, () => {
   <div class="premium-page-shell">
 
     <!-- ===================== HERO VIEWPORT ===================== -->
-    <section class="hero-banner" :style="{
-      '--hero-bg-1': `url('${heroBannerImages[0]}')`,
-      '--hero-bg-2': `url('${heroBannerImages[0]}')`
-    }">
+    <section
+      class="hero-banner"
+      :style="{
+        '--hero-bg-1': `url('${heroBannerImages[0]}')`,
+        '--hero-bg-2': `url('${heroBannerImages[0]}')`
+      }"
+    >
       <div class="hero-copy">
         <span class="eyebrow-badge">
           <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"
             style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
           </svg>
-          Predator Flagship
+          {{ isMacbookRoute ? 'Apple Flagship' : 'Predator Flagship' }}
         </span>
-        <h1>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
-        <p>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải
-          nghiệm gaming hoàn mỹ.</p>
+        <h1 v-if="isMacbookRoute">MacBook Pro & Air: Sức mạnh di động tối thượng</h1>
+        <h1 v-else>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
+        
+        <p v-if="isMacbookRoute">Khám phá bộ sưu tập MacBook cao cấp trang bị chip Apple Silicon M-Series. Thiết kế nhôm nguyên khối, mỏng nhẹ thời thượng và thời lượng pin cực khủng.</p>
+        <p v-else>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải nghiệm gaming hoàn mỹ.</p>
+        
         <div class="hero-actions">
           <button class="btn-glow" @click="goToSection('catalog-section')">Chọn theo nhu cầu</button>
           <button class="btn-outline" @click="goToSection('showroom-section')">Tham quan showroom</button>
         </div>
-
-        <div class="hero-specs-grid">
+        
+        <div class="hero-specs-grid" v-if="isMacbookRoute">
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Apple Silicon M-Series</span>
+            <span class="spec-stat-desc">Đồ họa & Trí tuệ nhân tạo vượt trội</span>
+          </div>
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Liquid Retina XDR</span>
+            <span class="spec-stat-desc">Độ tương phản và dải màu siêu rộng</span>
+          </div>
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Siêu mỏng nhẹ</span>
+            <span class="spec-stat-desc">Vỏ nhôm cao cấp, pin lên đến 22 giờ</span>
+          </div>
+        </div>
+        <div class="hero-specs-grid" v-else>
           <div class="spec-stat-card">
             <span class="spec-stat-title">RTX 40 Series</span>
             <span class="spec-stat-desc">Đồ họa Ray-Tracing siêu thực</span>
@@ -830,7 +863,7 @@ watch(() => route.fullPath, () => {
     </section>
 
     <!-- ===================== BRAND LOGOS ROW ===================== -->
-    <section class="brand-logos-row-wrap">
+    <section class="brand-logos-row-wrap" v-if="!isMacbookRoute">
       <div class="brand-logos-marquee-viewport">
         <div class="brand-logos-track">
           <template v-for="copy in 4" :key="'brand-loop-' + copy">
@@ -850,7 +883,8 @@ watch(() => route.fullPath, () => {
         <div class="flash-sale-title-block">
           <span class="flash-fire-icon">◆</span>
           <h2>MÁY FLAGSHIP ĐẮT TIỀN NHẤT</h2>
-          <p>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
+          <p v-if="isMacbookRoute">Những mẫu MacBook Pro & Air cao cấp nhất, sở hữu vi xử lý Apple Silicon vượt trội cho mọi tác vụ sáng tạo.</p>
+          <p v-else>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
           <p v-if="isUsingPremiumFallback" class="premium-fallback-note">
             Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}, đang hiển thị top sản phẩm đắt nhất trong
             database.

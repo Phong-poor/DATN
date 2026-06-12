@@ -22,7 +22,7 @@ const routePreloads = {
   ]),
   '/products': () => Promise.all([
     import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/Producpage.vue'),
+    import('@/components/Web/ProductsPremiumPage.vue'),
   ]),
   '/gaming': () => Promise.all([
     import('@/components/Layout/MainLayout.vue'),
@@ -30,7 +30,7 @@ const routePreloads = {
   ]),
   '/macbook': () => Promise.all([
     import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/Producpage.vue'),
+    import('@/components/Web/ProductsPremiumPage.vue'),
   ]),
   '/products/:id': () => import('@/components/Web/ProductDetail.vue'),
   '/cart': () => import('@/components/Web/Cart.vue'),
