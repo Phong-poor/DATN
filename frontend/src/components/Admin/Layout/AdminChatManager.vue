@@ -62,7 +62,7 @@
               v-for="conv in filteredConversations" 
               :key="conv.id" 
               class="user-item"
-              :class="{ active: selectedConversation && selectedConversation.id === conv.id, selecting: deleteMode }"
+              :class="{ active: activeConversations.some(c => c.id === conv.id), selecting: deleteMode }"
               @click="deleteMode ? toggleConversationSelection(conv.id) : selectConversation(conv)"
             >
               <label v-if="deleteMode" class="conversation-check" @click.stop>
@@ -98,96 +98,102 @@
       </transition>
     </div>
 
-    <!-- Floating Conversation View -->
-    <transition name="slide-in-right">
-      <div v-if="selectedConversation" class="conversation-window" @mousedown.stop>
-        <div class="conv-header">
-          <div class="conv-header-left">
-            <button class="back-btn" @click="isListOpen = true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <div class="conv-avatar-wrap">
-              <img :src="getAvatar(selectedConversation.user)" alt="Avatar" />
-              <span v-if="selectedConversation.user.online" class="online-status"></span>
-            </div>
-            <div class="conv-user-info">
-              <span class="conv-name text-truncate">{{ selectedConversation.user.name || selectedConversation.user.email }}</span>
-              <span class="conv-status">{{ selectedConversation.user.online ? 'Đang hoạt động' : 'Ngoại tuyến' }}</span>
-            </div>
-          </div>
-          <div class="conv-header-actions">
-            <button type="button" class="action-btn" aria-label="Tìm kiếm tin nhắn" title="Tìm kiếm tin nhắn" @click="showMessageSearch = !showMessageSearch" style="margin-right: 8px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; display: block;">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-              </svg>
-            </button>
-            <button type="button" class="action-btn" aria-label="Đóng" @click="closeConversation">✕</button>
-          </div>
-        </div>
-
-        <!-- Message Search Bar -->
-        <transition name="slide-down">
-          <div v-if="showMessageSearch" class="message-search-bar">
-            <input
-              type="text"
-              v-model="searchMessageQuery"
-              placeholder="Tìm kiếm nội dung tin nhắn..."
-              ref="searchMsgInput"
-              @keyup.enter="nextMatch"
-            />
-            <div v-if="searchMessageQuery.trim()" class="search-navigation">
-              <span class="search-count">{{ matchesCount > 0 ? currentMatchIndex + 1 : 0 }}/{{ matchesCount }}</span>
-              <button type="button" class="nav-btn" @click="prevMatch" title="Kết quả trước">▲</button>
-              <button type="button" class="nav-btn" @click="nextMatch" title="Kết quả tiếp">▼</button>
-            </div>
-            <button type="button" class="search-close-btn" @click="closeMessageSearch">✕</button>
-          </div>
-        </transition>
-
-        <div class="conv-body" ref="convBody">
-          <ChatMessageRow
-            v-for="(msg, idx) in currentMessages"
-            :key="msg.id || msg._clientKey || `tmp-${idx}`"
-            :msg="msg"
-            :auth-user-id="authUserId"
-            api-prefix="admin/chat"
-            :side-class="isOwnMessage(msg) ? 'msg-right' : 'msg-left'"
-            :bubble-class="isOwnMessage(msg) ? 'admin' : 'user'"
-            @open-image="openImage"
-            @updated="(m) => patchMessage(currentMessages, m)"
-            @deleted="(id) => removeMessageById(currentMessages, id)"
-          >
-            <template #body="{ msg: rowMsg }">
-              <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
-                <span v-html="formatMessage(rowMsg.message || '', searchMessageQuery)"></span>
-                <template v-if="rowMsg.message" #caption>
-                  <span v-html="formatMessage(rowMsg.message, searchMessageQuery)"></span>
-                </template>
-              </ChatMessageBody>
-            </template>
-            <template v-if="!isOwnMessage(msg)" #avatar>
-              <div class="msg-avatar-small">
-                <img :src="getAvatar(selectedConversation.user)" alt="User" />
+    <!-- Floating Conversation Views -->
+    <div class="active-conversations-container">
+      <transition-group name="slide-in-right">
+        <div 
+          v-for="(conv, index) in activeConversations" 
+          :key="conv.id" 
+          class="conversation-window-wrapper"
+          :style="{ right: `${80 + index * 340}px` }"
+          @mousedown.stop
+        >
+          <div class="conversation-window">
+            <div class="conv-header">
+              <div class="conv-header-left">
+                <div class="conv-avatar-wrap">
+                  <img :src="getAvatar(conv.user)" alt="Avatar" />
+                  <span v-if="conv.user.online" class="online-status"></span>
+                </div>
+                <div class="conv-user-info">
+                  <span class="conv-name text-truncate">{{ conv.user.name || conv.user.email }}</span>
+                  <span class="conv-status">{{ conv.user.online ? 'Đang hoạt động' : 'Ngoại tuyến' }}</span>
+                </div>
               </div>
-            </template>
-          </ChatMessageRow>
-        </div>
+              <div class="conv-header-actions">
+                <button type="button" class="action-btn" aria-label="Tìm kiếm tin nhắn" title="Tìm kiếm tin nhắn" @click="showMessageSearchMap[conv.id] = !showMessageSearchMap[conv.id]" style="margin-right: 8px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; display: block;">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </button>
+                <button type="button" class="action-btn" aria-label="Đóng" @click="closeConversation(conv)">✕</button>
+              </div>
+            </div>
 
-        <div class="conv-footer">
-          <ChatComposer
-            v-model="newMessage"
-            :disabled="!selectedConversation"
-            placeholder="Aa"
-            @send="onComposerSend"
-          />
+            <!-- Message Search Bar -->
+            <transition name="slide-down">
+              <div v-if="showMessageSearchMap[conv.id]" class="message-search-bar">
+                <input
+                  type="text"
+                  v-model="searchMessageQueryMap[conv.id]"
+                  placeholder="Tìm kiếm nội dung tin nhắn..."
+                  @input="onSearchQueryInput(conv.id)"
+                  @keyup.enter="nextMatch(conv.id)"
+                />
+                <div v-if="(searchMessageQueryMap[conv.id] || '').trim()" class="search-navigation">
+                  <span class="search-count">{{ getMatchesCount(conv.id) > 0 ? (currentMatchIndexMap[conv.id] !== undefined ? currentMatchIndexMap[conv.id] : -1) + 1 : 0 }}/{{ getMatchesCount(conv.id) }}</span>
+                  <button type="button" class="nav-btn" @click="prevMatch(conv.id)" title="Kết quả trước">▲</button>
+                  <button type="button" class="nav-btn" @click="nextMatch(conv.id)" title="Kết quả tiếp">▼</button>
+                </div>
+                <button type="button" class="search-close-btn" @click="closeMessageSearch(conv.id)">✕</button>
+              </div>
+            </transition>
+
+            <div class="conv-body" :id="`conv-body-${conv.id}`">
+              <ChatMessageRow
+                v-for="(msg, idx) in messagesMap[conv.id] || []"
+                :key="msg.id || msg._clientKey || `tmp-${idx}`"
+                :msg="msg"
+                :auth-user-id="authUserId"
+                api-prefix="admin/chat"
+                :side-class="isOwnMessage(msg) ? 'msg-right' : 'msg-left'"
+                :bubble-class="isOwnMessage(msg) ? 'admin' : 'user'"
+                @open-image="openImage"
+                @updated="(m) => patchMessage(messagesMap[conv.id] || [], m)"
+                @deleted="(id) => removeMessageById(messagesMap[conv.id] || [], id)"
+              >
+                <template #body="{ msg: rowMsg }">
+                  <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
+                    <span v-html="formatMessage(rowMsg.message || '', searchMessageQueryMap[conv.id])"></span>
+                    <template v-if="rowMsg.message" #caption>
+                      <span v-html="formatMessage(rowMsg.message, searchMessageQueryMap[conv.id])"></span>
+                    </template>
+                  </ChatMessageBody>
+                </template>
+                <template v-if="!isOwnMessage(msg)" #avatar>
+                  <div class="msg-avatar-small">
+                    <img :src="getAvatar(conv.user)" alt="User" />
+                  </div>
+                </template>
+              </ChatMessageRow>
+            </div>
+
+            <div class="conv-footer">
+              <ChatComposer
+                v-model="newMessagesMap[conv.id]"
+                placeholder="Aa"
+                @send="(data) => onComposerSend(conv, data)"
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </transition>
+      </transition-group>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser } from '@/services/auth';
@@ -204,13 +210,19 @@ import {
   submitChatComposer,
 } from '@/utils/chatMessage';
 import ChatMessageRow from '@/components/Chat/ChatMessageRow.vue';
+import ChatMessageBody from '@/components/Chat/ChatMessageBody.vue';
 import ChatComposer from '@/components/Chat/ChatComposer.vue';
 
 const isListOpen = ref(false);
 const searchQuery = ref('');
-const selectedConversation = ref(null);
-const newMessage = ref('');
-const convBody = ref(null);
+const activeConversations = ref([]); // Array of active conversations, max 3
+const conversations = ref([]);
+const messagesMap = ref({}); // conv.id -> Messages array
+const newMessagesMap = ref({}); // conv.id -> composing message text
+const showMessageSearchMap = ref({}); // conv.id -> boolean search bar visibility
+const searchMessageQueryMap = ref({}); // conv.id -> search string
+const currentMatchIndexMap = ref({}); // conv.id -> search match index
+
 const managerRef = ref(null);
 const showConversationMenu = ref(false);
 const deleteMode = ref(false);
@@ -221,34 +233,24 @@ const CHAT_SEND_ENDPOINT = '/admin/chat/send';
 const user = getUser();
 const authUserId = computed(() => user?.id);
 
-// Message search state and logic
-const showMessageSearch = ref(false);
-const searchMessageQuery = ref('');
-const currentMatchIndex = ref(-1);
-const searchMsgInput = ref(null);
-
-const searchMatches = computed(() => {
-  if (!searchMessageQuery.value.trim()) return [];
-  const query = searchMessageQuery.value.trim().toLowerCase();
-  return currentMessages.value
+const getSearchMatches = (convId) => {
+  const query = (searchMessageQueryMap.value[convId] || '').trim().toLowerCase();
+  if (!query) return [];
+  const messages = messagesMap.value[convId] || [];
+  return messages
     .map((msg, index) => ({ msg, index }))
     .filter(item => item.msg.message && item.msg.message.toLowerCase().includes(query));
-});
+};
 
-const matchesCount = computed(() => searchMatches.value.length);
+const getMatchesCount = (convId) => {
+  return getSearchMatches(convId).length;
+};
 
-watch(searchMessageQuery, (newVal) => {
-  if (newVal.trim()) {
-    currentMatchIndex.value = searchMatches.value.length - 1; // Default to last match
-    scrollToMatch();
-  } else {
-    currentMatchIndex.value = -1;
-  }
-});
-
-const scrollToMatch = () => {
-  if (currentMatchIndex.value === -1 || searchMatches.value.length === 0) return;
-  const match = searchMatches.value[currentMatchIndex.value];
+const scrollToMatch = (convId) => {
+  const matchIndex = currentMatchIndexMap.value[convId];
+  const matches = getSearchMatches(convId);
+  if (matchIndex === -1 || matches.length === 0) return;
+  const match = matches[matchIndex];
   if (!match) return;
 
   nextTick(() => {
@@ -263,22 +265,37 @@ const scrollToMatch = () => {
   });
 };
 
-const nextMatch = () => {
-  if (matchesCount.value === 0) return;
-  currentMatchIndex.value = (currentMatchIndex.value + 1) % matchesCount.value;
-  scrollToMatch();
+const onSearchQueryInput = (convId) => {
+  const query = searchMessageQueryMap.value[convId] || '';
+  if (query.trim()) {
+    const matches = getSearchMatches(convId);
+    currentMatchIndexMap.value[convId] = matches.length - 1; // Default to last match
+    scrollToMatch(convId);
+  } else {
+    currentMatchIndexMap.value[convId] = -1;
+  }
 };
 
-const prevMatch = () => {
-  if (matchesCount.value === 0) return;
-  currentMatchIndex.value = (currentMatchIndex.value - 1 + matchesCount.value) % matchesCount.value;
-  scrollToMatch();
+const nextMatch = (convId) => {
+  const count = getMatchesCount(convId);
+  if (count === 0) return;
+  const current = currentMatchIndexMap.value[convId] !== undefined ? currentMatchIndexMap.value[convId] : -1;
+  currentMatchIndexMap.value[convId] = (current + 1) % count;
+  scrollToMatch(convId);
 };
 
-const closeMessageSearch = () => {
-  showMessageSearch.value = false;
-  searchMessageQuery.value = '';
-  currentMatchIndex.value = -1;
+const prevMatch = (convId) => {
+  const count = getMatchesCount(convId);
+  if (count === 0) return;
+  const current = currentMatchIndexMap.value[convId] !== undefined ? currentMatchIndexMap.value[convId] : -1;
+  currentMatchIndexMap.value[convId] = (current - 1 + count) % count;
+  scrollToMatch(convId);
+};
+
+const closeMessageSearch = (convId) => {
+  showMessageSearchMap.value[convId] = false;
+  searchMessageQueryMap.value[convId] = '';
+  currentMatchIndexMap.value[convId] = -1;
 };
 
 const formatMessage = (text, query = '') => {
@@ -301,9 +318,6 @@ const formatMessage = (text, query = '') => {
   formatted = formatted.replace(/\n/g, '<br/>');
   return formatted;
 };
-
-const conversations = ref([]);
-const currentMessages = ref([]);
 
 const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
 
@@ -329,21 +343,26 @@ const loadConversations = async () => {
 
 const selectConversation = async (conv) => {
   if (deleteMode.value) return;
-  selectedConversation.value = conv;
+  
+  if (!activeConversations.value.find(c => c.id === conv.id)) {
+    if (activeConversations.value.length >= 3) {
+      activeConversations.value.shift();
+    }
+    activeConversations.value.push(conv);
+    
+    try {
+      const res = await api.get(`/admin/chat/conversations/${conv.id}/messages`);
+      messagesMap.value[conv.id] = res.data;
+      scrollToBottom(conv.id);
+      subscribeToConversation(conv.id);
+    } catch (error) {
+      console.error('Lỗi load tin nhắn:', error);
+    }
+  }
+  
   isListOpen.value = false;
   stopChatTitleNotice();
-  
-  try {
-    const res = await api.get(`/admin/chat/conversations/${conv.id}/messages`);
-    currentMessages.value = res.data;
-    scrollToBottom();
-    
-    // Subscribe to specific chat
-    subscribeToConversation(conv.id);
-    conv.unread_count = 0;
-  } catch (error) {
-    console.error('Lỗi load tin nhắn:', error);
-  }
+  conv.unread_count = 0;
 };
 
 const enterDeleteMode = () => {
@@ -376,10 +395,13 @@ const deleteSelectedConversations = async () => {
     const ids = [...selectedConversationIds.value];
     await api.delete('/admin/chat/conversations', { data: { ids } });
     conversations.value = conversations.value.filter((conv) => !ids.includes(conv.id));
-
-    if (selectedConversation.value && ids.includes(selectedConversation.value.id)) {
-      closeConversation();
-    }
+    
+    ids.forEach(id => {
+      const idx = activeConversations.value.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        closeConversation(activeConversations.value[idx]);
+      }
+    });
 
     cancelDeleteMode();
   } catch (error) {
@@ -390,13 +412,19 @@ const deleteSelectedConversations = async () => {
   }
 };
 
-const closeConversation = () => {
-  if (selectedConversation.value && echo) {
-    echo.leaveChannel(`chat.${selectedConversation.value.id}`);
+const closeConversation = (conv) => {
+  if (echo) {
+    echo.leaveChannel(`chat.${conv.id}`);
   }
-  selectedConversation.value = null;
-  currentMessages.value = [];
-  closeMessageSearch();
+  const idx = activeConversations.value.findIndex(c => c.id === conv.id);
+  if (idx !== -1) {
+    activeConversations.value.splice(idx, 1);
+  }
+  delete messagesMap.value[conv.id];
+  delete newMessagesMap.value[conv.id];
+  delete showMessageSearchMap.value[conv.id];
+  delete searchMessageQueryMap.value[conv.id];
+  delete currentMatchIndexMap.value[conv.id];
 };
 
 const bumpConversation = (msg) => {
@@ -417,14 +445,15 @@ const bumpConversation = (msg) => {
   const conv = conversations.value.splice(idx, 1)[0];
   conversations.value.unshift(conv);
 
-  if (selectedConversation.value && selectedConversation.value.id === msg.conversation_id) {
-    if (Number(msg.sender_id) === Number(selectedConversation.value.user.id)) {
-      selectedConversation.value.user.online = true;
-      selectedConversation.value.user.last_active_at = msg.created_at;
+  if (activeConversations.value.find(c => c.id === msg.conversation_id)) {
+    const active = activeConversations.value.find(c => c.id === msg.conversation_id);
+    if (Number(msg.sender_id) === Number(active.user.id)) {
+      active.user.online = true;
+      active.user.last_active_at = msg.created_at;
     }
   }
 
-  if (!selectedConversation.value || selectedConversation.value.id !== msg.conversation_id) {
+  if (!activeConversations.value.find(c => c.id === msg.conversation_id)) {
     conv.unread_count = (conv.unread_count || 0) + 1;
     startChatTitleNotice();
   }
@@ -439,11 +468,17 @@ const subscribeToGlobal = () => {
 };
 
 const subscribeToConversation = (id) => {
-  bindChatChannel(echo, `chat.${id}`, currentMessages, authUserId.value, (msg) => {
-    scrollToBottom();
-    if (selectedConversation.value && Number(msg.sender_id) === Number(selectedConversation.value.user.id)) {
-      selectedConversation.value.user.online = true;
-      selectedConversation.value.user.last_active_at = msg.created_at;
+  const messagesRef = computed({
+    get: () => messagesMap.value[id] || [],
+    set: (val) => { messagesMap.value[id] = val; }
+  });
+
+  bindChatChannel(echo, `chat.${id}`, messagesRef, authUserId.value, (msg) => {
+    scrollToBottom(id);
+    const active = activeConversations.value.find(c => c.id === id);
+    if (active && Number(msg.sender_id) === Number(active.user.id)) {
+      active.user.online = true;
+      active.user.last_active_at = msg.created_at;
     }
     const idx = conversations.value.findIndex((c) => c.id === id);
     if (idx !== -1) {
@@ -457,27 +492,35 @@ const openImage = (url) => {
   window.open(url, '_blank');
 };
 
-const onComposerSend = async ({ text, items }) => {
-  if (!selectedConversation.value) return;
-
-  newMessage.value = '';
+const onComposerSend = async (conv, { text, items }) => {
+  newMessagesMap.value[conv.id] = '';
   stopChatTitleNotice();
+
+  const messagesRef = computed({
+    get: () => messagesMap.value[conv.id] || [],
+    set: (val) => { messagesMap.value[conv.id] = val; }
+  });
 
   try {
     const lastMsgText = await submitChatComposer({
       endpoint: CHAT_SEND_ENDPOINT,
-      conversationId: selectedConversation.value.id,
+      conversationId: conv.id,
       text,
       items,
-      messagesRef: currentMessages,
+      messagesRef: messagesRef,
       authUserId: authUserId.value,
     });
 
     if (lastMsgText) {
-      selectedConversation.value.last_message = lastMsgText;
-      selectedConversation.value.updated_at = new Date().toISOString();
+      conv.last_message = lastMsgText;
+      conv.updated_at = new Date().toISOString();
+      const idx = conversations.value.findIndex(c => c.id === conv.id);
+      if (idx !== -1) {
+        const [item] = conversations.value.splice(idx, 1);
+        conversations.value.unshift(item);
+      }
     }
-    scrollToBottom();
+    scrollToBottom(conv.id);
   } catch (error) {
     console.error('Lỗi gửi tin nhắn admin:', error);
   }
@@ -506,10 +549,11 @@ const formatTime = (time) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const scrollToBottom = async () => {
+const scrollToBottom = async (convId) => {
   await nextTick();
-  if (convBody.value) {
-    convBody.value.scrollTop = convBody.value.scrollHeight;
+  const el = document.getElementById(`conv-body-${convId}`);
+  if (el) {
+    el.scrollTop = el.scrollHeight;
   }
 };
 
@@ -521,7 +565,7 @@ const handleClickOutside = (e) => {
 };
 
 const handleVisibilityChange = () => {
-  if (!document.hidden && selectedConversation.value) {
+  if (!document.hidden && activeConversations.value.length > 0) {
     stopChatTitleNotice();
   }
 };
@@ -539,9 +583,7 @@ onUnmounted(() => {
   stopChatTitleNotice();
   if (echo) {
     echo.leaveChannel('admin.chat');
-    if (selectedConversation.value) {
-      echo.leaveChannel(`chat.${selectedConversation.value.id}`);
-    }
+    activeConversations.value.forEach(c => echo.leaveChannel(`chat.${c.id}`));
   }
 });
 </script>
@@ -899,16 +941,34 @@ onUnmounted(() => {
   margin-left: 8px;
 }
 
-.conversation-window {
+.active-conversations-container {
   position: fixed;
-  bottom: 0px;
-  right: 80px;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2000;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.conversation-window-wrapper {
+  position: fixed;
+  bottom: 0;
   width: 330px;
   height: 480px;
+  pointer-events: auto;
+  transition: right 0.3s ease;
+  z-index: 2000;
+}
+
+.conversation-window {
+  width: 100%;
+  height: 100%;
   background: #fff;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 8px 10px rgba(0, 0, 0, 0.08);
-  z-index: 2000;
   display: flex;
   flex-direction: column;
 }
