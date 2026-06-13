@@ -563,6 +563,7 @@ async function handleLogout() {
   const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống quản trị?')
   if (!isConfirmed) return
   userMenuOpen.value = false
+  api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
   clearAuth()
   router.push('/login')
 }

@@ -81,7 +81,7 @@ const routes = [
   { path: '/register', name: 'register', component: Register },
   { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword },
   { path: '/otp-verify', name: 'otp-verify', component: OtpVerify },
-  { path: '/reset-password', name: 'reset-password', component: ResetPassword },
+  { path: '/reset-password', alias: '/reset_password', name: 'reset-password', component: ResetPassword },
   { path: '/login-success', name: 'login-success', component: LoginSuccess },
 
   // ── ADMIN ──
@@ -141,7 +141,7 @@ router.afterEach(() => {
   // Thực hiện cuộn phụ sau 120ms để bù đắp sự thay đổi chiều cao do các tiến trình render bất đồng bộ (API/Transitions)
   setTimeout(() => {
     forceScrollTop()
-    window.dispatchEvent(new Event('global-loader-hide'))
+    window.dispatchEvent(new Event('global-loader-force-hide'))
   }, 120)
 })
 
@@ -164,6 +164,7 @@ router.beforeEach((to, from, next) => {
     '/forgot-password',
     '/otp-verify',
     '/reset-password',
+    '/reset_password',
     '/login-success',
     '/news',
     '/contact',

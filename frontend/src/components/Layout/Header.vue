@@ -503,7 +503,7 @@ const handleLogout = async () => {
   const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống?')
   if (!isConfirmed) return
   showUser.value = false
-  try { await api.post('/logout') } catch { console.log('Logout API lỗi (bỏ qua)') }
+  api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
   clearAuth()
   localStorage.removeItem('remember_email')
   cartCount.value = 0

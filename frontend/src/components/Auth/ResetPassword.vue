@@ -1,9 +1,7 @@
-﻿<script setup>
-import { ref, computed } from 'vue'
-import { onMounted } from 'vue'
+<script setup>
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
-import swal from '@/services/swal'
 import { formatAuthMessage } from '@/services/authMessages'
 import {
   getPasswordChecks,
@@ -17,15 +15,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 
-const email = route.query.email
-const otp = route.query.otp
-
-onMounted(() => {
-  if (!email || !otp) {
-    swal.error('Lỗi xác thực', 'Thiếu thông tin xác thực. Vui lòng thực hiện lại.')
-    router.push('/forgot-password')
-  }
-})
+const email = ref(route.query.email || '')
+const otp = ref(route.query.otp || '')
 
 const showPassword = ref(false)
 const showConfirm = ref(false)
@@ -34,15 +25,51 @@ const isLoading = ref(false)
 const form = ref({ password: '', confirm: '' })
 const errors = ref({ password: '', confirm: '' })
 
-const checks = computed(() => getPasswordChecks(form.value.password))
-const requirements = computed(() => getPasswordRequirements(form.value.password))
+const isTouched = {
+  password: ref(false),
+  confirm: ref(false),
+}
 
-const strengthScore = computed(() => getPasswordScore(form.value.password))
-const strength = computed(() => getPasswordStrength(form.value.password))
+onMounted(() => {
+  if (!email.value || !otp.value) {
+    showModal('error', 'Lỗi xác thực', 'Thiếu thông tin xác thực. Vui lòng thực hiện lại.', () => {
+      router.push('/forgot-password')
+    })
+  }
+})
 
-const strengthWidth = computed(() => strength.value.width)
-const strengthColor = computed(() => strength.value.color)
-const strengthText = computed(() => strength.value.label)
+const passwordChecks = computed(() => getPasswordChecks(form.value.password))
+const passwordScore = computed(() => getPasswordScore(form.value.password))
+const passwordStrength = computed(() => getPasswordStrength(form.value.password))
+const passwordRequirements = computed(() => getPasswordRequirements(form.value.password))
+
+const confirmError = computed(() => {
+  if (!isTouched.confirm.value) return ''
+  return validatePasswordConfirmation(form.value.password, form.value.confirm)
+})
+
+const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
+let autoCloseTimer = null
+
+const showModal = (type, title, message, onConfirm = null) => {
+  modal.value = { show: true, type, title, message, onConfirm }
+  if (type === 'success') {
+    if (autoCloseTimer) clearTimeout(autoCloseTimer)
+    autoCloseTimer = setTimeout(() => {
+      closeModal()
+    }, 2000)
+  }
+}
+
+const closeModal = () => {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer)
+    autoCloseTimer = null
+  }
+  const cb = modal.value.onConfirm
+  modal.value.show = false
+  if (cb) cb()
+}
 
 function validatePassword() {
   errors.value.password = ''
@@ -54,13 +81,24 @@ function validatePassword() {
 function validate() {
   errors.value = { password: '', confirm: '' }
   const passwordError = validateStrongPassword(form.value.password).replace('mật khẩu.', 'mật khẩu mới.')
-  if (passwordError) { errors.value.password = passwordError; return false }
-  const confirmError = validatePasswordConfirmation(form.value.password, form.value.confirm)
-  if (confirmError) { errors.value.confirm = confirmError; return false }
+  if (passwordError) {
+    errors.value.password = passwordError
+    showModal('error', 'Mật khẩu yếu', passwordError)
+    return false
+  }
+  const confirmErrorVal = validatePasswordConfirmation(form.value.password, form.value.confirm)
+  if (confirmErrorVal) {
+    errors.value.confirm = confirmErrorVal
+    showModal('error', 'Lỗi xác nhận', confirmErrorVal)
+    return false
+  }
   return true
 }
 
 async function submit() {
+  isTouched.password.value = true
+  isTouched.confirm.value = true
+  
   if (!validate()) return
   if (isLoading.value) return
 
@@ -68,25 +106,25 @@ async function submit() {
 
   try {
     const res = await api.post('/forgot-password/reset-password', {
-      email: email,
-      otp: otp,
+      email: email.value,
+      otp: otp.value,
       password: form.value.password,
-      password_confirmation: form.value.confirm
+      password_confirmation: form.value.confirm,
     })
 
-    swal.success('Thành công', formatAuthMessage(res.data.message, 'Đổi mật khẩu thành công!'))
-
-    sessionStorage.removeItem('redirect_after_auth')
-    router.push('/login')
+    showModal('success', 'Thành công', formatAuthMessage(res.data.message, 'Đổi mật khẩu thành công!'), () => {
+      sessionStorage.removeItem('redirect_after_auth')
+      router.push('/login')
+    })
 
   } catch (err) {
     console.log(err)
 
     if (err.response?.data?.errors) {
       const firstError = Object.values(err.response.data.errors)[0][0]
-      swal.error('Lỗi', formatAuthMessage(firstError))
+      showModal('error', 'Lỗi', formatAuthMessage(firstError))
     } else {
-      swal.error('Lỗi', formatAuthMessage(err.response?.data?.message, 'Không thể đổi mật khẩu. Vui lòng thử lại.'))
+      showModal('error', 'Lỗi', formatAuthMessage(err.response?.data?.message, 'Không thể đổi mật khẩu. Vui lòng thử lại.'))
     }
 
   } finally {
@@ -95,603 +133,584 @@ async function submit() {
 }
 </script>
 
-
-
 <template>
-  <div class="layout">
-
-    <!-- LEFT PANEL -->
-    <div class="left-panel">
-      <div class="circuit-bg">
-        <svg class="circuit-svg" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="80" cy="120" r="4" fill="rgba(255,255,255,0.2)" />
-          <circle cx="200" cy="80" r="3" fill="rgba(255,255,255,0.15)" />
-          <circle cx="320" cy="160" r="4" fill="rgba(255,255,255,0.2)" />
-          <circle cx="140" cy="260" r="3" fill="rgba(255,255,255,0.12)" />
-          <circle cx="300" cy="300" r="5" fill="rgba(255,255,255,0.18)" />
-          <circle cx="60" cy="380" r="3" fill="rgba(255,255,255,0.15)" />
-          <circle cx="240" cy="420" r="4" fill="rgba(255,255,255,0.2)" />
-          <line x1="80" y1="120" x2="200" y2="80" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-          <line x1="200" y1="80" x2="320" y2="160" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-          <line x1="80" y1="120" x2="140" y2="260" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-          <line x1="320" y1="160" x2="300" y2="300" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-          <line x1="140" y1="260" x2="300" y2="300" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-          <line x1="60" y1="380" x2="240" y2="420" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-          <line x1="140" y1="260" x2="60" y2="380" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
-          <rect x="60" y="100" width="40" height="40" rx="4" stroke="rgba(255,255,255,0.06)" stroke-width="1"
-            fill="none" />
-          <rect x="180" y="60" width="40" height="40" rx="4" stroke="rgba(255,255,255,0.06)" stroke-width="1"
-            fill="none" />
-          <rect x="290" y="280" width="40" height="40" rx="4" stroke="rgba(255,255,255,0.06)" stroke-width="1"
-            fill="none" />
-          <!-- Laptop silhouette -->
-          <rect x="90" y="310" width="220" height="140" rx="8" fill="rgba(255,255,255,0.04)"
-            stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-          <rect x="100" y="320" width="200" height="120" rx="4" fill="rgba(255,255,255,0.05)" />
-          <line x1="60" y1="450" x2="340" y2="450" stroke="rgba(255,255,255,0.08)" stroke-width="6"
-            stroke-linecap="round" />
-          <!-- Lock icon large -->
-          <rect x="175" y="355" width="50" height="40" rx="4" fill="rgba(99,130,255,0.3)" stroke="rgba(255,255,255,0.2)"
-            stroke-width="1" />
-          <path d="M185 355 V345 Q200 330 215 345 V355" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"
-            stroke-linecap="round" />
-          <circle cx="200" cy="375" r="5" fill="rgba(255,255,255,0.5)" />
-        </svg>
-      </div>
-
-      <!-- Badge -->
-      <div class="badge">VINATECH PREMIUM SECURITY</div>
-
-      <!-- Headline -->
-      <div class="headline">
-        <h1>Nâng tầm <span class="accent">Bảo<br />mật</span> Kỹ thuật số.</h1>
-      </div>
-
-      <!-- Desc -->
-      <p class="left-desc">Trải nghiệm hệ sinh thái công nghệ hàng đầu với chuẩn bảo mật khắt khe nhất, bảo vệ dữ liệu
-        của bạn trong mọi giao dịch.</p>
-
-      <!-- Features -->
-      <div class="features">
-        <div class="feature-chip">
-          <div class="chip-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              <circle cx="12" cy="16" r="1" fill="currentColor" />
-            </svg>
+  <div class="page">
+    <div class="box">
+      <!-- LEFT (Dark Column) -->
+      <div class="left-col">
+        <div class="left-content">
+          <div class="brand-header">
+            <span class="brand-title">Predator</span>
+            <span class="brand-slogan">Chinh Phục Tầm Cao Mới.</span>
           </div>
-          <div>
-            <p class="chip-title">Mã hóa 256-bit</p>
-            <p class="chip-sub">Tiêu chuẩn quân đội</p>
+          <p class="brand-description">
+            Thiết lập mật khẩu mới bảo mật để tiếp tục truy cập tài khoản Predator của bạn.
+          </p>
+          <div class="highlight-pills">
+            <span class="pill">
+              <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Đăng nhập nhanh
+            </span>
+            <span class="pill">
+              <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              Đồng bộ giỏ hàng
+            </span>
+            <span class="pill">
+              <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Ưu đãi thành viên
+            </span>
           </div>
         </div>
-        <div class="feature-chip">
-          <div class="chip-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <polyline points="9 12 11 14 15 10" />
-            </svg>
-          </div>
-          <div>
-            <p class="chip-title">Xác thực đa lớp</p>
-            <p class="chip-sub">Bảo mật tuyệt đối</p>
-          </div>
+        <div class="laptop-img-wrapper">
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator laptop workspace" />
         </div>
       </div>
-    </div>
 
-    <!-- RIGHT PANEL -->
-    <div class="right-panel">
-      <div class="form-card">
-
-        <h1 class="form-title">Đặt lại mật khẩu</h1>
-        <p class="form-desc">
-          Vui lòng thiết lập mật khẩu mới cho tài khoản<br />
-          <strong>{{ email }}</strong>
-        </p>
-
-        <!-- New password -->
-        <div class="field-group">
-          <label class="field-label">Mật khẩu mới</label>
-          <div class="input-wrap" :class="{ 'input-error': errors.password }">
-            <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="••••••••"
-              @input="validatePassword" class="field-input" />
-            <button class="eye-btn" type="button" @click="showPassword = !showPassword">
-              <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path
-                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-            </button>
-          </div>
-          <p class="err-msg" v-if="errors.password">{{ errors.password }}</p>
+      <!-- RIGHT (White Column) -->
+      <div class="right-col">
+        <div class="welcome-box">
+          <h2 class="welcome-title">Đặt lại mật khẩu mới</h2>
+          <p class="welcome-desc">Vui lòng nhập mật khẩu mới để bảo mật tài khoản của bạn.</p>
         </div>
 
-        <!-- Confirm password -->
-        <div class="field-group">
-          <label class="field-label">Xác nhận mật khẩu mới</label>
-          <div class="input-wrap" :class="{ 'input-error': errors.confirm }">
-            <input :type="showConfirm ? 'text' : 'password'" v-model="form.confirm" placeholder="••••••••"
-              class="field-input" />
-            <button class="eye-btn" type="button" @click="showConfirm = !showConfirm">
-              <svg v-if="!showConfirm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path
-                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-            </button>
-          </div>
-          <p class="err-msg" v-if="errors.confirm">{{ errors.confirm }}</p>
-        </div>
-
-        <!-- Strength checker -->
-        <div class="strength-section">
-          <p class="strength-title">YÊU CẦU BẢO MẬT</p>
-          <div class="strength-bar-row">
-            <div class="strength-bar">
-              <div class="strength-fill" :style="{ width: strengthWidth, background: strengthColor }"></div>
+        <!-- FORM FIELDS -->
+        <form class="form-container" @submit.prevent="submit">
+          <!-- NEW PASSWORD -->
+          <div class="form-group">
+            <label class="input-label">Mật khẩu mới</label>
+            <div class="input-wrapper" :class="{ 'error': (isTouched.password.value && passwordScore < 4) || errors.password }">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="••••••••" @blur="isTouched.password.value = true" @input="validatePassword" />
+              <button class="eye-toggle-btn" @click="showPassword = !showPassword" type="button">
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              </button>
             </div>
-            <span class="strength-label" :style="{ color: strengthColor }">{{ strengthText }}</span>
-          </div>
-          <div class="req-list">
-            <div v-for="item in requirements" :key="item.key" class="req-item" :class="{ 'req-ok': item.ok }">
-              <span class="req-dot"></span>
-              {{ item.label }}
+            <!-- PASSWORD STRENGTH METER -->
+            <div v-if="form.password" class="password-strength">
+              <div class="strength-head">
+                <span :style="{ color: passwordStrength.color }">{{ passwordStrength.label }}</span>
+                <small>{{ passwordScore }}/5</small>
+              </div>
+              <div class="strength-track">
+                <div class="strength-fill" :style="{ width: passwordStrength.width, background: passwordStrength.color }"></div>
+              </div>
+              <div class="strength-requirements">
+                <span v-for="r in passwordRequirements" :key="r.key" :class="{ ok: r.ok }">
+                  {{ r.ok ? '✓' : '○' }} {{ r.label }}
+                </span>
+              </div>
             </div>
+            <p v-if="errors.password" class="field-hint error">{{ errors.password }}</p>
           </div>
-        </div>
 
-        <!-- Submit -->
-        <button class="btn-submit" :class="{ loading: isLoading }" @click="submit" :disabled="isLoading">
-          <span v-if="!isLoading">Cập nhật mật khẩu</span>
-          <span v-else class="spin-wrap">
-            <span class="spin"></span>
-            Đang cập nhật...
+          <!-- CONFIRM PASSWORD -->
+          <div class="form-group">
+            <label class="input-label">Xác nhận mật khẩu mới</label>
+            <div class="input-wrapper" :class="{ 'error': confirmError || errors.confirm }">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 11 11 13 15 9" />
+                </svg>
+              </span>
+              <input :type="showConfirm ? 'text' : 'password'" v-model="form.confirm" placeholder="••••••••" @blur="isTouched.confirm.value = true" />
+              <button class="eye-toggle-btn" @click="showConfirm = !showConfirm" type="button">
+                <svg v-if="!showConfirm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              </button>
+            </div>
+            <p v-if="confirmError || errors.confirm" class="field-hint error">{{ confirmError || errors.confirm }}</p>
+          </div>
+
+          <!-- SUBMIT BUTTON -->
+          <button type="submit" class="submit-btn" :disabled="isLoading">
+            <span class="btn-text">
+              {{ isLoading ? 'Đang cập nhật mật khẩu...' : 'Cập nhật mật khẩu' }}
+            </span>
+          </button>
+        </form>
+
+        <!-- FOOTER BACK LINK -->
+        <p class="footer-register">
+          <span class="register-link back-to-login" @click="router.push('/login')">
+            <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Quay lại trang đăng nhập
           </span>
-        </button>
-
-        <!-- Back -->
-        <p class="back-link">
-          Quay lại trang
-          <a href="" @click.prevent="router.push('/login')">Đăng nhập</a>
         </p>
 
       </div>
     </div>
 
+    <!-- MODAL -->
+    <Transition name="modal">
+      <div v-if="modal.show" class="modal-overlay" @click.self="closeModal">
+        <div class="modal-card" :class="modal.type">
+          <div class="modal-icon">
+            <svg v-if="modal.type === 'error'" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <h3 class="modal-title">{{ modal.title }}</h3>
+          <p class="modal-message">{{ modal.message }}</p>
+          <button v-if="modal.type !== 'success'" class="modal-btn" :class="modal.type" @click="closeModal">
+            {{ modal.type === 'success' ? 'Tiếp tục' : 'Đã hiểu' }}
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
-
-
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.layout {
-  display: flex;
+.page {
   min-height: 100vh;
-  font-family: 'Be Vietnam Pro', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f6f9;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  position: relative;
 }
 
-/* ── LEFT PANEL ── */
-.left-panel {
-  width: 44%;
-  background: linear-gradient(160deg, #0b1640 0%, #0d2070 35%, #1535b0 70%, #1a3ecf 100%);
-  padding: 48px 44px;
+.box {
+  width: 960px;
+  height: 590px;
+  display: grid;
+  grid-template-columns: 42% 58%;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 5;
+}
+
+.left-col {
+  background-color: #0d1b2e;
+  color: #ffffff;
+  padding: 36px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   position: relative;
-  overflow: hidden;
 }
 
-.circuit-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+.brand-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.circuit-svg {
+.brand-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.brand-slogan {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.brand-description {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-top: 12px;
+  margin-bottom: 18px;
+}
+
+.highlight-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  align-self: flex-start;
+  backdrop-filter: blur(4px);
+}
+
+.pill-icon {
+  width: 14px;
+  height: 14px;
+  color: #60a5fa;
+}
+
+.laptop-img-wrapper {
+  margin-top: auto;
   width: 100%;
-  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.laptop-img {
+  width: 100%;
+  max-width: 320px;
+  height: 180px;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
   object-fit: cover;
 }
 
-/* Badge */
-.badge {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  padding: 7px 16px;
-  border-radius: 20px;
-  margin-bottom: 40px;
-  width: fit-content;
-}
-
-/* Headline */
-.headline {
-  position: relative;
-  z-index: 2;
-  margin-bottom: 20px;
-}
-
-.headline h1 {
-  font-size: 42px;
-  font-weight: 900;
-  color: #fff;
-  line-height: 1.15;
-  letter-spacing: -0.5px;
-}
-
-.accent {
-  color: #818cf8;
-}
-
-.left-desc {
-  position: relative;
-  z-index: 2;
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.75;
-  max-width: 310px;
-  margin-bottom: 36px;
-}
-
-/* Features */
-.features {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  gap: 12px;
-  margin-top: auto;
-}
-
-.feature-chip {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.chip-icon {
-  width: 34px;
-  height: 34px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.chip-icon svg {
-  width: 16px;
-  height: 16px;
-  stroke: #a5b4fc;
-}
-
-.chip-title {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 2px;
-}
-
-.chip-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* ── RIGHT PANEL ── */
-.right-panel {
-  flex: 1;
-  background: #f8faff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 32px;
-}
-
-.form-card {
-  width: 100%;
-  max-width: 400px;
+.right-col {
+  padding: 30px 44px;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  justify-content: center;
 }
 
-.form-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 8px;
-  letter-spacing: -0.3px;
-}
-
-.form-desc {
-  font-size: 13.5px;
-  color: #64748b;
-  line-height: 1.6;
-  margin-bottom: 28px;
-}
-
-/* Fields */
-.field-group {
+.welcome-box {
   margin-bottom: 16px;
 }
 
-.field-label {
-  display: block;
+.welcome-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0d1b2e;
+  margin: 0;
+}
+
+.welcome-desc {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #334155;
-  margin-bottom: 7px;
+  color: #374151;
 }
 
-.input-wrap {
+.input-wrapper {
   display: flex;
   align-items: center;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
-  transition: border-color .2s, box-shadow .2s;
-  overflow: hidden;
+  background-color: #f8faff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 40px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.input-wrap:focus-within {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+.input-wrapper:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 }
 
-.input-wrap.input-error {
+.input-wrapper.error {
   border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
 }
 
-.input-wrap.input-error:focus-within {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+.input-icon {
+  display: flex;
+  align-items: center;
+  color: #93c5fd;
+  margin-right: 8px;
 }
 
-.field-input {
-  flex: 1;
-  padding: 12px 14px;
+.input-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.input-wrapper input {
   border: none;
-  outline: none;
-  font-size: 14px;
-  color: #0f172a;
   background: transparent;
-  font-family: inherit;
-  letter-spacing: 1px;
+  outline: none;
+  flex: 1;
+  font-size: 13px;
+  color: #0d1b2e;
+  width: 100%;
 }
 
-.field-input::placeholder {
-  letter-spacing: 2px;
-  color: #475569;
+.input-wrapper input::placeholder {
+  color: #9ca3af;
 }
 
-.eye-btn {
-  width: 42px;
+.eye-toggle-btn {
   background: none;
   border: none;
   cursor: pointer;
+  color: #93c5fd;
+  padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  transition: color .15s;
-  padding: 0 12px 0 0;
-  flex-shrink: 0;
+  transition: color 0.2s;
 }
 
-.eye-btn svg {
-  width: 17px;
-  height: 17px;
+.eye-toggle-btn:hover {
+  color: #2563eb;
 }
 
-.eye-btn:hover {
-  color: #6366f1;
+.eye-toggle-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
-.err-msg {
-  font-size: 11.5px;
+.field-hint {
+  font-size: 10.5px;
+  margin: 1px 0 0 2px;
+  font-weight: 600;
+}
+
+.field-hint.error {
   color: #ef4444;
-  margin-top: 5px;
-  font-weight: 500;
 }
 
-/* Strength */
-.strength-section {
-  background: #f8faff;
-  border: 1px solid #e8edf5;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 24px;
+.password-strength {
+  margin-top: 2px;
+  padding: 0 2px;
 }
 
-.strength-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #94a3b8;
-  margin-bottom: 10px;
-}
-
-.strength-bar-row {
+.strength-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
-.strength-bar {
-  flex: 1;
-  height: 5px;
-  background: #e2e8f0;
+.strength-head small {
+  color: #94a3b8;
+}
+
+.strength-track {
+  height: 3px;
+  background: #e5e7eb;
   border-radius: 99px;
   overflow: hidden;
+  margin-top: 2px;
 }
 
 .strength-fill {
   height: 100%;
-  border-radius: 99px;
-  transition: width .4s ease, background .4s ease;
+  border-radius: inherit;
+  transition: width 0.25s ease, background 0.25s ease;
 }
 
-.strength-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  width: 70px;
-  text-align: right;
-  transition: color .4s;
-}
-
-.req-list {
+.strength-requirements {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 4px;
 }
 
-.req-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  color: #94a3b8;
-  transition: color .2s;
+.strength-requirements span {
+  color: #9ca3af;
+  font-size: 10.5px;
+  font-weight: 600;
 }
 
-.req-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  flex-shrink: 0;
-  transition: background .2s;
-}
-
-.req-ok {
+.strength-requirements span.ok {
   color: #16a34a;
 }
 
-.req-ok .req-dot {
-  background: #22c55e;
-}
-
-/* Submit */
-.btn-submit {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
+.submit-btn {
+  background-color: #1e40af;
+  color: #ffffff;
   border: none;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  color: #fff;
-  font-size: 15px;
+  border-radius: 6px;
+  height: 40px;
   font-weight: 700;
+  font-size: 13.5px;
   cursor: pointer;
-  font-family: inherit;
-  transition: all .2s;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
-  margin-bottom: 20px;
-}
-
-.btn-submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 26px rgba(99, 102, 241, 0.45);
-}
-
-.btn-submit:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-submit.loading {
-  opacity: .85;
-  cursor: wait;
-}
-
-.spin-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  margin-top: 6px;
+  transition: background-color 0.2s;
 }
 
-.spin {
-  width: 16px;
-  height: 16px;
-  border: 2.5px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
+.submit-btn:hover {
+  background-color: #1d4ed8;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.submit-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
-/* Back link */
-.back-link {
-  font-size: 13px;
-  color: #94a3b8;
+.footer-register {
   text-align: center;
+  font-size: 12.5px;
+  color: #4b5563;
+  margin-top: 18px;
+  margin-bottom: 0;
 }
 
-.back-link a {
-  color: #6366f1;
+.register-link {
+  color: #2563eb;
   font-weight: 700;
-  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.back-link a:hover {
+.register-link:hover {
   text-decoration: underline;
+  color: #1d4ed8;
+}
+
+.back-icon {
+  width: 14px;
+  height: 14px;
 }
 
 @media (max-width: 768px) {
-  .layout {
-    flex-direction: column;
+  .box {
+    grid-template-columns: 1fr;
+    width: 95%;
+    height: auto;
   }
-
-  .left-panel {
-    width: 100%;
-    min-height: 260px;
-    padding: 32px 24px;
-  }
-
-  .headline h1 {
-    font-size: 30px;
-  }
-
-  .right-panel {
-    padding: 32px 20px;
-  }
+  .left-col { display: none; }
 }
+
+@media (max-width: 480px) {
+  .right-col { padding: 20px 16px; }
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 32px;
+  width: 360px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.modal-card.error .modal-icon { background: #fee2e2; color: #ef4444; }
+.modal-card.success .modal-icon { background: #dbeafe; color: #2563eb; }
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #0d1b2e;
+}
+
+.modal-message {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 25px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.modal-btn.error { background-color: #dc2626; color: white; }
+.modal-btn.success { background-color: #1e40af; color: white; }
+.modal-btn:hover { opacity: 0.88; }
+
+.modal-enter-active,
+.modal-leave-active { transition: opacity 0.25s ease; }
+
+.modal-enter-active .modal-card,
+.modal-leave-active .modal-card { transition: transform 0.25s ease; }
+
+.modal-enter-from,
+.modal-leave-to { opacity: 0; }
+
+.modal-enter-from .modal-card,
+.modal-leave-to .modal-card { transform: scale(0.92) translateY(10px); }
 </style>

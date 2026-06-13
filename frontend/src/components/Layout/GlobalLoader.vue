@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const isVisible = ref(false)
@@ -59,14 +59,20 @@ const stopLoading = () => {
   }, wait)
 }
 
+const forceHideLoading = () => {
+  resetLoading()
+}
+
 onMounted(() => {
   window.addEventListener('global-loader-show', startLoading)
   window.addEventListener('global-loader-hide', stopLoading)
+  window.addEventListener('global-loader-force-hide', forceHideLoading)
 })
 
 onUnmounted(() => {
   window.removeEventListener('global-loader-show', startLoading)
   window.removeEventListener('global-loader-hide', stopLoading)
+  window.removeEventListener('global-loader-force-hide', forceHideLoading)
   resetLoading()
 })
 </script>
