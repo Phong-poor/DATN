@@ -134,8 +134,14 @@
               
               <div class="form-group">
                 <label class="form-label">Danh mục áp dụng (Chọn nhiều)</label>
-                <select multiple class="form-input" v-model="form.danh_muc_ids" style="height: 120px;">
-                  <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">
+                <select multiple class="form-input" style="height: 120px;">
+                  <option 
+                    v-for="cat in categories" 
+                    :key="cat.id_danhmuc" 
+                    :value="Number(cat.id_danhmuc)"
+                    :class="{ 'selected-option': form.danh_muc_ids.includes(Number(cat.id_danhmuc)) }"
+                    @mousedown.prevent="toggleCategorySelection(cat.id_danhmuc)"
+                  >
                     {{ cat.parent_id ? '↳ ' : '' }}{{ cat.ten_danhmuc }}
                   </option>
                 </select>
@@ -227,6 +233,16 @@ const handleFileChange = (e) => {
   if (!file) return;
   logoFile.value = file;
   logoPreview.value = URL.createObjectURL(file);
+};
+
+const toggleCategorySelection = (catId) => {
+  const id = Number(catId);
+  const index = form.value.danh_muc_ids.indexOf(id);
+  if (index > -1) {
+    form.value.danh_muc_ids.splice(index, 1);
+  } else {
+    form.value.danh_muc_ids.push(id);
+  }
 };
 
 // --- LẤY DỮ LIỆU TỪ DB ---
@@ -333,7 +349,7 @@ const openEdit = (th) => {
   editId.value = th.id_thuonghieu;
   form.value = { 
     ten_thuonghieu: th.ten_thuonghieu,
-    danh_muc_ids: Array.isArray(th.danh_muc_ids) ? [...th.danh_muc_ids] : []
+    danh_muc_ids: Array.isArray(th.danh_muc_ids) ? th.danh_muc_ids.map(Number) : []
   }; 
   logoPreview.value = th.logo ? storageUrl(th.logo) : '';
   logoFile.value = null;
@@ -711,5 +727,11 @@ td { padding: 16px 20px; vertical-align: middle; }
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
   border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.selected-option {
+  font-weight: 700 !important;
+  background-color: #e0e7ff !important;
+  color: #4f46e5 !important;
 }
 </style>
