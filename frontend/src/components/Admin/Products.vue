@@ -231,8 +231,8 @@ const totalInventoryStats = computed(() =>
 )
 
 const showLowStockModal = ref(false)
-const selectedLowStockProduct = ref(null)
-const showLowStockVariantsModal = ref(false)
+const expandedProductIds = ref(new Set())
+const isSavingProductStock = ref(null)
 
 const lowStockProducts = computed(() => {
   return products.value.filter(p => {
@@ -242,20 +242,66 @@ const lowStockProducts = computed(() => {
 
 const openLowStockModal = () => {
   showLowStockModal.value = true
+  expandedProductIds.value.clear()
 }
 
 const closeLowStockModal = () => {
   showLowStockModal.value = false
 }
 
-const openLowStockVariantsModal = (product) => {
-  selectedLowStockProduct.value = product
-  showLowStockVariantsModal.value = true
+const toggleProductExpand = (productId) => {
+  if (expandedProductIds.value.has(productId)) {
+    expandedProductIds.value.delete(productId)
+  } else {
+    expandedProductIds.value.add(productId)
+  }
+  expandedProductIds.value = new Set(expandedProductIds.value)
 }
 
-const closeLowStockVariantsModal = () => {
-  showLowStockVariantsModal.value = false
-  selectedLowStockProduct.value = null
+const saveProductStock = async (product) => {
+  const updates = product.bienThes
+    .filter(v => Number(v.soluong ?? 0) < 10 && Number(v.nhap_them || 0) > 0)
+    .map(v => ({
+      id_bienthe: v.id_bienthe,
+      soluong: Number(v.soluong || 0) + Number(v.nhap_them || 0),
+      gia: v.gia
+    }))
+    
+  if (updates.length === 0) {
+    swal.warning('Thông báo', 'Vui lòng nhập số lượng cần thêm vào ít nhất 1 biến thể.')
+    return
+  }
+  
+  isSavingProductStock.value = product.id
+  try {
+    await api.post('/admin/sanpham/import-stock', { updates })
+    invalidateProductCaches(product.id)
+    await fetchProducts()
+    
+    // Tải lại danh sách sản phẩm xong, kiểm tra xem sản phẩm còn hàng thiếu không
+    const updatedProduct = products.value.find(p => p.id === product.id)
+    if (updatedProduct) {
+      const hasLowStock = updatedProduct.bienThes.some(v => Number(v.soluong ?? 0) < 10)
+      if (!hasLowStock) {
+        expandedProductIds.value.delete(product.id)
+        expandedProductIds.value = new Set(expandedProductIds.value)
+      }
+    } else {
+      expandedProductIds.value.delete(product.id)
+      expandedProductIds.value = new Set(expandedProductIds.value)
+    }
+    
+    if (lowStockProducts.value.length === 0) {
+      showLowStockModal.value = false
+    }
+    
+    swal.success('Thành công', 'Cập nhật tồn kho sản phẩm thành công!')
+  } catch (error) {
+    console.error(error)
+    swal.error('Lỗi', getErrorMessage(error, 'Không thể cập nhật tồn kho.'))
+  } finally {
+    isSavingProductStock.value = null
+  }
 }
 
 const totalPages = computed(() =>
@@ -564,7 +610,10 @@ const fetchProducts = async () => {
     const res = await api.get('/sanpham', { skipGlobalLoader: true })
 
     products.value = res.data.map(p => {
-      const bienThes = Array.isArray(p.bien_thes) ? p.bien_thes : []
+      const bienThes = (Array.isArray(p.bien_thes) ? p.bien_thes : []).map(v => ({
+        ...v,
+        nhap_them: ''
+      }))
       const variantCount = bienThes.length
 
       return {
@@ -2744,76 +2793,100 @@ onMounted(() => {
       </div><!-- end inline-form-body -->
     </template><!-- end product-form -->
 
-    <!-- Modal Danh sách sản phẩm sắp hết hàng -->
+    <!-- Modal Danh sách sản phẩm sắp hết hàng (Accordion) -->
     <Teleport to="body">
       <div v-if="showLowStockModal" class="modal-overlay" @click.self="closeLowStockModal">
         <div class="modal modal-wide">
           <div class="modal-header">
-            <h3>Danh sách sản phẩm sắp hết hàng</h3>
+            <h3>Danh sách sản phẩm sắp hết hàng & Nhập tồn kho</h3>
             <button class="modal-close" @click="closeLowStockModal">×</button>
           </div>
           <div class="modal-body">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>STT</th>
-                    <th>Hình ảnh</th>
-                    <th>Tên SP</th>
-                    <th>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="!lowStockProducts.length">
-                    <td colspan="4" class="empty">Không có sản phẩm nào sắp hết hàng.</td>
-                  </tr>
-                  <tr v-for="(p, i) in lowStockProducts" :key="p.id">
-                    <td>{{ i + 1 }}</td>
-                    <td>
-                      <img :src="p.img" :alt="p.name" loading="lazy" decoding="async"
-                        style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
-                    </td>
-                    <td><b>{{ p.name }}</b><br><span style="font-size: 11px; color: #94a3b8;">SKU: {{ p.sku }}</span>
-                    </td>
-                    <td>
-                      <button class="btn-apply-solid"
-                        style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer;"
-                        @click="openLowStockVariantsModal(p)">Xem chi tiết</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-if="!lowStockProducts.length" class="low-stock-empty">
+              Không có sản phẩm nào sắp hết hàng.
             </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+            
+            <div v-else class="low-stock-accordion-container">
+              <div 
+                v-for="p in lowStockProducts" 
+                :key="p.id"
+                class="low-stock-product-item"
+                :class="{ 'is-expanded': expandedProductIds.has(p.id) }"
+              >
+                <!-- Accordion Header -->
+                <div class="low-stock-product-header" @click="toggleProductExpand(p.id)">
+                  <div class="low-stock-header-left">
+                    <img :src="p.img" :alt="p.name" loading="lazy" decoding="async" class="low-stock-prod-img" />
+                    <div class="low-stock-prod-info">
+                      <span class="low-stock-prod-name">{{ p.name }}</span>
+                      <span class="low-stock-prod-sku">SKU: {{ p.sku }}</span>
+                    </div>
+                  </div>
+                  <div class="low-stock-header-right">
+                    <span class="low-stock-badge">
+                      {{ p.bienThes.filter(v => Number(v.soluong ?? 0) < 10).length }} biến thể cần nhập
+                    </span>
+                    <svg class="chevron" :class="{ open: expandedProductIds.has(p.id) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                </div>
 
-    <!-- Modal Danh sách biến thể sắp hết hàng -->
-    <Teleport to="body">
-      <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
-        <div class="modal">
-          <div class="modal-header">
-            <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
-            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tên biến thể</th>
-                    <th>Số lượng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
-                    :key="v.id_bienthe || v.id">
-                    <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
-                    <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
-                  </tr>
-                </tbody>
-              </table>
+                <!-- Accordion Body -->
+                <transition name="collapse">
+                  <div v-show="expandedProductIds.has(p.id)" class="low-stock-product-body">
+                    <div class="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Tên biến thể</th>
+                            <th>SL hiện tại</th>
+                            <th>Nhập thêm</th>
+                            <th>SL thực tế</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="v in p.bienThes.filter(v => Number(v.soluong ?? 0) < 10)" :key="v.id_bienthe || v.id">
+                            <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
+                            <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
+                            <td>
+                              <input 
+                                type="number" 
+                                min="0" 
+                                v-model.number="v.nhap_them" 
+                                class="nhap-them-input" 
+                                placeholder="Nhập SL..."
+                              />
+                            </td>
+                            <td>
+                              <div class="real-stock-calc">
+                                <span class="current-stock">{{ v.soluong }}</span>
+                                <span class="math-operator">+</span>
+                                <span class="added-stock" :class="{ active: Number(v.nhap_them) > 0 }">{{ Number(v.nhap_them) || 0 }}</span>
+                                <span class="math-operator">=</span>
+                                <span class="total-stock" :class="{ highlight: Number(v.nhap_them) > 0 }">
+                                  {{ Number(v.soluong || 0) + (Number(v.nhap_them) || 0) }}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div class="low-stock-save-row">
+                      <button 
+                        class="btn-save-stock" 
+                        @click="saveProductStock(p)" 
+                        :disabled="isSavingProductStock === p.id"
+                      >
+                        <span v-if="isSavingProductStock === p.id">Đang lưu...</span>
+                        <span v-else>Xác nhận nhập kho</span>
+                      </button>
+                    </div>
+                  </div>
+                </transition>
+              </div>
             </div>
           </div>
         </div>
@@ -3307,7 +3380,7 @@ onMounted(() => {
   position: relative;
 }
 
-.search-icon {
+.search-wrap .search-icon {
   position: absolute;
   left: 13px;
   top: 50%;
@@ -5797,6 +5870,212 @@ tbody td {
 .collapse-leave-to {
   max-height: 0;
   opacity: 0;
+}
+
+/* ── Premium Accordion Stock-In Styles ── */
+.low-stock-empty {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.low-stock-accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.low-stock-product-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.low-stock-product-item:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  border-color: #cbd5e1;
+}
+
+.low-stock-product-item.is-expanded {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+}
+
+.low-stock-product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: #ffffff;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.low-stock-product-header:hover {
+  background: #f8fafc;
+}
+
+.low-stock-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.low-stock-prod-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.low-stock-prod-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.low-stock-prod-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.low-stock-prod-sku {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.low-stock-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.low-stock-badge {
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #fecaca;
+  white-space: nowrap;
+}
+
+.low-stock-product-item.is-expanded .low-stock-product-header {
+  background: #f1f5f9;
+}
+
+.low-stock-product-body {
+  padding: 20px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Stock-in inputs & calculators */
+.nhap-them-input {
+  width: 110px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.nhap-them-input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.real-stock-calc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 8px;
+  width: fit-content;
+  border: 1px solid #f1f5f9;
+}
+
+.real-stock-calc .current-stock {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.real-stock-calc .math-operator {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.real-stock-calc .added-stock {
+  color: #64748b;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.real-stock-calc .added-stock.active {
+  color: #22c55e;
+}
+
+.real-stock-calc .total-stock {
+  color: #334155;
+  font-weight: 700;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+
+.real-stock-calc .total-stock.highlight {
+  color: #16a34a;
+}
+
+.low-stock-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-save-stock {
+  background: #22c55e;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.1);
+}
+
+.btn-save-stock:hover:not(:disabled) {
+  background: #16a34a;
+  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-save-stock:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-save-stock:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 </style>
