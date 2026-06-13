@@ -38,7 +38,13 @@ const groups = ref([])
 const attrs = ref([])
 const colors = ref([])
 const categories = ref([])
-const parentCategories = computed(() => categories.value.filter(c => !c.parent_id))
+const parentCategories = ref([])
+const selectedParentCategoryId = computed({
+  get: () => groupForm.value.danh_muc_ids?.[0] ?? '',
+  set: (val) => {
+    groupForm.value.danh_muc_ids = val ? [Number(val)] : []
+  }
+})
 const selectedColor = ref(null)
 
 // ── Filter ──
@@ -219,7 +225,7 @@ const normalizeData = (payload) => {
     if (typeof dsId === 'string') {
       try { dsId = JSON.parse(dsId) } catch(e) { dsId = [] }
     }
-    dsId = Array.isArray(dsId) ? dsId : []
+    dsId = Array.isArray(dsId) ? dsId.map(Number) : []
     return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length, danh_muc_ids: dsId }
   })
 
@@ -307,6 +313,19 @@ const fetchCategories = async () => {
   }
 }
 
+const fetchParentCategories = async () => {
+  try {
+    const res = await api.get('/danhmuc/parents')
+    const list = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    parentCategories.value = list.map(c => ({
+      id_danhmuc: c.id_danhmuc_cha,
+      ten_danhmuc: c.ten_danhmuc
+    }))
+  } catch (error) {
+    console.error('Không tải được danh mục cha', error)
+  }
+}
+
 // ── Modal ──
 const openModal = (type, item = null) => {
   modalType.value = type
@@ -324,10 +343,12 @@ const openModal = (type, item = null) => {
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
   else if (type === 'group') groupForm.value = defaultGroupForm()
-  else if (type === 'editGroup' && item)    groupForm.value = { 
+  else if (type === 'editGroup' && item) {
+    groupForm.value = { 
       name: item.name,
-      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
+      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids].map(Number) : []
     }
+  }
   else if (type === 'attr') attrForm.value = defaultAttrForm()
   else if (type === 'editAttr' && item) attrForm.value = { name: item.name, group: item.group, status: item.status }
 
@@ -595,12 +616,13 @@ const closeAttributeDropdown = (e) => {
 onMounted(() => {
   fetchAll()
   fetchColors()
+  fetchCategories()
+  fetchParentCategories()
   document.addEventListener('click', closeAttributeDropdown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeAttributeDropdown)
-  fetchCategories()
 })
 
 // ══════════════════════════════════════════════════════
@@ -1448,10 +1470,16 @@ async function handleImportFile(e) {
                   </div>
                   <div class="form-group">
                     <label>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></label>
-                    <select v-model="groupForm.danh_muc_ids" multiple class="custom-select" style="height: 100px;">
-                      <option v-for="cat in parentCategories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
+                    <select v-model="selectedParentCategoryId">
+                      <option value="">-- Chọn danh mục cha --</option>
+                      <option 
+                        v-for="cat in parentCategories" 
+                        :key="cat.id_danhmuc" 
+                        :value="Number(cat.id_danhmuc)"
+                      >
+                        {{ cat.ten_danhmuc }}
+                      </option>
                     </select>
-                    <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">Giữ Ctrl/Cmd để chọn nhiều danh mục</p>
                   </div>
                 </template>
 
@@ -2995,5 +3023,11 @@ tbody td {
 @media (max-width:640px) {
   .bottom-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+}
+
+.selected-option {
+  font-weight: 700 !important;
+  background-color: #e0e7ff !important;
+  color: #4f46e5 !important;
 }
 </style>
