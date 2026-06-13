@@ -20,6 +20,15 @@
         </svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm danh mục..." />
       </div>
+      <!-- Bộ lọc danh mục cha (chỉ hiện khi xem tab Danh mục Con) -->
+      <div v-if="activeTab === 'child'" class="filter-select-wrap">
+        <select v-model="selectedParentFilter" class="filter-select">
+          <option value="">Tất cả danh mục gốc</option>
+          <option v-for="p in parentCategories" :key="p.id" :value="p.id">
+            {{ p.ten_danhmuc }}
+          </option>
+        </select>
+      </div>
     </div>
 
     <BulkDeleteToolbar
@@ -154,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/services/api';
 import swal from '@/services/swal';
 import BulkDeleteToolbar from './BulkDeleteToolbar.vue';
@@ -166,6 +175,7 @@ const childCategories = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 const activeTab = ref('child'); // 'parent' or 'child'
+const selectedParentFilter = ref('');
 
 // --- STATE QUẢN LÝ MODAL ---
 const showModal = ref(false);
@@ -208,15 +218,26 @@ onMounted(() => {
   fetchCategories();
 });
 
-// --- TÌM KIẾM & LỌC THEO TAB ---
+// --- TÌM KIẾM & LỌC THEO TAB ───
+watch(activeTab, () => {
+  selectedParentFilter.value = '';
+});
+
 const filteredCategories = computed(() => {
   let list = activeTab.value === 'parent' ? parentCategories.value : childCategories.value;
 
+  // Lọc theo danh mục gốc (chỉ áp dụng khi xem danh mục con)
+  if (activeTab.value === 'child' && selectedParentFilter.value) {
+    const parentId = Number(selectedParentFilter.value);
+    list = list.filter(c => Number(c.id_danhmuc_cha) === parentId);
+  }
+
   // Lọc theo từ khóa tìm kiếm
   if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
   return list.filter(c =>
-    c.ten_danhmuc.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    (c.slug || '').toLowerCase().includes(searchQuery.value.toLowerCase())
+    c.ten_danhmuc.toLowerCase().includes(q) ||
+    (c.slug || '').toLowerCase().includes(q)
   );
 });
 
@@ -517,5 +538,35 @@ td { padding: 16px 20px; vertical-align: middle; }
 
 .search-wrap input:focus {
   border-color: #2563eb;
+}
+
+.filter-select-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  min-width: 180px;
+  font-family: inherit;
+}
+
+.filter-select:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.filter-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 </style>
