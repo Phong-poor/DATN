@@ -26,9 +26,9 @@ const swal = new Proxy({}, {
   },
 })
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   DANH SÃCH Sáº¢N PHáº¨M
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════
+   DANH SÁCH SẢN PHẨM
+═══════════════════════════════════════ */
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
@@ -43,9 +43,9 @@ const isOpenStatusDropdown = ref(false)
 const isOpenCategoryDropdown = ref(false)
 
 const getSelectedCategoryLabel = () => {
-  if (!selectedCategory.value) return 'Táº¥t cáº£ danh má»¥c'
+  if (!selectedCategory.value) return 'Tất cả danh mục'
   const found = categories.value.find(c => String(c.id_danhmuc) === String(selectedCategory.value))
-  return found ? found.ten_danhmuc : 'Táº¥t cáº£ danh má»¥c'
+  return found ? found.ten_danhmuc : 'Tất cả danh mục'
 }
 
 // Custom Tree Select States
@@ -78,7 +78,7 @@ const selectAllOptions = (typeId, options) => {
   // Auto switch to Variant mode if multiple options exist
   if (options.length > 1 && !variationTierIds.value.has(tIdStr)) {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -126,9 +126,9 @@ const selectTreeCategory = (child) => {
 }
 
 const getSelectedCategoryName = () => {
-  if (!form.value.category) return 'Chá»n danh má»¥c'
+  if (!form.value.category) return 'Chọn danh mục'
   const child = categories.value.find(c => String(c.id_danhmuc) === String(form.value.category))
-  if (!child) return 'Chá»n danh má»¥c'
+  if (!child) return 'Chọn danh mục'
   const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
   return parent ? `${parent.ten_danhmuc} > ${child.ten_danhmuc}` : child.ten_danhmuc
 }
@@ -180,8 +180,8 @@ const isProductsFetching = ref(false)
 const categories = ref([])
 const parentCategories = ref([])
 const childCategories = ref([])
-const allBrands = ref([]) // LÆ°u toÃ n bá»™ brand
-const brands = ref([]) // Hiá»ƒn thá»‹ trÃªn select
+const allBrands = ref([]) // Lưu toàn bộ brand
+const brands = ref([]) // Hiển thị trên select
 const colors = ref([])
 const readingExtraImages = ref(false)
 const variantLoading = ref(false)
@@ -343,9 +343,9 @@ const getErrorMessage = (error, fallback) => {
   return fallback
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHáº¬P XUáº¤T EXCEL
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════
+   NHẬP XUẤT EXCEL
+   ═══════════════════════════════════════ */
 const handleExportExcel = async () => {
   if (isExporting.value) return
   isExporting.value = true
@@ -355,17 +355,17 @@ const handleExportExcel = async () => {
     const data = res.data
 
     if (!data || data.length === 0) {
-      swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘á»ƒ xuáº¥t')
+      swal.warning('Không có dữ liệu', 'Không có dữ liệu để xuất')
       return
     }
 
     // Map data to user-friendly column names
     const worksheetData = data.map(item => ({
-      'ID Biáº¿n Thá»ƒ': item.id_bienthe,
-      'TÃªn Sáº£n Pháº©m': item.tenSP,
-      'Biáº¿n Thá»ƒ': item.ten_bienthe,
-      'GiÃ¡': item.gia,
-      'Sá»‘ LÆ°á»£ng': item.soluong
+      'ID Biến Thể': item.id_bienthe,
+      'Tên Sản Phẩm': item.tenSP,
+      'Biến Thể': item.ten_bienthe,
+      'Giá': item.gia,
+      'Số Lượng': item.soluong
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData)
@@ -376,7 +376,7 @@ const handleExportExcel = async () => {
     XLSX.writeFile(workbook, `Kho_Hang_Predator_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', 'Lá»—i khi xuáº¥t file Excel')
+    swal.error('Lỗi', 'Lỗi khi xuất file Excel')
   } finally {
     isExporting.value = false
   }
@@ -403,27 +403,27 @@ const handleImportExcel = async (e) => {
 
       // Transform to backend format
       const updates = jsonData.map(row => ({
-        id_bienthe: row['ID Biáº¿n Thá»ƒ'],
-        gia: row['GiÃ¡'],
-        soluong: row['Sá»‘ LÆ°á»£ng']
+        id_bienthe: row['ID Biến Thể'],
+        gia: row['Giá'],
+        soluong: row['Số Lượng']
       })).filter(item => item.id_bienthe)
 
       if (updates.length === 0) {
-        swal.warning('KhÃ´ng há»£p lá»‡', "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u há»£p lá»‡ trong file Excel")
+        swal.warning('Không hợp lệ', "Không tìm thấy dữ liệu hợp lệ trong file Excel")
         return
       }
 
-      const isConfirmed = await swal.confirm('XÃ¡c nháº­n cáº­p nháº­t', `Báº¡n cÃ³ cháº¯c muá»‘n cáº­p nháº­t ${updates.length} biáº¿n thá»ƒ tá»« Excel?`)
+      const isConfirmed = await swal.confirm('Xác nhận cập nhật', `Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)
       if (!isConfirmed) {
         return
       }
 
       const res = await api.post('/admin/sanpham/import-stock', { updates })
-      swal.success('ThÃ nh cÃ´ng', res.data.message || 'Cáº­p nháº­t tá»“n kho thÃ nh cÃ´ng')
+      swal.success('Thành công', res.data.message || 'Cập nhật tồn kho thành công')
       await fetchProducts()
     } catch (error) {
       console.error(error)
-      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c hoáº·c import file Excel. HÃ£y kiá»ƒm tra Ä‘á»‹nh dáº¡ng file.')
+      swal.error('Lỗi', 'Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.')
     } finally {
       isImporting.value = false
       e.target.value = ''
@@ -433,13 +433,13 @@ const handleImportExcel = async (e) => {
   reader.readAsArrayBuffer(file)
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHáº¬P XUáº¤T EXCEL BIáº¾N THá»‚ (TRONG MODAL)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════
+   NHẬP XUẤT EXCEL BIẾN THỂ (TRONG MODAL)
+   ═══════════════════════════════════════ */
 const handleExportVariantsExcel = async () => {
   const headers = tableHeaders.value
   if (!headers.length) {
-    swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ thuá»™c tÃ­nh Ä‘á»ƒ xuáº¥t')
+    swal.warning('Không có dữ liệu', 'Không có thuộc tính để xuất')
     return
   }
 
@@ -449,7 +449,7 @@ const handleExportVariantsExcel = async () => {
     headers.forEach(h => {
       item[h.label] = row.attrs[h.id] || ''
     })
-    item['GiÃ¡'] = row.price
+    item['Giá'] = row.price
     item['Kho'] = row.stock
     return item
   })
@@ -501,21 +501,21 @@ const handleImportVariantsExcel = (e) => {
           generatedRows.value.push({
             id: `${Date.now()}-${Math.random()}`,
             attrs,
-            price: rowData['GiÃ¡'] || '',
+            price: rowData['Giá'] || '',
             stock: rowData['Kho'] || '',
             ten_bienthe: headers.map(h => attrs[h.id]).join(' - '),
             isExisting: false,
-            _manualPrice: rowData['GiÃ¡'] !== undefined,
+            _manualPrice: rowData['Giá'] !== undefined,
             _manualStock: rowData['Kho'] !== undefined
           })
           added++
         }
       })
 
-      swal.success('Nháº­p biáº¿n thá»ƒ', `ThÃªm má»›i ${added} cáº¥u hÃ¬nh, bá» qua ${skipped} cáº¥u hÃ¬nh Ä‘Ã£ cÃ³.`)
+      swal.success('Nhập biến thể', `Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
     } catch (err) {
       console.error(err)
-      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c file Excel biáº¿n thá»ƒ')
+      swal.error('Lỗi', 'Lỗi khi đọc file Excel biến thể')
     } finally {
       e.target.value = ''
     }
@@ -571,20 +571,20 @@ const fetchProducts = async () => {
         id: p.id_sanpham,
         name: p.tenSP,
         sku: p.SKU || '',
-        category: p.danh_muc?.ten_danhmuc || 'ChÆ°a cÃ³ danh má»¥c',
+        category: p.danh_muc?.ten_danhmuc || 'Chưa có danh mục',
         categoryId: p.id_danhmuc ?? '',
         parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
-        brand: p.thuong_hieu?.ten_thuonghieu || 'ChÆ°a cÃ³ thÆ°Æ¡ng hiá»‡u',
+        brand: p.thuong_hieu?.ten_thuonghieu || 'Chưa có thương hiệu',
         totalVariants: variantCount,
         updated_at: p.updated_at,
         bienThes,
-        status: String(p.trangthai) === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
+        status: String(p.trangthai) === '1' ? 'Đang bán' : 'Nháp',
         img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
       }
     })
     saveProductsCache()
   } catch (error) {
-    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c danh sÃ¡ch sáº£n pháº©m.')
+    formError.value = getErrorMessage(error, 'Không tải được danh sách sản phẩm.')
   } finally {
     isProductsFetching.value = false
   }
@@ -618,7 +618,7 @@ const fetchBrands = async () => {
 }
 
 /**
- * Fetch parent categories (danh má»¥c cha)
+ * Fetch parent categories (danh mục cha)
  */
 const fetchParentCategories = async () => {
   try {
@@ -667,7 +667,7 @@ const filterBrandsLocally = () => {
   }
 
   brands.value = allBrands.value.filter(brand => {
-    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Ãp dá»¥ng táº¥t cáº£
+    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Áp dụng tất cả
     const ids = brand.danh_muc_ids.map(Number)
     return ids.includes(currentCategoryId) || ids.includes(currentParentId)
   })
@@ -695,20 +695,20 @@ const fetchColors = async () => {
 
 const removeProduct = async (id, name = '') => {
   const confirmed = await swal.confirm(
-    'XÃ¡c nháº­n xÃ³a',
-    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a sáº£n pháº©m${name ? ` "${name}"` : ''} khÃ´ng?`
+    'Xác nhận xóa',
+    `Bạn có chắc muốn xóa sản phẩm${name ? ` "${name}"` : ''} không?`
   )
 
   if (!confirmed) return
 
   try {
     await api.delete(`/admin/sanpham/${id}`)
-    swal.success('ThÃ nh cÃ´ng', 'XÃ³a sáº£n pháº©m thÃ nh cÃ´ng')
+    swal.success('Thành công', 'Xóa sản phẩm thành công')
     await fetchProducts()
   } catch (error) {
-    const msg = getErrorMessage(error, 'KhÃ´ng xÃ³a Ä‘Æ°á»£c sáº£n pháº©m.')
+    const msg = getErrorMessage(error, 'Không xóa được sản phẩm.')
     formError.value = msg
-    swal.error('XÃ³a tháº¥t báº¡i', msg)
+    swal.error('Xóa thất bại', msg)
   }
 }
 
@@ -727,21 +727,21 @@ const deleteProductsByIds = async (ids) => {
 
   if (failed.length) {
     swal.warning(
-      'XÃ³a chÆ°a hoÃ n táº¥t',
-      `ÄÃ£ xÃ³a ${uniqueIds.length - failed.length}/${uniqueIds.length} sáº£n pháº©m. Má»™t sá»‘ sáº£n pháº©m cÃ³ thá»ƒ Ä‘ang cÃ³ dá»¯ liá»‡u liÃªn quan.`
+      'Xóa chưa hoàn tất',
+      `Đã xóa ${uniqueIds.length - failed.length}/${uniqueIds.length} sản phẩm. Một số sản phẩm có thể đang có dữ liệu liên quan.`
     )
     return
   }
 
-  swal.success('ThÃ nh cÃ´ng', `ÄÃ£ xÃ³a ${uniqueIds.length} sáº£n pháº©m.`)
+  swal.success('Thành công', `Đã xóa ${uniqueIds.length} sản phẩm.`)
 }
 
 const removeSelectedProducts = async () => {
   if (!selectedProductIds.value.length || isBulkDeleting.value) return
 
   const confirmed = await swal.confirm(
-    'XÃ³a sáº£n pháº©m Ä‘Ã£ chá»n',
-    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a ${selectedProductIds.value.length} sáº£n pháº©m Ä‘Ã£ chá»n khÃ´ng?`
+    'Xóa sản phẩm đã chọn',
+    `Bạn có chắc muốn xóa ${selectedProductIds.value.length} sản phẩm đã chọn không?`
   )
 
   if (!confirmed) return
@@ -759,10 +759,10 @@ const removeAllFilteredProducts = async () => {
 
   const total = filteredProducts.value.length
   const confirmed = await swal.confirm(
-    'XÃ³a toÃ n bá»™ sáº£n pháº©m',
+    'Xóa toàn bộ sản phẩm',
     selectedStatus.value || selectedCategory.value || searchQuery.value
-      ? `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m Ä‘ang lá»c khÃ´ng?`
-      : `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m trong danh sÃ¡ch khÃ´ng?`
+      ? `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm đang lọc không?`
+      : `Bạn có chắc muốn xóa toàn bộ ${total} sản phẩm trong danh sách không?`
   )
 
   if (!confirmed) return
@@ -775,25 +775,25 @@ const removeAllFilteredProducts = async () => {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHÃ“M THUá»˜C TÃNH & LOáº I THUá»˜C TÃNH
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════
+   NHÓM THUỘC TÍNH & LOẠI THUỘC TÍNH
+═══════════════════════════════════════ */
 const baseAttributeGroups = ref([])
 const attributeGroups = ref([])
 
 const groupIconMap = {
-  'Cáº¥u hÃ¬nh': 'ðŸ’»',
-  'MÃ n hÃ¬nh': 'ðŸ–¥ï¸',
-  'Pin & Sáº¡c': 'ðŸ”‹',
-  'Káº¿t ná»‘i': 'ðŸ“¡',
-  'Phá»¥ kiá»‡n': 'ðŸ–±ï¸',
-  'MÃ u sáº¯c': 'ðŸŽ¨',
+  'Cấu hình': '💻',
+  'Màn hình': '🖥️',
+  'Pin & Sạc': '🔋',
+  'Kết nối': '📡',
+  'Phụ kiện': '🖱️',
+  'Màu sắc': '🎨',
 }
 
 const colorPool = ['blue', 'green', 'amber', 'pink', 'purple', 'teal']
 
 const getGroupIcon = (name) => {
-  return groupIconMap[name] || 'ðŸ“¦'
+  return groupIconMap[name] || '📦'
 }
 
 const getTypeColor = (name) => {
@@ -843,12 +843,12 @@ const buildAttributeGroups = () => {
     colors.value.length > 0
       ? {
         id: 'color-group',
-        name: 'MÃ u sáº¯c',
-        icon: getGroupIcon('MÃ u sáº¯c'),
+        name: 'Màu sắc',
+        icon: getGroupIcon('Màu sắc'),
         attrTypes: [
           {
             id: 'color-type',
-            label: 'MÃ u sáº¯c',
+            label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
               label: c.name,
@@ -928,15 +928,15 @@ const fetchAttributeGroups = async () => {
       selectedGroupId.value = attributeGroups.value[0].id
     }
   } catch (error) {
-    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c dá»¯ liá»‡u biáº¿n thá»ƒ.')
+    formError.value = getErrorMessage(error, 'Không tải được dữ liệu biến thể.')
   } finally {
     variantLoading.value = false
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════
    MODAL & FORM
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════ */
 const showModal = ref(false)
 const currentView = ref('list') // 'list' | 'product-form'
 const formError = ref('')
@@ -952,7 +952,7 @@ const defaultForm = () => ({
   parentCategory: '',
   category: '',
   brand: '',
-  status: 'Äang bÃ¡n',
+  status: 'Đang bán',
   img: '',
   images: [],
   weight: '',
@@ -973,7 +973,7 @@ watch(() => form.value.category, async (newCategoryId) => {
       form.value.parentCategory = String(child.id_danhmuc_cha)
       
       const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
-      if (parent && parent.ten_danhmuc.toLowerCase().includes('phá»¥ kiá»‡n')) {
+      if (parent && parent.ten_danhmuc.toLowerCase().includes('phụ kiện')) {
         variationTierIds.value.add('color-type')
       }
     }
@@ -1010,7 +1010,7 @@ const validateTopForm = () => {
   const errors = defaultFieldErrors()
 
   if (!imgPreview.value && !form.value.img) {
-    errors.img = 'Vui lÃ²ng chá»n áº£nh sáº£n pháº©m'
+    errors.img = 'Vui lòng chọn ảnh sản phẩm'
   }
 
   const imagesArr = Array.isArray(form.value.images) ? form.value.images : []
@@ -1028,30 +1028,30 @@ const validateTopForm = () => {
   }
 
   if (!form.value.brand) {
-    errors.brand = 'Vui lÃ²ng chá»n thÆ°Æ¡ng hiá»‡u'
+    errors.brand = 'Vui lòng chọn thương hiệu'
   }
 
   if (!form.value.parentCategory) {
-    errors.parentCategory = 'Vui lÃ²ng chá»n danh má»¥c cha'
+    errors.parentCategory = 'Vui lòng chọn danh mục cha'
   }
 
   if (!form.value.category) {
-    errors.category = 'Vui lÃ²ng chá»n danh má»¥c con'
+    errors.category = 'Vui lòng chọn danh mục con'
   }
 
-  if (!['Äang bÃ¡n', 'NhÃ¡p'].includes(form.value.status)) {
-    errors.status = 'Tráº¡ng thÃ¡i khÃ´ng há»£p lá»‡'
+  if (!['Đang bán', 'Nháp'].includes(form.value.status)) {
+    errors.status = 'Trạng thái không hợp lệ'
   }
 
   if (form.value.weight !== '' && form.value.weight !== null && form.value.weight !== undefined) {
     const weight = Number(form.value.weight)
 
     if (Number.isNaN(weight)) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lÃ  sá»‘'
+      errors.weight = 'Khối lượng phải là số'
     } else if (weight <= 0) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lá»›n hÆ¡n 0'
+      errors.weight = 'Khối lượng phải lớn hơn 0'
     } else if (weight > 1000) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng khÃ´ng há»£p lá»‡'
+      errors.weight = 'Khối lượng không hợp lệ'
     }
   }
 
@@ -1073,13 +1073,13 @@ const onFileChange = e => {
   fieldErrors.value.img = ''
 
   if (!allowedImageTypes.includes(file.type)) {
-    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.img = 'Ảnh sản phẩm chỉ chấp nhận PNG, JPG, JPEG, WEBP'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
 
   if (file.size > MAX_MAIN_IMAGE_SIZE) {
-    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
+    fieldErrors.value.img = 'Ảnh sản phẩm không được vượt quá 5MB'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
@@ -1100,21 +1100,21 @@ const onExtraFilesChange = async (e) => {
 
   const totalAfterAdd = form.value.images.length + files.length
   if (totalAfterAdd > MAX_EXTRA_IMAGES) {
-    fieldErrors.value.images = `Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a ${MAX_EXTRA_IMAGES} áº£nh phá»¥`
+    fieldErrors.value.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidTypeFile = files.find(file => !allowedImageTypes.includes(file.type))
   if (invalidTypeFile) {
-    fieldErrors.value.images = 'áº¢nh phá»¥ chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.images = 'Ảnh phụ chỉ chấp nhận PNG, JPG, JPEG, WEBP'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidSizeFile = files.find(file => file.size > MAX_EXTRA_IMAGE_SIZE)
   if (invalidSizeFile) {
-    fieldErrors.value.images = 'Má»—i áº£nh phá»¥ khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
+    fieldErrors.value.images = 'Mỗi ảnh phụ không được vượt quá 5MB'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
@@ -1128,7 +1128,7 @@ const onExtraFilesChange = async (e) => {
           const reader = new FileReader()
 
           reader.onload = (ev) => resolve(ev.target.result)
-          reader.onerror = () => reject(new Error('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c file áº£nh'))
+          reader.onerror = () => reject(new Error('Không đọc được file ảnh'))
 
           reader.readAsDataURL(file)
         })
@@ -1139,7 +1139,7 @@ const onExtraFilesChange = async (e) => {
     extraImagePreviews.value = [...extraImagePreviews.value, ...base64Images]
   } catch (error) {
     console.error(error)
-    fieldErrors.value.images = 'KhÃ´ng Ä‘á»c Ä‘Æ°á»£c má»™t hoáº·c nhiá»u áº£nh phá»¥'
+    fieldErrors.value.images = 'Không đọc được một hoặc nhiều ảnh phụ'
   } finally {
     readingExtraImages.value = false
 
@@ -1167,13 +1167,13 @@ const removeExtraImage = index => {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════
    VARIANT STATE
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════ */
 const vsPhase = ref(1)
 const selectedGroupId = ref(null)
 const selectedOptions = ref({})
-const variationTierIds = ref(new Set()) // LÆ°u ID thuá»™c tÃ­nh dÃ¹ng lÃ m Biáº¿n thá»ƒ (max 2)
+const variationTierIds = ref(new Set()) // Lưu ID thuộc tính dùng làm Biến thể (max 2)
 const generatedRows = ref([])
 const editVariantHeaders = ref([])
 const VARIANTS_PER_PAGE = 15
@@ -1194,7 +1194,7 @@ const toggleVariationTier = (typeId) => {
     }
   } else {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -1232,13 +1232,13 @@ const addManualVariant = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU) trÆ°á»›c khi thÃªm thá»§ cÃ´ng.')
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
     return
   }
   
   const attrs = {}
   headers.forEach(h => {
-    // Láº¥y giÃ¡ trá»‹ Ä‘áº§u tiÃªn trong bá»™ chá»n Ä‘á»ƒ lÃ m máº·c Ä‘á»‹nh
+    // Lấy giá trị đầu tiên trong bộ chọn để làm mặc định
     attrs[h.id] = Array.from(selectedOptions.value[h.id] || [])[0] || null
   })
 
@@ -1249,7 +1249,7 @@ const addManualVariant = () => {
     stock: ''
   })
   
-  // Chuyá»ƒn Ä‘áº¿n trang cuá»‘i
+  // Chuyển đến trang cuối
   variantCurrentPage.value = variantTotalPages.value
 }
 
@@ -1340,9 +1340,9 @@ const findAttrTypeByName = (name) => {
   const normalized = String(name || '').trim().toLowerCase()
 
   if (
-    normalized === 'mÃ u sáº¯c' ||
+    normalized === 'màu sắc' ||
     normalized === 'mau sac' ||
-    normalized === 'mÃ u' ||
+    normalized === 'màu' ||
     normalized === 'mau'
   ) {
     return allAttrTypes.value.find(t => String(t.id) === 'color-type') || null
@@ -1396,11 +1396,11 @@ const toggleOption = (typeId, value) => {
   const isTier = variationTierIds.value.has(typeId)
 
   if (isTier) {
-    // Cháº¿ Ä‘á»™ chá»n nhiá»u (Biáº¿n thá»ƒ)
+    // Chế độ chọn nhiều (Biến thể)
     if (set.has(value)) set.delete(value)
     else set.add(value)
   } else {
-    // Cháº¿ Ä‘á»™ chá»n duy nháº¥t (ThÃ´ng sá»‘ ká»¹ thuáº­t)
+    // Chế độ chọn duy nhất (Thông số kỹ thuật)
     if (set.has(value)) {
       set.delete(value)
     } else {
@@ -1440,7 +1440,7 @@ const validateVariantSelections = () => {
   let isValid = true
 
   if (!groupsHavingSelection.value.length) {
-    fieldErrors.value.variants = 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ thuá»™c tÃ­nh'
+    fieldErrors.value.variants = 'Vui lòng chọn ít nhất 1 giá trị thuộc tính'
     fieldErrors.value.variantGroups = {}
     return false
   }
@@ -1450,7 +1450,7 @@ const validateVariantSelections = () => {
       const selectedCount = selectedOptions.value[type.id]?.size ?? 0
 
       if (selectedCount < 1) {
-        variantGroupErrors[type.id] = `Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ cho ${type.label}`
+        variantGroupErrors[type.id] = `Vui lòng chọn ít nhất 1 giá trị cho ${type.label}`
         isValid = false
       }
     })
@@ -1459,7 +1459,7 @@ const validateVariantSelections = () => {
   fieldErrors.value.variantGroups = variantGroupErrors
   fieldErrors.value.variants = isValid
     ? ''
-    : 'Trong má»—i nhÃ³m Ä‘Ã£ chá»n, má»i loáº¡i thuá»™c tÃ­nh pháº£i cÃ³ Ã­t nháº¥t 1 giÃ¡ trá»‹'
+    : 'Trong mỗi nhóm đã chọn, mọi loại thuộc tính phải có ít nhất 1 giá trị'
 
   return isValid
 }
@@ -1498,7 +1498,7 @@ const generateVariants = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU)')
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
     return
   }
 
@@ -1546,14 +1546,14 @@ const generateVariants = () => {
 const rebuildSelectedOptionsFromRows = () => {
   const nextSelectedOptions = {}
 
-  // 1. Báº£o tá»“n cÃ¡c ThÃ´ng sá»‘ ká»¹ thuáº­t hiá»‡n cÃ³ (khÃ´ng pháº£i Biáº¿n thá»ƒ)
+  // 1. Bảo tồn các Thông số kỹ thuật hiện có (không phải Biến thể)
   Object.keys(selectedOptions.value || {}).forEach(attrId => {
     if (!variationTierIds.value.has(String(attrId))) {
       nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
     }
   })
 
-  // 2. Náº¡p láº¡i cÃ¡c Biáº¿n thá»ƒ tá»« cáº¥u hÃ¬nh báº£ng
+  // 2. Nạp lại các Biến thể từ cấu hình bảng
   generatedRows.value.forEach((row) => {
     Object.entries(row.attrs || {}).forEach(([attrId, value]) => {
       attrId = String(attrId)
@@ -1671,7 +1671,7 @@ const markManualStock = (row) => {
 
 const validateVariantRows = () => {
   if (!generatedRows.value.length) {
-    fieldErrors.value.variantRows = 'Vui lÃ²ng táº¡o Ã­t nháº¥t 1 biáº¿n thá»ƒ'
+    fieldErrors.value.variantRows = 'Vui lòng tạo ít nhất 1 biến thể'
     return false
   }
 
@@ -1695,9 +1695,9 @@ const validateVariantRows = () => {
   return true
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════
    RESET / OPEN / CLOSE / SUBMIT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════ */
 const resetForm = () => {
   form.value = defaultForm()
   imgPreview.value = ''
@@ -1750,7 +1750,7 @@ const openEditModal = async (id) => {
     currentView.value = 'product-form'
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c thÃ´ng tin sáº£n pháº©m Ä‘á»ƒ sá»­a.'))
+    swal.error('Lỗi', getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
   }
 }
 
@@ -1760,7 +1760,7 @@ const mapProductToForm = (product) => {
     parentCategory: String(product?.danh_muc?.id_danhmuc_cha ?? ''),
     category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
     brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
-    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
+    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Đang bán' : 'Nháp',
     img: '',
     images: [],
     weight: product?.khoiluong ?? '',
@@ -1820,7 +1820,7 @@ const mapProductToForm = (product) => {
 
       return {
         id: matchedAttr?.id ?? item.id_thuoctinh ?? item.ten_thuoctinh ?? `attr_${index}`,
-        label: item.ten_thuoctinh ?? `Thuá»™c tÃ­nh ${index + 1}`,
+        label: item.ten_thuoctinh ?? `Thuộc tính ${index + 1}`,
         color: matchedAttr?.color ?? colorPool[index % colorPool.length],
       }
     })
@@ -1828,13 +1828,13 @@ const mapProductToForm = (product) => {
     editVariantHeaders.value = []
   }
 
-  // 1. PhÃ¢n biá»‡t cÃ¡c thuá»™c tÃ­nh Ä‘ang lÃ m Biáº¿n thá»ƒ
+  // 1. Phân biệt các thuộc tính đang làm Biến thể
   variationTierIds.value = new Set(editVariantHeaders.value.map(h => String(h.id)))
 
-  // 2. Náº¡p giÃ¡ trá»‹ biáº¿n thá»ƒ vÃ o selectedOptions
+  // 2. Nạp giá trị biến thể vào selectedOptions
   rebuildSelectedOptionsFromRows()
 
-  // 3. Náº¡p ThÃ´ng sá»‘ ká»¹ thuáº­t vÃ o selectedOptions
+  // 3. Nạp Thông số kỹ thuật vào selectedOptions
   let specs = []
   if (Array.isArray(product?.thong_so_ky_thuat)) {
     specs = product.thong_so_ky_thuat
@@ -1860,7 +1860,7 @@ const mapProductToForm = (product) => {
     selectedOptions.value = nextSelected
   }
 
-  // 4. LÆ°u Snapshot sau khi Ä‘Ã£ náº¡p Ä‘áº§y Ä‘á»§ Biáº¿n thá»ƒ + ThÃ´ng sá»‘
+  // 4. Lưu Snapshot sau khi đã nạp đầy đủ Biến thể + Thông số
   selectedOptionsSnapshot.value = cloneSelectedOptions(selectedOptions.value)
 
   variantCurrentPage.value = 1
@@ -1889,7 +1889,7 @@ const submitForm = async () => {
   const isTopFormValid = validateTopForm()
   const isVariantRowsValid = validateVariantRows()
   if (!isTopFormValid || !isVariantRowsValid) {
-    formError.value = 'Vui lÃ²ng kiá»ƒm tra láº¡i thÃ´ng tin sáº£n pháº©m'
+    formError.value = 'Vui lòng kiểm tra lại thông tin sản phẩm'
     return
   }
 
@@ -1898,7 +1898,7 @@ const submitForm = async () => {
       id_danhmuc: Number(form.value.category),
       id_thuonghieu: Number(form.value.brand),
       tenSP: form.value.name.trim(),
-      trangthai: form.value.status === 'Äang bÃ¡n' ? 1 : 0,
+      trangthai: form.value.status === 'Đang bán' ? 1 : 0,
       hinhanh: form.value.img || imgPreview.value || '',
       khoiluong: form.value.weight ? Number(form.value.weight) : null,
 
@@ -1942,11 +1942,11 @@ const submitForm = async () => {
       invalidateProductCaches(editingProductId.value)
       await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
       invalidateProductCaches(editingProductId.value)
-      swal.success('ThÃ nh cÃ´ng', 'Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng')
+      swal.success('Thành công', 'Cập nhật sản phẩm thành công')
     } else {
       const response = await api.post('/admin/sanpham', payload)
       invalidateProductCaches(response.data?.data?.id_sanpham || null)
-      swal.success('ThÃ nh cÃ´ng', 'ThÃªm sáº£n pháº©m thÃ nh cÃ´ng')
+      swal.success('Thành công', 'Thêm sản phẩm thành công')
     }
 
     await fetchProducts()
@@ -1954,9 +1954,9 @@ const submitForm = async () => {
     closeModal()
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', getErrorMessage(error, isEditMode.value
-      ? 'CÃ³ lá»—i xáº£y ra khi cáº­p nháº­t sáº£n pháº©m'
-      : 'CÃ³ lá»—i xáº£y ra khi thÃªm sáº£n pháº©m'))
+    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
+      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
+      : 'Có lỗi xảy ra khi thêm sản phẩm'))
   }
 }
 
@@ -1976,15 +1976,15 @@ onMounted(() => {
 <template>
   <div class="admin">
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-         VIEW: DANH SÃCH sáº£n pháº©m (top, stats, filter, table)
-    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ══════════════════════════════════════════════════════
+         VIEW: DANH SÁCH sản phẩm (top, stats, filter, table)
+    ══════════════════════════════════════════════════════ -->
     <template v-if="currentView === 'list'">
 
     <div class="top">
       <div>
-        <h1>Quáº£n lÃ½ sáº£n pháº©m</h1>
-        <p>Cáº­p nháº­t vÃ  theo dÃµi danh má»¥c thiáº¿t bá»‹ cÃ´ng nghá»‡ 2026</p>
+        <h1>Quản lý sản phẩm</h1>
+        <p>Cập nhật và theo dõi danh mục thiết bị công nghệ 2026</p>
       </div>
       <div class="excel-actions">
         <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
@@ -1995,7 +1995,7 @@ onMounted(() => {
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isExporting ? 'Äang xuáº¥t...' : 'Xuáº¥t Excel' }}
+          {{ isExporting ? 'Đang xuất...' : 'Xuất Excel' }}
         </button>
 
         <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
@@ -2006,48 +2006,48 @@ onMounted(() => {
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isImporting ? 'Äang nháº­p...' : 'Nháº­p Excel' }}
+          {{ isImporting ? 'Đang nhập...' : 'Nhập Excel' }}
         </button>
         <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls"
           @change="handleImportExcel" />
 
-        <button class="add-btn" @click="openModal">+ ThÃªm sáº£n pháº©m</button>
+        <button class="add-btn" @click="openModal">+ Thêm sản phẩm</button>
       </div>
     </div>
 
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">ðŸ“¦</span>
+        <span class="stat-icon blue">📦</span>
         <div>
-          <p>Tá»•ng sáº£n pháº©m</p>
+          <p>Tổng sản phẩm</p>
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange clickable-stat" @click="openLowStockModal">
-        <span class="stat-icon red">âš ï¸</span>
+        <span class="stat-icon red">⚠️</span>
         <div>
-          <p>Sáº¯p háº¿t hÃ ng</p>
+          <p>Sắp hết hàng</p>
           <b>{{ lowStockStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
 
       <div class="stat-card stat-teal">
-        <span class="stat-icon purple">ðŸ­</span>
+        <span class="stat-icon purple">🏭</span>
         <div>
-          <p>Kho lÆ°u trá»¯</p>
+          <p>Kho lưu trữ</p>
           <b>{{ totalInventoryStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
     </div>
 
-    <!-- Tabs danh má»¥c cha -->
+    <!-- Tabs danh mục cha -->
     <div class="parent-tabs">
       <button 
         class="parent-tab-btn" 
         :class="{ active: selectedParentTab === '' }" 
         @click="selectParentTab('')"
       >
-        Táº¥t cáº£ sáº£n pháº©m
+        Tất cả sản phẩm
       </button>
       <button 
         v-for="parentCat in parentCategories" 
@@ -2067,21 +2067,21 @@ onMounted(() => {
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
-        <input v-model="searchQuery" placeholder="TÃ¬m kiáº¿m tÃªn sáº£n pháº©m, SKU..." />
+        <input v-model="searchQuery" placeholder="Tìm kiếm tên sản phẩm, SKU..." />
       </div>
       <!-- Custom Status Dropdown -->
       <div class="custom-dropdown">
         <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown; isOpenCategoryDropdown = false">
-          <span>{{ selectedStatus || 'Táº¥t cáº£ tráº¡ng thÃ¡i' }}</span>
+          <span>{{ selectedStatus || 'Tất cả trạng thái' }}</span>
           <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Táº¥t cáº£ tráº¡ng thÃ¡i</li>
-            <li :class="{ active: selectedStatus === 'Äang bÃ¡n' }" @click="selectedStatus = 'Äang bÃ¡n'; isOpenStatusDropdown = false">Äang bÃ¡n</li>
-            <li :class="{ active: selectedStatus === 'NhÃ¡p' }" @click="selectedStatus = 'NhÃ¡p'; isOpenStatusDropdown = false">NhÃ¡p</li>
+            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Tất cả trạng thái</li>
+            <li :class="{ active: selectedStatus === 'Đang bán' }" @click="selectedStatus = 'Đang bán'; isOpenStatusDropdown = false">Đang bán</li>
+            <li :class="{ active: selectedStatus === 'Nháp' }" @click="selectedStatus = 'Nháp'; isOpenStatusDropdown = false">Nháp</li>
           </ul>
         </transition>
       </div>
@@ -2096,7 +2096,7 @@ onMounted(() => {
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Táº¥t cáº£ danh má»¥c</li>
+            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Tất cả danh mục</li>
             <li v-for="category in filteredCategoriesForDropdown" :key="category.id_danhmuc" 
                 :class="{ active: String(selectedCategory) === String(category.id_danhmuc) }" 
                 @click="selectedCategory = category.id_danhmuc; isOpenCategoryDropdown = false">
@@ -2109,21 +2109,21 @@ onMounted(() => {
 
     <div class="product-bulk-toolbar">
       <div class="bulk-summary">
-        <span class="bulk-summary-icon">âœ“</span>
+        <span class="bulk-summary-icon">✓</span>
         <div>
-          <b>{{ selectedProductIds.length }} sáº£n pháº©m Ä‘Ã£ chá»n</b>
-          <p>Tick tá»«ng dÃ²ng hoáº·c chá»n toÃ n bá»™ {{ paginatedProducts.length }} sáº£n pháº©m trÃªn trang hiá»‡n táº¡i.</p>
+          <b>{{ selectedProductIds.length }} sản phẩm đã chọn</b>
+          <p>Tick từng dòng hoặc chọn toàn bộ {{ paginatedProducts.length }} sản phẩm trên trang hiện tại.</p>
         </div>
       </div>
       <div class="bulk-toolbar-actions">
         <button class="bulk-btn ghost" :disabled="!selectedProductIds.length || isBulkDeleting" @click="clearProductSelection">
-          Bá» chá»n
+          Bỏ chọn
         </button>
         <button class="bulk-btn danger" :disabled="!selectedProductIds.length || isBulkDeleting" @click="removeSelectedProducts">
-          {{ isBulkDeleting ? 'Äang xÃ³a...' : `XÃ³a Ä‘Ã£ chá»n (${selectedProductIds.length})` }}
+          {{ isBulkDeleting ? 'Đang xóa...' : `Xóa đã chọn (${selectedProductIds.length})` }}
         </button>
         <button class="bulk-btn danger-outline" :disabled="!filteredProducts.length || isBulkDeleting" @click="removeAllFilteredProducts">
-          XÃ³a toÃ n bá»™
+          Xóa toàn bộ
         </button>
       </div>
     </div>
@@ -2136,17 +2136,17 @@ onMounted(() => {
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedProducts.length" @change="toggleCurrentPageSelection" />
             </th>
             <th>STT</th>
-            <th>Sáº£n pháº©m</th>
-            <th>Danh má»¥c</th>
-            <th>ThÆ°Æ¡ng hiá»‡u</th>
-            <th>Tá»•ng biáº¿n thá»ƒ</th>
-            <th>Tráº¡ng thÃ¡i</th>
-            <th>Thao tÃ¡c</th>
+            <th>Sản phẩm</th>
+            <th>Danh mục</th>
+            <th>Thương hiệu</th>
+            <th>Tổng biến thể</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!paginatedProducts.length">
-            <td colspan="8" class="empty">KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m nÃ o.</td>
+            <td colspan="8" class="empty">Không tìm thấy sản phẩm nào.</td>
           </tr>
           <tr v-for="(p, i) in paginatedProducts" :key="p.id" :class="{ 'row-selected': selectedProductIds.includes(p.id) }">
             <td class="select-col">
@@ -2165,20 +2165,20 @@ onMounted(() => {
             <td><span class="price">{{ p.brand }}</span></td>
             <td>
               <div class="stock-cell">
-                <span>{{ p.totalVariants }} biáº¿n thá»ƒ</span>
+                <span>{{ p.totalVariants }} biến thể</span>
               </div>
             </td>
-            <td><span class="status-badge" :class="p.status === 'Äang bÃ¡n' ? 'active' : 'draft'">{{ p.status }}</span>
+            <td><span class="status-badge" :class="p.status === 'Đang bán' ? 'active' : 'draft'">{{ p.status }}</span>
             </td>
             <td>
               <div class="actions">
-                <button class="act-btn" title="Sá»­a" @click="openEditModal(p.id)">
+                <button class="act-btn" title="Sửa" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
-                <button class="act-btn danger" title="XÃ³a" @click="removeProduct(p.id, p.name)">
+                <button class="act-btn danger" title="Xóa" @click="removeProduct(p.id, p.name)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -2194,7 +2194,7 @@ onMounted(() => {
     </div>
 
     <div class="pagination">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">â€¹</button>
+      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
       <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
         :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
@@ -2202,23 +2202,23 @@ onMounted(() => {
         {{ p }}
       </button>
 
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">â€º</button>
+      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
     </div>
 
     </template><!-- end list view -->
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-         VIEW: FORM Sáº¢N PHáº¨M (ThÃªm / Sá»­a)
-    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ══════════════════════════════════════════════════════
+         VIEW: FORM SẢN PHẨM (Thêm / Sửa)
+    ══════════════════════════════════════════════════════ -->
     <template v-if="currentView === 'product-form'">
       <!-- Inline form header -->
       <div class="inline-form-header">
         <button class="back-btn" @click="closeModal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
-          Quay láº¡i danh sÃ¡ch
+          Quay lại danh sách
         </button>
-        <h1>{{ isEditMode ? 'âœï¸ Chá»‰nh sá»­a sáº£n pháº©m' : 'âž• ThÃªm sáº£n pháº©m má»›i' }}</h1>
-        <p>{{ isEditMode ? 'Cáº­p nháº­t thÃ´ng tin vÃ  biáº¿n thá»ƒ cá»§a sáº£n pháº©m' : 'Äiá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin Ä‘á»ƒ thÃªm sáº£n pháº©m vÃ o há»‡ thá»‘ng' }}</p>
+        <h1>{{ isEditMode ? '✏️ Chỉnh sửa sản phẩm' : '➕ Thêm sản phẩm mới' }}</h1>
+        <p>{{ isEditMode ? 'Cập nhật thông tin và biến thể của sản phẩm' : 'Điền đầy đủ thông tin để thêm sản phẩm vào hệ thống' }}</p>
       </div>
 
       <div class="inline-form-body">
@@ -2732,25 +2732,25 @@ onMounted(() => {
             <p v-if="fieldErrors.variantRows" class="field-error">
               {{ fieldErrors.variantRows }}
             </p>
-            <p v-if="formError" class="form-error">âš  {{ formError }}</p>
+            <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
 
           <!-- Inline footer actions -->
           <div class="inline-form-footer">
-            <button class="btn-cancel" @click="closeModal">Há»§y</button>
+            <button class="btn-cancel" @click="closeModal">Hủy</button>
             <button class="btn-submit" @click="submitForm">
-              {{ isEditMode ? 'LÆ°u thay Ä‘á»•i' : 'ThÃªm sáº£n pháº©m' }}
+              {{ isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm' }}
             </button>
           </div>
       </div><!-- end inline-form-body -->
     </template><!-- end product-form -->
 
-    <!-- Modal Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng -->
+    <!-- Modal Danh sách sản phẩm sắp hết hàng -->
     <Teleport to="body">
       <div v-if="showLowStockModal" class="modal-overlay" @click.self="closeLowStockModal">
         <div class="modal modal-wide">
           <div class="modal-header">
-            <h3>Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng</h3>
-            <button class="modal-close" @click="closeLowStockModal">Ã—</button>
+            <h3>Danh sách sản phẩm sắp hết hàng</h3>
+            <button class="modal-close" @click="closeLowStockModal">×</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
@@ -2758,14 +2758,14 @@ onMounted(() => {
                 <thead>
                   <tr>
                     <th>STT</th>
-                    <th>HÃ¬nh áº£nh</th>
-                    <th>TÃªn SP</th>
-                    <th>HÃ nh Ä‘á»™ng</th>
+                    <th>Hình ảnh</th>
+                    <th>Tên SP</th>
+                    <th>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="!lowStockProducts.length">
-                    <td colspan="4" class="empty">KhÃ´ng cÃ³ sáº£n pháº©m nÃ o sáº¯p háº¿t hÃ ng.</td>
+                    <td colspan="4" class="empty">Không có sản phẩm nào sắp hết hàng.</td>
                   </tr>
                   <tr v-for="(p, i) in lowStockProducts" :key="p.id">
                     <td>{{ i + 1 }}</td>
@@ -2778,7 +2778,7 @@ onMounted(() => {
                     <td>
                       <button class="btn-apply-solid"
                         style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer;"
-                        @click="openLowStockVariantsModal(p)">Xem chi tiáº¿t</button>
+                        @click="openLowStockVariantsModal(p)">Xem chi tiết</button>
                     </td>
                   </tr>
                 </tbody>
@@ -2789,27 +2789,27 @@ onMounted(() => {
       </div>
     </Teleport>
 
-    <!-- Modal Danh sÃ¡ch biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng -->
+    <!-- Modal Danh sách biến thể sắp hết hàng -->
     <Teleport to="body">
       <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
         <div class="modal">
           <div class="modal-header">
-            <h3>Biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng - {{ selectedLowStockProduct?.name }}</h3>
-            <button class="modal-close" @click="closeLowStockVariantsModal">Ã—</button>
+            <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
+            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>TÃªn biáº¿n thá»ƒ</th>
-                    <th>Sá»‘ lÆ°á»£ng</th>
+                    <th>Tên biến thể</th>
+                    <th>Số lượng</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
                     :key="v.id_bienthe || v.id">
-                    <td><b>{{ v.ten_bienthe || 'Biáº¿n thá»ƒ' }}</b></td>
+                    <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
                     <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
                   </tr>
                 </tbody>
@@ -2830,7 +2830,7 @@ onMounted(() => {
   font-family: 'Segoe UI', sans-serif;
 }
 
-/* â”€â”€ Inline Form Header â”€â”€ */
+/* ── Inline Form Header ── */
 .inline-form-header {
   margin-bottom: 28px;
   padding-bottom: 20px;
@@ -2872,7 +2872,7 @@ onMounted(() => {
   color: #0f172a;
 }
 
-/* â”€â”€ Inline Form Body â”€â”€ */
+/* ── Inline Form Body ── */
 .inline-form-body {
   background: #f8fafc;
   border-radius: 16px;
@@ -2881,7 +2881,7 @@ onMounted(() => {
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
-/* â”€â”€ Inline Form Footer â”€â”€ */
+/* ── Inline Form Footer ── */
 .inline-form-footer {
   display: flex;
   justify-content: flex-end;
@@ -2891,9 +2891,9 @@ onMounted(() => {
   border-top: 1px solid #e2e8f0;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   INLINE FORM â€” Form Elements Redesign
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════
+   INLINE FORM — Form Elements Redesign
+══════════════════════════════════════ */
 
 /* Product Form Grid Layout */
 .product-form-grid {
@@ -3335,7 +3335,7 @@ onMounted(() => {
   border-color: #2563eb;
 }
 
-/* â”€â”€ Custom Premium Dropdown â”€â”€ */
+/* ── Custom Premium Dropdown ── */
 .custom-dropdown {
   position: relative;
   min-width: 170px;
@@ -4791,7 +4791,7 @@ tbody td {
   border-radius: 10px;
 }
 
-/* â”€â”€ PHASE 1 FOOTER â”€â”€ */
+/* ── PHASE 1 FOOTER ── */
 .p1-footer {
   display: flex;
   flex-direction: column;
@@ -5201,7 +5201,7 @@ tbody td {
   gap: 8px;
 }
 
-/* â”€â”€ PARENT CATEGORY TABS â”€â”€ */
+/* ── PARENT CATEGORY TABS ── */
 .parent-tabs {
   display: flex;
   gap: 12px;
