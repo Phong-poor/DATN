@@ -95,6 +95,7 @@ export const warmProductImages = (products = [], limit = 28) => {
 }
 
 export const getPrefetchedProductsData = () => {
+  if (import.meta.env.DEV) return null
   if (!cache) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)

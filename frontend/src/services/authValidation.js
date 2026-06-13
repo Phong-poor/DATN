@@ -13,6 +13,7 @@ export function validateEmail(value) {
   const email = normalizeEmail(value)
   if (!email) return 'Vui lòng nhập email.'
   if (!emailPattern.test(email)) return 'Email không đúng định dạng.'
+  if (!email.endsWith('@gmail.com')) return 'Email phải là tài khoản Gmail (@gmail.com).'
   return ''
 }
 
