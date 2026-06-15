@@ -3,9 +3,10 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
-import { productImageUrl } from '@/services/urls'
+import { productImageUrl, comboImageUrl, handleImageFallback, imageFallbackUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
+import ComboSelectionModal from './ComboSelectionModal.vue'
 import {
   Tag,
   Flame,
@@ -66,6 +67,58 @@ const isLoadingUserVouchers = ref(false)
 // Stats counters (for dynamic increment count animation)
 const displayedProductsCount = ref(0)
 const displayedVouchersCount = ref(0)
+
+// ===================== DYNAMIC COMBOS STATE & HELPERS =====================
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+const activeComboSlide = ref(0)
+
+const comboSlides = computed(() => {
+  const chunks = []
+  for (let i = 0; i < combos.value.length; i += 2) {
+    chunks.push(combos.value.slice(i, i + 2))
+  }
+  return chunks
+})
+
+const nextComboSlide = () => {
+  if (activeComboSlide.value < comboSlides.value.length - 1) {
+    activeComboSlide.value++
+  } else {
+    activeComboSlide.value = 0
+  }
+}
+
+const prevComboSlide = () => {
+  if (activeComboSlide.value > 0) {
+    activeComboSlide.value--
+  } else {
+    activeComboSlide.value = comboSlides.value.length - 1
+  }
+}
+
+const openCombo = (combo) => {
+  selectedCombo.value = combo
+  showComboModal.value = true
+}
+
+const calculateOriginalPrice = (combo) => {
+  if (!combo.products || combo.products.length === 0) return 0
+  return combo.products.reduce((sum, p) => {
+    const basePrice = p.bien_thes && p.bien_thes.length > 0
+      ? Math.min(...p.bien_thes.map(v => Number(v.gia || 0)))
+      : Number(p.gia || p.giaSP || 0)
+    return sum + basePrice
+  }, 0)
+}
+
+const calculateSavings = (combo) => {
+  const orig = calculateOriginalPrice(combo)
+  return orig > combo.giakhuyenmai ? orig - combo.giakhuyenmai : 0
+}
+
+const formatPrice = (p) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p)
 
 // ===================== MOCK DATA =====================
 // High-fidelity fallback / static details
@@ -149,11 +202,10 @@ async function fetchPromotionsData() {
     }
 
     if (rawProducts.length > 0) {
-      // Find products with active discount or fallback to first 8 products
+      // Find products that have variants (hence have a price)
       let filtered = rawProducts.filter(p => {
-        const giaKM = parseFloat(p.giaKM)
-        const giaSP = parseFloat(p.giaSP)
-        return giaKM > 0 && giaKM < giaSP
+        const variants = p.bien_thes || []
+        return variants.length > 0
       })
 
       if (filtered.length === 0) {
@@ -161,14 +213,15 @@ async function fetchPromotionsData() {
       }
 
       products.value = filtered.map(p => {
-        const giaSP = parseFloat(p.giaKM) > 0 ? parseFloat(p.giaKM) : parseFloat(p.giaSP)
+        const variants = p.bien_thes || []
+        const baseVariant = variants.length > 0 ? variants[0] : null
+        const giaSP = Number(baseVariant?.gia || p.gia || 25000000)
         
         // Extract specs attributes
         const generalSpecs = []
-        if (p.bien_thes && p.bien_thes.length > 0) {
+        if (baseVariant) {
           try {
-            const bt = p.bien_thes[0]
-            const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
+            const tt = typeof baseVariant.thuoc_tinh_json === 'string' ? JSON.parse(baseVariant.thuoc_tinh_json || '[]') : (baseVariant.thuoc_tinh_json || [])
             if (Array.isArray(tt)) {
               tt.forEach(attr => {
                 generalSpecs.push(attr.giatri)
@@ -181,10 +234,9 @@ async function fetchPromotionsData() {
 
         let ram = '16GB'
         let ssd = '512GB'
-        if (p.bien_thes && p.bien_thes.length > 0) {
+        if (baseVariant) {
           try {
-            const bt = p.bien_thes[0]
-            const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
+            const tt = typeof baseVariant.thuoc_tinh_json === 'string' ? JSON.parse(baseVariant.thuoc_tinh_json || '[]') : (baseVariant.thuoc_tinh_json || [])
             if (Array.isArray(tt)) {
               tt.forEach(attr => {
                 const name = (attr.ten_thuoctinh || '').toLowerCase()
@@ -201,21 +253,33 @@ async function fetchPromotionsData() {
           brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'ASUS',
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop Gaming',
           gia: giaSP,
-          oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
+          oldPrice: baseVariant?.gia_khuyen_mai && Number(baseVariant.gia_khuyen_mai) > giaSP
+            ? Number(baseVariant.gia_khuyen_mai)
+            : Math.floor(giaSP * 1.18), // Simulated original price
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
-          image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
+          image: productImageUrl(p, baseVariant, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
           reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',
-          inStock: p.trangthai === 'hoat_dong' || p.soluong > 0
+          inStock: p.trangthai === 'hoat_dong' || Number(baseVariant?.soluong || p.soluong || 0) > 0
         }
       })
     } else {
       products.value = generateFallbackProducts()
     }
+
+    // 3. Load combos from API
+    try {
+      const combosResponse = await api.get('/combos')
+      combos.value = combosResponse.data?.data || []
+    } catch (e) {
+      console.error('Lỗi khi tải combos:', e)
+      combos.value = []
+    }
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu trang Khuyến Mãi:', err)
     products.value = generateFallbackProducts()
+    combos.value = []
   } finally {
     isLoading.value = false
     nextTick(() => {
@@ -868,42 +932,76 @@ const initScrollReveal = () => {
           <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
-        <div class="combos-bento-layout scroll-reveal reveal-stagger">
-          <div v-for="(combo, cIdx) in comboDetailsList" :key="cIdx" class="combo-bento-card">
-            <div class="combo-main-content">
-              <div class="combo-details">
-                <span class="combo-discount-badge">{{ combo.discountBadge }}</span>
-                <h3>{{ combo.title }}</h3>
-                <p>{{ combo.desc }}</p>
-                
-                <div class="combo-pricing-group">
-                  <div class="price-block">
-                    <span class="price-label">Giá Combo:</span>
-                    <span class="price-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.comboPrice) }}</span>
-                  </div>
-                  <div class="price-block old-price-block">
-                    <span class="price-label">Tổng Giá gốc:</span>
-                    <span class="price-val-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.originalPrice) }}</span>
-                  </div>
-                </div>
+        <!-- Slider container -->
+        <div v-if="comboSlides.length > 0" class="combo-slider-wrapper scroll-reveal">
+          <transition name="slide-fade" mode="out-in">
+            <div class="combos-bento-layout" :key="activeComboSlide">
+              <div v-for="combo in comboSlides[activeComboSlide]" :key="combo.id_combo" class="combo-bento-card">
+                <div class="combo-main-content">
+                  <div class="combo-details">
+                    <span class="combo-discount-badge" v-if="calculateSavings(combo) > 0">
+                      Tiết kiệm {{ formatPrice(calculateSavings(combo)) }}
+                    </span>
+                    <span class="combo-discount-badge" v-else>Combo Đặc Biệt</span>
+                    <h3>{{ combo.ten_combo }}</h3>
+                    <p>{{ combo.mota || 'Sở hữu trọn bộ trang bị chuyên nghiệp với mức chiết khấu cực sâu.' }}</p>
+                    
+                    <div class="combo-pricing-group">
+                      <div class="price-block">
+                        <span class="price-label">Giá Combo:</span>
+                        <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                      </div>
+                      <div class="price-block old-price-block" v-if="calculateOriginalPrice(combo) > combo.giakhuyenmai">
+                        <span class="price-label">Tổng Giá gốc:</span>
+                        <span class="price-val-old">{{ formatPrice(calculateOriginalPrice(combo)) }}</span>
+                      </div>
+                    </div>
 
-                <router-link to="/" class="btn btn-primary-glass combo-action-btn">
-                  Mua Trọn Bộ Combo
-                  <ChevronRight class="btn-chevron" />
-                </router-link>
-              </div>
-
-              <div class="combo-visual-connector">
-                <div v-for="(item, itemIdx) in combo.items" :key="itemIdx" class="connector-node">
-                  <div class="node-image-box">
-                    <img :src="item.img" :alt="item.name" />
+                    <button class="btn btn-primary-glass combo-action-btn" type="button" @click="openCombo(combo)">
+                      Mua Trọn Bộ Combo
+                      <ChevronRight class="btn-chevron" />
+                    </button>
                   </div>
-                  <span class="node-title">{{ item.name }}</span>
-                  <div v-if="itemIdx < combo.items.length - 1" class="node-plus-sign">+</div>
+
+                  <div class="combo-visual-connector">
+                    <div v-for="(p, itemIdx) in combo.products" :key="p.id_sanpham" class="connector-node">
+                      <div class="node-image-box">
+                        <img :src="productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=200')" :alt="p.tenSP" />
+                      </div>
+                      <span class="node-title clickable" @click="router.push(`/products/${p.id_sanpham}`)">{{ p.tenSP }}</span>
+                      <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </transition>
+
+          <!-- Slider Navigation & Dots -->
+          <div class="slider-controls" v-if="comboSlides.length > 1">
+            <button class="slider-nav-btn prev" type="button" @click="prevComboSlide">
+              ‹
+            </button>
+            <div class="slider-dots">
+              <span 
+                v-for="(slide, sIdx) in comboSlides" 
+                :key="sIdx" 
+                class="slider-dot"
+                :class="{ active: sIdx === activeComboSlide }"
+                @click="activeComboSlide = sIdx"
+              ></span>
+            </div>
+            <button class="slider-nav-btn next" type="button" @click="nextComboSlide">
+              ›
+            </button>
           </div>
+        </div>
+
+        <!-- Fallback empty state -->
+        <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
+          <div class="combo-empty-icon">🎁</div>
+          <h3>Đang cập nhật các gói Combo độc quyền</h3>
+          <p>Hiện chưa có gói combo nào hoạt động. Vui lòng quay lại sau!</p>
         </div>
       </div>
     </section>
@@ -1071,6 +1169,14 @@ const initScrollReveal = () => {
         </div>
       </div>
     </section>
+
+    <!-- Modal Chọn Biến Thể Combo -->
+    <ComboSelectionModal 
+      v-if="selectedCombo" 
+      :combo="selectedCombo" 
+      :show="showComboModal" 
+      @close="showComboModal = false" 
+    />
   </div>
 </template>
 
@@ -2138,6 +2244,101 @@ const initScrollReveal = () => {
   font-size: 22px;
   font-weight: 800;
   color: var(--accent);
+}
+
+.node-title.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.node-title.clickable:hover {
+  color: var(--highlight) !important;
+}
+
+/* Slider Controls Styles */
+.combo-slider-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.slider-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.slider-nav-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-light);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.slider-nav-btn:hover {
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: #050d1a;
+  transform: scale(1.05);
+}
+
+.slider-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+  background: var(--highlight);
+  width: 20px;
+  border-radius: 4px;
+}
+
+.combo-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #081529;
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+}
+
+.combo-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.combo-empty-state h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-light);
+}
+
+.combo-empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+  max-width: 480px;
 }
 
 /* ============================================================

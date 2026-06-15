@@ -10,7 +10,6 @@ const router = useRouter()
 const route = useRoute()
 const MACBOOK_CATEGORY = 'MacBook'
 
-// ===================== DỮ LIỆU Äá»˜NG & ÄỒNG Bá»˜ BACKEND =====================
 const products = ref([])
 const categories = ref([])
 const brands = ref([])
