@@ -108,6 +108,7 @@ const routes = [
       { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue'), meta: { title: 'Quản lý thương hiệu' } },
       { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue'), meta: { title: 'Quản lý bình luận' } },
       { path: 'affiliates', name: 'admin-affiliates', component: () => import('../components/Admin/Affiliates.vue'), meta: { title: 'Quản lý affiliate' } },
+      { path: 'birthday-codes', name: 'admin-birthday-codes', component: () => import('../components/Admin/BirthdayCodes.vue'), meta: { title: 'Gửi mã sinh nhật' } },
     ],
   },
 

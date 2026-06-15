@@ -107,6 +107,7 @@ import api from '@/services/api';
 import { productImageUrl, storageUrl } from '@/services/urls';
 import { getToken } from '@/services/auth';
 import swal from '@/services/swal';
+import { stopChatTitleNotice } from '@/utils/chatMessage';
 
 const chatWidgetRef = ref(null);
 const showEmojiPicker = ref(false);
