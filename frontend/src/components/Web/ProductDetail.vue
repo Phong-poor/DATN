@@ -1570,7 +1570,6 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
                                 <div class="option-header-row">
                                     <span class="option-label-title">{{ group.name }}</span>
-                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
                                 </div>
 
                                 <div class="premium-variant-dropdown">
@@ -2591,7 +2590,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
-    top: 0;
+    top: 102px; /* Đặt dưới header trên desktop (34px announcement bar + 68px main header) */
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -2599,10 +2598,16 @@ const handleSelectVariantById = (idBienThe) => {
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid #E2E8F0;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
-    z-index: 1000;
+    z-index: 999; /* Dưới header (1000) để khi ẩn/hiện trượt phía sau header trông mượt mà hơn */
     padding: 12px 0;
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 600px) {
+    .sticky-buy-bar {
+        top: 60px; /* Đặt dưới header trên mobile (chiều cao header mobile là 60px, top: 0) */
+    }
 }
 
 .sticky-bar-flex {
@@ -3054,7 +3059,7 @@ const handleSelectVariantById = (idBienThe) => {
 
 .detail-hero-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.02fr 0.98fr;
     gap: 48px;
     align-items: start;
 }
@@ -3064,7 +3069,9 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    position: relative;
+    position: sticky;
+    top: 120px;
+    max-width: 530px;
 }
 
 .main-image-viewport {
@@ -3396,13 +3403,13 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .premium-option-group {
     display: grid;
-    grid-template-columns: minmax(86px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-columns: minmax(70px, 0.65fr) minmax(0, 1.35fr);
     align-items: center;
-    gap: 8px 12px;
-    min-height: 52px;
-    padding: 10px 12px;
+    gap: 6px 10px;
+    min-height: 40px;
+    padding: 6px 10px;
     border: 1px solid #dbe5f0;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #ffffff;
 }
 .option-header-row {
@@ -5264,7 +5271,7 @@ const handleSelectVariantById = (idBienThe) => {
         grid-template-columns: 1fr;
     }
     .premium-option-group {
-        grid-template-columns: minmax(82px, 0.7fr) minmax(0, 1.3fr);
+        grid-template-columns: minmax(70px, 0.65fr) minmax(0, 1.35fr);
     }
     .grid-2-columns {
         grid-template-columns: 1fr;
@@ -5833,7 +5840,7 @@ const handleSelectVariantById = (idBienThe) => {
 .detail-hero-grid { gap: 36px; }
 @media (max-width: 1024px) {
     .detail-hero-grid { grid-template-columns: 1fr; gap: 24px; }
-    .gallery-column { position: static; top: auto; }
+    .gallery-column { position: static; top: auto; max-width: none; }
     .main-image-viewport { aspect-ratio: 16/10; }
 
 }
@@ -5928,8 +5935,7 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-variant-dropdown {
     position: relative;
     width: 100%;
-    margin-top: 8px;
-    margin-bottom: 14px;
+    margin: 0;
 }
 
 .dropdown-trigger {
@@ -5937,10 +5943,10 @@ const handleSelectVariantById = (idBienThe) => {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 12px 16px;
+    padding: 8px 12px;
     background: var(--tn-surface, #ffffff);
     border: 1.5px solid var(--tn-border, #e2e8f0);
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;

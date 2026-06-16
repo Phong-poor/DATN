@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
-import { productImageUrl } from '@/services/urls'
+import { productImageUrl, normalizeImageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 
 const router = useRouter()
@@ -333,19 +333,13 @@ const flashSaleCarousel = computed(() => {
   return source
     .slice(0, 10)
     .map((product, index) => ({
-      id_sanpham: product.id_sanpham,
-      id_bienthe: product.id_bienthe,
+      ...product,
       name: product.tenSP,
       price: Number(product.gia),
       badge: premiumBadges[index] || 'PREMIUM',
       tag: premiumTags[index] || product.brand,
       highlight: product.promo || `Biến thể cao cấp nhất hiện có trong database của ${product.brand}.`,
-      specs: product.specs?.length ? product.specs.slice(0, 4) : ['Cấu hình cao cấp'],
-      image: product.image,
-      inStock: product.inStock,
-      variantName: product.variantName,
-      brand: product.brand,
-      category: product.category
+      specs: product.specs?.length ? product.specs.slice(0, 4) : ['Cấu hình cao cấp']
     }))
 })
 
@@ -449,6 +443,43 @@ const showroomHighlights = [
 ]
 
 // ===================== DỮ LIỆU ÄỒNG Bá»˜ VÃ€ XỬ LÝ LỌC =====================
+const hoverImageIndices = ref({})
+const activeRotations = new Set()
+
+const preloadSecondaryImages = (productsList) => {
+  if (typeof Image === 'undefined') return
+  productsList.forEach(p => {
+    if (p.images && p.images.length > 1) {
+      const img = new Image()
+      img.src = p.images[1]
+    }
+  })
+}
+
+const startImageRotation = (p) => {
+  if (!p.images || p.images.length <= 1) return;
+  
+  // Set initial index to 1 (first secondary image)
+  hoverImageIndices.value[p.id_sanpham] = 1;
+  
+  if (p.rotationInterval) clearInterval(p.rotationInterval);
+  p.rotationInterval = setInterval(() => {
+    const nextIdx = ((hoverImageIndices.value[p.id_sanpham] ?? 1) + 1) % p.images.length;
+    hoverImageIndices.value[p.id_sanpham] = nextIdx;
+  }, 2000);
+  activeRotations.add(p);
+}
+
+const stopImageRotation = (p) => {
+  if (p.rotationInterval) {
+    clearInterval(p.rotationInterval);
+    p.rotationInterval = null;
+  }
+  // Reset/delete index
+  delete hoverImageIndices.value[p.id_sanpham];
+  activeRotations.delete(p);
+}
+
 const loadData = async () => {
   isLoading.value = true
   try {
@@ -494,6 +525,23 @@ const loadData = async () => {
           } catch (e) { }
         }
 
+        const mainImg = productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600');
+        const imagesList = [mainImg];
+        const baseImg = productImageUrl(p, null, 'https://via.placeholder.com/600');
+        if (baseImg && !imagesList.includes(baseImg)) {
+          imagesList.push(baseImg);
+        }
+        const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+        listHinhAnh.forEach(img => {
+          const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+          if (rawPath) {
+            const normalized = normalizeImageUrl(rawPath);
+            if (normalized && !imagesList.includes(normalized)) {
+              imagesList.push(normalized);
+            }
+          }
+        });
+
         return {
           id_sanpham: p.id_sanpham,
           id_bienthe: premiumVariant?.id_bienthe,
@@ -504,7 +552,9 @@ const loadData = async () => {
           gia: giaSP,
           oldPrice: Math.floor(giaSP * 1.15),
           specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD']),
-          image: productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600'),
+          image: mainImg,
+          images: imagesList,
+          hovered: false,
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
           reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
@@ -516,9 +566,11 @@ const loadData = async () => {
     } else {
       products.value = [...fallbackProducts]
     }
+    preloadSecondaryImages(products.value)
   } catch (err) {
     console.error('Lỗi khi tải sản phẩm từ backend:', err)
     products.value = [...fallbackProducts]
+    preloadSecondaryImages(products.value)
   } finally {
     isLoading.value = false
   }
@@ -801,6 +853,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateFlashSaleViewport)
+  activeRotations.forEach(p => {
+    if (p.rotationInterval) clearInterval(p.rotationInterval)
+  })
+  activeRotations.clear()
 })
 
 watch(() => route.fullPath, () => {
@@ -921,7 +977,9 @@ watch(() => route.fullPath, () => {
           @pointerleave="endFlashDrag" @wheel.prevent="handleFlashWheel">
           <div class="flash-sale-grid-slider" :class="{ dragging: isFlashDragging }" :style="flashSaleTrackStyle">
             <div class="flash-sale-card" v-for="product in flashSaleCarousel"
-              :key="product.id_bienthe || product.id_sanpham" @click="goToPremiumProduct(product)">
+              :key="product.id_bienthe || product.id_sanpham" @click="goToPremiumProduct(product)"
+              @mouseenter="startImageRotation(product)"
+              @mouseleave="stopImageRotation(product)">
               <!-- Premium Badge -->
               <div class="flash-card-badge-row">
                 <span class="flash-sale-badge">{{ product.badge }}</span>
@@ -929,7 +987,7 @@ watch(() => route.fullPath, () => {
               </div>
 
               <div class="flash-card-image-box">
-                <img :src="product.image" :alt="product.name" />
+                <img :src="hoverImageIndices[product.id_sanpham] !== undefined && product.images && product.images.length > 1 ? product.images[hoverImageIndices[product.id_sanpham]] : product.image" :alt="product.name" />
               </div>
 
               <div class="flash-card-content">
@@ -1279,7 +1337,9 @@ watch(() => route.fullPath, () => {
 
           <div v-else class="catalog-product-grid">
             <article class="premium-product-card" v-for="prod in paginatedProducts" :key="prod.id_sanpham"
-              @click="viewDetail(prod.id_sanpham)">
+              @click="viewDetail(prod.id_sanpham)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)">
 
               <!-- Card Top Badge - BEST SELLER -->
               <div class="card-badge-overlay" v-if="prod.gia % 3 === 0 || prod.gia > 60000000">
@@ -1288,7 +1348,7 @@ watch(() => route.fullPath, () => {
 
               <!-- Product Image Container (Perfect White Square Box) -->
               <div class="card-media-box">
-                <img :src="prod.image" :alt="prod.tenSP" />
+                <img :src="hoverImageIndices[prod.id_sanpham] !== undefined && prod.images && prod.images.length > 1 ? prod.images[hoverImageIndices[prod.id_sanpham]] : prod.image" :alt="prod.tenSP" />
 
                 <button class="hover-heart-btn" @click.stop="toggleWishlist(prod)" title="Thêm vào yêu thích">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
