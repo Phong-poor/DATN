@@ -459,6 +459,8 @@
                 @pointerenter="warmProductDetail(prod)"
                 @focusin="warmProductDetail(prod)"
                 @touchstart.passive="warmProductDetail(prod)"
+                @mouseenter="startImageRotation(prod)"
+                @mouseleave="stopImageRotation(prod)"
               >
                 <!-- Badge giảm giá góc trên trái -->
                 <div class="product-badge" :class="getBadgeClass(prod)">
@@ -477,7 +479,7 @@
                 
                 <!-- Hình ảnh nền trắng sạch -->
                 <div class="product-image-wrapper">
-                  <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
+                  <img :src="prod.hovered && prod.images && prod.images.length > 1 ? prod.images[prod.currentImageIndex || 0] : prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
                 </div>
 
                 <!-- Tên sản phẩm -->
@@ -643,6 +645,8 @@
               @pointerenter="warmProductDetail(prod)"
               @focusin="warmProductDetail(prod)"
               @touchstart.passive="warmProductDetail(prod)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">
                 {{ getBadgeText(prod) }}
@@ -655,7 +659,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
+                <img :src="prod.hovered && prod.images && prod.images.length > 1 ? prod.images[prod.currentImageIndex || 0] : prod.image" :alt="prod.tenSP" :loading="idx < 5 ? 'eager' : 'lazy'" :fetchpriority="idx < 5 ? 'high' : 'auto'" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -701,6 +705,8 @@
               @pointerenter="warmProductDetail(prod)"
               @focusin="warmProductDetail(prod)"
               @touchstart.passive="warmProductDetail(prod)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -711,7 +717,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
+                <img :src="prod.hovered && prod.images && prod.images.length > 1 ? prod.images[prod.currentImageIndex || 0] : prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -757,6 +763,8 @@
               @pointerenter="warmProductDetail(prod)"
               @focusin="warmProductDetail(prod)"
               @touchstart.passive="warmProductDetail(prod)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -767,7 +775,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
+                <img :src="prod.hovered && prod.images && prod.images.length > 1 ? prod.images[prod.currentImageIndex || 0] : prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -813,6 +821,8 @@
               @pointerenter="warmProductDetail(prod)"
               @focusin="warmProductDetail(prod)"
               @touchstart.passive="warmProductDetail(prod)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)"
             >
               <div class="product-badge" :class="getBadgeClass(prod)">{{ getBadgeText(prod) }}</div>
               <button 
@@ -823,7 +833,7 @@
                 <Heart :fill="isInWishlist(prod) ? '#ef4444' : 'none'" />
               </button>
               <div class="product-image-wrapper">
-                <img :src="prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
+                <img :src="prod.hovered && prod.images && prod.images.length > 1 ? prod.images[prod.currentImageIndex || 0] : prod.image" :alt="prod.tenSP" loading="lazy" decoding="async" class="product-img" />
               </div>
               <h3 class="product-name">{{ prod.tenSP }}</h3>
               <div class="product-specs-pills">
@@ -904,11 +914,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { prefetchProductsPage, prefetchProductDetail, preloadProductDetailPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
-import { productImageUrl } from '@/services/urls'
+import { productImageUrl, normalizeImageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 import {
   Laptop,
@@ -1462,6 +1472,39 @@ const normalizeFallbackProducts = () => fallbackProducts.map((product) => {
   }
 })
 
+const activeRotations = new Set()
+
+const preloadSecondaryImages = (productsList) => {
+  if (typeof Image === 'undefined') return
+  productsList.forEach(p => {
+    if (p.images && p.images.length > 1) {
+      const img = new Image()
+      img.src = p.images[1]
+    }
+  })
+}
+
+const startImageRotation = (p) => {
+  if (!p.images || p.images.length <= 1) return;
+  p.hovered = true;
+  p.currentImageIndex = 1;
+  if (p.rotationInterval) clearInterval(p.rotationInterval);
+  p.rotationInterval = setInterval(() => {
+    p.currentImageIndex = (p.currentImageIndex + 1) % p.images.length;
+  }, 2000);
+  activeRotations.add(p);
+}
+
+const stopImageRotation = (p) => {
+  p.hovered = false;
+  if (p.rotationInterval) {
+    clearInterval(p.rotationInterval);
+    p.rotationInterval = null;
+  }
+  p.currentImageIndex = 0;
+  activeRotations.delete(p);
+}
+
 // Load products
 const loadData = async () => {
   isLoading.value = true
@@ -1537,6 +1580,23 @@ const loadData = async () => {
       const categoryName = getProductCategoryName(p)
       const brandName = getProductBrandName(p)
 
+      const mainImg = productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600')
+      const imagesList = [mainImg]
+      const baseImg = productImageUrl(p, null)
+      if (baseImg && !imagesList.includes(baseImg)) {
+        imagesList.push(baseImg)
+      }
+      const listHinhAnh = p.hinh_anhs || p.hinhAnhs || []
+      listHinhAnh.forEach(img => {
+        const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image
+        if (rawPath) {
+          const normalized = normalizeImageUrl(rawPath)
+          if (normalized && !imagesList.includes(normalized)) {
+            imagesList.push(normalized)
+          }
+        }
+      })
+
       return {
         id_sanpham: p.id_sanpham,
         id_danhmuc: p.id_danhmuc,
@@ -1554,7 +1614,9 @@ const loadData = async () => {
         gia: giaSP,
         oldPrice: Math.floor(giaSP * 1.15),
         specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, '144Hz']),
-        image: productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600'),
+        image: mainImg,
+        images: imagesList,
+        hovered: false,
         rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.7,
         reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
         promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
@@ -1586,11 +1648,21 @@ const loadData = async () => {
         id_thuonghieu: matchedId || fb.id_thuonghieu || ''
       }
     }).filter(fb => !existingIds.has(fb.id_sanpham))
-    products.value = [...mapped, ...uniqueFallbacks]
+    products.value = [...mapped, ...uniqueFallbacks.map(fb => ({
+      ...fb,
+      images: [fb.image],
+      hovered: false
+    }))]
+    preloadSecondaryImages(products.value)
     preloadProductDetailPage().catch(() => {})
   } catch (err) {
     console.error('Lỗi khi tải sản phẩm:', err)
-    products.value = normalizeFallbackProducts()
+    products.value = normalizeFallbackProducts().map(fb => ({
+      ...fb,
+      images: [fb.image],
+      hovered: false
+    }))
+    preloadSecondaryImages(products.value)
     preloadProductDetailPage().catch(() => {})
   } finally {
     isLoading.value = false
@@ -2053,6 +2125,13 @@ watch([isLoading, currentPage, currentSidebarFilter, activeTabFilter, activeAcce
 onMounted(() => {
   loadData()
   triggerScrollReveal()
+})
+
+onUnmounted(() => {
+  activeRotations.forEach(p => {
+    if (p.rotationInterval) clearInterval(p.rotationInterval)
+  })
+  activeRotations.clear()
 })
 </script>
 

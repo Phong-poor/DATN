@@ -189,6 +189,19 @@ const getCategoryTarget = (category) => {
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
+            const mainImg = productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500');
+            const imagesList = [mainImg];
+            const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+            listHinhAnh.forEach(img => {
+                const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+                if (rawPath) {
+                    const normalized = normalizeImageUrl(rawPath);
+                    if (normalized && !imagesList.includes(normalized)) {
+                        imagesList.push(normalized);
+                    }
+                }
+            });
+
             return [{
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
@@ -202,7 +215,9 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500'),
+                img: mainImg,
+                images: imagesList,
+                hovered: false,
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
                 rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
@@ -245,6 +260,25 @@ const mapProducts = (rawProducts) => {
                 { label: 'Màn hình', value: screen }
             ].filter(s => s.value);
 
+            const mainImg = productImageUrl(p, bt);
+            const imagesList = [mainImg];
+            
+            const baseImg = productImageUrl(p, null);
+            if (baseImg && !imagesList.includes(baseImg)) {
+                imagesList.push(baseImg);
+            }
+
+            const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+            listHinhAnh.forEach(img => {
+                const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+                if (rawPath) {
+                    const normalized = normalizeImageUrl(rawPath);
+                    if (normalized && !imagesList.includes(normalized)) {
+                        imagesList.push(normalized);
+                    }
+                }
+            });
+
             return {
                 id: p.id_sanpham,
                 key_id: String(bt.id_bienthe),
@@ -258,7 +292,9 @@ const mapProducts = (rawProducts) => {
                 priceNum: bt.gia || 0,
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 specs: specs,
-                img: productImageUrl(p, bt),
+                img: mainImg,
+                images: imagesList,
+                hovered: false,
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
                 rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
@@ -282,6 +318,39 @@ const mapProducts = (rawProducts) => {
     }
     return flatList;
 }
+
+const preloadSecondaryImages = (products) => {
+    if (typeof Image === 'undefined') return;
+    products.forEach(p => {
+        if (p.images && p.images.length > 1) {
+            const img = new Image();
+            img.src = p.images[1];
+        }
+    });
+};
+
+const activeRotations = new Set();
+
+const startImageRotation = (p) => {
+    if (!p.images || p.images.length <= 1) return;
+    p.hovered = true;
+    p.currentImageIndex = 1;
+    if (p.rotationInterval) clearInterval(p.rotationInterval);
+    p.rotationInterval = setInterval(() => {
+        p.currentImageIndex = (p.currentImageIndex + 1) % p.images.length;
+    }, 2000);
+    activeRotations.add(p);
+};
+
+const stopImageRotation = (p) => {
+    p.hovered = false;
+    if (p.rotationInterval) {
+        clearInterval(p.rotationInterval);
+        p.rotationInterval = null;
+    }
+    p.currentImageIndex = 0;
+    activeRotations.delete(p);
+};
 
 const featuredProducts = ref([])
 const featuredAccessories = ref([])
@@ -318,7 +387,10 @@ const loadCache = () => {
         const cached = localStorage.getItem('premium_home_cache')
         if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
+            if (parsed.featuredProducts) {
+                featuredProducts.value = parsed.featuredProducts
+                preloadSecondaryImages(featuredProducts.value)
+            }
             if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
             if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
@@ -387,6 +459,7 @@ onMounted(async () => {
             return !cat.includes('phụ kiện') && !cat.includes('phu kien');
         })
         featuredProducts.value = laptopsList.slice(0, 16)
+        preloadSecondaryImages(featuredProducts.value)
         
         const accessoriesList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
@@ -635,6 +708,10 @@ onMounted(() => {
 onUnmounted(() => {
     stop()
     if (countdownInterval) clearInterval(countdownInterval)
+    activeRotations.forEach(p => {
+        if (p.rotationInterval) clearInterval(p.rotationInterval)
+    })
+    activeRotations.clear()
 })
 </script>
 
@@ -921,13 +998,15 @@ onUnmounted(() => {
 
                 <!-- Best Sellers Grid (Sitting on clean white body background) -->
                 <div class="premium-products-grid scroll-reveal">
-                    <article class="premium-product-card light-card" v-for="p in filteredFeaturedProducts.slice(0, 8)" :key="p.key_id">
+                    <article class="premium-product-card light-card" v-for="p in filteredFeaturedProducts.slice(0, 8)" :key="p.key_id"
+                             @mouseenter="startImageRotation(p)"
+                             @mouseleave="stopImageRotation(p)">
                         <div class="product-visuals" @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
                             <span class="badge-tag" v-if="p.badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
                             <div class="discount-pill" v-if="p.oldPriceNum > p.priceNum">
                                 -{{ Math.round(((p.oldPriceNum - p.priceNum) / p.oldPriceNum) * 100) }}%
                             </div>
-                            <img :src="p.img" :alt="p.fullName" class="product-main-img" loading="lazy" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
+                            <img :src="p.hovered && p.images && p.images.length > 1 ? p.images[p.currentImageIndex || 0] : p.img" :alt="p.fullName" class="product-main-img" loading="lazy" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
                             
                             <button class="action-circle-btn wishlist-corner-btn" @click.stop="themVaoYeuThich(p)" title="Thêm vào yêu thích">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
