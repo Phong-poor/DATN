@@ -298,6 +298,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
+        Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
 
         // ===== LIÊN HỆ ADMIN =====
         Route::get('/lien-he', [LienHeController::class, 'index']);
