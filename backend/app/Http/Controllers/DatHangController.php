@@ -746,6 +746,28 @@ class DatHangController extends Controller
         }
     }
 
+    public function updatePaymentStatus(Request $request, $id)
+    {
+        $request->validate([
+            'payment_status' => 'required|string|in:pending,paid,unpaid,failed'
+        ]);
+
+        $order = DatHang::findOrFail($id);
+        $order->update([
+            'payment_status' => $request->payment_status,
+            'payment_paid_at' => $request->payment_status === 'paid' ? now() : $order->payment_paid_at,
+        ]);
+
+        // Broadcast the update so the UI syncs everywhere
+        event(new OrderStatusUpdated($order));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái thanh toán thành công!',
+            'order'   => $order
+        ]);
+    }
+
     private function resolvePaymentProvider(?string $method): ?string
     {
         $method = trim((string) $method);

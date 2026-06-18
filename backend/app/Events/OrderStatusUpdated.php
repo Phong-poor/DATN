@@ -33,6 +33,7 @@ class OrderStatusUpdated implements ShouldBroadcast
     {
         return [
             new PrivateChannel('user.' . $this->order->user_id),
+            new Channel('admin-orders'),
         ];
     }
 
@@ -54,6 +55,7 @@ class OrderStatusUpdated implements ShouldBroadcast
         return [
             'id_dathang' => $this->order->id_dathang,
             'trangthai' => $this->order->trangthai,
+            'payment_status' => $this->order->payment_status,
             'message' => 'Trạng thái đơn hàng #' . $this->order->id_dathang . ' đã thay đổi thành ' . $this->order->trangthai
         ];
     }
