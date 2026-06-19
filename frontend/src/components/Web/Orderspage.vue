@@ -616,9 +616,7 @@ onUnmounted(() => {
                 </div>
             </div>
               <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 100px; font-size: 14px;">
-                    Hoàn trả ({{ orders.filter(o => o.trangthai.startsWith('refund')).length }}):
-                </div>
+               
                 <div class="tabs" style="margin-bottom: 0;">
                     <button v-for="tab in [{key: 'all_refund', label: 'Tất cả'}, ...tabs_hoantra]" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
                         @click="activeTab = tab.key; pageMode = 'refund'">
