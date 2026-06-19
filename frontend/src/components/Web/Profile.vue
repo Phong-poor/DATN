@@ -1486,7 +1486,20 @@ const promoStatusMap = {
               </label>
 
               <!-- Grid preview -->
-              
+              <div v-if="refundProofs.length > 0" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                <div v-for="(proof, idx) in refundProofs" :key="idx" style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                  <img v-if="proof.type.startsWith('image/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+                  <video v-else-if="proof.type.startsWith('video/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                  <div v-if="proof.type.startsWith('video/')" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,0.65);padding:1px 5px;border-radius:4px;">VIDEO</div>
+                  <button @click="removeProof(idx)" type="button" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(220,38,38,0.85);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <label v-if="refundProofs.length < 5" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;border:2px dashed rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);cursor:pointer;aspect-ratio:1;color:#64748b;font-size:11px;font-weight:600;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Thêm</span>
+                </label>
+              </div>
 
               <input id="rp-proof-input" type="file" @change="handleProofUpload" accept="image/*,video/*" multiple style="display:none;"/>
             </div>
