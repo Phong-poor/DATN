@@ -291,6 +291,7 @@ const menuConfig = [
       { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'SALES' },
       { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'SALES' },
       { path: '/admin/combos', label: 'Quản lý Combo', badge: 'SALES' },
+      { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'SALES' },
       { path: '/admin/affiliates', label: 'Affiliate', badge: 'MARKETING' },
     ]
   },

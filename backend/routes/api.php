@@ -36,6 +36,8 @@ use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\BirthdayCodeController;
+use App\Http\Controllers\FlashSaleController;
+use App\Http\Controllers\FlashSaleWebController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -69,6 +71,7 @@ Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
+Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 
 // Ảnh chat (phục vụ qua API, không phụ thuộc symlink storage/public)
 Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
@@ -379,5 +382,14 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/chat/send', [ChatController::class, 'sendMessage']);
         Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
         Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
+
+        // ===== ADMIN FLASH SALES =====
+        Route::get('/flash-sales', [FlashSaleController::class, 'index']);
+        Route::post('/flash-sales', [FlashSaleController::class, 'store']);
+        Route::get('/flash-sales/{id}', [FlashSaleController::class, 'show']);
+        Route::put('/flash-sales/{id}', [FlashSaleController::class, 'update']);
+        Route::delete('/flash-sales/{id}', [FlashSaleController::class, 'destroy']);
+        Route::post('/flash-sales/{id}/products', [FlashSaleController::class, 'saveProducts']);
+        Route::delete('/flash-sales/{id}/products/{productId}', [FlashSaleController::class, 'removeProduct']);
 
 });

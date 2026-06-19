@@ -45,10 +45,16 @@ const backendPromotions = ref([])
 const newsletterEmail = ref('')
 const activeCategoryTab = ref('all')
 
+// Flash Sale state
+const currentFlashSession = ref(null)
+const flashSaleProductsList = ref([])
+const flashSaleStatus = ref('none')
+
 // Countdown timers state
-const fsHours = ref('04')
-const fsMinutes = ref('12')
-const fsSeconds = ref('45')
+const fsDays = ref('00')
+const fsHours = ref('00')
+const fsMinutes = ref('00')
+const fsSeconds = ref('00')
 
 const esHours = ref('01')
 const esMinutes = ref('32')
@@ -172,7 +178,6 @@ const magazineArticles = [
 // ===================== LIFECYCLE METHODS =====================
 onMounted(() => {
   fetchPromotionsData()
-  startTimers()
   fetchUserVouchers()
 })
 
@@ -275,6 +280,22 @@ async function fetchPromotionsData() {
     } catch (e) {
       console.error('Lỗi khi tải combos:', e)
       combos.value = []
+    }
+
+    // 4. Load current flash sale session
+    try {
+      const fsResponse = await api.get('/flash-sale/current')
+      if (fsResponse.data && fsResponse.data.success) {
+        flashSaleStatus.value = fsResponse.data.status || 'none'
+        currentFlashSession.value = fsResponse.data.session
+        flashSaleProductsList.value = fsResponse.data.products || []
+        startTimers()
+      }
+    } catch (e) {
+      console.error('Lỗi khi tải flash sale:', e)
+      flashSaleStatus.value = 'none'
+      currentFlashSession.value = null
+      flashSaleProductsList.value = []
     }
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu trang Khuyến Mãi:', err)
@@ -389,31 +410,65 @@ const filteredProducts = computed(() => {
 })
 
 const flashSaleProducts = computed(() => {
-  return products.value
-    .filter(p => p.oldPrice > p.gia)
-    .slice(0, 5)
-    .map((p, index) => {
-      const soldPercent = 75 + (index * 6) % 20
-      const remainingCount = 18 - (index * 3) % 15
-      return {
-        ...p,
-        soldPercent,
-        remainingCount
-      }
-    })
+  if (flashSaleStatus.value === 'none') return []
+  return flashSaleProductsList.value.map(p => {
+    const total = p.so_luong_gioi_han || 1
+    const sold = p.so_luong_da_ban || 0
+    const soldPercent = Math.min(Math.round((sold / total) * 100), 100)
+    const remainingCount = Math.max(total - sold, 0)
+    return {
+      id: p.id_sanpham,
+      id_bienthe: p.id_bienthe,
+      tenSP: p.tenSP,
+      ten_bienthe: p.ten_bienthe,
+      brand: p.brand,
+      category: p.category,
+      gia: p.gia,
+      oldPrice: p.oldPrice,
+      specs: p.specs,
+      image: p.image,
+      rating: p.rating,
+      reviews: p.reviews,
+      promo: p.promo,
+      soldPercent,
+      remainingCount,
+      inStock: p.inStock && flashSaleStatus.value === 'active'
+    }
+  })
 })
 
 // ===================== TIMERS CONTROLLER =====================
 let countdownInterval = null
 const startTimers = () => {
-  let fsTotalSeconds = 4 * 60 * 60 + 12 * 60 + 45
+  if (countdownInterval) clearInterval(countdownInterval)
+
+  let fsTotalSeconds = 0
+  if (flashSaleStatus.value === 'active' && currentFlashSession.value) {
+    const end = new Date(currentFlashSession.value.thoi_gian_ket_thuc)
+    const serverTime = currentFlashSession.value.server_time ? new Date(currentFlashSession.value.server_time) : new Date()
+    fsTotalSeconds = Math.max(Math.floor((end - serverTime) / 1000), 0)
+  } else if (flashSaleStatus.value === 'upcoming' && currentFlashSession.value) {
+    const start = new Date(currentFlashSession.value.thoi_gian_bat_dau)
+    const serverTime = currentFlashSession.value.server_time ? new Date(currentFlashSession.value.server_time) : new Date()
+    fsTotalSeconds = Math.max(Math.floor((start - serverTime) / 1000), 0)
+  }
+
   let esTotalSeconds = 1 * 60 * 60 + 32 * 60 + 8
 
-  countdownInterval = setInterval(() => {
-    if (fsTotalSeconds > 0) fsTotalSeconds--
-    const fH = Math.floor(fsTotalSeconds / 3600)
+  countdownInterval = setInterval(async () => {
+    if (fsTotalSeconds > 0) {
+      fsTotalSeconds--
+    } else if (flashSaleStatus.value !== 'none') {
+      clearInterval(countdownInterval)
+      await fetchPromotionsData()
+      return
+    }
+
+    const fD = Math.floor(fsTotalSeconds / (3600 * 24))
+    const fH = Math.floor((fsTotalSeconds % (3600 * 24)) / 3600)
     const fM = Math.floor((fsTotalSeconds % 3600) / 60)
     const fS = fsTotalSeconds % 60
+    fsDays.value = String(fD).padStart(2, '0')
     fsHours.value = String(fH).padStart(2, '0')
     fsMinutes.value = String(fM).padStart(2, '0')
     fsSeconds.value = String(fS).padStart(2, '0')
@@ -494,7 +549,7 @@ const addToCart = async (product) => {
   }
   try {
     await api.post('/gio-hang/them', {
-      id_sanpham: product.id,
+      id_bienthe: product.id_bienthe || product.key_id || product.id,
       soluong: 1
     })
     swal.success('Đã thêm vào giỏ', `${product.tenSP} đã nằm trong giỏ hàng của bạn!`)
@@ -505,8 +560,11 @@ const addToCart = async (product) => {
   }
 }
 
-const goToDetail = (productId) => {
-  router.push(`/products/${productId}`)
+const goToDetail = (product) => {
+  const url = product.id_bienthe 
+    ? `/products/${product.id}?variant=${product.id_bienthe}` 
+    : `/products/${product.id}`
+  router.push(url)
 }
 
 const submitNewsletter = async () => {
@@ -793,7 +851,7 @@ const initScrollReveal = () => {
     </section>
 
     <!-- 4. FLASH SALE TODAY -->
-    <section id="flash-sale" class="section flash-sale-dark-section">
+    <section id="flash-sale" class="section flash-sale-dark-section" v-if="flashSaleStatus !== 'none'">
       <div class="grid-container">
         <div class="flash-header-row scroll-reveal reveal-fade-up">
           <div class="flash-header-left">
@@ -805,8 +863,12 @@ const initScrollReveal = () => {
           </div>
 
           <div class="countdown-clock">
-            <span class="clock-label">KẾT THÚC SAU:</span>
+            <span class="clock-label">{{ flashSaleStatus === 'active' ? 'KẾT THÚC SAU:' : 'BẮT ĐẦU SAU:' }}</span>
             <div class="timer-numbers">
+              <template v-if="Number(fsDays) > 0">
+                <span class="timer-segment">{{ fsDays }}</span>
+                <span class="timer-colon">:</span>
+              </template>
               <span class="timer-segment">{{ fsHours }}</span>
               <span class="timer-colon">:</span>
               <span class="timer-segment">{{ fsMinutes }}</span>
@@ -817,10 +879,10 @@ const initScrollReveal = () => {
         </div>
 
         <div class="flash-sale-grid scroll-reveal reveal-stagger">
-          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod.id)">
+          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod)">
             <div class="flash-img-box">
               <img :src="prod.image" :alt="prod.tenSP" />
-              <div class="discount-absolute-badge">
+              <div class="discount-absolute-badge" v-if="prod.oldPrice > prod.gia">
                 -{{ Math.round((1 - prod.gia / prod.oldPrice) * 100) }}%
               </div>
             </div>
@@ -828,15 +890,18 @@ const initScrollReveal = () => {
             <div class="flash-card-info">
               <span class="product-brand">{{ prod.brand }}</span>
               <h3 class="product-title">{{ prod.tenSP }}</h3>
+              <div class="product-variant-badge" v-if="prod.ten_bienthe" :title="prod.ten_bienthe">
+                {{ prod.ten_bienthe }}
+              </div>
 
               <div class="price-flex-group">
                 <span class="price-new">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.gia) }}</span>
-                <span class="price-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
+                <span class="price-old" v-if="prod.oldPrice > prod.gia">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
               </div>
 
               <div class="stock-progress-container">
                 <div class="stock-info-row">
-                  <span>Đã bán {{ prod.soldPercent }}%</span>
+                  <span>{{ flashSaleStatus === 'active' ? 'Đã bán ' + prod.soldPercent + '%' : 'Sắp mở bán' }}</span>
                   <span>Còn lại {{ prod.remainingCount }} máy</span>
                 </div>
                 <div class="progress-track">
@@ -847,10 +912,10 @@ const initScrollReveal = () => {
               <button
                 @click.stop="addToCart(prod)"
                 class="btn-add-cart-flash"
-                :disabled="!prod.inStock"
+                :disabled="!prod.inStock || flashSaleStatus !== 'active'"
               >
                 <ShoppingBag class="cart-btn-icon" />
-                {{ prod.inStock ? 'Săn Ngay' : 'Hết Hàng' }}
+                {{ flashSaleStatus === 'active' ? (prod.inStock ? 'Săn Ngay' : 'Hết Hàng') : 'Sắp Diễn Ra' }}
               </button>
             </div>
           </div>
@@ -1750,6 +1815,15 @@ const initScrollReveal = () => {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.timer-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-left: 2px;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+
 .timer-colon {
   color: #ef4444;
   font-weight: 800;
@@ -1848,6 +1922,21 @@ const initScrollReveal = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   height: 34px;
+}
+
+.product-variant-badge {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
 }
 
 .price-flex-group {

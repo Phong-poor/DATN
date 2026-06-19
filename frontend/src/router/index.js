@@ -109,6 +109,7 @@ const routes = [
       { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue'), meta: { title: 'Quản lý bình luận' } },
       { path: 'affiliates', name: 'admin-affiliates', component: () => import('../components/Admin/Affiliates.vue'), meta: { title: 'Quản lý affiliate' } },
       { path: 'birthday-codes', name: 'admin-birthday-codes', component: () => import('../components/Admin/BirthdayCodes.vue'), meta: { title: 'Gửi mã sinh nhật' } },
+      { path: 'flash-sale', name: 'admin-flash-sale', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Quản lý Flash Sale' } },
     ],
   },
 
