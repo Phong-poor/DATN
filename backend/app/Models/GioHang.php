@@ -8,7 +8,7 @@ class GioHang extends Model
 {
     protected $table = 'giohang';
     protected $primaryKey = 'id_giohang';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'user_id',

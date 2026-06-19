@@ -50,6 +50,19 @@ class DatHangController extends Controller
                 if ($chiTiet->bienThe) {
                     $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
                 }
+
+                // Giảm số lượng đã bán của Flash Sale
+                $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($order) {
+                        $q->where('trang_thai', 1)
+                          ->where('thoi_gian_bat_dau', '<=', $order->created_at)
+                          ->where('thoi_gian_ket_thuc', '>=', $order->created_at);
+                    })
+                    ->where('id_bienthe', $chiTiet->id_bienthe)
+                    ->first();
+
+                if ($flashProduct) {
+                    $flashProduct->decrement('so_luong_da_ban', $chiTiet->soluong);
+                }
             }
 
             DB::commit();
@@ -270,9 +283,20 @@ class DatHangController extends Controller
         // Tính tổng tiền gốc (đã bao gồm giảm giá combo!)
         $tongTienGoc = 0;
         foreach ($gioHangItems as $item) {
-            $unitPrice = isset($allocatedPrices[$item->id_giohang])
-                ? $allocatedPrices[$item->id_giohang]
-                : ($item->bienThe?->gia ?? 0);
+            $unitPrice = 0;
+            if (isset($allocatedPrices[$item->id_giohang])) {
+                $unitPrice = $allocatedPrices[$item->id_giohang];
+            } else {
+                $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($item) {
+                        $q->where('trang_thai', 1)
+                          ->where('thoi_gian_bat_dau', '<=', $item->created_at)
+                          ->where('thoi_gian_ket_thuc', '>=', $item->created_at);
+                    })
+                    ->where('id_bienthe', $item->id_bienthe)
+                    ->first();
+
+                $unitPrice = $flashProduct ? (float) $flashProduct->gia_flash_sale : ($item->bienThe?->gia ?? 0);
+            }
             
             $tongTienGoc += $item->soluong * $unitPrice;
         }
@@ -414,9 +438,28 @@ class DatHangController extends Controller
             $donHang = DatHang::create($orderData);
 
             foreach ($gioHangItems as $item) {
-                $unitPrice = isset($allocatedPrices[$item->id_giohang])
-                    ? $allocatedPrices[$item->id_giohang]
-                    : ($item->bienThe?->gia ?? 0);
+                $unitPrice = 0;
+                $isFlashSale = false;
+                $flashProduct = null;
+
+                if (isset($allocatedPrices[$item->id_giohang])) {
+                    $unitPrice = $allocatedPrices[$item->id_giohang];
+                } else {
+                    $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($item) {
+                            $q->where('trang_thai', 1)
+                              ->where('thoi_gian_bat_dau', '<=', $item->created_at)
+                              ->where('thoi_gian_ket_thuc', '>=', $item->created_at);
+                        })
+                        ->where('id_bienthe', $item->id_bienthe)
+                        ->first();
+
+                    if ($flashProduct) {
+                        $unitPrice = (float) $flashProduct->gia_flash_sale;
+                        $isFlashSale = true;
+                    } else {
+                        $unitPrice = $item->bienThe?->gia ?? 0;
+                    }
+                }
 
                 DatHangChiTiet::create([
                     'id_dathang' => $donHang->id_dathang,
@@ -426,6 +469,10 @@ class DatHangController extends Controller
                     'id_combo'   => $item->id_combo,
                     'combo_group_id' => $item->combo_group_id,
                 ]);
+
+                if ($isFlashSale && $flashProduct) {
+                    $flashProduct->increment('so_luong_da_ban', $item->soluong);
+                }
             }
 
             if (!$isMomoPayment) {
@@ -704,7 +751,20 @@ class DatHangController extends Controller
                 foreach ($order->chi_tiets as $chiTiet) {
                     if ($chiTiet->bienThe) {
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
-                    } 
+                    }
+
+                    // Giảm số lượng đã bán của Flash Sale
+                    $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($order) {
+                            $q->where('trang_thai', 1)
+                              ->where('thoi_gian_bat_dau', '<=', $order->created_at)
+                              ->where('thoi_gian_ket_thuc', '>=', $order->created_at);
+                        })
+                        ->where('id_bienthe', $chiTiet->id_bienthe)
+                        ->first();
+
+                    if ($flashProduct) {
+                        $flashProduct->decrement('so_luong_da_ban', $chiTiet->soluong);
+                    }
                 }
             }
 
@@ -715,6 +775,19 @@ class DatHangController extends Controller
                             throw new \Exception("Sản phẩm {$chiTiet->bienThe->ten_bienthe} không đủ hàng để khôi phục đơn hàng.");
                         }
                         $chiTiet->bienThe->decrement('soluong', $chiTiet->soluong);
+                    }
+
+                    // Tăng lại số lượng đã bán của Flash Sale
+                    $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($order) {
+                            $q->where('trang_thai', 1)
+                              ->where('thoi_gian_bat_dau', '<=', $order->created_at)
+                              ->where('thoi_gian_ket_thuc', '>=', $order->created_at);
+                        })
+                        ->where('id_bienthe', $chiTiet->id_bienthe)
+                        ->first();
+
+                    if ($flashProduct) {
+                        $flashProduct->increment('so_luong_da_ban', $chiTiet->soluong);
                     }
                 }
             }

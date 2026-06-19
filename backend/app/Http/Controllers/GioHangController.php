@@ -97,10 +97,21 @@ class GioHangController extends Controller
                     : $bienThe->thuoc_tinh_json;
             }
 
-            // Lấy giá bán (nếu thuộc combo thì lấy giá phân bổ, ngược lại lấy giá gốc của biến thể)
-            $unitPrice = isset($comboItemPrices[$item->id_giohang])
-                ? $comboItemPrices[$item->id_giohang]
-                : ($bienThe?->gia ?? 0);
+            // Lấy giá bán (nếu thuộc combo thì lấy giá phân bổ, ngược lại kiểm tra Flash Sale, cuối cùng lấy giá gốc của biến thể)
+            $unitPrice = 0;
+            if (isset($comboItemPrices[$item->id_giohang])) {
+                $unitPrice = $comboItemPrices[$item->id_giohang];
+            } else {
+                $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($item) {
+                        $q->where('trang_thai', 1)
+                          ->where('thoi_gian_bat_dau', '<=', $item->created_at)
+                          ->where('thoi_gian_ket_thuc', '>=', $item->created_at);
+                    })
+                    ->where('id_bienthe', $item->id_bienthe)
+                    ->first();
+
+                $unitPrice = $flashProduct ? (float) $flashProduct->gia_flash_sale : ($bienThe?->gia ?? 0);
+            }
 
             $giaCombo = $item->combo?->giakhuyenmai ?? 0;
             if ($item->id_combo && isset($freeComboOffers[$item->id_combo])) {
