@@ -344,18 +344,7 @@ const refundReason = ref('')
 const refundProofs = ref([]) // array of { file, url, type }
 const refundSelectedItems = ref([])
 
-const handleProofUpload = (e) => {
-    const files = Array.from(e.target.files)
-    files.forEach(file => {
-        if (refundProofs.value.length >= 5) return
-        refundProofs.value.push({
-            file,
-            url: URL.createObjectURL(file),
-            type: file.type
-        })
-    })
-    e.target.value = ''
-}
+
 
 const removeProof = (index) => {
     URL.revokeObjectURL(refundProofs.value[index].url)
