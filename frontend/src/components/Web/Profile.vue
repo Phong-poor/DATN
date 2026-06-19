@@ -1476,7 +1476,14 @@ const promoStatusMap = {
                 <span style="margin-left:auto;font-size:11px;font-weight:700;color:#f97316;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);padding:2px 9px;border-radius:99px;">{{ refundProofs.length }}/5</span>
               </div>
 
-             
+              <!-- Drop zone -->
+              <label v-if="refundProofs.length === 0" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed rgba(255,255,255,0.12);border-radius:14px;padding:32px 20px;cursor:pointer;background:rgba(255,255,255,0.03);">
+                <div style="width:56px;height:56px;border-radius:16px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:#cbd5e1;">Nhấn để tải ảnh / video</div>
+                <div style="font-size:12px;color:#64748b;">PNG, JPG, MP4 · Tối đa 5 file · 20MB/file</div>
+              </label>
 
               <!-- Grid preview -->
               <div v-if="refundProofs.length > 0" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
