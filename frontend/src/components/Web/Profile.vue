@@ -1789,10 +1789,7 @@ const promoStatusMap = {
               Đơn mua hàng
               <span class="badge-cart-like">{{ orders.filter(o => !o.status.startsWith('refund')).length }}</span>
             </button>
-            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]" @click="orderMode = 'hoantra'; orderTab = 'all'" style="position: relative;">
-              Đơn hoàn trả
-              <span class="badge-cart-like">{{ orders.filter(o => o.status.startsWith('refund')).length }}</span>
-            </button>
+            
           </div>
 
           <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
