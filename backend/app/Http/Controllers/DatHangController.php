@@ -620,7 +620,8 @@ class DatHangController extends Controller
 
         $request->validate([
             'lydo' => 'required|string',
-            'proof' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
+            'proofs' => 'required|array|min:1|max:5',
+            'proofs.*' => 'file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
             'item_ids' => 'required|array|min:1',
             'item_ids.*' => 'integer',
         ]);
@@ -628,12 +629,14 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            $proofPath = null;
-            if ($request->hasFile('proof')) {
-                $file = $request->file('proof');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $proofPath = $file->storeAs('refund_proofs', $filename, 'public');
+            $proofPaths = [];
+            if ($request->hasFile('proofs')) {
+                foreach ($request->file('proofs') as $file) {
+                    $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
+                }
             }
+            $proofPath = !empty($proofPaths) ? json_encode($proofPaths) : null;
 
             $order->update([
                 'trangthai' => 'refund_pending',
