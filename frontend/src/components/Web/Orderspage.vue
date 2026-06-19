@@ -658,7 +658,20 @@ onUnmounted(() => {
                         </span>
                     </div>
 
-                    
+                    <div class="order-items">
+                        <div class="order-item" v-for="item in (order.chi_tiets || [])" :key="item.id_dathang_chi_tiet">
+                            <img :src="getProductImage(item)" alt="product" />
+                            <div class="order-item-info">
+                                <p class="order-item-name">
+                                    {{ getFullProductName(item) }}
+                                    <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                                </p>
+                                <p class="order-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
+                                <p class="order-item-qty">x{{ item.soluong }}</p>
+                            </div>
+                            <p class="order-item-price">{{ formatPrice(item.gia) }}</p>
+                        </div>
+                    </div>
 
                     <div class="order-foot">
                         <span class="order-total">Tổng: <strong>{{ formatPrice(order.tongtien) }}</strong></span>
