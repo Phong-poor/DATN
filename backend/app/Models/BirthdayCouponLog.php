@@ -9,38 +9,38 @@ class BirthdayCouponLog extends Model
 {
     use HasFactory;
 
-    protected $table = 'birthday_coupon_logs';
+    protected $table = 'nhat_ky_gui_ma_sinh_nhat';
 
     protected $fillable = [
-        'user_id',
-        'promotion_id',
-        'user_voucher_id',
-        'voucher_code',
+        'id_khachhang',
+        'id_voucher',
+        'id_khachhang_voucher',
+        'mavoucher',
         'email',
-        'birthday_date',
-        'sent_at',
-        'status',
-        'error_message',
+        'ngaysinh',
+        'guiluc',
+        'trangthai',
+        'thongbaoloi',
     ];
 
     protected $casts = [
-        'birthday_date' => 'date',
-        'sent_at' => 'datetime',
-        'user_voucher_id' => 'integer',
+        'ngaysinh' => 'date',
+        'guiluc' => 'datetime',
+        'id_khachhang_voucher' => 'integer',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'id_khachhang');
     }
 
     public function promotion()
     {
-        return $this->belongsTo(Promotion::class, 'promotion_id');
+        return $this->belongsTo(Promotion::class, 'id_voucher');
     }
 
     public function userVoucher()
     {
-        return $this->belongsTo(UserVoucher::class, 'user_voucher_id');
+        return $this->belongsTo(UserVoucher::class, 'id_khachhang_voucher');
     }
 }

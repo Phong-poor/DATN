@@ -43,7 +43,7 @@ class FlashSaleWebController extends Controller
 
         // Get products in this session
         $rawProducts = FlashSaleProduct::with(['bienThe.sanPham.thuongHieu', 'bienThe.sanPham.danhMuc'])
-            ->where('session_id', $session->id_session)
+            ->where('id_danhsach', $session->id_session)
             ->get();
 
         $products = $rawProducts->map(function ($item) {
@@ -98,7 +98,7 @@ class FlashSaleWebController extends Controller
             $imageUrl = $imagePath ? asset('storage/' . $imagePath) : null;
 
             return [
-                'id_flash_sale_product' => $item->id_flash_sale_product,
+                'id_sanpham_flashsale' => $item->id_sanpham_flashsale,
                 'id_sanpham' => $sanPham->id_sanpham,
                 'id_bienthe' => $item->id_bienthe,
                 'tenSP' => $sanPham->tenSP,

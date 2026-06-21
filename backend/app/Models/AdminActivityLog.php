@@ -9,20 +9,20 @@ class AdminActivityLog extends Model
 {
     use HasFactory;
 
-    protected $table = 'admin_activity_logs';
+    protected $table = 'nhat_ky_admin';
 
     protected $fillable = [
-        'user_id',
-        'action',
-        'model_name',
-        'target_id',
-        'description',
-        'ip_address',
+        'id_khachhang',
+        'hanhdong',
+        'tenmodel',
+        'id_doituong',
+        'mota',
+        'diachi_ip',
         'user_agent',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'id_khachhang');
     }
 }

@@ -47,7 +47,7 @@
         </button>
 
         <div v-if="menuOpen" class="msg-action-menu" @click.stop>
-          <button v-if="msg.message" type="button" @click="startEdit">Sửa</button>
+          <button v-if="msg.noidung" type="button" @click="startEdit">Sửa</button>
           <button type="button" class="danger" @click="confirmDelete">Xóa</button>
         </div>
       </div>
@@ -76,7 +76,7 @@ const editText = ref('')
 const editInput = ref(null)
 const saving = ref(false)
 
-const isOwn = computed(() => Number(props.msg.sender_id) === Number(props.authUserId))
+const isOwn = computed(() => Number(props.msg.id_nguoigui) === Number(props.authUserId))
 const messageId = computed(() => props.msg.id)
 
 const toggleMenu = () => {
@@ -86,7 +86,7 @@ const toggleMenu = () => {
 
 const startEdit = () => {
   menuOpen.value = false
-  editText.value = props.msg.message || ''
+  editText.value = props.msg.noidung || ''
   isEditing.value = true
   nextTick(() => editInput.value?.focus())
 }
@@ -103,7 +103,7 @@ const saveEdit = async () => {
   saving.value = true
   try {
     const res = await api.put(`/${props.apiPrefix}/messages/${messageId.value}`, {
-      message: text,
+      noidung: text,
     })
     emit('updated', res.data.message)
     isEditing.value = false

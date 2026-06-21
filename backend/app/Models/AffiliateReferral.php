@@ -6,25 +6,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class AffiliateReferral extends Model
 {
+    protected $table = 'affiliate_gioi_thieu';
+
     protected $fillable = [
-        'affiliate_user_id',
-        'referred_user_id',
-        'ref_code',
-        'registered_at',
+        'id_affiliate_khachhang',
+        'id_khachhang_duoc_gioithieu',
+        'ma_ref',
+        'da_dang_ky_luc',
     ];
 
     protected $casts = [
-        'registered_at' => 'datetime',
+        'da_dang_ky_luc' => 'datetime',
     ];
 
     public function affiliateUser()
     {
-        return $this->belongsTo(User::class, 'affiliate_user_id');
+        return $this->belongsTo(User::class, 'id_affiliate_khachhang');
     }
 
     public function referredUser()
     {
-        return $this->belongsTo(User::class, 'referred_user_id');
+        return $this->belongsTo(User::class, 'id_khachhang_duoc_gioithieu');
     }
 }
 

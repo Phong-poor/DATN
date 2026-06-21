@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class FlashSaleProduct extends Model
 {
-    protected $table = 'flash_sale_products';
-    protected $primaryKey = 'id_flash_sale_product';
+    protected $table = 'san_pham_flashsale';
+    protected $primaryKey = 'id_sanpham_flashsale';
 
     protected $fillable = [
-        'session_id',
+        'id_danhsach',
         'id_bienthe',
         'gia_flash_sale',
         'so_luong_gioi_han',
@@ -25,7 +25,7 @@ class FlashSaleProduct extends Model
 
     public function session()
     {
-        return $this->belongsTo(FlashSaleSession::class, 'session_id', 'id_session');
+        return $this->belongsTo(FlashSaleSession::class, 'id_danhsach', 'id_session');
     }
 
     public function bienThe()

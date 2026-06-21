@@ -9,24 +9,24 @@ class BirthdayCouponSetting extends Model
 {
     use HasFactory;
 
-    protected $table = 'birthday_coupon_settings';
+    protected $table = 'cai_dat_ma_sinh_nhat';
 
     protected $fillable = [
-        'enabled',
-        'run_time',
-        'promotion_code',
-        'promotion_id',
-        'email_template_id',
-        'send_once_per_year',
-        'retry_if_failed',
-        'notify_admin',
+        'kichhoat',
+        'giochay',
+        'mavoucher',
+        'id_voucher',
+        'id_mau_email',
+        'gui_mot_lan_moi_nam',
+        'thu_lai_khi_that_bai',
+        'thongbao_admin',
     ];
 
     protected $casts = [
-        'enabled' => 'boolean',
-        'send_once_per_year' => 'boolean',
-        'retry_if_failed' => 'boolean',
-        'notify_admin' => 'boolean',
-        'promotion_id' => 'integer',
+        'kichhoat' => 'boolean',
+        'gui_mot_lan_moi_nam' => 'boolean',
+        'thu_lai_khi_that_bai' => 'boolean',
+        'thongbao_admin' => 'boolean',
+        'id_voucher' => 'integer',
     ];
 }

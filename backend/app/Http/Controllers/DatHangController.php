@@ -28,7 +28,7 @@ class DatHangController extends Controller
         $userId = Auth::id();
         $order = DatHang::with('chi_tiets.bienThe')
             ->where('id_dathang', $id)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->firstOrFail();
 
         if (!in_array($order->trangthai, ['pending', 'confirmed'])) {
@@ -86,7 +86,7 @@ class DatHangController extends Controller
         $userId = Auth::id();
         $order = DatHang::with('chi_tiets.bienThe')
             ->where('id_dathang', $id)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->firstOrFail();
 
         try {
@@ -104,7 +104,7 @@ class DatHangController extends Controller
                     continue;
                 }
 
-                $cartItem = GioHang::where('user_id', $userId)
+                $cartItem = GioHang::where('id_khachhang', $userId)
                     ->where('id_bienthe', $chiTiet->id_bienthe)
                     ->first();
 
@@ -112,7 +112,7 @@ class DatHangController extends Controller
                     $cartItem->increment('soluong', $chiTiet->soluong);
                 } else {
                     GioHang::create([
-                        'user_id'    => $userId,
+                        'id_khachhang' => $userId,
                         'id_bienthe' => $chiTiet->id_bienthe,
                         'soluong'    => $chiTiet->soluong,
                     ]);
@@ -151,8 +151,8 @@ class DatHangController extends Controller
             'id_diachi' => 'nullable|integer',
             'diachi' => 'required_without:id_diachi|string',
             'PTTT'   => 'required|string',
-            'name'   => 'required|string',
-            'phone'  => 'required|string',
+            'ten'    => 'required|string',
+            'sodienthoai' => 'required|string',
             'selected_cart_items' => 'nullable|array',
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
             'selected_variants' => 'nullable|array',
@@ -179,13 +179,13 @@ class DatHangController extends Controller
 
         // Cập nhật sđt người dùng nếu chưa có
         $user = Auth::user();
-        if ($request->filled('phone') && !$user->phone) {
-            $user->phone = $request->phone;
+        if ($request->filled('sodienthoai') && !$user->sodienthoai) {
+            $user->sodienthoai = $request->sodienthoai;
             $user->save();
         }
 
         // Gắn tên và sđt vào địa chỉ giao hàng để lưu lại
-        $diaChiGiaoHang = $request->name . ' - ' . $request->phone . ' - ' . $diaChiGiaoHang;
+        $diaChiGiaoHang = $request->ten . ' - ' . $request->sodienthoai . ' - ' . $diaChiGiaoHang;
 
         $selectedCartItems = collect($request->input('selected_cart_items', []))
             ->filter()
@@ -199,7 +199,7 @@ class DatHangController extends Controller
             ->unique()
             ->values();
 
-        $gioHangQuery = GioHang::with(['bienThe', 'combo'])->where('user_id', $userId);
+        $gioHangQuery = GioHang::with(['bienThe', 'combo'])->where('id_khachhang', $userId);
         if ($selectedCartItems->isNotEmpty()) {
             $gioHangQuery->whereIn('id_giohang', $selectedCartItems->all());
         } elseif ($selectedVariants->isNotEmpty()) {
@@ -215,9 +215,9 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        // Nhóm các items theo combo_group_id để tính giá phân bổ cho combo
-        $groupedCombos = $gioHangItems->filter(fn($item) => $item->id_combo && $item->combo_group_id)
-            ->groupBy('combo_group_id');
+        // Nhóm các items theo id_nhom_combo để tính giá phân bổ cho combo
+        $groupedCombos = $gioHangItems->filter(fn($item) => $item->id_combo && $item->id_nhom_combo)
+            ->groupBy('id_nhom_combo');
 
         $allocatedPrices = [];
 
@@ -310,13 +310,13 @@ class DatHangController extends Controller
 
         if ($request->filled('promo_code')) {
             $promo = Promotion::where('code', strtoupper($request->promo_code))
-                ->whereIn('status', ['running', 'open'])
+                ->whereIn('trangthai', ['running', 'open'])
                 ->first();
 
             if ($promo) {
-                if ($promo->category === 'birthday') {
+                if ($promo->danhmuc === 'birthday') {
                     $hasVoucher = UserVoucher::where('id_user', $userId)
-                        ->where('id_promotion', $promo->id)
+                        ->where('id_voucher', $promo->id)
                         ->where('trang_thai', 0)
                         ->exists();
                     if (!$hasVoucher) {
@@ -327,10 +327,10 @@ class DatHangController extends Controller
                     }
                 }
 
-                if ($promo->category === 'freeship') {
+                if ($promo->danhmuc === 'freeship') {
                     return response()->json(['success' => false, 'message' => 'Mã này là mã freeship, không áp dụng cho đơn hàng.'], 400);
                 }
-                if ($promo->end_date && now()->gt($promo->end_date)) {
+                if ($promo->ngayketthuc && now()->gt($promo->ngayketthuc)) {
                     return response()->json(['success' => false, 'message' => 'Mã giảm giá đã hết hạn.'], 400);
                 }
 
@@ -344,12 +344,12 @@ class DatHangController extends Controller
                     }
                 }
 
-                if ($promo->type === 'percent') {
-                    $giamGia = round($tongTienGoc * $promo->value / 100);
-                } elseif ($promo->type === 'fixed') {
-                    $giamGia = min($promo->value, $tongTienGoc);
-                } elseif ($promo->type === 'maxprice') {
-                    $giamGia = min($promo->value, $tongTienGoc);
+                if ($promo->loai === 'percent') {
+                    $giamGia = round($tongTienGoc * $promo->giatri / 100);
+                } elseif ($promo->loai === 'fixed') {
+                    $giamGia = min($promo->giatri, $tongTienGoc);
+                } elseif ($promo->loai === 'maxprice') {
+                    $giamGia = min($promo->giatri, $tongTienGoc);
                 }
 
                 $promoId = $promo->id;
@@ -358,11 +358,11 @@ class DatHangController extends Controller
 
         if ($request->filled('freeship_code')) {
             $fpromo = Promotion::where('code', strtoupper($request->freeship_code))
-                ->whereIn('status', ['running', 'open'])
+                ->whereIn('trangthai', ['running', 'open'])
                 ->first();
 
             if ($fpromo) {
-                if ($fpromo->end_date && now()->gt($fpromo->end_date)) {
+                if ($fpromo->ngayketthuc && now()->gt($fpromo->ngayketthuc)) {
                     return response()->json(['success' => false, 'message' => 'Mã freeship đã hết hạn.'], 400);
                 }
 
@@ -375,7 +375,7 @@ class DatHangController extends Controller
                     }
                 }
 
-                if ($fpromo->category === 'freeship') {
+                if ($fpromo->danhmuc === 'freeship') {
                     $giamGiaShip = $shippingFee;
                 } else {
                     return response()->json(['success' => false, 'message' => 'Mã này không phải mã freeship.'], 400);
@@ -387,7 +387,7 @@ class DatHangController extends Controller
 
         $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
         $isMomoPayment = $paymentProvider === 'momo';
-        $hasPaymentTracking = Schema::hasColumn('dathang', 'payment_provider');
+        $hasPaymentTracking = Schema::hasColumn('dathang', 'nha_cung_cap_thanh_toan');
         $freeshipPromotionId = isset($fpromo) && $fpromo ? $fpromo->id : null;
 
         if ($isMomoPayment) {
@@ -413,19 +413,19 @@ class DatHangController extends Controller
             DB::beginTransaction();
 
             $orderData = [
-                'user_id'     => $userId,
+                'id_khachhang' => $userId,
                 'tongtien'    => $tongTienSauGiam,
                 'trangthai'   => 'pending',
                 'diachi'      => $diaChiGiaoHang,
                 'PTTT'        => $request->PTTT,
                 'giam_gia'    => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
-                'promotion_id' => $promoId,      // lưu id promotion đã dùng
+                'id_khuyenmai' => $promoId,      // lưu id promotion đã dùng
             ];
 
             if ($hasPaymentTracking) {
-                $orderData['payment_provider'] = $paymentProvider;
-                $orderData['payment_status'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
-                $orderData['payment_payload'] = [
+                $orderData['nha_cung_cap_thanh_toan'] = $paymentProvider;
+                $orderData['trang_thai_thanh_toan'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
+                $orderData['du_lieu_thanh_toan'] = [
                     'checkout' => [
                         'promo_id' => $promoId,
                         'freeship_promotion_id' => $freeshipPromotionId,
@@ -467,7 +467,7 @@ class DatHangController extends Controller
                     'soluong'    => $item->soluong,
                     'gia'        => $unitPrice,
                     'id_combo'   => $item->id_combo,
-                    'combo_group_id' => $item->combo_group_id,
+                    'id_nhom_combo' => $item->id_nhom_combo,
                 ]);
 
                 if ($isFlashSale && $flashProduct) {
@@ -476,7 +476,7 @@ class DatHangController extends Controller
             }
 
             if (!$isMomoPayment) {
-                $deleteQuery = GioHang::where('user_id', $userId);
+                $deleteQuery = GioHang::where('id_khachhang', $userId);
                 if ($selectedCartItems->isNotEmpty()) {
                     $deleteQuery->whereIn('id_giohang', $selectedCartItems->all());
                 } elseif ($selectedVariants->isNotEmpty()) {
@@ -487,14 +487,14 @@ class DatHangController extends Controller
                 // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
                 if ($promoId) {
                     UserVoucher::where('id_user', $userId)
-                        ->where('id_promotion', $promoId)
+                        ->where('id_voucher', $promoId)
                         ->update(['trang_thai' => 1]);
                 }
 
                 // Nếu có dùng thêm mã freeship
                 if ($freeshipPromotionId) {
                     UserVoucher::where('id_user', $userId)
-                        ->where('id_promotion', $freeshipPromotionId)
+                        ->where('id_voucher', $freeshipPromotionId)
                         ->update(['trang_thai' => 1]);
                 }
             }
@@ -519,14 +519,14 @@ class DatHangController extends Controller
             // ── Tặng voucher có điều kiện (is_public = 0) ────────────────
             // Chỉ tặng nếu thanh toán thành công (hoặc COD)
             // Tạm thời tặng luôn khi tạo đơn, tuỳ vào requirement
-            $conditionalPromos = Promotion::where('is_public', 0)
-                ->where('category', '!=', 'birthday')
-                ->whereIn('status', ['running', 'open'])
+            $conditionalPromos = Promotion::where('congkhai', 0)
+                ->where('danhmuc', '!=', 'birthday')
+                ->whereIn('trangthai', ['running', 'open'])
                 ->where(function($q) {
-                    $q->whereNull('start_date')->orWhere('start_date', '<=', now());
+                    $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now());
                 })
                 ->where(function($q) {
-                    $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+                    $q->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', now());
                 })
                 ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
                 ->get();
@@ -536,7 +536,7 @@ class DatHangController extends Controller
             foreach ($conditionalPromos as $cpromo) {
                 // Kiểm tra giới hạn số lượng phát
                 if ($cpromo->so_luong_phat > 0) {
-                    $claimedCount = UserVoucher::where('id_promotion', $cpromo->id)->count();
+                    $claimedCount = UserVoucher::where('id_voucher', $cpromo->id)->count();
                     if ($claimedCount >= $cpromo->so_luong_phat) {
                         continue; // Đã hết lượt phát
                     }
@@ -544,13 +544,13 @@ class DatHangController extends Controller
 
                 // Kiểm tra xem user đã sở hữu chưa
                 $exists = UserVoucher::where('id_user', $userId)
-                    ->where('id_promotion', $cpromo->id)
+                    ->where('id_voucher', $cpromo->id)
                     ->exists();
 
                 if (!$exists) {
                     UserVoucher::create([
                         'id_user'      => $userId,
-                        'id_promotion' => $cpromo->id,
+                        'id_voucher'   => $cpromo->id,
                         'trang_thai'   => 0,
                         'ngay_nhan'    => now(),
                     ]);
@@ -615,7 +615,7 @@ class DatHangController extends Controller
         try {
             $order = DatHang::with(['chi_tiets.bienThe.sanPham', 'user'])->findOrFail($id);
 
-            if ($order->user_id !== Auth::id()) {
+            if ($order->id_khachhang !== Auth::id()) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
@@ -632,7 +632,7 @@ class DatHangController extends Controller
     {
         $userId = Auth::id();
         $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -641,6 +641,7 @@ class DatHangController extends Controller
                 $chiTiet->is_reviewed = \App\Models\DanhGia::where('id_dathang', $order->id_dathang)
                     ->where('id_bienthe', $chiTiet->id_bienthe)
                     ->where('user_id', $userId)
+                    // Note: user_id is on danhgia table which is not renamed.
                     ->exists();
             });
         });
@@ -655,7 +656,7 @@ class DatHangController extends Controller
     {
         $userId = Auth::id();
         $order = DatHang::where('id_dathang', $id)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->firstOrFail();
 
         if ($order->trangthai !== 'done') {
@@ -688,13 +689,13 @@ class DatHangController extends Controller
             $order->update([
                 'trangthai' => 'refund_pending',
                 'lydo' => $request->lydo,
-                'refund_proof' => $proofPath
+                'minh_chung_hoan_tien' => $proofPath
             ]);
 
             // Cập nhật các sản phẩm được chọn hoàn trả
             \App\Models\DatHangChiTiet::where('id_dathang', $id)
                 ->whereIn('id_bienthe', $request->item_ids)
-                ->update(['is_refund' => 1]);
+                ->update(['hoantien' => 1]);
 
             DB::commit();
 
@@ -825,13 +826,13 @@ class DatHangController extends Controller
     public function updatePaymentStatus(Request $request, $id)
     {
         $request->validate([
-            'payment_status' => 'required|string|in:pending,paid,unpaid,failed'
+            'trang_thai_thanh_toan' => 'required|string|in:pending,paid,unpaid,failed'
         ]);
 
         $order = DatHang::findOrFail($id);
         $order->update([
-            'payment_status' => $request->payment_status,
-            'payment_paid_at' => $request->payment_status === 'paid' ? now() : $order->payment_paid_at,
+            'trang_thai_thanh_toan' => $request->trang_thai_thanh_toan,
+            'thanh_toan_luc' => $request->trang_thai_thanh_toan === 'paid' ? now() : $order->thanh_toan_luc,
         ]);
 
         // Broadcast the update so the UI syncs everywhere

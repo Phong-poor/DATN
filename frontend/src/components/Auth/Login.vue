@@ -130,7 +130,7 @@ const safeRedirectPath = (path) => {
   return path
 }
 
-const isAdminUser = (user) => String(user?.role || '').toLowerCase() === 'admin'
+const isAdminUser = (user) => String(user?.vaitro || '').toLowerCase() === 'admin'
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -319,7 +319,7 @@ const handleLogin = async () => {
   try {
     const res = await api.post('/login', {
       email: normalizeEmail(email.value),
-      password: password.value,
+      matkhau: password.value,
       remember: remember.value
     })
 

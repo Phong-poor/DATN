@@ -11,20 +11,20 @@ class LienHeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100',
+            'hoten' => 'required|string|max:100',
             'email' => 'required|email|max:100',
-            'phone' => 'nullable|string|max:20',
-            'message' => 'required|string|max:2000',
-            'category' => 'nullable|string'
+            'sodienthoai' => 'nullable|string|max:20',
+            'noidung' => 'required|string|max:2000',
+            'danhmuc' => 'nullable|string'
         ]);
 
         $contact = LienHe::create([
-            'name' => $request->name,
+            'hoten' => $request->hoten,
             'email' => $request->email,
-            'phone' => $request->phone,
-            'message' => $request->message,
-            'category' => $request->category ?? 'Tư vấn',
-            'status' => 'new'
+            'sodienthoai' => $request->sodienthoai,
+            'noidung' => $request->noidung,
+            'danhmuc' => $request->danhmuc ?? 'Tư vấn',
+            'trangthai' => 'new'
         ]);
 
         return response()->json([
@@ -44,13 +44,13 @@ class LienHeController extends Controller
     public function reply(Request $request, $id)
     {
         $request->validate([
-            'reply' => 'required|string|max:5000'
+            'phanhoi' => 'required|string|max:5000'
         ]);
 
         $contact = LienHe::findOrFail($id);
 
             Mail::send([], [], function ($mail) use ($contact, $request) {
-                $mail->to($contact->email, $contact->name)
+                $mail->to($contact->email, $contact->hoten)
                     ->subject('💻 Predator | Phản hồi liên hệ #' . $contact->id)
                     ->html("
             <!DOCTYPE html>
@@ -75,7 +75,7 @@ class LienHeController extends Controller
                 <div style='padding:28px'>
 
                     <h2 style='margin:0 0 10px;color:#111827;font-size:18px'>
-                        Xin chào {$contact->name} 👋
+                        Xin chào {$contact->hoten} 👋
                     </h2>
 
                     <p style='color:#374151;font-size:14px;line-height:1.6'>
@@ -89,7 +89,7 @@ class LienHeController extends Controller
                                 border:1px solid #e0e7ff'>
 
                         <p style='margin:0;color:#111827;font-size:14px;line-height:1.6'>
-                            " . nl2br(e($request->reply)) . "
+                            " . nl2br(e($request->phanhoi)) . "
                         </p>
                     </div>
 
@@ -130,9 +130,9 @@ class LienHeController extends Controller
             });
 
         $contact->update([
-            'reply'      => $request->reply,
-            'status'     => 'replied',
-            'replied_at' => now()
+            'phanhoi'      => $request->phanhoi,
+            'trangthai'     => 'replied',
+            'phan_hoi_luc' => now()
         ]);
 
         return response()->json([

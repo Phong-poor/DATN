@@ -87,11 +87,12 @@ const updateUserData = (apiUser) => {
   user.value = {
     ...user.value,
     ...apiUser,
-    phone: apiUser.phone || '',
-    birthday: apiUser.date_of_birth || '',
-    gender: apiUser.gender || '',
-    avatar: apiUser.avatar || user.value.avatar,
-    memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+    name: apiUser.ten || apiUser.name || '',
+    phone: apiUser.sodienthoai || apiUser.phone || '',
+    birthday: apiUser.ngaysinh || apiUser.date_of_birth || '',
+    gender: apiUser.gioitinh || apiUser.gender || '',
+    avatar: apiUser.anhdaidien || apiUser.avatar || user.value.avatar,
+    memberSince: (apiUser.vaitro || apiUser.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
       : user.value.joinDate,
@@ -177,14 +178,15 @@ const loadUser = async () => {
         user.value = {
           ...user.value,
           ...parsed,
-          phone: parsed.phone || '',
-          birthday: parsed.birthday || '',
-          gender: parsed.gender || '',
-          memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+          name: parsed.ten || parsed.name || '',
+          phone: parsed.sodienthoai || parsed.phone || '',
+          birthday: parsed.ngaysinh || parsed.birthday || '',
+          gender: parsed.gioitinh || parsed.gender || '',
+          memberSince: (parsed.vaitro || parsed.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
           joinDate: parsed.created_at
             ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
             : (parsed.joinDate || ''),
-          avatar: parsed.avatar || user.value.avatar,
+          avatar: parsed.anhdaidien || parsed.avatar || user.value.avatar,
         }
       }
       return
@@ -202,14 +204,15 @@ const loadUser = async () => {
       user.value = {
         ...user.value,
         ...parsed,
-        phone: parsed.phone || '',
-        birthday: parsed.birthday || '',
-        gender: parsed.gender || '',
-        memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+        name: parsed.ten || parsed.name || '',
+        phone: parsed.sodienthoai || parsed.phone || '',
+        birthday: parsed.ngaysinh || parsed.birthday || '',
+        gender: parsed.gioitinh || parsed.gender || '',
+        memberSince: (parsed.vaitro || parsed.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
         joinDate: parsed.created_at
           ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
           : (parsed.joinDate || ''),
-        avatar: parsed.avatar || user.value.avatar,
+        avatar: parsed.anhdaidien || parsed.avatar || user.value.avatar,
       }
     }
   }
@@ -243,7 +246,7 @@ const fetchOrders = async () => {
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           lydo: order.lydo,
-          refund_proof: order.refund_proof,
+          minh_chung_hoan_tien: order.minh_chung_hoan_tien,
           items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
             
@@ -276,7 +279,7 @@ const fetchOrders = async () => {
             return {
               id_bienthe: item.id_bienthe,
               is_reviewed: item.is_reviewed,
-              is_refund: item.is_refund,
+              hoantien: item.hoantien,
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
@@ -584,11 +587,11 @@ const saveProfile = async () => {
     const res = await api.put(
       '/user/profile',
       {
-        name: profileForm.value.name,
+        ten: profileForm.value.name,
         email: profileForm.value.email,
-        phone: profileForm.value.phone,
-        date_of_birth: profileForm.value.birthday,
-        gender: profileForm.value.gender,
+        sodienthoai: profileForm.value.phone,
+        ngaysinh: profileForm.value.birthday,
+        gioitinh: profileForm.value.gender,
       }
     )
 
@@ -1292,8 +1295,8 @@ const promoStatusMap = {
 
             <div v-if="(selectedOrder.status === 'cancelled' || selectedOrder.status === 'refund_pending' || selectedOrder.status === 'refunded') && selectedOrder.lydo" class="alert mb-4" :class="{'alert-danger': selectedOrder.status === 'cancelled', 'alert-warning': selectedOrder.status !== 'cancelled'}" style="font-size: 13px; padding: 12px; border-radius: 10px;">
               <strong>Lý do:</strong> {{ selectedOrder.lydo }}
-              <div v-if="selectedOrder.refund_proof" class="mt-2">
-                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
+              <div v-if="selectedOrder.minh_chung_hoan_tien" class="mt-2">
+                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.minh_chung_hoan_tien)" target="_blank">Xem file đính kèm</a>
               </div>
             </div>
 
@@ -1327,12 +1330,12 @@ const promoStatusMap = {
             </div>
 
             <h3 class="section-title">Sản phẩm</h3>
-            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.is_refund == 1)" :key="item.id_bienthe">
+            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.hoantien == 1)" :key="item.id_bienthe">
               <img :src="item.img" :alt="item.name" />
               <div class="modal-item-info">
                 <p class="modal-item-name">
                   {{ item.name }}
-                  <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                  <span v-if="item.hoantien == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                 </p>
                 <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
               </div>

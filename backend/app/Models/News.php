@@ -6,23 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class News extends Model
 {
-    protected $table = 'news';
+    protected $table = 'tintuc';
 
     protected $fillable = [
-        'title',
+        'tieude',
         'slug',
-        'excerpt',
-        'content',
-        'category',
-        'author',
-        'image',
-        'image_alt',
-        'status',
-        'published_at',
-        'views',
+        'tomtat',
+        'noidung',
+        'danhmuc',
+        'tacgia',
+        'hinhanh',
+        'mota_hinhanh',
+        'trangthai',
+        'dang_luc',
+        'luotxem',
     ];
 
     protected $casts = [
-        'published_at' => 'datetime',
+        'dang_luc' => 'datetime',
     ];
 }

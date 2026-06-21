@@ -94,9 +94,9 @@ class VnpayController extends Controller
                 if ($inputData['vnp_ResponseCode'] == '00') {
                     $order->update([
                         'trangthai' => 'confirmed',
-                        'payment_status' => 'paid',
-                        'payment_provider' => 'vnpay',
-                        'payment_paid_at' => now(),
+                        'trang_thai_thanh_toan' => 'paid',
+                        'nha_cung_cap_thanh_toan' => 'vnpay',
+                        'thanh_toan_luc' => now(),
                     ]);
                     
                     // Broadcast to Admin

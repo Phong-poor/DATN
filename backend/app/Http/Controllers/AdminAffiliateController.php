@@ -56,15 +56,15 @@ class AdminAffiliateController extends Controller
 
         $commission->save();
 
-        $profile = AffiliateProfile::where('user_id', $commission->affiliate_user_id)->first();
+        $profile = AffiliateProfile::where('id_khachhang', $commission->id_affiliate_khachhang)->first();
         if ($profile) {
-            $profile->total_earned = (float) AffiliateCommission::where('affiliate_user_id', $commission->affiliate_user_id)
-                ->whereIn('status', ['approved', 'paid'])
-                ->sum('amount');
+            $profile->tong_thu_nhap = (float) AffiliateCommission::where('id_affiliate_khachhang', $commission->id_affiliate_khachhang)
+                ->whereIn('trangthai', ['approved', 'paid'])
+                ->sum('so_tien');
 
-            $profile->total_paid = (float) AffiliateCommission::where('affiliate_user_id', $commission->affiliate_user_id)
-                ->where('status', 'paid')
-                ->sum('amount');
+            $profile->tong_da_thanh_toan = (float) AffiliateCommission::where('id_affiliate_khachhang', $commission->id_affiliate_khachhang)
+                ->where('trangthai', 'paid')
+                ->sum('so_tien');
 
             $profile->save();
         }
@@ -102,11 +102,11 @@ class AdminAffiliateController extends Controller
 
         $row->save();
 
-        $profile = AffiliateProfile::where('user_id', $row->affiliate_user_id)->first();
+        $profile = AffiliateProfile::where('id_khachhang', $row->id_affiliate_khachhang)->first();
         if ($profile) {
-            $profile->total_paid = (float) AffiliateWithdrawRequest::where('affiliate_user_id', $row->affiliate_user_id)
-                ->where('status', 'paid')
-                ->sum('amount');
+            $profile->tong_da_thanh_toan = (float) AffiliateWithdrawRequest::where('id_affiliate_khachhang', $row->id_affiliate_khachhang)
+                ->where('trangthai', 'paid')
+                ->sum('so_tien');
             $profile->save();
         }
 

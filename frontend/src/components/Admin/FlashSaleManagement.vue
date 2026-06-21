@@ -100,7 +100,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="p in sessionProducts" :key="p.id_flash_sale_product">
+              <tr v-for="p in sessionProducts" :key="p.id_sanpham_flashsale">
                 <td class="prod-img-td">
                   <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://via.placeholder.com/100')" alt="" class="table-thumb" />
                 </td>
@@ -941,7 +941,7 @@ const removeProductFromSession = async (prod) => {
   )
   if (confirm) {
     try {
-      await api.delete(`/admin/flash-sales/${selectedSession.value.id_session}/products/${prod.id_flash_sale_product}`)
+      await api.delete(`/admin/flash-sales/${selectedSession.value.id_session}/products/${prod.id_sanpham_flashsale}`)
       swal.success('Thành công', 'Đã xóa sản phẩm khỏi đợt Flash Sale.')
       fetchSessionProducts(selectedSession.value.id_session)
     } catch (e) {

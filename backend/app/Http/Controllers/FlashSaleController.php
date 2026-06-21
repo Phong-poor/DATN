@@ -59,7 +59,7 @@ class FlashSaleController extends Controller
         $session = FlashSaleSession::findOrFail($id);
         
         $products = FlashSaleProduct::with(['bienThe.sanPham'])
-            ->where('session_id', $id)
+            ->where('id_danhsach', $id)
             ->get();
 
         return response()->json([
@@ -130,7 +130,7 @@ class FlashSaleController extends Controller
             $saved = [];
             foreach ($request->products as $prodData) {
                 // Check if this variant is already in this session
-                $existing = FlashSaleProduct::where('session_id', $id)
+                $existing = FlashSaleProduct::where('id_danhsach', $id)
                     ->where('id_bienthe', $prodData['id_bienthe'])
                     ->first();
 
@@ -142,7 +142,7 @@ class FlashSaleController extends Controller
                     $saved[] = $existing;
                 } else {
                     $newProd = FlashSaleProduct::create([
-                        'session_id' => $id,
+                        'id_danhsach' => $id,
                         'id_bienthe' => $prodData['id_bienthe'],
                         'gia_flash_sale' => $prodData['gia_flash_sale'],
                         'so_luong_gioi_han' => $prodData['so_luong_gioi_han'],
@@ -174,8 +174,8 @@ class FlashSaleController extends Controller
      */
     public function removeProduct($id, $productId)
     {
-        $product = FlashSaleProduct::where('session_id', $id)
-            ->where('id_flash_sale_product', $productId)
+        $product = FlashSaleProduct::where('id_danhsach', $id)
+            ->where('id_sanpham_flashsale', $productId)
             ->firstOrFail();
 
         $product->delete();

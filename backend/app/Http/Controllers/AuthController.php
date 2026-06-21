@@ -29,17 +29,17 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        if ($request->has('phone')) {
+        if ($request->has('sodienthoai')) {
             $request->merge([
-                'phone' => preg_replace('/[\s\.-]+/', '', (string) $request->input('phone')),
+                'sodienthoai' => preg_replace('/[\s\.-]+/', '', (string) $request->input('sodienthoai')),
             ]);
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'phone' => ['required', 'regex:/^0[0-9]{9}$/'],
-            'password' => [
+            'ten' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:khachhang,email'],
+            'sodienthoai' => ['required', 'regex:/^0[0-9]{9}$/'],
+            'matkhau' => [
                 'required',
                 'string',
                 'min:8',
@@ -51,31 +51,31 @@ class AuthController extends Controller
             ],
             'referral_code' => ['nullable', 'string', 'max:20'],
         ], [
-            'name.required' => 'Vui lòng nhập họ và tên.',
+            'ten.required' => 'Vui lòng nhập họ và tên.',
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
             'email.unique' => 'Email này đã được sử dụng.',
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.regex' => 'Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0.',
-            'password.required' => 'Vui lòng nhập mật khẩu.',
-            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'sodienthoai.required' => 'Vui lòng nhập số điện thoại.',
+            'sodienthoai.regex' => 'Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0.',
+            'matkhau.required' => 'Vui lòng nhập mật khẩu.',
+            'matkhau.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'matkhau.confirmed' => 'Xác nhận mật khẩu không khớp.',
             'referral_code.max' => 'Mã giới thiệu không được vượt quá 20 ký tự.',
         ]);
 
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name' => $validated['name'],
+                'ten' => $validated['ten'],
                 'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'password' => $validated['password'],
+                'sodienthoai' => $validated['sodienthoai'] ?? null,
+                'matkhau' => $validated['matkhau'],
             ]);
 
             if (!empty($validated['referral_code'])) {
                 $refCode = strtoupper($validated['referral_code']);
-                $profile = AffiliateProfile::where('affiliate_code', $refCode)
-                    ->where('status', 'active')
+                $profile = AffiliateProfile::where('ma_affiliate', $refCode)
+                    ->where('trangthai', 'active')
                     ->first();
 
                 if (!$profile) {
@@ -85,13 +85,13 @@ class AuthController extends Controller
                     ], 422);
                 }
 
-                if ($profile && (int) $profile->user_id !== (int) $user->id) {
+                if ($profile && (int) $profile->id_khachhang !== (int) $user->id) {
                     AffiliateReferral::firstOrCreate(
-                        ['referred_user_id' => $user->id],
+                        ['id_khachhang_duoc_gioithieu' => $user->id],
                         [
-                            'affiliate_user_id' => $profile->user_id,
-                            'ref_code' => $refCode,
-                            'registered_at' => now(),
+                            'id_affiliate_khachhang' => $profile->id_khachhang,
+                            'ma_ref' => $refCode,
+                            'da_dang_ky_luc' => now(),
                         ]
                     );
                 }
@@ -122,17 +122,17 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'matkhau' => ['required', 'string'],
             'remember' => ['nullable', 'boolean'],
         ], [
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
-            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'matkhau.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (!$user || !Hash::check($validated['matkhau'], $user->matkhau)) {
             return response()->json([
                 'message' => 'Email hoặc mật khẩu không đúng.'
             ], 401);
@@ -224,27 +224,27 @@ class AuthController extends Controller
         try {
             if (!$user) {
                 $user = User::create([
-                    'name' => $googleUser->getName(),
+                    'ten' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
-                    'password' => Str::random(16),
-                    'role' => 'user'
+                    'matkhau' => Str::random(16),
+                    'vaitro' => 'user'
                 ]);
 
                 // Record referral code if present in the state parameter
                 $refCode = $request->query('state');
                 if (!empty($refCode)) {
                     $refCode = strtoupper($refCode);
-                    $profile = AffiliateProfile::where('affiliate_code', $refCode)
-                        ->where('status', 'active')
+                    $profile = AffiliateProfile::where('ma_affiliate', $refCode)
+                        ->where('trangthai', 'active')
                         ->first();
 
-                    if ($profile && (int) $profile->user_id !== (int) $user->id) {
+                    if ($profile && (int) $profile->id_khachhang !== (int) $user->id) {
                         AffiliateReferral::firstOrCreate(
-                            ['referred_user_id' => $user->id],
+                            ['id_khachhang_duoc_gioithieu' => $user->id],
                             [
-                                'affiliate_user_id' => $profile->user_id,
-                                'ref_code' => $refCode,
-                                'registered_at' => now(),
+                                'id_affiliate_khachhang' => $profile->id_khachhang,
+                                'ma_ref' => $refCode,
+                                'da_dang_ky_luc' => now(),
                             ]
                         );
                     }
@@ -342,7 +342,7 @@ class AuthController extends Controller
 
         $email = $facebookUser->getEmail();
 
-        $user = User::where('facebook_id', $facebookUser->getId())->first();
+        $user = User::where('id_facebook', $facebookUser->getId())->first();
         if (!$user && $email) {
             $user = User::where('email', $email)->first();
         }
@@ -351,40 +351,40 @@ class AuthController extends Controller
         try {
             if (!$user) {
                 $user = User::create([
-                    'name' => $facebookUser->getName() ?: 'Facebook User',
+                    'ten' => $facebookUser->getName() ?: 'Facebook User',
                     'email' => $email ?: 'facebook_' . $facebookUser->getId() . '@noemail.predator.local',
-                    'facebook_id' => $facebookUser->getId(),
-                    'avatar' => $facebookUser->getAvatar(),
-                    'password' => Str::random(16),
-                    'role' => 'user',
+                    'id_facebook' => $facebookUser->getId(),
+                    'anhdaidien' => $facebookUser->getAvatar(),
+                    'matkhau' => Str::random(16),
+                    'vaitro' => 'user',
                 ]);
 
                 // Record referral code if present in the state parameter
                 $refCode = $request->query('state');
                 if (!empty($refCode)) {
                     $refCode = strtoupper($refCode);
-                    $profile = AffiliateProfile::where('affiliate_code', $refCode)
-                        ->where('status', 'active')
+                    $profile = AffiliateProfile::where('ma_affiliate', $refCode)
+                        ->where('trangthai', 'active')
                         ->first();
 
-                    if ($profile && (int) $profile->user_id !== (int) $user->id) {
+                    if ($profile && (int) $profile->id_khachhang !== (int) $user->id) {
                         AffiliateReferral::firstOrCreate(
-                            ['referred_user_id' => $user->id],
+                            ['id_khachhang_duoc_gioithieu' => $user->id],
                             [
-                                'affiliate_user_id' => $profile->user_id,
-                                'ref_code' => $refCode,
-                                'registered_at' => now(),
+                                'id_affiliate_khachhang' => $profile->id_khachhang,
+                                'ma_ref' => $refCode,
+                                'da_dang_ky_luc' => now(),
                             ]
                         );
                     }
                 }
             } else {
-                if (!$user->facebook_id) {
-                    $user->facebook_id = $facebookUser->getId();
+                if (!$user->id_facebook) {
+                    $user->id_facebook = $facebookUser->getId();
                 }
 
-                if (!$user->avatar && $facebookUser->getAvatar()) {
-                    $user->avatar = $facebookUser->getAvatar();
+                if (!$user->anhdaidien && $facebookUser->getAvatar()) {
+                    $user->anhdaidien = $facebookUser->getAvatar();
                 }
 
                 $user->save();

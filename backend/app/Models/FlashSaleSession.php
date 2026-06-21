@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FlashSaleSession extends Model
 {
-    protected $table = 'flash_sale_sessions';
+    protected $table = 'danh_sach_flashsale';
     protected $primaryKey = 'id_session';
 
     protected $fillable = [
@@ -24,7 +24,7 @@ class FlashSaleSession extends Model
 
     public function products()
     {
-        return $this->hasMany(FlashSaleProduct::class, 'session_id', 'id_session');
+        return $this->hasMany(FlashSaleProduct::class, 'id_danhsach', 'id_session');
     }
 
     // Helper to check if session is active

@@ -296,7 +296,7 @@ const fetchAll = async () => {
 const fetchColors = async () => {
   try {
     const res = await api.get('/colors')
-    colors.value = res.data.map(c => ({ id: c.id, name: c.name, hex: c.hex || c.hex_code }))
+    colors.value = res.data.map(c => ({ id: c.id, name: c.ten, hex: c.hex || c.mamau }))
     if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
     colorPagination.goToPage(1)
   } catch (error) {
@@ -418,9 +418,9 @@ const submitColor = async () => {
   }
   try {
     if (modalType.value === 'editColor') {
-      await api.put(`/admin/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.put(`/admin/colors/${editingId}`, { ten: colorForm.value.name, mamau: colorForm.value.hex })
     } else {
-      await api.post('/admin/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.post('/admin/colors', { ten: colorForm.value.name, mamau: colorForm.value.hex })
     }
     await fetchColors()
     closeModal()
@@ -709,10 +709,10 @@ async function handleImportFile(e) {
           const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
           if (existingColor) {
             // Cập nhật màu hiện có
-            await api.put(`/admin/colors/${existingColor.id}`, { name, hex_code: hex })
+            await api.put(`/admin/colors/${existingColor.id}`, { ten: name, mamau: hex })
           } else {
             // Thêm màu mới
-            await api.post('/admin/colors', { name, hex_code: hex })
+            await api.post('/admin/colors', { ten: name, mamau: hex })
           }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()

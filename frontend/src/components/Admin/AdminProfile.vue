@@ -14,21 +14,21 @@ const avatarPreview = ref('')
 const localUser = ref(getUser() || {})
 
 const form = ref({
-  name: '',
+  ten: '',
   email: '',
-  phone: '',
-  gender: '',
-  date_of_birth: '',
+  sodienthoai: '',
+  gioitinh: '',
+  ngaysinh: '',
 })
 
 const avatarUrl = computed(() => {
   if (avatarPreview.value) return avatarPreview.value
-  const avatar = localUser.value?.avatar
+  const avatar = localUser.value?.anhdaidien || localUser.value?.avatar
   if (!avatar) return ''
   return avatar.startsWith('http') ? avatar : storageUrl(avatar)
 })
 
-const avatarInitial = computed(() => (form.value.name || 'A').trim().charAt(0).toUpperCase())
+const avatarInitial = computed(() => (form.value.ten || 'A').trim().charAt(0).toUpperCase())
 const memberSince = computed(() => {
   const dt = localUser.value?.created_at
   if (!dt) return '--'
@@ -50,11 +50,11 @@ async function fetchProfile() {
     const res = await api.get('/admin/account/profile')
     const u = res.data?.data || {}
     form.value = {
-      name: u.name || '',
+      ten: u.ten || '',
       email: u.email || '',
-      phone: u.phone || '',
-      gender: u.gender || '',
-      date_of_birth: u.date_of_birth || '',
+      sodienthoai: u.sodienthoai || '',
+      gioitinh: u.gioitinh || '',
+      ngaysinh: u.ngaysinh || '',
     }
     localUser.value = { ...localUser.value, ...u }
   } finally {
@@ -130,7 +130,7 @@ onMounted(fetchProfile)
           <span v-else>{{ avatarInitial }}</span>
           <div v-if="editing" class="avatar-overlay">{{ uploadingAvatar ? 'Đang tải...' : 'Đổi ảnh' }}</div>
         </div>
-        <h3>{{ form.name || 'Admin' }}</h3>
+        <h3>{{ form.ten || 'Admin' }}</h3>
         <span class="role-badge">Quản trị viên</span>
         <p class="member-since">{{ memberSince }}</p>
       </aside>
@@ -149,20 +149,20 @@ onMounted(fetchProfile)
         </div>
 
         <div class="rows" v-if="!editing">
-          <div class="row"><span>Họ và tên</span><b>{{ form.name || 'Chưa cập nhật' }}</b></div>
+          <div class="row"><span>Họ và tên</span><b>{{ form.ten || 'Chưa cập nhật' }}</b></div>
           <div class="row"><span>Email</span><b>{{ form.email || 'Chưa cập nhật' }}</b></div>
-          <div class="row"><span>Số điện thoại</span><b>{{ form.phone || 'Chưa cập nhật' }}</b></div>
-          <div class="row"><span>Ngày sinh</span><b>{{ displayDate(form.date_of_birth) }}</b></div>
-          <div class="row"><span>Giới tính</span><b>{{ displayGender(form.gender) }}</b></div>
+          <div class="row"><span>Số điện thoại</span><b>{{ form.sodienthoai || 'Chưa cập nhật' }}</b></div>
+          <div class="row"><span>Ngày sinh</span><b>{{ displayDate(form.ngaysinh) }}</b></div>
+          <div class="row"><span>Giới tính</span><b>{{ displayGender(form.gioitinh) }}</b></div>
         </div>
 
         <div class="form" v-else>
-          <label><span>Họ và tên</span><input v-model="form.name" type="text" /></label>
+          <label><span>Họ và tên</span><input v-model="form.ten" type="text" /></label>
           <label><span>Email</span><input v-model="form.email" type="email" /></label>
-          <label><span>Số điện thoại</span><input v-model="form.phone" type="text" /></label>
-          <label><span>Ngày sinh</span><input v-model="form.date_of_birth" type="date" /></label>
+          <label><span>Số điện thoại</span><input v-model="form.sodienthoai" type="text" /></label>
+          <label><span>Ngày sinh</span><input v-model="form.ngaysinh" type="date" /></label>
           <label><span>Giới tính</span>
-            <select v-model="form.gender">
+            <select v-model="form.gioitinh">
               <option value="">Chưa chọn</option>
               <option>Nam</option>
               <option>Nữ</option>

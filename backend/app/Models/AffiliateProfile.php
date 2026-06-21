@@ -6,18 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class AffiliateProfile extends Model
 {
+    protected $table = 'khach_hang_affiliate';
+
     protected $fillable = [
-        'user_id',
-        'affiliate_code',
-        'commission_rate',
-        'status',
-        'total_earned',
-        'total_paid',
+        'id_khachhang',
+        'ma_affiliate',
+        'ty_le_hoa_hong',
+        'trangthai',
+        'tong_thu_nhap',
+        'tong_da_thanh_toan',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'id_khachhang');
     }
 }
 

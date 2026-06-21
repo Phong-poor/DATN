@@ -24,12 +24,12 @@ class SanPhamDaXemController extends Controller
 
         // Tìm hoặc tạo mới bản ghi
         $viewedProduct = SanPhamDaXem::firstOrNew([
-            'id_user' => $user->id,
+            'id_khachhang' => $user->id,
             'id_sanpham' => $id_sanpham
         ]);
 
         // Cập nhật thời gian xem thành hiện tại
-        $viewedProduct->viewed_at = Carbon::now();
+        $viewedProduct->xem_luc = Carbon::now();
         $viewedProduct->save();
 
         return response()->json(['message' => 'Đã ghi nhận lượt xem', 'data' => $viewedProduct], 200);
@@ -46,9 +46,9 @@ class SanPhamDaXemController extends Controller
         $twelveHoursAgo = Carbon::now()->subHours(12);
 
         // Lấy danh sách các sản phẩm đã xem trong 12h qua, sắp xếp mới nhất lên đầu
-        $recentlyViewed = SanPhamDaXem::where('id_user', $user->id)
-            ->where('viewed_at', '>=', $twelveHoursAgo)
-            ->orderBy('viewed_at', 'desc')
+        $recentlyViewed = SanPhamDaXem::where('id_khachhang', $user->id)
+            ->where('xem_luc', '>=', $twelveHoursAgo)
+            ->orderBy('xem_luc', 'desc')
             ->get();
 
         // Nạp thông tin sản phẩm và các biến thể tương tự như API lấy danh sách sản phẩm
@@ -68,7 +68,7 @@ class SanPhamDaXemController extends Controller
         foreach ($recentlyViewed as $view) {
             if (isset($products[$view->id_sanpham])) {
                 $product = $products[$view->id_sanpham]->toArray();
-                $product['viewed_at'] = $view->viewed_at; // Gắn thêm thời gian xem
+                $product['xem_luc'] = $view->xem_luc; // Gắn thêm thời gian xem
                 $result[] = $product;
             }
         }
