@@ -401,7 +401,7 @@ const fetchCart = async () => {
                 qty: item.soluong,
                 img: normalizeImageUrl(item.hinh_anh, 'https://via.placeholder.com/200'),
                 id_combo: item.id_combo,
-                combo_group_id: item.combo_group_id,
+                id_nhom_combo: item.id_nhom_combo,
                 ten_combo: item.ten_combo,
                 hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
                 gia_combo: item.gia_combo,
@@ -424,9 +424,9 @@ const fetchCart = async () => {
 }
 
 const fillUserForm = (user = {}) => {
-    form.value.name = user.name || user.ten || form.value.name || ''
+    form.value.name = user.ten || user.name || form.value.name || ''
     form.value.email = user.email || form.value.email || ''
-    form.value.phone = user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
+    form.value.phone = user.sodienthoai || user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
 }
 
 const fetchUserProfile = async () => {
@@ -452,11 +452,11 @@ const groupedCart = computed(() => {
     const comboGroups = {}
 
     cart.value.forEach(item => {
-        if (item.id_combo && item.combo_group_id) {
-            if (!comboGroups[item.combo_group_id]) {
-                comboGroups[item.combo_group_id] = {
+        if (item.id_combo && item.id_nhom_combo) {
+            if (!comboGroups[item.id_nhom_combo]) {
+                comboGroups[item.id_nhom_combo] = {
                     isCombo: true,
-                    combo_group_id: item.combo_group_id,
+                    id_nhom_combo: item.id_nhom_combo,
                     id_combo: item.id_combo,
                     ten_combo: item.ten_combo,
                     hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
@@ -464,9 +464,9 @@ const groupedCart = computed(() => {
                     qty: item.qty,
                     items: []
                 }
-                list.push(comboGroups[item.combo_group_id])
+                list.push(comboGroups[item.id_nhom_combo])
             }
-            comboGroups[item.combo_group_id].items.push(item)
+            comboGroups[item.id_nhom_combo].items.push(item)
         } else {
             list.push({
                 isCombo: false,
@@ -523,8 +523,8 @@ const confirmOrder = async () => {
         const response = await api.post('/checkout', {
             id_diachi: selectedAddressId.value,
             diachi: form.value.address,
-            name: form.value.name,
-            phone: form.value.phone,
+            ten: form.value.name,
+            sodienthoai: form.value.phone,
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value,
@@ -535,7 +535,7 @@ const confirmOrder = async () => {
         if (response.data.success) {
             const grantedVouchers = response.data.granted_vouchers || [];
             if (grantedVouchers.length > 0) {
-                const voucherNames = grantedVouchers.map(v => v.name).join(', ');
+                const voucherNames = grantedVouchers.map(v => v.ten || v.name).join(', ');
                 await swal.success(
                     'Chúc mừng!',
                     `Bạn đã nhận được voucher: ${voucherNames} khi mua hàng thành công!`
@@ -668,7 +668,7 @@ const confirmOrder = async () => {
         <div class="summary">
           <h3>Tóm tắt đơn hàng</h3>
 
-          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : index">
+          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.id_nhom_combo : index">
             <!-- Standalone Item -->
             <div class="item" v-if="!entry.isCombo">
               <img :src="entry.img" />

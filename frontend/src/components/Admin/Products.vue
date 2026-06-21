@@ -900,9 +900,9 @@ const buildAttributeGroups = () => {
             label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
-              label: c.name,
-              value: c.name,
-              hex: c.hex_code,
+              label: c.ten,
+              value: c.ten,
+              hex: c.mamau,
             })),
           },
         ],

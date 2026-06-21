@@ -106,9 +106,9 @@ onMounted(async () => {
 
   try {
     const data = (await api.get('/user/profile')).data
-    name.value = data.name
+    name.value = data.ten
     email.value = data.email
-    phone.value = data.phone
+    phone.value = data.sodienthoai
   } catch (err) {
     console.log('Chưa đăng nhập')
   }
@@ -141,10 +141,11 @@ async function sendContactRequest() {
     success.value = false
     loading.value = true
     const data = (await api.post('/lien-he', {
-      name: name.value,
+      hoten: name.value,
       email: email.value,
-      phone: phone.value,
-      message: `[${subject.value}] ${message.value}`,
+      sodienthoai: phone.value,
+      noidung: `[${subject.value}] ${message.value}`,
+      danhmuc: subject.value,
     })).data
     if (data.status) {
       success.value = true

@@ -6,26 +6,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class AffiliateWithdrawRequest extends Model
 {
+    protected $table = 'affiliate_yeu_cau_rut_tien';
+
     protected $fillable = [
-        'affiliate_user_id',
-        'amount',
-        'bank_name',
-        'bank_account_name',
-        'bank_account_number',
-        'status',
-        'note',
-        'approved_at',
-        'paid_at',
+        'id_affiliate_khachhang',
+        'so_tien',
+        'ten_ngan_hang',
+        'ten_chu_tai_khoan',
+        'so_tai_khoan',
+        'trangthai',
+        'ghichu',
+        'duoc_duyet_luc',
+        'duoc_thanh_toan_luc',
     ];
 
     protected $casts = [
-        'approved_at' => 'datetime',
-        'paid_at' => 'datetime',
+        'duoc_duyet_luc' => 'datetime',
+        'duoc_thanh_toan_luc' => 'datetime',
     ];
 
     public function affiliateUser()
     {
-        return $this->belongsTo(User::class, 'affiliate_user_id');
+        return $this->belongsTo(User::class, 'id_affiliate_khachhang');
     }
 }
 

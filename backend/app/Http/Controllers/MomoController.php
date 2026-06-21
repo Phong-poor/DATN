@@ -40,7 +40,7 @@ class MomoController extends Controller
         $orderInfo = 'Thanh toan don hang #' . $order->id_dathang;
         $extraData = base64_encode(json_encode([
             'order_id' => $order->id_dathang,
-            'user_id' => $order->user_id,
+            'user_id' => $order->id_khachhang,
         ]));
 
         $rawSignature = "accessKey={$accessKey}&amount={$amount}&extraData={$extraData}"
@@ -66,8 +66,8 @@ class MomoController extends Controller
 
         if ($requestType === 'payWithCC') {
             $payload['userInfo'] = [
-                'name' => $order->user?->name ?: 'Khach hang VinaTech',
-                'phoneNumber' => $order->user?->phone ?: '',
+                'name' => $order->user?->ten ?: 'Khach hang VinaTech',
+                'phoneNumber' => $order->user?->sodienthoai ?: '',
                 'email' => $order->user?->email ?: 'sandbox@example.com',
             ];
         }
@@ -97,13 +97,13 @@ class MomoController extends Controller
 
         if ($this->hasPaymentTracking()) {
             $order->update([
-                'payment_provider' => 'momo',
-                'payment_status' => 'pending',
-                'payment_order_id' => $orderId,
-                'payment_request_id' => $requestId,
-                'payment_result_code' => (int) ($data['resultCode'] ?? 0),
-                'payment_message' => $data['message'] ?? 'MoMo payment created',
-                'payment_payload' => $this->mergePaymentPayload($order, [
+                'nha_cung_cap_thanh_toan' => 'momo',
+                'trang_thai_thanh_toan' => 'pending',
+                'ma_don_hang_thanh_toan' => $orderId,
+                'ma_yeu_cau_thanh_toan' => $requestId,
+                'ma_ket_qua_thanh_toan' => (int) ($data['resultCode'] ?? 0),
+                'thong_bao_thanh_toan' => $data['message'] ?? 'MoMo payment created',
+                'du_lieu_thanh_toan' => $this->mergePaymentPayload($order, [
                     'momo_create_request' => $this->withoutSignature($payload),
                     'momo_create_response' => $data,
                     'momo_request_type' => $requestType,
@@ -179,10 +179,10 @@ class MomoController extends Controller
         }
 
         $order = DatHang::where('id_dathang', $id)
-            ->where('user_id', $request->user()->id)
+            ->where('id_khachhang', $request->user()->id)
             ->firstOrFail();
 
-        if ($order->payment_provider !== 'momo' || !$order->payment_order_id) {
+        if ($order->nha_cung_cap_thanh_toan !== 'momo' || !$order->ma_don_hang_thanh_toan) {
             return response()->json([
                 'success' => false,
                 'message' => 'Đơn hàng này không phải giao dịch MoMo.',
@@ -211,7 +211,7 @@ class MomoController extends Controller
         $accessKey = env('MOMO_ACCESS_KEY');
         $secretKey = env('MOMO_SECRET_KEY');
         $requestId = 'QUERY_' . $order->id_dathang . '_' . time();
-        $orderId = $order->payment_order_id;
+        $orderId = $order->ma_don_hang_thanh_toan;
 
         $rawSignature = "accessKey={$accessKey}&orderId={$orderId}"
             . "&partnerCode={$partnerCode}&requestId={$requestId}";
@@ -235,7 +235,7 @@ class MomoController extends Controller
 
         $data = $response->json();
         $order->update([
-            'payment_payload' => $this->mergePaymentPayload($order, [
+            'du_lieu_thanh_toan' => $this->mergePaymentPayload($order, [
                 'momo_query_request' => $this->withoutSignature($payload),
                 'momo_query_response' => $data,
             ]),
@@ -251,7 +251,7 @@ class MomoController extends Controller
         DB::transaction(function () use ($order, $payload, &$shouldBroadcast) {
             $freshOrder = DatHang::lockForUpdate()->findOrFail($order->id_dathang);
 
-            if ($this->hasPaymentTracking() && $freshOrder->payment_status === 'paid') {
+            if ($this->hasPaymentTracking() && $freshOrder->trang_thai_thanh_toan === 'paid') {
                 return;
             }
 
@@ -263,16 +263,16 @@ class MomoController extends Controller
 
             if ($this->hasPaymentTracking()) {
                 $updateData += [
-                    'payment_provider' => 'momo',
-                    'payment_status' => 'paid',
-                    'payment_order_id' => $payload['orderId'] ?? $freshOrder->payment_order_id,
-                    'payment_request_id' => $payload['requestId'] ?? $freshOrder->payment_request_id,
-                    'payment_transaction_id' => isset($payload['transId']) ? (string) $payload['transId'] : $freshOrder->payment_transaction_id,
-                    'payment_result_code' => (int) ($payload['resultCode'] ?? 0),
-                    'payment_message' => $payload['message'] ?? 'MoMo payment success',
-                    'payment_pay_type' => $payload['payType'] ?? $freshOrder->payment_pay_type,
-                    'payment_paid_at' => now(),
-                    'payment_payload' => $this->mergePaymentPayload($freshOrder, [
+                    'nha_cung_cap_thanh_toan' => 'momo',
+                    'trang_thai_thanh_toan' => 'paid',
+                    'ma_don_hang_thanh_toan' => $payload['orderId'] ?? $freshOrder->ma_don_hang_thanh_toan,
+                    'ma_yeu_cau_thanh_toan' => $payload['requestId'] ?? $freshOrder->ma_yeu_cau_thanh_toan,
+                    'ma_giao_dich_thanh_toan' => isset($payload['transId']) ? (string) $payload['transId'] : $freshOrder->ma_giao_dich_thanh_toan,
+                    'ma_ket_qua_thanh_toan' => (int) ($payload['resultCode'] ?? 0),
+                    'thong_bao_thanh_toan' => $payload['message'] ?? 'MoMo payment success',
+                    'kieu_thanh_toan' => $payload['payType'] ?? $freshOrder->kieu_thanh_toan,
+                    'thanh_toan_luc' => now(),
+                    'du_lieu_thanh_toan' => $this->mergePaymentPayload($freshOrder, [
                         'momo_result' => $payload,
                     ]),
                 ];
@@ -280,7 +280,7 @@ class MomoController extends Controller
 
             $freshOrder->update($updateData);
 
-            GioHang::where('user_id', $freshOrder->user_id)->delete();
+            GioHang::where('id_khachhang', $freshOrder->id_khachhang)->delete();
             $this->markVoucherUsed($freshOrder->fresh());
             $shouldBroadcast = true;
         });
@@ -297,7 +297,7 @@ class MomoController extends Controller
         DB::transaction(function () use ($order, $payload) {
             $freshOrder = DatHang::lockForUpdate()->find($order->id_dathang);
 
-            if (!$freshOrder || ($this->hasPaymentTracking() && $freshOrder->payment_status === 'paid')) {
+            if (!$freshOrder || ($this->hasPaymentTracking() && $freshOrder->trang_thai_thanh_toan === 'paid')) {
                 return;
             }
 
@@ -308,15 +308,15 @@ class MomoController extends Controller
 
             if ($this->hasPaymentTracking()) {
                 $updateData += [
-                    'payment_provider' => 'momo',
-                    'payment_status' => 'failed',
-                    'payment_order_id' => $payload['orderId'] ?? $freshOrder->payment_order_id,
-                    'payment_request_id' => $payload['requestId'] ?? $freshOrder->payment_request_id,
-                    'payment_transaction_id' => isset($payload['transId']) ? (string) $payload['transId'] : $freshOrder->payment_transaction_id,
-                    'payment_result_code' => isset($payload['resultCode']) ? (int) $payload['resultCode'] : null,
-                    'payment_message' => $payload['message'] ?? 'MoMo payment failed',
-                    'payment_pay_type' => $payload['payType'] ?? $freshOrder->payment_pay_type,
-                    'payment_payload' => $this->mergePaymentPayload($freshOrder, [
+                    'nha_cung_cap_thanh_toan' => 'momo',
+                    'trang_thai_thanh_toan' => 'failed',
+                    'ma_don_hang_thanh_toan' => $payload['orderId'] ?? $freshOrder->ma_don_hang_thanh_toan,
+                    'ma_yeu_cau_thanh_toan' => $payload['requestId'] ?? $freshOrder->ma_yeu_cau_thanh_toan,
+                    'ma_giao_dich_thanh_toan' => isset($payload['transId']) ? (string) $payload['transId'] : $freshOrder->ma_giao_dich_thanh_toan,
+                    'ma_ket_qua_thanh_toan' => isset($payload['resultCode']) ? (int) $payload['resultCode'] : null,
+                    'thong_bao_thanh_toan' => $payload['message'] ?? 'MoMo payment failed',
+                    'kieu_thanh_toan' => $payload['payType'] ?? $freshOrder->kieu_thanh_toan,
+                    'du_lieu_thanh_toan' => $this->mergePaymentPayload($freshOrder, [
                         'momo_result' => $payload,
                     ]),
                 ];
@@ -394,7 +394,7 @@ class MomoController extends Controller
     {
         $payloadOrderId = (string) ($payload['orderId'] ?? '');
 
-        if ($order->payment_order_id && $payloadOrderId !== $order->payment_order_id) {
+        if ($order->ma_don_hang_thanh_toan && $payloadOrderId !== $order->ma_don_hang_thanh_toan) {
             throw new \RuntimeException('Mã giao dịch MoMo không khớp đơn hàng.');
         }
 
@@ -414,23 +414,23 @@ class MomoController extends Controller
 
     private function markVoucherUsed(DatHang $order): void
     {
-        if ($order->promotion_id) {
-            UserVoucher::where('id_user', $order->user_id)
-                ->where('id_promotion', $order->promotion_id)
+        if ($order->id_khuyenmai) {
+            UserVoucher::where('id_user', $order->id_khachhang)
+                ->where('id_voucher', $order->id_khuyenmai)
                 ->update(['trang_thai' => 1]);
         }
 
-        $freeshipPromotionId = data_get($order->payment_payload, 'checkout.freeship_promotion_id');
+        $freeshipPromotionId = data_get($order->du_lieu_thanh_toan, 'checkout.freeship_promotion_id');
         if ($freeshipPromotionId) {
-            UserVoucher::where('id_user', $order->user_id)
-                ->where('id_promotion', $freeshipPromotionId)
+            UserVoucher::where('id_user', $order->id_khachhang)
+                ->where('id_voucher', $freeshipPromotionId)
                 ->update(['trang_thai' => 1]);
         }
     }
 
     private function mergePaymentPayload(DatHang $order, array $data): array
     {
-        $current = $order->payment_payload ?: [];
+        $current = $order->du_lieu_thanh_toan ?: [];
 
         if (is_string($current)) {
             $current = json_decode($current, true) ?: [];
@@ -448,7 +448,7 @@ class MomoController extends Controller
 
     private function hasPaymentTracking(): bool
     {
-        return Schema::hasColumn('dathang', 'payment_provider');
+        return Schema::hasColumn('dathang', 'nha_cung_cap_thanh_toan');
     }
 
     private function clearDashboardCache(): void

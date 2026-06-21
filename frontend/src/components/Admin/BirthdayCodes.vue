@@ -135,7 +135,11 @@ const fetchBirthdays = async () => {
     if (res.data?.success) {
       birthdayCustomers.value = (res.data.data || []).map(c => ({
         ...c,
-        promotionId: c.promotion_id
+        promotionId: c.id_voucher,
+        code: c.mavoucher,
+        status: c.trangthai,
+        sentTime: c.guiluc,
+        errorLog: c.thongbaoloi
       }))
       statsTotalToday.value = res.data.stats?.total || 0
       statsCountSent.value = res.data.stats?.sent || 0
@@ -160,7 +164,13 @@ const fetchHistory = async () => {
       }
     })
     if (res.data?.success) {
-      sendHistory.value = res.data.data || []
+      sendHistory.value = (res.data.data || []).map(h => ({
+        ...h,
+        code: h.mavoucher,
+        sentTime: h.guiluc,
+        status: h.trangthai,
+        errorLog: h.thongbaoloi
+      }))
     }
   } catch (err) {
     console.error(err)
@@ -176,21 +186,21 @@ const fetchSettings = async () => {
     if (res.data?.success && res.data.data) {
       const d = res.data.data
       autoConfig.value = {
-        enabled: !!d.enabled,
-        scanTime: d.run_time || '08:30',
-        templateId: d.email_template_id || 'tpl-bday-default',
-        promoCode: d.promotion_code || '',
-        promotionId: d.promotion_id || null,
-        limitOncePerYear: !!d.send_once_per_year,
-        autoRetry: !!d.retry_if_failed,
-        notifyAdmin: !!d.notify_admin
+        enabled: !!d.kichhoat,
+        scanTime: d.giochay || '08:30',
+        templateId: d.id_mau_email || 'tpl-bday-default',
+        promoCode: d.mavoucher || '',
+        promotionId: d.id_voucher || null,
+        limitOncePerYear: !!d.gui_mot_lan_moi_nam,
+        autoRetry: !!d.thu_lai_khi_that_bai,
+        notifyAdmin: !!d.thongbao_admin
       }
 
       if (res.data.promotions && Array.isArray(res.data.promotions)) {
         availablePromotions.value = res.data.promotions.map(p => ({
           id: p.id,
           code: p.code,
-          name: `${p.code} - ${p.name} - Giảm ${p.type === 'percent' ? p.value + '%' : new Intl.NumberFormat('vi-VN').format(p.value) + 'đ'}`
+          name: `${p.code} - ${p.ten} - Giảm ${p.loai === 'percent' ? p.giatri + '%' : new Intl.NumberFormat('vi-VN').format(p.giatri) + 'đ'}`
         }))
       }
     }
@@ -206,7 +216,7 @@ const loadAvailablePromotions = async () => {
       availablePromotions.value = res.data.promotions.map(p => ({
         id: p.id,
         code: p.code,
-        name: `${p.code} - ${p.name} - Giảm ${p.type === 'percent' ? p.value + '%' : new Intl.NumberFormat('vi-VN').format(p.value) + 'đ'}`
+        name: `${p.code} - ${p.ten} - Giảm ${p.loai === 'percent' ? p.giatri + '%' : new Intl.NumberFormat('vi-VN').format(p.giatri) + 'đ'}`
       }))
     }
   } catch (e) {
@@ -269,7 +279,7 @@ const sendSingleEmail = async (customer) => {
     const endpoint = isResend ? '/admin/birthday-codes/resend' : '/admin/birthday-codes/send'
     const payload = { 
       user_id: customer.id,
-      promotion_id: customer.promotionId
+      id_voucher: customer.promotionId
     }
 
     const res = await api.post(endpoint, payload)
@@ -318,7 +328,7 @@ const sendBulk = async () => {
   try {
     const userPromotions = itemsToSend.map(item => ({
       user_id: item.id,
-      promotion_id: item.promotionId || autoConfig.value.promotionId
+      id_voucher: item.promotionId || autoConfig.value.promotionId
     }))
     const res = await api.post('/admin/birthday-codes/send-bulk', {
       user_promotions: userPromotions
@@ -341,13 +351,13 @@ const sendBulk = async () => {
 const saveAutoConfig = async () => {
   try {
     const res = await api.post('/admin/birthday-codes/settings', {
-      enabled: autoConfig.value.enabled,
-      run_time: autoConfig.value.scanTime,
-      promotion_id: autoConfig.value.promotionId,
-      email_template_id: autoConfig.value.templateId,
-      send_once_per_year: autoConfig.value.limitOncePerYear,
-      retry_if_failed: autoConfig.value.autoRetry,
-      notify_admin: autoConfig.value.notifyAdmin
+      kichhoat: autoConfig.value.enabled,
+      giochay: autoConfig.value.scanTime,
+      id_voucher: autoConfig.value.promotionId,
+      id_mau_email: autoConfig.value.templateId,
+      gui_mot_lan_moi_nam: autoConfig.value.limitOncePerYear,
+      thu_lai_khi_that_bai: autoConfig.value.autoRetry,
+      thongbao_admin: autoConfig.value.notifyAdmin
     })
     if (res.data?.success) {
       swal.success('Lưu cấu hình', 'Đã lưu thiết lập tự động quét và gửi mã sinh nhật thành công!')

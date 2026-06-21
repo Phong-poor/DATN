@@ -189,7 +189,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.matched.some(route => route.meta.requiresAdmin)) {
     if (!user || !token) return next('/login')
-    if (user.role !== 'admin') return next('/')
+    if (user.vaitro !== 'admin') return next('/')
   }
 
   next()

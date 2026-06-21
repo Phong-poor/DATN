@@ -50,7 +50,7 @@
               <span class="card__tag"
                     :class="{ 'card__tag--pink': index === 1 }">
 
-                <template v-if="promo.category === 'freeship'">
+                <template v-if="promo.danhmuc === 'freeship'">
                   🚚
                 </template>
                 <template v-else>
@@ -68,7 +68,7 @@
             <h2 class="card__code">{{ promo.code }}</h2>
 
             <p class="card__desc">
-              <template v-if="promo.category === 'freeship' && promo.dieu_kien > 0">
+              <template v-if="promo.danhmuc === 'freeship' && promo.dieu_kien > 0">
                 🛒 Đơn tối thiểu {{ formatPrice(promo.dieu_kien) }}<br/>
               </template>
               {{ promo.mota || 'Không có mô tả' }}
@@ -153,8 +153,8 @@ export default {
 
         if (this.promosData && this.promosData.length > 0) {
             const all = this.promosData
-            const productPromo = all.find(p => p.category === 'product')
-            const freeshipPromo = all.find(p => p.category === 'freeship')
+            const productPromo = all.find(p => p.danhmuc === 'product')
+            const freeshipPromo = all.find(p => p.danhmuc === 'freeship')
             
             if (productPromo) this.promos.push(productPromo)
             if (freeshipPromo) this.promos.push(freeshipPromo)
@@ -225,8 +225,8 @@ export default {
                 const res = await api.get('/user/vouchers/available')
                 const all = res.data
                 
-                const productPromo = all.find(p => p.category === 'product')
-                const freeshipPromo = all.find(p => p.category === 'freeship')
+                const productPromo = all.find(p => p.danhmuc === 'product')
+                const freeshipPromo = all.find(p => p.danhmuc === 'freeship')
                 
                 if (productPromo) this.promos.push(productPromo)
                 if (freeshipPromo) this.promos.push(freeshipPromo)
@@ -238,7 +238,7 @@ export default {
         },
         async claim(promoId) {
             try {
-                await api.post('/user/vouchers/claim', { id_promotion: promoId })
+                await api.post('/user/vouchers/claim', { id_voucher: promoId })
                 // Chúng ta không quan tâm nếu báo lỗi (ví dụ đã nhận rồi) 
                 // vì mục tiêu là đảm bảo nó được lưu vào hồ sơ.
             } catch (err) {
@@ -249,9 +249,9 @@ export default {
             return new Intl.NumberFormat('vi-VN').format(price) + 'đ'
         },
         getDiscountLabel(p) {
-            if (p.category === 'freeship') return 'MIỄN PHÍ VẬN CHUYỂN'
-            if (p.type === 'percent') return `GIẢM GIÁ ${p.value}%`
-            return `GIẢM ${this.formatPrice(p.value)}`
+            if (p.danhmuc === 'freeship') return 'MIỄN PHÍ VẬN CHUYỂN'
+            if (p.loai === 'percent') return `GIẢM GIÁ ${p.giatri}%`
+            return `GIẢM ${this.formatPrice(p.giatri)}`
         },
         async handleCopy(promo, which) {
             this.copyCode(promo.code, which)

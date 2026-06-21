@@ -6,14 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class LienHe extends Model
 {
-    protected $table = 'contacts';
+    protected $table = 'lienhe';
 
     protected $fillable = [
-        'name',
+        'hoten',
         'email',
-        'phone',
-        'message',
-        'status',
-        'reply'
+        'sodienthoai',
+        'noidung',
+        'trangthai',
+        'phanhoi',
+        'danhmuc',
+        'phan_hoi_luc'
     ];
 }

@@ -14,8 +14,8 @@ class DatHangChiTiet extends Model
         'soluong',
         'gia',
         'id_combo',
-        'combo_group_id',
-        'is_refund',
+        'id_nhom_combo',
+        'hoantien',
     ];
 
     public function datHang()

@@ -63,7 +63,7 @@ const esSeconds = ref('08')
 // Claimed voucher state
 const claimedVoucherId = ref(null)
 const claimingId = ref(null)
-// user's owned vouchers: { id_promotion, trang_thai, ngay_nhan, promotion: {...} }
+// user's owned vouchers: { id_voucher, trang_thai, ngay_nhan, promotion: {...} }
 const userVouchers = ref([])
 // Set of promotion IDs user already owns with trang_thai != het_han
 const ownedActiveIds = ref(new Set())
@@ -136,10 +136,10 @@ const statsData = [
 ]
 
 const fallbackVouchers = [
-  { id: 'v1', code: 'PREDATOR500', name: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', category: 'product', type: 'fixed', value: 500000, status: 'running' },
-  { id: 'v2', code: 'PREDATOR1M', name: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', category: 'product', type: 'fixed', value: 1000000, status: 'running' },
-  { id: 'v3', code: 'PREDATOR0PCT', name: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', category: 'payment', type: 'percentage', value: 0, status: 'running' },
-  { id: 'v4', code: 'PREDATORSHIP', name: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', category: 'shipping', type: 'fixed', value: 100000, status: 'running' }
+  { id: 'v1', code: 'PREDATOR500', ten: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', danhmuc: 'product', loai: 'fixed', giatri: 500000, trangthai: 'running' },
+  { id: 'v2', code: 'PREDATOR1M', ten: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', danhmuc: 'product', loai: 'fixed', giatri: 1000000, trangthai: 'running' },
+  { id: 'v3', code: 'PREDATOR0PCT', ten: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', danhmuc: 'payment', loai: 'percentage', giatri: 0, trangthai: 'running' },
+  { id: 'v4', code: 'PREDATORSHIP', ten: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', danhmuc: 'shipping', loai: 'fixed', giatri: 100000, trangthai: 'running' }
 ]
 
 const comboDetailsList = [
@@ -333,14 +333,14 @@ function formatDate(dateStr) {
 
 // Helper: check if a voucher is still valid (not expired)
 function isVoucherValid(v) {
-  if (!v.end_date) return true // no end date = always valid
-  return new Date(v.end_date) >= new Date()
+  if (!v.ngayketthuc) return true // no end date = always valid
+  return new Date(v.ngayketthuc) >= new Date()
 }
 
 // Helper: check if a voucher has started
 function isVoucherStarted(v) {
-  if (!v.start_date) return true
-  return new Date(v.start_date) <= new Date()
+  if (!v.ngaybatdau) return true
+  return new Date(v.ngaybatdau) <= new Date()
 }
 
 const allVouchers = computed(() => {
@@ -354,10 +354,10 @@ const allVouchers = computed(() => {
 
   return list.filter(v => {
     // 0. Ẩn voucher nhận có điều kiện (is_public = 0)
-    if (v.is_public === 0 || v.is_public === '0' || v.is_public === false) return false
+    if (v.congkhai === 0 || v.congkhai === '0' || v.congkhai === false) return false
 
     // 1. Tuyệt đối không hiện voucher sinh nhật
-    if (v.category === 'birthday') return false
+    if (v.danhmuc === 'birthday') return false
 
     // 2. Voucher phải còn hạn
     if (!isVoucherValid(v) || !isVoucherStarted(v)) return false
@@ -371,7 +371,7 @@ const allVouchers = computed(() => {
     // - Đã sở hữu còn hiệu lực (trang_thai != 'het_han' && trang_thai != 2) → không hiện
     // - Đã sở hữu nhưng đã hết hạn → hiện lại để nhận
     const owned = userVouchers.value.find(uv =>
-      Number(uv.id_promotion) === Number(v.id)
+      Number(uv.id_voucher) === Number(v.id)
     )
     if (!owned) return true // chưa sở hữu → hiện
 
@@ -505,7 +505,7 @@ async function fetchUserVouchers() {
           const s = String(uv.trang_thai)
           return s !== '2' && s !== 'het_han' && s !== 'expired'
         })
-        .map(uv => Number(uv.id_promotion))
+        .map(uv => Number(uv.id_voucher))
     )
   } catch (e) {
     // Not logged in or error → ignore
@@ -525,7 +525,7 @@ const claimVoucher = async (v) => {
   if (claimingId.value === v.id) return
   claimingId.value = v.id
   try {
-    await api.post('/user/vouchers/claim', { id_promotion: v.id })
+    await api.post('/user/vouchers/claim', { id_voucher: v.id })
     claimedVoucherId.value = v.id
     swal.success('Chúc mừng!', 'Chúc mừng nhận voucher thành công, đã lưu vô thông tin cá nhân!')
     await fetchUserVouchers()
@@ -940,11 +940,11 @@ const initScrollReveal = () => {
         </div>
 
         <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
-          <div v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="v.category">
+          <div v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="v.danhmuc">
             <div class="voucher-glow-accent"></div>
             <div class="voucher-header">
               <div class="voucher-badge">
-                {{ v.category === 'freeship' ? 'Freeship' : v.category === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
+                {{ v.danhmuc === 'freeship' ? 'Freeship' : v.danhmuc === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
               </div>
               <div class="voucher-code-label">
                 Code: <strong>{{ v.code }}</strong>
@@ -952,11 +952,11 @@ const initScrollReveal = () => {
             </div>
 
             <div class="voucher-body" style="text-align: left;">
-              <h3>{{ v.name }}</h3>
+              <h3>{{ v.ten || v.name }}</h3>
               <p>{{ v.mota || v.desc }}</p>
-              <p v-if="v.end_date" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
+              <p v-if="v.ngayketthuc" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
                 <Clock class="pill-icon" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"/>
-                HSD: {{ formatDate(v.end_date) }}
+                HSD: {{ formatDate(v.ngayketthuc) }}
               </p>
             </div>
 

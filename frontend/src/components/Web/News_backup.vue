@@ -18,7 +18,7 @@ const defaultCategories = ['Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội
 const placeholderImage = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80'
 
 const categories = computed(() => {
-  const names = [...posts.value, ...popularPosts.value].map((item) => item?.category).filter(Boolean)
+  const names = [...posts.value, ...popularPosts.value].map((item) => item?.danhmuc).filter(Boolean)
   return [...new Set([...defaultCategories, ...names])]
 })
 const tabs = computed(() => ['Mới nhất', ...categories.value.slice(0, 4)])
@@ -91,7 +91,7 @@ const fetchNews = async (page = 1) => {
   errorMessage.value = ''
   try {
     const params = { scope: 'public', per_page: 6, page }
-    if (selectedCategory.value !== 'Mới nhất') params.category = selectedCategory.value
+    if (selectedCategory.value !== 'Mới nhất') params.danhmuc = selectedCategory.value
     const { data } = await api.get('/news', { params })
     posts.value = data.data || []
     posts.value.forEach(post => {
@@ -120,7 +120,7 @@ const fetchNews = async (page = 1) => {
 const fetchPopular = async () => {
   try {
     const { data } = await api.get('/news', { params: { scope: 'public', per_page: 20 } })
-    popularPosts.value = (data.data || []).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
+    popularPosts.value = (data.data || []).sort((a, b) => (b.luotxem || 0) - (a.luotxem || 0)).slice(0, 3)
     popularPosts.value.forEach(post => {
       try {
         const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
@@ -208,14 +208,14 @@ onMounted(async () => {
           <!-- Hero featured card -->
           <RouterLink v-if="randomPost" :to="`/news/${randomPost.id}`" class="hero-card">
             <div class="hero-img">
-              <img :src="imageUrl(randomPost.image)" :alt="randomPost.image_alt || randomPost.title" @error="e => e.target.src = placeholderImage" />
-              <span class="hero-cat">{{ randomPost.category }}</span>
+              <img :src="imageUrl(randomPost.hinhanh)" :alt="randomPost.mota_hinhanh || randomPost.tieude" @error="e => e.target.src = placeholderImage" />
+              <span class="hero-cat">{{ randomPost.danhmuc }}</span>
               <span class="hero-badge">⭐ Nổi bật</span>
             </div>
             <div class="hero-body">
-              <p class="hero-date">{{ formatDate(randomPost.published_at || randomPost.created_at) }}</p>
-              <h2>{{ randomPost.title }}</h2>
-              <p class="hero-excerpt" v-if="randomPost.excerpt">{{ randomPost.excerpt }}</p>
+              <p class="hero-date">{{ formatDate(randomPost.dang_luc || randomPost.created_at) }}</p>
+              <h2>{{ randomPost.tieude }}</h2>
+              <p class="hero-excerpt" v-if="randomPost.tomtat">{{ randomPost.tomtat }}</p>
               <span class="hero-cta">Đọc bài viết đầy đủ →</span>
             </div>
           </RouterLink>
@@ -230,13 +230,13 @@ onMounted(async () => {
           <div class="news-grid">
             <RouterLink v-for="post in posts" :key="post.id" :to="`/news/${post.id}`" class="news-card">
               <div class="card-thumb">
-                <img :src="imageUrl(post.image)" :alt="post.image_alt || post.title" loading="lazy" @error="e => e.target.src = placeholderImage" />
-                <span class="card-cat-badge">{{ post.category }}</span>
+                <img :src="imageUrl(post.hinhanh)" :alt="post.mota_hinhanh || post.tieude" loading="lazy" @error="e => e.target.src = placeholderImage" />
+                <span class="card-cat-badge">{{ post.danhmuc }}</span>
               </div>
               <div class="card-content">
-                <time class="card-date">{{ formatDate(post.published_at || post.created_at) }}</time>
-                <h3>{{ post.title }}</h3>
-                <p v-if="post.excerpt">{{ post.excerpt }}</p>
+                <time class="card-date">{{ formatDate(post.dang_luc || post.created_at) }}</time>
+                <h3>{{ post.tieude }}</h3>
+                <p v-if="post.tomtat">{{ post.tomtat }}</p>
                 <span class="card-read">Xem thêm →</span>
               </div>
             </RouterLink>
@@ -296,11 +296,11 @@ onMounted(async () => {
             >
               <span class="pop-rank" :class="`rank-${idx+1}`">{{ idx + 1 }}</span>
               <div class="pop-thumb">
-                <img :src="imageUrl(item.image)" :alt="item.image_alt || item.title" @error="e => e.target.src = placeholderImage" />
+                <img :src="imageUrl(item.hinhanh)" :alt="item.mota_hinhanh || item.tieude" @error="e => e.target.src = placeholderImage" />
               </div>
               <div class="pop-info">
-                <p>{{ item.title }}</p>
-                <span>{{ item.views || 0 }} lượt xem</span>
+                <p>{{ item.tieude }}</p>
+                <span>{{ item.luotxem || 0 }} lượt xem</span>
               </div>
             </RouterLink>
             <p v-if="popularPosts.length === 0" class="muted-text">Chưa có dữ liệu.</p>

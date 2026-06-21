@@ -11,11 +11,11 @@ class GioHang extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'user_id',
+        'id_khachhang',
         'id_bienthe',
         'soluong',
         'id_combo',
-        'combo_group_id',
+        'id_nhom_combo',
     ];
 
     // Quan hệ với biến thể
@@ -27,7 +27,7 @@ class GioHang extends Model
     // Quan hệ với user
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class, 'id_khachhang', 'id');
     }
 
     // Quan hệ với combo

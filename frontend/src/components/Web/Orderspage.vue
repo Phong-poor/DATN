@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
@@ -394,8 +394,8 @@ onUnmounted(() => {
                         <!-- Cancellation info if cancelled -->
                         <div v-if="(selectedOrder.trangthai === 'cancelled' || selectedOrder.trangthai.startsWith('refund')) && selectedOrder.lydo" class="alert py-2 px-3 mb-4" :class="{'alert-danger': selectedOrder.trangthai === 'cancelled', 'alert-warning': selectedOrder.trangthai !== 'cancelled'}" style="font-size: 13px;">
                             <strong>Lý do:</strong> {{ selectedOrder.lydo }}
-                            <div v-if="selectedOrder.refund_proof" class="mt-2">
-                                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
+                            <div v-if="selectedOrder.minh_chung_hoan_tien" class="mt-2">
+                                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.minh_chung_hoan_tien)" target="_blank">Xem file đính kèm</a>
                             </div>
                         </div>
 
@@ -431,12 +431,12 @@ onUnmounted(() => {
 <!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
-                            <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || []).filter(i => !selectedOrder.trangthai?.startsWith('refund') || i.is_refund == 1)" :key="item.id_dathang_chi_tiet">
+                            <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || []).filter(i => !selectedOrder.trangthai?.startsWith('refund') || i.hoantien == 1)" :key="item.id_dathang_chi_tiet">
                                 <img :src="getProductImage(item)" alt="product" />
                                 <div class="modal-item-info">
                                     <p class="modal-item-name">
                                         {{ getFullProductName(item) }}
-                                        <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                                        <span v-if="item.hoantien == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                                     </p>
                                     <p class="modal-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                     <p class="modal-item-qty">Số lượng: {{ item.soluong }}</p>
@@ -540,7 +540,7 @@ onUnmounted(() => {
                             <div class="order-item-info">
                                 <p class="order-item-name">
                                     {{ getFullProductName(item) }}
-                                    <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                                    <span v-if="item.hoantien == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                                 </p>
                                 <p class="order-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                 <p class="order-item-qty">x{{ item.soluong }}</p>

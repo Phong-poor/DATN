@@ -7,7 +7,7 @@ export default function adminGuard(to, from, next) {
     return next("/login");
   }
 
-  if (user.role !== "admin") {
+  if (user.vaitro !== "admin") {
     return next("/");
   }
 

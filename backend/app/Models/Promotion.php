@@ -6,27 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 
 class Promotion extends Model
 {
+    protected $table = 'vouchers';
+
     /**
      * Get the user vouchers for the promotion.
      */
     public function userVouchers()
     {
-        return $this->hasMany(UserVoucher::class, 'id_promotion');
+        return $this->hasMany(UserVoucher::class, 'id_voucher');
     }
 
     protected $fillable = [
-        'name',
-        'category',
+        'ten',
+        'danhmuc',
         'code',
-        'type',
-        'value',
-        'start_date',
-        'end_date',
-        'status',
+        'loai',
+        'giatri',
+        'ngaybatdau',
+        'ngayketthuc',
+        'trangthai',
         'mota',
         'loai_dieu_kien',
         'dieu_kien',
-        'is_public',
+        'congkhai',
         'dieu_kien_tang',
         'so_luong_phat',
     ];

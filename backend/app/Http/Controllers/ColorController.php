@@ -17,21 +17,21 @@ class ColorController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100|unique:colors,name',
-            'hex_code' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:colors,hex_code'],
+            'ten' => 'required|string|max:100|unique:mausac,ten',
+            'mamau' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:mausac,mamau'],
         ], [
-            'name.required' => 'Tên màu không được để trống.',
-            'name.unique' => 'Tên màu đã tồn tại.',
-            'name.max' => 'Tên màu không được vượt quá 100 ký tự.',
+            'ten.required' => 'Tên màu không được để trống.',
+            'ten.unique' => 'Tên màu đã tồn tại.',
+            'ten.max' => 'Tên màu không được vượt quá 100 ký tự.',
 
-            'hex_code.required' => 'Mã HEX không được để trống.',
-            'hex_code.regex' => 'Mã HEX không đúng định dạng. Ví dụ: #1A1A1A',
-            'hex_code.unique' => 'Mã HEX đã tồn tại.',
+            'mamau.required' => 'Mã HEX không được để trống.',
+            'mamau.regex' => 'Mã HEX không đúng định dạng. Ví dụ: #1A1A1A',
+            'mamau.unique' => 'Mã HEX đã tồn tại.',
         ]);
 
         $color = Color::create([
-            'name' => $request->name,
-            'hex_code' => strtoupper($request->hex_code),
+            'ten' => $request->ten,
+            'mamau' => strtoupper($request->mamau),
         ]);
 
         return response()->json([
@@ -64,21 +64,21 @@ class ColorController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:100|unique:colors,name,' . $id,
-            'hex_code' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:colors,hex_code,' . $id],
+            'ten' => 'required|string|max:100|unique:mausac,ten,' . $id,
+            'mamau' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:mausac,mamau,' . $id],
         ], [
-            'name.required' => 'Tên màu không được để trống.',
-            'name.unique' => 'Tên màu đã tồn tại.',
-            'name.max' => 'Tên màu không được vượt quá 100 ký tự.',
+            'ten.required' => 'Tên màu không được để trống.',
+            'ten.unique' => 'Tên màu đã tồn tại.',
+            'ten.max' => 'Tên màu không được vượt quá 100 ký tự.',
 
-            'hex_code.required' => 'Mã HEX không được để trống.',
-            'hex_code.regex' => 'Mã HEX không đúng định dạng. Ví dụ: #1A1A1A',
-            'hex_code.unique' => 'Mã HEX đã tồn tại.',
+            'mamau.required' => 'Mã HEX không được để trống.',
+            'mamau.regex' => 'Mã HEX không đúng định dạng. Ví dụ: #1A1A1A',
+            'mamau.unique' => 'Mã HEX đã tồn tại.',
         ]);
 
         $color->update([
-            'name' => $request->name,
-            'hex_code' => strtoupper($request->hex_code),
+            'ten' => $request->ten,
+            'mamau' => strtoupper($request->mamau),
         ]);
 
         return response()->json([

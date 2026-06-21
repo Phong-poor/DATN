@@ -65,14 +65,14 @@ const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 // ─── NORMALIZE ───────────────────────
 const normalizeUser = (u) => ({
     id: u.id,
-    name: u.name || '',
+    name: u.ten || u.name || '',
     email: u.email || '',
-    phone: u.phone || '',
-    role: mapRoleFromDB(u.role),
+    phone: u.sodienthoai || u.phone || '',
+    role: mapRoleFromDB(u.vaitro || u.role),
     joined: u.created_at
         ? new Date(u.created_at).toLocaleDateString('vi-VN')
         : '',
-    status: mapStatus(u.status)
+    status: mapStatus(u.trangthai || u.status)
 })
 
 // ─── FETCH ───────────────────────────
@@ -289,7 +289,7 @@ const toggleStatus = (u) => {
         onConfirm: async () => {
             const next = isLocking ? 'Bị khóa' : 'Hoạt động'
             try {
-                await api.put(`/admin/users/${u.id}`, { status: mapStatusToDB(next) })
+                await api.put(`/admin/users/${u.id}`, { trangthai: mapStatusToDB(next) })
                 u.status = next
             } catch (err) {
                 console.error('Toggle user status failed:', err)
@@ -344,13 +344,13 @@ const submitForm = async () => {
 
     try {
         const { data } = await api.post('/admin/users', {
-            name: form.value.name,
+            ten: form.value.name,
             email: form.value.email,
-            phone: form.value.phone,
-            role: mapRoleToDB(form.value.role),
-            status: mapStatusToDB(form.value.status),
-            password: form.value.password,
-            password_confirmation: form.value.password
+            sodienthoai: form.value.phone,
+            vaitro: mapRoleToDB(form.value.role),
+            trangthai: mapStatusToDB(form.value.status),
+            matkhau: form.value.password,
+            matkhau_confirmation: form.value.password
         })
         users.value.unshift(normalizeUser(data.user))
         currentPage.value = 1
@@ -381,11 +381,15 @@ const submitEdit = async () => {
     if (err) return editError.value = err
 
     const payload = {
-        ...editForm.value,
-        role: mapRoleToDB(editForm.value.role),
-        status: mapStatusToDB(editForm.value.status)
+        ten: editForm.value.name,
+        email: editForm.value.email,
+        sodienthoai: editForm.value.phone,
+        vaitro: mapRoleToDB(editForm.value.role),
+        trangthai: mapStatusToDB(editForm.value.status),
+        matkhau: editForm.value.password || undefined,
+        matkhau_confirmation: editForm.value.password || undefined,
     }
-    if (!payload.password) delete payload.password
+    if (!payload.matkhau) { delete payload.matkhau; delete payload.matkhau_confirmation }
 
     try {
         const { data } = await api.put(`/admin/users/${editingUser.value.id}`, payload)

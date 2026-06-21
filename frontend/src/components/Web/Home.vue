@@ -366,20 +366,20 @@ const newsImageUrl = (path) => {
 
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
-    eyebrow: banner.eyebrow || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.title || 'Sức Mạnh Hội Tụ',
-    highlight: banner.highlight || banner.subtitle || 'Sự Tinh Tế Chuyên Sâu',
-    desc: banner.description || banner.subtitle || '',
-    img: normalizeImageUrl(banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mobileImg: normalizeImageUrl(banner.mobile_image || banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.media_type || 'image',
-    mobileMediaType: banner.mobile_media_type || banner.media_type || 'image',
-    link: banner.link_url || '',
-    productId: banner.product_id ? String(banner.product_id) : '',
-    primary: banner.primary_label || 'Mua ngay',
-    secondary: banner.secondary_label || 'Xem bộ sưu tập',
-    productBadge: banner.product_badge || 'TRENDING NOW',
-    productFeature: banner.product_feature || 'RTX 40-Series',
+    eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
+    title: banner.tieude || 'Sức Mạnh Hội Tụ',
+    highlight: banner.noibat || banner.phude || 'Sự Tinh Tế Chuyên Sâu',
+    desc: banner.mota || banner.phude || '',
+    img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mediaType: banner.loaimedia || 'image',
+    mobileMediaType: banner.loai_media_mobile || banner.loaimedia || 'image',
+    link: banner.duongdan || '',
+    productId: banner.id_sanpham ? String(banner.id_sanpham) : '',
+    primary: banner.nhanchinh || 'Mua ngay',
+    secondary: banner.nhanphu || 'Xem bộ sưu tập',
+    productBadge: banner.huyhieu_sanpham || 'TRENDING NOW',
+    productFeature: banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
 const loadCache = () => {
@@ -1188,12 +1188,12 @@ onUnmounted(() => {
                     <!-- Featured Article -->
                     <article class="magazine-main-article" v-if="latestNews.length > 0">
                         <div class="main-art-visual">
-                            <img :src="newsImageUrl(latestNews[0].image)" :alt="latestNews[0].title" @error="handleImgError($event, newsPlaceholderImage)" />
-                            <span class="art-badge-tag">{{ latestNews[0].category || 'Nổi bật' }}</span>
+                            <img :src="newsImageUrl(latestNews[0].hinhanh)" :alt="latestNews[0].tieude" @error="handleImgError($event, newsPlaceholderImage)" />
+                            <span class="art-badge-tag">{{ latestNews[0].danhmuc || 'Nổi bật' }}</span>
                         </div>
                         <div class="main-art-info">
-                            <h3>{{ latestNews[0].title }}</h3>
-                            <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
+                            <h3>{{ latestNews[0].tieude }}</h3>
+                            <p>{{ latestNews[0].tomtat || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
                             <RouterLink :to="`/news/${latestNews[0].id}`" class="art-deep-link">Xem chi tiết bài viết ➔</RouterLink>
                         </div>
                     </article>
@@ -1202,11 +1202,11 @@ onUnmounted(() => {
                     <div class="magazine-secondary-column" v-if="latestNews.length > 1">
                         <article class="magazine-mini-article" v-for="n in latestNews.slice(1, 4)" :key="n.id">
                             <div class="mini-art-thumb">
-                                <img :src="newsImageUrl(n.image)" :alt="n.title" @error="handleImgError($event, newsPlaceholderImage)" />
+                                <img :src="newsImageUrl(n.hinhanh)" :alt="n.tieude" @error="handleImgError($event, newsPlaceholderImage)" />
                             </div>
                             <div class="mini-art-info">
-                                <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
-                                <h3>{{ n.title }}</h3>
+                                <span class="mini-tag">{{ n.danhmuc || 'Công nghệ' }}</span>
+                                <h3>{{ n.tieude }}</h3>
                                 <RouterLink :to="`/news/${n.id}`">Đọc bài viết ➔</RouterLink>
                             </div>
                         </article>

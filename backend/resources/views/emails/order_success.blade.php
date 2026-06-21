@@ -25,7 +25,7 @@
                     <tr>
                         <td style="padding:30px;">
                             <h2 style="margin-top:0;color:#333;">
-                                Xin chào {{ $user->name }} 👋
+                                Xin chào {{ $user->ten }} 👋
                             </h2>
 
                             <p style="color:#555;font-size:15px;">

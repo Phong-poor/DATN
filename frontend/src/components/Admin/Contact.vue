@@ -400,21 +400,21 @@ function getTagStyle(category) {
 }
 
 function mapItem(item) {
-  const tag = getTagStyle(item.category)
+  const tag = getTagStyle(item.danhmuc || item.category)
   return {
     id:          item.id,
-    name:        item.name,
-    initials:    getInitials(item.name),
+    name:        item.hoten,
+    initials:    getInitials(item.hoten),
     avatarBg:    '#dbeafe',
     email:       item.email,
-    phone:       item.phone || 'Chưa cập nhật',
-    preview:     (item.message || '').slice(0, 30),
-    fullContent: item.message,
+    phone:       item.sodienthoai || 'Chưa cập nhật',
+    preview:     (item.noidung || '').slice(0, 30),
+    fullContent: item.noidung,
     tags:        [tag],
     time: new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     date: new Date(item.created_at).toLocaleDateString('vi-VN'),
     // ✅ map 'replied' (DB) → 'resolved' (Vue)
-    status: item.status === 'replied' ? 'resolved' : (item.status || 'new'),
+    status: item.trangthai === 'replied' ? 'resolved' : (item.trangthai || 'new'),
   }
 }
 
@@ -465,7 +465,7 @@ async function sendEmail() {
   try {
     // ✅ Gọi đúng route: POST /api/contacts/{id}/reply
     await api.post(`/admin/lien-he/reply/${emailTarget.value.id}`, {
-      reply: emailForm.value.body
+      phanhoi: emailForm.value.body
     })
     const idx = contacts.value.findIndex(c => c.id === emailTarget.value.id)
     if (idx !== -1) contacts.value[idx].status = 'resolved'

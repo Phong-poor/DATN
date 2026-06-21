@@ -58,8 +58,8 @@ class ForgotPasswordController extends Controller
 
         $otp = random_int(100000, 999999);
 
-        $user->reset_otp = $otp;
-        $user->reset_otp_expires_at = Carbon::now()->addMinutes(5);
+        $user->otp_khoiphuc = $otp;
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(5);
         $user->save();
 
         try {
@@ -87,7 +87,7 @@ class ForgotPasswordController extends Controller
         ]);
 
         $user = User::where('email', $request->email)
-            ->where('reset_otp', $request->otp)
+            ->where('otp_khoiphuc', $request->otp)
             ->first();
 
         if (!$user) {
@@ -96,7 +96,7 @@ class ForgotPasswordController extends Controller
             ]);
         }
 
-        if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
+        if (!$user->otp_khoiphuc_hethan_luc || now()->gt($user->otp_khoiphuc_hethan_luc)) {
             throw ValidationException::withMessages([
                 'otp' => ['Mã OTP đã hết hạn.'],
             ]);
@@ -112,7 +112,7 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],
-            'password' => [
+            'matkhau' => [
                 'required',
                 'min:8',
                 'confirmed',
@@ -125,14 +125,14 @@ class ForgotPasswordController extends Controller
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
             'otp.required' => 'Vui lòng nhập mã OTP.',
-            'password.required' => 'Vui lòng nhập mật khẩu mới.',
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
-            'password.regex' => 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.',
+            'matkhau.required' => 'Vui lòng nhập mật khẩu mới.',
+            'matkhau.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'matkhau.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'matkhau.regex' => 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.',
         ]);
 
         $user = User::where('email', $request->email)
-            ->where('reset_otp', $request->otp)
+            ->where('otp_khoiphuc', $request->otp)
             ->first();
 
         if (!$user) {
@@ -141,15 +141,15 @@ class ForgotPasswordController extends Controller
             ]);
         }
 
-        if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
+        if (!$user->otp_khoiphuc_hethan_luc || now()->gt($user->otp_khoiphuc_hethan_luc)) {
             throw ValidationException::withMessages([
                 'otp' => ['Mã OTP đã hết hạn.'],
             ]);
         }
 
-        $user->password = Hash::make($request->password);
-        $user->reset_otp = null;
-        $user->reset_otp_expires_at = null;
+        $user->matkhau = Hash::make($request->matkhau);
+        $user->otp_khoiphuc = null;
+        $user->otp_khoiphuc_hethan_luc = null;
         $user->save();
 
         return response()->json([

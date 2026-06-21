@@ -9,25 +9,25 @@ class Conversation extends Model
 {
     use HasFactory;
 
-    protected $table = 'chat_conversations';
+    protected $table = 'cuoc_tro_chuyen';
 
     protected $fillable = [
-        'user_id',
-        'last_message',
-        'last_message_at',
+        'id_khachhang',
+        'tin_nhan_cuoi',
+        'tin_nhan_cuoi_luc',
     ];
 
     protected $casts = [
-        'last_message_at' => 'datetime',
+        'tin_nhan_cuoi_luc' => 'datetime',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_khachhang');
     }
 
     public function messages()
     {
-        return $this->hasMany(ChatMessage::class);
+        return $this->hasMany(ChatMessage::class, 'id_cuoc_tro_chuyen');
     }
 }
