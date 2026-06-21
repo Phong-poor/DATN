@@ -344,51 +344,56 @@ const confirmCancel = async () => {
 const showRefundModal = ref(false)
 const orderToRefund = ref(null)
 const refundReason = ref('')
-const refundProof = ref(null)
-const refundProofUrl = ref(null)
+const refundProofs = ref([]) // array of { file, url, type }
 const refundSelectedItems = ref([])
 
 const handleProofUpload = (e) => {
-  const file = e.target.files[0]
-  if (!file) return
-  if (file.size > 20 * 1024 * 1024) {
-    showToast('Kích thước file không được vượt quá 20MB')
-    return
-  }
-  refundProof.value = file
-  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-  refundProofUrl.value = URL.createObjectURL(file)
+    const files = Array.from(e.target.files)
+    files.forEach(file => {
+        if (refundProofs.value.length >= 5) return
+        refundProofs.value.push({
+            file,
+            url: URL.createObjectURL(file),
+            type: file.type
+        })
+    })
+    e.target.value = ''
+}
+
+const removeProof = (index) => {
+    URL.revokeObjectURL(refundProofs.value[index].url)
+    refundProofs.value.splice(index, 1)
 }
 
 const openRefundModal = (order) => {
     orderToRefund.value = order
     refundReason.value = ''
-    refundProof.value = null
-    if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-    refundProofUrl.value = null
+    refundProofs.value.forEach(p => URL.revokeObjectURL(p.url))
+    refundProofs.value = []
     refundSelectedItems.value = []
     showRefundModal.value = true
 }
 
 const confirmRefund = async () => {
     if (refundSelectedItems.value.length === 0) {
-        showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
+        showToast('Vui long chon it nhat mot san pham de hoan tra.')
         return
     }
     if (!refundReason.value.trim()) {
-        showToast('Vui lòng nhập lý do hoàn trả.')
+        showToast('Vui long nhap ly do hoan tra.')
         return
     }
-    if (!refundProof.value) {
-        showToast('Vui lòng tải lên ảnh/video bằng chứng.')
+    if (refundProofs.value.length === 0) {
+        showToast('Vui long tai len it nhat mot anh/video bang chung.')
         return
     }
 
-    isSubmitting.value = true
     try {
         const formData = new FormData()
         formData.append('lydo', refundReason.value)
-        formData.append('proof', refundProof.value)
+        refundProofs.value.forEach(p => {
+            formData.append('proofs[]', p.file)
+        })
         refundSelectedItems.value.forEach(id => {
             formData.append('item_ids[]', id)
         })
@@ -1388,57 +1393,137 @@ const promoStatusMap = {
     <!-- Refund Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-            <button class="close-btn" @click="showRefundModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <div style="background:#1e2d45;border-radius:20px;width:520px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;border:1px solid rgba(249,115,22,0.3);box-shadow:0 25px 60px rgba(0,0,0,0.6);overflow:hidden;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(135deg,rgba(249,115,22,0.07),transparent 60%);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+              </div>
+              <div>
+                <div style="font-size:17px;font-weight:700;color:#f1f5f9;">Yêu cầu hoàn trả</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Điền đầy đủ thông tin để gửi yêu cầu</div>
+              </div>
+            </div>
+            <button @click="showRefundModal = false" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="mb-3">
-                <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
-                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
-                            <div class="d-flex align-items-center gap-2">
-                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
-                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
-                                </div>
-                            </div>
-                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
-            <textarea v-model="refundReason" class="form-control cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
-            
-            <div class="mb-3">
-                <label class="form-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng chứng</label>
-                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
-                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
-                
-                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
-                    <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                    <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
-                </div>
+
+          <!-- Body -->
+          <div style="padding:20px 24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Chon san pham -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Chọn sản phẩm hoàn trả</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;">
+                <label
+                  v-for="item in (orderToRefund?.chi_tiets || orderToRefund?.chiTiets || [])"
+                  :key="item.id_bienthe"
+                  :for="'rp_item_' + item.id_bienthe"
+                  :style="{
+                    display:'flex', alignItems:'center', gap:'12px',
+                    padding:'12px 14px', borderRadius:'12px',
+                    background: refundSelectedItems.includes(item.id_bienthe) ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: refundSelectedItems.includes(item.id_bienthe) ? '1.5px solid rgba(249,115,22,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
+                    cursor:'pointer', transition:'all 0.18s'
+                  }"
+                >
+                  <input type="checkbox" :id="'rp_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="display:none;">
+                  <div :style="{
+                    width:'20px', height:'20px', borderRadius:'6px', flexShrink:'0',
+                    background: refundSelectedItems.includes(item.id_bienthe) ? '#f97316' : 'rgba(255,255,255,0.06)',
+                    border: refundSelectedItems.includes(item.id_bienthe) ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.2)',
+                    display:'flex', alignItems:'center', justifyContent:'center'
+                  }">
+                    <svg v-if="refundSelectedItems.includes(item.id_bienthe)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <img :src="getProductImage(item)" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">{{ getFullProductName(item) }}</div>
+                    <div style="font-size:11px;color:#64748b;">{{ item.bien_the?.ten_bienthe || 'Mặc định' }} - SL: {{ item.soluong }}</div>
+                  </div>
+                  <div v-if="refundSelectedItems.includes(item.id_bienthe)" style="width:22px;height:22px;border-radius:50%;background:rgba(249,115,22,0.2);border:1.5px solid rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting" style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-              </button>
-              <button class="btn-cancel" @click="showRefundModal = false">Quay lại</button>
+            <!-- Ly do -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Lý do hoàn trả</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+              </div>
+              <textarea
+                v-model="refundReason"
+                rows="3"
+                placeholder="Mô tả chi tiết lý do bạn muốn hoàn trả sản phẩm..."
+                style="width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
+              ></textarea>
             </div>
+
+            <!-- Upload -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Hình ảnh / Video bằng chứng</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:700;color:#f97316;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);padding:2px 9px;border-radius:99px;">{{ refundProofs.length }}/5</span>
+              </div>
+
+              <!-- Drop zone -->
+              <label v-if="refundProofs.length === 0" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed rgba(255,255,255,0.12);border-radius:14px;padding:32px 20px;cursor:pointer;background:rgba(255,255,255,0.03);">
+                <div style="width:56px;height:56px;border-radius:16px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:#cbd5e1;">Nhấn để tải ảnh / video</div>
+                <div style="font-size:12px;color:#64748b;">PNG, JPG, MP4 · Tối đa 5 file · 20MB/file</div>
+              </label>
+
+              <!-- Grid preview -->
+              <div v-if="refundProofs.length > 0" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                <div v-for="(proof, idx) in refundProofs" :key="idx" style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                  <img v-if="proof.type.startsWith('image/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+                  <video v-else-if="proof.type.startsWith('video/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                  <div v-if="proof.type.startsWith('video/')" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,0.65);padding:1px 5px;border-radius:4px;">VIDEO</div>
+                  <button @click="removeProof(idx)" type="button" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(220,38,38,0.85);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <label v-if="refundProofs.length < 5" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;border:2px dashed rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);cursor:pointer;aspect-ratio:1;color:#64748b;font-size:11px;font-weight:600;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Thêm</span>
+                </label>
+              </div>
+
+              <input id="rp-proof-input" type="file" @change="handleProofUpload" accept="image/*,video/*" multiple style="display:none;"/>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,0.07);gap:10px;">
+            <button @click="showRefundModal = false" style="display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Quay lại
+            </button>
+            <button @click="confirmRefund" style="display:flex;align-items:center;gap:8px;padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,0.35);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Gửi yêu cầu
+            </button>
           </div>
         </div>
       </div>
     </transition>
 
-    <!-- Review Modal -->
+        <!-- Review Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
         <div class="modal review-modal">
