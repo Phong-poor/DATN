@@ -352,6 +352,16 @@ onMounted(() => {
   window.addEventListener('user-updated', refreshCurrentUser);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
+  if (window.__pendingAdminChatEvent) {
+    const pending = window.__pendingAdminChatEvent;
+    window.__pendingAdminChatEvent = null;
+    if (pending === 'open-admin-chat') {
+      handleOpenAdminChat();
+    } else if (pending === 'toggle-admin-chat') {
+      handleToggleAdminChat();
+    }
+  }
+
   if (getToken() && currentUser.value) loadMessages();
 });
 
