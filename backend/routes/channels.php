@@ -16,5 +16,5 @@ Broadcast::channel('admin.chat', function ($user) {
 
 Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
     $conversation = \App\Models\Conversation::find($conversationId);
-    return $user->vaitro === 'admin' || ($conversation && (int) $user->id === (int) $conversation->user_id);
+    return $user->vaitro === 'admin' || ($conversation && (int) $user->id === (int) $conversation->id_khachhang);
 });
