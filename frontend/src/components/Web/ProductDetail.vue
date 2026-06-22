@@ -1418,14 +1418,14 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="sticky-price-glow">
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
-                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
                         <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="9" cy="21" r="1"></circle>
                             <circle cx="20" cy="21" r="1"></circle>
                             <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
                         </svg>
                     </button>
-                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0">
                         Mua ngay
                     </button>
                 </div>
