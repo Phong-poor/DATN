@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
-import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
+import { searchSuggestions, geocodeArea, geocodeWithFallback, reverseGeocodeLocation } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { normalizeImageUrl } from '@/services/urls'
@@ -137,7 +137,7 @@ const handleDetailInput = () => {
     }, 900)
 }
 
-const selectSuggestion = (item) => {
+const selectSuggestion = async (item) => {
     showSuggestions.value = false
     detailWarning.value = ''
     
@@ -150,6 +150,56 @@ const selectSuggestion = (item) => {
     mapInitialPosition.value = { lat, lng }
     addressForm.value.latitude = lat
     addressForm.value.longitude = lng
+
+    // Lấy thông tin địa chính chính xác từ tọa độ thông qua giải mã địa chỉ ngược
+    let finalProvince = item.province
+    let finalDistrict = item.district
+    let finalWard = item.ward
+
+    try {
+        const reverseData = await reverseGeocodeLocation(lat, lng)
+        if (reverseData) {
+            if (reverseData.province) finalProvince = reverseData.province
+            if (reverseData.district) finalDistrict = reverseData.district
+            if (reverseData.ward) finalWard = reverseData.ward
+        }
+    } catch (err) {
+        console.error('Lỗi giải mã ngược địa chỉ:', err)
+    }
+
+    // Tự động tìm và khớp Tỉnh/Thành phố, Phường/Xã
+    try {
+        await fetchProvinces()
+        if (finalProvince) {
+            addressForm.value.tinh_thanhpho = finalProvince
+            const provinceCode = findProvinceCodeByName(finalProvince)
+            if (provinceCode) {
+                selectedProvinceCode.value = provinceCode
+                await fetchWardsByProvince(provinceCode)
+                
+                if (finalWard) {
+                    addressForm.value.phuong_xa = finalWard
+                    const wardCode = findWardCodeByName(finalWard)
+                    if (wardCode) {
+                        selectedWardCode.value = wardCode
+                    }
+                }
+            }
+        }
+        if (finalDistrict) {
+            addressForm.value.quan_huyen = finalDistrict
+        }
+        
+        // Cập nhật lại địa chỉ đầy đủ
+        addressForm.value.full_address = [
+            addressForm.value.diachi_cuthe,
+            addressForm.value.phuong_xa,
+            addressForm.value.quan_huyen,
+            addressForm.value.tinh_thanhpho
+        ].filter(Boolean).join(', ')
+    } catch (e) {
+        console.error('Lỗi tự động khớp địa chỉ từ gợi ý:', e)
+    }
 }
 
 const defaultAddressForm = () => ({
@@ -431,6 +481,27 @@ const openEditAddressModal = async (addr) => {
 }
 
 const saveNewAddress = async () => {
+    const cleanAddressDetail = (str) => {
+        return String(str || '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/[.,-\s]+$/, '');
+    };
+
+    const isDuplicate = addresses.value.some(addr => {
+        if (editingAddressId.value && addr.id_diachi === editingAddressId.value) return false;
+        
+        return cleanAddressDetail(addr.tinh_thanhpho) === cleanAddressDetail(addressForm.value.tinh_thanhpho) &&
+               cleanAddressDetail(addr.phuong_xa) === cleanAddressDetail(addressForm.value.phuong_xa) &&
+               cleanAddressDetail(addr.diachi_cuthe) === cleanAddressDetail(addressForm.value.diachi_cuthe);
+    });
+
+    if (isDuplicate) {
+        swal.error('Trùng lặp', 'Địa chỉ này đã tồn tại trong danh sách của bạn.');
+        return;
+    }
+
     savingAddress.value = true
     try {
         const payload = {

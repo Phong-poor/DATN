@@ -1055,6 +1055,27 @@ const cancelAddr = () => {
 }
 
 const saveAddr = async () => {
+  const cleanAddressDetail = (str) => {
+    return String(str || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[.,-\s]+$/, '');
+  };
+
+  const isDuplicate = addresses.value.some((addr, index) => {
+    if (editingAddrIdx.value !== null && index === editingAddrIdx.value) return false;
+    
+    return cleanAddressDetail(addr.province) === cleanAddressDetail(addrForm.value.province) &&
+           cleanAddressDetail(addr.ward) === cleanAddressDetail(addrForm.value.ward) &&
+           cleanAddressDetail(addr.detail) === cleanAddressDetail(addrForm.value.detail);
+  });
+
+  if (isDuplicate) {
+    showToast('Địa chỉ này đã tồn tại trong danh sách của bạn.');
+    return;
+  }
+
   savingAddr.value = true
   try {
     if (editingAddrIdx.value !== null) {
