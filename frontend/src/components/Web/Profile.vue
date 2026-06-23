@@ -15,6 +15,22 @@ import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchA
 const route = useRoute()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
 
+// ── Theme State ───────────────────────────────────────────
+const isDark = ref(localStorage.getItem('theme') !== 'light')
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.add('light')
+    document.documentElement.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }
+}
+
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
     activeTab.value = newTab
@@ -503,6 +519,17 @@ const fetchWishlistCount = async () => {
 }
 
 onMounted(() => {
+  // Theme initialization
+  if (localStorage.getItem('theme') === 'light') {
+    isDark.value = false
+    document.documentElement.classList.add('light')
+    document.documentElement.classList.remove('dark')
+  } else {
+    isDark.value = true
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+  }
+
   loadUser()
   fetchOrders()
   fetchWishlistCount()
@@ -1732,6 +1759,24 @@ const promoStatusMap = {
             <span>{{ tab.label }}</span>
             <svg class="arrow" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6"/></svg>
           </button>
+          
+          <button class="side-btn theme-toggle-btn" @click="toggleTheme">
+            <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span>{{ isDark ? 'Giao diện: Tối' : 'Giao diện: Sáng' }}</span>
+          </button>
         </nav>
       </aside>
 
@@ -1804,8 +1849,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: ORDERS ════ -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: var(--text-title);">Lịch Sử Đơn Hàng</h1>
           </div>
           
           <div class="category-tabs" style="margin-bottom: 20px;">
@@ -1924,8 +1969,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: PROMOTIONS ════ -->
         <div v-else-if="activeTab === 'promotions'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: var(--text-title);">Khuyến Mãi</h1>
             <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
           </div>
 
@@ -2112,12 +2157,65 @@ const promoStatusMap = {
 
 <style scoped>
 
+/* ── DESIGN TOKENS (LIGHT/DARK VARIABLES) ── */
+.page {
+  --bg-gradient: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
+  --card-bg: rgba(17, 31, 53, 0.65);
+  --sidebar-bg: rgba(17, 31, 53, 0.6);
+  --border-color: rgba(56, 189, 248, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --text-title: #ffffff;
+  --text-main: #e2e8f0;
+  --text-sub: #94a3b8;
+  --text-muted: #64748b;
+  --input-bg: rgba(13, 27, 46, 0.5);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-focus-bg: rgba(13, 27, 46, 0.8);
+  --btn-cancel-bg: rgba(255, 255, 255, 0.03);
+  --btn-cancel-border: rgba(255, 255, 255, 0.07);
+  --btn-cancel-text: #94a3b8;
+  --stat-card-bg: rgba(255, 255, 255, 0.02);
+  --stat-card-border: rgba(255, 255, 255, 0.04);
+  --avatar-border: rgba(34, 211, 238, 0.8);
+  --avatar-shadow: none;
+}
+
+</style>
+
+<style>
+html.light .page {
+  --bg-gradient: radial-gradient(circle at 10% 20%, #f8fafc 0%, #cbd5e1 100%);
+  --card-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.12);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --text-title: #0f172a;
+  --text-main: #334155;
+  --text-sub: #475569;
+  --text-muted: #64748b;
+  --input-bg: #f8fafc;
+  --input-border: rgba(0, 0, 0, 0.12);
+  --input-focus-bg: #ffffff;
+  --btn-cancel-bg: rgba(0, 0, 0, 0.03);
+  --btn-cancel-border: rgba(0, 0, 0, 0.06);
+  --btn-cancel-text: #475569;
+  --stat-card-bg: rgba(0, 0, 0, 0.02);
+  --stat-card-border: rgba(0, 0, 0, 0.04);
+  --avatar-border: #0284c7;
+  --avatar-shadow: none;
+}
+</style>
+
+<style scoped>
+
 /* ── BASE ── */
 .page {
   min-height: 100vh;
-  background: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
+  background: var(--bg-gradient);
   padding: 30px 24px;
   font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 .container {
   max-width: 1080px;
@@ -2130,20 +2228,27 @@ const promoStatusMap = {
 
 /* ── SIDEBAR ── */
 .sidebar {
-  background: rgba(17, 31, 53, 0.6);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   position: sticky;
   top: 20px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+.sidebar:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+:global(html.light) .sidebar:hover {
+  border-color: rgba(2, 132, 199, 0.3);
 }
 .avatar-section {
   padding: 26px 20px 20px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .avatar-sidebar-container {
   width: 84px;
@@ -2156,9 +2261,9 @@ const promoStatusMap = {
   border-radius: 50%;
   overflow: hidden;
   position: relative;
-  border: 3px solid rgba(34, 211, 238, 0.8);
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.35);
-  transition: transform 0.3s ease;
+  border: 3px solid var(--avatar-border);
+  box-shadow: none;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .avatar-circle:hover {
   transform: scale(1.03);
@@ -2187,7 +2292,7 @@ const promoStatusMap = {
 .sidebar-name {
   font-size: 17px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
@@ -2205,7 +2310,7 @@ const promoStatusMap = {
 }
 .sidebar-join {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 8px 0 0;
 }
 
@@ -2217,11 +2322,11 @@ const promoStatusMap = {
   padding: 14px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .stat-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--stat-card-bg);
+  border: 1px solid var(--stat-card-border);
   border-radius: 12px;
   padding: 10px 5px;
   text-align: center;
@@ -2236,7 +2341,7 @@ const promoStatusMap = {
   background: rgba(56, 189, 248, 0.08);
   border-color: rgba(56, 189, 248, 0.25);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 .stat-card svg {
   width: 16px;
@@ -2253,11 +2358,11 @@ const promoStatusMap = {
 .stat-val {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-title);
 }
 .stat-lbl {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2279,7 +2384,7 @@ const promoStatusMap = {
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-sub);
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -2288,7 +2393,7 @@ const promoStatusMap = {
 .side-btn svg:not(.arrow) {
   width: 17px;
   height: 17px;
-  stroke: #94a3b8;
+  stroke: var(--text-sub);
   stroke-width: 2;
   fill: none;
   flex-shrink: 0;
@@ -2300,7 +2405,7 @@ const promoStatusMap = {
 .side-btn .arrow {
   width: 14px;
   height: 14px;
-  stroke: #64748b;
+  stroke: var(--text-muted);
   stroke-width: 2.5;
   fill: none;
   flex-shrink: 0;
@@ -2309,8 +2414,8 @@ const promoStatusMap = {
   transition: all 0.2s ease;
 }
 .side-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
-  color: #ffffff;
+  background: var(--btn-cancel-bg);
+  color: var(--text-title);
 }
 .side-btn:hover svg:not(.arrow) {
   stroke: #38bdf8;
@@ -2323,7 +2428,7 @@ const promoStatusMap = {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(6, 182, 212, 0.12));
   border: 1px solid rgba(56, 189, 248, 0.15);
   color: #22d3ee;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   font-weight: 700;
 }
 .side-btn.active svg:not(.arrow) {
@@ -2341,13 +2446,20 @@ const promoStatusMap = {
   min-width: 0;
 }
 .card {
-  background: rgba(17, 31, 53, 0.65);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--border-color);
   padding: 26px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+.card:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+:global(html.light) .card:hover {
+  border-color: rgba(2, 132, 199, 0.25);
 }
 .page-header-inline {
   margin-bottom: 24px;
@@ -2355,13 +2467,13 @@ const promoStatusMap = {
 .card-title {
   font-size: 20px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 6px;
   letter-spacing: -0.3px;
 }
 .card-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 .card-header {
@@ -2391,7 +2503,7 @@ const promoStatusMap = {
   background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-edit svg {
   width: 14px;
@@ -2412,8 +2524,8 @@ const promoStatusMap = {
   align-items: flex-start;
   gap: 5px;
   padding: 13px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   transition: all 0.2s ease;
 }
@@ -2421,20 +2533,24 @@ const promoStatusMap = {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(56, 189, 248, 0.15);
 }
+:global(html.light) .info-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(6, 182, 212, 0.15);
+}
 .info-lbl {
   font-size: 10.5px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 .info-val {
   font-size: 13.5px;
-  color: #e2e8f0;
+  color: var(--text-main);
   font-weight: 600;
 }
 .info-val.not-set {
-  color: #64748b;
+  color: var(--text-muted);
   font-style: italic;
   font-weight: 500;
 }
@@ -2461,35 +2577,35 @@ const promoStatusMap = {
 .form-group label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-sub);
   letter-spacing: 0.2px;
 }
 .form-group input, .form-group select {
   padding: 10px 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 11px;
   font-size: 13.5px;
-  color: #ffffff !important;
+  color: var(--text-title) !important;
   outline: none;
   transition: all 0.2s ease;
-  background: rgba(13, 27, 46, 0.5);
+  background: var(--input-bg);
 }
 .form-group input:disabled, .form-group select:disabled {
   opacity: 0.5;
-  color: #64748b !important;
+  color: var(--text-muted) !important;
   cursor: not-allowed;
 }
 .form-group select option {
-  background-color: #0f1c2e;
-  color: #e2e8f0;
+  background-color: var(--sidebar-bg);
+  color: var(--text-main);
 }
 .form-group select option:disabled {
-  color: #64748b;
+  color: var(--text-muted);
 }
 .form-group input:focus, .form-group select:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .form-group.error input {
   border-color: #ef4444;
@@ -2500,7 +2616,7 @@ const promoStatusMap = {
   gap: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-weight: 600;
   user-select: none;
 }
@@ -2515,14 +2631,14 @@ const promoStatusMap = {
   gap: 12px;
   justify-content: flex-end;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
 }
 .btn-cancel {
   padding: 9px 19px;
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  color: #94a3b8;
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--btn-cancel-border);
+  color: var(--btn-cancel-text);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -2530,8 +2646,13 @@ const promoStatusMap = {
 }
 .btn-cancel:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-title);
+  border-color: var(--border-color);
+}
+:global(html.light) .btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-title);
+  border-color: var(--border-color);
 }
 .btn-save {
   display: flex;
@@ -2547,11 +2668,11 @@ const promoStatusMap = {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+  box-shadow: none;
 }
 .btn-save:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(6, 182, 212, 0.3);
+  box-shadow: none;
 }
 .btn-save:disabled {
   opacity: 0.6;
@@ -2581,7 +2702,7 @@ const promoStatusMap = {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 0;
 }
 .cat-tab {
@@ -2590,7 +2711,7 @@ const promoStatusMap = {
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
@@ -2613,18 +2734,19 @@ const promoStatusMap = {
   line-height: 1;
   padding: 2.5px 5.5px;
   border-radius: 9999px;
-  border: 1.5px solid #111f35;
+  border: 1.5px solid var(--card-bg);
   min-width: 18px;
   text-align: center;
   margin-left: 6px;
+  transition: border-color 0.3s ease;
 }
 
 /* ── ORDER TABS (Segmented Control) ── */
 .order-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 4px;
   margin-bottom: 20px;
@@ -2637,7 +2759,7 @@ const promoStatusMap = {
   background: transparent;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-sub);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -2646,13 +2768,13 @@ const promoStatusMap = {
 }
 .order-tab:hover {
   background: rgba(255, 255, 255, 0.02);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .order-tab.active {
   background: #0284c7;
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+  box-shadow: none;
 }
 .otab-count {
   background: rgba(255, 255, 255, 0.15);
@@ -2670,9 +2792,9 @@ const promoStatusMap = {
 .table-card {
   background: transparent;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 .order-data-table {
   width: 100%;
@@ -2681,19 +2803,19 @@ const promoStatusMap = {
   font-size: 13.5px;
 }
 .order-data-table th {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   padding: 16px 20px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-color);
 }
 .order-data-table td {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
   vertical-align: middle;
 }
 .order-row {
@@ -2707,7 +2829,7 @@ const promoStatusMap = {
 }
 .order-id {
   color: #38bdf8;
-  text-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+  text-shadow: none;
 }
 .status-cell {
   display: inline-block;
@@ -2739,7 +2861,7 @@ const promoStatusMap = {
 }
 .btn-xem:hover {
   background: #0369a1;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
+  box-shadow: none;
 }
 .btn-hoan-tra {
   background: transparent;
@@ -2756,7 +2878,7 @@ const promoStatusMap = {
   background: #f97316;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+  box-shadow: none;
 }
 .btn-mua-lai {
   background: #059669;
@@ -2771,7 +2893,7 @@ const promoStatusMap = {
 }
 .btn-mua-lai:hover {
   background: #047857;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  box-shadow: none;
 }
 .btn-huy-don {
   background: transparent;
@@ -2788,13 +2910,13 @@ const promoStatusMap = {
   background: #ef4444;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  box-shadow: none;
 }
 
 /* Pagination */
 .pagination-footer {
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2803,7 +2925,7 @@ const promoStatusMap = {
 }
 .pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 .pagination {
@@ -2812,11 +2934,11 @@ const promoStatusMap = {
   gap: 10px;
 }
 .p-arrow {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--btn-cancel-border);
   padding: 6px 14px;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-weight: 600;
   cursor: pointer;
   font-size: 13px;
@@ -2824,7 +2946,7 @@ const promoStatusMap = {
 }
 .p-arrow:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .p-arrow:disabled {
   opacity: 0.4;
@@ -2841,16 +2963,16 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: #94a3b8;
+  border: 1px solid var(--btn-cancel-border);
+  background: var(--btn-cancel-bg);
+  color: var(--text-sub);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .p-num:hover:not(.active) {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .p-num.active {
   background: #0284c7;
@@ -2882,7 +3004,7 @@ const promoStatusMap = {
   justify-content: center;
   margin-bottom: 20px;
   color: #22d3ee;
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
+  box-shadow: none;
 }
 .empty-icon-custom {
   width: 36px;
@@ -2891,13 +3013,13 @@ const promoStatusMap = {
 .empty-state-title {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
 .empty-state-desc {
   font-size: 13.5px;
-  color: #64748b;
+  color: var(--text-muted);
   max-width: 340px;
   margin: 0 0 24px;
   line-height: 1.5;
@@ -2914,11 +3036,11 @@ const promoStatusMap = {
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-shop-now:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+  box-shadow: none;
 }
 
 /* ADDRESS */
@@ -2938,7 +3060,7 @@ const promoStatusMap = {
 }
 .btn-add:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-add svg {
   width: 15px;
@@ -2954,9 +3076,9 @@ const promoStatusMap = {
   margin-top: 16px;
 }
 .addr-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   border-radius: 18px;
-  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border: 1.5px solid var(--border-subtle);
   padding: 20px 24px;
   transition: all 0.25s ease;
 }
@@ -2977,7 +3099,7 @@ const promoStatusMap = {
 .addr-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-title);
 }
 .default-badge {
   font-size: 11px;
@@ -2990,7 +3112,7 @@ const promoStatusMap = {
 }
 .addr-full {
   font-size: 13.5px;
-  color: #94a3b8;
+  color: var(--text-sub);
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -2998,7 +3120,7 @@ const promoStatusMap = {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 14px;
 }
 .addr-btn {
@@ -3007,9 +3129,9 @@ const promoStatusMap = {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(13, 27, 46, 0.4);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg);
+  color: var(--text-main);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -3024,8 +3146,8 @@ const promoStatusMap = {
 }
 .addr-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-title);
+  border-color: var(--border-color);
 }
 .addr-btn-default:hover {
   background: rgba(34, 211, 238, 0.1);
@@ -3063,11 +3185,11 @@ const promoStatusMap = {
 .input-wrap input {
   width: 100%;
   padding: 11px 44px 11px 40px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 12px;
   font-size: 14px;
-  color: #ffffff;
-  background: rgba(13, 27, 46, 0.5);
+  color: var(--text-title);
+  background: var(--input-bg);
   outline: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -3075,7 +3197,7 @@ const promoStatusMap = {
 .input-wrap input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .form-group.error .input-wrap input {
   border-color: #ef4444;
@@ -3115,8 +3237,8 @@ const promoStatusMap = {
   justify-content: center;
   border: 1.5px dashed rgba(56, 189, 248, 0.25);
   border-radius: 12px;
-  background: rgba(13, 27, 46, 0.5);
-  color: #ffffff;
+  background: var(--input-bg);
+  color: var(--text-title);
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.5px;
@@ -3154,10 +3276,10 @@ const promoStatusMap = {
   width: 100%;
   margin-top: 8px;
   padding: 11px 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 12px;
-  background: rgba(13, 27, 46, 0.5);
-  color: #ffffff;
+  background: var(--input-bg);
+  color: var(--text-title);
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
@@ -3166,7 +3288,7 @@ const promoStatusMap = {
 .captcha-input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .strength-bar {
   display: flex;
@@ -3193,16 +3315,16 @@ const promoStatusMap = {
   text-align: right;
 }
 .req-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
   padding: 20px;
   margin-bottom: 16px;
 }
 .req-title {
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin: 0 0 14px;
@@ -3220,14 +3342,14 @@ const promoStatusMap = {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-sub);
   font-weight: 600;
   transition: color 0.2s ease;
 }
 .req-list li svg {
   width: 16px;
   height: 16px;
-  stroke: #64748b;
+  stroke: var(--text-muted);
   stroke-width: 2.5;
   fill: none;
   flex-shrink: 0;
@@ -3270,7 +3392,7 @@ const promoStatusMap = {
 }
 .tip-list li {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-sub);
   padding-left: 12px;
   position: relative;
   font-weight: 500;
@@ -3328,14 +3450,15 @@ const promoStatusMap = {
   -webkit-backdrop-filter: blur(8px);
 }
 .modal {
-  background: #0f1c30;
-  border: 1px solid rgba(56, 189, 248, 0.15);
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
   border-radius: 24px;
   width: 100%;
   max-width: 520px;
   max-height: 88vh;
   overflow-y: auto;
+  transition: background 0.3s ease;
 }
 .modal-head {
   display: flex;
@@ -3346,7 +3469,7 @@ const promoStatusMap = {
 .modal-title {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 4px;
   letter-spacing: -0.2px;
 }
@@ -3426,7 +3549,7 @@ const promoStatusMap = {
   transition: all 0.2s ease;
 }
 .btn-modal-mua:hover {
-  box-shadow: 0 0 15px rgba(5, 150, 105, 0.35);
+  box-shadow: none;
 }
 .btn-modal-hoantra {
   background: transparent;
@@ -3443,7 +3566,7 @@ const promoStatusMap = {
   background: #f97316;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 15px rgba(249, 115, 22, 0.35);
+  box-shadow: none;
 }
 .region-picker-row {
   display: grid;
@@ -3495,7 +3618,7 @@ const promoStatusMap = {
 .tl-item.done .tl-dot {
   background: #38bdf8;
   border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  box-shadow: none;
 }
 .tl-dot svg {
   width: 12px;
@@ -3604,7 +3727,7 @@ const promoStatusMap = {
 .btn-modal-huy:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+  box-shadow: none;
 }
 .modal-total-wrap {
   text-align: right;
@@ -3623,7 +3746,7 @@ const promoStatusMap = {
   font-size: 20px;
   font-weight: 800;
   color: #38bdf8;
-  text-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  text-shadow: none;
 }
 
 /* TOAST STYLE */
@@ -3642,7 +3765,7 @@ const promoStatusMap = {
   gap: 12px;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 .toast svg {
   width: 18px;
@@ -3729,7 +3852,7 @@ const promoStatusMap = {
 .star-btn.filled {
   color: #fbbf24;
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+  filter: none;
 }
 .rating-text {
   margin-left: 12px;
@@ -3863,10 +3986,10 @@ const promoStatusMap = {
 
 <style scoped>
 
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid var(--border-color); padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #38bdf8; }
+.cat-tab.active { color: #22d3ee; border-bottom-color: #22d3ee; }
 
 .empty-msg {
   display: flex;
@@ -3874,7 +3997,7 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 15px;
 }
 .empty-icon {
