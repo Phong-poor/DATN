@@ -28,6 +28,13 @@ class DiaChiController extends Controller
         $validated['quan_huyen'] = $validated['quan_huyen'] ?? '';
         $userId = $request->user()->id;
 
+        if ($this->isDuplicateAddress($userId, $validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Địa chỉ này đã tồn tại trong danh sách của bạn.',
+            ], 422);
+        }
+
         try {
             $address = DB::transaction(function () use ($validated, $userId) {
                 $isFirstAddress = ! DiaChi::where('id_user', $userId)->exists();
@@ -65,6 +72,13 @@ class DiaChiController extends Controller
 
         if (! $address) {
             return $this->forbiddenResponse();
+        }
+
+        if ($this->isDuplicateAddress($address->id_user, $validated, $id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Địa chỉ này đã tồn tại trong danh sách của bạn.',
+            ], 422);
         }
 
         try {
@@ -190,5 +204,34 @@ class DiaChiController extends Controller
             'success' => false,
             'message' => 'Bạn không có quyền thực hiện thao tác này',
         ], 403);
+    }
+
+    private function isDuplicateAddress($userId, array $validated, $excludeId = null): bool
+    {
+        $query = DiaChi::where('id_user', $userId)
+            ->where('tinh_thanhpho', $validated['tinh_thanhpho'])
+            ->where('phuong_xa', $validated['phuong_xa']);
+
+        if ($excludeId) {
+            $query->where('id_diachi', '!=', $excludeId);
+        }
+
+        $existingAddresses = $query->get();
+
+        $normalize = function ($str) {
+            $str = mb_strtolower(trim($str), 'UTF-8');
+            $str = preg_replace('/\s+/', ' ', $str);
+            return rtrim($str, '.,- ');
+        };
+
+        $newDetailNormalized = $normalize($validated['diachi_cuthe']);
+
+        foreach ($existingAddresses as $address) {
+            if ($normalize($address->diachi_cuthe) === $newDetailNormalized) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

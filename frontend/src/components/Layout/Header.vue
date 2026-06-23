@@ -1013,56 +1013,74 @@ const warmProductsPageNow = () => {
 /* MEGA DROPDOWN */
 .mega-dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(24px) saturate(145%);
-  -webkit-backdrop-filter: blur(24px) saturate(145%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(8, 17, 30, 0.96);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 
+    0 24px 50px rgba(0, 0, 0, 0.55), 
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 9999;
-  width: 585px;
+  width: 860px;
   overflow: hidden;
-  padding: 7px 8px;
+  padding: 24px 28px;
 }
-/* Bridge trong suốt lấp khoảng trống 10px giữa button và dropdown */
+/* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
   content: '';
   position: absolute;
-  top: -14px;       /* cao hơn khoảng gap 10px để chắc chắn không hở */
+  top: -16px;
   left: 0;
   right: 0;
-  height: 14px;
+  height: 16px;
   background: transparent;
 }
 
 /* BODY LAYOUT - 4 COLUMNS WITH DIVIDERS */
 .mega-body {
   display: grid;
-  grid-template-columns: 0.9fr 0.9fr 0.9fr 1.18fr;
-  gap: 0;
+  grid-template-columns: 1fr 1fr 1fr 1.35fr;
+  gap: 24px;
   background: transparent;
 }
 
 .mega-col {
-  padding: 0 5px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  padding: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  position: relative;
+}
+
+/* Vertical dividers using pseudo-elements for precision styling */
+.mega-col::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  right: -12px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mega-body .mega-col:nth-child(3)::after {
+  display: none; /* Hide before featured panel */
 }
 
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #ffffff;
-  margin-bottom: 5px;
-  padding-left: 6px;
+  color: #94a3b8;
+  margin-bottom: 14px;
+  padding-left: 8px;
 }
 
 /* COMPACT CLEAN LINKS */
@@ -1070,49 +1088,52 @@ const warmProductsPageNow = () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .mega-link {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
-  padding: 3px 5px;
+  gap: 8px;
+  padding: 8px 12px;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mega-link-text {
-  font-size: 10px;
-  font-weight: 600;
-  color: #ffffff;
-  transition: color 0.15s ease;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #cbd5e1;
+  transition: all 0.2s ease;
 }
 .mega-link:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--accent-bg);
+  transform: translateX(4px);
 }
 .mega-link:hover .mega-link-text {
-  color: #ffffff;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* ITEM BADGES */
 .mega-item-badge {
-  font-size: 7.5px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 1px 4.5px;
-  border-radius: 4px;
-  letter-spacing: 0.2px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
   flex-shrink: 0;
-  margin-left: 0;
+  margin-left: 2px;
+  text-transform: uppercase;
 }
-.mega-item-badge.hot  { background: rgba(239,68,68,0.15); color: #f87171; }
-.mega-item-badge.new  { background: rgba(34,197,94,0.15); color: #4ade80; }
-.mega-item-badge.pro  { background: rgba(139,92,246,0.15); color: #a78bfa; }
-.mega-item-badge.sale { background: rgba(249,115,22,0.15); color: #fb923c; }
+.mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
+.mega-item-badge.new  { background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
+.mega-item-badge.pro  { background: rgba(139,92,246,0.18); color: #a78bfa; border: 1px solid rgba(139,92,246,0.15); }
+.mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
 
 .mega-featured-panel {
-  padding: 0 0 0 7px;
+  padding: 0;
   display: flex;
   flex-direction: column;
 }
@@ -1121,71 +1142,81 @@ const warmProductsPageNow = () => {
 }
 
 .mfp-card {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 9px;
-  padding: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 .mfp-card:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.13);
-  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2);
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 15px var(--accent-bg);
 }
 
 .mfp-img-box {
   position: relative;
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  height: 50px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  overflow: hidden;
 }
 .mfp-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.25s ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mfp-card:hover .mfp-img {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .mfp-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 7px;
+  top: 8px;
+  right: 8px;
+  font-size: 8.5px;
   font-weight: 800;
   color: white;
-  padding: 1.5px 4.5px;
-  border-radius: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 .mfp-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .mfp-name {
-  font-size: 9.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.3;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+.mfp-card:hover .mfp-name {
+  color: var(--accent);
 }
 
 .mfp-price {
   font-family: 'Outfit', sans-serif;
-  font-size: 9.5px;
+  font-size: 13.5px;
   font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .mfp-btn {
@@ -1193,19 +1224,20 @@ const warmProductsPageNow = () => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 3.5px;
+  padding: 8px 12px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   color: white;
   font-family: 'Outfit', sans-serif;
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s ease;
-  margin-top: 1px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 4px;
 }
 .mfp-btn:hover {
-  opacity: 0.9;
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px var(--accent-bg);
 }
 
 /* MEGA DROPDOWN TRANSITIONS */
