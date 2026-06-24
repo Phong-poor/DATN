@@ -144,6 +144,29 @@ const getNextStatus = (current) => {
     return current
 }
 
+const isCOD = (order) => {
+    return String(order?.raw?.PTTT || '').toUpperCase().includes('COD')
+}
+
+const showPayButton = (order) => {
+    if (!order || !order.raw) return false
+    if (pageMode.value !== 'orders') return false
+    if (order.raw.trang_thai_thanh_toan === 'paid') return false
+    if (isCOD(order)) {
+        return order.status === 'done'
+    }
+    return true
+}
+
+const showNextStatusButton = (order) => {
+    if (!order) return false
+    if (terminalStatuses.includes(order.status) || order.status === 'refund_pending') return false
+    if (!isCOD(order)) {
+        return order.raw?.trang_thai_thanh_toan === 'paid'
+    }
+    return true
+}
+
 const orders = ref([])
 const isLoading = ref(false)
 
@@ -650,7 +673,7 @@ async function exportExcel() {
                                 </button>
                                 
                                 <!-- Nút xác nhận thanh toán -->
-                                <button v-if="pageMode === 'orders' && o.raw.trang_thai_thanh_toan !== 'paid'" 
+                                <button v-if="showPayButton(o)" 
                                         class="act-btn" style="color: #16a34a;"
                                         @click="confirmMarkAsPaid(o.id_backend)" 
                                         title="Đổi thành Đã thanh toán">
@@ -660,7 +683,7 @@ async function exportExcel() {
                                     </svg>
                                 </button>
 
-                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
+                                <button v-if="showNextStatusButton(o)" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
@@ -774,7 +797,7 @@ async function exportExcel() {
                                         <span class="status-pill" :style="getPaymentStatusStyle(viewOrder.raw.trang_thai_thanh_toan)">
                                             {{ getPaymentStatusLabel(viewOrder.raw.trang_thai_thanh_toan) }}
                                         </span>
-                                        <button v-if="viewOrder.raw.trang_thai_thanh_toan !== 'paid'"
+                                        <button v-if="showPayButton(viewOrder)"
                                                 class="btn-mark-paid"
                                                 @click="confirmMarkAsPaidInModal(viewOrder)">
                                             Xác nhận Đã thanh toán
