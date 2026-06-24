@@ -589,14 +589,14 @@ async function exportExcel() {
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
                         <th>TỔNG TIỀN</th>
-                        <th>THANH TOÁN</th>
+                        <th v-if="pageMode === 'orders'">THANH TOÁN</th>
                         <th>GIAO HÀNG</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td :colspan="pageMode === 'orders' ? 8 : 7" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
 
@@ -626,7 +626,7 @@ async function exportExcel() {
 
                         <td><b class="total">{{ o.total }}</b></td>
 
-                        <td>
+                        <td v-if="pageMode === 'orders'">
                             <div class="payment-cell">
                                 <span class="pttt-badge" :style="getPtttStyle(o.raw.PTTT)">{{ o.raw.PTTT }}</span>
                                 <span class="payment-status-pill" :style="getPaymentStatusStyle(o.raw.trang_thai_thanh_toan)">
@@ -648,9 +648,9 @@ async function exportExcel() {
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
                                 </button>
-
+                                
                                 <!-- Nút xác nhận thanh toán -->
-                                <button v-if="o.raw.trang_thai_thanh_toan !== 'paid'" 
+                                <button v-if="pageMode === 'orders' && o.raw.trang_thai_thanh_toan !== 'paid'" 
                                         class="act-btn" style="color: #16a34a;"
                                         @click="confirmMarkAsPaid(o.id_backend)" 
                                         title="Đổi thành Đã thanh toán">
@@ -659,7 +659,7 @@ async function exportExcel() {
                                         <polyline points="22 4 12 14.01 9 11.01"/>
                                     </svg>
                                 </button>
-                                
+
                                 <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
