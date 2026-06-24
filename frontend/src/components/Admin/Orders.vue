@@ -400,7 +400,7 @@ const {
     pageItems: paginatedOrders,
     getId: item => item.id_backend,
     endpoint: id => `/admin/orders/${id}`,
-    entityLabel: 'don hang',
+    entityLabel: 'đơn hàng',
     fetchItems: fetchOrders,
 })
 
@@ -566,7 +566,7 @@ async function exportExcel() {
         <BulkDeleteToolbar
             :selected-count="selectedIds.length"
             :total-count="filteredOrders.length"
-            label="don hang"
+            label="đơn hàng"
             :loading="isBulkDeleting"
             @clear="clearSelection"
             @delete-selected="removeSelected"
