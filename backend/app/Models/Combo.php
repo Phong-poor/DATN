@@ -28,6 +28,6 @@ class Combo extends Model
     public function triggeringVariants()
     {
         return $this->belongsToMany(BienThe::class, 'bienthe_combo_offers', 'id_combo', 'id_bienthe')
-            ->withPivot(['loai_uudai', 'giakhuyenmai_override', 'mota_uudai', 'trangthai']);
+            ->withPivot(['loai_uudai', 'giakhuyenmai_override', 'mota_uudai', 'trangthai', 'ngay_het_han', 'gioi_han_soluong', 'da_su_dung']);
     }
 }
