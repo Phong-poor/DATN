@@ -1637,10 +1637,14 @@ const removeRow = (globalIndex) => {
 
 // ===== BASE / RULE =====
 const formatCurrency = (val) => {
-  if (!val) return ''
-  const num = String(val).replace(/\D/g, '')
-  if (!num) return ''
-  return Number(num).toLocaleString('vi-VN')
+  if (val === undefined || val === null || val === '') return ''
+  const numVal = Number(val)
+  if (isNaN(numVal)) {
+    const num = String(val).replace(/\D/g, '')
+    if (!num) return ''
+    return Number(num).toLocaleString('vi-VN')
+  }
+  return Math.round(numVal).toLocaleString('vi-VN')
 }
 
 const parseCurrency = (val) => {

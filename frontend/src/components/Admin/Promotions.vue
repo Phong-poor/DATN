@@ -592,10 +592,14 @@ function formatDate(d) {
 }
 
 function formatVND(val) {
-  if (!val && val !== 0) return '';
-  const numStr = String(val).replace(/\D/g, '');
-  if (!numStr) return '';
-  return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+  if (val === undefined || val === null || val === '') return '';
+  const numVal = Number(val);
+  if (isNaN(numVal)) {
+    const numStr = String(val).replace(/\D/g, '');
+    if (!numStr) return '';
+    return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+  }
+  return new Intl.NumberFormat('vi-VN').format(Math.round(numVal));
 }
 
 function parseVND(val) {
