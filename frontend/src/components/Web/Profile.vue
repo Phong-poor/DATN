@@ -263,6 +263,7 @@ const fetchOrders = async () => {
           tongtien: order.tongtien,
           lydo: order.lydo,
           minh_chung_hoan_tien: order.minh_chung_hoan_tien,
+          chi_tiets: order.chi_tiets,
           items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
             
@@ -293,6 +294,7 @@ const fetchOrders = async () => {
             }
 
             return {
+              id: item.id,
               id_bienthe: item.id_bienthe,
               is_reviewed: item.is_reviewed,
               hoantien: item.hoantien,
@@ -516,6 +518,28 @@ const fetchWishlistCount = async () => {
   } catch (error) {
     console.error('Lỗi tải danh sách yêu thích:', error)
   }
+}
+
+const getFullProductName = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    let name = sp.tenSP || 'Sản phẩm'
+    let specs = []
+    try {
+        const tskt = typeof sp.thong_so_ky_thuat === 'string' 
+            ? JSON.parse(sp.thong_so_ky_thuat || '[]') 
+            : (sp.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+            specs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    
+    return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
+const getProductImage = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    const variant = item.bien_the || item.bienThe || null
+    return productImageUrl(sp, variant, 'https://via.placeholder.com/200')
 }
 
 onMounted(() => {
@@ -1515,31 +1539,31 @@ const promoStatusMap = {
               <div style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;">
                 <label
                   v-for="item in (orderToRefund?.chi_tiets || orderToRefund?.chiTiets || [])"
-                  :key="item.id_bienthe"
-                  :for="'rp_item_' + item.id_bienthe"
+                  :key="item.id"
+                  :for="'rp_item_' + item.id"
                   :style="{
                     display:'flex', alignItems:'center', gap:'12px',
                     padding:'12px 14px', borderRadius:'12px',
-                    background: refundSelectedItems.includes(item.id_bienthe) ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)',
-                    border: refundSelectedItems.includes(item.id_bienthe) ? '1.5px solid rgba(249,115,22,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
+                    background: refundSelectedItems.includes(item.id) ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: refundSelectedItems.includes(item.id) ? '1.5px solid rgba(249,115,22,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
                     cursor:'pointer', transition:'all 0.18s'
                   }"
                 >
-                  <input type="checkbox" :id="'rp_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="display:none;">
+                  <input type="checkbox" :id="'rp_item_' + item.id" :value="item.id" v-model="refundSelectedItems" style="display:none;">
                   <div :style="{
                     width:'20px', height:'20px', borderRadius:'6px', flexShrink:'0',
-                    background: refundSelectedItems.includes(item.id_bienthe) ? '#f97316' : 'rgba(255,255,255,0.06)',
-                    border: refundSelectedItems.includes(item.id_bienthe) ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.2)',
+                    background: refundSelectedItems.includes(item.id) ? '#f97316' : 'rgba(255,255,255,0.06)',
+                    border: refundSelectedItems.includes(item.id) ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.2)',
                     display:'flex', alignItems:'center', justifyContent:'center'
                   }">
-                    <svg v-if="refundSelectedItems.includes(item.id_bienthe)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg v-if="refundSelectedItems.includes(item.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                   <img :src="getProductImage(item)" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
                   <div style="flex:1;min-width:0;">
                     <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">{{ getFullProductName(item) }}</div>
                     <div style="font-size:11px;color:#64748b;">{{ item.bien_the?.ten_bienthe || 'Mặc định' }} - SL: {{ item.soluong }}</div>
                   </div>
-                  <div v-if="refundSelectedItems.includes(item.id_bienthe)" style="width:22px;height:22px;border-radius:50%;background:rgba(249,115,22,0.2);border:1.5px solid rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div v-if="refundSelectedItems.includes(item.id)" style="width:22px;height:22px;border-radius:50%;background:rgba(249,115,22,0.2);border:1.5px solid rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
                 </label>
