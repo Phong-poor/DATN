@@ -57,7 +57,7 @@
                 <div :class="['submenu-item', isActive && 'active']">
                   <span class="bullet-dot"></span>
                   <span>{{ sub.label }}</span>
-                  <span v-if="sub.badge" :class="['submenu-badge', `badge-${sub.badge.toLowerCase()}`]">
+                  <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
                     {{ sub.badge }}
                   </span>
                 </div>
@@ -74,7 +74,7 @@
         </div>
         <div class="user-info">
           <p class="user-name">{{ userName }}</p>
-          <p class="user-role">Quản trị viên</p>
+          <p class="user-role">{{ userRoleName }}</p>
         </div>
         <button class="sidebar-logout-btn" type="button" @click="handleLogout" aria-label="Đăng xuất">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -112,22 +112,7 @@
               </div>
             </div>
 
-            <div class="topbar-popover" ref="appsMenuRef">
-              <button class="topbar-icon-button" type="button" aria-label="Ứng dụng" @click="toggleAppsMenu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></svg>
-              </button>
-              <div v-if="appsMenuOpen" class="topbar-dropdown apps-dropdown">
-                <button
-                  v-for="app in quickApps"
-                  :key="app.path"
-                  class="dropdown-item compact"
-                  type="button"
-                  @click="openQuickApp(app.path)"
-                >
-                  {{ app.label }}
-                </button>
-              </div>
-            </div>
+
 
             <AdminChatManager />
 
@@ -167,7 +152,7 @@
               </div>
               <div class="user-meta">
                 <span class="user-name">{{ userName }}</span>
-                <span class="user-role">Administrator</span>
+                <span class="user-role">{{ userRoleName }}</span>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
             </button>
@@ -183,10 +168,8 @@
                 </div>
               </div>
               <div class="user-dropdown-list">
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/profile')">My Profile</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/settings')">Settings</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/activity-log')">Activity Log</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/billing')">Billing</button>
+                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/profile')">Hồ sơ cá nhân</button>
+                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/settings')">Cài đặt</button>
               </div>
               <button class="dropdown-item sign-out logout-item" type="button" @click="handleLogout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -194,7 +177,7 @@
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
-                <span>Sign Out</span>
+                <span>Đăng xuất</span>
               </button>
             </div>
           </div>
@@ -233,9 +216,9 @@ import {
   MessageSquare,
   Handshake,
   Mail,
-  Activity,
   Gift,
   ChevronDown,
+  Activity,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -245,14 +228,12 @@ const pageTitle = computed(() => route.meta.title || 'Bảng quản trị')
 const user = ref(getUser() || {})
 const userMenuOpen = ref(false)
 const langMenuOpen = ref(false)
-const appsMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
 const adminIntroActive = ref(false)
 let adminIntroTimer = null
 
 const userMenuRef = ref(null)
 const langMenuRef = ref(null)
-const appsMenuRef = ref(null)
 const notifyMenuRef = ref(null)
 
 const currentLocale = ref(getLocale())
@@ -272,56 +253,80 @@ const appearance = ref({
 const menuConfig = [
   { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   {
-    label: 'Sản phẩm',
+    label: 'Thủ kho',
     icon: Package,
     isDropdown: true,
     children: [
-      { path: '/admin/products', label: 'Sản phẩm', badge: 'CORE' },
-      { path: '/admin/categories', label: 'Danh mục', badge: 'CONFIG' },
-      { path: '/admin/brands', label: 'Thương hiệu', badge: 'CONFIG' },
-      { path: '/admin/variants', label: 'Màu & biến thể', badge: 'CONFIG' },
+      { path: '/admin/products', label: 'Sản phẩm', badge: 'THỦ KHO' },
+      { path: '/admin/categories', label: 'Danh mục', badge: 'THỦ KHO' },
+      { path: '/admin/brands', label: 'Thương hiệu', badge: 'THỦ KHO' },
+      { path: '/admin/variants', label: 'Màu & biến thể', badge: 'THỦ KHO' },
     ]
   },
   {
-    label: 'Bán hàng',
+    label: 'Đơn hàng',
     icon: ShoppingCart,
     isDropdown: true,
     children: [
-      { path: '/admin/orders', label: 'Đơn hàng', badge: 'CORE' },
-      { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'SALES' },
-      { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'SALES' },
-      { path: '/admin/combos', label: 'Quản lý Combo', badge: 'SALES' },
-      { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'SALES' },
-      { path: '/admin/affiliates', label: 'Affiliate', badge: 'MARKETING' },
+      { path: '/admin/orders', label: 'Đơn hàng', badge: 'ĐƠN HÀNG' }
     ]
   },
   {
-    label: 'Nội dung',
+    label: 'Marketing',
+    icon: TicketPercent,
+    isDropdown: true,
+    children: [
+      { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'MARKETING' },
+      { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'MARKETING' },
+      { path: '/admin/combos', label: 'Quản lý Combo', badge: 'MARKETING' },
+      { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'MARKETING' },
+    ]
+  },
+  {
+    label: 'Tiếp thị',
+    icon: Handshake,
+    isDropdown: true,
+    children: [
+      { path: '/admin/affiliates', label: 'Affiliate', badge: 'TIẾP THỊ' },
+    ]
+  },
+  {
+    label: 'Biên tập viên',
     icon: Newspaper,
     isDropdown: true,
     children: [
-      { path: '/admin/news', label: 'Bài viết', badge: 'CONTENT' },
-      { path: '/admin/reviews', label: 'Bình luận', badge: 'CONTENT' },
+      { path: '/admin/news', label: 'Bài viết', badge: 'BIÊN TẬP' },
+      { path: '/admin/reviews', label: 'Bình luận', badge: 'BIÊN TẬP' },
+      { path: '/admin/banners', label: 'Banner', badge: 'BIÊN TẬP' },
     ]
   },
   {
-    label: 'Người dùng',
+    label: 'Tư vấn viên',
+    icon: Mail,
+    isDropdown: true,
+    children: [
+      { path: '/admin/contacts', label: 'Liên hệ', badge: 'TƯ VẤN' },
+    ]
+  },
+  {
+    label: 'Tài khoản',
     icon: Users,
     isDropdown: true,
     children: [
-      { path: '/admin/users', label: 'User', badge: 'ADMIN' },
-      { path: '/admin/contacts', label: 'Liên hệ', badge: 'SUPPORT' },
+      { path: '/admin/users', label: 'Người dùng', badge: 'ADMIN' },
     ]
   },
-  { path: '/admin/banners', label: 'Banner', icon: Image },
   { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
 const dropdownStates = ref({
-  'Sản phẩm': false,
-  'Bán hàng': false,
-  'Nội dung': false,
-  'Người dùng': false,
+  'Thủ kho': false,
+  'Đơn hàng': false,
+  'Marketing': false,
+  'Tiếp thị': false,
+  'Biên tập viên': false,
+  'Tư vấn viên': false,
+  'Tài khoản': false,
 })
 
 function toggleDropdown(label) {
@@ -352,15 +357,7 @@ watch(
   { immediate: true }
 )
 
-const quickApps = [
-  { label: 'Tổng quan', path: '/admin' },
-  { label: 'Sản phẩm', path: '/admin/products' },
-  { label: 'Đơn hàng', path: '/admin/orders' },
-  { label: 'Khuyến mãi', path: '/admin/promotions' },
-  { label: 'Banner', path: '/admin/banners' },
-  { label: 'User', path: '/admin/users' },
-  { label: 'Settings', path: '/admin/settings' },
-]
+
 
 const notifications = ref([])
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
@@ -380,8 +377,23 @@ const adminVars = computed(() => {
   }
 })
 
-const userName = computed(() => 'Predator Group')
+const userName = computed(() => user.value?.ten || user.value?.name || 'Predator Staff')
 const userEmail = computed(() => user.value?.email || user.value?.username || '')
+const userRoleName = computed(() => {
+  const role = user.value?.vaitro || 'admin'
+  const mapping = {
+    admin: 'Admin',
+    user: 'Khách hàng',
+    inventory: 'Thủ kho',
+    order_manager: 'Xử lý đơn hàng',
+    marketing: 'Marketing',
+    affiliate_manager: 'Quản lý Affiliate',
+    editor: 'Biên tập viên',
+    support: 'Tư vấn viên',
+    accountant: 'Kế toán'
+  }
+  return mapping[role.toLowerCase()] || 'Nhân viên'
+})
 const userInitials = computed(() =>
   userName.value
     .split(' ')
@@ -402,7 +414,6 @@ function refreshUser() {
 
 function closeTopMenus() {
   langMenuOpen.value = false
-  appsMenuOpen.value = false
   notifyMenuOpen.value = false
 }
 
@@ -416,11 +427,7 @@ function toggleLangMenu() {
   langMenuOpen.value = next
 }
 
-function toggleAppsMenu() {
-  const next = !appsMenuOpen.value
-  closeTopMenus()
-  appsMenuOpen.value = next
-}
+
 
 function toggleNotifyMenu() {
   const next = !notifyMenuOpen.value
@@ -434,10 +441,7 @@ function setLocale(locale) {
   langMenuOpen.value = false
 }
 
-function openQuickApp(path) {
-  appsMenuOpen.value = false
-  router.push(path)
-}
+
 
 function markAllNotificationsRead() {
   notifications.value = notifications.value.map((n) => ({ ...n, read: true }))
@@ -556,7 +560,6 @@ function handleClickOutside(event) {
   const target = event.target
   if (userMenuOpen.value && !isInside(userMenuRef, target)) userMenuOpen.value = false
   if (langMenuOpen.value && !isInside(langMenuRef, target)) langMenuOpen.value = false
-  if (appsMenuOpen.value && !isInside(appsMenuRef, target)) appsMenuOpen.value = false
   if (notifyMenuOpen.value && !isInside(notifyMenuRef, target)) notifyMenuOpen.value = false
 }
 
@@ -723,6 +726,7 @@ a { text-decoration: none; }
   gap: 10px;
   min-height: 36px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .submenu-item:hover {
   background: rgba(255, 255, 255, 0.03);
@@ -755,33 +759,33 @@ a { text-decoration: none; }
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.badge-core {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-}
-.badge-sales {
-  background: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
-}
-.badge-config {
-  background: rgba(59, 130, 246, 0.1);
+.badge-thủ-kho {
+  background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
 }
-.badge-content {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
-}
-.badge-admin {
-  background: rgba(234, 179, 8, 0.1);
-  color: #facc15;
-}
-.badge-support {
-  background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
+.badge-đơn-hàng {
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
 }
 .badge-marketing {
-  background: rgba(236, 72, 153, 0.1);
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.badge-tiếp-thị {
+  background: rgba(236, 72, 153, 0.15);
   color: #f472b6;
+}
+.badge-biên-tập {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+.badge-tư-vấn {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+.badge-admin {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
 }
 .sidebar-user { 
     margin-top: auto; 
@@ -886,7 +890,7 @@ a { text-decoration: none; }
     z-index: 20; 
 }
 .compact-menu { width: 150px; }
-.apps-dropdown { width: 190px; display: grid; gap: 6px; }
+
 .notify-menu { width: 320px; }
 .notify-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 4px 4px 8px; border-bottom: 1px solid #edf2f7; }
 .notify-mark-read { border: 0; background: transparent; color: #4f46e5; font-size: 12px; cursor: pointer; }

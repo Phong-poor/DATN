@@ -130,7 +130,10 @@ const safeRedirectPath = (path) => {
   return path
 }
 
-const isAdminUser = (user) => String(user?.vaitro || '').toLowerCase() === 'admin'
+const isAdminUser = (user) => {
+  const role = String(user?.vaitro || '').toLowerCase()
+  return role !== '' && role !== 'user'
+}
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 

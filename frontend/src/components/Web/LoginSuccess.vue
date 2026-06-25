@@ -16,7 +16,7 @@ const safeRedirectPath = (path) => {
 }
 
 const redirectAfterSocialLogin = async (user, token) => {
-  if (user?.vaitro === 'admin') {
+  if (user?.vaitro && user.vaitro !== 'user') {
     sessionStorage.setItem('skip_next_route_loader', '1')
     sessionStorage.setItem('admin_intro_animation', '1')
     await wait(260)

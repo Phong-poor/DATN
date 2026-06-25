@@ -55,7 +55,7 @@ class ChatController extends Controller
         $conversation = Conversation::findOrFail($conversationId);
         
         // Kiểm tra quyền (Nếu là user thì phải là conversation của họ)
-        if (Auth::user()->vaitro !== 'admin' && $conversation->id_khachhang !== Auth::id()) {
+        if (Auth::user()->vaitro === 'user' && $conversation->id_khachhang !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -115,7 +115,7 @@ class ChatController extends Controller
         } else {
             $conversation = Conversation::find($conversationId);
             if (!$conversation) {
-                if ($user->vaitro === 'admin') {
+                if ($user->vaitro !== 'user') {
                     abort(404);
                 }
                 $conversation = Conversation::firstOrCreate(['id_khachhang' => $user->id]);
@@ -123,7 +123,7 @@ class ChatController extends Controller
             }
         }
 
-        if ($user->vaitro !== 'admin' && $conversation->id_khachhang !== $user->id) {
+        if ($user->vaitro === 'user' && $conversation->id_khachhang !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -292,7 +292,7 @@ class ChatController extends Controller
         }
 
         $conversation = $message->conversation;
-        if ($user->vaitro !== 'admin' && (int) $conversation->id_khachhang !== (int) $user->id) {
+        if ($user->vaitro === 'user' && (int) $conversation->id_khachhang !== (int) $user->id) {
             abort(403);
         }
     }
