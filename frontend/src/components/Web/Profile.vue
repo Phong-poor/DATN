@@ -1417,22 +1417,65 @@ const promoStatusMap = {
     <!-- Cancellation Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Lý do hủy đơn</h2>
-            <button class="close-btn" @click="showCancelModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <div style="background:#1e2d45;border-radius:20px;width:520px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;border:1px solid rgba(220,38,38,0.3);box-shadow:0 25px 60px rgba(0,0,0,0.6);overflow:hidden;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(135deg,rgba(220,38,38,0.07),transparent 60%);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+              </div>
+              <div>
+                <div style="font-size:17px;font-weight:700;color:#f1f5f9;">Hủy đơn hàng</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Thao tác này không thể hoàn tác</div>
+              </div>
+            </div>
+            <button @click="showCancelModal = false" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="modal-body">
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
-              </button>
-              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+
+          <!-- Body -->
+          <div style="padding:20px 24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Warning -->
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div style="font-size:13px;color:#fca5a5;line-height:1.5;">Vui lòng cho chúng tôi biết lý do bạn muốn hủy đơn hàng này. Sau khi xác nhận, đơn hàng sẽ bị hủy và không thể khôi phục.</div>
             </div>
+
+            <!-- Ly do -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Lý do hủy đơn</span>
+                <span style="color:#dc2626;font-size:13px;">*</span>
+              </div>
+              <textarea
+                v-model="cancelReason"
+                rows="3"
+                placeholder="Mô tả chi tiết lý do bạn muốn hủy đơn hàng..."
+                style="width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,0.07);gap:10px;">
+            <button @click="showCancelModal = false" style="display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Quay lại
+            </button>
+            <button @click="confirmCancel" :disabled="isSubmitting" style="display:flex;align-items:center;gap:8px;padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.35);">
+              <template v-if="!isSubmitting">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                Xác nhận hủy
+              </template>
+              <template v-else>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 0.8s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                Đang xử lý...
+              </template>
+            </button>
           </div>
         </div>
       </div>
