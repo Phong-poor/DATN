@@ -694,7 +694,7 @@ class DatHangController extends Controller
 
             // Cập nhật các sản phẩm được chọn hoàn trả
             \App\Models\DatHangChiTiet::where('id_dathang', $id)
-                ->whereIn('id_bienthe', $request->item_ids)
+                ->whereIn('id', $request->item_ids)
                 ->update(['hoantien' => 1]);
 
             DB::commit();
