@@ -72,3 +72,21 @@ createApp(App)
 installPerformanceWarmup()
 installScrollEffects(router)
 installI18n(router)
+
+// Đồng bộ đăng xuất giữa các tab
+window.addEventListener('storage', (event) => {
+  if (event.key === 'logout-event') {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('user')
+    
+    window.dispatchEvent(new Event('user-updated'))
+    
+    const isProtected = window.location.pathname.startsWith('/admin') || 
+                        ['/profile', '/checkout', '/orderspage', '/wishlistpage'].includes(window.location.pathname)
+    if (isProtected) {
+      window.location.href = '/login'
+    }
+  }
+})
