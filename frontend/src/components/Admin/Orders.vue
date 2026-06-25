@@ -144,6 +144,29 @@ const getNextStatus = (current) => {
     return current
 }
 
+const isCOD = (order) => {
+    return String(order?.raw?.PTTT || '').toUpperCase().includes('COD')
+}
+
+const showPayButton = (order) => {
+    if (!order || !order.raw) return false
+    if (pageMode.value !== 'orders') return false
+    if (order.raw.trang_thai_thanh_toan === 'paid') return false
+    if (isCOD(order)) {
+        return order.status === 'done'
+    }
+    return true
+}
+
+const showNextStatusButton = (order) => {
+    if (!order) return false
+    if (terminalStatuses.includes(order.status) || order.status === 'refund_pending') return false
+    if (!isCOD(order)) {
+        return order.raw?.trang_thai_thanh_toan === 'paid'
+    }
+    return true
+}
+
 const orders = ref([])
 const isLoading = ref(false)
 
@@ -400,7 +423,7 @@ const {
     pageItems: paginatedOrders,
     getId: item => item.id_backend,
     endpoint: id => `/admin/orders/${id}`,
-    entityLabel: 'don hang',
+    entityLabel: 'đơn hàng',
     fetchItems: fetchOrders,
 })
 
@@ -566,7 +589,7 @@ async function exportExcel() {
         <BulkDeleteToolbar
             :selected-count="selectedIds.length"
             :total-count="filteredOrders.length"
-            label="don hang"
+            label="đơn hàng"
             :loading="isBulkDeleting"
             @clear="clearSelection"
             @delete-selected="removeSelected"
@@ -589,14 +612,14 @@ async function exportExcel() {
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
                         <th>TỔNG TIỀN</th>
-                        <th>THANH TOÁN</th>
+                        <th v-if="pageMode === 'orders'">THANH TOÁN</th>
                         <th>GIAO HÀNG</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td :colspan="pageMode === 'orders' ? 8 : 7" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
 
@@ -626,7 +649,7 @@ async function exportExcel() {
 
                         <td><b class="total">{{ o.total }}</b></td>
 
-                        <td>
+                        <td v-if="pageMode === 'orders'">
                             <div class="payment-cell">
                                 <span class="pttt-badge" :style="getPtttStyle(o.raw.PTTT)">{{ o.raw.PTTT }}</span>
                                 <span class="payment-status-pill" :style="getPaymentStatusStyle(o.raw.trang_thai_thanh_toan)">
@@ -648,9 +671,9 @@ async function exportExcel() {
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                     </svg>
                                 </button>
-
+                                
                                 <!-- Nút xác nhận thanh toán -->
-                                <button v-if="o.raw.trang_thai_thanh_toan !== 'paid'" 
+                                <button v-if="showPayButton(o)" 
                                         class="act-btn" style="color: #16a34a;"
                                         @click="confirmMarkAsPaid(o.id_backend)" 
                                         title="Đổi thành Đã thanh toán">
@@ -659,8 +682,8 @@ async function exportExcel() {
                                         <polyline points="22 4 12 14.01 9 11.01"/>
                                     </svg>
                                 </button>
-                                
-                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
+
+                                <button v-if="showNextStatusButton(o)" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
@@ -774,7 +797,7 @@ async function exportExcel() {
                                         <span class="status-pill" :style="getPaymentStatusStyle(viewOrder.raw.trang_thai_thanh_toan)">
                                             {{ getPaymentStatusLabel(viewOrder.raw.trang_thai_thanh_toan) }}
                                         </span>
-                                        <button v-if="viewOrder.raw.trang_thai_thanh_toan !== 'paid'"
+                                        <button v-if="showPayButton(viewOrder)"
                                                 class="btn-mark-paid"
                                                 @click="confirmMarkAsPaidInModal(viewOrder)">
                                             Xác nhận Đã thanh toán
