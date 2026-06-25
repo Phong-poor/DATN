@@ -13,6 +13,11 @@ export function saveAuth(token, user, remember = false) {
     localStorage.removeItem('user')
   }
 
+  // Ghi nhận sự kiện đăng nhập để đồng bộ qua các tab khác
+  const loginData = { token, user: encodedUser, remember }
+  localStorage.setItem('login-event', JSON.stringify(loginData))
+  localStorage.removeItem('login-event')
+
   window.dispatchEvent(new Event('user-updated'))
 }
 

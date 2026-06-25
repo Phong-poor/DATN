@@ -73,7 +73,7 @@ installPerformanceWarmup()
 installScrollEffects(router)
 installI18n(router)
 
-// Đồng bộ đăng xuất giữa các tab
+// Đồng bộ đăng nhập/đăng xuất giữa các tab
 window.addEventListener('storage', (event) => {
   if (event.key === 'logout-event') {
     localStorage.removeItem('token')
@@ -87,6 +87,40 @@ window.addEventListener('storage', (event) => {
                         ['/profile', '/checkout', '/orderspage', '/wishlistpage'].includes(window.location.pathname)
     if (isProtected) {
       window.location.href = '/login'
+    }
+  } else if (event.key === 'login-event' && event.newValue) {
+    try {
+      const { token, user, remember } = JSON.parse(event.newValue)
+      if (remember) {
+        localStorage.setItem('token', token)
+        localStorage.setItem('user', user)
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+      } else {
+        sessionStorage.setItem('token', token)
+        sessionStorage.setItem('user', user)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
+      
+      window.dispatchEvent(new Event('user-updated'))
+      
+      // Nếu đang ở trang login, tự động chuyển hướng theo vai trò người dùng
+      if (window.location.pathname === '/login') {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(user))))
+          const role = String(decoded.vaitro || decoded.role || '').toLowerCase()
+          if (role !== 'user') {
+            window.location.href = '/admin'
+          } else {
+            window.location.href = '/'
+          }
+        } catch (_) {
+          window.location.href = '/'
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi đồng bộ đăng nhập đa tab:', e)
     }
   }
 })
