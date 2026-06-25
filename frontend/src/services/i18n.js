@@ -668,7 +668,7 @@ const reversePhraseMap = {
   CORE: 'CỐT LÕI',
   CONFIG: 'CẤU HÌNH',
   SALES: 'BÁN HÀNG',
-  MARKETING: 'TIẾP THỊ',
+  MARKETING: 'MARKETING',
 }
 
 export const getLocale = () => {

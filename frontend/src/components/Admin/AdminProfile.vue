@@ -29,6 +29,21 @@ const avatarUrl = computed(() => {
 })
 
 const avatarInitial = computed(() => (form.value.ten || 'A').trim().charAt(0).toUpperCase())
+const userRoleName = computed(() => {
+  const role = localUser.value?.vaitro || 'admin'
+  const mapping = {
+    admin: 'Admin',
+    user: 'Khách hàng',
+    inventory: 'Thủ kho',
+    order_manager: 'Xử lý đơn hàng',
+    marketing: 'Marketing',
+    affiliate_manager: 'Quản lý Affiliate',
+    editor: 'Biên tập viên',
+    support: 'Tư vấn viên',
+    accountant: 'Kế toán'
+  }
+  return mapping[role.toLowerCase()] || 'Nhân viên'
+})
 const memberSince = computed(() => {
   const dt = localUser.value?.created_at
   if (!dt) return '--'
@@ -131,7 +146,7 @@ onMounted(fetchProfile)
           <div v-if="editing" class="avatar-overlay">{{ uploadingAvatar ? 'Đang tải...' : 'Đổi ảnh' }}</div>
         </div>
         <h3>{{ form.ten || 'Admin' }}</h3>
-        <span class="role-badge">Quản trị viên</span>
+        <span class="role-badge">{{ userRoleName }}</span>
         <p class="member-since">{{ memberSince }}</p>
       </aside>
 

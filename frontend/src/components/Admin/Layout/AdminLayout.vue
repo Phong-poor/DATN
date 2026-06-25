@@ -57,7 +57,7 @@
                 <div :class="['submenu-item', isActive && 'active']">
                   <span class="bullet-dot"></span>
                   <span>{{ sub.label }}</span>
-                  <span v-if="sub.badge" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
+                  <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
                     {{ sub.badge }}
                   </span>
                 </div>
@@ -74,7 +74,7 @@
         </div>
         <div class="user-info">
           <p class="user-name">{{ userName }}</p>
-          <p class="user-role">Quản trị viên</p>
+          <p class="user-role">{{ userRoleName }}</p>
         </div>
         <button class="sidebar-logout-btn" type="button" @click="handleLogout" aria-label="Đăng xuất">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -152,7 +152,7 @@
               </div>
               <div class="user-meta">
                 <span class="user-name">{{ userName }}</span>
-                <span class="user-role">Administrator</span>
+                <span class="user-role">{{ userRoleName }}</span>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
             </button>
@@ -218,6 +218,7 @@ import {
   Mail,
   Gift,
   ChevronDown,
+  Activity,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -252,26 +253,33 @@ const appearance = ref({
 const menuConfig = [
   { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   {
-    label: 'Sản phẩm',
+    label: 'Thủ kho',
     icon: Package,
     isDropdown: true,
     children: [
-      { path: '/admin/products', label: 'Sản phẩm', badge: 'CORE' },
-      { path: '/admin/categories', label: 'Danh mục', badge: 'CONFIG' },
-      { path: '/admin/brands', label: 'Thương hiệu', badge: 'CONFIG' },
-      { path: '/admin/variants', label: 'Màu & biến thể', badge: 'CONFIG' },
+      { path: '/admin/products', label: 'Sản phẩm', badge: 'THỦ KHO' },
+      { path: '/admin/categories', label: 'Danh mục', badge: 'THỦ KHO' },
+      { path: '/admin/brands', label: 'Thương hiệu', badge: 'THỦ KHO' },
+      { path: '/admin/variants', label: 'Màu & biến thể', badge: 'THỦ KHO' },
     ]
   },
-  { path: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
   {
-    label: 'Khuyến mãi',
+    label: 'Đơn hàng',
+    icon: ShoppingCart,
+    isDropdown: true,
+    children: [
+      { path: '/admin/orders', label: 'Đơn hàng', badge: 'ĐƠN HÀNG' }
+    ]
+  },
+  {
+    label: 'Marketing',
     icon: TicketPercent,
     isDropdown: true,
     children: [
-      { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'PROMO' },
-      { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'PROMO' },
-      { path: '/admin/combos', label: 'Quản lý Combo', badge: 'PROMO' },
-      { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'PROMO' },
+      { path: '/admin/promotions', label: 'Khuyến mãi', badge: 'MARKETING' },
+      { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'MARKETING' },
+      { path: '/admin/combos', label: 'Quản lý Combo', badge: 'MARKETING' },
+      { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'MARKETING' },
     ]
   },
   {
@@ -283,32 +291,42 @@ const menuConfig = [
     ]
   },
   {
-    label: 'Nội dung',
+    label: 'Biên tập viên',
     icon: Newspaper,
     isDropdown: true,
     children: [
-      { path: '/admin/news', label: 'Bài viết', badge: 'CONTENT' },
-      { path: '/admin/reviews', label: 'Bình luận', badge: 'CONTENT' },
+      { path: '/admin/news', label: 'Bài viết', badge: 'BIÊN TẬP' },
+      { path: '/admin/reviews', label: 'Bình luận', badge: 'BIÊN TẬP' },
+      { path: '/admin/banners', label: 'Banner', badge: 'BIÊN TẬP' },
     ]
   },
   {
-    label: 'Người dùng',
+    label: 'Tư vấn viên',
+    icon: Mail,
+    isDropdown: true,
+    children: [
+      { path: '/admin/contacts', label: 'Liên hệ', badge: 'TƯ VẤN' },
+    ]
+  },
+  {
+    label: 'Tài khoản',
     icon: Users,
     isDropdown: true,
     children: [
-      { path: '/admin/users', label: 'User', badge: 'ADMIN' },
-      { path: '/admin/contacts', label: 'Liên hệ', badge: 'SUPPORT' },
+      { path: '/admin/users', label: 'Người dùng', badge: 'ADMIN' },
     ]
   },
-  { path: '/admin/banners', label: 'Banner', icon: Image },
+  { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
 const dropdownStates = ref({
-  'Sản phẩm': false,
-  'Khuyến mãi': false,
+  'Thủ kho': false,
+  'Đơn hàng': false,
+  'Marketing': false,
   'Tiếp thị': false,
-  'Nội dung': false,
-  'Người dùng': false,
+  'Biên tập viên': false,
+  'Tư vấn viên': false,
+  'Tài khoản': false,
 })
 
 function toggleDropdown(label) {
@@ -359,8 +377,23 @@ const adminVars = computed(() => {
   }
 })
 
-const userName = computed(() => 'Predator Group')
+const userName = computed(() => user.value?.ten || user.value?.name || 'Predator Staff')
 const userEmail = computed(() => user.value?.email || user.value?.username || '')
+const userRoleName = computed(() => {
+  const role = user.value?.vaitro || 'admin'
+  const mapping = {
+    admin: 'Admin',
+    user: 'Khách hàng',
+    inventory: 'Thủ kho',
+    order_manager: 'Xử lý đơn hàng',
+    marketing: 'Marketing',
+    affiliate_manager: 'Quản lý Affiliate',
+    editor: 'Biên tập viên',
+    support: 'Tư vấn viên',
+    accountant: 'Kế toán'
+  }
+  return mapping[role.toLowerCase()] || 'Nhân viên'
+})
 const userInitials = computed(() =>
   userName.value
     .split(' ')
@@ -693,6 +726,7 @@ a { text-decoration: none; }
   gap: 10px;
   min-height: 36px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .submenu-item:hover {
   background: rgba(255, 255, 255, 0.03);
@@ -725,41 +759,33 @@ a { text-decoration: none; }
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.badge-core {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-}
-.badge-sales {
-  background: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
-}
-.badge-config {
-  background: rgba(59, 130, 246, 0.1);
+.badge-thủ-kho {
+  background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
 }
-.badge-content {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
-}
-.badge-admin {
-  background: rgba(234, 179, 8, 0.1);
-  color: #facc15;
-}
-.badge-support {
-  background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
+.badge-đơn-hàng {
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
 }
 .badge-marketing {
-  background: rgba(236, 72, 153, 0.1);
-  color: #f472b6;
-}
-.badge-promo {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(34, 197, 94, 0.15);
   color: #4ade80;
 }
 .badge-tiếp-thị {
-  background: rgba(236, 72, 153, 0.1);
+  background: rgba(236, 72, 153, 0.15);
   color: #f472b6;
+}
+.badge-biên-tập {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+.badge-tư-vấn {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+.badge-admin {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
 }
 .sidebar-user { 
     margin-top: auto; 

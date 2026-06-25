@@ -64,7 +64,7 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at')
+        $users = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -73,7 +73,7 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at')
+        $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->findOrFail($id);
 
         return response()->json($user);
@@ -86,7 +86,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:khachhang,email',
             'matkhau' => 'required|string|min:8|confirmed',
             'sodienthoai' => 'nullable|string|max:20',
-            'vaitro' => 'nullable|in:admin,user',
+            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
             'trangthai' => 'nullable|in:active,locked',
         ]);
 
@@ -101,7 +101,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Tạo người dùng thành công',
-            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at']),
+            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
         ], 201);
     }
 
@@ -113,7 +113,7 @@ class UserController extends Controller
             'ten' => 'sometimes|required|string|max:255',
             'email' => ['sometimes', 'required', 'email', Rule::unique('khachhang', 'email')->ignore($id)],
             'sodienthoai' => 'nullable|string|max:20',
-            'vaitro' => 'nullable|in:admin,user',
+            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
             'trangthai' => 'nullable|in:active,locked',
             'matkhau' => 'nullable|string|min:8',
         ]);
@@ -124,8 +124,27 @@ class UserController extends Controller
             $user->email = $validated['email'];
         if (isset($validated['sodienthoai']))
             $user->sodienthoai = $validated['sodienthoai'];
-        if (isset($validated['vaitro']))
+        if (isset($validated['vaitro'])) {
+            // Không được đổi vai trò của NextGen và phongtqpk
+            if (in_array($user->email, ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com']) && $validated['vaitro'] !== 'admin') {
+                return response()->json([
+                    'message' => 'Không thể thay đổi vai trò của tài khoản Giám đốc sáng lập'
+                ], 422);
+            }
+            // Nhân viên không được đổi sang khách hàng
+            if ($user->vaitro !== 'user' && $validated['vaitro'] === 'user') {
+                return response()->json([
+                    'message' => 'Nhân viên không thể chuyển đổi thành khách hàng'
+                ], 422);
+            }
+            // Khách hàng không được thay đổi vai trò
+            if ($user->vaitro === 'user' && $validated['vaitro'] !== 'user') {
+                return response()->json([
+                    'message' => 'Không thể thay đổi vai trò của tài khoản Khách hàng'
+                ], 422);
+            }
             $user->vaitro = $validated['vaitro'];
+        }
         if (isset($validated['trangthai']))
             $user->trangthai = $validated['trangthai'];
         if (!empty($validated['matkhau'])) {
@@ -136,7 +155,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Cập nhật thành công',
-            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at']),
+            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
         ]);
     }
 

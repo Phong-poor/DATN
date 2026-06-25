@@ -247,7 +247,7 @@ class AdminAccountController extends Controller
     // API: Xem các Admin đang hoạt động
     public function activeAdmins()
     {
-        $admins = User::where('vaitro', 'admin')
+        $admins = User::where('vaitro', '!=', 'user')
             ->orderBy('hoat_dong_cuoi_luc', 'desc')
             ->get()
             ->map(function ($admin) {

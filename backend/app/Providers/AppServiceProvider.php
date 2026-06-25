@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $user = auth()->user();
         // Chỉ lưu log nếu thao tác được thực hiện bởi Admin đang đăng nhập
-        if (!$user || $user->vaitro !== 'admin') {
+        if (!$user || $user->vaitro === 'user') {
             return;
         }
 
