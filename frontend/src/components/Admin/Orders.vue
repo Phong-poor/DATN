@@ -586,28 +586,10 @@ async function exportExcel() {
         </div>
 
         <!-- TABLE -->
-        <BulkDeleteToolbar
-            :selected-count="selectedIds.length"
-            :total-count="filteredOrders.length"
-            label="đơn hàng"
-            :loading="isBulkDeleting"
-            @clear="clearSelection"
-            @delete-selected="removeSelected"
-            @delete-all="removeAllFiltered"
-        />
-
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="allCurrentPageSelected"
-                                :disabled="!paginatedOrders.length"
-                                @change="toggleCurrentPageSelection"
-                            />
-                        </th>
                         <th>MÃ ĐƠN HÀNG</th>
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
@@ -619,17 +601,9 @@ async function exportExcel() {
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td :colspan="pageMode === 'orders' ? 8 : 7" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td :colspan="pageMode === 'orders' ? 7 : 6" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
-                    <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
-
-                        <td class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="selectedIds.includes(o.id_backend)"
-                                @change="toggleItemSelection(o.id_backend)"
-                            />
-                        </td>
+                    <tr v-for="(o, i) in paginatedOrders" :key="o.id">
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
@@ -705,18 +679,6 @@ async function exportExcel() {
                                         @click="confirmRejectRefund(o.id_backend)" 
                                         title="Từ chối hoàn trả">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                </button>
-
-                                <button
-                                    class="act-btn danger"
-                                    @click="deleteOrder(o.id_backend)"
-                                    title="Xóa đơn hàng"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M3 6h18"/>
-                                        <path d="M8 6V4h8v2"/>
-                                        <path d="M19 6l-1 14H6L5 6"/>
-                                    </svg>
                                 </button>
                             </div>
                         </td>
