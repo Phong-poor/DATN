@@ -405,7 +405,8 @@ const fetchCart = async () => {
                 ten_combo: item.ten_combo,
                 hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
                 gia_combo: item.gia_combo,
-                gia_goc: item.gia_goc
+                gia_goc: item.gia_goc,
+                thanh_tien: item.thanh_tien
             }))
 
             if (buyNowCartItemId.value) {
@@ -522,9 +523,7 @@ const discountPromosList = computed(() => validPromos.value.filter(p => {
     if (p.category !== 'product') return false
     if (p.dieu_kien > 0) {
         const dk = Number(p.dieu_kien)
-        if (p.loai_dieu_kien === '>=' && subtotal.value < dk) return false
-        if (p.loai_dieu_kien === '>' && subtotal.value <= dk) return false
-        if (p.loai_dieu_kien === '=' && subtotal.value !== dk) return false
+        if (subtotal.value < dk) return false
     }
     return true
 }))
@@ -540,7 +539,7 @@ const tinhDiscount = (promo) => {
     if (!promo) { discount.value = 0; return }
     if (promo.type === 'percent') {
         discount.value = Math.round(subtotal.value * promo.value / 100)
-    } else if (promo.type === 'fixed') {
+    } else if (promo.type === 'fixed' || promo.type === 'maxprice') {
         discount.value = Math.min(promo.value, subtotal.value)
     } else {
         discount.value = 0
@@ -589,8 +588,13 @@ onMounted(() => {
 })
 
 const subtotal = computed(() =>
-  cart.value.reduce((sum, i) => sum + i.price * i.qty, 0)
+  cart.value.reduce((sum, i) => sum + (i.thanh_tien !== undefined ? i.thanh_tien : i.price * i.qty), 0)
 )
+
+watch(subtotal, () => {
+    apDungMa()
+    apDungFreeship()
+})
 
 const total = computed(() => {
     const afterDiscount = Math.max(0, subtotal.value - discount.value)
