@@ -412,6 +412,9 @@ const fetchCart = async () => {
                 items = items.filter(item => String(item.id_giohang) === buyNowCartItemId.value)
             } else if (buyNowVariantId.value) {
                 items = items.filter(item => String(item.id_bienthe) === buyNowVariantId.value)
+            } else if (route.query.selected) {
+                const selectedIds = route.query.selected.split(',')
+                items = items.filter(item => selectedIds.includes(String(item.id_giohang)))
             }
 
             cart.value = items
@@ -629,7 +632,7 @@ const confirmOrder = async () => {
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value,
-            selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : undefined,
+            selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : (route.query.selected ? route.query.selected.split(',') : undefined),
             selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined
         })
 

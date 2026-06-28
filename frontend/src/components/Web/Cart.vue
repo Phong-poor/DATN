@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import swal from '@/services/swal'
 import { normalizeImageUrl } from '@/services/urls'
@@ -8,11 +9,12 @@ import { normalizeImageUrl } from '@/services/urls'
 // ===================== STATE =====================
 const cart = ref([])
 const isLoading = ref(false)
+const router = useRouter()
 // ===================== SELECTION =====================
 const selectedIds = ref(new Set())
 
 const allItemIds = computed(() => {
-    return cart.value.filter(i => !i.id_combo).map(i => i.id_giohang)
+    return cart.value.map(i => i.id_giohang)
 })
 
 const isAllSelected = computed(() => {
@@ -59,7 +61,14 @@ const fetchGioHang = async () => {
     }
 }
 
-const subtotal = computed(() => cart.value.reduce((sum, item) => sum + item.thanh_tien, 0))
+const subtotal = computed(() => {
+    return cart.value.reduce((sum, item) => {
+        if (selectedIds.value.has(item.id_giohang)) {
+            return sum + item.thanh_tien;
+        }
+        return sum;
+    }, 0);
+})
 const total = computed(() => subtotal.value + shippingFee.value)
 
 const groupedCart = computed(() => {
@@ -141,6 +150,19 @@ const deleteCombo = async (group) => {
         hienThiThongBao('error', 'Lỗi khi xóa combo!')
         fetchGioHang()
     }
+}
+
+const isComboSelected = (group) => {
+    return group.items.length > 0 && group.items.every(i => selectedIds.value.has(i.id_giohang))
+}
+const toggleCombo = (group) => {
+    const s = new Set(selectedIds.value)
+    const isSelected = isComboSelected(group)
+    group.items.forEach(i => {
+        if (isSelected) s.delete(i.id_giohang)
+        else s.add(i.id_giohang)
+    })
+    selectedIds.value = s
 }
 
 const capNhatSoLuong = async (item, delta) => {
@@ -247,6 +269,15 @@ onMounted(() => {
     
     fetchGioHang()
 })
+
+const goToCheckout = () => {
+    if (selectedCount.value === 0) {
+        hienThiThongBao('error', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.')
+        return
+    }
+    const ids = Array.from(selectedIds.value).join(',')
+    router.push({ path: '/checkout', query: { selected: ids } })
+}
 </script>
 
 <template>
@@ -441,6 +472,14 @@ onMounted(() => {
               </div>
 
               <div class="combo-group-header">
+                <label class="card-checkbox-wrap" @click.stop style="margin-right: 12px; display: flex; align-items: center;">
+                  <input
+                    type="checkbox"
+                    class="item-checkbox"
+                    :checked="isComboSelected(entry)"
+                    @change="toggleCombo(entry)"
+                  />
+                </label>
                 <div class="title-box">
                   <span class="badge-tag" :class="{ 'badge-tag-gift': entry.gia_combo === 0 }">
                     {{ entry.gia_combo === 0 ? 'Quà tặng VIP' : 'Combo' }}
@@ -517,15 +556,16 @@ onMounted(() => {
           </div>
 
           <!-- CHECKOUT BUTTON -->
-          <router-link
-            to="/checkout"
+          <button
             class="checkout-btn"
-            :class="{ 'checkout-disabled': cart.length === 0 }"
+            :class="{ 'checkout-disabled': selectedCount === 0 }"
+            @click="goToCheckout"
+            :disabled="selectedCount === 0"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             Thanh toán ngay
             <svg class="arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-          </router-link>
+          </button>
 
           <!-- PAYMENT ICONS -->
           <div class="payment-methods">
