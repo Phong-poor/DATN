@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
@@ -16,10 +16,10 @@ const isUserLoggedIn = computed(() => Boolean(getToken()))
 const router = useRouter()
 const route = useRoute()
 
-const promoCode = ref(route.query.promo_code || '')
-const discount = ref(Number(route.query.discount) || 0)
-const freeshipCode = ref(route.query.freeship_code || '')
-const freeshipDiscount = ref(Number(route.query.freeship_discount) || 0)
+const promoCode = ref('')
+const discount = ref(0)
+const freeshipCode = ref('')
+const freeshipDiscount = ref(0)
 const shippingFee = ref(30000)
 const buyNowVariantId = computed(() => route.query.buy_now === '1' ? String(route.query.variant || '') : '')
 const buyNowCartItemId = computed(() => route.query.buy_now === '1' ? String(route.query.cart_item || '') : '')
@@ -478,10 +478,111 @@ const groupedCart = computed(() => {
     return list
 })
 
+// ===================== VOUCHER / PROMOTION =====================
+const allPromos = ref([])
+const appliedPromo = ref(null)
+const appliedFreeshipPromo = ref(null)
+const coupon = ref('')
+const freeshipCoupon = ref('')
+const loadingPromos = ref(false)
+
+const fetchVouchers = async () => {
+    loadingPromos.value = true
+    try {
+        const token = getToken()
+        if (token) {
+            const res = await api.get('/user/vouchers')
+            if (res.data && res.data.vouchers) {
+                allPromos.value = res.data.vouchers.map(v => v.promotion).filter(Boolean)
+            }
+        } else {
+            const res = await api.get('/promotions')
+            allPromos.value = res.data
+        }
+    } catch (err) {
+        console.error('Lỗi tải khuyến mãi:', err)
+    } finally {
+        loadingPromos.value = false
+    }
+}
+
+const validPromos = computed(() => {
+    const now = new Date()
+    return allPromos.value.filter(p => {
+        if (p.status !== 'running' && p.status !== 'open') return false
+        if (p.end_date && new Date(p.end_date) < now) return false
+        return true
+    })
+})
+
+const discountPromosList = computed(() => validPromos.value.filter(p => {
+    if (p.category !== 'product') return false
+    if (p.dieu_kien > 0) {
+        const dk = Number(p.dieu_kien)
+        if (p.loai_dieu_kien === '>=' && subtotal.value < dk) return false
+        if (p.loai_dieu_kien === '>' && subtotal.value <= dk) return false
+        if (p.loai_dieu_kien === '=' && subtotal.value !== dk) return false
+    }
+    return true
+}))
+
+const freeshipPromosList = computed(() => validPromos.value.filter(p => {
+    if (p.category !== 'freeship') return false
+    const minOrder = p.dieu_kien > 0 ? p.dieu_kien : 0
+    if (minOrder > 0 && subtotal.value < minOrder) return false
+    return true
+}))
+
+const tinhDiscount = (promo) => {
+    if (!promo) { discount.value = 0; return }
+    if (promo.type === 'percent') {
+        discount.value = Math.round(subtotal.value * promo.value / 100)
+    } else if (promo.type === 'fixed') {
+        discount.value = Math.min(promo.value, subtotal.value)
+    } else {
+        discount.value = 0
+    }
+    promoCode.value = promo.code
+}
+
+const apDungMa = () => {
+    if (!coupon.value) {
+        discount.value = 0
+        appliedPromo.value = null
+        promoCode.value = ''
+        return
+    }
+    const promo = discountPromosList.value.find(p => p.code === coupon.value)
+    if (promo) {
+        appliedPromo.value = promo
+        tinhDiscount(promo)
+    }
+}
+
+const apDungFreeship = () => {
+    if (!freeshipCoupon.value) {
+        freeshipDiscount.value = 0
+        appliedFreeshipPromo.value = null
+        freeshipCode.value = ''
+        return
+    }
+    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
+    if (!promo) return
+    const minOrder = promo.dieu_kien > 0 ? promo.dieu_kien : 0
+    if (minOrder > 0 && subtotal.value < minOrder) {
+        freeshipCoupon.value = ''
+        return
+    }
+    appliedFreeshipPromo.value = promo
+    freeshipDiscount.value = shippingFee.value
+    freeshipCode.value = promo.code
+}
+
 onMounted(() => {
     fetchCart()
     fetchAddresses()
     fetchUserProfile()
+    fetchVouchers()
 })
 
 const subtotal = computed(() =>
@@ -711,13 +812,59 @@ const confirmOrder = async () => {
 
           <div class="line"></div>
 
+          <!-- VOUCHER SECTION -->
+          <div class="voucher-section">
+            <div class="voucher-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Áp dụng ưu đãi
+            </div>
+
+            <div v-if="loadingPromos" class="voucher-loading">⏳ Đang tải voucher...</div>
+
+            <template v-else>
+              <!-- MÃ GIẢM GIÁ -->
+              <div class="voucher-row" v-if="discountPromosList.length > 0">
+                <label class="voucher-label">🏷️ Mã giảm giá</label>
+                <select v-model="coupon" @change="apDungMa" class="voucher-select">
+                  <option value="">-- Không dùng mã --</option>
+                  <option v-for="p in discountPromosList" :key="p.code" :value="p.code">
+                    {{ p.name }} · {{ p.type === 'percent' ? `Giảm ${p.value}%` : `Giảm ${Number(p.value).toLocaleString('vi-VN')}đ` }}
+                  </option>
+                </select>
+                <div class="voucher-applied" v-if="appliedPromo">
+                  ✅ Đã áp dụng: <b>{{ appliedPromo.code }}</b> — tiết kiệm <b style="color:#dc2626">{{ format(discount) }}</b>
+                </div>
+              </div>
+
+              <!-- MÃ FREESHIP -->
+              <div class="voucher-row" v-if="freeshipPromosList.length > 0">
+                <label class="voucher-label">🚚 Miễn phí vận chuyển</label>
+                <select v-model="freeshipCoupon" @change="apDungFreeship" class="voucher-select green">
+                  <option value="">-- Không dùng mã freeship --</option>
+                  <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code">
+                    {{ p.name }} · Miễn 100% phí ship
+                  </option>
+                </select>
+                <div class="voucher-applied green" v-if="appliedFreeshipPromo">
+                  ✅ Freeship đã áp dụng: <b>{{ appliedFreeshipPromo.code }}</b>
+                </div>
+              </div>
+
+              <div class="voucher-empty" v-if="discountPromosList.length === 0 && freeshipPromosList.length === 0">
+                Bạn chưa có voucher nào phù hợp.
+              </div>
+            </template>
+          </div>
+
+          <div class="line"></div>
+
           <div class="row">
             <span>Tạm tính</span>
             <b>{{ format(subtotal) }}</b>
           </div>
 
           <div class="row" v-if="discount > 0">
-            <span>Giảm giá (Mã {{ promoCode }})</span>
+            <span>Giảm giá ({{ promoCode }})</span>
             <b style="color:#dc2626">-{{ format(discount) }}</b>
           </div>
 
@@ -727,9 +874,10 @@ const confirmOrder = async () => {
           </div>
 
           <div class="row" v-if="freeshipDiscount > 0">
-            <span>Freeship (Mã {{ freeshipCode }})</span>
+            <span>Freeship ({{ freeshipCode }})</span>
             <b style="color:#16a34a">-{{ format(freeshipDiscount) }}</b>
           </div>
+
           <div class="total">
             <span>TỔNG CỘNG: </span>
             <b>{{ format(total) }}</b>
@@ -743,11 +891,6 @@ const confirmOrder = async () => {
           <p class="secure">🔒 Giao dịch được bảo mật 256-bit</p>
         </div>
 
-        <div class="coupon" v-if="promoCode || freeshipCode">
-          <span>🏷️ Ưu đãi đã áp dụng</span>
-          <p v-if="promoCode" style="margin:5px 0">Giảm giá đơn hàng: <b>{{ promoCode }}</b></p>
-          <p v-if="freeshipCode" style="margin:5px 0">Miễn phí vận chuyển: <b>{{ freeshipCode }}</b></p>
-        </div>
       </div>
 
     </div>
@@ -1683,5 +1826,94 @@ textarea {
     height: 38px;
     font-size: 11px;
   }
+}
+/* ===== VOUCHER SECTION ===== */
+.voucher-section {
+  margin: 4px 0 8px;
+  padding: 14px;
+  background: rgba(37, 99, 235, 0.04);
+  border: 1.5px dashed rgba(37, 99, 235, 0.25);
+  border-radius: 12px;
+}
+
+.voucher-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 12px;
+}
+
+.voucher-row {
+  margin-bottom: 10px;
+}
+
+.voucher-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 5px;
+}
+
+.voucher-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #1e293b;
+  cursor: pointer;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 0;
+}
+
+.voucher-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.voucher-select.green {
+  border-color: #86efac;
+}
+
+.voucher-select.green:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.voucher-applied {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+.voucher-applied.green {
+  color: #065f46;
+  background: #ecfdf5;
+}
+
+.voucher-loading {
+  font-size: 12.5px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.voucher-empty {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 6px 0;
 }
 </style>
