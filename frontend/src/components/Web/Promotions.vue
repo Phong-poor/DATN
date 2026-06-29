@@ -3,9 +3,10 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
-import { productImageUrl } from '@/services/urls'
+import { productImageUrl, comboImageUrl, handleImageFallback, imageFallbackUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
+import ComboSelectionModal from './ComboSelectionModal.vue'
 import {
   Tag,
   Flame,
@@ -44,10 +45,16 @@ const backendPromotions = ref([])
 const newsletterEmail = ref('')
 const activeCategoryTab = ref('all')
 
+// Flash Sale state
+const currentFlashSession = ref(null)
+const flashSaleProductsList = ref([])
+const flashSaleStatus = ref('none')
+
 // Countdown timers state
-const fsHours = ref('04')
-const fsMinutes = ref('12')
-const fsSeconds = ref('45')
+const fsDays = ref('00')
+const fsHours = ref('00')
+const fsMinutes = ref('00')
+const fsSeconds = ref('00')
 
 const esHours = ref('01')
 const esMinutes = ref('32')
@@ -56,7 +63,7 @@ const esSeconds = ref('08')
 // Claimed voucher state
 const claimedVoucherId = ref(null)
 const claimingId = ref(null)
-// user's owned vouchers: { id_promotion, trang_thai, ngay_nhan, promotion: {...} }
+// user's owned vouchers: { id_voucher, trang_thai, ngay_nhan, promotion: {...} }
 const userVouchers = ref([])
 // Set of promotion IDs user already owns with trang_thai != het_han
 const ownedActiveIds = ref(new Set())
@@ -66,6 +73,58 @@ const isLoadingUserVouchers = ref(false)
 // Stats counters (for dynamic increment count animation)
 const displayedProductsCount = ref(0)
 const displayedVouchersCount = ref(0)
+
+// ===================== DYNAMIC COMBOS STATE & HELPERS =====================
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+const activeComboSlide = ref(0)
+
+const comboSlides = computed(() => {
+  const chunks = []
+  for (let i = 0; i < combos.value.length; i += 2) {
+    chunks.push(combos.value.slice(i, i + 2))
+  }
+  return chunks
+})
+
+const nextComboSlide = () => {
+  if (activeComboSlide.value < comboSlides.value.length - 1) {
+    activeComboSlide.value++
+  } else {
+    activeComboSlide.value = 0
+  }
+}
+
+const prevComboSlide = () => {
+  if (activeComboSlide.value > 0) {
+    activeComboSlide.value--
+  } else {
+    activeComboSlide.value = comboSlides.value.length - 1
+  }
+}
+
+const openCombo = (combo) => {
+  selectedCombo.value = combo
+  showComboModal.value = true
+}
+
+const calculateOriginalPrice = (combo) => {
+  if (!combo.products || combo.products.length === 0) return 0
+  return combo.products.reduce((sum, p) => {
+    const basePrice = p.bien_thes && p.bien_thes.length > 0
+      ? Math.min(...p.bien_thes.map(v => Number(v.gia || 0)))
+      : Number(p.gia || p.giaSP || 0)
+    return sum + basePrice
+  }, 0)
+}
+
+const calculateSavings = (combo) => {
+  const orig = calculateOriginalPrice(combo)
+  return orig > combo.giakhuyenmai ? orig - combo.giakhuyenmai : 0
+}
+
+const formatPrice = (p) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p)
 
 // ===================== MOCK DATA =====================
 // High-fidelity fallback / static details
@@ -77,10 +136,10 @@ const statsData = [
 ]
 
 const fallbackVouchers = [
-  { id: 'v1', code: 'PREDATOR500', name: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', category: 'product', type: 'fixed', value: 500000, status: 'running' },
-  { id: 'v2', code: 'PREDATOR1M', name: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', category: 'product', type: 'fixed', value: 1000000, status: 'running' },
-  { id: 'v3', code: 'PREDATOR0PCT', name: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', category: 'payment', type: 'percentage', value: 0, status: 'running' },
-  { id: 'v4', code: 'PREDATORSHIP', name: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', category: 'shipping', type: 'fixed', value: 100000, status: 'running' }
+  { id: 'v1', code: 'PREDATOR500', ten: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', danhmuc: 'product', loai: 'fixed', giatri: 500000, trangthai: 'running' },
+  { id: 'v2', code: 'PREDATOR1M', ten: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', danhmuc: 'product', loai: 'fixed', giatri: 1000000, trangthai: 'running' },
+  { id: 'v3', code: 'PREDATOR0PCT', ten: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', danhmuc: 'payment', loai: 'percentage', giatri: 0, trangthai: 'running' },
+  { id: 'v4', code: 'PREDATORSHIP', ten: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', danhmuc: 'shipping', loai: 'fixed', giatri: 100000, trangthai: 'running' }
 ]
 
 const comboDetailsList = [
@@ -119,7 +178,6 @@ const magazineArticles = [
 // ===================== LIFECYCLE METHODS =====================
 onMounted(() => {
   fetchPromotionsData()
-  startTimers()
   fetchUserVouchers()
 })
 
@@ -149,11 +207,10 @@ async function fetchPromotionsData() {
     }
 
     if (rawProducts.length > 0) {
-      // Find products with active discount or fallback to first 8 products
+      // Find products that have variants (hence have a price)
       let filtered = rawProducts.filter(p => {
-        const giaKM = parseFloat(p.giaKM)
-        const giaSP = parseFloat(p.giaSP)
-        return giaKM > 0 && giaKM < giaSP
+        const variants = p.bien_thes || []
+        return variants.length > 0
       })
 
       if (filtered.length === 0) {
@@ -161,14 +218,15 @@ async function fetchPromotionsData() {
       }
 
       products.value = filtered.map(p => {
-        const giaSP = parseFloat(p.giaKM) > 0 ? parseFloat(p.giaKM) : parseFloat(p.giaSP)
+        const variants = p.bien_thes || []
+        const baseVariant = variants.length > 0 ? variants[0] : null
+        const giaSP = Number(baseVariant?.gia || p.gia || 25000000)
         
         // Extract specs attributes
         const generalSpecs = []
-        if (p.bien_thes && p.bien_thes.length > 0) {
+        if (baseVariant) {
           try {
-            const bt = p.bien_thes[0]
-            const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
+            const tt = typeof baseVariant.thuoc_tinh_json === 'string' ? JSON.parse(baseVariant.thuoc_tinh_json || '[]') : (baseVariant.thuoc_tinh_json || [])
             if (Array.isArray(tt)) {
               tt.forEach(attr => {
                 generalSpecs.push(attr.giatri)
@@ -181,10 +239,9 @@ async function fetchPromotionsData() {
 
         let ram = '16GB'
         let ssd = '512GB'
-        if (p.bien_thes && p.bien_thes.length > 0) {
+        if (baseVariant) {
           try {
-            const bt = p.bien_thes[0]
-            const tt = typeof bt.thuoc_tinh_json === 'string' ? JSON.parse(bt.thuoc_tinh_json || '[]') : (bt.thuoc_tinh_json || [])
+            const tt = typeof baseVariant.thuoc_tinh_json === 'string' ? JSON.parse(baseVariant.thuoc_tinh_json || '[]') : (baseVariant.thuoc_tinh_json || [])
             if (Array.isArray(tt)) {
               tt.forEach(attr => {
                 const name = (attr.ten_thuoctinh || '').toLowerCase()
@@ -201,21 +258,49 @@ async function fetchPromotionsData() {
           brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'ASUS',
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop Gaming',
           gia: giaSP,
-          oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
+          oldPrice: baseVariant?.gia_khuyen_mai && Number(baseVariant.gia_khuyen_mai) > giaSP
+            ? Number(baseVariant.gia_khuyen_mai)
+            : Math.floor(giaSP * 1.18), // Simulated original price
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
-          image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
+          image: productImageUrl(p, baseVariant, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
           reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',
-          inStock: p.trangthai === 'hoat_dong' || p.soluong > 0
+          inStock: p.trangthai === 'hoat_dong' || Number(baseVariant?.soluong || p.soluong || 0) > 0
         }
       })
     } else {
       products.value = generateFallbackProducts()
     }
+
+    // 3. Load combos from API
+    try {
+      const combosResponse = await api.get('/combos')
+      combos.value = combosResponse.data?.data || []
+    } catch (e) {
+      console.error('Lỗi khi tải combos:', e)
+      combos.value = []
+    }
+
+    // 4. Load current flash sale session
+    try {
+      const fsResponse = await api.get('/flash-sale/current')
+      if (fsResponse.data && fsResponse.data.success) {
+        flashSaleStatus.value = fsResponse.data.status || 'none'
+        currentFlashSession.value = fsResponse.data.session
+        flashSaleProductsList.value = fsResponse.data.products || []
+        startTimers()
+      }
+    } catch (e) {
+      console.error('Lỗi khi tải flash sale:', e)
+      flashSaleStatus.value = 'none'
+      currentFlashSession.value = null
+      flashSaleProductsList.value = []
+    }
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu trang Khuyến Mãi:', err)
     products.value = generateFallbackProducts()
+    combos.value = []
   } finally {
     isLoading.value = false
     nextTick(() => {
@@ -248,14 +333,14 @@ function formatDate(dateStr) {
 
 // Helper: check if a voucher is still valid (not expired)
 function isVoucherValid(v) {
-  if (!v.end_date) return true // no end date = always valid
-  return new Date(v.end_date) >= new Date()
+  if (!v.ngayketthuc) return true // no end date = always valid
+  return new Date(v.ngayketthuc) >= new Date()
 }
 
 // Helper: check if a voucher has started
 function isVoucherStarted(v) {
-  if (!v.start_date) return true
-  return new Date(v.start_date) <= new Date()
+  if (!v.ngaybatdau) return true
+  return new Date(v.ngaybatdau) <= new Date()
 }
 
 const allVouchers = computed(() => {
@@ -269,10 +354,10 @@ const allVouchers = computed(() => {
 
   return list.filter(v => {
     // 0. Ẩn voucher nhận có điều kiện (is_public = 0)
-    if (v.is_public === 0 || v.is_public === '0' || v.is_public === false) return false
+    if (v.congkhai === 0 || v.congkhai === '0' || v.congkhai === false) return false
 
     // 1. Tuyệt đối không hiện voucher sinh nhật
-    if (v.category === 'birthday') return false
+    if (v.danhmuc === 'birthday') return false
 
     // 2. Voucher phải còn hạn
     if (!isVoucherValid(v) || !isVoucherStarted(v)) return false
@@ -286,7 +371,7 @@ const allVouchers = computed(() => {
     // - Đã sở hữu còn hiệu lực (trang_thai != 'het_han' && trang_thai != 2) → không hiện
     // - Đã sở hữu nhưng đã hết hạn → hiện lại để nhận
     const owned = userVouchers.value.find(uv =>
-      Number(uv.id_promotion) === Number(v.id)
+      Number(uv.id_voucher) === Number(v.id)
     )
     if (!owned) return true // chưa sở hữu → hiện
 
@@ -325,31 +410,65 @@ const filteredProducts = computed(() => {
 })
 
 const flashSaleProducts = computed(() => {
-  return products.value
-    .filter(p => p.oldPrice > p.gia)
-    .slice(0, 5)
-    .map((p, index) => {
-      const soldPercent = 75 + (index * 6) % 20
-      const remainingCount = 18 - (index * 3) % 15
-      return {
-        ...p,
-        soldPercent,
-        remainingCount
-      }
-    })
+  if (flashSaleStatus.value === 'none') return []
+  return flashSaleProductsList.value.map(p => {
+    const total = p.so_luong_gioi_han || 1
+    const sold = p.so_luong_da_ban || 0
+    const soldPercent = Math.min(Math.round((sold / total) * 100), 100)
+    const remainingCount = Math.max(total - sold, 0)
+    return {
+      id: p.id_sanpham,
+      id_bienthe: p.id_bienthe,
+      tenSP: p.tenSP,
+      ten_bienthe: p.ten_bienthe,
+      brand: p.brand,
+      category: p.category,
+      gia: p.gia,
+      oldPrice: p.oldPrice,
+      specs: p.specs,
+      image: p.image,
+      rating: p.rating,
+      reviews: p.reviews,
+      promo: p.promo,
+      soldPercent,
+      remainingCount,
+      inStock: p.inStock && flashSaleStatus.value === 'active'
+    }
+  })
 })
 
 // ===================== TIMERS CONTROLLER =====================
 let countdownInterval = null
 const startTimers = () => {
-  let fsTotalSeconds = 4 * 60 * 60 + 12 * 60 + 45
+  if (countdownInterval) clearInterval(countdownInterval)
+
+  let fsTotalSeconds = 0
+  if (flashSaleStatus.value === 'active' && currentFlashSession.value) {
+    const end = new Date(currentFlashSession.value.thoi_gian_ket_thuc)
+    const serverTime = currentFlashSession.value.server_time ? new Date(currentFlashSession.value.server_time) : new Date()
+    fsTotalSeconds = Math.max(Math.floor((end - serverTime) / 1000), 0)
+  } else if (flashSaleStatus.value === 'upcoming' && currentFlashSession.value) {
+    const start = new Date(currentFlashSession.value.thoi_gian_bat_dau)
+    const serverTime = currentFlashSession.value.server_time ? new Date(currentFlashSession.value.server_time) : new Date()
+    fsTotalSeconds = Math.max(Math.floor((start - serverTime) / 1000), 0)
+  }
+
   let esTotalSeconds = 1 * 60 * 60 + 32 * 60 + 8
 
-  countdownInterval = setInterval(() => {
-    if (fsTotalSeconds > 0) fsTotalSeconds--
-    const fH = Math.floor(fsTotalSeconds / 3600)
+  countdownInterval = setInterval(async () => {
+    if (fsTotalSeconds > 0) {
+      fsTotalSeconds--
+    } else if (flashSaleStatus.value !== 'none') {
+      clearInterval(countdownInterval)
+      await fetchPromotionsData()
+      return
+    }
+
+    const fD = Math.floor(fsTotalSeconds / (3600 * 24))
+    const fH = Math.floor((fsTotalSeconds % (3600 * 24)) / 3600)
     const fM = Math.floor((fsTotalSeconds % 3600) / 60)
     const fS = fsTotalSeconds % 60
+    fsDays.value = String(fD).padStart(2, '0')
     fsHours.value = String(fH).padStart(2, '0')
     fsMinutes.value = String(fM).padStart(2, '0')
     fsSeconds.value = String(fS).padStart(2, '0')
@@ -386,7 +505,7 @@ async function fetchUserVouchers() {
           const s = String(uv.trang_thai)
           return s !== '2' && s !== 'het_han' && s !== 'expired'
         })
-        .map(uv => Number(uv.id_promotion))
+        .map(uv => Number(uv.id_voucher))
     )
   } catch (e) {
     // Not logged in or error → ignore
@@ -406,7 +525,7 @@ const claimVoucher = async (v) => {
   if (claimingId.value === v.id) return
   claimingId.value = v.id
   try {
-    await api.post('/user/vouchers/claim', { id_promotion: v.id })
+    await api.post('/user/vouchers/claim', { id_voucher: v.id })
     claimedVoucherId.value = v.id
     swal.success('Chúc mừng!', 'Chúc mừng nhận voucher thành công, đã lưu vô thông tin cá nhân!')
     await fetchUserVouchers()
@@ -430,7 +549,7 @@ const addToCart = async (product) => {
   }
   try {
     await api.post('/gio-hang/them', {
-      id_sanpham: product.id,
+      id_bienthe: product.id_bienthe || product.key_id || product.id,
       soluong: 1
     })
     swal.success('Đã thêm vào giỏ', `${product.tenSP} đã nằm trong giỏ hàng của bạn!`)
@@ -441,8 +560,11 @@ const addToCart = async (product) => {
   }
 }
 
-const goToDetail = (productId) => {
-  router.push(`/products/${productId}`)
+const goToDetail = (product) => {
+  const url = product.id_bienthe 
+    ? `/products/${product.id}?variant=${product.id_bienthe}` 
+    : `/products/${product.id}`
+  router.push(url)
 }
 
 const submitNewsletter = async () => {
@@ -729,7 +851,7 @@ const initScrollReveal = () => {
     </section>
 
     <!-- 4. FLASH SALE TODAY -->
-    <section id="flash-sale" class="section flash-sale-dark-section">
+    <section id="flash-sale" class="section flash-sale-dark-section" v-if="flashSaleStatus !== 'none'">
       <div class="grid-container">
         <div class="flash-header-row scroll-reveal reveal-fade-up">
           <div class="flash-header-left">
@@ -741,8 +863,12 @@ const initScrollReveal = () => {
           </div>
 
           <div class="countdown-clock">
-            <span class="clock-label">KẾT THÚC SAU:</span>
+            <span class="clock-label">{{ flashSaleStatus === 'active' ? 'KẾT THÚC SAU:' : 'BẮT ĐẦU SAU:' }}</span>
             <div class="timer-numbers">
+              <template v-if="Number(fsDays) > 0">
+                <span class="timer-segment">{{ fsDays }}</span>
+                <span class="timer-colon">:</span>
+              </template>
               <span class="timer-segment">{{ fsHours }}</span>
               <span class="timer-colon">:</span>
               <span class="timer-segment">{{ fsMinutes }}</span>
@@ -753,10 +879,10 @@ const initScrollReveal = () => {
         </div>
 
         <div class="flash-sale-grid scroll-reveal reveal-stagger">
-          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod.id)">
+          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod)">
             <div class="flash-img-box">
               <img :src="prod.image" :alt="prod.tenSP" />
-              <div class="discount-absolute-badge">
+              <div class="discount-absolute-badge" v-if="prod.oldPrice > prod.gia">
                 -{{ Math.round((1 - prod.gia / prod.oldPrice) * 100) }}%
               </div>
             </div>
@@ -764,15 +890,18 @@ const initScrollReveal = () => {
             <div class="flash-card-info">
               <span class="product-brand">{{ prod.brand }}</span>
               <h3 class="product-title">{{ prod.tenSP }}</h3>
+              <div class="product-variant-badge" v-if="prod.ten_bienthe" :title="prod.ten_bienthe">
+                {{ prod.ten_bienthe }}
+              </div>
 
               <div class="price-flex-group">
                 <span class="price-new">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.gia) }}</span>
-                <span class="price-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
+                <span class="price-old" v-if="prod.oldPrice > prod.gia">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
               </div>
 
               <div class="stock-progress-container">
                 <div class="stock-info-row">
-                  <span>Đã bán {{ prod.soldPercent }}%</span>
+                  <span>{{ flashSaleStatus === 'active' ? 'Đã bán ' + prod.soldPercent + '%' : 'Sắp mở bán' }}</span>
                   <span>Còn lại {{ prod.remainingCount }} máy</span>
                 </div>
                 <div class="progress-track">
@@ -783,10 +912,10 @@ const initScrollReveal = () => {
               <button
                 @click.stop="addToCart(prod)"
                 class="btn-add-cart-flash"
-                :disabled="!prod.inStock"
+                :disabled="!prod.inStock || flashSaleStatus !== 'active'"
               >
                 <ShoppingBag class="cart-btn-icon" />
-                {{ prod.inStock ? 'Săn Ngay' : 'Hết Hàng' }}
+                {{ flashSaleStatus === 'active' ? (prod.inStock ? 'Săn Ngay' : 'Hết Hàng') : 'Sắp Diễn Ra' }}
               </button>
             </div>
           </div>
@@ -811,11 +940,11 @@ const initScrollReveal = () => {
         </div>
 
         <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
-          <div v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="v.category">
+          <div v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="v.danhmuc">
             <div class="voucher-glow-accent"></div>
             <div class="voucher-header">
               <div class="voucher-badge">
-                {{ v.category === 'freeship' ? 'Freeship' : v.category === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
+                {{ v.danhmuc === 'freeship' ? 'Freeship' : v.danhmuc === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
               </div>
               <div class="voucher-code-label">
                 Code: <strong>{{ v.code }}</strong>
@@ -823,11 +952,11 @@ const initScrollReveal = () => {
             </div>
 
             <div class="voucher-body" style="text-align: left;">
-              <h3>{{ v.name }}</h3>
+              <h3>{{ v.ten || v.name }}</h3>
               <p>{{ v.mota || v.desc }}</p>
-              <p v-if="v.end_date" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
+              <p v-if="v.ngayketthuc" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
                 <Clock class="pill-icon" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"/>
-                HSD: {{ formatDate(v.end_date) }}
+                HSD: {{ formatDate(v.ngayketthuc) }}
               </p>
             </div>
 
@@ -868,42 +997,76 @@ const initScrollReveal = () => {
           <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
-        <div class="combos-bento-layout scroll-reveal reveal-stagger">
-          <div v-for="(combo, cIdx) in comboDetailsList" :key="cIdx" class="combo-bento-card">
-            <div class="combo-main-content">
-              <div class="combo-details">
-                <span class="combo-discount-badge">{{ combo.discountBadge }}</span>
-                <h3>{{ combo.title }}</h3>
-                <p>{{ combo.desc }}</p>
-                
-                <div class="combo-pricing-group">
-                  <div class="price-block">
-                    <span class="price-label">Giá Combo:</span>
-                    <span class="price-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.comboPrice) }}</span>
-                  </div>
-                  <div class="price-block old-price-block">
-                    <span class="price-label">Tổng Giá gốc:</span>
-                    <span class="price-val-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.originalPrice) }}</span>
-                  </div>
-                </div>
+        <!-- Slider container -->
+        <div v-if="comboSlides.length > 0" class="combo-slider-wrapper scroll-reveal">
+          <transition name="slide-fade" mode="out-in">
+            <div class="combos-bento-layout" :key="activeComboSlide">
+              <div v-for="combo in comboSlides[activeComboSlide]" :key="combo.id_combo" class="combo-bento-card">
+                <div class="combo-main-content">
+                  <div class="combo-details">
+                    <span class="combo-discount-badge" v-if="calculateSavings(combo) > 0">
+                      Tiết kiệm {{ formatPrice(calculateSavings(combo)) }}
+                    </span>
+                    <span class="combo-discount-badge" v-else>Combo Đặc Biệt</span>
+                    <h3>{{ combo.ten_combo }}</h3>
+                    <p>{{ combo.mota || 'Sở hữu trọn bộ trang bị chuyên nghiệp với mức chiết khấu cực sâu.' }}</p>
+                    
+                    <div class="combo-pricing-group">
+                      <div class="price-block">
+                        <span class="price-label">Giá Combo:</span>
+                        <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                      </div>
+                      <div class="price-block old-price-block" v-if="calculateOriginalPrice(combo) > combo.giakhuyenmai">
+                        <span class="price-label">Tổng Giá gốc:</span>
+                        <span class="price-val-old">{{ formatPrice(calculateOriginalPrice(combo)) }}</span>
+                      </div>
+                    </div>
 
-                <router-link to="/" class="btn btn-primary-glass combo-action-btn">
-                  Mua Trọn Bộ Combo
-                  <ChevronRight class="btn-chevron" />
-                </router-link>
-              </div>
-
-              <div class="combo-visual-connector">
-                <div v-for="(item, itemIdx) in combo.items" :key="itemIdx" class="connector-node">
-                  <div class="node-image-box">
-                    <img :src="item.img" :alt="item.name" />
+                    <button class="btn btn-primary-glass combo-action-btn" type="button" @click="openCombo(combo)">
+                      Mua Trọn Bộ Combo
+                      <ChevronRight class="btn-chevron" />
+                    </button>
                   </div>
-                  <span class="node-title">{{ item.name }}</span>
-                  <div v-if="itemIdx < combo.items.length - 1" class="node-plus-sign">+</div>
+
+                  <div class="combo-visual-connector">
+                    <div v-for="(p, itemIdx) in combo.products" :key="p.id_sanpham" class="connector-node">
+                      <div class="node-image-box">
+                        <img :src="productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=200')" :alt="p.tenSP" />
+                      </div>
+                      <span class="node-title clickable" @click="router.push(`/products/${p.id_sanpham}`)">{{ p.tenSP }}</span>
+                      <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </transition>
+
+          <!-- Slider Navigation & Dots -->
+          <div class="slider-controls" v-if="comboSlides.length > 1">
+            <button class="slider-nav-btn prev" type="button" @click="prevComboSlide">
+              ‹
+            </button>
+            <div class="slider-dots">
+              <span 
+                v-for="(slide, sIdx) in comboSlides" 
+                :key="sIdx" 
+                class="slider-dot"
+                :class="{ active: sIdx === activeComboSlide }"
+                @click="activeComboSlide = sIdx"
+              ></span>
+            </div>
+            <button class="slider-nav-btn next" type="button" @click="nextComboSlide">
+              ›
+            </button>
           </div>
+        </div>
+
+        <!-- Fallback empty state -->
+        <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
+          <div class="combo-empty-icon">🎁</div>
+          <h3>Đang cập nhật các gói Combo độc quyền</h3>
+          <p>Hiện chưa có gói combo nào hoạt động. Vui lòng quay lại sau!</p>
         </div>
       </div>
     </section>
@@ -1071,6 +1234,14 @@ const initScrollReveal = () => {
         </div>
       </div>
     </section>
+
+    <!-- Modal Chọn Biến Thể Combo -->
+    <ComboSelectionModal 
+      v-if="selectedCombo" 
+      :combo="selectedCombo" 
+      :show="showComboModal" 
+      @close="showComboModal = false" 
+    />
   </div>
 </template>
 
@@ -1644,6 +1815,15 @@ const initScrollReveal = () => {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.timer-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-left: 2px;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+
 .timer-colon {
   color: #ef4444;
   font-weight: 800;
@@ -1742,6 +1922,21 @@ const initScrollReveal = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   height: 34px;
+}
+
+.product-variant-badge {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
 }
 
 .price-flex-group {
@@ -2138,6 +2333,101 @@ const initScrollReveal = () => {
   font-size: 22px;
   font-weight: 800;
   color: var(--accent);
+}
+
+.node-title.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.node-title.clickable:hover {
+  color: var(--highlight) !important;
+}
+
+/* Slider Controls Styles */
+.combo-slider-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.slider-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.slider-nav-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-light);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.slider-nav-btn:hover {
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: #050d1a;
+  transform: scale(1.05);
+}
+
+.slider-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+  background: var(--highlight);
+  width: 20px;
+  border-radius: 4px;
+}
+
+.combo-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #081529;
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+}
+
+.combo-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.combo-empty-state h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-light);
+}
+
+.combo-empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+  max-width: 480px;
 }
 
 /* ============================================================

@@ -42,7 +42,7 @@ class BienThe extends Model
     public function comboOffers()
     {
         return $this->belongsToMany(Combo::class, 'bienthe_combo_offers', 'id_bienthe', 'id_combo')
-            ->withPivot(['loai_uudai', 'giakhuyenmai_override', 'mota_uudai', 'trangthai'])
+            ->withPivot(['loai_uudai', 'giakhuyenmai_override', 'mota_uudai', 'trangthai', 'ngay_het_han', 'gioi_han_soluong', 'da_su_dung'])
             ->wherePivot('trangthai', 1);
     }
 }

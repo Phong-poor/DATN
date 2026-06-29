@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
-import { geocodeArea, geocodeWithFallback } from '@/services/geocode'
+import { searchSuggestions, geocodeArea, geocodeWithFallback, reverseGeocodeLocation } from '@/services/geocode'
 import swal from '@/services/swal'
 import AddressMapPicker from './AddressMapPicker.vue'
 import { normalizeImageUrl } from '@/services/urls'
@@ -43,6 +43,164 @@ const provinces = ref([])
 const wards = ref([])
 const mapInitialPosition = ref(null)
 const lastGeocodedString = ref('')
+
+const addressSuggestions = ref([])
+const showSuggestions = ref(false)
+const detailWarning = ref('')
+const searchingDetail = ref(false)
+let searchDetailTimeout = null
+let currentSearchController = null
+let searchRequestId = 0
+
+watch(showAddAddressModal, (newVal) => {
+    if (!newVal) {
+        addressSuggestions.value = []
+        showSuggestions.value = false
+        detailWarning.value = ''
+    }
+})
+
+const handleDetailInput = () => {
+    showSuggestions.value = false
+    detailWarning.value = ''
+    
+    if (searchDetailTimeout) clearTimeout(searchDetailTimeout)
+    if (currentSearchController) {
+        currentSearchController.abort()
+    }
+    
+    const detailLength = addressForm.value.diachi_cuthe ? addressForm.value.diachi_cuthe.trim().length : 0;
+    if (detailLength < 3) {
+        addressSuggestions.value = []
+        searchingDetail.value = false
+        return
+    }
+    
+    searchDetailTimeout = setTimeout(async () => {
+        searchingDetail.value = true
+        const controller = new AbortController()
+        currentSearchController = controller
+        searchRequestId++
+        const currentReqId = searchRequestId
+        
+        try {
+            const parts = [addressForm.value.diachi_cuthe, addressForm.value.phuong_xa, addressForm.value.quan_huyen, addressForm.value.tinh_thanhpho]
+                .filter(item => item && item !== 'Không xác định')
+            const query = [...parts, 'Việt Nam'].join(', ')
+            
+            const data = await searchSuggestions(query, controller.signal, {
+                province: addressForm.value.tinh_thanhpho !== 'Không xác định' ? addressForm.value.tinh_thanhpho : '',
+                ward: addressForm.value.phuong_xa !== 'Không xác định' ? addressForm.value.phuong_xa : ''
+            })
+            
+            if (controller.signal.aborted || currentReqId !== searchRequestId) return;
+            
+            let validResults = [];
+            if (data && data.length > 0) {
+                validResults = data.filter(item => (item.title || item.display_name || item.subtitle) && item.lat && item.lng);
+            }
+            
+            if (validResults.length > 0) {
+                addressSuggestions.value = validResults
+                showSuggestions.value = true
+                detailWarning.value = ''
+            } else {
+                addressSuggestions.value = []
+                showSuggestions.value = false
+                detailWarning.value = 'Không tìm thấy địa chỉ cụ thể, bản đồ sẽ ghim ở khu vực gần nhất.'
+                
+                // Cố gắng tìm vị trí fallback (Phường/Quận) và ghim bản đồ
+                const fallbackRes = await geocodeWithFallback(
+                    addressForm.value.diachi_cuthe, 
+                    addressForm.value.phuong_xa, 
+                    addressForm.value.quan_huyen, 
+                    addressForm.value.tinh_thanhpho
+                )
+                if (fallbackRes && fallbackRes.lat && fallbackRes.lng && currentReqId === searchRequestId) {
+                    addressForm.value.latitude = Number(fallbackRes.lat)
+                    addressForm.value.longitude = Number(fallbackRes.lng)
+                    mapInitialPosition.value = { lat: addressForm.value.latitude, lng: addressForm.value.longitude }
+                }
+            }
+        } catch (error) {
+            if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED' && !controller.signal.aborted) {
+                console.error('Lỗi tìm kiếm gợi ý:', error)
+            }
+            addressSuggestions.value = []
+            showSuggestions.value = false
+        } finally {
+            if (currentSearchController === controller) {
+                currentSearchController = null
+                searchingDetail.value = false
+            }
+        }
+    }, 900)
+}
+
+const selectSuggestion = async (item) => {
+    showSuggestions.value = false
+    detailWarning.value = ''
+    
+    if (item.title || item.display_name) {
+        addressForm.value.diachi_cuthe = item.title || item.display_name
+    }
+
+    const lat = Number(item.lat)
+    const lng = Number(item.lng)
+    mapInitialPosition.value = { lat, lng }
+    addressForm.value.latitude = lat
+    addressForm.value.longitude = lng
+
+    // Lấy thông tin địa chính chính xác từ tọa độ thông qua giải mã địa chỉ ngược
+    let finalProvince = item.province
+    let finalDistrict = item.district
+    let finalWard = item.ward
+
+    try {
+        const reverseData = await reverseGeocodeLocation(lat, lng)
+        if (reverseData) {
+            if (reverseData.province) finalProvince = reverseData.province
+            if (reverseData.district) finalDistrict = reverseData.district
+            if (reverseData.ward) finalWard = reverseData.ward
+        }
+    } catch (err) {
+        console.error('Lỗi giải mã ngược địa chỉ:', err)
+    }
+
+    // Tự động tìm và khớp Tỉnh/Thành phố, Phường/Xã
+    try {
+        await fetchProvinces()
+        if (finalProvince) {
+            addressForm.value.tinh_thanhpho = finalProvince
+            const provinceCode = findProvinceCodeByName(finalProvince)
+            if (provinceCode) {
+                selectedProvinceCode.value = provinceCode
+                await fetchWardsByProvince(provinceCode)
+                
+                if (finalWard) {
+                    addressForm.value.phuong_xa = finalWard
+                    const wardCode = findWardCodeByName(finalWard)
+                    if (wardCode) {
+                        selectedWardCode.value = wardCode
+                    }
+                }
+            }
+        }
+        if (finalDistrict) {
+            addressForm.value.quan_huyen = finalDistrict
+        }
+        
+        // Cập nhật lại địa chỉ đầy đủ
+        addressForm.value.full_address = [
+            addressForm.value.diachi_cuthe,
+            addressForm.value.phuong_xa,
+            addressForm.value.quan_huyen,
+            addressForm.value.tinh_thanhpho
+        ].filter(Boolean).join(', ')
+    } catch (e) {
+        console.error('Lỗi tự động khớp địa chỉ từ gợi ý:', e)
+    }
+}
 
 const defaultAddressForm = () => ({
     tinh_thanhpho: '',
@@ -323,6 +481,27 @@ const openEditAddressModal = async (addr) => {
 }
 
 const saveNewAddress = async () => {
+    const cleanAddressDetail = (str) => {
+        return String(str || '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/[.,-\s]+$/, '');
+    };
+
+    const isDuplicate = addresses.value.some(addr => {
+        if (editingAddressId.value && addr.id_diachi === editingAddressId.value) return false;
+        
+        return cleanAddressDetail(addr.tinh_thanhpho) === cleanAddressDetail(addressForm.value.tinh_thanhpho) &&
+               cleanAddressDetail(addr.phuong_xa) === cleanAddressDetail(addressForm.value.phuong_xa) &&
+               cleanAddressDetail(addr.diachi_cuthe) === cleanAddressDetail(addressForm.value.diachi_cuthe);
+    });
+
+    if (isDuplicate) {
+        swal.error('Trùng lặp', 'Địa chỉ này đã tồn tại trong danh sách của bạn.');
+        return;
+    }
+
     savingAddress.value = true
     try {
         const payload = {
@@ -401,7 +580,7 @@ const fetchCart = async () => {
                 qty: item.soluong,
                 img: normalizeImageUrl(item.hinh_anh, 'https://via.placeholder.com/200'),
                 id_combo: item.id_combo,
-                combo_group_id: item.combo_group_id,
+                id_nhom_combo: item.id_nhom_combo,
                 ten_combo: item.ten_combo,
                 hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
                 gia_combo: item.gia_combo,
@@ -428,9 +607,9 @@ const fetchCart = async () => {
 }
 
 const fillUserForm = (user = {}) => {
-    form.value.name = user.name || user.ten || form.value.name || ''
+    form.value.name = user.ten || user.name || form.value.name || ''
     form.value.email = user.email || form.value.email || ''
-    form.value.phone = user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
+    form.value.phone = user.sodienthoai || user.phone || user.sdt || user.so_dien_thoai || form.value.phone || ''
 }
 
 const fetchUserProfile = async () => {
@@ -456,11 +635,11 @@ const groupedCart = computed(() => {
     const comboGroups = {}
 
     cart.value.forEach(item => {
-        if (item.id_combo && item.combo_group_id) {
-            if (!comboGroups[item.combo_group_id]) {
-                comboGroups[item.combo_group_id] = {
+        if (item.id_combo && item.id_nhom_combo) {
+            if (!comboGroups[item.id_nhom_combo]) {
+                comboGroups[item.id_nhom_combo] = {
                     isCombo: true,
-                    combo_group_id: item.combo_group_id,
+                    id_nhom_combo: item.id_nhom_combo,
                     id_combo: item.id_combo,
                     ten_combo: item.ten_combo,
                     hinhanh_combo: normalizeImageUrl(item.hinhanh_combo, ''),
@@ -468,9 +647,9 @@ const groupedCart = computed(() => {
                     qty: item.qty,
                     items: []
                 }
-                list.push(comboGroups[item.combo_group_id])
+                list.push(comboGroups[item.id_nhom_combo])
             }
-            comboGroups[item.combo_group_id].items.push(item)
+            comboGroups[item.id_nhom_combo].items.push(item)
         } else {
             list.push({
                 isCombo: false,
@@ -631,8 +810,8 @@ const confirmOrder = async () => {
         const response = await api.post('/checkout', {
             id_diachi: selectedAddressId.value,
             diachi: form.value.address,
-            name: form.value.name,
-            phone: form.value.phone,
+            ten: form.value.name,
+            sodienthoai: form.value.phone,
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value,
@@ -643,7 +822,7 @@ const confirmOrder = async () => {
         if (response.data.success) {
             const grantedVouchers = response.data.granted_vouchers || [];
             if (grantedVouchers.length > 0) {
-                const voucherNames = grantedVouchers.map(v => v.name).join(', ');
+                const voucherNames = grantedVouchers.map(v => v.ten || v.name).join(', ');
                 await swal.success(
                     'Chúc mừng!',
                     `Bạn đã nhận được voucher: ${voucherNames} khi mua hàng thành công!`
@@ -776,7 +955,7 @@ const confirmOrder = async () => {
         <div class="summary">
           <h3>Tóm tắt đơn hàng</h3>
 
-          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : index">
+          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.id_nhom_combo : index">
             <!-- Standalone Item -->
             <div class="item" v-if="!entry.isCombo">
               <img :src="entry.img" />
@@ -962,9 +1141,18 @@ const confirmOrder = async () => {
               </div>
             </div>
           </div>
-          <div class="form-group form-full">
+          <div class="form-group form-full" style="position: relative;">
             <label>Địa chỉ chi tiết</label>
-            <input v-model="addressForm.diachi_cuthe" @blur="handleDetailBlur" placeholder="Số nhà, tên đường..." required />
+            <input v-model="addressForm.diachi_cuthe" @input="handleDetailInput" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
+            <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm gợi ý...</small>
+            <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning }}</small>
+            
+            <div v-if="showSuggestions && addressSuggestions.length > 0" class="suggestions-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1050; max-height: 250px; overflow-y: auto; margin-top: 4px;">
+              <div v-for="(item, idx) in addressSuggestions" :key="idx" @click="selectSuggestion(item)" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <strong style="font-size: 13px; color: #334155; display: block; margin-bottom: 2px;">{{ item.title || item.display_name || item.subtitle }}</strong>
+                <span style="font-size: 11px; color: #64748b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.subtitle || item.display_name }}</span>
+              </div>
+            </div>
           </div>
           <div class="form-group form-full">
             <label>Vị trí giao hàng</label>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
@@ -7,13 +7,7 @@ import swal from '@/services/swal'
 const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
-const activeMenu = ref('notifications')
-const logsLoading = ref(false)
-const billingLoading = ref(false)
-const logKeyword = ref('')
-const billingMonths = ref(6)
-const activityLogs = ref([])
-const billing = ref({ totals: { revenue: 0, discount: 0, orders: 0 }, series: [] })
+const activeMenu = ref('account')
 
 const defaultSettings = () => ({
   general: {
@@ -59,8 +53,6 @@ const menuItems = [
   { key: 'notifications', title: 'Thông báo', sub: 'Cảnh báo & email' },
   { key: 'appearance', title: 'Giao diện', sub: 'Màu sắc, font, bố cục' },
   { key: 'security', title: 'Bảo mật', sub: 'Phiên đăng nhập & 2FA' },
-  { key: 'activity', title: 'Nhật ký hoạt động', sub: 'Hoạt động gần đây' },
-  { key: 'billing', title: 'Tài chính', sub: 'Doanh thu & đơn hàng' },
 ]
 
 const notificationRows = [
@@ -103,18 +95,6 @@ const shadowOptions = [
   { value: 'strong', label: 'Đậm' },
 ]
 
-const filteredLogs = computed(() => {
-  const keyword = logKeyword.value.trim().toLowerCase()
-  if (!keyword) return activityLogs.value
-  return activityLogs.value.filter((item) =>
-    [item.title, item.description, item.actor, item.type].some((value) =>
-      String(value || '').toLowerCase().includes(keyword),
-    ),
-  )
-})
-
-const maxRevenue = computed(() => Math.max(...billing.value.series.map((item) => item.revenue || 0), 1))
-
 function mergeSettings(payload) {
   const defaults = defaultSettings()
   return {
@@ -123,10 +103,6 @@ function mergeSettings(payload) {
     notifications: { ...defaults.notifications, ...(payload?.notifications || {}) },
     security: { ...defaults.security, ...(payload?.security || {}) },
   }
-}
-
-function money(value) {
-  return `${Number(value || 0).toLocaleString('vi-VN')}đ`
 }
 
 function formatDate(value) {
@@ -173,37 +149,8 @@ async function saveSettings() {
   }
 }
 
-async function fetchActivityLogs() {
-  logsLoading.value = true
-  try {
-    const res = await api.get('/admin/account/activity-log')
-    activityLogs.value = res.data?.data || []
-  } catch (error) {
-    swal.error('Không thể tải nhật ký', error?.response?.data?.message || 'Vui lòng thử lại.')
-  } finally {
-    logsLoading.value = false
-  }
-}
-
-async function fetchBilling() {
-  billingLoading.value = true
-  try {
-    const res = await api.get('/admin/account/billing', { params: { months: billingMonths.value } })
-    billing.value = res.data?.data || billing.value
-  } catch (error) {
-    swal.error('Không thể tải tài chính', error?.response?.data?.message || 'Vui lòng thử lại.')
-  } finally {
-    billingLoading.value = false
-  }
-}
-
 function onMenuClick(key) {
-  if (key === 'activity') {
-    router.push('/admin/activity-log')
-    return
-  }
   activeMenu.value = key
-  if (key === 'billing' && !billing.value.series.length) fetchBilling()
 }
 
 function resetAppearance() {
@@ -388,61 +335,6 @@ onMounted(async () => {
         </div>
         <div class="form-grid compact">
           <label><span>Thời gian hết phiên (phút)</span><input v-model.number="form.security.session_timeout_minutes" type="number" min="15" max="1440" /></label>
-        </div>
-      </section>
-
-      <section v-if="activeMenu === 'activity'" class="panel">
-        <div class="panel-head">
-          <div>
-            <h3>Nhật ký hoạt động</h3>
-            <p>Theo dõi đơn hàng, tài khoản mới và các tác vụ gần đây.</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="fetchActivityLogs">Tải lại</button>
-        </div>
-        <div class="toolbar">
-          <input v-model="logKeyword" placeholder="Tìm theo tiêu đề, mô tả, người thao tác..." />
-        </div>
-        <div v-if="logsLoading" class="state">Đang tải nhật ký...</div>
-        <div v-else-if="!filteredLogs.length" class="state">Chưa có dữ liệu nhật ký phù hợp.</div>
-        <div v-else class="log-list">
-          <div v-for="(item, index) in filteredLogs" :key="index" class="log-row">
-            <span class="log-type" :class="item.type">{{ item.type }}</span>
-            <div>
-              <b>{{ item.title }}</b>
-              <p>{{ item.description }}</p>
-              <small>{{ item.actor }} · {{ formatDate(item.at) }}</small>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="activeMenu === 'billing'" class="panel">
-        <div class="panel-head">
-          <div>
-            <h3>Tài chính & doanh thu</h3>
-            <p>Tổng hợp doanh thu, giảm giá và số đơn theo mốc thời gian.</p>
-          </div>
-          <select v-model.number="billingMonths" class="small-select" @change="fetchBilling">
-            <option :value="3">3 tháng</option>
-            <option :value="6">6 tháng</option>
-            <option :value="12">12 tháng</option>
-          </select>
-        </div>
-
-        <div class="stats">
-          <div class="stat-card blue"><span>Tổng doanh thu</span><b>{{ money(billing.totals.revenue) }}</b></div>
-          <div class="stat-card violet"><span>Tổng giảm giá</span><b>{{ money(billing.totals.discount) }}</b></div>
-          <div class="stat-card green"><span>Tổng đơn hàng</span><b>{{ billing.totals.orders }}</b></div>
-        </div>
-        <div v-if="billingLoading" class="state">Đang tải dữ liệu tài chính...</div>
-        <div v-else class="chart">
-          <div v-for="(item, index) in billing.series" :key="index" class="chart-col">
-            <div class="bar-wrap">
-              <div class="bar" :style="{ height: `${Math.max(8, (item.revenue / maxRevenue) * 100)}%` }"></div>
-            </div>
-            <small>{{ item.label }}</small>
-            <p>{{ item.orders }} đơn</p>
-          </div>
         </div>
       </section>
     </main>

@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { saveAuth } from '@/services/auth'
@@ -7,6 +7,8 @@ import api from '@/services/api'
 const route = useRoute()
 const router = useRouter()
 
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
 const safeRedirectPath = (path) => {
   if (!path || typeof path !== 'string') return ''
   if (!path.startsWith('/') || path.startsWith('/login') || path.startsWith('/login-success')) return ''
@@ -14,7 +16,10 @@ const safeRedirectPath = (path) => {
 }
 
 const redirectAfterSocialLogin = async (user, token) => {
-  if (user?.role === 'admin') {
+  if (user?.vaitro && user.vaitro !== 'user') {
+    sessionStorage.setItem('skip_next_route_loader', '1')
+    sessionStorage.setItem('admin_intro_animation', '1')
+    await wait(260)
     await router.replace('/admin')
     return
   }
@@ -23,6 +28,8 @@ const redirectAfterSocialLogin = async (user, token) => {
   sessionStorage.removeItem('redirect_after_auth')
 
   if (redirectPath) {
+    sessionStorage.setItem('web_intro_animation', '1')
+    await wait(220)
     await router.replace(redirectPath)
     return
   }
@@ -36,6 +43,8 @@ const redirectAfterSocialLogin = async (user, token) => {
       })
       localStorage.removeItem('pendingCartItem')
       window.dispatchEvent(new Event('cart-updated'))
+      sessionStorage.setItem('web_intro_animation', '1')
+      await wait(220)
       await router.replace('/cart')
       return
     } catch (err) {
@@ -43,6 +52,8 @@ const redirectAfterSocialLogin = async (user, token) => {
     }
   }
 
+  sessionStorage.setItem('web_intro_animation', '1')
+  await wait(220)
   await router.replace('/')
 }
 

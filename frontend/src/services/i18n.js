@@ -190,6 +190,8 @@ const textMap = {
   'Chưa phát sinh giao dịch chia sẻ hoa hồng nào': 'No commission transactions yet',
   'Chưa có yêu cầu thanh toán rút tiền nào gửi lên': 'No withdrawal requests submitted yet',
   'Thông tin cá nhân': 'Personal Information',
+  'Hồ sơ cá nhân': 'My Profile',
+  'Cài đặt': 'Settings',
   'Quản lý thông tin hồ sơ của bạn': 'Manage your profile information',
   'Chỉnh sửa': 'Edit',
   'Đổi ảnh': 'Change Photo',
@@ -666,7 +668,7 @@ const reversePhraseMap = {
   CORE: 'CỐT LÕI',
   CONFIG: 'CẤU HÌNH',
   SALES: 'BÁN HÀNG',
-  MARKETING: 'TIẾP THỊ',
+  MARKETING: 'MARKETING',
 }
 
 export const getLocale = () => {

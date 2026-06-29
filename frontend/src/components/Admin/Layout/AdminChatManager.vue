@@ -62,7 +62,7 @@
               v-for="conv in filteredConversations" 
               :key="conv.id" 
               class="user-item"
-              :class="{ active: selectedConversation && selectedConversation.id === conv.id, selecting: deleteMode }"
+              :class="{ active: activeConversations.some(c => c.id === conv.id), selecting: deleteMode }"
               @click="deleteMode ? toggleConversationSelection(conv.id) : selectConversation(conv)"
             >
               <label v-if="deleteMode" class="conversation-check" @click.stop>
@@ -74,16 +74,16 @@
                 <span></span>
               </label>
               <div class="user-avatar-wrap">
-                <img :src="getAvatar(conv.user)" :alt="conv.user.name" class="user-avatar" />
+                <img :src="getAvatar(conv.user)" :alt="conv.user.ten || conv.user.name" class="user-avatar" />
                 <span v-if="conv.user.online" class="online-status"></span>
               </div>
               <div class="user-preview">
                 <div class="user-header-info">
-                  <span class="user-name">{{ conv.user.name || conv.user.email }}</span>
+                  <span class="user-name">{{ conv.user.ten || conv.user.name || conv.user.email }}</span>
                   <span class="message-time">{{ formatTime(conv.updated_at) }}</span>
                 </div>
                 <p class="last-message" :class="{ unread: conv.unread_count > 0 }">
-                  {{ conv.last_message || 'Bắt đầu cuộc trò chuyện' }}
+                  {{ conv.tin_nhan_cuoi || 'Bắt đầu cuộc trò chuyện' }}
                 </p>
               </div>
               <div v-if="conv.unread_count > 0" class="unread-dot"></div>
@@ -98,59 +98,97 @@
       </transition>
     </div>
 
-    <!-- Floating Conversation View -->
-    <transition name="slide-in-right">
-      <div v-if="selectedConversation" class="conversation-window" @mousedown.stop>
-        <div class="conv-header">
-          <div class="conv-header-left">
-            <button class="back-btn" @click="isListOpen = true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <div class="conv-avatar-wrap">
-              <img :src="getAvatar(selectedConversation.user)" alt="Avatar" />
-              <span v-if="selectedConversation.user.online" class="online-status"></span>
-            </div>
-            <div class="conv-user-info">
-              <span class="conv-name text-truncate">{{ selectedConversation.user.name || selectedConversation.user.email }}</span>
-              <span class="conv-status">{{ selectedConversation.user.online ? 'Đang hoạt động' : 'Ngoại tuyến' }}</span>
-            </div>
-          </div>
-          <div class="conv-header-actions">
-            <button type="button" class="action-btn" aria-label="Đóng" @click="closeConversation">✕</button>
-          </div>
-        </div>
-
-        <div class="conv-body" ref="convBody">
-          <ChatMessageRow
-            v-for="(msg, idx) in currentMessages"
-            :key="msg.id || msg._clientKey || `tmp-${idx}`"
-            :msg="msg"
-            :auth-user-id="authUserId"
-            api-prefix="admin/chat"
-            :side-class="isOwnMessage(msg) ? 'msg-right' : 'msg-left'"
-            :bubble-class="isOwnMessage(msg) ? 'admin' : 'user'"
-            @open-image="openImage"
-            @updated="(m) => patchMessage(currentMessages, m)"
-            @deleted="(id) => removeMessageById(currentMessages, id)"
-          >
-            <template v-if="!isOwnMessage(msg)" #avatar>
-              <div class="msg-avatar-small">
-                <img :src="getAvatar(selectedConversation.user)" alt="User" />
+    <!-- Floating Conversation Views -->
+    <div class="active-conversations-container">
+      <transition-group name="slide-in-right">
+        <div 
+          v-for="(conv, index) in activeConversations" 
+          :key="conv.id" 
+          class="conversation-window-wrapper"
+          :style="{ right: `${80 + index * 340}px` }"
+          @mousedown.stop
+        >
+          <div class="conversation-window">
+            <div class="conv-header">
+              <div class="conv-header-left">
+                <div class="conv-avatar-wrap">
+                  <img :src="getAvatar(conv.user)" alt="Avatar" />
+                  <span v-if="conv.user.online" class="online-status"></span>
+                </div>
+                <div class="conv-user-info">
+                  <span class="conv-name text-truncate">{{ conv.user.ten || conv.user.name || conv.user.email }}</span>
+                  <span class="conv-status">{{ conv.user.online ? 'Đang hoạt động' : 'Ngoại tuyến' }}</span>
+                </div>
               </div>
-            </template>
-          </ChatMessageRow>
-        </div>
+              <div class="conv-header-actions">
+                <button type="button" class="action-btn" aria-label="Tìm kiếm tin nhắn" title="Tìm kiếm tin nhắn" @click="showMessageSearchMap[conv.id] = !showMessageSearchMap[conv.id]" style="margin-right: 8px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; display: block;">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </button>
+                <button type="button" class="action-btn" aria-label="Đóng" @click="closeConversation(conv)">✕</button>
+              </div>
+            </div>
 
-        <div class="conv-footer">
-          <ChatComposer
-            v-model="newMessage"
-            :disabled="!selectedConversation"
-            placeholder="Aa"
-            @send="onComposerSend"
-          />
+            <!-- Message Search Bar -->
+            <transition name="slide-down">
+              <div v-if="showMessageSearchMap[conv.id]" class="message-search-bar">
+                <input
+                  type="text"
+                  v-model="searchMessageQueryMap[conv.id]"
+                  placeholder="Tìm kiếm nội dung tin nhắn..."
+                  @input="onSearchQueryInput(conv.id)"
+                  @keyup.enter="nextMatch(conv.id)"
+                />
+                <div v-if="(searchMessageQueryMap[conv.id] || '').trim()" class="search-navigation">
+                  <span class="search-count">{{ getMatchesCount(conv.id) > 0 ? (currentMatchIndexMap[conv.id] !== undefined ? currentMatchIndexMap[conv.id] : -1) + 1 : 0 }}/{{ getMatchesCount(conv.id) }}</span>
+                  <button type="button" class="nav-btn" @click="prevMatch(conv.id)" title="Kết quả trước">▲</button>
+                  <button type="button" class="nav-btn" @click="nextMatch(conv.id)" title="Kết quả tiếp">▼</button>
+                </div>
+                <button type="button" class="search-close-btn" @click="closeMessageSearch(conv.id)">✕</button>
+              </div>
+            </transition>
+
+            <div class="conv-body" :id="`conv-body-${conv.id}`">
+              <ChatMessageRow
+                v-for="(msg, idx) in messagesMap[conv.id] || []"
+                :key="msg.id || msg._clientKey || `tmp-${idx}`"
+                :msg="msg"
+                :auth-user-id="authUserId"
+                api-prefix="admin/chat"
+                :side-class="isOwnMessage(msg) ? 'msg-right' : 'msg-left'"
+                :bubble-class="isOwnMessage(msg) ? 'admin' : 'user'"
+                @open-image="openImage"
+                @updated="(m) => patchMessage(messagesMap[conv.id] || [], m)"
+                @deleted="(id) => removeMessageById(messagesMap[conv.id] || [], id)"
+              >
+                <template #body="{ msg: rowMsg }">
+                  <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
+                    <span v-html="formatMessage(rowMsg.noidung || '', searchMessageQueryMap[conv.id])"></span>
+                    <template v-if="rowMsg.noidung" #caption>
+                      <span v-html="formatMessage(rowMsg.noidung, searchMessageQueryMap[conv.id])"></span>
+                    </template>
+                  </ChatMessageBody>
+                </template>
+                <template v-if="!isOwnMessage(msg)" #avatar>
+                  <div class="msg-avatar-small">
+                    <img :src="getAvatar(conv.user)" alt="User" />
+                  </div>
+                </template>
+              </ChatMessageRow>
+            </div>
+
+            <div class="conv-footer">
+              <ChatComposer
+                v-model="newMessagesMap[conv.id]"
+                placeholder="Aa"
+                @send="(data) => onComposerSend(conv, data)"
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </transition>
+      </transition-group>
+    </div>
   </div>
 </template>
 
@@ -160,6 +198,8 @@ import api from '@/services/api';
 import echo from '@/services/echo';
 import { getUser } from '@/services/auth';
 import swal from '@/services/swal';
+import { normalizeImageUrl } from '@/services/urls';
+
 import {
   bindChatChannel,
   conversationPreviewFromMessage,
@@ -170,13 +210,19 @@ import {
   submitChatComposer,
 } from '@/utils/chatMessage';
 import ChatMessageRow from '@/components/Chat/ChatMessageRow.vue';
+import ChatMessageBody from '@/components/Chat/ChatMessageBody.vue';
 import ChatComposer from '@/components/Chat/ChatComposer.vue';
 
 const isListOpen = ref(false);
 const searchQuery = ref('');
-const selectedConversation = ref(null);
-const newMessage = ref('');
-const convBody = ref(null);
+const activeConversations = ref([]); // Array of active conversations, max 3
+const conversations = ref([]);
+const messagesMap = ref({}); // conv.id -> Messages array
+const newMessagesMap = ref({}); // conv.id -> composing message text
+const showMessageSearchMap = ref({}); // conv.id -> boolean search bar visibility
+const searchMessageQueryMap = ref({}); // conv.id -> search string
+const currentMatchIndexMap = ref({}); // conv.id -> search match index
+
 const managerRef = ref(null);
 const showConversationMenu = ref(false);
 const deleteMode = ref(false);
@@ -187,10 +233,93 @@ const CHAT_SEND_ENDPOINT = '/admin/chat/send';
 const user = getUser();
 const authUserId = computed(() => user?.id);
 
-const conversations = ref([]);
-const currentMessages = ref([]);
+const getSearchMatches = (convId) => {
+  const query = (searchMessageQueryMap.value[convId] || '').trim().toLowerCase();
+  if (!query) return [];
+  const messages = messagesMap.value[convId] || [];
+  return messages
+    .map((msg, index) => ({ msg, index }))
+    .filter(item => item.msg.noidung && item.msg.noidung.toLowerCase().includes(query));
+};
 
-const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+const getMatchesCount = (convId) => {
+  return getSearchMatches(convId).length;
+};
+
+const scrollToMatch = (convId) => {
+  const matchIndex = currentMatchIndexMap.value[convId];
+  const matches = getSearchMatches(convId);
+  if (matchIndex === -1 || matches.length === 0) return;
+  const match = matches[matchIndex];
+  if (!match) return;
+
+  nextTick(() => {
+    const el = document.getElementById(`msg-row-${match.msg.id || match.msg._clientKey}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('pulse-match');
+      setTimeout(() => {
+        el.classList.remove('pulse-match');
+      }, 1500);
+    }
+  });
+};
+
+const onSearchQueryInput = (convId) => {
+  const query = searchMessageQueryMap.value[convId] || '';
+  if (query.trim()) {
+    const matches = getSearchMatches(convId);
+    currentMatchIndexMap.value[convId] = matches.length - 1; // Default to last match
+    scrollToMatch(convId);
+  } else {
+    currentMatchIndexMap.value[convId] = -1;
+  }
+};
+
+const nextMatch = (convId) => {
+  const count = getMatchesCount(convId);
+  if (count === 0) return;
+  const current = currentMatchIndexMap.value[convId] !== undefined ? currentMatchIndexMap.value[convId] : -1;
+  currentMatchIndexMap.value[convId] = (current + 1) % count;
+  scrollToMatch(convId);
+};
+
+const prevMatch = (convId) => {
+  const count = getMatchesCount(convId);
+  if (count === 0) return;
+  const current = currentMatchIndexMap.value[convId] !== undefined ? currentMatchIndexMap.value[convId] : -1;
+  currentMatchIndexMap.value[convId] = (current - 1 + count) % count;
+  scrollToMatch(convId);
+};
+
+const closeMessageSearch = (convId) => {
+  showMessageSearchMap.value[convId] = false;
+  searchMessageQueryMap.value[convId] = '';
+  currentMatchIndexMap.value[convId] = -1;
+};
+
+const formatMessage = (text, query = '') => {
+  if (!text) return '';
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+    
+  let formatted = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  if (query && query.trim()) {
+    const escapedQuery = query.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    formatted = formatted.replace(regex, '<mark class="search-highlight">$1</mark>');
+  }
+  
+  formatted = formatted.replace(/\n/g, '<br/>');
+  return formatted;
+};
+
+const isOwnMessage = (msg) => Number(msg?.id_nguoigui) === Number(authUserId.value);
 
 const unreadCount = computed(() => {
   return conversations.value.filter(c => c.unread_count > 0).length;
@@ -199,7 +328,7 @@ const unreadCount = computed(() => {
 const filteredConversations = computed(() => {
   if (!searchQuery.value) return conversations.value;
   return conversations.value.filter(c => 
-    (c.user.name || c.user.email).toLowerCase().includes(searchQuery.value.toLowerCase())
+    (c.user.ten || c.user.name || c.user.email).toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
 
@@ -214,21 +343,26 @@ const loadConversations = async () => {
 
 const selectConversation = async (conv) => {
   if (deleteMode.value) return;
-  selectedConversation.value = conv;
+  
+  if (!activeConversations.value.find(c => c.id === conv.id)) {
+    if (activeConversations.value.length >= 3) {
+      activeConversations.value.shift();
+    }
+    activeConversations.value.push(conv);
+    
+    try {
+      const res = await api.get(`/admin/chat/conversations/${conv.id}/messages`);
+      messagesMap.value[conv.id] = res.data;
+      scrollToBottom(conv.id);
+      subscribeToConversation(conv.id);
+    } catch (error) {
+      console.error('Lỗi load tin nhắn:', error);
+    }
+  }
+  
   isListOpen.value = false;
   stopChatTitleNotice();
-  
-  try {
-    const res = await api.get(`/admin/chat/conversations/${conv.id}/messages`);
-    currentMessages.value = res.data;
-    scrollToBottom();
-    
-    // Subscribe to specific chat
-    subscribeToConversation(conv.id);
-    conv.unread_count = 0;
-  } catch (error) {
-    console.error('Lỗi load tin nhắn:', error);
-  }
+  conv.unread_count = 0;
 };
 
 const enterDeleteMode = () => {
@@ -261,10 +395,13 @@ const deleteSelectedConversations = async () => {
     const ids = [...selectedConversationIds.value];
     await api.delete('/admin/chat/conversations', { data: { ids } });
     conversations.value = conversations.value.filter((conv) => !ids.includes(conv.id));
-
-    if (selectedConversation.value && ids.includes(selectedConversation.value.id)) {
-      closeConversation();
-    }
+    
+    ids.forEach(id => {
+      const idx = activeConversations.value.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        closeConversation(activeConversations.value[idx]);
+      }
+    });
 
     cancelDeleteMode();
   } catch (error) {
@@ -275,26 +412,48 @@ const deleteSelectedConversations = async () => {
   }
 };
 
-const closeConversation = () => {
-  if (selectedConversation.value && echo) {
-    echo.leaveChannel(`chat.${selectedConversation.value.id}`);
+const closeConversation = (conv) => {
+  if (echo) {
+    echo.leaveChannel(`chat.${conv.id}`);
   }
-  selectedConversation.value = null;
-  currentMessages.value = [];
+  const idx = activeConversations.value.findIndex(c => c.id === conv.id);
+  if (idx !== -1) {
+    activeConversations.value.splice(idx, 1);
+  }
+  delete messagesMap.value[conv.id];
+  delete newMessagesMap.value[conv.id];
+  delete showMessageSearchMap.value[conv.id];
+  delete searchMessageQueryMap.value[conv.id];
+  delete currentMatchIndexMap.value[conv.id];
 };
 
 const bumpConversation = (msg) => {
-  const idx = conversations.value.findIndex((c) => c.id === msg.conversation_id);
+  const idx = conversations.value.findIndex((c) => c.id === msg.id_cuoc_tro_chuyen);
   if (idx === -1) {
     loadConversations();
     startChatTitleNotice();
     return;
   }
-  conversations.value[idx].last_message = conversationPreviewFromMessage(msg);
+  conversations.value[idx].tin_nhan_cuoi = conversationPreviewFromMessage(msg);
   conversations.value[idx].updated_at = msg.created_at;
+  
+  if (Number(msg.id_nguoigui) === Number(conversations.value[idx].user.id)) {
+    conversations.value[idx].user.online = true;
+    conversations.value[idx].user.hoat_dong_cuoi_luc = msg.created_at;
+  }
+
   const conv = conversations.value.splice(idx, 1)[0];
   conversations.value.unshift(conv);
-  if (!selectedConversation.value || selectedConversation.value.id !== msg.conversation_id) {
+
+  if (activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen)) {
+    const active = activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen);
+    if (Number(msg.id_nguoigui) === Number(active.user.id)) {
+      active.user.online = true;
+      active.user.hoat_dong_cuoi_luc = msg.created_at;
+    }
+  }
+
+  if (!activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen)) {
     conv.unread_count = (conv.unread_count || 0) + 1;
     startChatTitleNotice();
   }
@@ -309,34 +468,59 @@ const subscribeToGlobal = () => {
 };
 
 const subscribeToConversation = (id) => {
-  bindChatChannel(echo, `chat.${id}`, currentMessages, authUserId.value, () => scrollToBottom());
+  const messagesRef = computed({
+    get: () => messagesMap.value[id] || [],
+    set: (val) => { messagesMap.value[id] = val; }
+  });
+
+  bindChatChannel(echo, `chat.${id}`, messagesRef, authUserId.value, (msg) => {
+    scrollToBottom(id);
+    const active = activeConversations.value.find(c => c.id === id);
+    if (active && Number(msg.id_nguoigui) === Number(active.user.id)) {
+      active.user.online = true;
+      active.user.hoat_dong_cuoi_luc = msg.created_at;
+    }
+    const idx = conversations.value.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      conversations.value[idx].user.online = true;
+      conversations.value[idx].user.hoat_dong_cuoi_luc = msg.created_at;
+    }
+  });
 };
 
 const openImage = (url) => {
   window.open(url, '_blank');
 };
 
-const onComposerSend = async ({ text, items }) => {
-  if (!selectedConversation.value) return;
-
-  newMessage.value = '';
+const onComposerSend = async (conv, { text, items }) => {
+  newMessagesMap.value[conv.id] = '';
   stopChatTitleNotice();
+
+  const messagesRef = computed({
+    get: () => messagesMap.value[conv.id] || [],
+    set: (val) => { messagesMap.value[conv.id] = val; }
+  });
 
   try {
     const lastMsgText = await submitChatComposer({
       endpoint: CHAT_SEND_ENDPOINT,
-      conversationId: selectedConversation.value.id,
+      conversationId: conv.id,
       text,
       items,
-      messagesRef: currentMessages,
+      messagesRef: messagesRef,
       authUserId: authUserId.value,
     });
 
     if (lastMsgText) {
-      selectedConversation.value.last_message = lastMsgText;
-      selectedConversation.value.updated_at = new Date().toISOString();
+      conv.tin_nhan_cuoi = lastMsgText;
+      conv.updated_at = new Date().toISOString();
+      const idx = conversations.value.findIndex(c => c.id === conv.id);
+      if (idx !== -1) {
+        const [item] = conversations.value.splice(idx, 1);
+        conversations.value.unshift(item);
+      }
     }
-    scrollToBottom();
+    scrollToBottom(conv.id);
   } catch (error) {
     console.error('Lỗi gửi tin nhắn admin:', error);
   }
@@ -351,7 +535,15 @@ const toggleList = () => {
 };
 
 const getAvatar = (user) => {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+  if (user) {
+    const avatar = user.anhdaidien || user.avatar;
+    if (avatar) {
+      if (avatar.startsWith('http')) return avatar;
+      return normalizeImageUrl(avatar);
+    }
+  }
+  const name = user ? (user.ten || user.name || user.email || 'User') : 'User';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
 };
 
 const formatTime = (time) => {
@@ -360,10 +552,11 @@ const formatTime = (time) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const scrollToBottom = async () => {
+const scrollToBottom = async (convId) => {
   await nextTick();
-  if (convBody.value) {
-    convBody.value.scrollTop = convBody.value.scrollHeight;
+  const el = document.getElementById(`conv-body-${convId}`);
+  if (el) {
+    el.scrollTop = el.scrollHeight;
   }
 };
 
@@ -375,7 +568,7 @@ const handleClickOutside = (e) => {
 };
 
 const handleVisibilityChange = () => {
-  if (!document.hidden && selectedConversation.value) {
+  if (!document.hidden && activeConversations.value.length > 0) {
     stopChatTitleNotice();
   }
 };
@@ -393,9 +586,7 @@ onUnmounted(() => {
   stopChatTitleNotice();
   if (echo) {
     echo.leaveChannel('admin.chat');
-    if (selectedConversation.value) {
-      echo.leaveChannel(`chat.${selectedConversation.value.id}`);
-    }
+    activeConversations.value.forEach(c => echo.leaveChannel(`chat.${c.id}`));
   }
 });
 </script>
@@ -753,16 +944,34 @@ onUnmounted(() => {
   margin-left: 8px;
 }
 
-.conversation-window {
+.active-conversations-container {
   position: fixed;
-  bottom: 0px;
-  right: 80px;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2000;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.conversation-window-wrapper {
+  position: fixed;
+  bottom: 0;
   width: 330px;
   height: 480px;
+  pointer-events: auto;
+  transition: right 0.3s ease;
+  z-index: 2000;
+}
+
+.conversation-window {
+  width: 100%;
+  height: 100%;
   background: #fff;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 8px 10px rgba(0, 0, 0, 0.08);
-  z-index: 2000;
   display: flex;
   flex-direction: column;
 }
@@ -890,4 +1099,102 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+/* Message Search Bar styles */
+.message-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.message-search-bar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+.message-search-bar input:focus {
+  border-color: #0084ff;
+}
+
+.search-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.search-count {
+  font-size: 12px;
+  color: #64748b;
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+.nav-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.nav-btn:hover {
+  background: #f1f5f9;
+}
+
+.search-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: #64748b;
+  padding: 4px;
+}
+
+.search-close-btn:hover {
+  color: #0f172a;
+}
+
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: all 0.25s ease;
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Search Highlight styles */
+:deep(.search-highlight) {
+  background-color: #fef08a !important;
+  color: #0f172a !important;
+  padding: 1px 2px;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+:deep(.pulse-match) {
+  animation: pulse-match-anim 1.5s ease-in-out;
+}
+
+@keyframes pulse-match-anim {
+  0% { background-color: transparent; }
+  25% { background-color: rgba(254, 240, 138, 0.4); }
+  50% { background-color: transparent; }
+  75% { background-color: rgba(254, 240, 138, 0.4); }
+  100% { background-color: transparent; }
+}
 </style>

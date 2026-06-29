@@ -76,11 +76,11 @@ const groupedCart = computed(() => {
     const comboGroups = {}
 
     cart.value.forEach(item => {
-        if (item.id_combo && item.combo_group_id) {
-            if (!comboGroups[item.combo_group_id]) {
-                comboGroups[item.combo_group_id] = {
+        if (item.id_combo && item.id_nhom_combo) {
+            if (!comboGroups[item.id_nhom_combo]) {
+                comboGroups[item.id_nhom_combo] = {
                     isCombo: true,
-                    combo_group_id: item.combo_group_id,
+                    id_nhom_combo: item.id_nhom_combo,
                     id_combo: item.id_combo,
                     ten_combo: item.ten_combo,
                     hinhanh_combo: item.hinhanh_combo,
@@ -89,11 +89,11 @@ const groupedCart = computed(() => {
                     ton_kho: item.ton_kho,
                     items: []
                 }
-                list.push(comboGroups[item.combo_group_id])
+                list.push(comboGroups[item.id_nhom_combo])
             }
-            comboGroups[item.combo_group_id].items.push(item)
-            if (item.ton_kho < comboGroups[item.combo_group_id].ton_kho) {
-                comboGroups[item.combo_group_id].ton_kho = item.ton_kho
+            comboGroups[item.id_nhom_combo].items.push(item)
+            if (item.ton_kho < comboGroups[item.id_nhom_combo].ton_kho) {
+                comboGroups[item.id_nhom_combo].ton_kho = item.ton_kho
             }
         } else {
             list.push({
@@ -118,7 +118,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
     
     // C?p nh?t s? lu?ng c?a t?ng mn trong cache gi? hng c?c b?
     cart.value.forEach(item => {
-        if (item.combo_group_id === group.combo_group_id) {
+        if (item.id_nhom_combo === group.id_nhom_combo) {
             item.soluong = soLuongMoi
             item.thanh_tien = item.gia * soLuongMoi
         }
@@ -127,7 +127,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
 
 
     try {
-        await api.put(`/gio-hang/cap-nhat-combo/${group.combo_group_id}`, { soluong: soLuongMoi })
+        await api.put(`/gio-hang/cap-nhat-combo/${group.id_nhom_combo}`, { soluong: soLuongMoi })
     } catch (err) {
         hienThiThongBao('error', err.response?.data?.message || 'L?i c?p nh?t s? lu?ng combo!')
         fetchGioHang()
@@ -138,12 +138,12 @@ const deleteCombo = async (group) => {
     const isConfirmed = await swal.confirm('Xóa Combo', 'Bạn có chắc chắn muốn xóa combo này khỏi giỏ hàng?')
     if (!isConfirmed) return
 
-    cart.value = cart.value.filter(item => item.combo_group_id !== group.combo_group_id)
+    cart.value = cart.value.filter(item => item.id_nhom_combo !== group.id_nhom_combo)
 
 
 
     try {
-        await api.delete(`/gio-hang/xoa-combo/${group.combo_group_id}`)
+        await api.delete(`/gio-hang/xoa-combo/${group.id_nhom_combo}`)
         hienThiThongBao('success', 'Đã xóa combo khỏi giỏ hàng.')
         window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
@@ -386,7 +386,7 @@ const goToCheckout = () => {
 
         <!-- CART ITEMS LIST -->
         <transition-group v-else name="item-anim" tag="div" class="items-list">
-          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.combo_group_id : entry.id_giohang">
+          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.id_nhom_combo : entry.id_giohang">
 
             <!-- Standalone item -->
             <div

@@ -21,10 +21,36 @@
               Tư vấn AI
             </button>
 
+            <!-- Message Search Button -->
+            <button class="mode-toggle-btn search-trigger" @click="showMessageSearch = !showMessageSearch" title="Tìm kiếm tin nhắn" style="padding: 4px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; margin-left: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; display: block;">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+            </button>
+
             <!-- Close Button -->
             <button class="close-btn-header" @click="isOpen = false">✕</button>
           </div>
         </div>
+
+        <!-- Message Search Bar -->
+        <transition name="slide-down">
+          <div v-if="showMessageSearch" class="message-search-bar">
+            <input
+              type="text"
+              v-model="searchMessageQuery"
+              placeholder="Tìm tin nhắn..."
+              ref="searchMsgInput"
+              @keyup.enter="nextMatch"
+            />
+            <div v-if="searchMessageQuery.trim()" class="search-navigation">
+              <span class="search-count">{{ matchesCount > 0 ? currentMatchIndex + 1 : 0 }}/{{ matchesCount }}</span>
+              <button type="button" class="nav-btn" @click="prevMatch" title="Trước">▲</button>
+              <button type="button" class="nav-btn" @click="nextMatch" title="Sau">▼</button>
+            </div>
+            <button type="button" class="search-close-btn" @click="closeMessageSearch">✕</button>
+          </div>
+        </transition>
 
         <!-- Body -->
         <div class="chat-body" ref="chatBody">
@@ -47,9 +73,9 @@
             </template>
             <template #body="{ msg: rowMsg }">
               <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
-                <span v-html="formatMessage(rowMsg.message || '')"></span>
-                <template v-if="rowMsg.message" #caption>
-                  <span v-html="formatMessage(rowMsg.message)"></span>
+                <span v-html="formatMessage(rowMsg.noidung || '', searchMessageQuery)"></span>
+                <template v-if="rowMsg.noidung" #caption>
+                  <span v-html="formatMessage(rowMsg.noidung, searchMessageQuery)"></span>
                 </template>
               </ChatMessageBody>
             </template>
@@ -73,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import echo from '@/services/echo';
@@ -102,7 +128,67 @@ const router = useRouter();
 
 const currentUser = ref(getUser());
 const authUserId = computed(() => currentUser.value?.id);
-const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+const isOwnMessage = (msg) => Number(msg?.id_nguoigui) === Number(authUserId.value);
+
+// Message search logic
+const showMessageSearch = ref(false);
+const searchMessageQuery = ref('');
+const currentMatchIndex = ref(-1);
+const searchMsgInput = ref(null);
+
+const searchMatches = computed(() => {
+  if (!searchMessageQuery.value.trim()) return [];
+  const query = searchMessageQuery.value.trim().toLowerCase();
+  return messages.value
+    .map((msg, index) => ({ msg, index }))
+    .filter(item => item.msg.noidung && item.msg.noidung.toLowerCase().includes(query));
+});
+
+const matchesCount = computed(() => searchMatches.value.length);
+
+watch(searchMessageQuery, (newVal) => {
+  if (newVal.trim()) {
+    currentMatchIndex.value = searchMatches.value.length - 1; // Default to last match
+    scrollToMatch();
+  } else {
+    currentMatchIndex.value = -1;
+  }
+});
+
+const scrollToMatch = () => {
+  if (currentMatchIndex.value === -1 || searchMatches.value.length === 0) return;
+  const match = searchMatches.value[currentMatchIndex.value];
+  if (!match) return;
+
+  nextTick(() => {
+    const el = document.getElementById(`msg-row-${match.msg.id || match.msg._clientKey}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('pulse-match');
+      setTimeout(() => {
+        el.classList.remove('pulse-match');
+      }, 1500);
+    }
+  });
+};
+
+const nextMatch = () => {
+  if (matchesCount.value === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % matchesCount.value;
+  scrollToMatch();
+};
+
+const prevMatch = () => {
+  if (matchesCount.value === 0) return;
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + matchesCount.value) % matchesCount.value;
+  scrollToMatch();
+};
+
+const closeMessageSearch = () => {
+  showMessageSearch.value = false;
+  searchMessageQuery.value = '';
+  currentMatchIndex.value = -1;
+};
 
 const ensureAuthenticated = () => {
   currentUser.value = getUser();
@@ -165,9 +251,23 @@ const switchToAI = () => {
   window.dispatchEvent(new CustomEvent('open-chatbot'));
 };
 
-const formatMessage = (text) => {
+const formatMessage = (text, query = '') => {
   if (!text) return '';
-  let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+    
+  let formatted = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  if (query && query.trim()) {
+    const escapedQuery = query.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    formatted = formatted.replace(regex, '<mark class="search-highlight">$1</mark>');
+  }
+  
   formatted = formatted.replace(/\n/g, '<br/>');
   return formatted;
 };
@@ -236,6 +336,7 @@ const handleToggleAdminChat = () => {
 const handleOpenChatEvent = () => {
   isOpen.value = false;
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: false } }));
+  closeMessageSearch();
 };
 
 const handleVisibilityChange = () => {
@@ -251,6 +352,16 @@ onMounted(() => {
   window.addEventListener('user-updated', refreshCurrentUser);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
+  if (window.__pendingAdminChatEvent) {
+    const pending = window.__pendingAdminChatEvent;
+    window.__pendingAdminChatEvent = null;
+    if (pending === 'open-admin-chat') {
+      handleOpenAdminChat();
+    } else if (pending === 'toggle-admin-chat') {
+      handleToggleAdminChat();
+    }
+  }
+
   if (getToken() && currentUser.value) loadMessages();
 });
 
@@ -430,4 +541,104 @@ onUnmounted(() => {
   border: 1px solid var(--tn-border);
 }
 
+/* Message Search Bar styles */
+.message-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.message-search-bar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  background: #fff;
+  color: #334155;
+}
+
+.message-search-bar input:focus {
+  border-color: #2563eb;
+}
+
+.search-navigation {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.search-count {
+  font-size: 11px;
+  color: #64748b;
+  margin-right: 2px;
+  font-weight: 600;
+}
+
+.nav-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 8px;
+  color: #334155;
+}
+
+.nav-btn:hover {
+  background: #f1f5f9;
+}
+
+.search-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  color: #64748b;
+  padding: 2px;
+}
+
+.search-close-btn:hover {
+  color: #0f172a;
+}
+
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: all 0.25s ease;
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Search Highlight styles */
+:deep(.search-highlight) {
+  background-color: #fef08a !important;
+  color: #0f172a !important;
+  padding: 1px 2px;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+:deep(.pulse-match) {
+  animation: pulse-match-anim 1.5s ease-in-out;
+}
+
+@keyframes pulse-match-anim {
+  0% { background-color: transparent; }
+  25% { background-color: rgba(254, 240, 138, 0.4); }
+  50% { background-color: transparent; }
+  75% { background-color: rgba(254, 240, 138, 0.4); }
+  100% { background-color: transparent; }
+}
 </style>

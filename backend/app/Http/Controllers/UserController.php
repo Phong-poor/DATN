@@ -41,15 +41,15 @@ class UserController extends Controller
             $path = 'uploads/avatar';
 
             // 3. Xóa avatar cũ nếu có (và không phải mặc định)
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->anhdaidien && Storage::disk('public')->exists($user->anhdaidien)) {
+                Storage::disk('public')->delete($user->anhdaidien);
             }
 
             // 4. Lưu file vào disk 'public'
             $filePath = $file->storeAs($path, $filename, 'public');
 
             // 5. Cập nhật DB
-            $user->avatar = $filePath;
+            $user->anhdaidien = $filePath;
             $user->save();
 
             return response()->json([
@@ -64,7 +64,7 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'phone', 'role', 'status', 'created_at')
+        $users = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -73,7 +73,7 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::select('id', 'name', 'email', 'phone', 'role', 'status', 'created_at')
+        $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->findOrFail($id);
 
         return response()->json($user);
@@ -82,26 +82,26 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'role' => 'nullable|in:admin,user',
-            'status' => 'nullable|in:active,locked',
+            'ten' => 'required|string|max:255',
+            'email' => 'required|email|unique:khachhang,email',
+            'matkhau' => 'required|string|min:8|confirmed',
+            'sodienthoai' => 'nullable|string|max:20',
+            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
+            'trangthai' => 'nullable|in:active,locked',
         ]);
 
         $user = User::create([
-            'name' => $validated['name'],
+            'ten' => $validated['ten'],
             'email' => $validated['email'],
-            'password' => $validated['password'],
-            'phone' => $validated['phone'] ?? null,
-            'role' => $validated['role'] ?? 'user',
-            'status' => $validated['status'] ?? 'active',
+            'matkhau' => $validated['matkhau'],
+            'sodienthoai' => $validated['sodienthoai'] ?? null,
+            'vaitro' => $validated['vaitro'] ?? 'user',
+            'trangthai' => $validated['trangthai'] ?? 'active',
         ]);
 
         return response()->json([
             'message' => 'Tạo người dùng thành công',
-            'user' => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
+            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
         ], 201);
     }
 
@@ -110,33 +110,52 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => ['sometimes', 'required', 'email', Rule::unique('users', 'email')->ignore($id)],
-            'phone' => 'nullable|string|max:20',
-            'role' => 'nullable|in:admin,user',
-            'status' => 'nullable|in:active,locked',
-            'password' => 'nullable|string|min:8',
+            'ten' => 'sometimes|required|string|max:255',
+            'email' => ['sometimes', 'required', 'email', Rule::unique('khachhang', 'email')->ignore($id)],
+            'sodienthoai' => 'nullable|string|max:20',
+            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
+            'trangthai' => 'nullable|in:active,locked',
+            'matkhau' => 'nullable|string|min:8',
         ]);
 
-        if (isset($validated['name']))
-            $user->name = $validated['name'];
+        if (isset($validated['ten']))
+            $user->ten = $validated['ten'];
         if (isset($validated['email']))
             $user->email = $validated['email'];
-        if (isset($validated['phone']))
-            $user->phone = $validated['phone'];
-        if (isset($validated['role']))
-            $user->role = $validated['role'];
-        if (isset($validated['status']))
-            $user->status = $validated['status'];
-        if (!empty($validated['password'])) {
-            $user->password = $validated['password'];
+        if (isset($validated['sodienthoai']))
+            $user->sodienthoai = $validated['sodienthoai'];
+        if (isset($validated['vaitro'])) {
+            // Không được đổi vai trò của NextGen và phongtqpk
+            if (in_array($user->email, ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com']) && $validated['vaitro'] !== 'admin') {
+                return response()->json([
+                    'message' => 'Không thể thay đổi vai trò của tài khoản Giám đốc sáng lập'
+                ], 422);
+            }
+            // Nhân viên không được đổi sang khách hàng
+            if ($user->vaitro !== 'user' && $validated['vaitro'] === 'user') {
+                return response()->json([
+                    'message' => 'Nhân viên không thể chuyển đổi thành khách hàng'
+                ], 422);
+            }
+            // Khách hàng không được thay đổi vai trò
+            if ($user->vaitro === 'user' && $validated['vaitro'] !== 'user') {
+                return response()->json([
+                    'message' => 'Không thể thay đổi vai trò của tài khoản Khách hàng'
+                ], 422);
+            }
+            $user->vaitro = $validated['vaitro'];
+        }
+        if (isset($validated['trangthai']))
+            $user->trangthai = $validated['trangthai'];
+        if (!empty($validated['matkhau'])) {
+            $user->matkhau = $validated['matkhau'];
         }
 
         $user->save();
 
         return response()->json([
             'message' => 'Cập nhật thành công',
-            'user' => $user->only(['id', 'name', 'email', 'phone', 'role', 'status', 'created_at']),
+            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
         ]);
     }
 
@@ -149,15 +168,15 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-            'date_of_birth' => 'nullable|date',
-            'gender' => 'nullable|in:male,female',
+            'ten' => 'required|string|max:255',
+            'email' => 'required|email|unique:khachhang,email,' . $user->id,
+            'sodienthoai' => 'nullable|string|max:20',
+            'ngaysinh' => 'nullable|date',
+            'gioitinh' => 'nullable|in:male,female',
         ]);
 
-        $date = (!empty($validated['date_of_birth']))
-            ? Carbon::parse($validated['date_of_birth'])->format('Y-m-d')
+        $date = (!empty($validated['ngaysinh']))
+            ? Carbon::parse($validated['ngaysinh'])->format('Y-m-d')
             : null;
 
         $genderMap = [
@@ -165,11 +184,11 @@ class UserController extends Controller
             'female' => 'Nữ',
         ];
 
-        $user->name = $validated['name'];
+        $user->ten = $validated['ten'];
         $user->email = $validated['email'];
-        $user->phone = $validated['phone'] ?? null;
-        $user->date_of_birth = $date;
-        $user->gender = isset($validated['gender']) ? $genderMap[$validated['gender']] : null;
+        $user->sodienthoai = $validated['sodienthoai'] ?? null;
+        $user->ngaysinh = $date;
+        $user->gioitinh = isset($validated['gioitinh']) ? $genderMap[$validated['gioitinh']] : null;
 
         $user->save();
 
@@ -232,13 +251,13 @@ class UserController extends Controller
             'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
         ]);
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (!Hash::check($request->current_password, $user->matkhau)) {
             return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
         }
 
         $otp = rand(100000, 999999);
-        $user->reset_otp = $otp;
-        $user->reset_otp_expires_at = Carbon::now()->addMinutes(10);
+        $user->otp_khoiphuc = $otp;
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(10);
         $user->save();
 
         try {
@@ -267,13 +286,13 @@ class UserController extends Controller
             'new_password' => 'required|min:8',
         ]);
 
-        if ((int)$user->reset_otp !== (int)$request->otp || Carbon::now()->gt($user->reset_otp_expires_at)) {
+        if ((int)$user->otp_khoiphuc !== (int)$request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
             return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
         }
 
-        $user->password = Hash::make($request->new_password);
-        $user->reset_otp = null;
-        $user->reset_otp_expires_at = null;
+        $user->matkhau = Hash::make($request->new_password);
+        $user->otp_khoiphuc = null;
+        $user->otp_khoiphuc_hethan_luc = null;
         $user->save();
 
         return response()->json([
@@ -314,12 +333,12 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (!Hash::check($request->current_password, $user->matkhau)) {
             \Log::warning("Direct password change failed for User ID: {$user->id}: Current password check failed.");
             return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
         }
 
-        $user->password = Hash::make($request->new_password);
+        $user->matkhau = Hash::make($request->new_password);
         $user->save();
 
         \Log::info("Direct password change succeeded for User ID: {$user->id}");

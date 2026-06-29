@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import swal from '@/services/swal'
 
 // Vô hiệu hóa tính năng tự động khôi phục vị trí cuộn của trình duyệt khi reload trang
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
@@ -81,7 +82,7 @@ const routes = [
   { path: '/register', name: 'register', component: Register },
   { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword },
   { path: '/otp-verify', name: 'otp-verify', component: OtpVerify },
-  { path: '/reset-password', name: 'reset-password', component: ResetPassword },
+  { path: '/reset-password', alias: '/reset_password', name: 'reset-password', component: ResetPassword },
   { path: '/login-success', name: 'login-success', component: LoginSuccess },
 
   // ── ADMIN ──
@@ -108,6 +109,8 @@ const routes = [
       { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue'), meta: { title: 'Quản lý thương hiệu' } },
       { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue'), meta: { title: 'Quản lý bình luận' } },
       { path: 'affiliates', name: 'admin-affiliates', component: () => import('../components/Admin/Affiliates.vue'), meta: { title: 'Quản lý affiliate' } },
+      { path: 'birthday-codes', name: 'admin-birthday-codes', component: () => import('../components/Admin/BirthdayCodes.vue'), meta: { title: 'Gửi mã sinh nhật' } },
+      { path: 'flash-sale', name: 'admin-flash-sale', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Quản lý Flash Sale' } },
     ],
   },
 
@@ -137,59 +140,86 @@ router.afterEach(() => {
   // Cưỡng bức cuộn lên đầu trang ngay khi chuyển trang xong ở mức router
   forceScrollTop()
   requestAnimationFrame(forceScrollTop)
-  
+
   // Thực hiện cuộn phụ sau 120ms để bù đắp sự thay đổi chiều cao do các tiến trình render bất đồng bộ (API/Transitions)
   setTimeout(() => {
     forceScrollTop()
-    window.dispatchEvent(new Event('global-loader-hide'))
+    window.dispatchEvent(new Event('global-loader-force-hide'))
   }, 120)
 })
 
 router.beforeEach((to, from, next) => {
-    const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/')
-    if (shouldShowRouteLoader) {
-      showRouteLoader()
+  const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/')
+  if (shouldShowRouteLoader) {
+    showRouteLoader()
+  }
+  forceScrollTop()
+  const user = getUser()
+  const token = getToken()
+
+  const publicPages = [
+    '/',
+    '/products',
+    '/gaming',
+    '/macbook',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/otp-verify',
+    '/reset-password',
+    '/reset_password',
+    '/login-success',
+    '/news',
+    '/contact',
+    '/cart',
+    '/thank-you',
+    '/payment-failed',
+    '/interactive-labs',
+    '/khuyen-mai',
+    '/workstation',
+  ]
+
+  const isPublic =
+    publicPages.includes(to.path) ||
+    to.path.startsWith('/products/') ||
+    to.path.startsWith('/news/')
+
+  if (!isPublic && !token) {
+    return next('/login')
+  }
+
+  if (to.matched.some(route => route.meta.requiresAdmin)) {
+    if (!user || !token) return next('/login')
+    if (user.vaitro === 'user') return next('/')
+
+    const role = String(user.vaitro || '').toLowerCase()
+    if (role !== 'admin') {
+      const rolePermissions = {
+        inventory: ['/admin', '/admin/products', '/admin/categories', '/admin/brands', '/admin/variants', '/admin/profile', '/admin/settings'],
+        order_manager: ['/admin', '/admin/orders', '/admin/profile', '/admin/settings'],
+        marketing: ['/admin', '/admin/promotions', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sale', '/admin/profile', '/admin/settings'],
+        affiliate_manager: ['/admin', '/admin/affiliates', '/admin/profile', '/admin/settings'],
+        editor: ['/admin', '/admin/news', '/admin/reviews', '/admin/banners', '/admin/profile', '/admin/settings'],
+        support: ['/admin', '/admin/contacts', '/admin/profile', '/admin/settings'],
+        accountant: ['/admin', '/admin/orders', '/admin/profile', '/admin/settings'],
+      }
+
+      const allowedPaths = rolePermissions[role] || []
+      const isAllowed = allowedPaths.some(path => {
+        if (path === '/admin') {
+          return to.path === '/admin'
+        }
+        return to.path === path || to.path.startsWith(path + '/')
+      })
+
+      if (!isAllowed) {
+        swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!')
+        return next(false)
+      }
     }
-    forceScrollTop()
-    const user = getUser()
-    const token = getToken()
+  }
 
-    const publicPages = [
-      '/',
-      '/products',
-      '/gaming',
-      '/macbook',
-      '/login',
-      '/register',
-      '/forgot-password',
-      '/otp-verify',
-      '/reset-password',
-      '/login-success',
-      '/news',
-      '/contact',
-      '/cart',
-      '/thank-you',
-      '/payment-failed',
-      '/interactive-labs',
-      '/khuyen-mai',
-      '/workstation',
-    ]
-
-    const isPublic =
-      publicPages.includes(to.path) ||
-      to.path.startsWith('/products/') ||
-      to.path.startsWith('/news/')
-
-    if (!isPublic && !token) {
-      return next('/login')
-    }
-
-    if (to.matched.some(route => route.meta.requiresAdmin)) {
-      if (!user || !token) return next('/login')
-      if (user.role !== 'admin') return next('/')
-    }
-
-    next()
+  next()
 })
 
 export default router

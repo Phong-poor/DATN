@@ -14,7 +14,9 @@ const showChatbot = computed(() =>
 )
 
 const showScrollTop = ref(false)
+const webIntroActive = ref(false)
 let scrollTicking = false
+let webIntroTimer = null
 
 const handleScroll = () => {
   if (scrollTicking) return
@@ -34,23 +36,45 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
+  if (sessionStorage.getItem('web_intro_animation') === '1') {
+    sessionStorage.removeItem('web_intro_animation')
+    webIntroActive.value = true
+    webIntroTimer = window.setTimeout(() => {
+      webIntroActive.value = false
+      webIntroTimer = null
+    }, 1350)
+  }
+
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(() => {
+  if (webIntroTimer) {
+    clearTimeout(webIntroTimer)
+    webIntroTimer = null
+  }
+
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
 <template>
-  <Header />
-  <Breadcrumbs v-if="route.path !== '/'" />
-  <router-view v-slot="{ Component }">
-    <transition name="page-fade">
-      <component :is="Component" :key="route.fullPath" />
-    </transition>
-  </router-view>
-  <Footer />
+  <div class="web-layout" :class="{ 'intro-active': webIntroActive }">
+    <div class="web-intro-header">
+      <Header />
+    </div>
+    <Breadcrumbs v-if="route.path !== '/'" />
+    <main class="web-intro-main">
+      <router-view v-slot="{ Component }">
+        <transition name="page-fade">
+          <component :is="Component" :key="route.fullPath" />
+        </transition>
+      </router-view>
+    </main>
+    <div class="web-intro-footer">
+      <Footer />
+    </div>
+  </div>
 
   <!-- Nút cuộn lên đầu trang (Back to Top) -->
   <transition name="fade-scale">
@@ -69,6 +93,81 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.web-layout {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding-top: 102px;
+}
+
+.web-layout.intro-active {
+  animation: webIntroBase 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.web-layout.intro-active .web-intro-header {
+  animation: webIntroHeader 0.82s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.web-layout.intro-active .web-intro-main {
+  animation: webIntroMain 1s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+
+.web-layout.intro-active .web-intro-footer {
+  animation: webIntroFooter 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.34s both;
+}
+
+@keyframes webIntroBase {
+  0% { background: #eef4ff; }
+  100% { background: #f8fafc; }
+}
+
+@keyframes webIntroHeader {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -24px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes webIntroMain {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes webIntroFooter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-layout.intro-active,
+  .web-layout.intro-active .web-intro-header,
+  .web-layout.intro-active .web-intro-main,
+  .web-layout.intro-active .web-intro-footer {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .web-layout {
+    padding-top: 60px;
+  }
+}
+
 .scroll-top-btn {
   position: fixed;
   right: 37.5px; /* (30px chatbot padding + (60px chatbot width - 45px button width) / 2) to center align perfectly */

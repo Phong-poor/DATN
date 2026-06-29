@@ -67,12 +67,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $user = auth()->user();
         // Chỉ lưu log nếu thao tác được thực hiện bởi Admin đang đăng nhập
-        if (!$user || $user->role !== 'admin') {
+        if (!$user || $user->vaitro === 'user') {
             return;
         }
 
         // Tìm kiếm trường định danh thân thiện (name, title, id...)
-        $itemName = $model->name ?? $model->ten_sanpham ?? $model->title ?? $model->id_dathang ?? $model->id;
+        $itemName = $model->name ?? $model->ten ?? $model->ten_sanpham ?? $model->title ?? $model->id_dathang ?? $model->id;
         $targetId = $model->getKey();
 
         $actionText = 'thao tác';
@@ -114,12 +114,12 @@ class AppServiceProvider extends ServiceProvider
         }
 
         \App\Models\AdminActivityLog::create([
-            'user_id' => $user->id,
-            'action' => $actionText,
-            'model_name' => $friendlyName,
-            'target_id' => $targetId,
-            'description' => $description,
-            'ip_address' => request()->ip(),
+            'id_khachhang' => $user->id,
+            'hanhdong' => $actionText,
+            'tenmodel' => $friendlyName,
+            'id_doituong' => $targetId,
+            'mota' => $description,
+            'diachi_ip' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
     }

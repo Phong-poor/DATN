@@ -91,7 +91,35 @@ const statusMap = {
 }
 
 const getStatusLabel = (s) => statusMap[s]?.label || s
-const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
+const getStatusStyle = (s) => {
+    const m = statusMap[s] || { bg: '#f1f5f9', color: '#475569' }
+    return {
+        background: m.bg,
+        color: m.color,
+        border: `1px solid ${m.color}25`
+    }
+}
+
+const paymentStatusMap = {
+    'unpaid':  { label: 'Chưa thanh toán', bg: 'rgba(244, 63, 94, 0.06)', color: '#e11d48', border: '1px solid rgba(244, 63, 94, 0.18)' },
+    'pending': { label: 'Chờ thanh toán', bg: 'rgba(245, 158, 11, 0.06)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.18)' },
+    'paid':    { label: 'Đã thanh toán', bg: 'rgba(16, 185, 129, 0.06)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.18)' },
+    'failed':  { label: 'Thất bại', bg: 'rgba(100, 116, 139, 0.06)', color: '#475569', border: '1px solid rgba(100, 116, 139, 0.18)' }
+}
+
+const getPaymentStatusLabel = (ps) => paymentStatusMap[ps]?.label || ps || 'Chưa thanh toán'
+const getPaymentStatusStyle = (ps) => {
+    const s = paymentStatusMap[ps] || paymentStatusMap['unpaid']
+    return { background: s.bg, color: s.color, border: s.border }
+}
+
+const getPtttStyle = (method) => {
+    const m = String(method || '').toUpperCase();
+    if (m.includes('COD')) {
+        return { background: 'rgba(245, 158, 11, 0.06)', color: '#b45309', border: '1px solid rgba(245, 158, 11, 0.18)' };
+    }
+    return { background: 'rgba(124, 58, 237, 0.06)', color: '#6d28d9', border: '1px solid rgba(124, 58, 237, 0.18)' };
+}
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
 const terminalStatuses = ['done', 'cancelled', 'refunded', 'refund_rejected']
@@ -116,6 +144,29 @@ const getNextStatus = (current) => {
     return current
 }
 
+const isCOD = (order) => {
+    return String(order?.raw?.PTTT || '').toUpperCase().includes('COD')
+}
+
+const showPayButton = (order) => {
+    if (!order || !order.raw) return false
+    if (pageMode.value !== 'orders') return false
+    if (order.raw.trang_thai_thanh_toan === 'paid') return false
+    if (isCOD(order)) {
+        return order.status === 'done'
+    }
+    return true
+}
+
+const showNextStatusButton = (order) => {
+    if (!order) return false
+    if (terminalStatuses.includes(order.status) || order.status === 'refund_pending') return false
+    if (!isCOD(order)) {
+        return order.raw?.trang_thai_thanh_toan === 'paid'
+    }
+    return true
+}
+
 const orders = ref([])
 const isLoading = ref(false)
 
@@ -127,13 +178,13 @@ const fetchOrders = async () => {
             orders.value = res.data.orders.map(o => ({
                 id_backend: o.id_dathang,
                 id: `#VT-2026-${String(o.id_dathang).padStart(3, '0')}`,
-                name: o.user?.name || 'Ẩn danh',
+                name: o.user?.ten || 'Ẩn danh',
                 email: o.user?.email || '',
-                avatar: (o.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+                avatar: (o.user?.ten || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
                 date: new Date(o.created_at).toLocaleDateString('vi-VN'),
                 total: new Intl.NumberFormat('vi-VN').format(o.tongtien) + 'đ',
                 status: o.trangthai,
-                phone: o.user?.phone || '',
+                phone: o.user?.sodienthoai || '',
                 address: o.diachi || '',
                 raw: o,
                 note: '', // Có thể thêm cột này sau
@@ -157,6 +208,38 @@ const updateOrderStatus = async (orderId, newStatus) => {
     } catch (error) {
         swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái')
     }
+}
+
+const updatePaymentStatus = async (orderId, newPaymentStatus) => {
+    try {
+        const res = await api.put(`/admin/orders/${orderId}/payment-status`, { trang_thai_thanh_toan: newPaymentStatus })
+        if (res.data.success) {
+            const idx = orders.value.findIndex(o => o.id_backend === orderId)
+            if (idx !== -1) {
+                orders.value[idx].raw.trang_thai_thanh_toan = newPaymentStatus
+                if (viewOrder.value && viewOrder.value.id_backend === orderId) {
+                    viewOrder.value.raw.trang_thai_thanh_toan = newPaymentStatus
+                }
+            }
+            swal.success('Thành công', 'Cập nhật trạng thái thanh toán thành công!')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái thanh toán')
+    }
+}
+
+const confirmMarkAsPaid = async (id) => {
+    const isConfirmed = await swal.confirm(
+        'Xác nhận thanh toán',
+        'Bạn có chắc chắn muốn chuyển trạng thái thanh toán sang: ĐÃ THANH TOÁN?'
+    )
+    if (isConfirmed) {
+        updatePaymentStatus(id, 'paid')
+    }
+}
+
+const confirmMarkAsPaidInModal = async (order) => {
+    await confirmMarkAsPaid(order.id_backend)
 }
 
 const confirmUpdateStatus = async (id, currentStatus) => {
@@ -212,13 +295,13 @@ onMounted(() => {
             const newOrder = {
                 id_backend: e.order.id_dathang,
                 id: `#VT-2026-${String(e.order.id_dathang).padStart(3, '0')}`,
-                name: e.order.user?.name || 'Ẩn danh',
+                name: e.order.user?.ten || 'Ẩn danh',
                 email: e.order.user?.email || '',
-                avatar: (e.order.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+                avatar: (e.order.user?.ten || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
                 date: new Date(e.order.created_at).toLocaleDateString('vi-VN'),
                 total: new Intl.NumberFormat('vi-VN').format(e.order.tongtien) + 'đ',
                 status: e.order.trangthai,
-                phone: e.order.user?.phone || '',
+                phone: e.order.user?.sodienthoai || '',
                 address: e.order.diachi || '',
                 raw: e.order,
                 note: '',
@@ -236,6 +319,27 @@ onMounted(() => {
                 audio.play()
             } catch (err) {
                 console.warn('Order notification audio could not be played')
+            }
+        })
+
+    echo.channel('admin-orders')
+        .listen('.order.status.updated', (e) => {
+            const idx = orders.value.findIndex(o => o.id_backend === e.id_dathang)
+            if (idx !== -1) {
+                if (e.trangthai) {
+                    orders.value[idx].status = e.trangthai
+                }
+                if (e.trang_thai_thanh_toan) {
+                    orders.value[idx].raw.trang_thai_thanh_toan = e.trang_thai_thanh_toan
+                }
+                if (viewOrder.value && viewOrder.value.id_backend === e.id_dathang) {
+                    if (e.trangthai) {
+                        viewOrder.value.status = e.trangthai
+                    }
+                    if (e.trang_thai_thanh_toan) {
+                        viewOrder.value.raw.trang_thai_thanh_toan = e.trang_thai_thanh_toan
+                    }
+                }
             }
         })
 })
@@ -319,7 +423,7 @@ const {
     pageItems: paginatedOrders,
     getId: item => item.id_backend,
     endpoint: id => `/admin/orders/${id}`,
-    entityLabel: 'don hang',
+    entityLabel: 'đơn hàng',
     fetchItems: fetchOrders,
 })
 
@@ -482,49 +586,24 @@ async function exportExcel() {
         </div>
 
         <!-- TABLE -->
-        <BulkDeleteToolbar
-            :selected-count="selectedIds.length"
-            :total-count="filteredOrders.length"
-            label="don hang"
-            :loading="isBulkDeleting"
-            @clear="clearSelection"
-            @delete-selected="removeSelected"
-            @delete-all="removeAllFiltered"
-        />
-
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="allCurrentPageSelected"
-                                :disabled="!paginatedOrders.length"
-                                @change="toggleCurrentPageSelection"
-                            />
-                        </th>
                         <th>MÃ ĐƠN HÀNG</th>
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
                         <th>TỔNG TIỀN</th>
-                        <th>TRẠNG THÁI</th>
+                        <th v-if="pageMode === 'orders'">THANH TOÁN</th>
+                        <th>GIAO HÀNG</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="7" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td :colspan="pageMode === 'orders' ? 7 : 6" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
-                    <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
-
-                        <td class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="selectedIds.includes(o.id_backend)"
-                                @change="toggleItemSelection(o.id_backend)"
-                            />
-                        </td>
+                    <tr v-for="(o, i) in paginatedOrders" :key="o.id">
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
@@ -544,6 +623,15 @@ async function exportExcel() {
 
                         <td><b class="total">{{ o.total }}</b></td>
 
+                        <td v-if="pageMode === 'orders'">
+                            <div class="payment-cell">
+                                <span class="pttt-badge" :style="getPtttStyle(o.raw.PTTT)">{{ o.raw.PTTT }}</span>
+                                <span class="payment-status-pill" :style="getPaymentStatusStyle(o.raw.trang_thai_thanh_toan)">
+                                    {{ getPaymentStatusLabel(o.raw.trang_thai_thanh_toan) }}
+                                </span>
+                            </div>
+                        </td>
+
                         <td>
                             <span class="status-pill" :style="getStatusStyle(o.status)">
                                 {{ getStatusLabel(o.status) }}
@@ -558,7 +646,18 @@ async function exportExcel() {
                                     </svg>
                                 </button>
                                 
-                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
+                                <!-- Nút xác nhận thanh toán -->
+                                <button v-if="showPayButton(o)" 
+                                        class="act-btn" style="color: #16a34a;"
+                                        @click="confirmMarkAsPaid(o.id_backend)" 
+                                        title="Đổi thành Đã thanh toán">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="showNextStatusButton(o)" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
@@ -580,18 +679,6 @@ async function exportExcel() {
                                         @click="confirmRejectRefund(o.id_backend)" 
                                         title="Từ chối hoàn trả">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                </button>
-
-                                <button
-                                    class="act-btn danger"
-                                    @click="deleteOrder(o.id_backend)"
-                                    title="Xóa đơn hàng"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M3 6h18"/>
-                                        <path d="M8 6V4h8v2"/>
-                                        <path d="M19 6l-1 14H6L5 6"/>
-                                    </svg>
                                 </button>
                             </div>
                         </td>
@@ -663,8 +750,21 @@ async function exportExcel() {
                                     <span class="info-value">{{ viewOrder.date }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">💳 Thanh toán</span>
+                                    <span class="info-label">💳 Phương thức thanh toán</span>
                                     <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <span class="info-label">💵 Trạng thái thanh toán</span>
+                                    <span class="info-value" style="display: flex; gap: 8px; align-items: center; justify-content: space-between; width: 100%;">
+                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder.raw.trang_thai_thanh_toan)">
+                                            {{ getPaymentStatusLabel(viewOrder.raw.trang_thai_thanh_toan) }}
+                                        </span>
+                                        <button v-if="showPayButton(viewOrder)"
+                                                class="btn-mark-paid"
+                                                @click="confirmMarkAsPaidInModal(viewOrder)">
+                                            Xác nhận Đã thanh toán
+                                        </button>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -675,19 +775,19 @@ async function exportExcel() {
                             <div class="cancel-reason-box" style="margin-bottom: 10px;">
                                 ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
-                            <div v-if="viewOrder.raw.refund_proof" class="cancel-reason-box" style="margin-top: 10px;">
+                            <div v-if="viewOrder.raw.minh_chung_hoan_tien" class="cancel-reason-box" style="margin-top: 10px;">
                                 <strong>Bằng chứng hoàn trả:</strong>
                                 <div class="proof-preview" style="margin-top: 8px;">
-                                    <template v-if="viewOrder.raw.refund_proof.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
-                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" title="Nhấn để xem ảnh lớn">
-                                            <img :src="storageUrl(viewOrder.raw.refund_proof)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
+                                    <template v-if="viewOrder.raw.minh_chung_hoan_tien.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
+                                        <a :href="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" target="_blank" title="Nhấn để xem ảnh lớn">
+                                            <img :src="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
                                         </a>
                                     </template>
-                                    <template v-else-if="viewOrder.raw.refund_proof.match(/\.(mp4|mov|avi|wmv)$/i)">
-                                        <video :src="storageUrl(viewOrder.raw.refund_proof)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
+                                    <template v-else-if="viewOrder.raw.minh_chung_hoan_tien.match(/\.(mp4|mov|avi|wmv)$/i)">
+                                        <video :src="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
                                     </template>
                                     <template v-else>
-                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
+                                        <a :href="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
                                     </template>
                                 </div>
                             </div>
@@ -731,7 +831,7 @@ async function exportExcel() {
                                     <div class="item-info">
                                         <p class="item-name">
                                             {{ getOrderItemName(item) }}
-                                            <span v-if="item.is_refund == 1" style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã chọn hoàn trả</span>
+                                            <span v-if="item.hoantien == 1" style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã chọn hoàn trả</span>
                                         </p>
                                         <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
@@ -767,7 +867,7 @@ async function exportExcel() {
 * { box-sizing: border-box; }
 
 .page {
-    padding: 28px 40px;
+    padding: 28px 20px;
     background: #f5f7fb;
     min-height: 100vh;
     font-family: sans-serif;
@@ -989,7 +1089,7 @@ async function exportExcel() {
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8fafc; }
 thead th {
-    padding: 13px 20px; font-size: 11px; font-weight: 700;
+    padding: 13px 12px; font-size: 11px; font-weight: 700;
     color: #94a3b8; text-align: left; letter-spacing: 0.06em;
     border-bottom: 1px solid #f1f5f9;
 }
@@ -997,7 +1097,7 @@ tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
 tbody tr.row-selected { background: #eff6ff; }
-tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: middle; }
+tbody td { padding: 14px 12px; font-size: 13px; color: #334155; vertical-align: middle; }
 .empty { text-align: center; color: #94a3b8; padding: 50px !important; }
 
 .select-col { width: 44px; text-align: center; }
@@ -1020,8 +1120,10 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 .status-pill, .status-select {
     display: inline-block; font-size: 11px; font-weight: 600;
-    padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
+    padding: 4px 10px; border-radius: 20px; letter-spacing: 0.02em;
     border: none; outline: none; cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
 }
 .status-select {
     appearance: none;
@@ -1030,6 +1132,48 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background-repeat: no-repeat;
     background-position: right 8px center;
     background-size: 12px;
+}
+
+.pttt-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.payment-cell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.payment-status-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.btn-mark-paid {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: #16a34a;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-mark-paid:hover {
+    background: #15803d;
 }
 
 .actions { display: flex; gap: 6px; }

@@ -34,7 +34,7 @@ class DashboardController extends Controller
             $tongDoanhThu = number_format($tongDoanhThuRaw, 0, ',', '.') . 'đ';
 
             // ================= KHÁCH =================
-            $tongKhachHang = User::where('role', 'user')->count();
+            $tongKhachHang = User::where('vaitro', 'user')->count();
 
             // ================= BIẾN THỂ =================
             $tongBienThe = Bienthe::count();
@@ -83,7 +83,7 @@ class DashboardController extends Controller
                 ->get();
 
             // ================= BIỂU ĐỒ KHÁCH HÀNG =================
-            $bieuDoKhachHang = User::where('role', 'user')
+            $bieuDoKhachHang = User::where('vaitro', 'user')
                 ->selectRaw("DATE(created_at) as label, COUNT(*) as total")
                 ->whereBetween('created_at', [$dateFrom, now()])
                 ->groupBy('label')
@@ -128,7 +128,7 @@ class DashboardController extends Controller
                     ];
                     return [
                         'id'       => '#DH-' . str_pad($o->id_dathang, 4, '0', STR_PAD_LEFT),
-                        'khach'    => $o->user->name ?? 'N/A',
+                        'khach'    => $o->user->ten ?? 'N/A',
                         'tong'     => number_format($o->tongtien, 0, ',', '.') . 'đ',
                         'status'   => $o->trangthai,
                         'trangthai'=> $statusLabels[$o->trangthai] ?? $o->trangthai,

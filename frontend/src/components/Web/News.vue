@@ -18,7 +18,7 @@ const defaultCategories = ['Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội
 const placeholderImage = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80'
 
 const categories = computed(() => {
-  const names = [...posts.value, ...popularPosts.value].map((item) => item?.category).filter(Boolean)
+  const names = [...posts.value, ...popularPosts.value].map((item) => item?.danhmuc).filter(Boolean)
   return [...new Set([...defaultCategories, ...names])]
 })
 const tabs = computed(() => ['Mới nhất', ...categories.value.slice(0, 4)])
@@ -91,7 +91,7 @@ const fetchNews = async (page = 1) => {
   errorMessage.value = ''
   try {
     const params = { scope: 'public', per_page: 6, page }
-    if (selectedCategory.value !== 'Mới nhất') params.category = selectedCategory.value
+    if (selectedCategory.value !== 'Mới nhất') params.danhmuc = selectedCategory.value
     const { data } = await api.get('/news', { params })
     posts.value = data.data || []
     posts.value.forEach(post => {
@@ -120,7 +120,7 @@ const fetchNews = async (page = 1) => {
 const fetchPopular = async () => {
   try {
     const { data } = await api.get('/news', { params: { scope: 'public', per_page: 20 } })
-    popularPosts.value = (data.data || []).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
+    popularPosts.value = (data.data || []).sort((a, b) => (b.luotxem || 0) - (a.luotxem || 0)).slice(0, 3)
     popularPosts.value.forEach(post => {
       try {
         const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
@@ -258,31 +258,31 @@ onMounted(async () => {
                 <div class="hero-media-side">
                   <div class="image-gradient-overlay"></div>
                   <span class="hero-editorial-label">FEATURED BRIEF</span>
-                  <img :src="imageUrl(randomPost.image)" :alt="randomPost.image_alt || randomPost.title" class="hero-featured-img" @error="e => e.target.src = placeholderImage" />
+                  <img :src="imageUrl(randomPost.hinhanh)" :alt="randomPost.mota_hinhanh || randomPost.tieude" class="hero-featured-img" @error="e => e.target.src = placeholderImage" />
                 </div>
 
                  <!-- Right: Content Side -->
                   <div class="hero-content-side">
                     <div class="hero-meta-row">
-                      <span class="hero-category-tag">{{ randomPost.category }}</span>
+                      <span class="hero-category-tag">{{ randomPost.danhmuc }}</span>
                       <span class="meta-dot">•</span>
                       <span class="hero-reading-time">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
                           <circle cx="12" cy="12" r="10"/>
                           <polyline points="12 6 12 12 16 14"/>
                         </svg>
-                        {{ getReadingTime(randomPost.content) }} phút đọc
+                        {{ getReadingTime(randomPost.noidung) }} phút đọc
                       </span>
                     </div>
 
-                   <h2 class="hero-headline">{{ randomPost.title }}</h2>
-                   <p class="hero-abstract" v-if="randomPost.excerpt">{{ randomPost.excerpt }}</p>
+                   <h2 class="hero-headline">{{ randomPost.tieude }}</h2>
+                   <p class="hero-abstract" v-if="randomPost.tomtat">{{ randomPost.tomtat }}</p>
 
                    <div class="hero-author-row">
                      <div class="author-avatar">NG</div>
                      <div class="author-info">
-                       <span class="author-name">{{ randomPost.author_name || randomPost.tac_gia || 'Predator Staff' }}</span>
-                       <span class="published-date">{{ formatDate(randomPost.published_at || randomPost.created_at) }}</span>
+                       <span class="author-name">{{ randomPost.tacgia || 'Predator Staff' }}</span>
+                       <span class="published-date">{{ formatDate(randomPost.dang_luc || randomPost.created_at) }}</span>
                      </div>
                    </div>
 
@@ -360,23 +360,23 @@ onMounted(async () => {
           <div class="magazine-grid">
             <RouterLink v-for="post in posts" :key="post.id" :to="'/news/' + post.id" class="magazine-card">
               <div class="card-media-viewport">
-                <img :src="imageUrl(post.image)" :alt="post.image_alt || post.title" class="card-featured-img" loading="lazy" @error="e => e.target.src = placeholderImage" />
-                <span class="card-category-badge">{{ post.category }}</span>
+                <img :src="imageUrl(post.hinhanh)" :alt="post.mota_hinhanh || post.tieude" class="card-featured-img" loading="lazy" @error="e => e.target.src = placeholderImage" />
+                <span class="card-category-badge">{{ post.danhmuc }}</span>
               </div>
               <div class="card-editorial-body">
                 <div class="card-meta-line">
-                  <span class="card-pub-date">{{ formatDate(post.published_at || post.created_at) }}</span>
+                  <span class="card-pub-date">{{ formatDate(post.dang_luc || post.created_at) }}</span>
                   <span class="meta-dot">•</span>
                   <span class="card-read-time">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
                       <circle cx="12" cy="12" r="10"/>
                       <polyline points="12 6 12 12 16 14"/>
                     </svg>
-                    {{ getReadingTime(post.content) }} phút đọc
+                    {{ getReadingTime(post.noidung) }} phút đọc
                   </span>
                 </div>
-                <h3 class="card-headline">{{ post.title }}</h3>
-                <p class="card-excerpt" v-if="post.excerpt">{{ post.excerpt }}</p>
+                <h3 class="card-headline">{{ post.tieude }}</h3>
+                <p class="card-excerpt" v-if="post.tomtat">{{ post.tomtat }}</p>
 
                 <div class="card-bottom-row">
                   <span class="card-author-name">
@@ -384,7 +384,7 @@ onMounted(async () => {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                       <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    {{ post.author_name || post.tac_gia || 'Predator staff' }}
+                    {{ post.tacgia || 'Predator staff' }}
                   </span>
                   <span class="card-read-more-link">Khám phá <span class="arrow">→</span></span>
                 </div>
@@ -461,16 +461,16 @@ onMounted(async () => {
             >
               <div class="pop-rank-circle" :class="'rank-color-' + (idx+1)">{{ idx + 1 }}</div>
               <div class="pop-magazine-thumb">
-                <img :src="imageUrl(item.image)" :alt="item.image_alt || item.title" @error="e => e.target.src = placeholderImage" />
+                <img :src="imageUrl(item.hinhanh)" :alt="item.mota_hinhanh || item.tieude" @error="e => e.target.src = placeholderImage" />
               </div>
               <div class="pop-magazine-info">
-                <h5>{{ item.title }}</h5>
+                <h5>{{ item.tieude }}</h5>
                 <div class="pop-views-badge">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #94a3b8;">
                     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  {{ item.views || 0 }} lượt xem
+                  {{ item.luotxem || 0 }} lượt xem
                 </div>
               </div>
             </RouterLink>

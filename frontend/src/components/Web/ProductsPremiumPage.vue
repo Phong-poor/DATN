@@ -3,14 +3,13 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
-import { productImageUrl } from '@/services/urls'
+import { productImageUrl, normalizeImageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 
 const router = useRouter()
 const route = useRoute()
 const MACBOOK_CATEGORY = 'MacBook'
 
-// ===================== DỮ LIỆU Äá»˜NG & ÄỒNG Bá»˜ BACKEND =====================
 const products = ref([])
 const categories = ref([])
 const brands = ref([])
@@ -121,9 +120,17 @@ const PRODUCTS_PER_PAGE = 16
 const currentPage = ref(1)
 const openCatalogFilters = ref(['brands'])
 
-const isMacbookRoute = computed(() => route.name === 'macbook' || route.path === '/macbook')
+const isMacbookRoute = computed(() => route.name === 'macbook' || route.path === '/macbook' || route.meta?.category === 'MacBook')
 const visibleCatalogCategories = computed(() => (
   isMacbookRoute.value ? [MACBOOK_CATEGORY] : filterOptions.categories
+))
+const visibleCatalogBrands = computed(() => (
+  isMacbookRoute.value ? ['Apple'] : filterOptions.brands
+))
+const visibleCatalogCpus = computed(() => (
+  isMacbookRoute.value
+    ? ['Apple M1', 'Apple M2', 'Apple M3', 'Apple M4', 'Apple M5', 'Apple M2 Ultra', 'Apple M3 Max']
+    : filterOptions.cpus
 ))
 
 const isCatalogFilterOpen = (key) => openCatalogFilters.value.includes(key)
@@ -283,12 +290,25 @@ const heroBannerImages = [
   '/Gemini_Generated_Image_j1cibhj1cibhj1ci.png'
 ]
 
+const currentHeroImage = computed(() => {
+  if (isMacbookRoute.value) {
+    return '/hero_macbook_setup.png'
+  }
+  return heroBannerImages[0]
+})
+
 const premiumBadges = ['ĐẮT NHẤT', 'FLAGSHIP', 'ELITE', 'PRO MAX', 'ULTRA']
 const premiumTags = ['TOP DB', 'CẤU HÌNH THẬT', 'MUA NGAY', 'HIGH-END', 'PREMIUM']
 const premiumPriceThreshold = 60000000
 
 const sortedPremiumSource = computed(() => {
-  const source = products.value.length ? products.value : fallbackProducts
+  let source = products.value.length ? products.value : fallbackProducts
+  if (isMacbookRoute.value) {
+    source = source.filter(product => 
+      product.category.toLowerCase().includes('macbook') || 
+      product.brand.toLowerCase() === 'apple'
+    )
+  }
   return source
     .filter(product => Number(product.gia) > 0)
     .slice()
@@ -313,19 +333,13 @@ const flashSaleCarousel = computed(() => {
   return source
     .slice(0, 10)
     .map((product, index) => ({
-      id_sanpham: product.id_sanpham,
-      id_bienthe: product.id_bienthe,
+      ...product,
       name: product.tenSP,
       price: Number(product.gia),
       badge: premiumBadges[index] || 'PREMIUM',
       tag: premiumTags[index] || product.brand,
       highlight: product.promo || `Biến thể cao cấp nhất hiện có trong database của ${product.brand}.`,
-      specs: product.specs?.length ? product.specs.slice(0, 4) : ['Cấu hình cao cấp'],
-      image: product.image,
-      inStock: product.inStock,
-      variantName: product.variantName,
-      brand: product.brand,
-      category: product.category
+      specs: product.specs?.length ? product.specs.slice(0, 4) : ['Cấu hình cao cấp']
     }))
 })
 
@@ -429,6 +443,43 @@ const showroomHighlights = [
 ]
 
 // ===================== DỮ LIỆU ÄỒNG Bá»˜ VÃ€ XỬ LÝ LỌC =====================
+const hoverImageIndices = ref({})
+const activeRotations = new Set()
+
+const preloadSecondaryImages = (productsList) => {
+  if (typeof Image === 'undefined') return
+  productsList.forEach(p => {
+    if (p.images && p.images.length > 1) {
+      const img = new Image()
+      img.src = p.images[1]
+    }
+  })
+}
+
+const startImageRotation = (p) => {
+  if (!p.images || p.images.length <= 1) return;
+  
+  // Set initial index to 1 (first secondary image)
+  hoverImageIndices.value[p.id_sanpham] = 1;
+  
+  if (p.rotationInterval) clearInterval(p.rotationInterval);
+  p.rotationInterval = setInterval(() => {
+    const nextIdx = ((hoverImageIndices.value[p.id_sanpham] ?? 1) + 1) % p.images.length;
+    hoverImageIndices.value[p.id_sanpham] = nextIdx;
+  }, 2000);
+  activeRotations.add(p);
+}
+
+const stopImageRotation = (p) => {
+  if (p.rotationInterval) {
+    clearInterval(p.rotationInterval);
+    p.rotationInterval = null;
+  }
+  // Reset/delete index
+  delete hoverImageIndices.value[p.id_sanpham];
+  activeRotations.delete(p);
+}
+
 const loadData = async () => {
   isLoading.value = true
   try {
@@ -474,6 +525,23 @@ const loadData = async () => {
           } catch (e) { }
         }
 
+        const mainImg = productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600');
+        const imagesList = [mainImg];
+        const baseImg = productImageUrl(p, null, 'https://via.placeholder.com/600');
+        if (baseImg && !imagesList.includes(baseImg)) {
+          imagesList.push(baseImg);
+        }
+        const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+        listHinhAnh.forEach(img => {
+          const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+          if (rawPath) {
+            const normalized = normalizeImageUrl(rawPath);
+            if (normalized && !imagesList.includes(normalized)) {
+              imagesList.push(normalized);
+            }
+          }
+        });
+
         return {
           id_sanpham: p.id_sanpham,
           id_bienthe: premiumVariant?.id_bienthe,
@@ -484,7 +552,9 @@ const loadData = async () => {
           gia: giaSP,
           oldPrice: Math.floor(giaSP * 1.15),
           specs: variantSpecs.length > 0 ? variantSpecs.slice(0, 4) : (generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD']),
-          image: productImageUrl(p, premiumVariant, 'https://via.placeholder.com/600'),
+          image: mainImg,
+          images: imagesList,
+          hovered: false,
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
           reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
           promo: p.mota_ngan || 'Tặng kèm Balo cao cấp + Chuột Wireless',
@@ -496,9 +566,11 @@ const loadData = async () => {
     } else {
       products.value = [...fallbackProducts]
     }
+    preloadSecondaryImages(products.value)
   } catch (err) {
     console.error('Lỗi khi tải sản phẩm từ backend:', err)
     products.value = [...fallbackProducts]
+    preloadSecondaryImages(products.value)
   } finally {
     isLoading.value = false
   }
@@ -781,6 +853,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateFlashSaleViewport)
+  activeRotations.forEach(p => {
+    if (p.rotationInterval) clearInterval(p.rotationInterval)
+  })
+  activeRotations.clear()
 })
 
 watch(() => route.fullPath, () => {
@@ -789,30 +865,54 @@ watch(() => route.fullPath, () => {
 </script>
 
 <template>
-  <div class="premium-page-shell">
+  <div class="premium-page-shell" :class="{ 'macbook-mode': isMacbookRoute }">
 
     <!-- ===================== HERO VIEWPORT ===================== -->
-    <section class="hero-banner" :style="{
-      '--hero-bg-1': `url('${heroBannerImages[0]}')`,
-      '--hero-bg-2': `url('${heroBannerImages[0]}')`
-    }">
+    <section
+      class="hero-banner"
+      :style="{
+        '--hero-bg-1': `url('${currentHeroImage}')`,
+        '--hero-bg-2': `url('${currentHeroImage}')`
+      }"
+    >
       <div class="hero-copy">
-        <span class="eyebrow-badge">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"
+        <span class="eyebrow-badge" :class="{ 'apple-badge': isMacbookRoute }">
+          <svg v-if="!isMacbookRoute" viewBox="0 0 24 24" fill="currentColor" width="12" height="12"
             style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #f59e0b;">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
           </svg>
-          Predator Flagship
+          <svg v-else viewBox="0 0 814 1000" fill="currentColor" width="12" height="12"
+            style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+            <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-57.8-155.5-127.4C46 405.6 23.7 269.1 23.7 244.4c0-4.5.3-9 1-13.4 0 0-35.6-7.1-71.2-7.1C1.2 224 0 224.6 0 224.6v41.4l-67 8.5c0 0 70.9 3.3 107.2 44.7 0 0 60.9 68 60.9 184.1 0 141.3-91.7 256.8-206.9 256.8H-63.3c2.1 59.4 23.8 110.2 63.3 149.5v.3s0 .3.1.3c38.3 37.8 87.5 58.4 140.1 58.4 70.9 0 127.8-39.3 189.5-39.3 65.1 0 117.8 38.5 186.9 38.5 69.5 0 119.3-40.2 165.9-80.5 53.9-47.6 103.7-119.3 138.3-186.9z" />
+          </svg>
+          {{ isMacbookRoute ? 'Apple Flagship' : 'Predator Flagship' }}
         </span>
-        <h1>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
-        <p>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải
-          nghiệm gaming hoàn mỹ.</p>
+        <h1 v-if="isMacbookRoute">MacBook Pro & Air: Sức mạnh di động tối thượng</h1>
+        <h1 v-else>Hiệu năng tối ưu cho game AAA & đồ họa 3D</h1>
+        
+        <p v-if="isMacbookRoute">Khám phá bộ sưu tập MacBook cao cấp trang bị chip Apple Silicon M-Series. Thiết kế nhôm nguyên khối, mỏng nhẹ thời thượng và thời lượng pin cực khủng.</p>
+        <p v-else>Khám phá bộ sưu tập cấu hình vượt giới hạn hiệu năng, tối ưu hóa hệ thống tản nhiệt thế hệ mới cho trải nghiệm gaming hoàn mỹ.</p>
+        
         <div class="hero-actions">
           <button class="btn-glow" @click="goToSection('catalog-section')">Chọn theo nhu cầu</button>
           <button class="btn-outline" @click="goToSection('showroom-section')">Tham quan showroom</button>
         </div>
-
-        <div class="hero-specs-grid">
+        
+        <div class="hero-specs-grid" v-if="isMacbookRoute">
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Apple Silicon M-Series</span>
+            <span class="spec-stat-desc">Đồ họa & Trí tuệ nhân tạo vượt trội</span>
+          </div>
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Liquid Retina XDR</span>
+            <span class="spec-stat-desc">Độ tương phản và dải màu siêu rộng</span>
+          </div>
+          <div class="spec-stat-card">
+            <span class="spec-stat-title">Siêu mỏng nhẹ</span>
+            <span class="spec-stat-desc">Vỏ nhôm cao cấp, pin lên đến 22 giờ</span>
+          </div>
+        </div>
+        <div class="hero-specs-grid" v-else>
           <div class="spec-stat-card">
             <span class="spec-stat-title">RTX 40 Series</span>
             <span class="spec-stat-desc">Đồ họa Ray-Tracing siêu thực</span>
@@ -850,7 +950,8 @@ watch(() => route.fullPath, () => {
         <div class="flash-sale-title-block">
           <span class="flash-fire-icon">◆</span>
           <h2>MÁY FLAGSHIP ĐẮT TIỀN NHẤT</h2>
-          <p>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
+          <p v-if="isMacbookRoute">Những mẫu MacBook Pro & Air cao cấp nhất, sở hữu vi xử lý Apple Silicon vượt trội cho mọi tác vụ sáng tạo.</p>
+          <p v-else>Những cấu hình xịn nhất, mạnh nhất và cao cấp nhất dành cho gaming, sáng tạo nội dung và workstation.</p>
           <p v-if="isUsingPremiumFallback" class="premium-fallback-note">
             Chưa có sản phẩm trên {{ formatPrice(premiumPriceThreshold) }}, đang hiển thị top sản phẩm đắt nhất trong
             database.
@@ -876,7 +977,9 @@ watch(() => route.fullPath, () => {
           @pointerleave="endFlashDrag" @wheel.prevent="handleFlashWheel">
           <div class="flash-sale-grid-slider" :class="{ dragging: isFlashDragging }" :style="flashSaleTrackStyle">
             <div class="flash-sale-card" v-for="product in flashSaleCarousel"
-              :key="product.id_bienthe || product.id_sanpham" @click="goToPremiumProduct(product)">
+              :key="product.id_bienthe || product.id_sanpham" @click="goToPremiumProduct(product)"
+              @mouseenter="startImageRotation(product)"
+              @mouseleave="stopImageRotation(product)">
               <!-- Premium Badge -->
               <div class="flash-card-badge-row">
                 <span class="flash-sale-badge">{{ product.badge }}</span>
@@ -884,7 +987,7 @@ watch(() => route.fullPath, () => {
               </div>
 
               <div class="flash-card-image-box">
-                <img :src="product.image" :alt="product.name" />
+                <img :src="hoverImageIndices[product.id_sanpham] !== undefined && product.images && product.images.length > 1 ? product.images[hoverImageIndices[product.id_sanpham]] : product.image" :alt="product.name" />
               </div>
 
               <div class="flash-card-content">
@@ -1084,7 +1187,7 @@ watch(() => route.fullPath, () => {
               <h4>Thương hiệu</h4>
               <div v-show="isCatalogFilterOpen('brands')"
                 class="filter-pill-grid brand-pill-grid filter-dropdown-content">
-                <button v-for="brand in filterOptions.brands" :key="brand" class="filter-pill-btn"
+                <button v-for="brand in visibleCatalogBrands" :key="brand" class="filter-pill-btn"
                   :class="{ active: selectedBrands.includes(brand) }" @click="toggleBrand(brand)">
                   {{ brand }}
                 </button>
@@ -1149,7 +1252,7 @@ watch(() => route.fullPath, () => {
               @click="handleCatalogFilterGroupClick($event, 'cpu')">
               <h4>Vi xử lý CPU</h4>
               <div v-show="isCatalogFilterOpen('cpu')" class="filter-pill-grid filter-dropdown-content">
-                <button v-for="cpu in filterOptions.cpus" :key="cpu" class="filter-pill-btn"
+                <button v-for="cpu in visibleCatalogCpus" :key="cpu" class="filter-pill-btn"
                   :class="{ active: selectedCpus.includes(cpu) }" @click="toggleCpu(cpu)">
                   {{ cpu }}
                 </button>
@@ -1157,7 +1260,7 @@ watch(() => route.fullPath, () => {
             </div>
 
             <!-- GPU Filter -->
-            <div class="filter-option-group gpu-filter-group"
+            <div v-if="!isMacbookRoute" class="filter-option-group gpu-filter-group"
               :class="{ open: isCatalogFilterOpen('gpu'), selected: hasCatalogFilterValue('gpu') }"
               @click="handleCatalogFilterGroupClick($event, 'gpu')">
               <h4>Card đồ họa GPU</h4>
@@ -1234,7 +1337,9 @@ watch(() => route.fullPath, () => {
 
           <div v-else class="catalog-product-grid">
             <article class="premium-product-card" v-for="prod in paginatedProducts" :key="prod.id_sanpham"
-              @click="viewDetail(prod.id_sanpham)">
+              @click="viewDetail(prod.id_sanpham)"
+              @mouseenter="startImageRotation(prod)"
+              @mouseleave="stopImageRotation(prod)">
 
               <!-- Card Top Badge - BEST SELLER -->
               <div class="card-badge-overlay" v-if="prod.gia % 3 === 0 || prod.gia > 60000000">
@@ -1243,7 +1348,7 @@ watch(() => route.fullPath, () => {
 
               <!-- Product Image Container (Perfect White Square Box) -->
               <div class="card-media-box">
-                <img :src="prod.image" :alt="prod.tenSP" />
+                <img :src="hoverImageIndices[prod.id_sanpham] !== undefined && prod.images && prod.images.length > 1 ? prod.images[hoverImageIndices[prod.id_sanpham]] : prod.image" :alt="prod.tenSP" />
 
                 <button class="hover-heart-btn" @click.stop="toggleWishlist(prod)" title="Thêm vào yêu thích">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -3818,4 +3923,381 @@ p {
     transform: scale(1);
   }
 }
+
+/* ============================================================
+   MACBOOK MODE - Apple-inspired Clean Design Overrides
+   Chỉ áp dụng khi ở trang /macbook
+   ============================================================ */
+
+/* Hero Banner - MacBook */
+.macbook-mode .hero-banner {
+  min-height: 38vh;
+  padding: 44px max(6vw, calc((100vw - 1280px) / 2 + 32px)) 36px;
+}
+
+.macbook-mode .hero-banner::after {
+  background:
+    linear-gradient(90deg, rgba(5, 10, 20, 0.82) 0%, rgba(5, 10, 20, 0.52) 38%, rgba(5, 10, 20, 0.12) 76%, transparent 100%),
+    linear-gradient(0deg, rgba(5, 10, 20, 0.18), transparent 60%);
+}
+
+.macbook-mode .hero-banner h1 {
+  font-size: clamp(1.9rem, 2.5vw, 2.8rem);
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.08;
+  margin-bottom: 14px;
+}
+
+.macbook-mode .hero-banner p {
+  font-size: 13.5px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  max-width: 460px;
+}
+
+/* Apple eyebrow badge */
+.apple-badge {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #e2e8f0 !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* MacBook Spec Stat Cards */
+.macbook-mode .hero-specs-grid {
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.macbook-mode .spec-stat-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.macbook-mode .spec-stat-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.macbook-mode .spec-stat-title {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 3px;
+}
+
+.macbook-mode .spec-stat-desc {
+  color: #94a3b8;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+/* MacBook Hero Action Buttons */
+.macbook-mode .btn-glow {
+  background-color: #0d1b2e;
+  border: 1.5px solid #3b82f6;
+  color: #93c5fd;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 8px;
+  box-shadow: none;
+  letter-spacing: 0.01em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.macbook-mode .btn-glow:hover {
+  background-color: #1e3a5f;
+  color: #bfdbfe;
+  border-color: #60a5fa;
+  transform: none;
+  box-shadow: none;
+}
+
+.macbook-mode .btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+}
+
+.macbook-mode .btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #e2e8f0;
+  transform: none;
+}
+
+/* MacBook Brand Row - Highlight Apple logo */
+.macbook-mode .brand-logos-row-wrap {
+  background-color: #f8faff;
+  border-top: 1px solid #dbeafe;
+  border-bottom: 1px solid #dbeafe;
+}
+
+.macbook-mode .brand-logo-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  border-radius: 14px;
+}
+
+.macbook-mode .brand-logo-item:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+}
+
+.macbook-mode .brand-logo-item.active {
+  border-color: #2563eb;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+}
+
+/* MacBook Flagship Section */
+.macbook-mode .flash-sale-title-block h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0d1b2e;
+  letter-spacing: -0.02em;
+}
+
+.macbook-mode .flash-fire-icon {
+  color: #2563eb;
+}
+
+.macbook-mode .premium-rank-badge {
+  background-color: #0d1b2e;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.macbook-mode .premium-rank-badge span {
+  color: #93c5fd;
+}
+
+/* MacBook Product Cards */
+.macbook-mode .flash-sale-card {
+  border-radius: 14px;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.macbook-mode .flash-sale-grid-slider:not(.dragging) .flash-sale-card:hover {
+  transform: translateY(-5px);
+  border-color: #93c5fd;
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.14);
+}
+
+.macbook-mode .flash-sale-badge {
+  background-color: #0d1b2e;
+  border-radius: 5px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.macbook-mode .flash-card-image-box {
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #f8faff;
+}
+
+.macbook-mode .flash-buy-btn {
+  background-color: #0d1b2e;
+  border-color: #0d1b2e;
+  color: #e2e8f0;
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+
+.macbook-mode .flash-buy-btn:hover {
+  background-color: #1e3a5f;
+}
+
+.macbook-mode .flash-buy-btn.buy-now {
+  background-color: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+.macbook-mode .flash-buy-btn.buy-now:hover {
+  background-color: #1d4ed8;
+}
+
+/* MacBook Service Pills */
+.macbook-mode .services-pills-wrap {
+  background-color: #f8faff;
+  border-top: 1px solid #dbeafe;
+  border-bottom: 1px solid #dbeafe;
+}
+
+.macbook-mode .service-pill-card {
+  border-color: #dbeafe;
+  background: #ffffff;
+  border-radius: 14px;
+}
+
+.macbook-mode .service-pill-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
+  transform: translateY(-3px);
+}
+
+.macbook-mode .service-pill-icon-box {
+  color: #2563eb;
+  background-color: #eff6ff;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.macbook-mode .service-pill-text h4 {
+  color: #0d1b2e;
+  font-size: 13.5px;
+}
+
+.macbook-mode .service-pill-text p {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* MacBook Catalog Section */
+.macbook-mode .catalog-label-glow {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.macbook-mode .catalog-header-row h2 {
+  color: #0d1b2e;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* MacBook Product cards in catalog grid */
+.macbook-mode .product-card {
+  border-radius: 14px;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.macbook-mode .product-card:hover {
+  transform: translateY(-4px);
+  border-color: #93c5fd;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+}
+
+.macbook-mode .product-price {
+  color: #1e40af;
+  font-weight: 800;
+}
+
+.macbook-mode .product-add-to-cart-btn,
+.macbook-mode .product-buy-btn {
+  background-color: #1e40af;
+  color: #ffffff;
+  border-radius: 7px;
+  border: none;
+  font-weight: 700;
+  transition: background-color 0.2s;
+}
+
+.macbook-mode .product-add-to-cart-btn:hover,
+.macbook-mode .product-buy-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* MacBook Interactive Section */
+.macbook-mode .interactive-details-section {
+  background-color: #f8faff;
+}
+
+.macbook-mode .badge-accent {
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.macbook-mode .section-subtitle-cyan {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.macbook-mode .angle-selector-btn {
+  border-color: #dbeafe;
+  color: #64748b;
+  background: #ffffff;
+}
+
+.macbook-mode .angle-selector-btn.active {
+  background-color: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+.macbook-mode .angle-selector-btn:hover:not(.active) {
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.macbook-mode .check-icon {
+  background-color: #1e40af;
+  color: #ffffff;
+}
+
+/* MacBook Catalog Search */
+.macbook-mode .catalog-search-bar {
+  border-color: #dbeafe;
+  background: #ffffff;
+}
+
+.macbook-mode .catalog-search-bar:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.macbook-mode .catalog-pill-btn.active {
+  background-color: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+.macbook-mode .catalog-pill-btn:hover:not(.active) {
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+/* MacBook Showroom section */
+.macbook-mode .showroom-immersive-container {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* MacBook Pagination */
+.macbook-mode .pagination-btn.active {
+  background-color: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+.macbook-mode .pagination-btn:hover:not(.active):not(:disabled) {
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
 </style>

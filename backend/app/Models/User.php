@@ -13,22 +13,26 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
 
+    protected $table = 'khachhang';
+
+    protected $appends = ['online'];
+
     protected $fillable = [
-        'name',
+        'ten',
         'email',
-        'phone',
-        'date_of_birth',
-        'gender',
-        'avatar',
-        'password',
-        'role',
-        'facebook_id',
-        'status',
-        'last_active_at',
+        'sodienthoai',
+        'ngaysinh',
+        'gioitinh',
+        'anhdaidien',
+        'matkhau',
+        'vaitro',
+        'id_facebook',
+        'trangthai',
+        'hoat_dong_cuoi_luc',
     ];
 
     protected $hidden = [
-        'password',
+        'matkhau',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
@@ -38,9 +42,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'matkhau' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
-            'last_active_at' => 'datetime',
+            'hoat_dong_cuoi_luc' => 'datetime',
         ];
     }
 
@@ -59,21 +63,34 @@ class User extends Authenticatable
 
     public function affiliateProfile()
     {
-        return $this->hasOne(AffiliateProfile::class, 'user_id');
+        return $this->hasOne(AffiliateProfile::class, 'id_khachhang');
     }
 
     public function affiliateReferrals()
     {
-        return $this->hasMany(AffiliateReferral::class, 'affiliate_user_id');
+        return $this->hasMany(AffiliateReferral::class, 'id_affiliate_khachhang');
     }
 
     public function referredByAffiliate()
     {
-        return $this->hasOne(AffiliateReferral::class, 'referred_user_id');
+        return $this->hasOne(AffiliateReferral::class, 'id_khachhang_duoc_gioithieu');
     }
 
     public function affiliateWithdrawRequests()
     {
-        return $this->hasMany(AffiliateWithdrawRequest::class, 'affiliate_user_id');
+        return $this->hasMany(AffiliateWithdrawRequest::class, 'id_affiliate_khachhang');
+    }
+
+    public function getOnlineAttribute(): bool
+    {
+        if (!$this->hoat_dong_cuoi_luc) {
+            return false;
+        }
+        return $this->hoat_dong_cuoi_luc->diffInMinutes(now()) < 5;
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->matkhau;
     }
 }

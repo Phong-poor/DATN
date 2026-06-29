@@ -14,18 +14,18 @@ Route::get('/sitemap.xml', function () {
         ['loc' => "{$baseUrl}/contact", 'priority' => '0.6', 'changefreq' => 'monthly'],
     ];
 
-    News::where('status', 'published')
+    News::where('trangthai', 'published')
         ->where(function ($query) {
-            $query->whereNull('published_at')->orWhere('published_at', '<=', now());
+            $query->whereNull('dang_luc')->orWhere('dang_luc', '<=', now());
         })
-        ->orderByDesc('published_at')
-        ->get(['id', 'updated_at', 'published_at'])
+        ->orderByDesc('dang_luc')
+        ->get(['id', 'updated_at', 'dang_luc'])
         ->each(function (News $post) use (&$urls, $baseUrl) {
             $urls[] = [
                 'loc' => "{$baseUrl}/news/{$post->id}",
                 'priority' => '0.8',
                 'changefreq' => 'weekly',
-                'lastmod' => optional($post->updated_at ?? $post->published_at)->toDateString(),
+                'lastmod' => optional($post->updated_at ?? $post->dang_luc)->toDateString(),
             ];
         });
 

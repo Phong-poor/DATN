@@ -15,6 +15,22 @@ import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchA
 const route = useRoute()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
 
+// ── Theme State ───────────────────────────────────────────
+const isDark = ref(localStorage.getItem('theme') !== 'light')
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.add('light')
+    document.documentElement.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }
+}
+
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
     activeTab.value = newTab
@@ -87,11 +103,12 @@ const updateUserData = (apiUser) => {
   user.value = {
     ...user.value,
     ...apiUser,
-    phone: apiUser.phone || '',
-    birthday: apiUser.date_of_birth || '',
-    gender: apiUser.gender || '',
-    avatar: apiUser.avatar || user.value.avatar,
-    memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+    name: apiUser.ten || apiUser.name || '',
+    phone: apiUser.sodienthoai || apiUser.phone || '',
+    birthday: apiUser.ngaysinh || apiUser.date_of_birth || '',
+    gender: apiUser.gioitinh || apiUser.gender || '',
+    avatar: apiUser.anhdaidien || apiUser.avatar || user.value.avatar,
+    memberSince: (apiUser.vaitro || apiUser.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
       : user.value.joinDate,
@@ -177,14 +194,15 @@ const loadUser = async () => {
         user.value = {
           ...user.value,
           ...parsed,
-          phone: parsed.phone || '',
-          birthday: parsed.birthday || '',
-          gender: parsed.gender || '',
-          memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+          name: parsed.ten || parsed.name || '',
+          phone: parsed.sodienthoai || parsed.phone || '',
+          birthday: parsed.ngaysinh || parsed.birthday || '',
+          gender: parsed.gioitinh || parsed.gender || '',
+          memberSince: (parsed.vaitro || parsed.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
           joinDate: parsed.created_at
             ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
             : (parsed.joinDate || ''),
-          avatar: parsed.avatar || user.value.avatar,
+          avatar: parsed.anhdaidien || parsed.avatar || user.value.avatar,
         }
       }
       return
@@ -202,14 +220,15 @@ const loadUser = async () => {
       user.value = {
         ...user.value,
         ...parsed,
-        phone: parsed.phone || '',
-        birthday: parsed.birthday || '',
-        gender: parsed.gender || '',
-        memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+        name: parsed.ten || parsed.name || '',
+        phone: parsed.sodienthoai || parsed.phone || '',
+        birthday: parsed.ngaysinh || parsed.birthday || '',
+        gender: parsed.gioitinh || parsed.gender || '',
+        memberSince: (parsed.vaitro || parsed.role) === 'admin' ? 'Quản trị viên' : 'Thành viên',
         joinDate: parsed.created_at
           ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
           : (parsed.joinDate || ''),
-        avatar: parsed.avatar || user.value.avatar,
+        avatar: parsed.anhdaidien || parsed.avatar || user.value.avatar,
       }
     }
   }
@@ -243,7 +262,8 @@ const fetchOrders = async () => {
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           lydo: order.lydo,
-          refund_proof: order.refund_proof,
+          minh_chung_hoan_tien: order.minh_chung_hoan_tien,
+          chi_tiets: order.chi_tiets,
           items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
             
@@ -274,9 +294,10 @@ const fetchOrders = async () => {
             }
 
             return {
+              id: item.id,
               id_bienthe: item.id_bienthe,
               is_reviewed: item.is_reviewed,
-              is_refund: item.is_refund,
+              hoantien: item.hoantien,
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
@@ -341,51 +362,56 @@ const confirmCancel = async () => {
 const showRefundModal = ref(false)
 const orderToRefund = ref(null)
 const refundReason = ref('')
-const refundProof = ref(null)
-const refundProofUrl = ref(null)
+const refundProofs = ref([]) // array of { file, url, type }
 const refundSelectedItems = ref([])
 
 const handleProofUpload = (e) => {
-  const file = e.target.files[0]
-  if (!file) return
-  if (file.size > 20 * 1024 * 1024) {
-    showToast('Kích thước file không được vượt quá 20MB')
-    return
-  }
-  refundProof.value = file
-  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-  refundProofUrl.value = URL.createObjectURL(file)
+    const files = Array.from(e.target.files)
+    files.forEach(file => {
+        if (refundProofs.value.length >= 5) return
+        refundProofs.value.push({
+            file,
+            url: URL.createObjectURL(file),
+            type: file.type
+        })
+    })
+    e.target.value = ''
+}
+
+const removeProof = (index) => {
+    URL.revokeObjectURL(refundProofs.value[index].url)
+    refundProofs.value.splice(index, 1)
 }
 
 const openRefundModal = (order) => {
     orderToRefund.value = order
     refundReason.value = ''
-    refundProof.value = null
-    if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-    refundProofUrl.value = null
+    refundProofs.value.forEach(p => URL.revokeObjectURL(p.url))
+    refundProofs.value = []
     refundSelectedItems.value = []
     showRefundModal.value = true
 }
 
 const confirmRefund = async () => {
     if (refundSelectedItems.value.length === 0) {
-        showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
+        showToast('Vui long chon it nhat mot san pham de hoan tra.')
         return
     }
     if (!refundReason.value.trim()) {
-        showToast('Vui lòng nhập lý do hoàn trả.')
+        showToast('Vui long nhap ly do hoan tra.')
         return
     }
-    if (!refundProof.value) {
-        showToast('Vui lòng tải lên ảnh/video bằng chứng.')
+    if (refundProofs.value.length === 0) {
+        showToast('Vui long tai len it nhat mot anh/video bang chung.')
         return
     }
 
-    isSubmitting.value = true
     try {
         const formData = new FormData()
         formData.append('lydo', refundReason.value)
-        formData.append('proof', refundProof.value)
+        refundProofs.value.forEach(p => {
+            formData.append('proofs[]', p.file)
+        })
         refundSelectedItems.value.forEach(id => {
             formData.append('item_ids[]', id)
         })
@@ -494,7 +520,40 @@ const fetchWishlistCount = async () => {
   }
 }
 
+const getFullProductName = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    let name = sp.tenSP || 'Sản phẩm'
+    let specs = []
+    try {
+        const tskt = typeof sp.thong_so_ky_thuat === 'string' 
+            ? JSON.parse(sp.thong_so_ky_thuat || '[]') 
+            : (sp.thong_so_ky_thuat || [])
+        if (Array.isArray(tskt)) {
+            specs = tskt.map(s => s.giatri).filter(Boolean)
+        }
+    } catch (e) { console.error('Lỗi parse thong_so_ky_thuat:', e) }
+    
+    return specs.length > 0 ? `${name} ${specs.join(' ')}` : name
+}
+
+const getProductImage = (item) => {
+    const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
+    const variant = item.bien_the || item.bienThe || null
+    return productImageUrl(sp, variant, 'https://via.placeholder.com/200')
+}
+
 onMounted(() => {
+  // Theme initialization
+  if (localStorage.getItem('theme') === 'light') {
+    isDark.value = false
+    document.documentElement.classList.add('light')
+    document.documentElement.classList.remove('dark')
+  } else {
+    isDark.value = true
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+  }
+
   loadUser()
   fetchOrders()
   fetchWishlistCount()
@@ -579,11 +638,11 @@ const saveProfile = async () => {
     const res = await api.put(
       '/user/profile',
       {
-        name: profileForm.value.name,
+        ten: profileForm.value.name,
         email: profileForm.value.email,
-        phone: profileForm.value.phone,
-        date_of_birth: profileForm.value.birthday,
-        gender: profileForm.value.gender,
+        sodienthoai: profileForm.value.phone,
+        ngaysinh: profileForm.value.birthday,
+        gioitinh: profileForm.value.gender,
       }
     )
 
@@ -1047,6 +1106,27 @@ const cancelAddr = () => {
 }
 
 const saveAddr = async () => {
+  const cleanAddressDetail = (str) => {
+    return String(str || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[.,-\s]+$/, '');
+  };
+
+  const isDuplicate = addresses.value.some((addr, index) => {
+    if (editingAddrIdx.value !== null && index === editingAddrIdx.value) return false;
+    
+    return cleanAddressDetail(addr.province) === cleanAddressDetail(addrForm.value.province) &&
+           cleanAddressDetail(addr.ward) === cleanAddressDetail(addrForm.value.ward) &&
+           cleanAddressDetail(addr.detail) === cleanAddressDetail(addrForm.value.detail);
+  });
+
+  if (isDuplicate) {
+    showToast('Địa chỉ này đã tồn tại trong danh sách của bạn.');
+    return;
+  }
+
   savingAddr.value = true
   try {
     if (editingAddrIdx.value !== null) {
@@ -1287,8 +1367,8 @@ const promoStatusMap = {
 
             <div v-if="(selectedOrder.status === 'cancelled' || selectedOrder.status === 'refund_pending' || selectedOrder.status === 'refunded') && selectedOrder.lydo" class="alert mb-4" :class="{'alert-danger': selectedOrder.status === 'cancelled', 'alert-warning': selectedOrder.status !== 'cancelled'}" style="font-size: 13px; padding: 12px; border-radius: 10px;">
               <strong>Lý do:</strong> {{ selectedOrder.lydo }}
-              <div v-if="selectedOrder.refund_proof" class="mt-2">
-                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
+              <div v-if="selectedOrder.minh_chung_hoan_tien" class="mt-2">
+                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.minh_chung_hoan_tien)" target="_blank">Xem file đính kèm</a>
               </div>
             </div>
 
@@ -1322,12 +1402,12 @@ const promoStatusMap = {
             </div>
 
             <h3 class="section-title">Sản phẩm</h3>
-            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.is_refund == 1)" :key="item.id_bienthe">
+            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.hoantien == 1)" :key="item.id_bienthe">
               <img :src="item.img" :alt="item.name" />
               <div class="modal-item-info">
                 <p class="modal-item-name">
                   {{ item.name }}
-                  <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                  <span v-if="item.hoantien == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                 </p>
                 <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
               </div>
@@ -1361,22 +1441,65 @@ const promoStatusMap = {
     <!-- Cancellation Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Lý do hủy đơn</h2>
-            <button class="close-btn" @click="showCancelModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <div style="background:#1e2d45;border-radius:20px;width:520px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;border:1px solid rgba(220,38,38,0.3);box-shadow:0 25px 60px rgba(0,0,0,0.6);overflow:hidden;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(135deg,rgba(220,38,38,0.07),transparent 60%);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+              </div>
+              <div>
+                <div style="font-size:17px;font-weight:700;color:#f1f5f9;">Hủy đơn hàng</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Thao tác này không thể hoàn tác</div>
+              </div>
+            </div>
+            <button @click="showCancelModal = false" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="modal-body">
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
-              </button>
-              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+
+          <!-- Body -->
+          <div style="padding:20px 24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Warning -->
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div style="font-size:13px;color:#fca5a5;line-height:1.5;">Vui lòng cho chúng tôi biết lý do bạn muốn hủy đơn hàng này. Sau khi xác nhận, đơn hàng sẽ bị hủy và không thể khôi phục.</div>
             </div>
+
+            <!-- Ly do -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Lý do hủy đơn</span>
+                <span style="color:#dc2626;font-size:13px;">*</span>
+              </div>
+              <textarea
+                v-model="cancelReason"
+                rows="3"
+                placeholder="Mô tả chi tiết lý do bạn muốn hủy đơn hàng..."
+                style="width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,0.07);gap:10px;">
+            <button @click="showCancelModal = false" style="display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Quay lại
+            </button>
+            <button @click="confirmCancel" :disabled="isSubmitting" style="display:flex;align-items:center;gap:8px;padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,0.35);">
+              <template v-if="!isSubmitting">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                Xác nhận hủy
+              </template>
+              <template v-else>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 0.8s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                Đang xử lý...
+              </template>
+            </button>
           </div>
         </div>
       </div>
@@ -1385,57 +1508,137 @@ const promoStatusMap = {
     <!-- Refund Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-            <button class="close-btn" @click="showRefundModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <div style="background:#1e2d45;border-radius:20px;width:520px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;border:1px solid rgba(249,115,22,0.3);box-shadow:0 25px 60px rgba(0,0,0,0.6);overflow:hidden;">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(135deg,rgba(249,115,22,0.07),transparent 60%);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+              </div>
+              <div>
+                <div style="font-size:17px;font-weight:700;color:#f1f5f9;">Yêu cầu hoàn trả</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Điền đầy đủ thông tin để gửi yêu cầu</div>
+              </div>
+            </div>
+            <button @click="showRefundModal = false" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="mb-3">
-                <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
-                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
-                            <div class="d-flex align-items-center gap-2">
-                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
-                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
-                                </div>
-                            </div>
-                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
-            <textarea v-model="refundReason" class="form-control cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
-            
-            <div class="mb-3">
-                <label class="form-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng chứng</label>
-                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
-                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
-                
-                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
-                    <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                    <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
-                </div>
+
+          <!-- Body -->
+          <div style="padding:20px 24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Chon san pham -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Chọn sản phẩm hoàn trả</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;">
+                <label
+                  v-for="item in (orderToRefund?.chi_tiets || orderToRefund?.chiTiets || [])"
+                  :key="item.id"
+                  :for="'rp_item_' + item.id"
+                  :style="{
+                    display:'flex', alignItems:'center', gap:'12px',
+                    padding:'12px 14px', borderRadius:'12px',
+                    background: refundSelectedItems.includes(item.id) ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: refundSelectedItems.includes(item.id) ? '1.5px solid rgba(249,115,22,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
+                    cursor:'pointer', transition:'all 0.18s'
+                  }"
+                >
+                  <input type="checkbox" :id="'rp_item_' + item.id" :value="item.id" v-model="refundSelectedItems" style="display:none;">
+                  <div :style="{
+                    width:'20px', height:'20px', borderRadius:'6px', flexShrink:'0',
+                    background: refundSelectedItems.includes(item.id) ? '#f97316' : 'rgba(255,255,255,0.06)',
+                    border: refundSelectedItems.includes(item.id) ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.2)',
+                    display:'flex', alignItems:'center', justifyContent:'center'
+                  }">
+                    <svg v-if="refundSelectedItems.includes(item.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <img :src="getProductImage(item)" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">{{ getFullProductName(item) }}</div>
+                    <div style="font-size:11px;color:#64748b;">{{ item.bien_the?.ten_bienthe || 'Mặc định' }} - SL: {{ item.soluong }}</div>
+                  </div>
+                  <div v-if="refundSelectedItems.includes(item.id)" style="width:22px;height:22px;border-radius:50%;background:rgba(249,115,22,0.2);border:1.5px solid rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting" style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-              </button>
-              <button class="btn-cancel" @click="showRefundModal = false">Quay lại</button>
+            <!-- Ly do -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Lý do hoàn trả</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+              </div>
+              <textarea
+                v-model="refundReason"
+                rows="3"
+                placeholder="Mô tả chi tiết lý do bạn muốn hoàn trả sản phẩm..."
+                style="width:100%;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;resize:vertical;outline:none;font-family:inherit;line-height:1.6;box-sizing:border-box;"
+              ></textarea>
             </div>
+
+            <!-- Upload -->
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;">Hình ảnh / Video bằng chứng</span>
+                <span style="color:#f97316;font-size:13px;">*</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:700;color:#f97316;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);padding:2px 9px;border-radius:99px;">{{ refundProofs.length }}/5</span>
+              </div>
+
+              <!-- Drop zone -->
+              <label v-if="refundProofs.length === 0" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed rgba(255,255,255,0.12);border-radius:14px;padding:32px 20px;cursor:pointer;background:rgba(255,255,255,0.03);">
+                <div style="width:56px;height:56px;border-radius:16px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:#cbd5e1;">Nhấn để tải ảnh / video</div>
+                <div style="font-size:12px;color:#64748b;">PNG, JPG, MP4 · Tối đa 5 file · 20MB/file</div>
+              </label>
+
+              <!-- Grid preview -->
+              <div v-if="refundProofs.length > 0" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                <div v-for="(proof, idx) in refundProofs" :key="idx" style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                  <img v-if="proof.type.startsWith('image/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+                  <video v-else-if="proof.type.startsWith('video/')" :src="proof.url" style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                  <div v-if="proof.type.startsWith('video/')" style="position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,0.65);padding:1px 5px;border-radius:4px;">VIDEO</div>
+                  <button @click="removeProof(idx)" type="button" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(220,38,38,0.85);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <label v-if="refundProofs.length < 5" for="rp-proof-input" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:10px;border:2px dashed rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);cursor:pointer;aspect-ratio:1;color:#64748b;font-size:11px;font-weight:600;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Thêm</span>
+                </label>
+              </div>
+
+              <input id="rp-proof-input" type="file" @change="handleProofUpload" accept="image/*,video/*" multiple style="display:none;"/>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,0.07);gap:10px;">
+            <button @click="showRefundModal = false" style="display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Quay lại
+            </button>
+            <button @click="confirmRefund" style="display:flex;align-items:center;gap:8px;padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,0.35);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Gửi yêu cầu
+            </button>
           </div>
         </div>
       </div>
     </transition>
 
-    <!-- Review Modal -->
+        <!-- Review Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
         <div class="modal review-modal">
@@ -1623,6 +1826,24 @@ const promoStatusMap = {
             <span>{{ tab.label }}</span>
             <svg class="arrow" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6"/></svg>
           </button>
+          
+          <button class="side-btn theme-toggle-btn" @click="toggleTheme">
+            <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span>{{ isDark ? 'Giao diện: Tối' : 'Giao diện: Sáng' }}</span>
+          </button>
         </nav>
       </aside>
 
@@ -1695,8 +1916,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: ORDERS ════ -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: var(--text-title);">Lịch Sử Đơn Hàng</h1>
           </div>
           
           <div class="category-tabs" style="margin-bottom: 20px;">
@@ -1815,8 +2036,8 @@ const promoStatusMap = {
 
         <!-- ════ TAB: PROMOTIONS ════ -->
         <div v-else-if="activeTab === 'promotions'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
+          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: var(--text-title);">Khuyến Mãi</h1>
             <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
           </div>
 
@@ -2003,12 +2224,65 @@ const promoStatusMap = {
 
 <style scoped>
 
+/* ── DESIGN TOKENS (LIGHT/DARK VARIABLES) ── */
+.page {
+  --bg-gradient: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
+  --card-bg: rgba(17, 31, 53, 0.65);
+  --sidebar-bg: rgba(17, 31, 53, 0.6);
+  --border-color: rgba(56, 189, 248, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --text-title: #ffffff;
+  --text-main: #e2e8f0;
+  --text-sub: #94a3b8;
+  --text-muted: #64748b;
+  --input-bg: rgba(13, 27, 46, 0.5);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-focus-bg: rgba(13, 27, 46, 0.8);
+  --btn-cancel-bg: rgba(255, 255, 255, 0.03);
+  --btn-cancel-border: rgba(255, 255, 255, 0.07);
+  --btn-cancel-text: #94a3b8;
+  --stat-card-bg: rgba(255, 255, 255, 0.02);
+  --stat-card-border: rgba(255, 255, 255, 0.04);
+  --avatar-border: rgba(34, 211, 238, 0.8);
+  --avatar-shadow: none;
+}
+
+</style>
+
+<style>
+html.light .page {
+  --bg-gradient: radial-gradient(circle at 10% 20%, #f8fafc 0%, #cbd5e1 100%);
+  --card-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.12);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --text-title: #0f172a;
+  --text-main: #334155;
+  --text-sub: #475569;
+  --text-muted: #64748b;
+  --input-bg: #f8fafc;
+  --input-border: rgba(0, 0, 0, 0.12);
+  --input-focus-bg: #ffffff;
+  --btn-cancel-bg: rgba(0, 0, 0, 0.03);
+  --btn-cancel-border: rgba(0, 0, 0, 0.06);
+  --btn-cancel-text: #475569;
+  --stat-card-bg: rgba(0, 0, 0, 0.02);
+  --stat-card-border: rgba(0, 0, 0, 0.04);
+  --avatar-border: #0284c7;
+  --avatar-shadow: none;
+}
+</style>
+
+<style scoped>
+
 /* ── BASE ── */
 .page {
   min-height: 100vh;
-  background: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
+  background: var(--bg-gradient);
   padding: 30px 24px;
   font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 .container {
   max-width: 1080px;
@@ -2021,20 +2295,27 @@ const promoStatusMap = {
 
 /* ── SIDEBAR ── */
 .sidebar {
-  background: rgba(17, 31, 53, 0.6);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   position: sticky;
   top: 20px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+.sidebar:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+:global(html.light) .sidebar:hover {
+  border-color: rgba(2, 132, 199, 0.3);
 }
 .avatar-section {
   padding: 26px 20px 20px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .avatar-sidebar-container {
   width: 84px;
@@ -2047,9 +2328,9 @@ const promoStatusMap = {
   border-radius: 50%;
   overflow: hidden;
   position: relative;
-  border: 3px solid rgba(34, 211, 238, 0.8);
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.35);
-  transition: transform 0.3s ease;
+  border: 3px solid var(--avatar-border);
+  box-shadow: none;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .avatar-circle:hover {
   transform: scale(1.03);
@@ -2078,7 +2359,7 @@ const promoStatusMap = {
 .sidebar-name {
   font-size: 17px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
@@ -2096,7 +2377,7 @@ const promoStatusMap = {
 }
 .sidebar-join {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 8px 0 0;
 }
 
@@ -2108,11 +2389,11 @@ const promoStatusMap = {
   padding: 14px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .stat-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--stat-card-bg);
+  border: 1px solid var(--stat-card-border);
   border-radius: 12px;
   padding: 10px 5px;
   text-align: center;
@@ -2127,7 +2408,7 @@ const promoStatusMap = {
   background: rgba(56, 189, 248, 0.08);
   border-color: rgba(56, 189, 248, 0.25);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 .stat-card svg {
   width: 16px;
@@ -2144,11 +2425,11 @@ const promoStatusMap = {
 .stat-val {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-title);
 }
 .stat-lbl {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2170,7 +2451,7 @@ const promoStatusMap = {
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-sub);
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -2179,7 +2460,7 @@ const promoStatusMap = {
 .side-btn svg:not(.arrow) {
   width: 17px;
   height: 17px;
-  stroke: #94a3b8;
+  stroke: var(--text-sub);
   stroke-width: 2;
   fill: none;
   flex-shrink: 0;
@@ -2191,7 +2472,7 @@ const promoStatusMap = {
 .side-btn .arrow {
   width: 14px;
   height: 14px;
-  stroke: #64748b;
+  stroke: var(--text-muted);
   stroke-width: 2.5;
   fill: none;
   flex-shrink: 0;
@@ -2200,8 +2481,8 @@ const promoStatusMap = {
   transition: all 0.2s ease;
 }
 .side-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
-  color: #ffffff;
+  background: var(--btn-cancel-bg);
+  color: var(--text-title);
 }
 .side-btn:hover svg:not(.arrow) {
   stroke: #38bdf8;
@@ -2214,7 +2495,7 @@ const promoStatusMap = {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(6, 182, 212, 0.12));
   border: 1px solid rgba(56, 189, 248, 0.15);
   color: #22d3ee;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   font-weight: 700;
 }
 .side-btn.active svg:not(.arrow) {
@@ -2232,13 +2513,20 @@ const promoStatusMap = {
   min-width: 0;
 }
 .card {
-  background: rgba(17, 31, 53, 0.65);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--border-color);
   padding: 26px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+.card:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+:global(html.light) .card:hover {
+  border-color: rgba(2, 132, 199, 0.25);
 }
 .page-header-inline {
   margin-bottom: 24px;
@@ -2246,13 +2534,13 @@ const promoStatusMap = {
 .card-title {
   font-size: 20px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 6px;
   letter-spacing: -0.3px;
 }
 .card-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 .card-header {
@@ -2282,7 +2570,7 @@ const promoStatusMap = {
   background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-edit svg {
   width: 14px;
@@ -2303,8 +2591,8 @@ const promoStatusMap = {
   align-items: flex-start;
   gap: 5px;
   padding: 13px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   transition: all 0.2s ease;
 }
@@ -2312,20 +2600,24 @@ const promoStatusMap = {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(56, 189, 248, 0.15);
 }
+:global(html.light) .info-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(6, 182, 212, 0.15);
+}
 .info-lbl {
   font-size: 10.5px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 .info-val {
   font-size: 13.5px;
-  color: #e2e8f0;
+  color: var(--text-main);
   font-weight: 600;
 }
 .info-val.not-set {
-  color: #64748b;
+  color: var(--text-muted);
   font-style: italic;
   font-weight: 500;
 }
@@ -2352,35 +2644,35 @@ const promoStatusMap = {
 .form-group label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-sub);
   letter-spacing: 0.2px;
 }
 .form-group input, .form-group select {
   padding: 10px 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 11px;
   font-size: 13.5px;
-  color: #ffffff !important;
+  color: var(--text-title) !important;
   outline: none;
   transition: all 0.2s ease;
-  background: rgba(13, 27, 46, 0.5);
+  background: var(--input-bg);
 }
 .form-group input:disabled, .form-group select:disabled {
   opacity: 0.5;
-  color: #64748b !important;
+  color: var(--text-muted) !important;
   cursor: not-allowed;
 }
 .form-group select option {
-  background-color: #0f1c2e;
-  color: #e2e8f0;
+  background-color: var(--sidebar-bg);
+  color: var(--text-main);
 }
 .form-group select option:disabled {
-  color: #64748b;
+  color: var(--text-muted);
 }
 .form-group input:focus, .form-group select:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .form-group.error input {
   border-color: #ef4444;
@@ -2391,7 +2683,7 @@ const promoStatusMap = {
   gap: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-weight: 600;
   user-select: none;
 }
@@ -2406,14 +2698,14 @@ const promoStatusMap = {
   gap: 12px;
   justify-content: flex-end;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
 }
 .btn-cancel {
   padding: 9px 19px;
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  color: #94a3b8;
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--btn-cancel-border);
+  color: var(--btn-cancel-text);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -2421,8 +2713,13 @@ const promoStatusMap = {
 }
 .btn-cancel:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-title);
+  border-color: var(--border-color);
+}
+:global(html.light) .btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-title);
+  border-color: var(--border-color);
 }
 .btn-save {
   display: flex;
@@ -2438,11 +2735,11 @@ const promoStatusMap = {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+  box-shadow: none;
 }
 .btn-save:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(6, 182, 212, 0.3);
+  box-shadow: none;
 }
 .btn-save:disabled {
   opacity: 0.6;
@@ -2472,7 +2769,7 @@ const promoStatusMap = {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 0;
 }
 .cat-tab {
@@ -2481,7 +2778,7 @@ const promoStatusMap = {
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
@@ -2504,18 +2801,19 @@ const promoStatusMap = {
   line-height: 1;
   padding: 2.5px 5.5px;
   border-radius: 9999px;
-  border: 1.5px solid #111f35;
+  border: 1.5px solid var(--card-bg);
   min-width: 18px;
   text-align: center;
   margin-left: 6px;
+  transition: border-color 0.3s ease;
 }
 
 /* ── ORDER TABS (Segmented Control) ── */
 .order-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 4px;
   margin-bottom: 20px;
@@ -2528,7 +2826,7 @@ const promoStatusMap = {
   background: transparent;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-sub);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -2537,13 +2835,13 @@ const promoStatusMap = {
 }
 .order-tab:hover {
   background: rgba(255, 255, 255, 0.02);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .order-tab.active {
   background: #0284c7;
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+  box-shadow: none;
 }
 .otab-count {
   background: rgba(255, 255, 255, 0.15);
@@ -2561,9 +2859,9 @@ const promoStatusMap = {
 .table-card {
   background: transparent;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 .order-data-table {
   width: 100%;
@@ -2572,19 +2870,19 @@ const promoStatusMap = {
   font-size: 13.5px;
 }
 .order-data-table th {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   padding: 16px 20px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-color);
 }
 .order-data-table td {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
   vertical-align: middle;
 }
 .order-row {
@@ -2598,7 +2896,7 @@ const promoStatusMap = {
 }
 .order-id {
   color: #38bdf8;
-  text-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+  text-shadow: none;
 }
 .status-cell {
   display: inline-block;
@@ -2630,7 +2928,7 @@ const promoStatusMap = {
 }
 .btn-xem:hover {
   background: #0369a1;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
+  box-shadow: none;
 }
 .btn-hoan-tra {
   background: transparent;
@@ -2647,7 +2945,7 @@ const promoStatusMap = {
   background: #f97316;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+  box-shadow: none;
 }
 .btn-mua-lai {
   background: #059669;
@@ -2662,7 +2960,7 @@ const promoStatusMap = {
 }
 .btn-mua-lai:hover {
   background: #047857;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  box-shadow: none;
 }
 .btn-huy-don {
   background: transparent;
@@ -2679,13 +2977,13 @@ const promoStatusMap = {
   background: #ef4444;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  box-shadow: none;
 }
 
 /* Pagination */
 .pagination-footer {
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2694,7 +2992,7 @@ const promoStatusMap = {
 }
 .pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 .pagination {
@@ -2703,11 +3001,11 @@ const promoStatusMap = {
   gap: 10px;
 }
 .p-arrow {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--btn-cancel-bg);
+  border: 1px solid var(--btn-cancel-border);
   padding: 6px 14px;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-weight: 600;
   cursor: pointer;
   font-size: 13px;
@@ -2715,7 +3013,7 @@ const promoStatusMap = {
 }
 .p-arrow:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .p-arrow:disabled {
   opacity: 0.4;
@@ -2732,16 +3030,16 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: #94a3b8;
+  border: 1px solid var(--btn-cancel-border);
+  background: var(--btn-cancel-bg);
+  color: var(--text-sub);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .p-num:hover:not(.active) {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--text-title);
 }
 .p-num.active {
   background: #0284c7;
@@ -2773,7 +3071,7 @@ const promoStatusMap = {
   justify-content: center;
   margin-bottom: 20px;
   color: #22d3ee;
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
+  box-shadow: none;
 }
 .empty-icon-custom {
   width: 36px;
@@ -2782,13 +3080,13 @@ const promoStatusMap = {
 .empty-state-title {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
 .empty-state-desc {
   font-size: 13.5px;
-  color: #64748b;
+  color: var(--text-muted);
   max-width: 340px;
   margin: 0 0 24px;
   line-height: 1.5;
@@ -2805,11 +3103,11 @@ const promoStatusMap = {
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-shop-now:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+  box-shadow: none;
 }
 
 /* ADDRESS */
@@ -2829,7 +3127,7 @@ const promoStatusMap = {
 }
 .btn-add:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: none;
 }
 .btn-add svg {
   width: 15px;
@@ -2845,9 +3143,9 @@ const promoStatusMap = {
   margin-top: 16px;
 }
 .addr-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   border-radius: 18px;
-  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border: 1.5px solid var(--border-subtle);
   padding: 20px 24px;
   transition: all 0.25s ease;
 }
@@ -2868,7 +3166,7 @@ const promoStatusMap = {
 .addr-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-title);
 }
 .default-badge {
   font-size: 11px;
@@ -2881,7 +3179,7 @@ const promoStatusMap = {
 }
 .addr-full {
   font-size: 13.5px;
-  color: #94a3b8;
+  color: var(--text-sub);
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -2889,7 +3187,7 @@ const promoStatusMap = {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 14px;
 }
 .addr-btn {
@@ -2898,9 +3196,9 @@ const promoStatusMap = {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(13, 27, 46, 0.4);
-  color: #cbd5e1;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg);
+  color: var(--text-main);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -2915,8 +3213,8 @@ const promoStatusMap = {
 }
 .addr-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-title);
+  border-color: var(--border-color);
 }
 .addr-btn-default:hover {
   background: rgba(34, 211, 238, 0.1);
@@ -2954,11 +3252,11 @@ const promoStatusMap = {
 .input-wrap input {
   width: 100%;
   padding: 11px 44px 11px 40px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 12px;
   font-size: 14px;
-  color: #ffffff;
-  background: rgba(13, 27, 46, 0.5);
+  color: var(--text-title);
+  background: var(--input-bg);
   outline: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -2966,7 +3264,7 @@ const promoStatusMap = {
 .input-wrap input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .form-group.error .input-wrap input {
   border-color: #ef4444;
@@ -3006,8 +3304,8 @@ const promoStatusMap = {
   justify-content: center;
   border: 1.5px dashed rgba(56, 189, 248, 0.25);
   border-radius: 12px;
-  background: rgba(13, 27, 46, 0.5);
-  color: #ffffff;
+  background: var(--input-bg);
+  color: var(--text-title);
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.5px;
@@ -3045,10 +3343,10 @@ const promoStatusMap = {
   width: 100%;
   margin-top: 8px;
   padding: 11px 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--input-border);
   border-radius: 12px;
-  background: rgba(13, 27, 46, 0.5);
-  color: #ffffff;
+  background: var(--input-bg);
+  color: var(--text-title);
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
@@ -3057,7 +3355,7 @@ const promoStatusMap = {
 .captcha-input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-  background: rgba(13, 27, 46, 0.8);
+  background: var(--input-focus-bg);
 }
 .strength-bar {
   display: flex;
@@ -3084,16 +3382,16 @@ const promoStatusMap = {
   text-align: right;
 }
 .req-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--btn-cancel-bg);
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
   padding: 20px;
   margin-bottom: 16px;
 }
 .req-title {
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin: 0 0 14px;
@@ -3111,14 +3409,14 @@ const promoStatusMap = {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-sub);
   font-weight: 600;
   transition: color 0.2s ease;
 }
 .req-list li svg {
   width: 16px;
   height: 16px;
-  stroke: #64748b;
+  stroke: var(--text-muted);
   stroke-width: 2.5;
   fill: none;
   flex-shrink: 0;
@@ -3161,7 +3459,7 @@ const promoStatusMap = {
 }
 .tip-list li {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-sub);
   padding-left: 12px;
   position: relative;
   font-weight: 500;
@@ -3219,14 +3517,15 @@ const promoStatusMap = {
   -webkit-backdrop-filter: blur(8px);
 }
 .modal {
-  background: #0f1c30;
-  border: 1px solid rgba(56, 189, 248, 0.15);
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
   border-radius: 24px;
   width: 100%;
   max-width: 520px;
   max-height: 88vh;
   overflow-y: auto;
+  transition: background 0.3s ease;
 }
 .modal-head {
   display: flex;
@@ -3237,7 +3536,7 @@ const promoStatusMap = {
 .modal-title {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-title);
   margin: 0 0 4px;
   letter-spacing: -0.2px;
 }
@@ -3317,7 +3616,7 @@ const promoStatusMap = {
   transition: all 0.2s ease;
 }
 .btn-modal-mua:hover {
-  box-shadow: 0 0 15px rgba(5, 150, 105, 0.35);
+  box-shadow: none;
 }
 .btn-modal-hoantra {
   background: transparent;
@@ -3334,7 +3633,7 @@ const promoStatusMap = {
   background: #f97316;
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 0 15px rgba(249, 115, 22, 0.35);
+  box-shadow: none;
 }
 .region-picker-row {
   display: grid;
@@ -3386,7 +3685,7 @@ const promoStatusMap = {
 .tl-item.done .tl-dot {
   background: #38bdf8;
   border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  box-shadow: none;
 }
 .tl-dot svg {
   width: 12px;
@@ -3495,7 +3794,7 @@ const promoStatusMap = {
 .btn-modal-huy:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+  box-shadow: none;
 }
 .modal-total-wrap {
   text-align: right;
@@ -3514,7 +3813,7 @@ const promoStatusMap = {
   font-size: 20px;
   font-weight: 800;
   color: #38bdf8;
-  text-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  text-shadow: none;
 }
 
 /* TOAST STYLE */
@@ -3533,7 +3832,7 @@ const promoStatusMap = {
   gap: 12px;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 .toast svg {
   width: 18px;
@@ -3620,7 +3919,7 @@ const promoStatusMap = {
 .star-btn.filled {
   color: #fbbf24;
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+  filter: none;
 }
 .rating-text {
   margin-left: 12px;
@@ -3754,10 +4053,10 @@ const promoStatusMap = {
 
 <style scoped>
 
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid var(--border-color); padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #38bdf8; }
+.cat-tab.active { color: #22d3ee; border-bottom-color: #22d3ee; }
 
 .empty-msg {
   display: flex;
@@ -3765,7 +4064,7 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 15px;
 }
 .empty-icon {

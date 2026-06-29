@@ -189,6 +189,19 @@ const getCategoryTarget = (category) => {
 const mapProducts = (rawProducts) => {
     const productVariants = rawProducts.map(p => {
         if (!p.bien_thes || p.bien_thes.length === 0) {
+            const mainImg = productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500');
+            const imagesList = [mainImg];
+            const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+            listHinhAnh.forEach(img => {
+                const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+                if (rawPath) {
+                    const normalized = normalizeImageUrl(rawPath);
+                    if (normalized && !imagesList.includes(normalized)) {
+                        imagesList.push(normalized);
+                    }
+                }
+            });
+
             return [{
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
@@ -202,7 +215,9 @@ const mapProducts = (rawProducts) => {
                 priceNum: 0,
                 oldPriceNum: 0,
                 specs: [],
-                img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500'),
+                img: mainImg,
+                images: imagesList,
+                hovered: false,
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
                 rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
@@ -245,6 +260,25 @@ const mapProducts = (rawProducts) => {
                 { label: 'Màn hình', value: screen }
             ].filter(s => s.value);
 
+            const mainImg = productImageUrl(p, bt);
+            const imagesList = [mainImg];
+            
+            const baseImg = productImageUrl(p, null);
+            if (baseImg && !imagesList.includes(baseImg)) {
+                imagesList.push(baseImg);
+            }
+
+            const listHinhAnh = p.hinh_anhs || p.hinhAnhs || [];
+            listHinhAnh.forEach(img => {
+                const rawPath = img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image;
+                if (rawPath) {
+                    const normalized = normalizeImageUrl(rawPath);
+                    if (normalized && !imagesList.includes(normalized)) {
+                        imagesList.push(normalized);
+                    }
+                }
+            });
+
             return {
                 id: p.id_sanpham,
                 key_id: String(bt.id_bienthe),
@@ -258,7 +292,9 @@ const mapProducts = (rawProducts) => {
                 priceNum: bt.gia || 0,
                 oldPriceNum: bt.gia_khuyen_mai || 0,
                 specs: specs,
-                img: productImageUrl(p, bt),
+                img: mainImg,
+                images: imagesList,
+                hovered: false,
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
                 badgeColor: p.trangthai === 'Hot' ? '#ef4444' : '#2563eb',
                 rating_avg: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
@@ -283,6 +319,39 @@ const mapProducts = (rawProducts) => {
     return flatList;
 }
 
+const preloadSecondaryImages = (products) => {
+    if (typeof Image === 'undefined') return;
+    products.forEach(p => {
+        if (p.images && p.images.length > 1) {
+            const img = new Image();
+            img.src = p.images[1];
+        }
+    });
+};
+
+const activeRotations = new Set();
+
+const startImageRotation = (p) => {
+    if (!p.images || p.images.length <= 1) return;
+    p.hovered = true;
+    p.currentImageIndex = 1;
+    if (p.rotationInterval) clearInterval(p.rotationInterval);
+    p.rotationInterval = setInterval(() => {
+        p.currentImageIndex = (p.currentImageIndex + 1) % p.images.length;
+    }, 2000);
+    activeRotations.add(p);
+};
+
+const stopImageRotation = (p) => {
+    p.hovered = false;
+    if (p.rotationInterval) {
+        clearInterval(p.rotationInterval);
+        p.rotationInterval = null;
+    }
+    p.currentImageIndex = 0;
+    activeRotations.delete(p);
+};
+
 const featuredProducts = ref([])
 const featuredAccessories = ref([])
 const allHomeProducts = ref([])
@@ -297,20 +366,20 @@ const newsImageUrl = (path) => {
 
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
-    eyebrow: banner.eyebrow || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.title || 'Sức Mạnh Hội Tụ',
-    highlight: banner.highlight || banner.subtitle || 'Sự Tinh Tế Chuyên Sâu',
-    desc: banner.description || banner.subtitle || '',
-    img: normalizeImageUrl(banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mobileImg: normalizeImageUrl(banner.mobile_image || banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.media_type || 'image',
-    mobileMediaType: banner.mobile_media_type || banner.media_type || 'image',
-    link: banner.link_url || '',
-    productId: banner.product_id ? String(banner.product_id) : '',
-    primary: banner.primary_label || 'Mua ngay',
-    secondary: banner.secondary_label || 'Xem bộ sưu tập',
-    productBadge: banner.product_badge || 'TRENDING NOW',
-    productFeature: banner.product_feature || 'RTX 40-Series',
+    eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
+    title: banner.tieude || 'Sức Mạnh Hội Tụ',
+    highlight: banner.noibat || banner.phude || 'Sự Tinh Tế Chuyên Sâu',
+    desc: banner.mota || banner.phude || '',
+    img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mediaType: banner.loaimedia || 'image',
+    mobileMediaType: banner.loai_media_mobile || banner.loaimedia || 'image',
+    link: banner.duongdan || '',
+    productId: banner.id_sanpham ? String(banner.id_sanpham) : '',
+    primary: banner.nhanchinh || 'Mua ngay',
+    secondary: banner.nhanphu || 'Xem bộ sưu tập',
+    productBadge: banner.huyhieu_sanpham || 'TRENDING NOW',
+    productFeature: banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
 const loadCache = () => {
@@ -318,7 +387,10 @@ const loadCache = () => {
         const cached = localStorage.getItem('premium_home_cache')
         if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
+            if (parsed.featuredProducts) {
+                featuredProducts.value = parsed.featuredProducts
+                preloadSecondaryImages(featuredProducts.value)
+            }
             if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
             if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
@@ -387,6 +459,7 @@ onMounted(async () => {
             return !cat.includes('phụ kiện') && !cat.includes('phu kien');
         })
         featuredProducts.value = laptopsList.slice(0, 16)
+        preloadSecondaryImages(featuredProducts.value)
         
         const accessoriesList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
@@ -635,6 +708,10 @@ onMounted(() => {
 onUnmounted(() => {
     stop()
     if (countdownInterval) clearInterval(countdownInterval)
+    activeRotations.forEach(p => {
+        if (p.rotationInterval) clearInterval(p.rotationInterval)
+    })
+    activeRotations.clear()
 })
 </script>
 
@@ -887,88 +964,7 @@ onUnmounted(() => {
             </div>
         </section>
 
-        <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
-        <section class="section combos-section">
-            <div class="grid-container">
-                <div class="section-header scroll-reveal reveal-fade-up">
-                    <div class="label-wrapper">
-                        <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
-                        <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
-                        <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
-                    </div>
-                </div>
-
-                <!-- Có combo thì hiện danh sách -->
-                <div v-if="combos && combos.length" class="combo-carousel-shell scroll-reveal reveal-stagger">
-                    <button class="combo-carousel-btn prev" type="button" aria-label="LÆ°á»›t combo trÆ°á»›c" @click="scrollComboCarousel(-1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-
-                    <div
-                        ref="comboCarouselRef"
-                        class="combo-carousel-viewport"
-                        :class="{ dragging: comboDragState.active }"
-                        @wheel="handleComboWheel"
-                        @pointerdown="startComboDrag"
-                        @pointermove="moveComboDrag"
-                        @pointerup="endComboDrag"
-                        @pointercancel="endComboDrag"
-                        @pointerleave="endComboDrag"
-                    >
-                        <div class="combos-grid">
-                    <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
-                        <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
-
-                        <div class="combo-home-img">
-                            <img
-                                :src="getComboImage(c)"
-                                :alt="c.ten_combo || 'Combo accessories'"
-                                @error="handleImgError($event, comboFallbackImage)"
-                            />
-                        </div>
-
-                        <div class="combo-home-info">
-                            <h3>{{ c.ten_combo }}</h3>
-                            <p class="desc">{{ c.mota }}</p>
-
-                            <div class="bundle-items" v-if="c.products && c.products.length > 0">
-                                <div class="b-item-line">
-                                    <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
-                                        <span class="clickable-product" @click="router.push(`/products/${p.id}`)">
-                                            {{ p.tenSP }}
-                                        </span>
-                                        <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="price-row">
-                                <div class="price-box">
-                                    <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
-                                    <span class="price">{{ Number(c.giakhuyenmai || 0).toLocaleString('vi-VN') }}đ</span>
-                                </div>
-                                <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
-                                    <span>Cấu hình Combo</span>
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                        </div>
-                    </div>
-
-                    <button class="combo-carousel-btn next" type="button" aria-label="LÆ°á»›t combo tiáº¿p theo" @click="scrollComboCarousel(1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div>
-
-                <!-- Không có combo thì vẫn hiện giao diện -->
-                <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
-                    <div class="combo-empty-icon">🎁</div>
-                    <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
-                    <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng cập nhật database hoặc thêm combo trong trang quản trị.</p>
-                </div>
-            </div>
-        </section>
+        <!-- 2.7. HOME COMBOS (Moved to Promotions Page) -->
 
         <!-- 4. BEST SELLERS (Clean crisp white body background) -->
         <section class="section product-section">
@@ -1002,13 +998,15 @@ onUnmounted(() => {
 
                 <!-- Best Sellers Grid (Sitting on clean white body background) -->
                 <div class="premium-products-grid scroll-reveal">
-                    <article class="premium-product-card light-card" v-for="p in filteredFeaturedProducts.slice(0, 8)" :key="p.key_id">
+                    <article class="premium-product-card light-card" v-for="p in filteredFeaturedProducts.slice(0, 8)" :key="p.key_id"
+                             @mouseenter="startImageRotation(p)"
+                             @mouseleave="stopImageRotation(p)">
                         <div class="product-visuals" @click="router.push(`/products/${p.id}?variant=${p.key_id}`)">
                             <span class="badge-tag" v-if="p.badge" :style="{ background: p.badgeColor }">{{ p.badge }}</span>
                             <div class="discount-pill" v-if="p.oldPriceNum > p.priceNum">
                                 -{{ Math.round(((p.oldPriceNum - p.priceNum) / p.oldPriceNum) * 100) }}%
                             </div>
-                            <img :src="p.img" :alt="p.fullName" class="product-main-img" loading="lazy" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
+                            <img :src="p.hovered && p.images && p.images.length > 1 ? p.images[p.currentImageIndex || 0] : p.img" :alt="p.fullName" class="product-main-img" loading="lazy" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
                             
                             <button class="action-circle-btn wishlist-corner-btn" @click.stop="themVaoYeuThich(p)" title="Thêm vào yêu thích">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
@@ -1190,12 +1188,12 @@ onUnmounted(() => {
                     <!-- Featured Article -->
                     <article class="magazine-main-article" v-if="latestNews.length > 0">
                         <div class="main-art-visual">
-                            <img :src="newsImageUrl(latestNews[0].image)" :alt="latestNews[0].title" @error="handleImgError($event, newsPlaceholderImage)" />
-                            <span class="art-badge-tag">{{ latestNews[0].category || 'Nổi bật' }}</span>
+                            <img :src="newsImageUrl(latestNews[0].hinhanh)" :alt="latestNews[0].tieude" @error="handleImgError($event, newsPlaceholderImage)" />
+                            <span class="art-badge-tag">{{ latestNews[0].danhmuc || 'Nổi bật' }}</span>
                         </div>
                         <div class="main-art-info">
-                            <h3>{{ latestNews[0].title }}</h3>
-                            <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
+                            <h3>{{ latestNews[0].tieude }}</h3>
+                            <p>{{ latestNews[0].tomtat || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
                             <RouterLink :to="`/news/${latestNews[0].id}`" class="art-deep-link">Xem chi tiết bài viết ➔</RouterLink>
                         </div>
                     </article>
@@ -1204,11 +1202,11 @@ onUnmounted(() => {
                     <div class="magazine-secondary-column" v-if="latestNews.length > 1">
                         <article class="magazine-mini-article" v-for="n in latestNews.slice(1, 4)" :key="n.id">
                             <div class="mini-art-thumb">
-                                <img :src="newsImageUrl(n.image)" :alt="n.title" @error="handleImgError($event, newsPlaceholderImage)" />
+                                <img :src="newsImageUrl(n.hinhanh)" :alt="n.tieude" @error="handleImgError($event, newsPlaceholderImage)" />
                             </div>
                             <div class="mini-art-info">
-                                <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
-                                <h3>{{ n.title }}</h3>
+                                <span class="mini-tag">{{ n.danhmuc || 'Công nghệ' }}</span>
+                                <h3>{{ n.tieude }}</h3>
                                 <RouterLink :to="`/news/${n.id}`">Đọc bài viết ➔</RouterLink>
                             </div>
                         </article>
@@ -3542,6 +3540,7 @@ onUnmounted(() => {
 .combo-carousel-shell {
     position: relative;
     margin-top: 26px;
+    --combo-card-gap: 24px;
 }
 
 .combo-carousel-viewport {
@@ -3552,7 +3551,7 @@ onUnmounted(() => {
     scrollbar-width: none;
     cursor: grab;
     -webkit-overflow-scrolling: touch;
-    padding: 0 2px 6px;
+    padding: 0 2px 8px;
 }
 
 .combo-carousel-viewport::-webkit-scrollbar {
@@ -3566,9 +3565,9 @@ onUnmounted(() => {
 
 .combos-grid {
     display: flex;
-    gap: 20px;
+    gap: var(--combo-card-gap);
     margin: 0;
-    width: max-content;
+    width: 100%;
     min-width: 100%;
 }
 
@@ -3619,11 +3618,10 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     flex-direction: column;
-    flex: 0 0 calc((100vw - 300px) / 4);
-    min-width: 280px;
-    max-width: 380px;
+    flex: 0 0 calc((100% - (var(--combo-card-gap) * 3)) / 4);
+    min-width: 0;
+    max-width: none;
     scroll-snap-align: start;
-    margin: 0 auto;
 }
 
 .combo-home-card:hover {
@@ -3802,20 +3800,24 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1280px) {
+    .combo-carousel-shell {
+        --combo-card-gap: 20px;
+    }
+
     .combo-home-card {
-        flex-basis: calc((100vw - 220px) / 3);
+        flex-basis: calc((100% - (var(--combo-card-gap) * 2)) / 3);
     }
 }
 
 @media (max-width: 1024px) {
     .combo-home-card {
-        flex-basis: calc((100vw - 120px) / 2);
+        flex-basis: calc((100% - var(--combo-card-gap)) / 2);
     }
 }
 
 @media (max-width: 768px) {
-    .combos-grid {
-        gap: 14px;
+    .combo-carousel-shell {
+        --combo-card-gap: 14px;
     }
 
     .combo-home-card {

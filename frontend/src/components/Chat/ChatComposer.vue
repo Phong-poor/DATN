@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-composer" :class="variant">
+  <div class="chat-composer" :class="variant" ref="composerRef">
     <div v-if="pending.length > 0" class="previews-row">
       <div v-for="(item, idx) in pending" :key="idx" class="preview-item">
         <img v-if="item.isImage" :src="item.preview" alt="Preview" class="image-preview" />
@@ -43,13 +43,29 @@
           @input="$emit('update:modelValue', $event.target.value)"
           @keyup.enter="submit"
         />
+        
+        <!-- Emoji Picker Container -->
+        <div class="emoji-picker-container">
+          <button type="button" class="emoji-trigger-btn" aria-label="Chọn biểu cảm" @click.stop="toggleEmojiPicker">
+            😀
+          </button>
+          <div v-if="showEmojiPicker" class="emoji-picker-popover" @mousedown.stop>
+            <div class="emoji-list">
+              <span v-for="emoji in emojis" :key="emoji" class="emoji-item" @click="addEmoji(emoji)">
+                {{ emoji }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- Send button when there is text or attachment -->
       <button
+        v-if="modelValue.trim() || pending.length > 0"
         type="button"
         class="composer-send-btn"
         aria-label="Gửi tin nhắn"
-        :disabled="disabled || (!modelValue.trim() && pending.length === 0)"
+        :disabled="disabled"
         @click="submit"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -57,12 +73,24 @@
           <path d="M22 2 11 13"/>
         </svg>
       </button>
+
+      <!-- Like button (Messenger-style) when input is empty -->
+      <button
+        v-else
+        type="button"
+        class="composer-like-btn"
+        aria-label="Gửi Like"
+        :disabled="disabled"
+        @click="sendLike"
+      >
+        👍
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { readFileAsDataURL, isImageFile } from '@/utils/chatMessage'
 
 const props = defineProps({
@@ -77,6 +105,61 @@ const emit = defineEmits(['update:modelValue', 'send'])
 const imgInput = ref(null)
 const docInput = ref(null)
 const pending = ref([])
+const composerRef = ref(null)
+const showEmojiPicker = ref(false)
+
+const emojis = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+  '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+  '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+  '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+  '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+  '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
+  '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+  '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+  '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
+  '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾',
+  '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿',
+  '😾', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️', '🤞',
+  '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
+  '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
+  '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂',
+  '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋',
+  '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎',
+  '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖', '💘'
+]
+
+const toggleEmojiPicker = () => {
+  showEmojiPicker.value = !showEmojiPicker.value
+}
+
+const addEmoji = (emoji) => {
+  const text = props.modelValue + emoji
+  emit('update:modelValue', text)
+  showEmojiPicker.value = false
+}
+
+const sendLike = () => {
+  if (props.disabled) return
+  emit('send', {
+    text: '👍',
+    items: [],
+  })
+}
+
+const handleClickOutside = (e) => {
+  if (composerRef.value && !composerRef.value.contains(e.target)) {
+    showEmojiPicker.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
 
 const addFiles = async (files, imagesOnly = false) => {
   for (const file of files) {
@@ -173,7 +256,8 @@ const submit = () => {
   align-items: center;
   background: #f0f2f5;
   border-radius: 20px;
-  padding: 6px 10px 6px 14px;
+  padding: 6px 12px;
+  gap: 8px;
 }
 
 .composer-input-wrap input {
@@ -183,6 +267,83 @@ const submit = () => {
   background: transparent;
   outline: none;
   font-size: 14px;
+}
+
+.emoji-picker-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.emoji-trigger-btn {
+  background: transparent;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.emoji-trigger-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.emoji-picker-popover {
+  position: absolute;
+  bottom: 38px;
+  right: -6px;
+  width: 240px;
+  height: 180px;
+  background: #ffffff;
+  border: 1px solid #e4e6eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  z-index: 10000;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.emoji-picker-popover::-webkit-scrollbar {
+  width: 4px;
+}
+
+.emoji-picker-popover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.emoji-picker-popover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.emoji-list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  font-size: 19px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.emoji-item:hover {
+  transform: scale(1.22);
+  background: #f1f5f9;
 }
 
 .composer-send-btn {
@@ -198,6 +359,11 @@ const submit = () => {
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.composer-send-btn:hover {
+  transform: scale(1.05);
 }
 
 .composer-send-btn svg {
@@ -208,6 +374,31 @@ const submit = () => {
 .composer-send-btn:disabled {
   background: #e4e6eb;
   color: #bcc0c4;
+  cursor: not-allowed;
+}
+
+.composer-like-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.2s;
+  user-select: none;
+}
+
+.composer-like-btn:hover:not(:disabled) {
+  transform: scale(1.2);
+}
+
+.composer-like-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

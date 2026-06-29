@@ -13,6 +13,11 @@ export function saveAuth(token, user, remember = false) {
     localStorage.removeItem('user')
   }
 
+  // Ghi nhận sự kiện đăng nhập để đồng bộ qua các tab khác
+  const loginData = { token, user: encodedUser, remember }
+  localStorage.setItem('login-event', JSON.stringify(loginData))
+  localStorage.removeItem('login-event')
+
   window.dispatchEvent(new Event('user-updated'))
 }
 
@@ -21,6 +26,11 @@ export function clearAuth() {
   localStorage.removeItem('user')
   sessionStorage.removeItem('token')
   sessionStorage.removeItem('user')
+  
+  // Ghi nhận sự kiện đăng xuất để đồng bộ qua các tab khác
+  localStorage.setItem('logout-event', Date.now().toString())
+  localStorage.removeItem('logout-event')
+  
   window.dispatchEvent(new Event('user-updated'))
 }
 

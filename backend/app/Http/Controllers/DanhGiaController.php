@@ -159,7 +159,7 @@ class DanhGiaController extends Controller
         $review = DanhGia::findOrFail($id);
         
         // Nếu không phải admin thì chỉ được xóa review của chính mình
-        if (Auth::user()->role !== 'admin' && $review->user_id !== Auth::id()) {
+        if (Auth::user()->vaitro === 'user' && $review->user_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa đánh giá này.'], 403);
         }
 

@@ -139,78 +139,116 @@ const handleSubmit = async () => {
 <template>
   <div class="page">
 
-    <div class="card">
-
-      <h3 class="brand">Predator</h3>
-
-      <div class="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      </div>
-
-      <h2>Quên mật khẩu?</h2>
-      <p class="desc">
-        Nhập email của bạn để nhận hướng dẫn khôi phục mật khẩu
-      </p>
-
-      <!-- INPUT -->
-      <div class="input-box">
-        <span>@</span>
-        <input v-model="email" placeholder="example@vinatech.com" @keyup.enter="handleSubmit" />
-      </div>
-
-      <!-- CAPTCHA WITH TRANSITION -->
-      <Transition name="fade-slide">
-        <div class="captcha-box" v-if="showCaptcha">
-          <button
-            type="button"
-            class="captcha-check"
-            :class="{ checked: captcha.verified }"
-            @click="verifyCaptcha"
-            :disabled="captchaLoading || loading"
-            aria-label="Xác minh bạn là con người"
-          >
-            <span v-if="captcha.verified">✓</span>
-          </button>
-          <span class="captcha-title">{{ captcha.label }}</span>
-          <div class="captcha-brand">
-            <svg viewBox="0 0 64 40" aria-hidden="true">
-              <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
-            </svg>
-            <strong>CLOUDFLARE</strong>
-            <small>Quyền riêng tư · Giúp đỡ</small>
-            <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading || loading">
-              ?
-            </button>
-          </div>
+    <!-- LEFT COLUMN (Branding & Workspace Laptop Image) -->
+    <div class="left-col">
+      <div class="left-content">
+        <div class="brand-header">
+          <span class="brand-title">PREDATOR</span>
+          <span class="brand-slogan">Chinh Phục Tầm Cao Mới</span>
         </div>
-      </Transition>
-
-      <!-- BUTTON -->
-      <button class="btn" @click="handleSubmit" :disabled="loading">
-        {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-      </button>
-
-      <div class="divider"></div>
-
-      <!-- BACK -->
-      <p class="back" @click="router.push('/login')">
-        Quay lại đăng nhập
-      </p>
-
-      <p class="register-link">
-        Chưa có tài khoản?
-        <a @click="router.push('/register')">Đăng ký ngay</a>
-      </p>
-
+        <p class="brand-description">
+          Hành trình chinh phục hiệu năng đỉnh cao bắt đầu từ đây. Quản lý không gian làm việc, cấu hình thiết bị và nhận các đặc quyền dễ dàng.
+        </p>
+        <div class="laptop-img-wrapper">
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator Laptop Workspace" />
+        </div>
+        <div class="highlight-pills">
+          <span class="pill">Bảo mật tối đa</span>
+          <span class="pill">Đồng bộ đám mây</span>
+          <span class="pill">Đặc quyền VIP</span>
+        </div>
+      </div>
     </div>
 
-    <p class="footer">
-      © 2026 VinaTech Premium. Hệ thống bảo mật 2026.
-    </p>
+    <!-- RIGHT COLUMN (Form fields) -->
+    <div class="right-col">
+      <div class="form-wrapper">
+        
+        <div class="header-box">
+          <h2 class="form-title">Quên mật khẩu?</h2>
+          <p class="form-desc">
+            Đừng lo lắng, hãy nhập email của bạn để chúng tôi gửi hướng dẫn đặt lại mật khẩu.
+          </p>
+        </div>
+
+        <!-- FORM FIELDS -->
+        <form class="form-container" @submit.prevent="handleSubmit">
+          <!-- EMAIL -->
+          <div class="form-group">
+            <label class="input-label">Địa chỉ Email</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <path d="M2 7l10 7 10-7" />
+                </svg>
+              </span>
+              <input v-model="email" type="email" placeholder="example@gmail.com" />
+            </div>
+          </div>
+
+          <!-- CAPTCHA WITH TRANSITION -->
+          <Transition name="fade-slide">
+            <div class="captcha-box" v-if="showCaptcha">
+              <button
+                type="button"
+                class="captcha-check"
+                :class="{ checked: captcha.verified }"
+                @click="verifyCaptcha"
+                :disabled="captchaLoading || loading"
+                aria-label="Xác minh bạn là con người"
+              >
+                <span v-if="captcha.verified">✓</span>
+              </button>
+              <span class="captcha-title">{{ captcha.label }}</span>
+              <div class="captcha-brand">
+                <svg viewBox="0 0 64 40" aria-hidden="true">
+                  <path fill="#f97316" d="M44 28H20a9 9 0 0 1 8.6-11.6A13 13 0 0 1 53.8 20H55a6 6 0 0 1 0 12h-9.8c1-1.2 1.5-2.6 1.5-4Z"/>
+                </svg>
+                <strong>CLOUDFLARE</strong>
+                <small>Quyền riêng tư · Giúp đỡ</small>
+                <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="captchaLoading || loading">
+                  ↻
+                </button>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- SUBMIT BUTTON -->
+          <button type="submit" class="submit-btn" :disabled="loading">
+            <span class="btn-text">
+              {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu khôi phục' }}
+            </span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </form>
+
+        <!-- BACK TO LOGIN -->
+        <a class="back-link" @click="router.push('/login')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Quay lại trang Đăng nhập
+        </a>
+
+        <!-- OR DIVIDER -->
+        <div class="or-divider">
+          <span class="divider-line"></span>
+          <span class="divider-text">HOẶC</span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- FOOTER REGISTER LINK -->
+        <p class="footer-register">
+          Bạn chưa có tài khoản? <span class="register-link" @click="router.push('/register')">Tạo tài khoản mới</span>
+        </p>
+
+      </div>
+    </div>
 
     <!-- MODAL -->
     <Transition name="modal">
@@ -243,80 +281,302 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .page {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 42% 58%;
+  font-family: 'Inter', sans-serif;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* LEFT COLUMN */
+.left-col {
+  background-color: #0d1b2e;
+  color: #ffffff;
+  padding: 40px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eef2ff, #f1f5f9);
-  font-family: 'Inter', sans-serif;
+  position: relative;
 }
 
-.card {
-  width: 380px;
-  padding: 40px;
-  border-radius: 24px;
-  background: white;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
-}
-
-.brand {
-  color: #2563eb;
-  margin-bottom: 10px;
-}
-
-.icon {
-  width: 56px;
-  height: 56px;
-  margin: 10px auto 16px;
-  background: #e0ecff;
+.left-content {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
 }
 
-.icon svg {
-  stroke: #2563eb;
+.brand-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-h2 {
-  font-size: 22px;
-  margin-bottom: 8px;
-  color: #0f172a;
+.brand-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.desc {
+.brand-slogan {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.brand-description {
   font-size: 13px;
-  color: #64748b;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-top: 16px;
   margin-bottom: 24px;
-  line-height: 1.6;
 }
 
-.input-box {
+.laptop-img-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.laptop-img {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  object-fit: cover;
+}
+
+.highlight-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.pill {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+/* RIGHT COLUMN */
+.right-col {
+  padding: 40px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-wrapper {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.header-box {
+  margin-bottom: 24px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0d1b2e;
+  margin: 0 0 6px 0;
+}
+
+.form-desc {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.input-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #f1f5f9;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 15px;
+  background-color: #f8faff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 40px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.input-box span {
-  color: #64748b;
+.input-wrapper:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 }
 
-.input-box input {
+.input-icon {
+  display: flex;
+  align-items: center;
+  color: #93c5fd;
+  margin-right: 8px;
+}
+
+.input-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.input-wrapper input {
   border: none;
   background: transparent;
   outline: none;
   flex: 1;
-  font-size: 14px;
+  font-size: 13.5px;
+  color: #0d1b2e;
+  width: 100%;
 }
 
+.input-wrapper input::placeholder {
+  color: #9ca3af;
+}
+
+/* SUBMIT BUTTON */
+.submit-btn {
+  background-color: #1e40af;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  height: 40px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.submit-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+
+.submit-btn:hover .btn-arrow {
+  transform: translateX(3px);
+}
+
+/* BACK LINK */
+.back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  margin-top: 16px;
+}
+
+.back-link:hover {
+  color: #2563eb;
+}
+
+.back-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* DIVIDER */
+.or-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: #e5e7eb;
+}
+
+.divider-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 0 10px;
+}
+
+/* REGISTER FOOTER */
+.footer-register {
+  text-align: center;
+  font-size: 12.5px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.register-link {
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+/* CAPTCHA */
 .captcha-box {
   min-height: 52px;
   display: grid;
@@ -327,7 +587,6 @@ h2 {
   border: 1px solid #d1d5db;
   border-radius: 3px;
   padding: 8px 12px;
-  margin-bottom: 15px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
@@ -344,7 +603,7 @@ h2 {
   font-size: 13px;
   font-weight: 900;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
 
 .captcha-check.checked {
@@ -399,74 +658,16 @@ h2 {
   cursor: pointer;
 }
 
-.btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 25px;
-  border: none;
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 14px;
-  transition: opacity 0.2s;
-}
-
-.btn:hover {
-  opacity: 0.9;
-}
-
-.divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 20px 0;
-}
-
-.back {
-  font-size: 13px;
-  color: #2563eb;
-  cursor: pointer;
-  font-weight: 600;
-  transition: opacity 0.2s;
-}
-
-.back:hover {
-  opacity: 0.7;
-}
-
-.register-link {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 12px;
-}
-
-.register-link a {
-  color: #2563eb;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.register-link a:hover {
-  text-decoration: underline;
-}
-
-.footer {
-  margin-top: 20px;
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-/* FADE SLIDE TRANSITION */
+/* TRANSITIONS */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .fade-slide-enter-from,
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-8px);
 }
 
 /* MODAL */
@@ -499,21 +700,14 @@ h2 {
   margin: 0 auto 16px;
 }
 
-.modal-card.error .modal-icon {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.modal-card.success .modal-icon {
-  background: #dcfce7;
-  color: #22c55e;
-}
+.modal-card.error .modal-icon { background: #fee2e2; color: #ef4444; }
+.modal-card.success .modal-icon { background: #dbeafe; color: #2563eb; }
 
 .modal-title {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #0f172a;
+  color: #0d1b2e;
 }
 
 .modal-message {
@@ -534,49 +728,31 @@ h2 {
   transition: opacity 0.2s;
 }
 
-.modal-btn.error {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.modal-btn.success {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
-  color: white;
-}
-
-.modal-btn:hover {
-  opacity: 0.88;
-}
+.modal-btn.error { background-color: #dc2626; color: white; }
+.modal-btn.success { background-color: #1e40af; color: white; }
+.modal-btn:hover { opacity: 0.88; }
 
 .modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.25s ease;
-}
+.modal-leave-active { transition: opacity 0.25s ease; }
 
 .modal-enter-active .modal-card,
-.modal-leave-active .modal-card {
-  transition: transform 0.25s ease;
-}
+.modal-leave-active .modal-card { transition: transform 0.25s ease; }
 
 .modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
+.modal-leave-to { opacity: 0; }
 
 .modal-enter-from .modal-card,
-.modal-leave-to .modal-card {
-  transform: scale(0.92) translateY(10px);
+.modal-leave-to .modal-card { transform: scale(0.92) translateY(10px); }
+
+/* RESPONSIVE LAYOUT */
+@media (max-width: 768px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .left-col { display: none; }
 }
 
 @media (max-width: 480px) {
-  .card {
-    width: 100%;
-    max-width: 340px;
-    padding: 24px 20px;
-  }
-  .modal-card {
-    width: min(320px, 90%);
-    padding: 24px 20px;
-  }
+  .right-col { padding: 24px 20px; }
 }
 </style>

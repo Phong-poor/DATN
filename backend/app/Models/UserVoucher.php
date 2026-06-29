@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserVoucher extends Model
 {
-    protected $table = 'users_voucher';
+    protected $table = 'khachhang_voucher';
 
     protected $fillable = [
         'id_user',
-        'id_promotion',
+        'id_voucher',
         'trang_thai',
         'ngay_nhan',
     ];
@@ -27,10 +27,18 @@ class UserVoucher extends Model
     }
 
     /**
-     * Relationship with Promotion
+     * Relationship with Voucher (formerly Promotion)
+     */
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class, 'id_voucher');
+    }
+
+    /**
+     * Relationship with Promotion (legacy support)
      */
     public function promotion(): BelongsTo
     {
-        return $this->belongsTo(Promotion::class, 'id_promotion');
+        return $this->belongsTo(Promotion::class, 'id_voucher');
     }
 }

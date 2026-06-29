@@ -63,6 +63,25 @@ const selectedImage = ref('https://via.placeholder.com/600')
 const selectedVariant = ref(null)
 const selectedOptions = ref({})
 
+const activeDropdown = ref(null)
+const toggleDropdown = (groupName) => {
+    if (activeDropdown.value === groupName) {
+        activeDropdown.value = null
+    } else {
+        activeDropdown.value = groupName
+    }
+}
+const selectOptionAndClose = (groupName, value) => {
+    handleSelectOptionWithReset(groupName, value)
+    activeDropdown.value = null
+}
+const closeAllDropdowns = (e) => {
+    if (!e.target.closest('.premium-variant-dropdown')) {
+        activeDropdown.value = null
+    }
+}
+
+
 // ===================== REVIEWS STATE =====================
 const reviews = ref([])
 const fetchReviews = async () => {
@@ -667,7 +686,7 @@ const fetchProductDetail = async () => {
         if (data.id_danhmuc) {
             fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
                 .then(() => saveCache(productId))
-                .catch((err) => console.error('Lá»—i khi táº£i sáº£n pháº©m tÆ°Æ¡ng tá»±:', err))
+                .catch((err) => console.error('Lỗi khi tải sản phẩm tương tự:', err))
         }
 
         // --- GHI NHẬN LƯỢT XEM SẢN PHẨM ---
@@ -866,6 +885,7 @@ onUnmounted(() => {
     stopRotationLoop()
     stopTiltSmoothing()
     window.removeEventListener('scroll', handleScrollSticky)
+    document.removeEventListener('click', closeAllDropdowns)
 })
 
 watch(() => route.fullPath, (newPath, oldPath) => {
@@ -1412,14 +1432,14 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="sticky-price-glow">
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
-                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
                         <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="9" cy="21" r="1"></circle>
                             <circle cx="20" cy="21" r="1"></circle>
                             <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
                         </svg>
                     </button>
-                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || (selectedVariant && selectedVariant.soluong === 0)">
+                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0">
                         Mua ngay
                     </button>
                 </div>
@@ -1599,6 +1619,126 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
+                        <!-- Variant Selectors Option Groups -->
+                        <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
+                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
+                                <div class="option-header-row">
+                                    <span class="option-label-title">{{ group.name }}</span>
+                                </div>
+
+                                <div class="premium-variant-dropdown">
+                                    <div class="dropdown-trigger" @click.stop="toggleDropdown(group.name)" :class="{ active: activeDropdown === group.name }">
+                                        <div class="selected-info-container">
+                                            <span v-if="group.name === 'Màu sắc' && selectedOptions[group.name]" class="selected-color-dot" :style="{ backgroundColor: (group.values.find(v => v.giatri === selectedOptions[group.name])?.ma_mau || '#ccc') }"></span>
+                                            <span class="selected-value-text">{{ selectedOptions[group.name] || 'Chọn ' + group.name }}</span>
+                                        </div>
+                                        <span class="dropdown-arrow-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
+                                                <polyline points="6 9 12 15 18 9"></polyline>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <transition name="dropdown-fade">
+                                        <div class="dropdown-menu-list" v-show="activeDropdown === group.name">
+                                            <div v-for="item in group.values" :key="item.giatri"
+                                                 :class="['dropdown-item-option', { active: selectedOptions[group.name] === item.giatri }]"
+                                                 @click="selectOptionAndClose(group.name, item.giatri)">
+                                                <span v-if="group.name === 'Màu sắc'" class="item-color-dot" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
+                                                <span class="item-text-label">{{ item.giatri }}</span>
+                                                <span v-if="selectedOptions[group.name] === item.giatri" class="checkmark-active">✓</span>
+                                            </div>
+                                        </div>
+                                    </transition>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Option Group fallback if none -->
+                        <div class="premium-selectors-wrapper" v-else>
+                            <p class="updating-text">Thông số biến thể đang được đồng bộ...</p>
+                        </div>
+
+                        <!-- Stock Status -->
+                        <div class="premium-stock-banner" v-if="selectedVariant">
+                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
+                                <span class="pulse-green-dot"></span>
+                                <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
+                            </div>
+                            <div v-else class="stock-status out-of-stock">
+                                <span class="pulse-red-dot"></span>
+                                <span class="stock-text">Hiện tại hết hàng - Liên hệ CSKH hỗ trợ</span>
+                            </div>
+                        </div>
+
+                        <!-- Qty and CTAs buy buttons -->
+                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
+                            <!-- Qty Control -->
+                            <div class="premium-qty-stepper">
+                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                                <span class="stepper-value">{{ soLuongMua }}</span>
+                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Buttons action grid -->
+                            <div class="actions-grid">
+                                <button class="btn-buy-now btn-glow-primary"
+                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
+                                        @click="themVaoGioHang">
+                                    <span class="btn-ripple-bg"></span>
+                                    <span v-if="dangThem" class="loading-spin-circle"></span>
+                                    <span v-else class="btn-content-text">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                                            <circle cx="9" cy="21" r="1"></circle>
+                                            <circle cx="20" cy="21" r="1"></circle>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                        </svg>
+                                        THÊM VÀO GIỎ HÀNG
+                                    </span>
+                                </button>
+
+                                <button class="btn-installment">
+                                    <span class="top-tag">LÃI SUẤT 0%</span>
+                                    <span class="main-text">TRẢ GÓP ONLINE</span>
+                                </button>
+                            </div>
+
+                            <!-- Wishlist & Compare floating actions -->
+                            <div class="floating-shortcuts-row">
+                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
+                                    <span class="icon">
+                                        <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                        </svg>
+                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                                        </svg>
+                                    </span>
+                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
+                                </button>
+
+                                <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                            <path d="m17 2 4 4-4 4"/>
+                                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+                                            <path d="m7 22-4-4 4-4"/>
+                                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                                        </svg>
+                                    </span>
+                                    <span>So sánh specs</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- BOX ƯU ĐÃI ĐI KÈM (VIP Bundles Up-sell) -->
                         <div class="product-benefits-box">
                             <h4 class="benefits-title">
@@ -1712,122 +1852,6 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
-                        <!-- Variant Selectors Option Groups -->
-                        <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
-                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
-                                <div class="option-header-row">
-                                    <span class="option-label-title">{{ group.name }}</span>
-                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
-                                </div>
-
-                                <!-- Color Dot Custom Buttons -->
-                                <div v-if="group.name === 'Màu sắc'" class="premium-color-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri"
-                                            :class="['color-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
-                                            @click="handleSelectOptionWithReset(group.name, item.giatri)"
-                                            :title="item.giatri">
-                                        <span class="color-core" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
-                                        <span class="color-ring-glow"></span>
-                                    </button>
-                                </div>
-
-                                <!-- Custom Pill Buttons for RAM / SSD / Specs -->
-                                <div v-else class="premium-pill-selectors">
-                                    <button v-for="item in group.values" :key="item.giatri"
-                                            :class="['pill-selector-btn', { active: selectedOptions[group.name] === item.giatri }]"
-                                            @click="handleSelectOptionWithReset(group.name, item.giatri)">
-                                        <span class="pill-text">{{ item.giatri }}</span>
-                                        <span class="active-indicator"></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Option Group fallback if none -->
-                        <div class="premium-selectors-wrapper" v-else>
-                            <p class="updating-text">Thông số biến thể đang được đồng bộ...</p>
-                        </div>
-
-                        <!-- Stock Status -->
-                        <div class="premium-stock-banner" v-if="selectedVariant">
-                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
-                                <span class="pulse-green-dot"></span>
-                                <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
-                            </div>
-                            <div v-else class="stock-status out-of-stock">
-                                <span class="pulse-red-dot"></span>
-                                <span class="stock-text">Hiện tại hết hàng - Liên hệ CSKH hỗ trợ</span>
-                            </div>
-                        </div>
-
-                        <!-- Qty and CTAs buy buttons -->
-                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
-                            <!-- Qty Control -->
-                            <div class="premium-qty-stepper">
-                                <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                                <span class="stepper-value">{{ soLuongMua }}</span>
-                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Buttons action grid -->
-                            <div class="actions-grid">
-                                <button class="btn-buy-now btn-glow-primary"
-                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
-                                        @click="themVaoGioHang">
-                                    <span class="btn-ripple-bg"></span>
-                                    <span v-if="dangThem" class="loading-spin-circle"></span>
-                                    <span v-else class="btn-content-text">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-                                            <circle cx="9" cy="21" r="1"></circle>
-                                            <circle cx="20" cy="21" r="1"></circle>
-                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                        </svg>
-                                        THÊM VÀO GIỎ HÀNG
-                                    </span>
-                                </button>
-
-                                <button class="btn-installment">
-                                    <span class="top-tag">LÃI SUẤT 0%</span>
-                                    <span class="main-text">TRẢ GÓP ONLINE</span>
-                                </button>
-                            </div>
-
-                            <!-- Wishlist & Compare floating actions -->
-                            <div class="floating-shortcuts-row">
-                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
-                                    <span class="icon">
-                                        <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                                        </svg>
-                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                                        </svg>
-                                    </span>
-                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
-                                </button>
-
-                                <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">
-                                    <span class="icon">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
-                                            <path d="m17 2 4 4-4 4"/>
-                                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
-                                            <path d="m7 22-4-4 4-4"/>
-                                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
-                                        </svg>
-                                    </span>
-                                    <span>So sánh specs</span>
-                                </button>
-                            </div>
-                        </div>
 
 <!-- BANNER ƯU ĐÃI VIP KÈM CẤU HÌNH BIẾN THỂ -->
                         <div v-if="selectedVariantOffers.length > 0" class="variant-offers-box">
@@ -2620,7 +2644,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
-    top: 0;
+    top: 102px; /* Đặt dưới header trên desktop (34px announcement bar + 68px main header) */
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -2628,10 +2652,16 @@ const handleSelectVariantById = (idBienThe) => {
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid #E2E8F0;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
-    z-index: 1000;
+    z-index: 999; /* Dưới header (1000) để khi ẩn/hiện trượt phía sau header trông mượt mà hơn */
     padding: 12px 0;
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 600px) {
+    .sticky-buy-bar {
+        top: 60px; /* Đặt dưới header trên mobile (chiều cao header mobile là 60px, top: 0) */
+    }
 }
 
 .sticky-bar-flex {
@@ -3083,7 +3113,7 @@ const handleSelectVariantById = (idBienThe) => {
 
 .detail-hero-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: 1.02fr 0.98fr;
     gap: 48px;
     align-items: start;
 }
@@ -3094,13 +3124,13 @@ const handleSelectVariantById = (idBienThe) => {
     flex-direction: column;
     gap: 20px;
     position: sticky;
-    top: 100px;
-    z-index: 10;
+    top: 120px;
+    max-width: 530px;
 }
 
 .main-image-viewport {
     position: relative;
-    aspect-ratio: 4/3;
+    aspect-ratio: 1/1;
     border-radius: 28px;
     background: var(--tn-surface);
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -3427,13 +3457,13 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .premium-option-group {
     display: grid;
-    grid-template-columns: minmax(86px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-columns: minmax(70px, 0.65fr) minmax(0, 1.35fr);
     align-items: center;
-    gap: 8px 12px;
-    min-height: 52px;
-    padding: 10px 12px;
+    gap: 6px 10px;
+    min-height: 40px;
+    padding: 6px 10px;
     border: 1px solid #dbe5f0;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #ffffff;
 }
 .option-header-row {
@@ -5295,7 +5325,7 @@ const handleSelectVariantById = (idBienThe) => {
         grid-template-columns: 1fr;
     }
     .premium-option-group {
-        grid-template-columns: minmax(82px, 0.7fr) minmax(0, 1.3fr);
+        grid-template-columns: minmax(70px, 0.65fr) minmax(0, 1.35fr);
     }
     .grid-2-columns {
         grid-template-columns: 1fr;
@@ -5477,7 +5507,8 @@ const handleSelectVariantById = (idBienThe) => {
     padding: 20px;
 }
 .main-showcase-image {
-    max-width: 92%;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 /* Responsive product title */
@@ -5485,13 +5516,6 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: clamp(20px, 3.6vw, 32px);
 }
 
-/* Keep gallery visible while the purchase details scroll on wide screens */
-.gallery-column {
-    position: sticky;
-    top: 112px;
-    align-self: start;
-    z-index: 2;
-}
 
 /* Slightly smaller, interactive thumbnails */
 .thumb-card {
@@ -5870,7 +5894,7 @@ const handleSelectVariantById = (idBienThe) => {
 .detail-hero-grid { gap: 36px; }
 @media (max-width: 1024px) {
     .detail-hero-grid { grid-template-columns: 1fr; gap: 24px; }
-    .gallery-column { position: static; top: auto; }
+    .gallery-column { position: static; top: auto; max-width: none; }
     .main-image-viewport { aspect-ratio: 16/10; }
 
 }

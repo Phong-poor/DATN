@@ -17,14 +17,14 @@
       @click.stop
     >
       <span class="chat-file-icon">📎</span>
-      <span class="chat-file-name">{{ msg.attachment_name || 'Tệp đính kèm' }}</span>
+      <span class="chat-file-name">{{ msg.ten_dinhkem || 'Tệp đính kèm' }}</span>
     </a>
-    <div v-if="msg.message" class="image-caption" :class="{ 'is-own': isOwn }">
-      <slot name="caption">{{ msg.message }}</slot>
+    <div v-if="msg.noidung" class="image-caption" :class="{ 'is-own': isOwn }">
+      <slot name="caption">{{ msg.noidung }}</slot>
     </div>
   </template>
   <template v-else>
-    <slot>{{ msg.message }}</slot>
+    <slot>{{ msg.noidung }}</slot>
   </template>
 </template>
 

@@ -9,26 +9,26 @@ class ChatMessage extends Model
 {
     use HasFactory;
 
-    protected $table = 'chat_messages';
+    protected $table = 'noi_dung_tro_chuyen';
 
     protected $fillable = [
-        'conversation_id',
-        'sender_id',
-        'message',
-        'is_read',
-        'attachment_path',
-        'attachment_name',
+        'id_cuoc_tro_chuyen',
+        'id_nguoigui',
+        'noidung',
+        'daxem',
+        'duongdan_dinhkem',
+        'ten_dinhkem',
     ];
 
-    protected $appends = ['attachment_url'];
+    protected $appends = ['duongdan_dinhkem_url'];
 
-    public function getAttachmentUrlAttribute()
+    public function getDuongdanDinhkemUrlAttribute()
     {
-        if (!$this->attachment_path) {
+        if (!$this->duongdan_dinhkem) {
             return null;
         }
 
-        $filename = basename(str_replace('\\', '/', $this->attachment_path));
+        $filename = basename(str_replace('\\', '/', $this->duongdan_dinhkem));
         $base = rtrim((string) config('app.url'), '/');
 
         return $base . '/api/chat/attachments/' . $filename;
@@ -36,11 +36,11 @@ class ChatMessage extends Model
 
     public function conversation()
     {
-        return $this->belongsTo(Conversation::class);
+        return $this->belongsTo(Conversation::class, 'id_cuoc_tro_chuyen');
     }
 
     public function sender()
     {
-        return $this->belongsTo(User::class, 'sender_id');
+        return $this->belongsTo(User::class, 'id_nguoigui');
     }
 }

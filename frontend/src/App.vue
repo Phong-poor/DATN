@@ -52,10 +52,8 @@ onMounted(() => {
 
   const ensureAdminChat = (eventName) => {
     if (adminChatReady.value) return
+    window.__pendingAdminChatEvent = eventName
     adminChatReady.value = true
-    nextTick(() => {
-      window.dispatchEvent(new CustomEvent(eventName))
-    })
   }
   openAdminChatHandler = () => ensureAdminChat('open-admin-chat')
   toggleAdminChatHandler = () => ensureAdminChat('toggle-admin-chat')

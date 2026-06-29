@@ -27,6 +27,6 @@ class MessageUpdated implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('chat.' . $this->message->conversation_id)];
+        return [new PrivateChannel('chat.' . $this->message->id_cuoc_tro_chuyen)];
     }
 }

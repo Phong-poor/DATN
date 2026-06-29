@@ -1,5 +1,6 @@
 <template>
   <div
+    :id="msg.id ? `msg-row-${msg.id}` : (msg._clientKey ? `msg-row-${msg._clientKey}` : null)"
     class="chat-message-row"
     :class="[sideClass, { 'is-own': isOwn }]"
   >
@@ -31,23 +32,24 @@
         </template>
       </div>
 
-      <button
-        v-if="isOwn && messageId && !isEditing"
-        type="button"
-        class="msg-menu-trigger"
-        :aria-expanded="menuOpen"
-        aria-label="Tùy chọn tin nhắn"
-        title="Tùy chọn tin nhắn"
-        @click.stop="toggleMenu"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+      <div v-if="isOwn && messageId && !isEditing" class="msg-menu-container">
+        <button
+          type="button"
+          class="msg-menu-trigger"
+          :aria-expanded="menuOpen"
+          aria-label="Tùy chọn tin nhắn"
+          title="Tùy chọn tin nhắn"
+          @click.stop="toggleMenu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
 
-      <div v-if="menuOpen" class="msg-action-menu" @click.stop>
-        <button v-if="msg.message" type="button" @click="startEdit">Sửa</button>
-        <button type="button" class="danger" @click="confirmDelete">Xóa</button>
+        <div v-if="menuOpen" class="msg-action-menu" @click.stop>
+          <button v-if="msg.noidung" type="button" @click="startEdit">Sửa</button>
+          <button type="button" class="danger" @click="confirmDelete">Xóa</button>
+        </div>
       </div>
     </div>
   </div>
@@ -74,7 +76,7 @@ const editText = ref('')
 const editInput = ref(null)
 const saving = ref(false)
 
-const isOwn = computed(() => Number(props.msg.sender_id) === Number(props.authUserId))
+const isOwn = computed(() => Number(props.msg.id_nguoigui) === Number(props.authUserId))
 const messageId = computed(() => props.msg.id)
 
 const toggleMenu = () => {
@@ -84,7 +86,7 @@ const toggleMenu = () => {
 
 const startEdit = () => {
   menuOpen.value = false
-  editText.value = props.msg.message || ''
+  editText.value = props.msg.noidung || ''
   isEditing.value = true
   nextTick(() => editInput.value?.focus())
 }
@@ -101,7 +103,7 @@ const saveEdit = async () => {
   saving.value = true
   try {
     const res = await api.put(`/${props.apiPrefix}/messages/${messageId.value}`, {
-      message: text,
+      noidung: text,
     })
     emit('updated', res.data.message)
     isEditing.value = false
@@ -178,6 +180,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.msg-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
 .msg-menu-trigger {
   width: 26px;
   height: 26px;
@@ -218,15 +228,16 @@ onUnmounted(() => {
 
 .msg-action-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
+  top: 50%;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid #e4e6eb;
   overflow: hidden;
   z-index: 10;
-  min-width: 112px;
+  min-width: 100px;
 }
 
 .msg-action-menu button {

@@ -7,14 +7,14 @@ Broadcast::channel('user.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('admin.orders', function ($user) {
-    return $user->role === 'admin';
+    return $user->vaitro !== 'user';
 });
 
 Broadcast::channel('admin.chat', function ($user) {
-    return $user->role === 'admin';
+    return $user->vaitro !== 'user';
 });
 
 Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
     $conversation = \App\Models\Conversation::find($conversationId);
-    return $user->role === 'admin' || ($conversation && (int) $user->id === (int) $conversation->user_id);
+    return $user->vaitro !== 'user' || ($conversation && (int) $user->id === (int) $conversation->id_khachhang);
 });

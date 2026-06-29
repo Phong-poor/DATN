@@ -18,7 +18,7 @@ class AdminMiddleware
             ], 401);
         }
 
-        if ($user->role !== 'admin') {
+        if ($user->vaitro === 'user') {
             return response()->json([
                 'message' => 'Bạn không có quyền vào trang admin'
             ], 403);

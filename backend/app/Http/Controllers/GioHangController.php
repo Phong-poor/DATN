@@ -16,12 +16,12 @@ class GioHangController extends Controller
         $userId = Auth::id();
 
         $items = GioHang::with(['bienThe.sanPham', 'combo'])
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->get();
 
-        // Nhóm các items theo combo_group_id để tính giá phân bổ
-        $groupedCombos = $items->filter(fn($item) => $item->id_combo && $item->combo_group_id)
-            ->groupBy('combo_group_id');
+        // Nhóm các items theo id_nhom_combo để tính giá phân bổ
+        $groupedCombos = $items->filter(fn($item) => $item->id_combo && $item->id_nhom_combo)
+            ->groupBy('id_nhom_combo');
 
         $comboItemPrices = []; // id_giohang => gia_da_giam
 
@@ -97,10 +97,21 @@ class GioHangController extends Controller
                     : $bienThe->thuoc_tinh_json;
             }
 
-            // Lấy giá bán (nếu thuộc combo thì lấy giá phân bổ, ngược lại lấy giá gốc của biến thể)
-            $unitPrice = isset($comboItemPrices[$item->id_giohang])
-                ? $comboItemPrices[$item->id_giohang]
-                : ($bienThe?->gia ?? 0);
+            // Lấy giá bán (nếu thuộc combo thì lấy giá phân bổ, ngược lại kiểm tra Flash Sale, cuối cùng lấy giá gốc của biến thể)
+            $unitPrice = 0;
+            if (isset($comboItemPrices[$item->id_giohang])) {
+                $unitPrice = $comboItemPrices[$item->id_giohang];
+            } else {
+                $flashProduct = \App\Models\FlashSaleProduct::whereHas('session', function($q) use ($item) {
+                        $q->where('trang_thai', 1)
+                          ->where('thoi_gian_bat_dau', '<=', $item->created_at)
+                          ->where('thoi_gian_ket_thuc', '>=', $item->created_at);
+                    })
+                    ->where('id_bienthe', $item->id_bienthe)
+                    ->first();
+
+                $unitPrice = $flashProduct ? (float) $flashProduct->gia_flash_sale : ($bienThe?->gia ?? 0);
+            }
 
             $giaCombo = $item->combo?->giakhuyenmai ?? 0;
             if ($item->id_combo && isset($freeComboOffers[$item->id_combo])) {
@@ -113,7 +124,7 @@ class GioHangController extends Controller
                 'id_bienthe'   => $item->id_bienthe,
                 'soluong'      => $item->soluong,
                 'id_combo'     => $item->id_combo,
-                'combo_group_id' => $item->combo_group_id,
+                'id_nhom_combo' => $item->id_nhom_combo,
                 'ten_combo'    => $item->combo?->ten_combo ?? null,
                 'hinhanh_combo' => $item->combo?->hinhanh ? asset('storage/' . $item->combo->hinhanh) : null,
                 'gia_combo'    => $giaCombo,
@@ -173,11 +184,11 @@ class GioHangController extends Controller
         try {
             // Tìm xem đã có nhóm combo giống hệt trước đó chưa để cộng dồn số lượng
             $existingComboGroupId = null;
-            $userComboItems = GioHang::where('user_id', $userId)
+            $userComboItems = GioHang::where('id_khachhang', $userId)
                 ->where('id_combo', $idCombo)
-                ->whereNotNull('combo_group_id')
+                ->whereNotNull('id_nhom_combo')
                 ->get()
-                ->groupBy('combo_group_id');
+                ->groupBy('id_nhom_combo');
 
             foreach ($userComboItems as $groupId => $items) {
                 $groupVariantIds = $items->pluck('id_bienthe')->toArray();
@@ -191,18 +202,18 @@ class GioHangController extends Controller
 
             if ($existingComboGroupId) {
                 // Cộng dồn số lượng cho nhóm cũ
-                GioHang::where('combo_group_id', $existingComboGroupId)
+                GioHang::where('id_nhom_combo', $existingComboGroupId)
                     ->increment('soluong', $soLuong);
             } else {
                 // Tạo nhóm mới
                 $newGroupId = uniqid('combo_', true);
                 foreach ($selectedVariants as $idBienThe) {
                     GioHang::create([
-                        'user_id' => $userId,
+                        'id_khachhang' => $userId,
                         'id_bienthe' => $idBienThe,
                         'soluong' => $soLuong,
                         'id_combo' => $idCombo,
-                        'combo_group_id' => $newGroupId,
+                        'id_nhom_combo' => $newGroupId,
                     ]);
                 }
             }
@@ -240,8 +251,8 @@ class GioHangController extends Controller
         $userId = Auth::id();
         $newSoLuong = $request->soluong;
 
-        $items = GioHang::where('user_id', $userId)
-            ->where('combo_group_id', $groupId)
+        $items = GioHang::where('id_khachhang', $userId)
+            ->where('id_nhom_combo', $groupId)
             ->get();
 
         if ($items->isEmpty()) {
@@ -300,8 +311,8 @@ class GioHangController extends Controller
     {
         $userId = Auth::id();
 
-        $items = GioHang::where('user_id', $userId)
-            ->where('combo_group_id', $groupId)
+        $items = GioHang::where('id_khachhang', $userId)
+            ->where('id_nhom_combo', $groupId)
             ->get();
 
         if ($items->isEmpty()) {
@@ -360,10 +371,10 @@ class GioHangController extends Controller
         }
 
         // Nếu sản phẩm đã có trong giỏ → cộng thêm số lượng
-        $existing = GioHang::where('user_id', $userId)
+        $existing = GioHang::where('id_khachhang', $userId)
             ->where('id_bienthe', $idBienThe)
             ->whereNull('id_combo')
-            ->whereNull('combo_group_id')
+            ->whereNull('id_nhom_combo')
             ->first();
 
         if ($existing && !$request->boolean('buy_now')) {
@@ -371,7 +382,7 @@ class GioHangController extends Controller
             $item = $existing;
         } else {
             $item = GioHang::create([
-                'user_id'    => $userId,
+                'id_khachhang'    => $userId,
                 'id_bienthe' => $idBienThe,
                 'soluong'    => $soLuong,
             ]);
@@ -399,7 +410,7 @@ class GioHangController extends Controller
         $userId = Auth::id();
 
         $item = GioHang::where('id_giohang', $id)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->firstOrFail();
 
         $bienThe = BienThe::findOrFail($item->id_bienthe);
@@ -439,7 +450,7 @@ class GioHangController extends Controller
         $userId = Auth::id();
 
         $item = GioHang::where('id_giohang', $id)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->firstOrFail();
 
         // Cộng lại số lượng vào kho trước khi xóa
@@ -462,7 +473,7 @@ class GioHangController extends Controller
     {
         $userId = Auth::id();
 
-        $items = GioHang::where('user_id', $userId)->get();
+        $items = GioHang::where('id_khachhang', $userId)->get();
         
         foreach ($items as $item) {
             if ($item->bienThe) {
@@ -484,7 +495,7 @@ class GioHangController extends Controller
     {
         $userId = Auth::id();
 
-        $count = GioHang::where('user_id', $userId)->sum('soluong');
+        $count = GioHang::where('id_khachhang', $userId)->sum('soluong');
 
         return response()->json([
             'success' => true,

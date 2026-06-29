@@ -425,7 +425,6 @@ class SanPhamController extends Controller
                             'id_sanpham' => $sanpham->id_sanpham,
                             'duongdan'   => $imagePath,
                             'thutu'      => $ha['thutu'] ?? $index,
-                            'macdinh'    => $ha['macdinh'] ?? 0,
                         ]);
                     }
                 }
@@ -683,6 +682,7 @@ class SanPhamController extends Controller
         ]);
 
         $successCount = 0;
+        $productIds = [];
         foreach ($request->updates as $item) {
             $updateData = [];
             if (isset($item['soluong']) && $item['soluong'] !== '') {
@@ -693,9 +693,17 @@ class SanPhamController extends Controller
             }
 
             if (!empty($updateData)) {
-                BienThe::where('id_bienthe', $item['id_bienthe'])->update($updateData);
-                $successCount++;
+                $bienThe = BienThe::find($item['id_bienthe']);
+                if ($bienThe) {
+                    $bienThe->update($updateData);
+                    $productIds[$bienThe->id_sanpham] = true;
+                    $successCount++;
+                }
             }
+        }
+
+        foreach (array_keys($productIds) as $id_sanpham) {
+            $this->clearSanPhamCaches($id_sanpham);
         }
 
         return response()->json([

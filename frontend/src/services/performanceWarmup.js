@@ -106,7 +106,7 @@ const warmCoreRoutes = () => {
   if (hasSlowConnection()) return
 
   const user = getUser()
-  const isAdmin = Boolean(getToken() && user?.role === 'admin')
+  const isAdmin = Boolean(getToken() && user?.vaitro && user.vaitro !== 'user')
   const webQueue = ['/', '/products', '/gaming', '/macbook', '/news']
   const adminQueue = isAdmin
     ? ['/admin', '/admin/products', '/admin/orders', '/admin/users', '/admin/variants', '/admin/banners', '/admin/brands']

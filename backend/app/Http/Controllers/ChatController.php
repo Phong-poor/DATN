@@ -38,11 +38,11 @@ class ChatController extends Controller
         return Conversation::with(['user'])
             ->withCount([
                 'messages as unread_count' => function ($query) {
-                    $query->where('is_read', false)
-                        ->where('sender_id', '!=', Auth::id());
+                    $query->where('daxem', false)
+                        ->where('id_nguoigui', '!=', Auth::id());
                 },
             ])
-            ->orderByDesc('last_message_at')
+            ->orderByDesc('tin_nhan_cuoi_luc')
             ->orderByDesc('updated_at')
             ->get();
     }
@@ -55,14 +55,14 @@ class ChatController extends Controller
         $conversation = Conversation::findOrFail($conversationId);
         
         // Kiểm tra quyền (Nếu là user thì phải là conversation của họ)
-        if (Auth::user()->role !== 'admin' && $conversation->user_id !== Auth::id()) {
+        if (Auth::user()->vaitro === 'user' && $conversation->id_khachhang !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $this->markConversationRead($conversationId);
 
         return ChatMessage::with('sender')
-            ->where('conversation_id', $conversationId)
+            ->where('id_cuoc_tro_chuyen', $conversationId)
             ->orderBy('created_at', 'asc')
             ->get();
     }
@@ -74,12 +74,12 @@ class ChatController extends Controller
     {
         $user = Auth::user();
         $conversation = Conversation::firstOrCreate(
-            ['user_id' => $user->id]
+            ['id_khachhang' => $user->id]
         );
 
         // Lấy tin nhắn tách biệt để tránh vòng lặp JSON (Recursion)
         $messages = ChatMessage::with('sender')
-            ->where('conversation_id', $conversation->id)
+            ->where('id_cuoc_tro_chuyen', $conversation->id)
             ->orderBy('created_at', 'asc')
             ->take(50)
             ->get();
@@ -99,36 +99,36 @@ class ChatController extends Controller
     {
         $user = Auth::user();
         $request->validate([
-            'message' => 'nullable|string',
-            'conversation_id' => 'nullable|integer',
+            'noidung' => 'nullable|string',
+            'id_cuoc_tro_chuyen' => 'nullable|integer',
             'attachments_base64' => 'nullable|array',
             'attachments_base64.*' => 'nullable|string',
             'attachment_names' => 'nullable|array',
             'attachment_names.*' => 'nullable|string|max:255',
         ]);
 
-        $conversationId = $request->conversation_id;
+        $conversationId = $request->id_cuoc_tro_chuyen;
 
         if (!$conversationId) {
-            $conversation = Conversation::firstOrCreate(['user_id' => $user->id]);
+            $conversation = Conversation::firstOrCreate(['id_khachhang' => $user->id]);
             $conversationId = $conversation->id;
         } else {
             $conversation = Conversation::find($conversationId);
             if (!$conversation) {
-                if ($user->role === 'admin') {
+                if ($user->vaitro !== 'user') {
                     abort(404);
                 }
-                $conversation = Conversation::firstOrCreate(['user_id' => $user->id]);
+                $conversation = Conversation::firstOrCreate(['id_khachhang' => $user->id]);
                 $conversationId = $conversation->id;
             }
         }
 
-        if ($user->role !== 'admin' && $conversation->user_id !== $user->id) {
+        if ($user->vaitro === 'user' && $conversation->id_khachhang !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $attachments = array_values(array_filter($request->input('attachments_base64', [])));
-        $text = trim((string) ($request->message ?? ''));
+        $text = trim((string) ($request->noidung ?? ''));
 
         if ($text === '' && empty($attachments)) {
             return response()->json(['message' => 'Vui lòng nhập tin nhắn hoặc chọn tệp đính kèm.'], 422);
@@ -137,17 +137,17 @@ class ChatController extends Controller
         // Chỉ gửi text, không có ảnh
         if (empty($attachments)) {
             $message = ChatMessage::create([
-                'conversation_id' => $conversationId,
-                'sender_id' => $user->id,
-                'message' => $text,
-                'is_read' => false,
-                'attachment_path' => null,
-                'attachment_name' => null,
+                'id_cuoc_tro_chuyen' => $conversationId,
+                'id_nguoigui' => $user->id,
+                'noidung' => $text,
+                'daxem' => false,
+                'duongdan_dinhkem' => null,
+                'ten_dinhkem' => null,
             ]);
 
             $conversation->update([
-                'last_message' => $text,
-                'last_message_at' => now(),
+                'tin_nhan_cuoi' => $text,
+                'tin_nhan_cuoi_luc' => now(),
             ]);
 
             try {
@@ -173,12 +173,12 @@ class ChatController extends Controller
             $attachmentName = $saved['name'] ?? null;
 
             $message = ChatMessage::create([
-                'conversation_id' => $conversationId,
-                'sender_id' => $user->id,
-                'message' => $index === 0 ? $text : '',
-                'is_read' => false,
-                'attachment_path' => $attachmentPath,
-                'attachment_name' => $attachmentName,
+                'id_cuoc_tro_chuyen' => $conversationId,
+                'id_nguoigui' => $user->id,
+                'noidung' => $index === 0 ? $text : '',
+                'daxem' => false,
+                'duongdan_dinhkem' => $attachmentPath,
+                'ten_dinhkem' => $attachmentName,
             ]);
 
             $message->load('sender');
@@ -194,8 +194,8 @@ class ChatController extends Controller
         $lastMessage = $text ?: $this->previewFromAttachmentNames($attachmentNames, count($attachments));
 
         $conversation->update([
-            'last_message' => $lastMessage,
-            'last_message_at' => now(),
+            'tin_nhan_cuoi' => $lastMessage,
+            'tin_nhan_cuoi_luc' => now(),
         ]);
 
         return response()->json([
@@ -211,10 +211,10 @@ class ChatController extends Controller
         $this->authorizeOwnMessage($message);
 
         $request->validate([
-            'message' => 'required|string|max:5000',
+            'noidung' => 'required|string|max:5000',
         ]);
 
-        $message->update(['message' => $request->message]);
+        $message->update(['noidung' => $request->noidung]);
         $this->syncConversationLastMessage($message->conversation);
 
         try {
@@ -235,11 +235,11 @@ class ChatController extends Controller
         $this->authorizeOwnMessage($message);
 
         $conversation = $message->conversation;
-        $conversationId = $message->conversation_id;
+        $conversationId = $message->id_cuoc_tro_chuyen;
         $messageId = $message->id;
 
-        if ($message->attachment_path) {
-            Storage::disk('public')->delete($message->attachment_path);
+        if ($message->duongdan_dinhkem) {
+            Storage::disk('public')->delete($message->duongdan_dinhkem);
         }
 
         $message->delete();
@@ -262,17 +262,17 @@ class ChatController extends Controller
     {
         $request->validate([
             'ids' => 'required|array|min:1',
-            'ids.*' => 'integer|exists:chat_conversations,id',
+            'ids.*' => 'integer|exists:cuoc_tro_chuyen,id',
         ]);
 
         $ids = array_values(array_unique($request->input('ids', [])));
 
-        $messages = ChatMessage::whereIn('conversation_id', $ids)
-            ->whereNotNull('attachment_path')
-            ->get(['attachment_path']);
+        $messages = ChatMessage::whereIn('id_cuoc_tro_chuyen', $ids)
+            ->whereNotNull('duongdan_dinhkem')
+            ->get(['duongdan_dinhkem']);
 
         foreach ($messages as $message) {
-            Storage::disk('public')->delete($message->attachment_path);
+            Storage::disk('public')->delete($message->duongdan_dinhkem);
         }
 
         Conversation::whereIn('id', $ids)->delete();
@@ -287,50 +287,50 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        if ((int) $message->sender_id !== (int) $user->id) {
+        if ((int) $message->id_nguoigui !== (int) $user->id) {
             abort(403, 'Chỉ được sửa/xóa tin nhắn của chính bạn');
         }
 
         $conversation = $message->conversation;
-        if ($user->role !== 'admin' && (int) $conversation->user_id !== (int) $user->id) {
+        if ($user->vaitro === 'user' && (int) $conversation->id_khachhang !== (int) $user->id) {
             abort(403);
         }
     }
 
     private function syncConversationLastMessage(Conversation $conversation): void
     {
-        $latest = ChatMessage::where('conversation_id', $conversation->id)
+        $latest = ChatMessage::where('id_cuoc_tro_chuyen', $conversation->id)
             ->orderByDesc('created_at')
             ->first();
 
         if (!$latest) {
             $conversation->update([
-                'last_message' => null,
-                'last_message_at' => now(),
+                'tin_nhan_cuoi' => null,
+                'tin_nhan_cuoi_luc' => now(),
             ]);
             return;
         }
 
-        $preview = $latest->message;
-        if (!$preview && $latest->attachment_path) {
+        $preview = $latest->noidung;
+        if (!$preview && $latest->duongdan_dinhkem) {
             $preview = $this->previewFromAttachmentNames(
-                $latest->attachment_name ? [$latest->attachment_name] : [],
+                $latest->ten_dinhkem ? [$latest->ten_dinhkem] : [],
                 1
             );
         }
 
         $conversation->update([
-            'last_message' => $preview,
-            'last_message_at' => $latest->created_at,
+            'tin_nhan_cuoi' => $preview,
+            'tin_nhan_cuoi_luc' => $latest->created_at,
         ]);
     }
 
     private function markConversationRead(int $conversationId): void
     {
-        ChatMessage::where('conversation_id', $conversationId)
-            ->where('sender_id', '!=', Auth::id())
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
+        ChatMessage::where('id_cuoc_tro_chuyen', $conversationId)
+            ->where('id_nguoigui', '!=', Auth::id())
+            ->where('daxem', false)
+            ->update(['daxem' => true]);
     }
 
     private function saveChatAttachment(?string $base64, ?string $originalName = null): ?array

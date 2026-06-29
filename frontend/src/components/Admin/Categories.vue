@@ -1,29 +1,33 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="topbar-left">
-        <h2 class="topbar-title">Danh mục sản phẩm</h2>
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
-        </div>
+    <div class="top">
+      <div>
+        <h1>Quản lý danh mục</h1>
+        <p>Cập nhật và theo dõi danh mục sản phẩm thiết bị công nghệ 2026</p>
+      </div>
+      <div class="excel-actions">
+        <button v-if="activeTab === 'parent'" class="add-btn" @click="openCreateParent">+ Tạo Danh mục Gốc</button>
+        <button v-if="activeTab === 'child'" class="add-btn" @click="openCreateChild">+ Tạo Danh mục Con</button>
       </div>
     </div>
 
-    <div class="hero">
-      <div class="hero-text">
-        <h1>Kiến trúc <span class="hero-accent">Hệ sinh thái</span><br/>Laptop</h1>
-        <p>Quản lý và tối ưu hóa các phân khúc sản phẩm dựa trên nhu cầu của khách hàng.</p>
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input v-model="searchQuery" placeholder="Tìm kiếm danh mục..." />
       </div>
-      <div class="hero-actions">
-        <button v-if="activeTab === 'parent'" class="btn-primary" @click="openCreateParent">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Tạo Danh mục Gốc
-        </button>
-        <button v-if="activeTab === 'child'" class="btn-primary" @click="openCreateChild">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Tạo Danh mục Con
-        </button>
+      <!-- Bộ lọc danh mục cha (chỉ hiện khi xem tab Danh mục Con) -->
+      <div v-if="activeTab === 'child'" class="filter-select-wrap">
+        <select v-model="selectedParentFilter" class="filter-select">
+          <option value="">Tất cả danh mục gốc</option>
+          <option v-for="p in parentCategories" :key="p.id" :value="p.id">
+            {{ p.ten_danhmuc }}
+          </option>
+        </select>
       </div>
     </div>
 
@@ -159,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/services/api';
 import swal from '@/services/swal';
 import BulkDeleteToolbar from './BulkDeleteToolbar.vue';
@@ -171,6 +175,7 @@ const childCategories = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 const activeTab = ref('child'); // 'parent' or 'child'
+const selectedParentFilter = ref('');
 
 // --- STATE QUẢN LÝ MODAL ---
 const showModal = ref(false);
@@ -213,15 +218,26 @@ onMounted(() => {
   fetchCategories();
 });
 
-// --- TÌM KIẾM & LỌC THEO TAB ---
+// --- TÌM KIẾM & LỌC THEO TAB ───
+watch(activeTab, () => {
+  selectedParentFilter.value = '';
+});
+
 const filteredCategories = computed(() => {
   let list = activeTab.value === 'parent' ? parentCategories.value : childCategories.value;
 
+  // Lọc theo danh mục gốc (chỉ áp dụng khi xem danh mục con)
+  if (activeTab.value === 'child' && selectedParentFilter.value) {
+    const parentId = Number(selectedParentFilter.value);
+    list = list.filter(c => Number(c.id_danhmuc_cha) === parentId);
+  }
+
   // Lọc theo từ khóa tìm kiếm
   if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
   return list.filter(c =>
-    c.ten_danhmuc.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    (c.slug || '').toLowerCase().includes(searchQuery.value.toLowerCase())
+    c.ten_danhmuc.toLowerCase().includes(q) ||
+    (c.slug || '').toLowerCase().includes(q)
   );
 });
 
@@ -365,30 +381,7 @@ const deleteCategory = async (id) => {
 /* Giữ nguyên toàn bộ CSS của bạn, mình chỉ làm gọn lại chút xíu cho dễ nhìn */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .page { padding: 24px 28px; background: #f0f4ff; min-height: 100vh; font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 20px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; }
-.topbar-left { display: flex; align-items: center; gap: 16px; }
-.topbar-title { font-size: 15px; font-weight: 600; color: #1e293b; white-space: nowrap; }
-.search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 14px; width: 220px; }
-.search-box svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; fill: none; }
-.search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-.hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1.25; margin-bottom: 12px; }
-.hero-accent { color: #4f46e5; }
-.hero-text p { font-size: 13.5px; color: #64748b; line-height: 1.7; }
 
-/* Tabs */
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
-
-.btn-secondary { display: flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
-.btn-secondary svg { width: 15px; height: 15px; }
-
-.btn-primary { display: flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,0.35); transition: transform 0.15s; }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,0.4); }
-.btn-primary svg { width: 15px; height: 15px; stroke: #fff; stroke-width: 2.5; fill: none; }
 .table-card { background: #fff; border-radius: 16px; border: 1px solid #e8edf5; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8faff; border-bottom: 1px solid #e8edf5; }
@@ -458,4 +451,122 @@ td { padding: 16px 20px; vertical-align: middle; }
 .slide-up-leave-active { transition: all 0.2s ease; }
 .slide-up-enter-from { opacity: 0; transform: translateY(30px) scale(0.97); }
 .slide-up-leave-to { opacity: 0; transform: translateY(10px) scale(0.98); }
+
+/* ── TABS IN CATEGORIES (RESTORED UNCHANGED) ── */
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #4f46e5; }
+.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+
+/* ── PRODUCTS STYLE COPIED FOR CONSISTENCY ── */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.top h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.top p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .2s;
+}
+
+.add-btn:hover {
+  opacity: .9;
+  transform: translateY(-1px);
+}
+
+.excel-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color .2s;
+  box-sizing: border-box;
+}
+
+.search-wrap input:focus {
+  border-color: #2563eb;
+}
+
+.filter-select-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  min-width: 180px;
+  font-family: inherit;
+}
+
+.filter-select:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.filter-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
 </style>

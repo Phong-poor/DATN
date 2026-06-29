@@ -9,20 +9,20 @@ let noticeTimer = null
 let noticeIndex = 0
 
 export const hasChatAttachment = (msg) =>
-  !!(msg?.attachment_url || msg?.attachment_path)
+  !!(msg?.duongdan_dinhkem_url || msg?.duongdan_dinhkem)
 
 export const isChatImageAttachment = (msg) => {
   if (!hasChatAttachment(msg)) return false
-  const name = String(msg.attachment_name || msg.attachment_path || '').toLowerCase()
+  const name = String(msg.ten_dinhkem || msg.duongdan_dinhkem || '').toLowerCase()
   if (IMAGE_EXT.test(name)) return true
-  const url = String(msg.attachment_url || '')
+  const url = String(msg.duongdan_dinhkem_url || '')
   return url.startsWith('data:image/') || url.startsWith('blob:')
 }
 
 export const chatAttachmentUrl = (msg) => {
   if (!msg) return ''
 
-  const path = String(msg.attachment_path || '').trim().replace(/\\/g, '/')
+  const path = String(msg.duongdan_dinhkem || '').trim().replace(/\\/g, '/')
   if (path) {
     const filename = path.split('/').pop()
     if (filename) {
@@ -30,7 +30,7 @@ export const chatAttachmentUrl = (msg) => {
     }
   }
 
-  const raw = String(msg.attachment_url || '').trim()
+  const raw = String(msg.duongdan_dinhkem_url || '').trim()
   if (raw.startsWith('data:') || raw.startsWith('blob:')) {
     return raw
   }
@@ -39,7 +39,7 @@ export const chatAttachmentUrl = (msg) => {
 }
 
 export const conversationPreviewFromMessage = (msg) => {
-  if (msg?.message) return msg.message
+  if (msg?.noidung) return msg.noidung
   if (!hasChatAttachment(msg)) return ''
   return isChatImageAttachment(msg) ? '[Hình ảnh]' : '[Tệp đính kèm]'
 }
@@ -57,30 +57,30 @@ export const isImageFile = (file) => file?.type?.startsWith('image/')
 export const sendChatMessage = (endpoint, { conversationId, text, items = [] }) => {
   if (items.length > 0) {
     return api.post(endpoint, {
-      conversation_id: conversationId,
-      message: text,
+      id_cuoc_tro_chuyen: conversationId,
+      noidung: text,
       attachments_base64: items.map((i) => i.dataUrl),
       attachment_names: items.map((i) => i.name),
     })
   }
-  return api.post(endpoint, { conversation_id: conversationId, message: text })
+  return api.post(endpoint, { id_cuoc_tro_chuyen: conversationId, noidung: text })
 }
 
 const pushOptimisticAttachments = (messages, authUserId, items, caption = '') => {
   items.forEach((item, index) => {
     messages.push({
-      sender_id: authUserId,
-      message: index === 0 ? caption : '',
+      id_nguoigui: authUserId,
+      noidung: index === 0 ? caption : '',
       created_at: new Date().toISOString(),
-      attachment_url: item.dataUrl,
-      attachment_name: item.name,
+      duongdan_dinhkem_url: item.dataUrl,
+      ten_dinhkem: item.name,
     })
   })
 }
 
 const mergeServerMessages = (messages, serverMessages, previews) => {
   serverMessages.forEach((serverMsg, index) => {
-    const previewIdx = messages.findIndex((m) => !m.id && m.attachment_url === previews[index])
+    const previewIdx = messages.findIndex((m) => !m.id && m.duongdan_dinhkem_url === previews[index])
     if (previewIdx !== -1) {
       messages[previewIdx] = serverMsg
     } else {
@@ -164,8 +164,8 @@ export const submitChatComposer = async ({
     const clientKey = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`
     const tempMsg = {
       _clientKey: clientKey,
-      sender_id: authUserId,
-      message: text,
+      id_nguoigui: authUserId,
+      noidung: text,
       created_at: new Date().toISOString(),
     }
     list.push(tempMsg)
@@ -189,7 +189,7 @@ export const bindChatChannel = (echo, channelName, messagesRef, authUserId, onIn
 
   echo.private(channelName)
     .listen('.message.sent', (e) => {
-      if (Number(e.message.sender_id) === Number(authUserId)) return
+      if (Number(e.message.id_nguoigui) === Number(authUserId)) return
       const list = messagesRef.value
       if (!list.some((m) => Number(m.id) === Number(e.message.id))) {
         list.push(e.message)
