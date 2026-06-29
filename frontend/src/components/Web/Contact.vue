@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
-import { getToken } from '@/services/auth'
+import { getToken, getUser } from '@/services/auth'
 
 // Form State
 const name = ref('')
@@ -102,15 +102,21 @@ const selectCategory = (categoryLabel) => {
 }
 
 onMounted(async () => {
-  if (!getToken()) return
-
-  try {
-    const data = (await api.get('/user/profile')).data
-    name.value = data.ten
-    email.value = data.email
-    phone.value = data.sodienthoai
-  } catch (err) {
-    console.log('Chưa đăng nhập')
+  const userData = getUser()
+  if (userData) {
+    name.value = userData.name || ''
+    email.value = userData.email || ''
+    phone.value = userData.phone || ''
+  } else if (getToken()) {
+    try {
+      const res = await api.get('/user/profile')
+      const data = res.data?.user || res.data || {}
+      name.value = data.name || ''
+      email.value = data.email || ''
+      phone.value = data.phone || ''
+    } catch (err) {
+      console.log('Chưa đăng nhập')
+    }
   }
 })
 
@@ -149,9 +155,6 @@ async function sendContactRequest() {
     })).data
     if (data.status) {
       success.value = true
-      name.value = ''
-      phone.value = ''
-      email.value = ''
       message.value = ''
       subject.value = 'Tư vấn mua hàng'
       currentFormStep.value = 1
