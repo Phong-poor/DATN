@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
-import { getToken } from '@/services/auth'
+import { getToken, getUser } from '@/services/auth'
 
 // Form State
 const name = ref('')
@@ -148,9 +148,6 @@ async function sendContactRequest() {
     })).data
     if (data.status) {
       success.value = true
-      name.value = ''
-      phone.value = ''
-      email.value = ''
       message.value = ''
       subject.value = 'Tư vấn mua hàng'
       currentFormStep.value = 1

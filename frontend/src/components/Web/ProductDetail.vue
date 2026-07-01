@@ -373,6 +373,7 @@ const stopAutoSlide = () => {
 }
 
 // ===================== 3D PRODUCT VIEWER LOGIC =====================
+const is3DMode = ref(false)
 const active3DIndex = ref(0)
 const target3DIndex = ref(0)
 const isHovering3D = ref(false)
@@ -383,21 +384,42 @@ const targetTiltY = ref(0)
 const current3DRatio = ref(0)
 const target3DRatio = ref(0)
 
+const toggle3DMode = () => {
+    is3DMode.value = !is3DMode.value
+    if (!is3DMode.value) {
+        resetTilt()
+        isHovering3D.value = false
+    } else {
+        isHovering3D.value = true
+        targetTiltX.value = 15
+        targetTiltY.value = -10
+        startTiltSmoothing()
+    }
+}
+
 const tiltStyle = computed(() => {
-    if (tiltX.value === 0 && tiltY.value === 0) {
+    if (!is3DMode.value && tiltX.value === 0 && tiltY.value === 0) {
         return {
             transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
             transition: 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)'
         }
     }
+    if (is3DMode.value && tiltX.value === 0 && tiltY.value === 0) {
+        return {
+            transform: 'perspective(1200px) rotateX(-10deg) rotateY(15deg) scale3d(1.05, 1.05, 1.05)',
+            transition: 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+        }
+    }
     return {
-        transform: `perspective(1200px) rotateX(${tiltY.value}deg) rotateY(${tiltX.value}deg) scale3d(1.03, 1.03, 1.03)`,
-        transition: 'transform 0.18s ease-out'
+        transform: `perspective(1200px) rotateX(${tiltY.value}deg) rotateY(${tiltX.value}deg) scale3d(1.05, 1.05, 1.05)`,
+        transition: 'transform 0.18s ease-out',
+        boxShadow: is3DMode.value ? '0 25px 50px -12px rgba(0,0,0,0.5)' : 'none'
     }
 })
 
 const activeShowcaseImage = computed(() => {
-    if (isHovering3D.value && allImages.value.length > 0) {
+    if ((isHovering3D.value || is3DMode.value) && allImages.value.length > 0) {
         return allImages.value[active3DIndex.value] || selectedImage.value
     }
     return selectedImage.value
@@ -477,6 +499,7 @@ const stopRotationLoop = () => {
 }
 
 const handleMouseMove = (e) => {
+    if (!is3DMode.value) return;
     const el = e.currentTarget
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -484,34 +507,11 @@ const handleMouseMove = (e) => {
     stopAutoSlide()
     isHovering3D.value = true
     
-    const ratioX = (e.clientX - rect.left) / rect.width
-    const ratioY = (e.clientY - rect.top) / rect.height
-    
-    if (allImages.value.length > 0) {
-        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
-    }
-    
-    startRotationLoop()
-    
-    const maxTiltX = 5
-    const maxTiltY = 4
-    
-    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
-    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
-    startTiltSmoothing()
-}
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
 
-const handleTouchMove = (e) => {
-    const touch = e.touches[0]
-    const el = e.currentTarget
-    if (!el || !touch) return
-    const rect = el.getBoundingClientRect()
-    
-    stopAutoSlide()
-    isHovering3D.value = true
-    
-    const ratioX = (touch.clientX - rect.left) / rect.width
-    const ratioY = (touch.clientY - rect.top) / rect.height
+    const ratioX = (clientX - rect.left) / rect.width
+    const ratioY = (clientY - rect.top) / rect.height
     
     if (allImages.value.length > 0) {
         target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
@@ -519,8 +519,8 @@ const handleTouchMove = (e) => {
     
     startRotationLoop()
     
-    const maxTiltX = 5
-    const maxTiltY = 4
+    const maxTiltX = 15
+    const maxTiltY = 10
     
     targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
     targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
@@ -528,21 +528,28 @@ const handleTouchMove = (e) => {
 }
 
 const resetTilt = () => {
-    isHovering3D.value = false
-    stopRotationLoop()
-    targetTiltX.value = 0
-    targetTiltY.value = 0
-    startTiltSmoothing()
-    
-    const idx = allImages.value.indexOf(selectedImage.value)
-    const targetIdx = idx !== -1 ? idx : 0
-    const targetRatio = allImages.value.length > 1 ? targetIdx / (allImages.value.length - 1) : 0
-    target3DIndex.value = targetIdx
-    active3DIndex.value = targetIdx
-    current3DRatio.value = targetRatio
-    target3DRatio.value = targetRatio
-    
-    startAutoSlide()
+    if (!is3DMode.value) {
+        isHovering3D.value = false
+        stopRotationLoop()
+        targetTiltX.value = 0
+        targetTiltY.value = 0
+        startTiltSmoothing()
+        
+        const idx = allImages.value.indexOf(selectedImage.value)
+        const targetIdx = idx !== -1 ? idx : 0
+        const targetRatio = allImages.value.length > 1 ? targetIdx / (allImages.value.length - 1) : 0
+        target3DIndex.value = targetIdx
+        active3DIndex.value = targetIdx
+        current3DRatio.value = targetRatio
+        target3DRatio.value = targetRatio
+        
+        startAutoSlide()
+    } else {
+        targetTiltX.value = 0
+        targetTiltY.value = 0
+        startTiltSmoothing()
+        stopRotationLoop()
+    }
 }
 
 // ===================== FETCH SẢN PHẨM =====================
@@ -863,7 +870,14 @@ onMounted(() => {
     loadPageData()
     startAutoSlide()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
-    document.addEventListener('click', closeAllDropdowns)
+    
+    // Load Model Viewer Script cho chế độ 3D
+    if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
+        const script = document.createElement('script')
+        script.type = 'module'
+        script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js'
+        document.head.appendChild(script)
+    }
 })
 
 onUnmounted(() => {
@@ -1442,6 +1456,31 @@ const handleSelectVariantById = (idBienThe) => {
     <!-- TOP GLOW DECORATOR -->
     <div class="tech-glow-top"></div>
 
+    <!-- 3D MODAL POPUP -->
+    <transition name="fade">
+        <div v-if="is3DMode" class="premium-3d-modal-overlay" @click="toggle3DMode">
+            <div class="premium-3d-modal-content" @click.stop
+                 @mousemove="handleMouseMove"
+                 @mouseleave="resetTilt"
+                 @touchmove="handleMouseMove"
+                 @touchend="resetTilt">
+                <button class="modal-close-btn" @click="toggle3DMode">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="modal-3d-header">
+                    <h3 class="modal-3d-title">Góc nhìn 360 độ</h3>
+                    <p class="modal-3d-hint">Kéo thả hoặc di chuyển chuột trên ảnh để xoay sản phẩm</p>
+                </div>
+                <div class="modal-3d-viewport">
+                    <img :src="activeShowcaseImage" :alt="product.tenSP" class="modal-3d-image" :style="tiltStyle" />
+                </div>
+            </div>
+        </div>
+    </transition>
+
     <div class="page">
         <div class="premium-hero-container">
             <div class="container">
@@ -1459,12 +1498,27 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- GALLERY COLUMN (Left) -->
                     <div class="gallery-column">
                         <div class="main-image-viewport"
-                             :class="{ 'is-3d-active': isHovering3D }"
+                             :class="{ 'is-3d-active': is3DMode }"
                              @mousemove="handleMouseMove"
                              @mouseleave="resetTilt"
-                             @touchmove="handleTouchMove"
+                             @touchmove="handleMouseMove"
                              @touchend="resetTilt">
                             <div class="neon-glow-backdrop"></div>
+
+                            <!-- 3D Toggle Button -->
+                            <button class="btn-toggle-3d" :class="{ active: is3DMode }" @click.stop="toggle3DMode">
+                                <svg v-if="!is3DMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>{{ is3DMode ? 'Chế độ 2D' : 'Xem 3D' }}</span>
+                            </button>
 
                             <!-- Badges Overlay -->
                             <div class="gallery-badges">
@@ -1480,19 +1534,19 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
 
                             <!-- Navigation Arrows -->
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
+                            <button v-if="!is3DMode" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
+                            <button v-if="!is3DMode" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
 
                             <!-- Slide Indicator Dots -->
-                            <div class="slide-dots" v-if="!isHovering3D">
+                            <div class="slide-dots" v-if="!is3DMode">
                                 <span v-for="(img, idx) in allImages" :key="idx"
                                       :class="['dot', { active: selectedImage === img }]"
                                       @click="selectedImage = img"></span>
@@ -5963,121 +6017,113 @@ const handleSelectVariantById = (idBienThe) => {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.selected-color-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.selected-value-text {
-    font-size: 13.5px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 30px;
+    font-family: var(--font-heading);
     font-weight: 600;
+    font-size: 13px;
     color: #1e293b;
-    flex-grow: 1;
-    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.btn-toggle-3d:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+.btn-toggle-3d.active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.9) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 8px 20px rgba(37,99,235,0.3);
 }
 
-.dropdown-arrow-icon {
+/* 3D Modal CSS */
+.premium-3d-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 15, 30, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
-    transition: transform 0.25s ease;
 }
-
-.dropdown-trigger.active .dropdown-arrow-icon {
-    transform: rotate(180deg);
-    color: var(--primary, #2563eb);
+.premium-3d-modal-content {
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    width: 90vw;
+    max-width: 900px;
+    height: 80vh;
+    max-height: 700px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
-
-.dropdown-menu-list {
+.modal-close-btn {
     position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    width: 100%;
-    max-height: 250px;
-    overflow-y: auto;
-    background: var(--tn-surface, #ffffff);
-    border: 1px solid var(--tn-border, #e2e8f0);
-    border-radius: 10px;
-    z-index: 99;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    padding: 6px;
-    animation: dropdownSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes dropdownSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.dropdown-item-option {
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    padding: 10px 12px;
-    border-radius: 8px;
+    justify-content: center;
     cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
-    margin-bottom: 2px;
+    z-index: 10;
+    transition: all 0.2s ease;
 }
-
-.dropdown-item-option:last-child {
-    margin-bottom: 0;
+.modal-close-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.05);
 }
-
-.dropdown-item-option:hover {
-    background: var(--tn-bg, #f1f5f9);
-    color: var(--primary, #2563eb);
+.modal-3d-header {
+    text-align: center;
+    padding: 24px;
+    z-index: 2;
 }
-
-.dropdown-item-option.active {
-    background: rgba(37, 99, 235, 0.08);
-    color: var(--primary, #2563eb);
-    font-weight: 600;
+.modal-3d-title {
+    color: white;
+    font-size: 24px;
+    margin: 0 0 8px 0;
+    font-family: var(--font-heading);
 }
-
-.item-color-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    flex-shrink: 0;
+.modal-3d-hint {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0;
 }
-
-.item-text-label {
-    font-size: 13px;
+.modal-3d-viewport {
     flex-grow: 1;
-    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    perspective: 1200px;
 }
-
-.checkmark-active {
-    font-size: 12px;
-    font-weight: bold;
-    color: var(--primary, #2563eb);
-    margin-left: 8px;
-}
-
-.dropdown-fade-enter-active,
-.dropdown-fade-leave-active {
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.dropdown-fade-enter-from,
-.dropdown-fade-leave-to {
-    opacity: 0;
-    transform: translateY(-8px);
+.modal-3d-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+    transform-style: preserve-3d;
 }
 </style>

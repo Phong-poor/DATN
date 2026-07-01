@@ -1,22 +1,20 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import swal from '@/services/swal'
 import { normalizeImageUrl } from '@/services/urls'
-import { getToken } from '@/services/auth'
 
 
 // ===================== STATE =====================
 const cart = ref([])
 const isLoading = ref(false)
-const coupon = ref('')
-const discount = ref(0)
-
+const router = useRouter()
 // ===================== SELECTION =====================
 const selectedIds = ref(new Set())
 
 const allItemIds = computed(() => {
-    return cart.value.filter(i => !i.id_combo).map(i => i.id_giohang)
+    return cart.value.map(i => i.id_giohang)
 })
 
 const isAllSelected = computed(() => {
@@ -40,37 +38,6 @@ const toggleItem = (id) => {
     else s.add(id)
     selectedIds.value = s
 }
-const appliedPromo = ref(null)
-
-const freeshipCoupon = ref('')
-const freeshipDiscount = ref(0)
-const appliedFreeshipPromo = ref(null)
-
-// L?y di?u ki?n t?i thi?u t? promotion freeship được ch?n (d?ng computed)
-const freeshipMinOrder = computed(() => {
-    // N?u dang p m freeship th l?y dieu_kien c?a m d
-    if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
-        return appliedFreeshipPromo.value.dieu_kien
-    }
-    // N?u dang ch?n m t? select (chua apply) th l?y dieu_kien c?a m d
-    if (freeshipCoupon.value) {
-        const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
-        if (p && p.dieu_kien > 0) return p.dieu_kien
-    }
-    // N?u chua ch?n m no, l?y dieu_kien nh? nh?t trong danh sch freeship
-    const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
-    if (withCondition.length > 0) {
-        return Math.min(...withCondition.map(p => p.dieu_kien))
-    }
-    return 0 // Khng c di?u ki?n = mi?n ph ship t?t c? don
-})
-
-// L?y di?u ki?n ring cho t?ng m freeship (dng khi ch?n m c? th?)
-const getFreeshipMinOrder = (promo) => {
-    if (!promo) return 0
-    return promo.dieu_kien > 0 ? promo.dieu_kien : 0
-}
-
 const shippingFee = computed(() => cart.value.length > 0 ? 30000 : 0)
 
 const thongBao = ref({ show: false, type: '', message: '' })
@@ -94,8 +61,15 @@ const fetchGioHang = async () => {
     }
 }
 
-const subtotal = computed(() => cart.value.reduce((sum, item) => sum + item.thanh_tien, 0))
-const total = computed(() => Math.max(0, subtotal.value - discount.value) + Math.max(0, shippingFee.value - freeshipDiscount.value))
+const subtotal = computed(() => {
+    return cart.value.reduce((sum, item) => {
+        if (selectedIds.value.has(item.id_giohang)) {
+            return sum + item.thanh_tien;
+        }
+        return sum;
+    }, 0);
+})
+const total = computed(() => subtotal.value + shippingFee.value)
 
 const groupedCart = computed(() => {
     const list = []
@@ -150,8 +124,7 @@ const capNhatSoLuongCombo = async (group, delta) => {
         }
     })
 
-    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
-    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
 
     try {
         await api.put(`/gio-hang/cap-nhat-combo/${group.combo_group_id}`, { soluong: soLuongMoi })
@@ -167,8 +140,7 @@ const deleteCombo = async (group) => {
 
     cart.value = cart.value.filter(item => item.combo_group_id !== group.combo_group_id)
 
-    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
-    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
 
     try {
         await api.delete(`/gio-hang/xoa-combo/${group.combo_group_id}`)
@@ -178,6 +150,19 @@ const deleteCombo = async (group) => {
         hienThiThongBao('error', 'Lỗi khi xóa combo!')
         fetchGioHang()
     }
+}
+
+const isComboSelected = (group) => {
+    return group.items.length > 0 && group.items.every(i => selectedIds.value.has(i.id_giohang))
+}
+const toggleCombo = (group) => {
+    const s = new Set(selectedIds.value)
+    const isSelected = isComboSelected(group)
+    group.items.forEach(i => {
+        if (isSelected) s.delete(i.id_giohang)
+        else s.add(i.id_giohang)
+    })
+    selectedIds.value = s
 }
 
 const capNhatSoLuong = async (item, delta) => {
@@ -199,9 +184,7 @@ const capNhatSoLuong = async (item, delta) => {
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
-    // Tnh l?i discount n?u d p m
-    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
-    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
 
     try {
         await api.put(`/gio-hang/cap-nhat/${item.id_giohang}`, { soluong: soLuongMoi })
@@ -218,9 +201,7 @@ const xoaSanPham = async (idGioHang) => {
     cart.value.splice(index, 1)
     selectedIds.value.delete(idGioHang)
 
-    // Tính lại discount sau khi xóa
-    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
-    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
+
 
     try {
         await api.delete(`/gio-hang/xoa/${item.id_giohang}`)
@@ -239,12 +220,6 @@ const xoaTatCa = async () => {
         await api.delete('/gio-hang/xoa-tat')
         cart.value = []
         selectedIds.value = new Set()
-        discount.value = 0
-        appliedPromo.value = null
-        coupon.value = ''
-        freeshipCoupon.value = ''
-        freeshipDiscount.value = 0
-        appliedFreeshipPromo.value = null
         hienThiThongBao('success', 'Đã xóa toàn bộ giỏ hàng.')
         window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
@@ -264,202 +239,7 @@ const xoaDaChon = async () => {
     selectedIds.value = new Set()
 }
 
-// ===================== M GI?M GI =====================
-const allPromos = ref([])
 
-const fetchPromotions = async () => {
-    try {
-        const token = getToken()
-        if (token) {
-            // Lấy danh sách voucher người dùng đang sở hữu
-            const res = await api.get('/user/vouchers')
-            // res.data.vouchers chứa danh sách { id, promotion: { ... } }
-            if (res.data && res.data.vouchers) {
-                allPromos.value = res.data.vouchers.map(v => v.promotion).filter(Boolean)
-            }
-        } else {
-            // Nếu là guest thì lấy danh sách public
-            const res = await api.get('/promotions')
-            allPromos.value = res.data
-        }
-    } catch (err) {
-        console.error('Lỗi tải khuyến mãi:', err)
-    }
-}
-
-// Tnh s? ti?n gi?m d?a vo promo object
-const tinhDiscount = (promo) => {
-    if (!promo) { discount.value = 0; return }
-    const sub = subtotal.value
-    if (promo.type === 'percent') {
-        discount.value = Math.round(sub * promo.value / 100)
-    } else if (promo.type === 'fixed') {
-        discount.value = Math.min(promo.value, sub)
-    } else {
-        discount.value = 0
-    }
-}
-
-const tinhFreeshipDiscount = (promo) => {
-    if (!promo) { freeshipDiscount.value = 0; return }
-    const minOrder = getFreeshipMinOrder(promo)
-    // Ki?m tra l?i di?u ki?n khi tnh l?i (v d? sau khi xa s?n ph?m)
-    if (minOrder > 0 && subtotal.value < minOrder) {
-        freeshipDiscount.value = 0
-        appliedFreeshipPromo.value = null
-        freeshipCoupon.value = ''
-        return
-    }
-    freeshipDiscount.value = shippingFee.value
-}
-
-const huyMa = () => {
-    coupon.value = ''
-    discount.value = 0
-    appliedPromo.value = null
-    hienThiThongBao('success', 'Đã hủy mã giảm giá.')
-}
-
-const validPromosList = computed(() => {
-    const now = new Date()
-    return allPromos.value.filter(p => {
-        if (p.status !== 'running' && p.status !== 'open') return false
-        if (p.end_date && new Date(p.end_date) < now) return false
-        return true
-    })
-})
-
-const discountPromosList = computed(() => validPromosList.value.filter(p => {
-    if (p.category !== 'product') return false
-    if (p.dieu_kien > 0) {
-        const dk = Number(p.dieu_kien)
-        if (p.loai_dieu_kien === '>=' && subtotal.value < dk) return false
-        if (p.loai_dieu_kien === '>' && subtotal.value <= dk) return false
-        if (p.loai_dieu_kien === '=' && subtotal.value !== dk) return false
-    }
-    return true
-}))
-
-const freeshipPromosList = computed(() => validPromosList.value.filter(p => {
-    if (p.category !== 'freeship') return false
-    const minOrder = p.dieu_kien > 0 ? p.dieu_kien : 0
-    if (minOrder > 0 && subtotal.value < minOrder) return false
-    return true
-}))
-
-const apDungMaTuSelect = () => {
-    if (!coupon.value) {
-        huyMa()
-        return
-    }
-    const promo = discountPromosList.value.find(p => p.code === coupon.value)
-    if (promo) {
-        appliedPromo.value = promo
-        tinhDiscount(promo)
-        hienThiThongBao('success', `Đã chọn mã ${promo.code}`)
-    }
-}
-
-const apDungFreeshipTuSelect = () => {
-    if (!freeshipCoupon.value) {
-        freeshipDiscount.value = 0
-        appliedFreeshipPromo.value = null
-        hienThiThongBao('success', 'Đã hủy mã freeship.')
-        return
-    }
-    const promo = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
-    if (!promo) return
-    const minOrder = getFreeshipMinOrder(promo)
-    // Ki?m tra di?u ki?n don hng t?i thi?u c?a m ny
-    if (minOrder > 0 && subtotal.value < minOrder) {
-        freeshipCoupon.value = ''
-        hienThiThongBao('error', `Cần mua tối thiểu ${formatPrice(minOrder)} để dùng mã miễn phí vận chuyển này!`)
-        return
-    }
-    appliedFreeshipPromo.value = promo
-    tinhFreeshipDiscount(promo)
-    hienThiThongBao('success', `Đã chọn mã freeship ${promo.code}`)
-}
-
-const autoApplyPromo = () => {
-    const sub = subtotal.value
-    if (sub === 0) return
-
-    // 1. PRODUCT DISCOUNT
-    let bestP = null
-    let maxDP = 0
-
-    discountPromosList.value.forEach(p => {
-        let d = 0
-        if (p.type === 'percent') {
-            d = Math.round(sub * p.value / 100)
-        } else if (p.type === 'fixed') {
-            d = Math.min(p.value, sub)
-        }
-        if (d > maxDP) {
-            maxDP = d
-            bestP = p
-        }
-    })
-
-    if (bestP) {
-        let currentDP = 0
-        if (appliedPromo.value) {
-           if (appliedPromo.value.code !== bestP.code) {
-               if (appliedPromo.value.type === 'percent') currentDP = Math.round(sub * appliedPromo.value.value / 100)
-               else if (appliedPromo.value.type === 'fixed') currentDP = Math.min(appliedPromo.value.value, sub)
-               if (maxDP > currentDP) {
-                   appliedPromo.value = bestP
-                   tinhDiscount(bestP)
-                   coupon.value = bestP.code
-                   hienThiThongBao('success', `Tự động áp dụng mã ${bestP.code} tốt nhất!`)
-               }
-           }
-        } else if (coupon.value === '') {
-            appliedPromo.value = bestP
-            tinhDiscount(bestP)
-            coupon.value = bestP.code
-        }
-    }
-
-    // 2. FREESHIP DISCOUNT (p d?ng d?a trn dieu_kien c?a t?ng m)
-    let bestF = null
-    let maxDF = 0
-    freeshipPromosList.value.forEach(p => {
-        const minOrder = getFreeshipMinOrder(p)
-        if (minOrder > 0 && sub < minOrder) return // Chua d? di?u ki?n
-        let d = shippingFee.value
-        if (d > maxDF) {
-            maxDF = d
-            bestF = p
-        }
-    })
-
-    if (bestF) {
-        let currentDF = appliedFreeshipPromo.value ? shippingFee.value : 0
-        if (appliedFreeshipPromo.value) {
-           if (appliedFreeshipPromo.value.code !== bestF.code && maxDF > currentDF) {
-               appliedFreeshipPromo.value = bestF
-               tinhFreeshipDiscount(bestF)
-               freeshipCoupon.value = bestF.code
-               hienThiThongBao('success', `Tự động chọn mã freeship tốt nhất!`)
-           }
-        } else if (freeshipCoupon.value === '') {
-            appliedFreeshipPromo.value = bestF
-            tinhFreeshipDiscount(bestF)
-            freeshipCoupon.value = bestF.code
-        }
-    }
-
-    if (appliedPromo.value) tinhDiscount(appliedPromo.value)
-    if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
-}
-
-watch([subtotal, allPromos], () => {
-    if (subtotal.value > 0 && allPromos.value.length > 0) {
-        autoApplyPromo()
-    }
-})
 
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'd'
 
@@ -488,8 +268,16 @@ onMounted(() => {
     } catch (e) {}
     
     fetchGioHang()
-    fetchPromotions()
 })
+
+const goToCheckout = () => {
+    if (selectedCount.value === 0) {
+        hienThiThongBao('error', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.')
+        return
+    }
+    const ids = Array.from(selectedIds.value).join(',')
+    router.push({ path: '/checkout', query: { selected: ids } })
+}
 </script>
 
 <template>
@@ -684,6 +472,14 @@ onMounted(() => {
               </div>
 
               <div class="combo-group-header">
+                <label class="card-checkbox-wrap" @click.stop style="margin-right: 12px; display: flex; align-items: center;">
+                  <input
+                    type="checkbox"
+                    class="item-checkbox"
+                    :checked="isComboSelected(entry)"
+                    @change="toggleCombo(entry)"
+                  />
+                </label>
                 <div class="title-box">
                   <span class="badge-tag" :class="{ 'badge-tag-gift': entry.gia_combo === 0 }">
                     {{ entry.gia_combo === 0 ? 'Quà tặng VIP' : 'Combo' }}
@@ -747,74 +543,10 @@ onMounted(() => {
               <span>Tạm tính</span>
               <span class="sum-val">{{ formatPrice(subtotal) }}</span>
             </div>
-            <div class="summary-row" v-if="discount > 0">
-              <span>Giảm giá <span class="promo-badge">{{ appliedPromo?.code }}</span></span>
-              <span class="sum-val discount">-{{ formatPrice(discount) }}</span>
-            </div>
             <div class="summary-row">
               <span>Phí vận chuyển</span>
               <span class="sum-val">{{ formatPrice(shippingFee) }}</span>
             </div>
-            <div class="summary-row" v-if="freeshipDiscount > 0">
-              <span class="freeship-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                Freeship áp dụng
-              </span>
-              <span class="sum-val discount">-{{ formatPrice(freeshipDiscount) }}</span>
-            </div>
-          </div>
-
-          <!-- FREESHIP PROGRESS -->
-          <div class="freeship-progress-box" v-if="freeshipPromosList.length > 0">
-            <div class="freeship-header-row">
-              <span class="freeship-icon" :class="{ met: subtotal >= freeshipMinOrder }">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              </span>
-              <span class="freeship-text" v-if="subtotal >= freeshipMinOrder">
-                Đủ điều kiện miễn phí vận chuyển!
-              </span>
-              <span class="freeship-text pending" v-else>
-                Mua thêm <strong>{{ formatPrice(freeshipMinOrder - subtotal) }}</strong> để freeship
-              </span>
-            </div>
-            <div class="freeship-bar-bg">
-              <div class="freeship-bar-fill" :style="{ width: Math.min(100, (subtotal / freeshipMinOrder) * 100) + '%' }"></div>
-            </div>
-            <p class="freeship-note" v-if="subtotal >= freeshipMinOrder">
-              Đơn hàng của bạn được miễn phí vận chuyển nội thành
-            </p>
-          </div>
-
-          <!-- COUPON SELECTORS -->
-          <div class="coupon-section">
-            <div class="coupon-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              Mã giảm giá
-            </div>
-            <select v-model="coupon" @change="apDungMaTuSelect" class="coupon-select">
-              <option value="">Không dùng mã</option>
-              <option v-for="p in discountPromosList" :key="p.code" :value="p.code">
-                {{ p.name }} - {{ p.type === 'percent' ? `Giảm ${p.value}%` : `Giảm ${formatPrice(p.value)}` }}
-              </option>
-            </select>
-          </div>
-
-          <div class="coupon-section" v-if="freeshipPromosList.length > 0">
-            <div class="coupon-label green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              Mã miễn phí vận chuyển
-            </div>
-            <select
-              v-model="freeshipCoupon"
-              @change="apDungFreeshipTuSelect"
-              class="coupon-select green"
-              :disabled="subtotal < freeshipMinOrder"
-            >
-              <option value="">Không dùng mã freeship</option>
-              <option v-for="p in freeshipPromosList" :key="p.code" :value="p.code">
-                {{ p.name }} - Giảm 100% phí ship
-              </option>
-            </select>
           </div>
 
           <!-- TOTAL -->
@@ -824,20 +556,16 @@ onMounted(() => {
           </div>
 
           <!-- CHECKOUT BUTTON -->
-          <router-link
-            :to="{ path: '/checkout', query: { 
-              promo_code: appliedPromo ? appliedPromo.code : '', 
-              discount: discount,
-              freeship_code: appliedFreeshipPromo ? appliedFreeshipPromo.code : '',
-              freeship_discount: freeshipDiscount
-            }}"
+          <button
             class="checkout-btn"
-            :class="{ 'checkout-disabled': cart.length === 0 }"
+            :class="{ 'checkout-disabled': selectedCount === 0 }"
+            @click="goToCheckout"
+            :disabled="selectedCount === 0"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             Thanh toán ngay
             <svg class="arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-          </router-link>
+          </button>
 
           <!-- PAYMENT ICONS -->
           <div class="payment-methods">
