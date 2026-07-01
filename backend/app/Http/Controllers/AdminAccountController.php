@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminActivityLog;
 use App\Models\DatHang;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,9 +22,9 @@ class AdminAccountController extends Controller
     {
         return [
             'general' => [
-                'brand_name' => 'Predator',
+                'brand_name' => 'NextGen',
                 'slogan' => 'Giải pháp công nghệ toàn diện',
-                'support_email' => 'support@predator.vn',
+                'support_email' => 'support@nextgen.vn',
                 'support_phone' => '1800 9999',
                 'business_address' => 'TP. Hồ Chí Minh',
                 'working_hours' => '08:00 - 21:00',
@@ -76,13 +77,17 @@ class AdminAccountController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:khachhang,email,'.$user->id,
             'phone' => 'nullable|string|max:20',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
             'date_of_birth' => 'nullable|date',
         ]);
 
-        $user->fill($validated);
+        $user->ten = $validated['name'];
+        $user->email = $validated['email'];
+        $user->sodienthoai = $validated['phone'] ?? null;
+        $user->gioitinh = $validated['gender'] ?? null;
+        $user->ngaysinh = $validated['date_of_birth'] ?? null;
         $user->save();
 
         return response()->json([
@@ -94,15 +99,15 @@ class AdminAccountController extends Controller
 
     public function activityLog()
     {
-        $orders = DatHang::with('user:id,name,email')
+        $orders = DatHang::with('user:id,ten,email')
             ->latest('updated_at')
             ->limit(30)
             ->get()
             ->map(function ($order) {
                 return [
                     'type' => 'order',
-                    'title' => 'Cập nhật đơn hàng #' . $order->id_dathang,
-                    'description' => 'Trạng thái: ' . $order->trangthai . ' | Tổng tiền: ' . number_format((float) $order->tongtien, 0, ',', '.') . 'đ',
+                    'title' => 'Cập nhật đơn hàng #'.$order->id_dathang,
+                    'description' => 'Trạng thái: '.$order->trangthai.' | Tổng tiền: '.number_format((float) $order->tongtien, 0, ',', '.').'đ',
                     'actor' => $order->user?->name ?? 'Hệ thống',
                     'at' => optional($order->updated_at)->toISOString(),
                 ];
@@ -110,12 +115,12 @@ class AdminAccountController extends Controller
 
         $users = User::latest('created_at')
             ->limit(20)
-            ->get(['id', 'name', 'email', 'role', 'created_at'])
+            ->get(['id', 'ten', 'email', 'vaitro', 'created_at'])
             ->map(function ($user) {
                 return [
                     'type' => 'user',
-                    'title' => 'Tài khoản mới: ' . $user->name,
-                    'description' => 'Email: ' . $user->email . ' | Quyền: ' . $user->role,
+                    'title' => 'Tài khoản mới: '.$user->name,
+                    'description' => 'Email: '.$user->email.' | Quyền: '.$user->role,
                     'actor' => 'Hệ thống',
                     'at' => optional($user->created_at)->toISOString(),
                 ];
@@ -182,7 +187,7 @@ class AdminAccountController extends Controller
     public function settings()
     {
         $disk = $this->settingsDisk();
-        if (!$disk->exists($this->settingsPath)) {
+        if (! $disk->exists($this->settingsPath)) {
             $legacyDisk = Storage::disk('public');
             $legacyData = $legacyDisk->exists($this->settingsPath)
                 ? (json_decode($legacyDisk->get($this->settingsPath), true) ?: [])
@@ -247,67 +252,75 @@ class AdminAccountController extends Controller
     // API: Xem các Admin đang hoạt động
     public function activeAdmins()
     {
-        $admins = User::where('role', 'admin')
-            ->orderBy('last_active_at', 'desc')
+        $onlineWindowSeconds = 90;
+        $onlineSince = now()->subSeconds($onlineWindowSeconds);
+
+        $admins = User::where('vaitro', 'admin')
+            ->orderBy('hoat_dong_cuoi_luc', 'desc')
             ->get()
-            ->map(function ($admin) {
+            ->map(function ($admin) use ($onlineSince) {
                 // Xác định trạng thái online dựa trên thời gian hoạt động cuối (5 phút)
-                $isOnline = false;
-                if ($admin->last_active_at) {
-                    $isOnline = \Illuminate\Support\Carbon::parse($admin->last_active_at)->diffInMinutes(now()) < 5;
-                }
+                $lastActiveAt = $admin->hoat_dong_cuoi_luc
+                    ? Carbon::parse($admin->hoat_dong_cuoi_luc)
+                    : null;
+                $isOnline = $lastActiveAt && $lastActiveAt->greaterThanOrEqualTo($onlineSince);
+
                 return [
                     'id' => $admin->id,
                     'name' => $admin->name,
                     'email' => $admin->email,
                     'avatar' => $admin->avatar,
-                    'last_active_at' => $admin->last_active_at ? \Illuminate\Support\Carbon::parse($admin->last_active_at)->toIsoString() : null,
+                    'last_active_at' => $lastActiveAt?->toIsoString(),
                     'is_online' => $isOnline,
                 ];
-            });
+            })
+            ->sortByDesc(fn ($admin) => (int) $admin['is_online'])
+            ->values();
 
         return response()->json([
             'success' => true,
-            'data' => $admins
+            'online_window_seconds' => $onlineWindowSeconds,
+            'server_time' => now()->toIso8601String(),
+            'data' => $admins,
         ]);
     }
 
     // API: Lấy nhật ký hệ thống nâng cao (Audit Logs) có phân trang và tìm kiếm
     public function systemActivityLogs(Request $request)
     {
-        $query = \App\Models\AdminActivityLog::with('user:id,name,email,avatar')
+        $query = AdminActivityLog::with('user:id,ten,email,anhdaidien')
             ->latest();
 
         // Lọc theo từ khóa (tên admin, mô tả hành động, địa chỉ IP)
         if ($request->filled('keyword')) {
             $k = $request->keyword;
-            $query->where(function($q) use ($k) {
-                $q->where('description', 'like', "%{$k}%")
-                  ->orWhere('action', 'like', "%{$k}%")
-                  ->orWhere('model_name', 'like', "%{$k}%")
-                  ->orWhere('ip_address', 'like', "%{$k}%")
-                  ->orWhereHas('user', function($sub) use ($k) {
-                      $sub->where('name', 'like', "%{$k}%")
-                          ->orWhere('email', 'like', "%{$k}%");
-                  });
+            $query->where(function ($q) use ($k) {
+                $q->where('mota', 'like', "%{$k}%")
+                    ->orWhere('hanhdong', 'like', "%{$k}%")
+                    ->orWhere('tenmodel', 'like', "%{$k}%")
+                    ->orWhere('diachi_ip', 'like', "%{$k}%")
+                    ->orWhereHas('user', function ($sub) use ($k) {
+                        $sub->where('ten', 'like', "%{$k}%")
+                            ->orWhere('email', 'like', "%{$k}%");
+                    });
             });
         }
 
         // Lọc theo thao tác (Thêm mới, Cập nhật, Xóa)
         if ($request->filled('action_filter')) {
-            $query->where('action', $request->action_filter);
+            $query->where('hanhdong', $request->action_filter);
         }
 
         // Lọc theo phân hệ (Sản phẩm, Đơn hàng...)
         if ($request->filled('model_filter')) {
-            $query->where('model_name', $request->model_filter);
+            $query->where('tenmodel', $request->model_filter);
         }
 
         $logs = $query->paginate(15);
 
         return response()->json([
             'success' => true,
-            'data' => $logs
+            'data' => $logs,
         ]);
     }
 }

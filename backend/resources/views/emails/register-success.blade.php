@@ -16,7 +16,7 @@
                     <!-- HEADER -->
                     <tr>
                         <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:30px;text-align:center;color:white;">
-                            <h1 style="margin:0;">Predator</h1>
+                            <h1 style="margin:0;">NextGen</h1>
                             <p style="margin:5px 0 0;">Chinh phục tầm cao mới</p>
                         </td>
                     </tr>
@@ -25,7 +25,7 @@
                     <tr>
                         <td style="padding:30px;">
                             <h2 style="margin-top:0;color:#333;">
-                                Xin chào {{ $user->name }} 👋
+                                Xin chào {{ $user->ten }} 👋
                             </h2>
 
                             <p style="color:#555;font-size:15px;">
@@ -33,7 +33,7 @@
                             </p>
 
                             <p style="color:#555;font-size:15px;">
-                                Chào mừng bạn đến với hệ thống <strong>Predator</strong>.
+                                Chào mừng bạn đến với hệ thống <strong>NextGen</strong>.
                             </p>
 
                             <!-- BUTTON -->
@@ -59,7 +59,7 @@
                     <!-- FOOTER -->
                     <tr>
                         <td style="background:#f9fafb;padding:15px;text-align:center;color:#999;font-size:12px;">
-                            © 2026 Predator. All rights reserved.
+                            © 2026 NextGen. All rights reserved.
                         </td>
                     </tr>
 
