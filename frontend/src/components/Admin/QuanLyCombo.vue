@@ -784,15 +784,7 @@ onMounted(() => {
             <button class="page-btn" :disabled="comboCurrentPage === 1" @click="changeComboPage(comboCurrentPage - 1)">
               ‹
             </button>
-            <button
-              v-for="page in comboVisiblePages"
-              :key="page"
-              class="page-btn"
-              :class="{ active: page === comboCurrentPage }"
-              @click="changeComboPage(page)"
-            >
-              {{ page }}
-            </button>
+            <span class="page-btn active page-indicator">{{ comboCurrentPage }}/{{ comboTotalPages }}</span>
             <button class="page-btn" :disabled="comboCurrentPage === comboTotalPages" @click="changeComboPage(comboCurrentPage + 1)">
               ›
             </button>

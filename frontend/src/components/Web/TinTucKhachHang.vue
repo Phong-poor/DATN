@@ -96,10 +96,10 @@ const fetchNews = async (page = 1) => {
     posts.value = data.data || []
     posts.value.forEach(post => {
       try {
-        const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
+        const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
         let cached = cachedStr ? JSON.parse(cachedStr) : {}
         if (!cached.post) cached.post = post
-        localStorage.setItem(`predator_news_detail_cache_${post.id}`, JSON.stringify(cached))
+        localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
       } catch (e) {}
     })
     currentPage.value = data.current_page || 1
@@ -123,10 +123,10 @@ const fetchPopular = async () => {
     popularPosts.value = (data.data || []).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
     popularPosts.value.forEach(post => {
       try {
-        const cachedStr = localStorage.getItem(`predator_news_detail_cache_${post.id}`)
+        const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
         let cached = cachedStr ? JSON.parse(cachedStr) : {}
         if (!cached.post) cached.post = post
-        localStorage.setItem(`predator_news_detail_cache_${post.id}`, JSON.stringify(cached))
+        localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
       } catch (e) {}
     })
   } catch (error) {
@@ -143,7 +143,7 @@ const selectTab = async (tab) => {
 
 const loadCache = () => {
   try {
-    const cached = localStorage.getItem('predator_news_cache')
+    const cached = localStorage.getItem('nextgen_news_cache')
     if (cached) {
       const parsed = JSON.parse(cached)
       if (parsed.posts) posts.value = parsed.posts
@@ -154,7 +154,7 @@ const loadCache = () => {
 
 const saveCache = () => {
   try {
-    localStorage.setItem('predator_news_cache', JSON.stringify({ posts: posts.value, popularPosts: popularPosts.value }))
+    localStorage.setItem('nextgen_news_cache', JSON.stringify({ posts: posts.value, popularPosts: popularPosts.value }))
   } catch (e) {}
 }
 
@@ -208,10 +208,10 @@ onMounted(async () => {
             <path d="M12 2a10 10 0 0 0-7.07 17.07l1.41-1.41a8 8 0 1 1 11.32 0l1.41 1.41A10 10 0 0 0 12 2Z"/>
             <path d="M12 6a6 6 0 0 0-4.24 10.24l1.41-1.41a4 4 0 1 1 5.66 0l1.41 1.41A6 6 0 0 0 12 6Z"/>
           </svg>
-          PREDATOR CYBER-MEDIA HUB
+          NEXTGEN CYBER-MEDIA HUB
         </span>
         <h1>Trải nghiệm <span>vũ trụ công nghệ.</span></h1>
-        <p class="header-description">Kênh truyền thông chính thức của Predator - Cập nhật những phát kiến phần cứng, trí tuệ nhân tạo local và cẩm nang công nghệ chuyên sâu.</p>
+        <p class="header-description">Kênh truyền thông chính thức của NextGen - Cập nhật những phát kiến phần cứng, trí tuệ nhân tạo local và cẩm nang công nghệ chuyên sâu.</p>
 
         <nav class="tabs">
           <button
@@ -281,7 +281,7 @@ onMounted(async () => {
                    <div class="hero-author-row">
                      <div class="author-avatar">NG</div>
                      <div class="author-info">
-                       <span class="author-name">{{ randomPost.author_name || randomPost.tac_gia || 'Predator Staff' }}</span>
+                       <span class="author-name">{{ randomPost.author_name || randomPost.tac_gia || 'NextGen Staff' }}</span>
                        <span class="published-date">{{ formatDate(randomPost.published_at || randomPost.created_at) }}</span>
                      </div>
                    </div>
@@ -299,9 +299,9 @@ onMounted(async () => {
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display: inline-block; vertical-align: middle; margin-right: 8px; color: #f59e0b;">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
-                Tech Radar: Predator Khuyên Dùng
+                Tech Radar: NextGen Khuyên Dùng
               </h3>
-              <p>Các cẩm nang lựa chọn thiết bị công nghệ chuyên nghiệp được biên soạn bởi chuyên gia Predator</p>
+              <p>Các cẩm nang lựa chọn thiết bị công nghệ chuyên nghiệp được biên soạn bởi chuyên gia NextGen</p>
             </div>
 
             <div class="radar-grid">
@@ -384,7 +384,7 @@ onMounted(async () => {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                       <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    {{ post.author_name || post.tac_gia || 'Predator staff' }}
+                    {{ post.author_name || post.tac_gia || 'NextGen staff' }}
                   </span>
                   <span class="card-read-more-link">Khám phá <span class="arrow">→</span></span>
                 </div>
@@ -416,19 +416,7 @@ onMounted(async () => {
               &laquo; Trước
             </button>
 
-            <div class="pagination-numbers-row">
-              <template v-for="(page, idx) in displayedPages" :key="idx">
-                <span v-if="page === '...'" class="pagination-dots">...</span>
-                <button
-                  v-else
-                  class="pagination-num-btn"
-                  :class="{ active: currentPage === page }"
-                  @click="fetchNews(page)"
-                >
-                  {{ page }}
-                </button>
-              </template>
-            </div>
+            <span class="pagination-numbers-row page-indicator">{{ currentPage }}/{{ lastPage }}</span>
 
             <button
               class="pagination-arrow-btn next-btn"
@@ -540,7 +528,7 @@ onMounted(async () => {
           <div class="glow-accent-overlay"></div>
           <div class="newsletter-brand-header">
             <span class="badge-mini">NEWSLETTER</span>
-            <h3>Join Predator Cyber-Tech Weekly</h3>
+            <h3>Join NextGen Cyber-Tech Weekly</h3>
             <p>Tham gia cùng hơn 50.000+ kỹ sư và người yêu công nghệ nhận bản tin phân tích độc quyền hàng tuần.</p>
           </div>
 
@@ -559,7 +547,7 @@ onMounted(async () => {
             </li>
             <li>
               <span class="check-icon">✓</span>
-              <span class="benefit-txt">Mã giảm giá mua sắm độc quyền Predator</span>
+              <span class="benefit-txt">Mã giảm giá mua sắm độc quyền NextGen</span>
             </li>
           </ul>
 

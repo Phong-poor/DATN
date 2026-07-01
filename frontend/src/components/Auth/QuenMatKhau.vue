@@ -143,14 +143,14 @@ const handleSubmit = async () => {
     <div class="left-col">
       <div class="left-content">
         <div class="brand-header">
-          <span class="brand-title">PREDATOR</span>
+          <span class="brand-title">NEXTGEN</span>
           <span class="brand-slogan">Chinh Phục Tầm Cao Mới</span>
         </div>
         <p class="brand-description">
           Hành trình chinh phục hiệu năng đỉnh cao bắt đầu từ đây. Quản lý không gian làm việc, cấu hình thiết bị và nhận các đặc quyền dễ dàng.
         </p>
         <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator Laptop Workspace" />
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="NextGen Laptop Workspace" />
         </div>
         <div class="highlight-pills">
           <span class="pill">Bảo mật tối đa</span>

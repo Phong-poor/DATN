@@ -387,11 +387,11 @@ onUnmounted(() => {
   height: 500px;
   background: var(--tn-surface);
   border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(26, 39, 68, 0.18);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.28);
   transform-origin: bottom right;
 }
 
@@ -407,10 +407,11 @@ onUnmounted(() => {
 }
 
 .chat-header {
-  background: linear-gradient(135deg, #1a2744 0%, #1e3a8a 60%, #2563eb 100%);
+  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
   padding: 15px 20px;
-  color: white;
+  color: #0f172a;
   position: relative;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .header-info {
@@ -426,6 +427,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 50%;
   padding: 2px;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22), 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
 .avatar {
@@ -449,19 +451,22 @@ onUnmounted(() => {
 .title-wrap .title {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .title-wrap .subtitle {
   margin: 2px 0 0;
   font-size: 11px;
-  opacity: 0.85;
+  color: #64748b;
+  opacity: 1;
+  font-weight: 600;
 }
 
 .mode-toggle-btn {
   margin-left: auto;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #2563eb;
+  border: 1px solid #2563eb;
   border-radius: 20px;
   color: white;
   padding: 4px 10px;
@@ -473,7 +478,7 @@ onUnmounted(() => {
 .close-btn-header {
   background: transparent;
   border: none;
-  color: white;
+  color: #475569;
   font-size: 18px;
   cursor: pointer;
   padding: 5px;
@@ -481,11 +486,21 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
+.mode-toggle-btn:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.close-btn-header:hover {
+  color: #1d4ed8;
+  opacity: 1;
+}
+
 .chat-body {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: var(--tn-bg);
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -514,8 +529,9 @@ onUnmounted(() => {
 .chat-body :deep(.msg-bubble) {
   padding: 8px 12px;
   border-radius: 18px;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 600;
 }
 
 .chat-body :deep(.msg-bubble.user) {
@@ -528,7 +544,8 @@ onUnmounted(() => {
   background: white;
   color: #1e293b;
   border-bottom-left-radius: 4px;
-  border: 1px solid var(--tn-border);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
 }
 
 /* Message Search Bar styles */

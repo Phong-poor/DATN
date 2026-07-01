@@ -1,25 +1,43 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="topbar-left">
-        <h2 class="topbar-title">Thương hiệu sản phẩm</h2>
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
-        </div>
+    <div class="top">
+      <div>
+        <h1>Quản lý thương hiệu</h1>
+        <p>Cập nhật và theo dõi danh mục thương hiệu thiết bị công nghệ 2026</p>
+      </div>
+      <div class="excel-actions">
+        <button class="add-btn" @click="openCreate">+ Thêm thương hiệu</button>
       </div>
     </div>
 
-    <div class="hero">
-      <div class="hero-text">
-        <h1>Kiến trúc <span class="hero-accent">Hệ sinh thái</span><br/>Laptop</h1>
-        <p>Quản lý và tối ưu hóa các phân khúc sản phẩm dựa trên nhu cầu của khách hàng.</p>
-      </div>
-      <div class="hero-actions">
-        <button class="btn-primary" @click="openCreate">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Tạo thương hiệu mới
-        </button>
+    <!-- Tabs danh mục cha -->
+    <div class="parent-tabs">
+      <button 
+        class="parent-tab-btn" 
+        :class="{ active: selectedParentCategory === '' }" 
+        @click="selectedParentCategory = ''"
+      >
+        Tất cả thương hiệu
+      </button>
+      <button 
+        v-for="parent in parentCategories" 
+        :key="parent.id_danhmuc_cha"
+        class="parent-tab-btn" 
+        :class="{ active: String(selectedParentCategory) === String(parent.id_danhmuc_cha) }" 
+        @click="selectedParentCategory = parent.id_danhmuc_cha"
+      >
+        {{ parent.ten_danhmuc }}
+      </button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input v-model="searchQuery" placeholder="Tìm kiếm thương hiệu..." />
       </div>
     </div>
 
@@ -116,8 +134,14 @@
               
               <div class="form-group">
                 <label class="form-label">Danh mục áp dụng (Chọn nhiều)</label>
-                <select multiple class="form-input" v-model="form.danh_muc_ids" style="height: 120px;">
-                  <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">
+                <select multiple class="form-input" style="height: 120px;">
+                  <option 
+                    v-for="cat in categories" 
+                    :key="cat.id_danhmuc" 
+                    :value="Number(cat.id_danhmuc)"
+                    :class="{ 'selected-option': form.danh_muc_ids.includes(Number(cat.id_danhmuc)) }"
+                    @mousedown.prevent="toggleCategorySelection(cat.id_danhmuc)"
+                  >
                     {{ cat.parent_id ? '↳ ' : '' }}{{ cat.ten_danhmuc }}
                   </option>
                 </select>
@@ -184,8 +208,10 @@ const getPlaceholderStyle = (name) => {
 // --- STATE QUẢN LÝ DỮ LIỆU ---
 const thuonghieu = ref([]);
 const categories = ref([]);
+const parentCategories = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
+const selectedParentCategory = ref('');
 
 // --- STATE QUẢN LÝ MODAL ---
 const showModal = ref(false);
@@ -207,6 +233,16 @@ const handleFileChange = (e) => {
   if (!file) return;
   logoFile.value = file;
   logoPreview.value = URL.createObjectURL(file);
+};
+
+const toggleCategorySelection = (catId) => {
+  const id = Number(catId);
+  const index = form.value.danh_muc_ids.indexOf(id);
+  if (index > -1) {
+    form.value.danh_muc_ids.splice(index, 1);
+  } else {
+    form.value.danh_muc_ids.push(id);
+  }
 };
 
 // --- LẤY DỮ LIỆU TỪ DB ---
@@ -231,9 +267,19 @@ const fetchCategories = async () => {
   }
 };
 
+const fetchParentCategories = async () => {
+  try {
+    const response = await api.get('/danhmuc/parents');
+    parentCategories.value = response.data.data || response.data;
+  } catch (error) {
+    console.error('Lỗi khi tải danh mục cha:', error);
+  }
+};
+
 onMounted(() => {
   fetchBrands();
   fetchCategories();
+  fetchParentCategories();
 });
 
 // Lấy tên danh mục để hiển thị
@@ -244,10 +290,27 @@ const getCategoryName = (id) => {
 
 // --- TÌM KIẾM ---
 const filteredBrands = computed(() => {
-  if (!searchQuery.value) return thuonghieu.value;
-  return thuonghieu.value.filter(c =>
-    c.ten_thuonghieu.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  let result = thuonghieu.value;
+  
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    result = result.filter(c => c.ten_thuonghieu.toLowerCase().includes(q));
+  }
+  
+  if (selectedParentCategory.value) {
+    const parentId = Number(selectedParentCategory.value);
+    result = result.filter(th => {
+      // If a brand has no categories assigned, it applies to all, so keep it
+      if (!th.danh_muc_ids || th.danh_muc_ids.length === 0) return true;
+      
+      return th.danh_muc_ids.some(catId => {
+        const cat = categories.value.find(c => Number(c.id_danhmuc) === Number(catId));
+        return cat && Number(cat.id_danhmuc_cha) === parentId;
+      });
+    });
+  }
+  
+  return result;
 });
 
 const {
@@ -286,7 +349,7 @@ const openEdit = (th) => {
   editId.value = th.id_thuonghieu;
   form.value = { 
     ten_thuonghieu: th.ten_thuonghieu,
-    danh_muc_ids: Array.isArray(th.danh_muc_ids) ? [...th.danh_muc_ids] : []
+    danh_muc_ids: Array.isArray(th.danh_muc_ids) ? th.danh_muc_ids.map(Number) : []
   }; 
   logoPreview.value = th.logo ? storageUrl(th.logo) : '';
   logoFile.value = null;
@@ -354,19 +417,7 @@ const deleteBrand = async (id) => {
 /* Giữ nguyên toàn bộ CSS của bạn, mình chỉ làm gọn lại chút xíu cho dễ nhìn */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .page { padding: 24px 28px; background: #f0f4ff; min-height: 100vh; font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 20px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; }
-.topbar-left { display: flex; align-items: center; gap: 16px; }
-.topbar-title { font-size: 15px; font-weight: 600; color: #1e293b; white-space: nowrap; }
-.search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 14px; width: 220px; }
-.search-box svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; fill: none; }
-.search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-.hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1.25; margin-bottom: 12px; }
-.hero-accent { color: #4f46e5; }
-.hero-text p { font-size: 13.5px; color: #64748b; line-height: 1.7; }
-.btn-primary { display: flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,0.35); transition: transform 0.15s; }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,0.4); }
-.btn-primary svg { width: 15px; height: 15px; stroke: #fff; stroke-width: 2.5; fill: none; }
+
 .table-card { background: #fff; border-radius: 16px; border: 1px solid #e8edf5; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8faff; border-bottom: 1px solid #e8edf5; }
@@ -552,5 +603,135 @@ td { padding: 16px 20px; vertical-align: middle; }
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+}
+
+/* ── PRODUCTS STYLE COPIED FOR CONSISTENCY ── */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.top h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.top p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .2s;
+}
+
+.add-btn:hover {
+  opacity: .9;
+  transform: translateY(-1px);
+}
+
+.excel-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color .2s;
+  box-sizing: border-box;
+}
+
+.search-wrap input:focus {
+  border-color: #2563eb;
+}
+
+/* ── PARENT CATEGORY TABS ── */
+.parent-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 24px 0 16px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+  width: fit-content;
+}
+
+.parent-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 9px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.parent-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.parent-tab-btn.active {
+  color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.selected-option {
+  font-weight: 700 !important;
+  background-color: #e0e7ff !important;
+  color: #4f46e5 !important;
 }
 </style>

@@ -250,7 +250,7 @@ const submitWithdraw = async () => {
 const activate = async () => {
   const isConfirmed = await swal.confirm(
     'Kích hoạt Affiliate',
-    'B?n mu?n tham gia chuong trình tiếp thị liên k?t d? b?t d?u gia tang thu nh?p th? d?ng cùng Predator?'
+    'B?n mu?n tham gia chuong trình tiếp thị liên k?t d? b?t d?u gia tang thu nh?p th? d?ng cùng NextGen?'
   )
   if (!isConfirmed) return
 
@@ -258,7 +258,7 @@ const activate = async () => {
   try {
     await api.post('/affiliate/activate')
     await loadAll()
-    swal.success('Kích hoạt thành công', 'Chào mừng bạn đến với mạng lưới đối tác của Predator!')
+    swal.success('Kích hoạt thành công', 'Chào mừng bạn đến với mạng lưới đối tác của NextGen!')
   } catch (e) {
     swal.error('Lỗi kích hoạt', e?.response?.data?.message || 'Kích hoạt tiếp thị liên kết thất bại.')
   } finally {
@@ -345,7 +345,7 @@ onMounted(loadAll)
       <div class="heading-content">
         <span class="badge-tag">Chương Trình Đối Tác</span>
         <h1>Affiliate Center</h1>
-        <p>Kiếm tiền thụ động không giới hạn bằng việc tiếp thị sản phẩm của Predator tới cộng đồng của bạn.</p>
+        <p>Kiếm tiền thụ động không giới hạn bằng việc tiếp thị sản phẩm của NextGen tới cộng đồng của bạn.</p>
       </div>
     </div>
 

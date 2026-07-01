@@ -151,18 +151,18 @@ onUnmounted(() => {
       <div v-else class="admins-horizontal-row">
         <div v-for="admin in activeAdmins" :key="admin.id" class="admin-profile-capsule" :class="{ 'online': admin.is_online }">
           <div class="avatar-wrapper">
-            <img v-if="getAvatarUrl(admin.avatar)" :src="getAvatarUrl(admin.avatar)" alt="Avatar" class="admin-avatar" />
-            <div v-else class="admin-avatar-fallback">{{ admin.name?.charAt(0).toUpperCase() }}</div>
+            <img v-if="getAvatarUrl(admin.anhdaidien)" :src="getAvatarUrl(admin.anhdaidien)" alt="Avatar" class="admin-avatar" />
+            <div v-else class="admin-avatar-fallback">{{ admin.ten?.charAt(0).toUpperCase() }}</div>
             <span class="status-dot" :class="admin.is_online ? 'online' : 'offline'"></span>
           </div>
           <div class="admin-details">
             <div class="admin-name-row">
-              <h4 class="admin-name">{{ admin.name }}</h4>
+              <h4 class="admin-name">{{ admin.ten }}</h4>
               <span class="status-pill" :class="admin.is_online ? 'online' : 'offline'"></span>
             </div>
             <p class="admin-email">{{ admin.email }}</p>
             <span class="admin-status-text" :class="admin.is_online ? 'online' : 'offline'">
-              {{ admin.is_online ? 'Đang hoạt động' : timeAgo(admin.last_active_at) }}
+              {{ admin.is_online ? 'Đang hoạt động' : timeAgo(admin.hoat_dong_cuoi_luc) }}
             </span>
           </div>
         </div>
@@ -239,28 +239,28 @@ onUnmounted(() => {
             <tr v-for="log in logs" :key="log.id" class="log-row">
               <td class="col-user">
                 <div class="log-user-info">
-                  <img v-if="getAvatarUrl(log.user?.avatar)" :src="getAvatarUrl(log.user?.avatar)" class="log-user-img" alt="" />
-                  <div v-else class="log-user-fallback">{{ log.user?.name?.charAt(0).toUpperCase() }}</div>
+                  <img v-if="getAvatarUrl(log.user?.anhdaidien)" :src="getAvatarUrl(log.user?.anhdaidien)" class="log-user-img" alt="" />
+                  <div v-else class="log-user-fallback">{{ log.user?.ten?.charAt(0).toUpperCase() }}</div>
                   <div>
-                    <div class="log-user-name">{{ log.user?.name || 'Hệ thống' }}</div>
+                    <div class="log-user-name">{{ log.user?.ten || 'Hệ thống' }}</div>
                     <div class="log-user-email">{{ log.user?.email || 'system' }}</div>
                   </div>
                 </div>
               </td>
               <td class="col-action">
-                <span class="action-tag" :class="getActionClass(log.action)">
-                  {{ log.action }}
+                <span class="action-tag" :class="getActionClass(log.hanhdong)">
+                  {{ log.hanhdong }}
                 </span>
               </td>
               <td class="col-model">
-                <span class="model-badge">{{ log.model_name }}</span>
+                <span class="model-badge">{{ log.tenmodel }}</span>
               </td>
               <td class="col-description">
-                <p class="log-desc" v-html="formatDescription(log.description)"></p>
+                <p class="log-desc" v-html="formatDescription(log.mota)"></p>
               </td>
               <td class="col-network">
                 <div class="network-info">
-                  <span class="ip-address">{{ log.ip_address || '127.0.0.1' }}</span>
+                  <span class="ip-address">{{ log.diachi_ip || '127.0.0.1' }}</span>
                   <span class="user-agent" :title="log.user_agent">
                     {{ log.user_agent ? (log.user_agent.includes('Chrome') ? 'Google Chrome' : (log.user_agent.includes('Safari') ? 'Safari' : 'Web Browser')) : 'API Client' }}
                   </span>

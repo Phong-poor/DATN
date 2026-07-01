@@ -15,6 +15,7 @@ const loading = ref(false)
 const adminOpening = ref(false)
 const webOpening = ref(false)
 const socialOpening = ref(false)
+const facebookLoginEnabled = import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === 'true'
 
 const failedAttempts = ref(Number(localStorage.getItem('login_failed_attempts') || 0))
 const lockUntil = ref(Number(localStorage.getItem('login_lock_until') || 0))
@@ -95,7 +96,9 @@ const loginGoogle = () => {
     sessionStorage.setItem('redirect_after_auth', route.query.redirect)
   }
   const refCode = localStorage.getItem('affiliate_ref') || ''
-  const endpoint = refCode ? `/auth/google?ref=${encodeURIComponent(refCode)}` : '/auth/google'
+  const params = new URLSearchParams({ frontend_url: window.location.origin })
+  if (refCode) params.set('ref', refCode)
+  const endpoint = `/auth/google?${params.toString()}`
   setTimeout(() => {
     window.location.href = `${api.defaults.baseURL}${endpoint}`
   }, 620)
@@ -103,12 +106,18 @@ const loginGoogle = () => {
 
 const loginFacebook = () => {
   if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
+  if (!facebookLoginEnabled) {
+    showModal('error', 'Facebook chưa sẵn sàng', 'Facebook Login cần app Facebook bật HTTPS/OAuth security. Hiện tại dự án đang ưu tiên đăng nhập bằng Google.')
+    return
+  }
   socialOpening.value = true
   if (route.query.redirect) {
     sessionStorage.setItem('redirect_after_auth', route.query.redirect)
   }
   const refCode = localStorage.getItem('affiliate_ref') || ''
-  const endpoint = refCode ? `/auth/facebook?ref=${encodeURIComponent(refCode)}` : '/auth/facebook'
+  const params = new URLSearchParams({ frontend_url: window.location.origin })
+  if (refCode) params.set('ref', refCode)
+  const endpoint = `/auth/facebook?${params.toString()}`
   setTimeout(() => {
     window.location.href = `${api.defaults.baseURL}${endpoint}`
   }, 620)
@@ -136,14 +145,17 @@ const safeRedirectPath = (path) => {
   return path
 }
 
-const isAdminUser = (user) => String(user?.role || '').toLowerCase() === 'admin'
+const isAdminUser = (user) => {
+  const role = String(user?.vaitro || user?.role || '').toLowerCase()
+  return role !== '' && role !== 'user'
+}
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 let adminPreloadPromise = null
 let adminDashboardPreloadPromise = null
 
-const DASHBOARD_CACHE_PREFIX = 'predator_admin_dashboard_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_'
 
 const writeDashboardCache = (selectedPeriod, payload) => {
   try {
@@ -259,6 +271,12 @@ onMounted(() => {
   const preloadWhenIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 250))
   preloadWhenIdle(() => preloadAdminRoute())
 
+  if (route.query.account_locked || localStorage.getItem('account_locked_message')) {
+    const message = localStorage.getItem('account_locked_message') || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+    localStorage.removeItem('account_locked_message')
+    showModal('error', 'Tài khoản bị khóa', message)
+  }
+
   if (route.query.social_error) {
     const messageByCode = {
       google_callback_failed: 'Không thể xác thực Google. Vui lòng thử lại.',
@@ -267,9 +285,12 @@ onMounted(() => {
       facebook_callback_failed: 'Không thể xác thực Facebook. Vui lòng thử lại.',
       facebook_create_failed: 'Đăng nhập Facebook thất bại do lỗi tạo tài khoản.',
       facebook_user_not_found: 'Không tạo được tài khoản từ Facebook.',
+      missing_token: 'Máy chủ không trả về token đăng nhập. Vui lòng thử lại.',
+      profile_fetch_failed: 'Đăng nhập thành công nhưng không thể lấy thông tin tài khoản. Vui lòng thử lại.',
     }
-    const provider = String(route.query.social_error).startsWith('google') ? 'Google' : 'Facebook'
-    showModal('error', `Lỗi đăng nhập ${provider}`, messageByCode[route.query.social_error] || 'Đăng nhập mạng xã hội thất bại.')
+    const errorCode = String(route.query.social_error)
+    const provider = errorCode.startsWith('google') ? 'Google' : (errorCode.startsWith('facebook') ? 'Facebook' : 'mạng xã hội')
+    showModal('error', `Lỗi đăng nhập ${provider}`, messageByCode[errorCode] || 'Đăng nhập mạng xã hội thất bại.')
   }
 
   const user = getUser()
@@ -325,6 +346,7 @@ const handleLogin = async () => {
   try {
     const res = await api.post('/login', {
       email: normalizeEmail(email.value),
+      matkhau: password.value,
       password: password.value,
       remember: remember.value
     })
@@ -370,6 +392,20 @@ const handleLogin = async () => {
   } catch (err) {
     console.log(err)
 
+    if (err.response?.status === 423 || err.response?.data?.code === 'ACCOUNT_LOCKED') {
+      const message = err.response?.data?.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+      localStorage.removeItem('account_locked_message')
+      localStorage.removeItem('login_failed_attempts')
+      localStorage.removeItem('login_lock_until')
+      localStorage.removeItem('login_lock_count')
+      failedAttempts.value = 0
+      lockUntil.value = 0
+      lockCount.value = 0
+      secondsRemaining.value = 0
+      showModal('error', 'Tài khoản bị khóa', message)
+      return
+    }
+
     // Increment failed attempts
     failedAttempts.value += 1
     localStorage.setItem('login_failed_attempts', failedAttempts.value)
@@ -401,7 +437,7 @@ const handleLogin = async () => {
       <div class="left-col">
         <div class="left-content">
           <div class="brand-header">
-            <span class="brand-title">Predator</span>
+            <span class="brand-title">NextGen</span>
             <span class="brand-slogan">Chinh Phục Tầm Cao Mới.</span>
           </div>
           <p class="brand-description">
@@ -414,7 +450,7 @@ const handleLogin = async () => {
           </div>
         </div>
         <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator laptop workspace" />
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="NextGen laptop workspace" />
         </div>
       </div>
 
@@ -503,15 +539,20 @@ const handleLogin = async () => {
         <!-- SOCIAL BUTTONS -->
         <div class="social-row">
           <button @click="loginGoogle" class="social-btn-google" :disabled="adminOpening || webOpening || socialOpening">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.5 5.5 0 0 1 8.5 13a5.5 5.5 0 0 1 5.49-5.518c1.378 0 2.635.534 3.58 1.405l3.12-3.12C18.815 3.97 16.536 3 14 3a10 10 0 0 0-10 10 10 0 0 0 10 10c5.522 0 10-4.478 10-10 0-.693-.06-1.37-.176-2.029l-7.584.314z"/>
-              <path fill="#FBBC05" d="M4 13a10 10 0 0 0 .18 1.88l3.66-2.84C7.71 11.43 7.6 10.73 7.6 10s.11-1.43.24-2.04L4.18 5.12A10 10 0 0 0 4 13z"/>
-              <path fill="#4285F4" d="M14 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H4.18v2.84C5.99 20.53 9.7 23 14 23z"/>
-              <path fill="#34A853" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            <svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true">
+              <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.179l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.583-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.711A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.711V4.957H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.043l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.578c1.322 0 2.508.454 3.44 1.346l2.581-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.957l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
             </svg>
             Google
           </button>
-          <button @click="loginFacebook" class="social-btn-facebook" :disabled="adminOpening || webOpening || socialOpening">
+          <button
+            @click="loginFacebook"
+            class="social-btn-facebook"
+            :disabled="adminOpening || webOpening || socialOpening || !facebookLoginEnabled"
+            :title="facebookLoginEnabled ? 'Đăng nhập bằng Facebook' : 'Facebook Login đang tắt trong môi trường dev'"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
@@ -988,6 +1029,13 @@ const handleLogin = async () => {
   justify-content: center;
   gap: 8px;
   transition: background-color 0.2s, border-color 0.2s;
+}
+
+.google-logo {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: block;
 }
 
 .social-btn-google:hover,

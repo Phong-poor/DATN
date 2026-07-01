@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { getUser } from '../../services/auth.js'
+import { storageUrl } from '@/services/urls'
 import * as XLSX from 'xlsx'
 import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
@@ -10,7 +11,7 @@ import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 // ─── API ─────────────────────────────
 // ─── STATE ───────────────────────────
 const searchQuery = ref('')
-const activeTab = ref('Tất cả')
+const activeTab = ref('Quản lý nhân viên')
 const selectedStatus = ref('Tất cả')
 const isOpenStatusDropdown = ref(false)
 
@@ -32,12 +33,19 @@ const hideAffiliateCard = ref(false)
 const currentPage = ref(1)
 const pageSize = 7
 
-const tabs = ['Tất cả', 'Admin', 'Khách hàng']
+const tabs = ['Quản lý nhân viên', 'Quản lý khách hàng']
 const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
 const roleStyle = {
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' }
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
+    'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
+    'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
+    'MARKETING': { bg: '#fce7f3', color: '#db2777' },
+    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#7e22ce' },
+    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#4338ca' },
+    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#0f766e' },
+    'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
 }
 
 const statusStyle = {
@@ -48,13 +56,31 @@ const statusStyle = {
 // ─── MAPPING ─────────────────────────
 const roleMap = {
     admin: 'ADMIN',
-    user: 'KHÁCH HÀNG'
+    user: 'KHÁCH HÀNG',
+    inventory: 'THỦ KHO',
+    order_manager: 'XỬ LÝ ĐƠN HÀNG',
+    marketing: 'MARKETING',
+    affiliate_manager: 'QUẢN LÝ AFFILIATE',
+    editor: 'BIÊN TẬP VIÊN',
+    support: 'TƯ VẤN VIÊN',
+    accountant: 'KẾ TOÁN'
 }
 
 const roleReverseMap = {
     'ADMIN': 'admin',
-    'KHÁCH HÀNG': 'user'
+    'KHÁCH HÀNG': 'user',
+    'THỦ KHO': 'inventory',
+    'XỬ LÝ ĐƠN HÀNG': 'order_manager',
+    'MARKETING': 'marketing',
+    'QUẢN LÝ AFFILIATE': 'affiliate_manager',
+    'BIÊN TẬP VIÊN': 'editor',
+    'TƯ VẤN VIÊN': 'support',
+    'KẾ TOÁN': 'accountant'
 }
+
+const staffRoles = computed(() => {
+    return Object.keys(roleReverseMap).filter(role => role !== 'KHÁCH HÀNG')
+})
 
 const mapRoleFromDB = (r) => roleMap[r?.toLowerCase()] || 'KHÁCH HÀNG'
 const mapRoleToDB = (r) => roleReverseMap[r] || 'user'
@@ -63,17 +89,25 @@ const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 
 // ─── NORMALIZE ───────────────────────
-const normalizeUser = (u) => ({
-    id: u.id,
-    name: u.name || '',
-    email: u.email || '',
-    phone: u.phone || '',
-    role: mapRoleFromDB(u.role),
-    joined: u.created_at
-        ? new Date(u.created_at).toLocaleDateString('vi-VN')
-        : '',
-    status: mapStatus(u.status)
-})
+const protectedDeleteEmails = ['nextgenshop@gmail.com']
+const isProtectedDeleteUser = (user) => protectedDeleteEmails.includes(String(user?.email || '').toLowerCase())
+
+const normalizeUser = (u) => {
+    const avatar = u.anhdaidien || u.avatar || ''
+    const avatarUrl = avatar ? (avatar.startsWith('http') ? avatar : storageUrl(avatar)) : ''
+    return {
+        id: u.id,
+        name: u.ten || u.name || '',
+        email: u.email || '',
+        phone: u.sodienthoai || u.phone || '',
+        role: mapRoleFromDB(u.vaitro || u.role),
+        joined: u.created_at
+            ? new Date(u.created_at).toLocaleDateString('vi-VN')
+            : '',
+        status: mapStatus(u.trangthai || u.status),
+        avatar: avatarUrl
+    }
+}
 
 // ─── FETCH ───────────────────────────
 const fetchUsers = async () => {
@@ -126,17 +160,13 @@ const dismissAffiliateCard = () => {
 // ─── FILTER (reset page khi search/tab thay đổi) ──
 const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
-    const map = {
-        'Admin': 'ADMIN',
-        'Khách hàng': 'KHÁCH HÀNG'
-    }
     return users.value.filter(u => {
         const matchSearch =
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q)
-        const matchTab =
-            activeTab.value === 'Tất cả' ||
-            u.role === map[activeTab.value]
+        const matchTab = activeTab.value === 'Quản lý nhân viên'
+            ? u.role !== 'KHÁCH HÀNG'
+            : u.role === 'KHÁCH HÀNG'
         const matchStatus =
             selectedStatus.value === 'Tất cả' ||
             u.status === selectedStatus.value
@@ -151,7 +181,7 @@ const onStatusChange = () => { currentPage.value = 1 }
 
 const resetAdvancedFilters = () => {
     searchQuery.value = ''
-    activeTab.value = 'Tất cả'
+    activeTab.value = 'Quản lý nhân viên'
     selectedStatus.value = 'Tất cả'
     currentPage.value = 1
 }
@@ -207,21 +237,13 @@ const {
     endpoint: id => `/admin/users/${id}`,
     entityLabel: 'người dùng',
     fetchItems: fetchUsers,
-    canDelete: item => item.id !== currentUser.value?.id,
+    canDelete: item => item.id !== currentUser.value?.id && !isProtectedDeleteUser(item),
     cannotDeleteMessage: 'Một số tài khoản không thể xóa, ví dụ tài khoản đang đăng nhập.',
 })
 
 // Dãy số trang hiển thị (tối đa 5 nút)
 const pageNumbers = computed(() => {
-    const total = totalPages.value
-    const current = currentPage.value
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-
-    let start = Math.max(1, current - 2)
-    let end = Math.min(total, start + 4)
-    if (end - start < 4) start = Math.max(1, end - 4)
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    return []
 })
 
 const goToPage = (p) => {
@@ -289,7 +311,7 @@ const toggleStatus = (u) => {
         onConfirm: async () => {
             const next = isLocking ? 'Bị khóa' : 'Hoạt động'
             try {
-                await api.put(`/admin/users/${u.id}`, { status: mapStatusToDB(next) })
+                await api.put(`/admin/users/${u.id}`, { trangthai: mapStatusToDB(next) })
                 u.status = next
             } catch (err) {
                 console.error('Toggle user status failed:', err)
@@ -324,7 +346,7 @@ const removeUser = (id) => {
 
 // ─── CREATE ──────────────────────────
 const defaultForm = () => ({
-    name: '', email: '', phone: '', role: 'KHÁCH HÀNG',
+    name: '', email: '', phone: '', role: 'ADMIN',
     status: 'Hoạt động', password: ''
 })
 
@@ -344,13 +366,13 @@ const submitForm = async () => {
 
     try {
         const { data } = await api.post('/admin/users', {
-            name: form.value.name,
+            ten: form.value.name,
             email: form.value.email,
-            phone: form.value.phone,
-            role: mapRoleToDB(form.value.role),
-            status: mapStatusToDB(form.value.status),
-            password: form.value.password,
-            password_confirmation: form.value.password
+            sodienthoai: form.value.phone,
+            vaitro: mapRoleToDB(form.value.role),
+            trangthai: mapStatusToDB(form.value.status),
+            matkhau: form.value.password,
+            matkhau_confirmation: form.value.password
         })
         users.value.unshift(normalizeUser(data.user))
         currentPage.value = 1
@@ -381,11 +403,15 @@ const submitEdit = async () => {
     if (err) return editError.value = err
 
     const payload = {
-        ...editForm.value,
-        role: mapRoleToDB(editForm.value.role),
-        status: mapStatusToDB(editForm.value.status)
+        ten: editForm.value.name,
+        email: editForm.value.email,
+        sodienthoai: editForm.value.phone,
+        vaitro: mapRoleToDB(editForm.value.role),
+        trangthai: mapStatusToDB(editForm.value.status),
+        matkhau: editForm.value.password || undefined,
+        matkhau_confirmation: editForm.value.password || undefined,
     }
-    if (!payload.password) delete payload.password
+    if (!payload.matkhau) { delete payload.matkhau; delete payload.matkhau_confirmation }
 
     try {
         const { data } = await api.put(`/admin/users/${editingUser.value.id}`, payload)
@@ -496,7 +522,7 @@ const submitEdit = async () => {
                     </svg>
                     Xuất báo cáo
                 </button>
-                <button class="btn-new-user" @click="openModal">
+                <button :style="{ visibility: activeTab === 'Quản lý nhân viên' ? 'visible' : 'hidden' }" class="btn-new-user" @click="openModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
                         style="width:14px;height:14px">
                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -540,11 +566,14 @@ const submitEdit = async () => {
                     </tr>
                     <tr v-for="u in paginatedUsers" :key="u.id" :class="{ 'row-selected': selectedIds.includes(u.id) }">
                         <td class="select-col">
-                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id" @change="toggleItemSelection(u.id)" />
+                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
                         </td>
                         <td>
                             <div class="user-cell">
-                                <div class="user-avatar" :style="getAvatarStyle(u.name)">{{ initials(u.name) }}</div>
+                                <div class="user-avatar" :style="u.avatar ? {} : getAvatarStyle(u.name)">
+                                    <img v-if="u.avatar" :src="u.avatar" alt="Avatar" class="user-avatar-img" />
+                                    <span v-else>{{ initials(u.name) }}</span>
+                                </div>
                                 <div>
                                     <b>{{ u.name }}</b>
                                     <span>{{ u.email }}</span>
@@ -575,9 +604,9 @@ const submitEdit = async () => {
                                 </button>
                                 <!-- Khóa / Mở khóa (có confirm) -->
                                 <button class="act-btn" :class="{ 'lock-active': u.status === 'Bị khóa' }"
-                                    :title="u.id === currentUser?.id ? 'Không thể tự khóa tài khoản' : (u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản')"
-                                    :disabled="u.id === currentUser?.id"
-                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự khóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể khóa tài khoản Giám đốc sáng lập' : (u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'))"
+                                    :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
+                                    :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
                                     @click="toggleStatus(u)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -587,10 +616,10 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger"
-                                    :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : 'Xóa'"
-                                    :disabled="u.id === currentUser?.id"
-                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                                <button v-if="!isProtectedDeleteUser(u)" class="act-btn danger"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể xóa tài khoản Giám đốc sáng lập' : 'Xóa')"
+                                    :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
+                                    :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
                                     @click="removeUser(u.id)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -617,6 +646,7 @@ const submitEdit = async () => {
                 <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
                 <!-- Nút trang đầu nếu không hiển thị -->
+                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
                 <template v-if="pageNumbers[0] > 1">
                     <button @click="goToPage(1)">1</button>
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
@@ -701,10 +731,9 @@ const submitEdit = async () => {
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>VAI TRÒ</label>
+                                <label>VAI TRÒ / CHỨC VỤ</label>
                                 <select v-model="form.role">
-                                    <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -793,16 +822,16 @@ const submitEdit = async () => {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>VAI TRÒ / PHÂN QUYỀN</label>
-                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id"
-                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
-                                    <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
+                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) || editingUser?.role === 'KHÁCH HÀNG'"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) ? 'Không thể thay đổi quyền của Giám đốc sáng lập' : (editingUser?.role === 'KHÁCH HÀNG' ? 'Không thể thay đổi vai trò của Khách hàng' : ''))">
+                                    <option v-if="editingUser?.role === 'KHÁCH HÀNG'">KHÁCH HÀNG</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>TRẠNG THÁI</label>
-                                <select v-model="editForm.status" :disabled="editingUser?.id === currentUser?.id"
-                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự khóa tài khoản của chính mình' : ''">
+                                <select v-model="editForm.status" :disabled="editingUser?.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email)"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự khóa tài khoản của chính mình' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) ? 'Không thể khóa tài khoản Giám đốc sáng lập' : '')">
                                     <option>Hoạt động</option>
                                     <option>Bị khóa</option>
                                 </select>
@@ -842,7 +871,6 @@ const submitEdit = async () => {
 .page {
     background: #f5f7fb;
     min-height: 100vh;
-    font-family: sans-serif;
     padding-top: 24px;
     padding-bottom: 40px;
 }
@@ -1324,14 +1352,24 @@ tbody td {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
 
 .user-cell b {
     display: block;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 700;
     color: #0f172a;
     margin-bottom: 2px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .user-cell span {

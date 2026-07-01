@@ -457,7 +457,7 @@ const {
   filteredItems: filteredBanners,
   pageItems: paginatedBanners,
   getId: item => item.id,
-  endpoint: id => `/admin/quan-ly-banner/${id}`,
+  endpoint: id => `/admin/banners/${id}`,
   entityLabel: 'banner',
   fetchItems: fetchData,
 });

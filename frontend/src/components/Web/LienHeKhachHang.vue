@@ -52,7 +52,7 @@ const suggestionTags = computed(() => {
     return ['Tra cứu thời hạn bảo hành', 'Chi phí thay pin chính hãng', 'Quy trình đổi trả 1-1', 'Nâng cấp RAM tại showroom']
   }
   if (subject.value === 'Hợp tác kinh doanh') {
-    return ['Báo giá số lượng lớn doanh nghiệp', 'Chính sách đại lý Predator', 'Yêu cầu làm đối tác cung ứng']
+    return ['Báo giá số lượng lớn doanh nghiệp', 'Chính sách đại lý NextGen', 'Yêu cầu làm đối tác cung ứng']
   }
   return ['Yêu cầu hỗ trợ khẩn cấp', 'Góp ý chất lượng dịch vụ']
 })
@@ -265,7 +265,7 @@ const faqs = ref([
   },
   {
     q: 'Chính sách bảo hành của VinaTech như thế nào?',
-    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách Predator Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
+    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách NextGen Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
     open: false,
     category: 'warranty'
   },
@@ -277,7 +277,7 @@ const faqs = ref([
   },
   {
     q: 'Thời gian phản hồi sau khi gửi form liên hệ là bao lâu?',
-    a: 'Đội ngũ chuyên viên Predator cam kết phản hồi tất cả các yêu cầu tư vấn bằng văn bản hoặc liên hệ trực tiếp trong vòng tối đa 2 giờ làm việc kể từ lúc nhận được guided form.',
+    a: 'Đội ngũ chuyên viên NextGen cam kết phản hồi tất cả các yêu cầu tư vấn bằng văn bản hoặc liên hệ trực tiếp trong vòng tối đa 2 giờ làm việc kể từ lúc nhận được guided form.',
     open: false,
     category: 'technical'
   },
@@ -326,7 +326,7 @@ const toggleFaq = (index) => {
       <div class="hero-container">
         <span class="support-badge">
           <svg class="cyber-svg-icon badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-          PREDATOR GLOBAL SUPPORT
+          NEXTGEN GLOBAL SUPPORT
         </span>
         <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Workstation dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
@@ -368,7 +368,7 @@ const toggleFaq = (index) => {
         <div class="section-magazine-title">
           <span class="sub-label">GUIDED SUPPORT CENTER</span>
           <h2>Trung Tâm Khởi Tạo <span>Yêu Cầu Hỗ Trợ.</span></h2>
-          <p>Điền thông tin hội thoại từng bước dưới đây, kỹ sư Predator sẽ liên hệ giải đáp nhanh chóng.</p>
+          <p>Điền thông tin hội thoại từng bước dưới đây, kỹ sư NextGen sẽ liên hệ giải đáp nhanh chóng.</p>
         </div>
 
         <div class="guided-grid-layout">
@@ -425,7 +425,7 @@ const toggleFaq = (index) => {
             <!-- STEP 2: CUSTOMER INFO -->
             <div v-if="currentFormStep === 2" class="step-view-content fade-in">
               <h3 class="step-view-title">Bước 2: Thông tin liên hệ của bạn</h3>
-              <p class="step-view-subtitle">Nhập chính xác để chuyên gia Predator có thể kết nối ngay lập tức.</p>
+              <p class="step-view-subtitle">Nhập chính xác để chuyên gia NextGen có thể kết nối ngay lập tức.</p>
               
               <div class="guided-inputs-wrapper">
                 <div class="floating-input-field">
@@ -539,7 +539,7 @@ const toggleFaq = (index) => {
                     <path fill="#f38020" d="M47.8 18.6C46 9.9 38.2 3.4 29 3.4c-8.1 0-15.1 5-17.9 12.1C4.9 16.4.2 21.6.2 28c0 7 5.7 12.6 12.7 12.6h34.3c6.6 0 12-5.4 12-12 0-5.5-3.7-10.2-8.8-11.6-.8-.2-1.7.7-2.6 1.6Z"/>
                     <path fill="#faae40" d="M31.2 40.6h20.2c6.8 0 12.3-5.5 12.3-12.3 0-5.9-4.2-10.8-9.7-12l-22.8 24.3Z" opacity=".9"/>
                   </svg>
-                  <strong>PREDATOR VERIFY</strong>
+                  <strong>NEXTGEN VERIFY</strong>
                   <span>Quyền riêng tư · Giúp đỡ</span>
                 </div>
               </div>
@@ -587,7 +587,7 @@ const toggleFaq = (index) => {
                 <svg class="cyber-svg-icon pill-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 HỆ THỐNG TRẢI NGHIỆM
               </span>
-              <h3>Bản Đồ Showroom Predator</h3>
+              <h3>Bản Đồ Showroom NextGen</h3>
               <p>Chọn địa điểm showroom để cập nhật thông tin liên hệ và đặt lịch trực tiếp.</p>
             </div>
 
@@ -655,7 +655,7 @@ const toggleFaq = (index) => {
         <div class="section-magazine-title text-center">
           <span class="sub-label">HUMANIZING SUPPORT</span>
           <h2>Đồng Hành Cùng <span>Các Chuyên Gia.</span></h2>
-          <p>Predator mang đến dịch vụ tư vấn trực tiếp bởi những kỹ sư, chuyên gia phần cứng hàng đầu.</p>
+          <p>NextGen mang đến dịch vụ tư vấn trực tiếp bởi những kỹ sư, chuyên gia phần cứng hàng đầu.</p>
         </div>
 
         <div class="experts-grid">
@@ -684,7 +684,7 @@ const toggleFaq = (index) => {
     <!-- ===== TECHNOLOGY PARTNERS TRUST BAR ===== -->
     <section class="tech-trust-banner">
       <div class="tech-trust-inner">
-        <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của Predator</h4>
+        <h4>Hệ Sinh Thái Đối Tác Phần Cứng Cao Cấp Của NextGen</h4>
         <div class="partners-marquee-container">
           <div class="partners-marquee-track">
             <span>Intel</span>
@@ -825,7 +825,7 @@ const toggleFaq = (index) => {
             </span>
             <div class="cta-text-details">
               <h3>Bạn có yêu cầu đặc biệt khác?</h3>
-              <p>Đội ngũ chuyên viên Predator luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
+              <p>Đội ngũ chuyên viên NextGen luôn túc trực hỗ trợ tư vấn cấu hình doanh nghiệp và các giải pháp hạ tầng máy chủ.</p>
             </div>
             <div class="cta-actions-group">
               <a href="tel:19008888" class="cta-phone-btn">

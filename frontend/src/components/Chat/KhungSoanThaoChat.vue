@@ -254,7 +254,8 @@ const submit = () => {
   min-width: 0;
   display: flex;
   align-items: center;
-  background: #f0f2f5;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 20px;
   padding: 6px 12px;
   gap: 8px;
@@ -267,6 +268,14 @@ const submit = () => {
   background: transparent;
   outline: none;
   font-size: 14px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.composer-input-wrap input::placeholder {
+  color: #64748b;
+  opacity: 1;
+  font-weight: 600;
 }
 
 .emoji-picker-container {

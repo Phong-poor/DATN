@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getToken } from '@/services/auth'
 
-import GiftPopup from './CuaSoQuaTang.vue'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
@@ -11,8 +10,6 @@ import { comboImageUrl, handleImageFallback, imageFallbackUrl, normalizeImageUrl
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
-const showGift = ref(false)
-const availableGifts = ref([])
 
 const combos = ref([])
 const comboCarouselRef = ref(null)
@@ -120,7 +117,7 @@ const defaultSlides = [
         secondary: 'So sánh sản phẩm'
     },
     {
-        eyebrow: 'PREDATOR SHOWROOM',
+        eyebrow: 'NEXTGEN SHOWROOM',
         title: 'Trải Nghiệm Đắm Chìm',
         highlight: 'Không Gian Cao Cấp',
         desc: 'Khám phá không gian laptop hiện đại với các dòng máy cao cấp được trưng bày thực tế cho game, sáng tạo và công việc chuyên nghiệp.',
@@ -420,7 +417,7 @@ const filteredFeaturedProducts = computed(() => {
         const cat = (p.category || '').toLowerCase();
         
         if (activeCategoryTab.value === 'gaming') {
-            return name.includes('gaming') || name.includes('tuf') || name.includes('rog') || name.includes('nitro') || name.includes('predator') || name.includes('rtx') || cat.includes('gaming');
+            return name.includes('gaming') || name.includes('tuf') || name.includes('rog') || name.includes('nitro') || name.includes('nextgen') || name.includes('rtx') || cat.includes('gaming');
         }
         if (activeCategoryTab.value === 'office') {
             return name.includes('vivobook') || name.includes('zenbook') || name.includes('hp 15') || name.includes('student') || name.includes('sinh viên') || name.includes('văn phòng') || cat.includes('office') || cat.includes('văn phòng');
@@ -640,8 +637,6 @@ onUnmounted(() => {
 
 <template>
   <div class="home-wrapper">
-    <GiftPopup v-if="showGift && availableGifts.length > 0" :promos-data="availableGifts" :delay="0" />
-
     <main class="premium-theme">
 
         <!-- Top Ticker Promo (Always Dark/High Contrast) -->

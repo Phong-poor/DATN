@@ -605,18 +605,31 @@ onUnmounted(() => {
   place-items: center;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transform: translateY(0) scale(1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 .topbar-icon-button:hover, .topbar-icon-button.active {
   background: #eef2ff;
   color: #2563eb;
-  border-color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
+  transform: translateY(-2px);
+}
+
+.topbar-icon-button:active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
 }
 
 .topbar-icon-button svg {
   width: 20px;
   height: 20px;
+  transition: transform 0.18s ease;
+}
+
+.topbar-icon-button:hover svg {
+  transform: scale(1.08);
 }
 
 .icon-badge {
@@ -634,16 +647,26 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border: 2px solid #fff;
+  transform-origin: center;
+}
+
+.topbar-icon-button:hover .icon-badge {
+  animation: chatBadgePop 0.42s ease both, pulse-red 1.45s ease-in-out 0.42s infinite;
 }
 
 .pulse {
-  animation: pulse-red 2s infinite;
+  animation: pulse-red 1.45s ease-in-out infinite;
 }
 
 @keyframes pulse-red {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.30); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+@keyframes chatBadgePop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.28); }
+  100% { transform: scale(1.08); }
 }
 
 .chat-dropdown {

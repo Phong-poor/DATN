@@ -526,7 +526,7 @@ const {
   items: contacts,
   filteredItems: filteredContacts,
   getId: item => item.id,
-  endpoint: id => `/admin/quan-ly-lien-he/${id}`,
+  endpoint: id => `/admin/contacts/${id}`,
   entityLabel: 'liên hệ',
   fetchItems: fetchContacts,
 })

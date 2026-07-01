@@ -500,7 +500,7 @@ const {
   items: promos,
   filteredItems: filteredPromos,
   getId: item => item.id,
-  endpoint: id => `/admin/quan-ly-khuyen-mai/${id}`,
+  endpoint: id => `/admin/promotions/${id}`,
   entityLabel: 'khuyến mãi',
   fetchItems: fetchPromos,
 })

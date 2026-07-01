@@ -96,7 +96,7 @@ onUnmounted(() => {
           <div class="ring-inner"></div>
           
           <div class="logo-center">
-            <span class="logo-text">Predator</span>
+            <span class="logo-text">NextGen</span>
           </div>
         </div>
 

@@ -77,27 +77,27 @@ const statsData = [
 ]
 
 const fallbackVouchers = [
-  { id: 'v1', code: 'PREDATOR500', name: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', category: 'product', type: 'fixed', value: 500000, status: 'running' },
-  { id: 'v2', code: 'PREDATOR1M', name: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', category: 'product', type: 'fixed', value: 1000000, status: 'running' },
-  { id: 'v3', code: 'PREDATOR0PCT', name: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', category: 'payment', type: 'percentage', value: 0, status: 'running' },
-  { id: 'v4', code: 'PREDATORSHIP', name: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', category: 'shipping', type: 'fixed', value: 100000, status: 'running' }
+  { id: 'v1', code: 'NEXTGEN500', name: 'Giảm 500K', desc: 'Áp dụng cho đơn hàng Laptop Gaming từ 15 Triệu.', category: 'product', type: 'fixed', value: 500000, status: 'running' },
+  { id: 'v2', code: 'NEXTGEN1M', name: 'Giảm 1 Triệu', desc: 'Đặc quyền mua cấu hình RTX 50-Series trở lên.', category: 'product', type: 'fixed', value: 1000000, status: 'running' },
+  { id: 'v3', code: 'NEXTGEN0PCT', name: 'Trả góp 0%', desc: 'Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc HD Saison.', category: 'payment', type: 'percentage', value: 0, status: 'running' },
+  { id: 'v4', code: 'NEXTGENSHIP', name: 'Freeship tối đa 100K', desc: 'Miễn phí vận chuyển cho đơn hàng thanh toán trước.', category: 'shipping', type: 'fixed', value: 100000, status: 'running' }
 ]
 
 const comboDetailsList = [
   {
-    title: 'Predator Cyberpunk Bundle',
+    title: 'NextGen Cyberpunk Bundle',
     desc: 'Giải phóng sức mạnh tối đa của chiến binh Gaming với trọn bộ vũ khí cao cấp.',
     items: [
-      { name: 'Chuột Gaming Predator', img: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=200&q=80' },
-      { name: 'Bàn phím cơ Predator', img: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&q=80' },
-      { name: 'Tai nghe Predator 7.1', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=200&q=80' }
+      { name: 'Chuột Gaming NextGen', img: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=200&q=80' },
+      { name: 'Bàn phím cơ NextGen', img: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&q=80' },
+      { name: 'Tai nghe NextGen 7.1', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=200&q=80' }
     ],
     originalPrice: 4200000,
     comboPrice: 2200000,
     discountBadge: 'Tiết kiệm 2.000.000đ'
   },
   {
-    title: 'Predator Creator Bundle',
+    title: 'NextGen Creator Bundle',
     desc: 'Thiết kế sang trọng, tối ưu hiệu suất làm việc đa nhiệm cho các nhà sáng tạo nội dung.',
     items: [
       { name: 'Chuột Logitech MX Master 3S', img: 'https://images.unsplash.com/photo-1625842268584-8f3290447001?w=200&q=80' },
@@ -111,8 +111,8 @@ const comboDetailsList = [
 ]
 
 const magazineArticles = [
-  { id: 1, category: 'Tin khuyến mãi', title: 'Đại tiệc siêu sale công nghệ: Săn voucher 1 Triệu độc quyền Predator Group', excerpt: 'Chi tiết lịch săn mã giảm giá và cách tối ưu hóa giỏ hàng để nhận ưu đãi lên tới 35% cho các dòng máy gaming flagship.', date: '03/06/2026', img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80' },
-  { id: 2, category: 'Đánh giá công nghệ', title: 'Acer Predator Helios Neo 16 có thực sự bá chủ phân khúc dưới 40 Triệu?', excerpt: 'Đánh giá chi tiết hiệu năng thực tế, nhiệt độ tỏa ra khi chơi game nặng và thời lượng pin thực tế của dòng Helios Neo 2026.', date: '01/06/2026', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&q=80' },
+  { id: 1, category: 'Tin khuyến mãi', title: 'Đại tiệc siêu sale công nghệ: Săn voucher 1 Triệu độc quyền NextGen Group', excerpt: 'Chi tiết lịch săn mã giảm giá và cách tối ưu hóa giỏ hàng để nhận ưu đãi lên tới 35% cho các dòng máy gaming flagship.', date: '03/06/2026', img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80' },
+  { id: 2, category: 'Đánh giá công nghệ', title: 'Acer NextGen Helios Neo 16 có thực sự bá chủ phân khúc dưới 40 Triệu?', excerpt: 'Đánh giá chi tiết hiệu năng thực tế, nhiệt độ tỏa ra khi chơi game nặng và thời lượng pin thực tế của dòng Helios Neo 2026.', date: '01/06/2026', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&q=80' },
   { id: 3, category: 'Xu hướng phần cứng', title: 'Kiến trúc GPU Blackwell RTX 5090 hứa hẹn bước nhảy vọt như thế nào?', excerpt: 'Tổng hợp tất cả thông số rò rỉ, mức tiêu thụ điện năng dự kiến và hiệu năng Ray Tracing thế hệ mới của card đồ họa khủng nhất năm.', date: '29/05/2026', img: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&q=80' }
 ]
 
@@ -206,7 +206,7 @@ async function fetchPromotionsData() {
           image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
           reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
-          promo: p.mota_ngan || 'Tặng kèm Balo Predator + Chuột Gaming',
+          promo: p.mota_ngan || 'Tặng kèm Balo NextGen + Chuột Gaming',
           inStock: p.trangthai === 'hoat_dong' || p.soluong > 0
         }
       })
@@ -452,7 +452,7 @@ const submitNewsletter = async () => {
   }
   try {
     await api.post('/subscribe', { email: newsletterEmail.value })
-    swal.success('Đăng ký thành công', 'Cảm ơn bạn đã quan tâm tới các ưu đãi của Predator!')
+    swal.success('Đăng ký thành công', 'Cảm ơn bạn đã quan tâm tới các ưu đãi của NextGen!')
     newsletterEmail.value = ''
   } catch (err) {
     swal.success('Đăng ký thành công', 'Hệ thống đã lưu thông tin email của bạn!')
@@ -538,7 +538,7 @@ const initScrollReveal = () => {
         <div class="hero-intro-text scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <Sparkles class="pill-icon" />
-            Predator Premium Hub
+            NextGen Premium Hub
           </span>
           <h1>
             TRUNG TÂM
@@ -564,7 +564,7 @@ const initScrollReveal = () => {
           <div class="device-showcase-card">
             <img
               src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&q=80"
-              alt="Predator Showcase Hardware"
+              alt="NextGen Showcase Hardware"
               class="showcase-image"
             />
             <div class="hardware-glow-edge"></div>

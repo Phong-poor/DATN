@@ -1103,9 +1103,25 @@ const savingPw = ref(false)
 const pwErrors = ref({})
 const pwCaptcha = ref({ question: '', answer: '' })
 const loadingPwCaptcha = ref(false)
+const captchaVerified = ref(false)
+const verifyingCaptcha = ref(false)
+
+const solveCaptchaQuestion = (question) => {
+  const expression = String(question || '').match(/(-?\d+)\s*([+\-xX*])\s*(-?\d+)/)
+  if (!expression) return ''
+
+  const left = Number(expression[1])
+  const operator = expression[2]
+  const right = Number(expression[3])
+
+  if (operator === '+') return String(left + right)
+  if (operator === '-') return String(left - right)
+  return String(left * right)
+}
 
 const loadPwCaptcha = async () => {
   loadingPwCaptcha.value = true
+  captchaVerified.value = false
   try {
     const res = await api.get('/user/change-password/captcha')
     pwCaptcha.value = {
@@ -1117,6 +1133,35 @@ const loadPwCaptcha = async () => {
     pwCaptcha.value = { question: '', answer: '' }
   } finally {
     loadingPwCaptcha.value = false
+  }
+}
+
+const toggleHumanCaptcha = async () => {
+  pwErrors.value.captcha = ''
+
+  if (captchaVerified.value) {
+    captchaVerified.value = false
+    pwCaptcha.value.answer = ''
+    return
+  }
+
+  verifyingCaptcha.value = true
+  try {
+    if (!pwCaptcha.value.question) {
+      await loadPwCaptcha()
+    }
+
+    const answer = solveCaptchaQuestion(pwCaptcha.value.question)
+    if (!answer) {
+      captchaVerified.value = false
+      pwErrors.value.captcha = 'Không thể xác minh captcha, vui lòng thử lại'
+      return
+    }
+
+    pwCaptcha.value.answer = answer
+    captchaVerified.value = true
+  } finally {
+    verifyingCaptcha.value = false
   }
 }
 
@@ -1741,7 +1786,7 @@ const promoStatusMap = {
                         </svg>
                       </div>
                       <h3 class="empty-state-title">Bạn chưa có đơn hàng nào</h3>
-                      <p class="empty-state-desc">Hãy khám phá các sản phẩm laptop cao cấp tại Predator Group</p>
+                      <p class="empty-state-desc">Hãy khám phá các sản phẩm laptop cao cấp tại NextGen Group</p>
                       <router-link to="/" class="btn-shop-now">Tiếp tục mua sắm</router-link>
                     </div>
                   </td>
@@ -1952,16 +1997,30 @@ const promoStatusMap = {
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
                 <div class="form-group" :class="{ error: pwErrors.captcha }">
-                  <label>Captcha</label>
-                  <div class="captcha-row">
-                    <div class="captcha-question">
-                      {{ loadingPwCaptcha ? 'Đang tải...' : (pwCaptcha.question || 'Không tải được captcha') }}
-                    </div>
-                    <button type="button" class="captcha-refresh" @click="loadPwCaptcha" :disabled="loadingPwCaptcha">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
+                  <label>Xác minh</label>
+                  <div class="turnstile-box" :class="{ checked: captchaVerified, loading: loadingPwCaptcha || verifyingCaptcha }">
+                    <button
+                      type="button"
+                      class="turnstile-check"
+                      :aria-pressed="captchaVerified"
+                      :disabled="loadingPwCaptcha || verifyingCaptcha"
+                      @click="toggleHumanCaptcha"
+                    >
+                      <svg v-if="captchaVerified" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span v-else-if="loadingPwCaptcha || verifyingCaptcha" class="turnstile-spinner"></span>
                     </button>
+                    <span class="turnstile-text">Xác minh bạn là con người</span>
+                    <div class="turnstile-brand">
+                      <div class="cloudflare-mark">
+                        <span></span>
+                      </div>
+                      <strong>CLOUDFLARE</strong>
+                      <small>Quyền riêng tư · Điều khoản</small>
+                      <button type="button" class="turnstile-refresh" title="Tải lại xác minh" @click="loadPwCaptcha">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
+                      </button>
+                    </div>
                   </div>
-                  <input class="captcha-input" v-model="pwCaptcha.answer" inputmode="numeric" autocomplete="off" placeholder="Nhập kết quả" />
                   <span class="err-msg" v-if="pwErrors.captcha">{{ pwErrors.captcha }}</span>
                 </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
@@ -3773,5 +3832,529 @@ const promoStatusMap = {
   height: 64px;
   margin-bottom: 16px;
   stroke-width: 1.2;
+}
+
+.turnstile-box {
+  width: 100%;
+  max-width: 390px;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 102px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  background: #fafafa;
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04);
+  margin: 0 auto;
+}
+
+.turnstile-box.checked {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.turnstile-check {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #64748b;
+  border-radius: 3px;
+  background: #f8fafc;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.turnstile-check:disabled {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.turnstile-check svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+.turnstile-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.turnstile-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #1f2937;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.cloudflare-mark {
+  width: 28px;
+  height: 19px;
+  position: relative;
+}
+
+.cloudflare-mark::before,
+.cloudflare-mark::after,
+.cloudflare-mark span {
+  content: '';
+  position: absolute;
+  background: #f97316;
+}
+
+.cloudflare-mark::before {
+  width: 17px;
+  height: 10px;
+  border-radius: 12px 12px 4px 4px;
+  left: 7px;
+  top: 6px;
+}
+
+.cloudflare-mark::after {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  left: 2px;
+  top: 7px;
+}
+
+.cloudflare-mark span {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  left: 9px;
+  top: 1px;
+}
+
+.turnstile-brand strong {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.turnstile-brand small {
+  font-size: 8px;
+  color: #475569;
+  text-decoration: underline;
+}
+
+.turnstile-refresh {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.turnstile-refresh svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.turnstile-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 576px) {
+  .turnstile-box {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .turnstile-brand {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .cloudflare-mark {
+    transform: scale(0.82);
+  }
+}
+</style>
+
+<style scoped>
+/* Light customer account theme */
+.page {
+  background: #f5f7fb;
+  padding: 32px 24px 64px;
+  color: #0f172a;
+}
+
+.container {
+  max-width: 1240px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 28px;
+}
+
+.sidebar,
+.card,
+.modal,
+.req-card,
+.tip-card,
+.table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sidebar {
+  border-radius: 16px;
+  top: 18px;
+}
+
+.avatar-section,
+.stat-grid,
+.form-actions,
+.modal-footer,
+.pagination-footer {
+  border-color: #e2e8f0;
+}
+
+.avatar-circle {
+  border-color: #0ea5e9;
+  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.18);
+}
+
+.sidebar-name,
+.card-title,
+.page-header-inline .card-title,
+.modal-title,
+.modal-item-name,
+.order-data-table td,
+.info-val,
+.req-title,
+.tip-title {
+  color: #0f172a !important;
+}
+
+.sidebar-badge {
+  color: #0369a1;
+  background: #e0f2fe;
+  border-color: #bae6fd;
+}
+
+.sidebar-join,
+.card-sub,
+.info-lbl,
+.info-val.not-set,
+.stat-lbl,
+.form-group label,
+.checkbox-label,
+.pagination-info,
+.modal-id,
+.modal-item-qty,
+.tip-list,
+.req-list li,
+.empty-msg {
+  color: #64748b !important;
+}
+
+.stat-card,
+.info-row,
+.modal-item,
+.review-product-info,
+.captcha-question {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-card:hover,
+.info-row:hover {
+  background: #f1f5f9;
+  border-color: #bfdbfe;
+  box-shadow: none;
+}
+
+.stat-val {
+  color: #0f172a;
+}
+
+.stat-card svg,
+.side-btn svg:not(.arrow),
+.side-btn:hover svg:not(.arrow),
+.side-btn.active svg:not(.arrow) {
+  stroke: #0284c7;
+  filter: none;
+}
+
+.side-btn {
+  color: #475569;
+  border-radius: 10px;
+}
+
+.side-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.side-btn.active {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+  box-shadow: none;
+}
+
+.side-btn .arrow,
+.side-btn.active .arrow {
+  stroke: #0284c7;
+}
+
+.card {
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.btn-edit {
+  background: #ffffff;
+  border-color: #0ea5e9;
+  color: #0284c7;
+}
+
+.btn-edit:hover,
+.btn-save,
+.order-tab.active,
+.btn-xem,
+.p-num.active,
+.btn-add,
+.btn-modal-mua {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: none;
+}
+
+.btn-save:hover,
+.btn-xem:hover,
+.btn-add:hover,
+.btn-modal-mua:hover {
+  background: #0369a1;
+  box-shadow: none;
+}
+
+.btn-cancel,
+.p-arrow,
+.p-num,
+.close-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.btn-cancel:hover,
+.p-arrow:hover:not(:disabled),
+.p-num:hover,
+.close-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.form-group input,
+.form-group select,
+.captcha-input,
+.input-wrap input,
+.address-modal-form input,
+.address-modal-form select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.captcha-input:focus,
+.input-wrap input:focus,
+.address-modal-form input:focus,
+.address-modal-form select:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  color: #94a3b8 !important;
+  background: #f8fafc;
+}
+
+.form-group select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: #0284c7;
+}
+
+.category-tabs {
+  border-bottom-color: #e2e8f0;
+}
+
+.cat-tab {
+  color: #64748b;
+}
+
+.cat-tab:hover,
+.cat-tab.active {
+  color: #0284c7;
+}
+
+.cat-tab.active {
+  border-bottom-color: #0284c7;
+}
+
+.badge-cart-like {
+  border-color: #ffffff;
+}
+
+.order-tabs {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.order-tab {
+  color: #475569;
+}
+
+.order-tab:hover {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.order-data-table th {
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom-color: #e2e8f0;
+}
+
+.order-data-table td {
+  border-bottom-color: #e2e8f0;
+}
+
+.order-row:hover {
+  background: #f8fafc;
+}
+
+.order-id,
+.modal-item-price,
+.total-amount,
+.promo-code-badge,
+.tip-icon {
+  color: #0284c7;
+  text-shadow: none;
+}
+
+.status-cell {
+  background: #ffffff;
+}
+
+.pagination-footer {
+  background: #ffffff;
+}
+
+.pw-layout {
+  align-items: start;
+}
+
+.input-wrap {
+  background: #ffffff;
+}
+
+.input-icon,
+.eye-btn svg {
+  stroke: #64748b;
+}
+
+.req-list li.ok,
+.req-list li.ok svg {
+  color: #16a34a;
+  stroke: #16a34a;
+}
+
+.tip-card {
+  background: #f8fafc;
+}
+
+.overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal {
+  border-radius: 16px;
+}
+
+.modal-status {
+  border: 1px solid currentColor;
+}
+
+.modal-total-wrap span:first-child {
+  color: #64748b;
+}
+
+.timeline-dot {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.timeline-line {
+  background: #e2e8f0;
+}
+
+.review-rating .star {
+  color: #cbd5e1;
+}
+
+.review-rating .star.active,
+.review-rating .star:hover {
+  color: #f59e0b;
+}
+
+@media (max-width: 900px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 576px) {
+  .page {
+    padding: 20px 14px 48px;
+  }
+
+  .card {
+    padding: 22px 16px;
+  }
+
+  .modal-item-right {
+    border-top-color: #e2e8f0;
+  }
 }
 </style>

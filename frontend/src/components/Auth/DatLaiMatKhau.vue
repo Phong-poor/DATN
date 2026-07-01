@@ -140,11 +140,11 @@ async function submit() {
       <div class="left-col">
         <div class="left-content">
           <div class="brand-header">
-            <span class="brand-title">Predator</span>
+            <span class="brand-title">NextGen</span>
             <span class="brand-slogan">Chinh Phục Tầm Cao Mới.</span>
           </div>
           <p class="brand-description">
-            Thiết lập mật khẩu mới bảo mật để tiếp tục truy cập tài khoản Predator của bạn.
+            Thiết lập mật khẩu mới bảo mật để tiếp tục truy cập tài khoản NextGen của bạn.
           </p>
           <div class="highlight-pills">
             <span class="pill">
@@ -169,7 +169,7 @@ async function submit() {
           </div>
         </div>
         <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator laptop workspace" />
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="NextGen laptop workspace" />
         </div>
       </div>
 

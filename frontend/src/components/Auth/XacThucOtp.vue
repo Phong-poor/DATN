@@ -311,9 +311,9 @@ async function resend() {
     <div class="right-col">
       <div class="right-content-wrapper">
         <h2 class="mockup-title">Chinh Phục Tầm Cao Mới</h2>
-        <p class="mockup-desc">Tham gia vào thế giới hiệu năng vượt trội cùng hệ sinh thái công nghệ tiên tiến của Predator.</p>
+        <p class="mockup-desc">Tham gia vào thế giới hiệu năng vượt trội cùng hệ sinh thái công nghệ tiên tiến của NextGen.</p>
         <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/login_laptop_mockup.png" alt="Predator Laptop Workspace" />
+          <img class="laptop-img" src="/login_laptop_mockup.png" alt="NextGen Laptop Workspace" />
         </div>
       </div>
     </div>

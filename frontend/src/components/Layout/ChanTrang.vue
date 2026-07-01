@@ -59,7 +59,7 @@ onUnmounted(() => {
         <!-- COLUMN 1: BRAND HUB & LIVE STATUS -->
         <div class="dir-col brand-hub">
           <div class="footer-brand">
-            <img src="/predator_logo.svg" alt="Predator Logo" class="footer-logo" />
+            <img src="/nextgen_logo.svg" alt="NextGen Logo" class="footer-logo" />
             <span class="cyber-badge-glow">TECH</span>
           </div>
           <p class="brand-slogan">
@@ -115,7 +115,7 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Hệ Sinh Thái</h4>
           <ul class="footer-links">
-            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">Predator Interactive Labs</router-link></li>
+            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">NextGen Interactive Labs</router-link></li>
             <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
             <li><router-link to="/tin-tuc" class="link-item">Tin Tức Công Nghệ AI & Review</router-link></li>
             <li><router-link to="/san-pham" class="link-item">Góc Setup VIP Cộng Đồng</router-link></li>
@@ -183,7 +183,7 @@ onUnmounted(() => {
         <div class="bottom-inner">
           <div class="b-left">
             <p class="copyright">
-              © 2026 <strong>VinaTech Predator</strong>. Thiết kế & phát triển với công nghệ tối ưu.
+              © 2026 <strong>VinaTech NextGen</strong>. Thiết kế & phát triển với công nghệ tối ưu.
             </p>
             <div class="bottom-links">
               <a href="#">Chính Sách Bảo Mật</a>

@@ -13,11 +13,11 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import GlobalLoader from '@/components/Layout/GlobalLoader.vue'
-const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/ChatbotWidget.vue'))
-const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/AdminChatWidget.vue'))
-const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/ZaloWidget.vue'))
-const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/FloatingContactMenu.vue'))
+import GlobalLoader from '@/components/Layout/TrinhTaiTrang.vue'
+const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatbot.vue'))
+const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatAdmin.vue'))
+const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/KhungZalo.vue'))
+const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/TrinhMenuLienHeNoi.vue'))
 const route = useRoute()
 const widgetsReady = ref(false)
 const adminChatReady = ref(false)
@@ -52,10 +52,8 @@ onMounted(() => {
 
   const ensureAdminChat = (eventName) => {
     if (adminChatReady.value) return
+    window.__pendingAdminChatEvent = eventName
     adminChatReady.value = true
-    nextTick(() => {
-      window.dispatchEvent(new CustomEvent(eventName))
-    })
   }
   openAdminChatHandler = () => ensureAdminChat('open-admin-chat')
   toggleAdminChatHandler = () => ensureAdminChat('toggle-admin-chat')

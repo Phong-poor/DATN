@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
 import { normalizeImageUrl } from '@/services/urls'
-import { getToken } from '@/services/auth'
+import { getToken, getUser } from '@/services/auth'
 
 
 // ===================== STATE =====================
@@ -11,6 +11,7 @@ const cart = ref([])
 const isLoading = ref(false)
 const coupon = ref('')
 const discount = ref(0)
+const isAdminUser = computed(() => getUser()?.role === 'admin')
 
 // ===================== SELECTION =====================
 const selectedIds = ref(new Set())
@@ -86,7 +87,7 @@ const fetchGioHang = async () => {
         if (cart.value.length === 0) isLoading.value = true
         const res = await api.get('/gio-hang')
         cart.value = res.data.gio_hang
-        localStorage.setItem('predator_cart_cache', JSON.stringify(cart.value))
+        localStorage.setItem('nextgen_cart_cache', JSON.stringify(cart.value))
     } catch (err) {
         console.error('Lỗi tải giỏ hàng:', err)
     } finally {
@@ -481,7 +482,7 @@ const getFullProductName = (item) => {
 onMounted(() => { 
     window.scrollTo(0, 0)
     try {
-        const cached = localStorage.getItem('predator_cart_cache')
+        const cached = localStorage.getItem('nextgen_cart_cache')
         if (cached) {
             cart.value = JSON.parse(cached)
         }
@@ -512,7 +513,7 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">🎯 Predator Laptop Store</div>
+              <div class="header-eyebrow">🎯 NextGen Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
                 <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
               </h1>
@@ -589,7 +590,7 @@ onMounted(() => {
             </div>
           </div>
           <h2 class="empty-title">Giỏ hàng đang trống</h2>
-          <p class="empty-sub">Khám phá những mẫu laptop mới nhất tại Predator và thêm sản phẩm bạn yêu thích vào giỏ hàng.</p>
+          <p class="empty-sub">Khám phá những mẫu laptop mới nhất tại NextGen và thêm sản phẩm bạn yêu thích vào giỏ hàng.</p>
           <router-link to="/san-pham" class="empty-cta">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             Tiếp tục mua sắm
@@ -631,7 +632,7 @@ onMounted(() => {
 
               <!-- ITEM INFO -->
               <div class="item-info">
-                <div class="item-brand">{{ entry.ten_thuonghieu || 'Predator' }}</div>
+                <div class="item-brand">{{ entry.ten_thuonghieu || 'NextGen' }}</div>
                 <h3 class="item-name">{{ getFullProductName(entry) }}</h3>
 
                 <!-- ATTRIBUTE CHIPS -->
@@ -824,7 +825,12 @@ onMounted(() => {
           </div>
 
           <!-- CHECKOUT BUTTON -->
+          <div v-if="isAdminUser" class="admin-shopping-lock">
+            Tài khoản quản trị viên chỉ dùng để quản lý hệ thống, không được mua sắm hàng hóa.
+          </div>
+
           <router-link
+            v-else
             :to="{ path: '/thanh-toan', query: { 
               promo_code: appliedPromo ? appliedPromo.code : '', 
               discount: discount,
@@ -1537,6 +1543,17 @@ onMounted(() => {
 .arrow-right { margin-left: auto; }
 .checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4); }
 .checkout-disabled { pointer-events: none; opacity: 0.45; }
+
+.admin-shopping-lock {
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: center;
+}
 
 /* PAYMENT METHODS */
 .payment-methods {

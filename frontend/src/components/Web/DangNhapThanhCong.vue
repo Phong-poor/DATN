@@ -16,7 +16,8 @@ const safeRedirectPath = (path) => {
 }
 
 const redirectAfterSocialLogin = async (user, token) => {
-  if (user?.role === 'admin') {
+  const role = String(user?.vaitro || user?.role || '').toLowerCase()
+  if (role && role !== 'user') {
     sessionStorage.setItem('skip_next_route_loader', '1')
     sessionStorage.setItem('admin_intro_animation', '1')
     await wait(260)
@@ -28,7 +29,6 @@ const redirectAfterSocialLogin = async (user, token) => {
   sessionStorage.removeItem('redirect_after_auth')
 
   if (redirectPath) {
-    sessionStorage.setItem('web_intro_animation', '1')
     await wait(220)
     await router.replace(redirectPath)
     return
@@ -43,7 +43,6 @@ const redirectAfterSocialLogin = async (user, token) => {
       })
       localStorage.removeItem('pendingCartItem')
       window.dispatchEvent(new Event('cart-updated'))
-      sessionStorage.setItem('web_intro_animation', '1')
       await wait(220)
       await router.replace('/gio-hang')
       return
@@ -52,18 +51,18 @@ const redirectAfterSocialLogin = async (user, token) => {
     }
   }
 
-  sessionStorage.setItem('web_intro_animation', '1')
   await wait(220)
   await router.replace('/')
 }
 
 onMounted(() => {
-  const token = route.query.token
+  const queryToken = Array.isArray(route.query.token) ? route.query.token[0] : route.query.token
+  const token = typeof queryToken === 'string' ? queryToken : ''
 
   if (token) {
     fetchUser(token)
   } else {
-    router.push('/dang-nhap')
+    router.replace('/dang-nhap?social_error=missing_token')
   }
 })
 
@@ -77,12 +76,13 @@ const fetchUser = async (token) => {
 
     const user = res.data
 
-    saveAuth(token, user)
+    saveAuth(token, user, true)
+    window.dispatchEvent(new Event('user-updated'))
 
     await redirectAfterSocialLogin(user, token)
   } catch (e) {
     console.error('Lỗi lấy profile sau đăng nhập mạng xã hội:', e)
-    router.push('/dang-nhap')
+    router.replace('/dang-nhap?social_error=profile_fetch_failed')
   }
 }
 </script>

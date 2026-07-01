@@ -74,16 +74,16 @@
                 <span></span>
               </label>
               <div class="user-avatar-wrap">
-                <img :src="getAvatar(conv.user)" :alt="conv.user.name" class="user-avatar" />
+                <img :src="getAvatar(conv.user)" :alt="conv.user.ten || conv.user.name" class="user-avatar" />
                 <span v-if="conv.user.online" class="online-status"></span>
               </div>
               <div class="user-preview">
                 <div class="user-header-info">
-                  <span class="user-name">{{ conv.user.name || conv.user.email }}</span>
+                  <span class="user-name">{{ conv.user.ten || conv.user.name || conv.user.email }}</span>
                   <span class="message-time">{{ formatTime(conv.updated_at) }}</span>
                 </div>
                 <p class="last-message" :class="{ unread: conv.unread_count > 0 }">
-                  {{ conv.last_message || 'Bắt đầu cuộc trò chuyện' }}
+                  {{ conv.tin_nhan_cuoi || 'Bắt đầu cuộc trò chuyện' }}
                 </p>
               </div>
               <div v-if="conv.unread_count > 0" class="unread-dot"></div>
@@ -116,7 +116,7 @@
                   <span v-if="conv.user.online" class="online-status"></span>
                 </div>
                 <div class="conv-user-info">
-                  <span class="conv-name text-truncate">{{ conv.user.name || conv.user.email }}</span>
+                  <span class="conv-name text-truncate">{{ conv.user.ten || conv.user.name || conv.user.email }}</span>
                   <span class="conv-status">{{ conv.user.online ? 'Đang hoạt động' : 'Ngoại tuyến' }}</span>
                 </div>
               </div>
@@ -164,9 +164,9 @@
               >
                 <template #body="{ msg: rowMsg }">
                   <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
-                    <span v-html="formatMessage(rowMsg.message || '', searchMessageQueryMap[conv.id])"></span>
-                    <template v-if="rowMsg.message" #caption>
-                      <span v-html="formatMessage(rowMsg.message, searchMessageQueryMap[conv.id])"></span>
+                    <span v-html="formatMessage(rowMsg.noidung || '', searchMessageQueryMap[conv.id])"></span>
+                    <template v-if="rowMsg.noidung" #caption>
+                      <span v-html="formatMessage(rowMsg.noidung, searchMessageQueryMap[conv.id])"></span>
                     </template>
                   </ChatMessageBody>
                 </template>
@@ -239,7 +239,7 @@ const getSearchMatches = (convId) => {
   const messages = messagesMap.value[convId] || [];
   return messages
     .map((msg, index) => ({ msg, index }))
-    .filter(item => item.msg.message && item.msg.message.toLowerCase().includes(query));
+    .filter(item => item.msg.noidung && item.msg.noidung.toLowerCase().includes(query));
 };
 
 const getMatchesCount = (convId) => {
@@ -319,7 +319,7 @@ const formatMessage = (text, query = '') => {
   return formatted;
 };
 
-const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+const isOwnMessage = (msg) => Number(msg?.id_nguoigui) === Number(authUserId.value);
 
 const unreadCount = computed(() => {
   return conversations.value.filter(c => c.unread_count > 0).length;
@@ -328,7 +328,7 @@ const unreadCount = computed(() => {
 const filteredConversations = computed(() => {
   if (!searchQuery.value) return conversations.value;
   return conversations.value.filter(c => 
-    (c.user.name || c.user.email).toLowerCase().includes(searchQuery.value.toLowerCase())
+    (c.user.ten || c.user.name || c.user.email).toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
 
@@ -428,32 +428,32 @@ const closeConversation = (conv) => {
 };
 
 const bumpConversation = (msg) => {
-  const idx = conversations.value.findIndex((c) => c.id === msg.conversation_id);
+  const idx = conversations.value.findIndex((c) => c.id === msg.id_cuoc_tro_chuyen);
   if (idx === -1) {
     loadConversations();
     startChatTitleNotice();
     return;
   }
-  conversations.value[idx].last_message = conversationPreviewFromMessage(msg);
+  conversations.value[idx].tin_nhan_cuoi = conversationPreviewFromMessage(msg);
   conversations.value[idx].updated_at = msg.created_at;
   
-  if (Number(msg.sender_id) === Number(conversations.value[idx].user.id)) {
+  if (Number(msg.id_nguoigui) === Number(conversations.value[idx].user.id)) {
     conversations.value[idx].user.online = true;
-    conversations.value[idx].user.last_active_at = msg.created_at;
+    conversations.value[idx].user.hoat_dong_cuoi_luc = msg.created_at;
   }
 
   const conv = conversations.value.splice(idx, 1)[0];
   conversations.value.unshift(conv);
 
-  if (activeConversations.value.find(c => c.id === msg.conversation_id)) {
-    const active = activeConversations.value.find(c => c.id === msg.conversation_id);
-    if (Number(msg.sender_id) === Number(active.user.id)) {
+  if (activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen)) {
+    const active = activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen);
+    if (Number(msg.id_nguoigui) === Number(active.user.id)) {
       active.user.online = true;
-      active.user.last_active_at = msg.created_at;
+      active.user.hoat_dong_cuoi_luc = msg.created_at;
     }
   }
 
-  if (!activeConversations.value.find(c => c.id === msg.conversation_id)) {
+  if (!activeConversations.value.find(c => c.id === msg.id_cuoc_tro_chuyen)) {
     conv.unread_count = (conv.unread_count || 0) + 1;
     startChatTitleNotice();
   }
@@ -476,14 +476,14 @@ const subscribeToConversation = (id) => {
   bindChatChannel(echo, `chat.${id}`, messagesRef, authUserId.value, (msg) => {
     scrollToBottom(id);
     const active = activeConversations.value.find(c => c.id === id);
-    if (active && Number(msg.sender_id) === Number(active.user.id)) {
+    if (active && Number(msg.id_nguoigui) === Number(active.user.id)) {
       active.user.online = true;
-      active.user.last_active_at = msg.created_at;
+      active.user.hoat_dong_cuoi_luc = msg.created_at;
     }
     const idx = conversations.value.findIndex((c) => c.id === id);
     if (idx !== -1) {
       conversations.value[idx].user.online = true;
-      conversations.value[idx].user.last_active_at = msg.created_at;
+      conversations.value[idx].user.hoat_dong_cuoi_luc = msg.created_at;
     }
   });
 };
@@ -512,7 +512,7 @@ const onComposerSend = async (conv, { text, items }) => {
     });
 
     if (lastMsgText) {
-      conv.last_message = lastMsgText;
+      conv.tin_nhan_cuoi = lastMsgText;
       conv.updated_at = new Date().toISOString();
       const idx = conversations.value.findIndex(c => c.id === conv.id);
       if (idx !== -1) {
@@ -535,11 +535,14 @@ const toggleList = () => {
 };
 
 const getAvatar = (user) => {
-  if (user && user.avatar) {
-    if (user.avatar.startsWith('http')) return user.avatar;
-    return normalizeImageUrl(user.avatar);
+  if (user) {
+    const avatar = user.anhdaidien || user.avatar;
+    if (avatar) {
+      if (avatar.startsWith('http')) return avatar;
+      return normalizeImageUrl(avatar);
+    }
   }
-  const name = user ? (user.name || user.email || 'User') : 'User';
+  const name = user ? (user.ten || user.name || user.email || 'User') : 'User';
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
 };
 

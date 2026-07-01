@@ -4,7 +4,7 @@ import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
 
-const PRODUCTS_CACHE_KEY = 'predator_admin_products_cache'
+const PRODUCTS_CACHE_KEY = 'nextgen_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
 let xlsxModulePromise = null
 let swalModulePromise = null
@@ -43,9 +43,9 @@ const isOpenStatusDropdown = ref(false)
 const isOpenCategoryDropdown = ref(false)
 
 const getSelectedCategoryLabel = () => {
-  if (!selectedCategory.value) return 'Táº¥t cáº£ danh má»¥c'
+  if (!selectedCategory.value) return 'T\u1ea5t c\u1ea3 danh m\u1ee5c'
   const found = categories.value.find(c => String(c.id_danhmuc) === String(selectedCategory.value))
-  return found ? found.ten_danhmuc : 'Táº¥t cáº£ danh má»¥c'
+  return found ? found.ten_danhmuc : 'T\u1ea5t c\u1ea3 danh m\u1ee5c'
 }
 
 // Custom Tree Select States
@@ -78,7 +78,7 @@ const selectAllOptions = (typeId, options) => {
   // Auto switch to Variant mode if multiple options exist
   if (options.length > 1 && !variationTierIds.value.has(tIdStr)) {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -126,9 +126,9 @@ const selectTreeCategory = (child) => {
 }
 
 const getSelectedCategoryName = () => {
-  if (!form.value.category) return 'Chá»n danh má»¥c'
+  if (!form.value.category) return 'Chọn danh mục'
   const child = categories.value.find(c => String(c.id_danhmuc) === String(form.value.category))
-  if (!child) return 'Chá»n danh má»¥c'
+  if (!child) return 'Chọn danh mục'
   const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
   return parent ? `${parent.ten_danhmuc} > ${child.ten_danhmuc}` : child.ten_danhmuc
 }
@@ -187,8 +187,6 @@ const readingExtraImages = ref(false)
 const variantLoading = ref(false)
 const isExporting = ref(false)
 const isImporting = ref(false)
-const isBulkDeleting = ref(false)
-const selectedProductIds = ref([])
 const importExcelRef = ref(null)
 const importVariantsExcelRef = ref(null)
 
@@ -267,11 +265,6 @@ const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(start, start + PER_PAGE)
 })
 
-const allCurrentPageSelected = computed(() =>
-  paginatedProducts.value.length > 0 &&
-  paginatedProducts.value.every(p => selectedProductIds.value.includes(p.id))
-)
-
 const pageItems = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
@@ -301,27 +294,6 @@ const goToPage = (page) => {
     return
   }
   currentPage.value = page
-}
-
-const toggleProductSelection = (id) => {
-  selectedProductIds.value = selectedProductIds.value.includes(id)
-    ? selectedProductIds.value.filter(item => item !== id)
-    : [...selectedProductIds.value, id]
-}
-
-const toggleCurrentPageSelection = () => {
-  const pageIds = paginatedProducts.value.map(p => p.id)
-
-  if (allCurrentPageSelected.value) {
-    selectedProductIds.value = selectedProductIds.value.filter(id => !pageIds.includes(id))
-    return
-  }
-
-  selectedProductIds.value = Array.from(new Set([...selectedProductIds.value, ...pageIds]))
-}
-
-const clearProductSelection = () => {
-  selectedProductIds.value = []
 }
 
 watch([searchQuery, selectedStatus, selectedCategory, selectedParentTab], () => {
@@ -355,17 +327,17 @@ const handleExportExcel = async () => {
     const data = res.data
 
     if (!data || data.length === 0) {
-      swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘á»ƒ xuáº¥t')
+      swal.warning('Không có dữ liệu', 'Không có dữ liệu để xuất')
       return
     }
 
     // Map data to user-friendly column names
     const worksheetData = data.map(item => ({
-      'ID Biáº¿n Thá»ƒ': item.id_bienthe,
-      'TÃªn Sáº£n Pháº©m': item.tenSP,
-      'Biáº¿n Thá»ƒ': item.ten_bienthe,
-      'GiÃ¡': item.gia,
-      'Sá»‘ LÆ°á»£ng': item.soluong
+      'ID Biến Thể': item.id_bienthe,
+      'Tên Sản Phẩm': item.tenSP,
+      'Biến Thể': item.ten_bienthe,
+      'Giá': item.gia,
+      'Số Lượng': item.soluong
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData)
@@ -373,10 +345,10 @@ const handleExportExcel = async () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory")
 
     // Download file
-    XLSX.writeFile(workbook, `Kho_Hang_Predator_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
+    XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', 'Lá»—i khi xuáº¥t file Excel')
+    swal.error('Lỗi', 'Lỗi khi xuất file Excel')
   } finally {
     isExporting.value = false
   }
@@ -403,27 +375,27 @@ const handleImportExcel = async (e) => {
 
       // Transform to backend format
       const updates = jsonData.map(row => ({
-        id_bienthe: row['ID Biáº¿n Thá»ƒ'],
-        gia: row['GiÃ¡'],
-        soluong: row['Sá»‘ LÆ°á»£ng']
+        id_bienthe: row['ID Biến Thể'],
+        gia: row['Giá'],
+        soluong: row['Số Lượng']
       })).filter(item => item.id_bienthe)
 
       if (updates.length === 0) {
-        swal.warning('KhÃ´ng há»£p lá»‡', "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u há»£p lá»‡ trong file Excel")
+        swal.warning('Không hợp lệ', 'Không tìm thấy dữ liệu hợp lệ trong file Excel')
         return
       }
 
-      const isConfirmed = await swal.confirm('XÃ¡c nháº­n cáº­p nháº­t', `Báº¡n cÃ³ cháº¯c muá»‘n cáº­p nháº­t ${updates.length} biáº¿n thá»ƒ tá»« Excel?`)
+      const isConfirmed = await swal.confirm('Xác nhận cập nhật', `Bạn có chắc muốn cập nhật ${updates.length} biến thể từ Excel?`)
       if (!isConfirmed) {
         return
       }
 
       const res = await api.post('/admin/sanpham/import-stock', { updates })
-      swal.success('ThÃ nh cÃ´ng', res.data.message || 'Cáº­p nháº­t tá»“n kho thÃ nh cÃ´ng')
+      swal.success('Thành công', res.data.message || 'Cập nhật tồn kho thành công')
       await fetchProducts()
     } catch (error) {
       console.error(error)
-      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c hoáº·c import file Excel. HÃ£y kiá»ƒm tra Ä‘á»‹nh dáº¡ng file.')
+      swal.error('Lỗi', 'Lỗi khi đọc hoặc import file Excel. Hãy kiểm tra định dạng file.')
     } finally {
       isImporting.value = false
       e.target.value = ''
@@ -439,7 +411,7 @@ const handleImportExcel = async (e) => {
 const handleExportVariantsExcel = async () => {
   const headers = tableHeaders.value
   if (!headers.length) {
-    swal.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u', 'KhÃ´ng cÃ³ thuá»™c tÃ­nh Ä‘á»ƒ xuáº¥t')
+    swal.warning('Không có dữ liệu', 'Không có thuộc tính để xuất')
     return
   }
 
@@ -449,7 +421,7 @@ const handleExportVariantsExcel = async () => {
     headers.forEach(h => {
       item[h.label] = row.attrs[h.id] || ''
     })
-    item['GiÃ¡'] = row.price
+    item['Giá'] = row.price
     item['Kho'] = row.stock
     return item
   })
@@ -501,21 +473,21 @@ const handleImportVariantsExcel = (e) => {
           generatedRows.value.push({
             id: `${Date.now()}-${Math.random()}`,
             attrs,
-            price: rowData['GiÃ¡'] || '',
+            price: rowData['Giá'] || '',
             stock: rowData['Kho'] || '',
             ten_bienthe: headers.map(h => attrs[h.id]).join(' - '),
             isExisting: false,
-            _manualPrice: rowData['GiÃ¡'] !== undefined,
+            _manualPrice: rowData['Giá'] !== undefined,
             _manualStock: rowData['Kho'] !== undefined
           })
           added++
         }
       })
 
-      swal.success('Nháº­p biáº¿n thá»ƒ', `ThÃªm má»›i ${added} cáº¥u hÃ¬nh, bá» qua ${skipped} cáº¥u hÃ¬nh Ä‘Ã£ cÃ³.`)
+      swal.success('Nhập biến thể', `Thêm mới ${added} cấu hình, bỏ qua ${skipped} cấu hình đã có.`)
     } catch (err) {
       console.error(err)
-      swal.error('Lá»—i', 'Lá»—i khi Ä‘á»c file Excel biáº¿n thá»ƒ')
+      swal.error('Lỗi', 'Lỗi khi đọc file Excel biến thể')
     } finally {
       e.target.value = ''
     }
@@ -571,20 +543,20 @@ const fetchProducts = async () => {
         id: p.id_sanpham,
         name: p.tenSP,
         sku: p.SKU || '',
-        category: p.danh_muc?.ten_danhmuc || 'ChÆ°a cÃ³ danh má»¥c',
+        category: p.danh_muc?.ten_danhmuc || 'Ch\u01b0a c\u00f3 danh m\u1ee5c',
         categoryId: p.id_danhmuc ?? '',
         parentCategoryId: p.danh_muc?.id_danhmuc_cha ?? '',
-        brand: p.thuong_hieu?.ten_thuonghieu || 'ChÆ°a cÃ³ thÆ°Æ¡ng hiá»‡u',
+        brand: p.thuong_hieu?.ten_thuonghieu || 'Ch\u01b0a c\u00f3 th\u01b0\u01a1ng hi\u1ec7u',
         totalVariants: variantCount,
         updated_at: p.updated_at,
         bienThes,
-        status: String(p.trangthai) === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
+        status: String(p.trangthai) === '1' ? '\u0110ang b\u00e1n' : 'Nh\u00e1p',
         img: productImageUrl(p, null, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200'),
       }
     })
     saveProductsCache()
   } catch (error) {
-    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c danh sÃ¡ch sáº£n pháº©m.')
+    formError.value = getErrorMessage(error, 'Không tải được danh sách sản phẩm.')
   } finally {
     isProductsFetching.value = false
   }
@@ -667,7 +639,7 @@ const filterBrandsLocally = () => {
   }
 
   brands.value = allBrands.value.filter(brand => {
-    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Ãp dá»¥ng táº¥t cáº£
+    if (!brand.danh_muc_ids || brand.danh_muc_ids.length === 0) return true // Áp dụng tất cả
     const ids = brand.danh_muc_ids.map(Number)
     return ids.includes(currentCategoryId) || ids.includes(currentParentId)
   })
@@ -693,88 +665,6 @@ const fetchColors = async () => {
   }
 }
 
-const removeProduct = async (id, name = '') => {
-  const confirmed = await swal.confirm(
-    'XÃ¡c nháº­n xÃ³a',
-    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a sáº£n pháº©m${name ? ` "${name}"` : ''} khÃ´ng?`
-  )
-
-  if (!confirmed) return
-
-  try {
-    await api.delete(`/admin/sanpham/${id}`)
-    swal.success('ThÃ nh cÃ´ng', 'XÃ³a sáº£n pháº©m thÃ nh cÃ´ng')
-    await fetchProducts()
-  } catch (error) {
-    const msg = getErrorMessage(error, 'KhÃ´ng xÃ³a Ä‘Æ°á»£c sáº£n pháº©m.')
-    formError.value = msg
-    swal.error('XÃ³a tháº¥t báº¡i', msg)
-  }
-}
-
-const deleteProductsByIds = async (ids) => {
-  const uniqueIds = Array.from(new Set(ids))
-  const results = await Promise.allSettled(
-    uniqueIds.map(id => api.delete(`/admin/sanpham/${id}`))
-  )
-
-  const failed = results.filter(result => result.status === 'rejected')
-
-  await fetchProducts()
-  selectedProductIds.value = selectedProductIds.value.filter(id =>
-    products.value.some(p => p.id === id)
-  )
-
-  if (failed.length) {
-    swal.warning(
-      'XÃ³a chÆ°a hoÃ n táº¥t',
-      `ÄÃ£ xÃ³a ${uniqueIds.length - failed.length}/${uniqueIds.length} sáº£n pháº©m. Má»™t sá»‘ sáº£n pháº©m cÃ³ thá»ƒ Ä‘ang cÃ³ dá»¯ liá»‡u liÃªn quan.`
-    )
-    return
-  }
-
-  swal.success('ThÃ nh cÃ´ng', `ÄÃ£ xÃ³a ${uniqueIds.length} sáº£n pháº©m.`)
-}
-
-const removeSelectedProducts = async () => {
-  if (!selectedProductIds.value.length || isBulkDeleting.value) return
-
-  const confirmed = await swal.confirm(
-    'XÃ³a sáº£n pháº©m Ä‘Ã£ chá»n',
-    `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a ${selectedProductIds.value.length} sáº£n pháº©m Ä‘Ã£ chá»n khÃ´ng?`
-  )
-
-  if (!confirmed) return
-
-  isBulkDeleting.value = true
-  try {
-    await deleteProductsByIds(selectedProductIds.value)
-  } finally {
-    isBulkDeleting.value = false
-  }
-}
-
-const removeAllFilteredProducts = async () => {
-  if (!filteredProducts.value.length || isBulkDeleting.value) return
-
-  const total = filteredProducts.value.length
-  const confirmed = await swal.confirm(
-    'XÃ³a toÃ n bá»™ sáº£n pháº©m',
-    selectedStatus.value || selectedCategory.value || searchQuery.value
-      ? `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m Ä‘ang lá»c khÃ´ng?`
-      : `Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a toÃ n bá»™ ${total} sáº£n pháº©m trong danh sÃ¡ch khÃ´ng?`
-  )
-
-  if (!confirmed) return
-
-  isBulkDeleting.value = true
-  try {
-    await deleteProductsByIds(filteredProducts.value.map(p => p.id))
-  } finally {
-    isBulkDeleting.value = false
-  }
-}
-
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    NHÃ“M THUá»˜C TÃNH & LOáº I THUá»˜C TÃNH
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -782,18 +672,18 @@ const baseAttributeGroups = ref([])
 const attributeGroups = ref([])
 
 const groupIconMap = {
-  'Cáº¥u hÃ¬nh': 'ðŸ’»',
-  'MÃ n hÃ¬nh': 'ðŸ–¥ï¸',
-  'Pin & Sáº¡c': 'ðŸ”‹',
-  'Káº¿t ná»‘i': 'ðŸ“¡',
-  'Phá»¥ kiá»‡n': 'ðŸ–±ï¸',
-  'MÃ u sáº¯c': 'ðŸŽ¨',
+  'Cấu hình': '💻',
+  'Màn hình': '🖥️',
+  'Pin & Sạc': '🔋',
+  'Kết nối': '📡',
+  'Phụ kiện': '🖱️',
+  'Màu sắc': '🎨',
 }
 
 const colorPool = ['blue', 'green', 'amber', 'pink', 'purple', 'teal']
 
 const getGroupIcon = (name) => {
-  return groupIconMap[name] || 'ðŸ“¦'
+  return groupIconMap[name] || '📦'
 }
 
 const getTypeColor = (name) => {
@@ -843,12 +733,12 @@ const buildAttributeGroups = () => {
     colors.value.length > 0
       ? {
         id: 'color-group',
-        name: 'MÃ u sáº¯c',
-        icon: getGroupIcon('MÃ u sáº¯c'),
+        name: 'Màu sắc',
+        icon: getGroupIcon('Màu sắc'),
         attrTypes: [
           {
             id: 'color-type',
-            label: 'MÃ u sáº¯c',
+            label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
               label: c.name,
@@ -928,7 +818,7 @@ const fetchAttributeGroups = async () => {
       selectedGroupId.value = attributeGroups.value[0].id
     }
   } catch (error) {
-    formError.value = getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c dá»¯ liá»‡u biáº¿n thá»ƒ.')
+    formError.value = getErrorMessage(error, 'Không tải được dữ liệu biến thể.')
   } finally {
     variantLoading.value = false
   }
@@ -952,7 +842,7 @@ const defaultForm = () => ({
   parentCategory: '',
   category: '',
   brand: '',
-  status: 'Äang bÃ¡n',
+  status: '\u0110ang b\u00e1n',
   img: '',
   images: [],
   weight: '',
@@ -973,7 +863,7 @@ watch(() => form.value.category, async (newCategoryId) => {
       form.value.parentCategory = String(child.id_danhmuc_cha)
       
       const parent = parentCategories.value.find(p => String(p.id_danhmuc_cha) === String(child.id_danhmuc_cha))
-      if (parent && parent.ten_danhmuc.toLowerCase().includes('phá»¥ kiá»‡n')) {
+      if (parent && parent.ten_danhmuc.toLowerCase().includes('phụ kiện')) {
         variationTierIds.value.add('color-type')
       }
     }
@@ -1010,7 +900,7 @@ const validateTopForm = () => {
   const errors = defaultFieldErrors()
 
   if (!imgPreview.value && !form.value.img) {
-    errors.img = 'Vui lÃ²ng chá»n áº£nh sáº£n pháº©m'
+    errors.img = 'Vui l\u00f2ng ch\u1ecdn \u1ea3nh s\u1ea3n ph\u1ea9m'
   }
 
   const imagesArr = Array.isArray(form.value.images) ? form.value.images : []
@@ -1020,38 +910,38 @@ const validateTopForm = () => {
 
   const nameVal = form.value.name ? String(form.value.name).trim() : ''
   if (!nameVal) {
-    errors.name = 'Tên sản phẩm không được để trống'
+    errors.name = 'T\u00ean s\u1ea3n ph\u1ea9m kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng'
   } else if (nameVal.length < 3) {
-    errors.name = 'Tên sản phẩm phải có ít nhất 3 ký tự'
+    errors.name = 'T\u00ean s\u1ea3n ph\u1ea9m ph\u1ea3i c\u00f3 \u00edt nh\u1ea5t 3 k\u00fd t\u1ef1'
   } else if (nameVal.length > 255) {
-    errors.name = 'Tên sản phẩm không được vượt quá 255 ký tự'
+    errors.name = 'T\u00ean s\u1ea3n ph\u1ea9m kh\u00f4ng \u0111\u01b0\u1ee3c v\u01b0\u1ee3t qu\u00e1 255 k\u00fd t\u1ef1'
   }
 
   if (!form.value.brand) {
-    errors.brand = 'Vui lÃ²ng chá»n thÆ°Æ¡ng hiá»‡u'
+    errors.brand = 'Vui l\u00f2ng ch\u1ecdn th\u01b0\u01a1ng hi\u1ec7u'
   }
 
   if (!form.value.parentCategory) {
-    errors.parentCategory = 'Vui lÃ²ng chá»n danh má»¥c cha'
+    errors.parentCategory = 'Vui l\u00f2ng ch\u1ecdn danh m\u1ee5c cha'
   }
 
   if (!form.value.category) {
-    errors.category = 'Vui lÃ²ng chá»n danh má»¥c con'
+    errors.category = 'Vui l\u00f2ng ch\u1ecdn danh m\u1ee5c con'
   }
 
-  if (!['Äang bÃ¡n', 'NhÃ¡p'].includes(form.value.status)) {
-    errors.status = 'Tráº¡ng thÃ¡i khÃ´ng há»£p lá»‡'
+  if (!['\u0110ang b\u00e1n', 'Nh\u00e1p'].includes(form.value.status)) {
+    errors.status = 'Tr\u1ea1ng th\u00e1i kh\u00f4ng h\u1ee3p l\u1ec7'
   }
 
   if (form.value.weight !== '' && form.value.weight !== null && form.value.weight !== undefined) {
     const weight = Number(form.value.weight)
 
     if (Number.isNaN(weight)) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lÃ  sá»‘'
+      errors.weight = 'Kh\u1ed1i l\u01b0\u1ee3ng ph\u1ea3i l\u00e0 s\u1ed1'
     } else if (weight <= 0) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng pháº£i lá»›n hÆ¡n 0'
+      errors.weight = 'Kh\u1ed1i l\u01b0\u1ee3ng ph\u1ea3i l\u1edbn h\u01a1n 0'
     } else if (weight > 1000) {
-      errors.weight = 'Khá»‘i lÆ°á»£ng khÃ´ng há»£p lá»‡'
+      errors.weight = 'Kh\u1ed1i l\u01b0\u1ee3ng kh\u00f4ng h\u1ee3p l\u1ec7'
     }
   }
 
@@ -1073,13 +963,13 @@ const onFileChange = e => {
   fieldErrors.value.img = ''
 
   if (!allowedImageTypes.includes(file.type)) {
-    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.img = '\u1ea2nh s\u1ea3n ph\u1ea9m ch\u1ec9 ch\u1ea5p nh\u1eadn PNG, JPG, JPEG, WEBP'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
 
   if (file.size > MAX_MAIN_IMAGE_SIZE) {
-    fieldErrors.value.img = 'áº¢nh sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
+    fieldErrors.value.img = '\u1ea2nh s\u1ea3n ph\u1ea9m kh\u00f4ng \u0111\u01b0\u1ee3c v\u01b0\u1ee3t qu\u00e1 5MB'
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
@@ -1100,21 +990,21 @@ const onExtraFilesChange = async (e) => {
 
   const totalAfterAdd = form.value.images.length + files.length
   if (totalAfterAdd > MAX_EXTRA_IMAGES) {
-    fieldErrors.value.images = `Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a ${MAX_EXTRA_IMAGES} áº£nh phá»¥`
+    fieldErrors.value.images = `Chỉ được chọn tối đa ${MAX_EXTRA_IMAGES} ảnh phụ`
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidTypeFile = files.find(file => !allowedImageTypes.includes(file.type))
   if (invalidTypeFile) {
-    fieldErrors.value.images = 'áº¢nh phá»¥ chá»‰ cháº¥p nháº­n PNG, JPG, JPEG, WEBP'
+    fieldErrors.value.images = '\u1ea2nh ph\u1ee5 ch\u1ec9 ch\u1ea5p nh\u1eadn PNG, JPG, JPEG, WEBP'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
 
   const invalidSizeFile = files.find(file => file.size > MAX_EXTRA_IMAGE_SIZE)
   if (invalidSizeFile) {
-    fieldErrors.value.images = 'Má»—i áº£nh phá»¥ khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB'
+    fieldErrors.value.images = 'M\u1ed7i \u1ea3nh ph\u1ee5 kh\u00f4ng \u0111\u01b0\u1ee3c v\u01b0\u1ee3t qu\u00e1 5MB'
     if (extraFileInputRef.value) extraFileInputRef.value.value = ''
     return
   }
@@ -1126,10 +1016,8 @@ const onExtraFilesChange = async (e) => {
       files.map(file => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader()
-
           reader.onload = (ev) => resolve(ev.target.result)
-          reader.onerror = () => reject(new Error('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c file áº£nh'))
-
+          reader.onerror = () => reject(new Error('Kh\u00f4ng \u0111\u1ecdc \u0111\u01b0\u1ee3c file \u1ea3nh'))
           reader.readAsDataURL(file)
         })
       })
@@ -1139,17 +1027,14 @@ const onExtraFilesChange = async (e) => {
     extraImagePreviews.value = [...extraImagePreviews.value, ...base64Images]
   } catch (error) {
     console.error(error)
-    fieldErrors.value.images = 'KhÃ´ng Ä‘á»c Ä‘Æ°á»£c má»™t hoáº·c nhiá»u áº£nh phá»¥'
+    fieldErrors.value.images = 'Kh\u00f4ng \u0111\u1ecdc \u0111\u01b0\u1ee3c m\u1ed9t ho\u1eb7c nhi\u1ec1u \u1ea3nh ph\u1ee5'
   } finally {
     readingExtraImages.value = false
-
-    if (extraFileInputRef.value) {
-      extraFileInputRef.value.value = ''
-    }
+    if (extraFileInputRef.value) extraFileInputRef.value.value = ''
   }
 }
 
-const triggerFileInput = () => fileInputRef.value?.click()
+
 const triggerExtraFileInput = () => extraFileInputRef.value?.click()
 
 const removeImg = () => {
@@ -1194,7 +1079,7 @@ const toggleVariationTier = (typeId) => {
     }
   } else {
     if (variationTierIds.value.size >= 3) {
-      swal.warning('Giá»›i háº¡n biáº¿n thá»ƒ', 'Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 3 cáº¥p biáº¿n thá»ƒ. CÃ¡c thuá»™c tÃ­nh khÃ¡c sáº½ Ä‘Æ°á»£c lÆ°u vÃ o ThÃ´ng sá»‘ ká»¹ thuáº­t.')
+      swal.warning('Giới hạn biến thể', 'Chỉ được chọn tối đa 3 cấp biến thể. Các thuộc tính khác sẽ được lưu vào Thông số kỹ thuật.')
       return
     }
     variationTierIds.value.add(tIdStr)
@@ -1232,13 +1117,13 @@ const addManualVariant = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU) trÆ°á»›c khi thÃªm thá»§ cÃ´ng.')
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU) trước khi thêm thủ công.')
     return
   }
   
   const attrs = {}
   headers.forEach(h => {
-    // Láº¥y giÃ¡ trá»‹ Ä‘áº§u tiÃªn trong bá»™ chá»n Ä‘á»ƒ lÃ m máº·c Ä‘á»‹nh
+    // Lấy giá trị đầu tiên trong bộ chọn để làm mặc định
     attrs[h.id] = Array.from(selectedOptions.value[h.id] || [])[0] || null
   })
 
@@ -1249,7 +1134,7 @@ const addManualVariant = () => {
     stock: ''
   })
   
-  // Chuyá»ƒn Ä‘áº¿n trang cuá»‘i
+  // Chuyển đến trang cuối
   variantCurrentPage.value = variantTotalPages.value
 }
 
@@ -1340,9 +1225,9 @@ const findAttrTypeByName = (name) => {
   const normalized = String(name || '').trim().toLowerCase()
 
   if (
-    normalized === 'mÃ u sáº¯c' ||
+    normalized === 'màu sắc' ||
     normalized === 'mau sac' ||
-    normalized === 'mÃ u' ||
+    normalized === 'màu' ||
     normalized === 'mau'
   ) {
     return allAttrTypes.value.find(t => String(t.id) === 'color-type') || null
@@ -1396,11 +1281,11 @@ const toggleOption = (typeId, value) => {
   const isTier = variationTierIds.value.has(typeId)
 
   if (isTier) {
-    // Cháº¿ Ä‘á»™ chá»n nhiá»u (Biáº¿n thá»ƒ)
+    // Chế độ chọn nhiều (Biến thể)
     if (set.has(value)) set.delete(value)
     else set.add(value)
   } else {
-    // Cháº¿ Ä‘á»™ chá»n duy nháº¥t (ThÃ´ng sá»‘ ká»¹ thuáº­t)
+    // Chế độ chọn duy nhất (Thông số kỹ thuật)
     if (set.has(value)) {
       set.delete(value)
     } else {
@@ -1440,7 +1325,7 @@ const validateVariantSelections = () => {
   let isValid = true
 
   if (!groupsHavingSelection.value.length) {
-    fieldErrors.value.variants = 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ thuá»™c tÃ­nh'
+    fieldErrors.value.variants = 'Vui lòng chọn ít nhất 1 giá trị thuộc tính'
     fieldErrors.value.variantGroups = {}
     return false
   }
@@ -1450,7 +1335,7 @@ const validateVariantSelections = () => {
       const selectedCount = selectedOptions.value[type.id]?.size ?? 0
 
       if (selectedCount < 1) {
-        variantGroupErrors[type.id] = `Vui lÃ²ng chá»n Ã­t nháº¥t 1 giÃ¡ trá»‹ cho ${type.label}`
+        variantGroupErrors[type.id] = `Vui lòng chọn ít nhất 1 giá trị cho ${type.label}`
         isValid = false
       }
     })
@@ -1459,7 +1344,7 @@ const validateVariantSelections = () => {
   fieldErrors.value.variantGroups = variantGroupErrors
   fieldErrors.value.variants = isValid
     ? ''
-    : 'Trong má»—i nhÃ³m Ä‘Ã£ chá»n, má»i loáº¡i thuá»™c tÃ­nh pháº£i cÃ³ Ã­t nháº¥t 1 giÃ¡ trá»‹'
+    : 'Trong mỗi nhóm đã chọn, mọi loại thuộc tính phải có ít nhất 1 giá trị'
 
   return isValid
 }
@@ -1498,7 +1383,7 @@ const generateVariants = () => {
   }
 
   if (!headers.length) {
-    swal.warning('Thiáº¿u thÃ´ng tin', 'Vui lÃ²ng chá»n Ã­t nháº¥t 1 loáº¡i thuá»™c tÃ­nh lÃ m Biáº¿n thá»ƒ (SKU)')
+    swal.warning('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại thuộc tính làm Biến thể (SKU)')
     return
   }
 
@@ -1546,14 +1431,14 @@ const generateVariants = () => {
 const rebuildSelectedOptionsFromRows = () => {
   const nextSelectedOptions = {}
 
-  // 1. Báº£o tá»“n cÃ¡c ThÃ´ng sá»‘ ká»¹ thuáº­t hiá»‡n cÃ³ (khÃ´ng pháº£i Biáº¿n thá»ƒ)
+  // 1. Bảo tồn các Thông số kỹ thuật hiện có (không phải Biến thể)
   Object.keys(selectedOptions.value || {}).forEach(attrId => {
     if (!variationTierIds.value.has(String(attrId))) {
       nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
     }
   })
 
-  // 2. Náº¡p láº¡i cÃ¡c Biáº¿n thá»ƒ tá»« cáº¥u hÃ¬nh báº£ng
+  // 2. Nạp lại các Biến thể từ cấu hình bảng
   generatedRows.value.forEach((row) => {
     Object.entries(row.attrs || {}).forEach(([attrId, value]) => {
       attrId = String(attrId)
@@ -1671,7 +1556,7 @@ const markManualStock = (row) => {
 
 const validateVariantRows = () => {
   if (!generatedRows.value.length) {
-    fieldErrors.value.variantRows = 'Vui lÃ²ng táº¡o Ã­t nháº¥t 1 biáº¿n thá»ƒ'
+    fieldErrors.value.variantRows = 'Vui lòng tạo ít nhất 1 biến thể'
     return false
   }
 
@@ -1687,7 +1572,7 @@ const validateVariantRows = () => {
   })
 
   if (invalidRow) {
-    fieldErrors.value.variantRows = 'Vui long nhap du gia rieng > 0 va kho >= 0 cho tat ca bien the'
+    fieldErrors.value.variantRows = 'Vui lòng nhập đủ giá riêng > 0 và kho >= 0 cho tất cả biến thể'
     return false
   }
 
@@ -1750,7 +1635,7 @@ const openEditModal = async (id) => {
     currentView.value = 'product-form'
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', getErrorMessage(error, 'KhÃ´ng táº£i Ä‘Æ°á»£c thÃ´ng tin sáº£n pháº©m Ä‘á»ƒ sá»­a.'))
+    swal.error('Lỗi', getErrorMessage(error, 'Không tải được thông tin sản phẩm để sửa.'))
   }
 }
 
@@ -1760,7 +1645,7 @@ const mapProductToForm = (product) => {
     parentCategory: String(product?.danh_muc?.id_danhmuc_cha ?? ''),
     category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
     brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
-    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Äang bÃ¡n' : 'NhÃ¡p',
+    status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? '\u0110ang b\u00e1n' : 'Nh\u00e1p',
     img: '',
     images: [],
     weight: product?.khoiluong ?? '',
@@ -1820,7 +1705,7 @@ const mapProductToForm = (product) => {
 
       return {
         id: matchedAttr?.id ?? item.id_thuoctinh ?? item.ten_thuoctinh ?? `attr_${index}`,
-        label: item.ten_thuoctinh ?? `Thuá»™c tÃ­nh ${index + 1}`,
+        label: item.ten_thuoctinh ?? `Thuộc tính ${index + 1}`,
         color: matchedAttr?.color ?? colorPool[index % colorPool.length],
       }
     })
@@ -1828,13 +1713,13 @@ const mapProductToForm = (product) => {
     editVariantHeaders.value = []
   }
 
-  // 1. PhÃ¢n biá»‡t cÃ¡c thuá»™c tÃ­nh Ä‘ang lÃ m Biáº¿n thá»ƒ
+  // 1. Phân biệt các thuộc tính đang làm Biến thể
   variationTierIds.value = new Set(editVariantHeaders.value.map(h => String(h.id)))
 
-  // 2. Náº¡p giÃ¡ trá»‹ biáº¿n thá»ƒ vÃ o selectedOptions
+  // 2. Nạp giá trị biến thể vào selectedOptions
   rebuildSelectedOptionsFromRows()
 
-  // 3. Náº¡p ThÃ´ng sá»‘ ká»¹ thuáº­t vÃ o selectedOptions
+  // 3. Nạp Thông số kỹ thuật vào selectedOptions
   let specs = []
   if (Array.isArray(product?.thong_so_ky_thuat)) {
     specs = product.thong_so_ky_thuat
@@ -1860,7 +1745,7 @@ const mapProductToForm = (product) => {
     selectedOptions.value = nextSelected
   }
 
-  // 4. LÆ°u Snapshot sau khi Ä‘Ã£ náº¡p Ä‘áº§y Ä‘á»§ Biáº¿n thá»ƒ + ThÃ´ng sá»‘
+  // 4. Lưu Snapshot sau khi đã nạp đầy đủ Biến thể + Thông số
   selectedOptionsSnapshot.value = cloneSelectedOptions(selectedOptions.value)
 
   variantCurrentPage.value = 1
@@ -1889,7 +1774,7 @@ const submitForm = async () => {
   const isTopFormValid = validateTopForm()
   const isVariantRowsValid = validateVariantRows()
   if (!isTopFormValid || !isVariantRowsValid) {
-    formError.value = 'Vui lÃ²ng kiá»ƒm tra láº¡i thÃ´ng tin sáº£n pháº©m'
+    formError.value = 'Vui lòng kiểm tra lại thông tin sản phẩm'
     return
   }
 
@@ -1898,7 +1783,7 @@ const submitForm = async () => {
       id_danhmuc: Number(form.value.category),
       id_thuonghieu: Number(form.value.brand),
       tenSP: form.value.name.trim(),
-      trangthai: form.value.status === 'Äang bÃ¡n' ? 1 : 0,
+      trangthai: form.value.status === '\u0110ang b\u00e1n' ? 1 : 0,
       hinhanh: form.value.img || imgPreview.value || '',
       khoiluong: form.value.weight ? Number(form.value.weight) : null,
 
@@ -1942,11 +1827,11 @@ const submitForm = async () => {
       invalidateProductCaches(editingProductId.value)
       await api.put(`/admin/sanpham/${editingProductId.value}`, payload)
       invalidateProductCaches(editingProductId.value)
-      swal.success('ThÃ nh cÃ´ng', 'Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng')
+      swal.success('Thành công', 'Cập nhật sản phẩm thành công')
     } else {
       const response = await api.post('/admin/sanpham', payload)
       invalidateProductCaches(response.data?.data?.id_sanpham || null)
-      swal.success('ThÃ nh cÃ´ng', 'ThÃªm sáº£n pháº©m thÃ nh cÃ´ng')
+      swal.success('Thành công', 'Thêm sản phẩm thành công')
     }
 
     await fetchProducts()
@@ -1954,9 +1839,9 @@ const submitForm = async () => {
     closeModal()
   } catch (error) {
     console.error(error)
-    swal.error('Lá»—i', getErrorMessage(error, isEditMode.value
-      ? 'CÃ³ lá»—i xáº£y ra khi cáº­p nháº­t sáº£n pháº©m'
-      : 'CÃ³ lá»—i xáº£y ra khi thÃªm sáº£n pháº©m'))
+    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
+      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
+      : 'Có lỗi xảy ra khi thêm sản phẩm'))
   }
 }
 
@@ -1983,8 +1868,8 @@ onMounted(() => {
 
     <div class="top">
       <div>
-        <h1>Quáº£n lÃ½ sáº£n pháº©m</h1>
-        <p>Cáº­p nháº­t vÃ  theo dÃµi danh má»¥c thiáº¿t bá»‹ cÃ´ng nghá»‡ 2026</p>
+        <h1>Qu&#7843;n l&#253; s&#7843;n ph&#7849;m</h1>
+        <p>C&#7853;p nh&#7853;t v&#224; theo d&#245;i danh m&#7909;c thi&#7871;t b&#7883; c&#244;ng ngh&#7879; 2026</p>
       </div>
       <div class="excel-actions">
         <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
@@ -1995,7 +1880,7 @@ onMounted(() => {
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isExporting ? 'Äang xuáº¥t...' : 'Xuáº¥t Excel' }}
+          {{ isExporting ? '\u0110ang xu\u1ea5t...' : 'Xu\u1ea5t Excel' }}
         </button>
 
         <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
@@ -2006,35 +1891,35 @@ onMounted(() => {
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isImporting ? 'Äang nháº­p...' : 'Nháº­p Excel' }}
+          {{ isImporting ? '\u0110ang nh\u1eadp...' : 'Nh\u1eadp Excel' }}
         </button>
         <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls"
           @change="handleImportExcel" />
 
-        <button class="add-btn" @click="openModal">+ ThÃªm sáº£n pháº©m</button>
+        <button class="add-btn" @click="openModal">+ Th&#234;m s&#7843;n ph&#7849;m</button>
       </div>
     </div>
 
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">ðŸ“¦</span>
+        <span class="stat-icon blue">&#128230;</span>
         <div>
-          <p>Tá»•ng sáº£n pháº©m</p>
+          <p>T&#7893;ng s&#7843;n ph&#7849;m</p>
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange clickable-stat" @click="openLowStockModal">
-        <span class="stat-icon red">âš ï¸</span>
+        <span class="stat-icon red">&#9888;&#65039;</span>
         <div>
-          <p>Sáº¯p háº¿t hÃ ng</p>
+          <p>S&#7855;p h&#7871;t h&#224;ng</p>
           <b>{{ lowStockStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
 
       <div class="stat-card stat-teal">
-        <span class="stat-icon purple">ðŸ­</span>
+        <span class="stat-icon purple">&#127981;</span>
         <div>
-          <p>Kho lÆ°u trá»¯</p>
+          <p>Kho l&#432;u tr&#7919;</p>
           <b>{{ totalInventoryStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
@@ -2047,7 +1932,7 @@ onMounted(() => {
         :class="{ active: selectedParentTab === '' }" 
         @click="selectParentTab('')"
       >
-        Táº¥t cáº£ sáº£n pháº©m
+        T&#7845;t c&#7843; s&#7843;n ph&#7849;m
       </button>
       <button 
         v-for="parentCat in parentCategories" 
@@ -2067,21 +1952,21 @@ onMounted(() => {
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
-        <input v-model="searchQuery" placeholder="TÃ¬m kiáº¿m tÃªn sáº£n pháº©m, SKU..." />
+        <input v-model="searchQuery" placeholder="T&#236;m ki&#7871;m t&#234;n s&#7843;n ph&#7849;m, SKU..." />
       </div>
       <!-- Custom Status Dropdown -->
       <div class="custom-dropdown">
         <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown; isOpenCategoryDropdown = false">
-          <span>{{ selectedStatus || 'Táº¥t cáº£ tráº¡ng thÃ¡i' }}</span>
+          <span>{{ selectedStatus || 'T\u1ea5t c\u1ea3 tr\u1ea1ng th\u00e1i' }}</span>
           <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">Táº¥t cáº£ tráº¡ng thÃ¡i</li>
-            <li :class="{ active: selectedStatus === 'Äang bÃ¡n' }" @click="selectedStatus = 'Äang bÃ¡n'; isOpenStatusDropdown = false">Äang bÃ¡n</li>
-            <li :class="{ active: selectedStatus === 'NhÃ¡p' }" @click="selectedStatus = 'NhÃ¡p'; isOpenStatusDropdown = false">NhÃ¡p</li>
+            <li :class="{ active: selectedStatus === '' }" @click="selectedStatus = ''; isOpenStatusDropdown = false">T&#7845;t c&#7843; tr&#7841;ng th&#225;i</li>
+            <li :class="{ active: selectedStatus === '\u0110ang b\u00e1n' }" @click="selectedStatus = '\u0110ang b\u00e1n'; isOpenStatusDropdown = false">&#272;ang b&#225;n</li>
+            <li :class="{ active: selectedStatus === 'Nh\u00e1p' }" @click="selectedStatus = 'Nh\u00e1p'; isOpenStatusDropdown = false">Nh&#225;p</li>
           </ul>
         </transition>
       </div>
@@ -2096,7 +1981,7 @@ onMounted(() => {
         </div>
         <transition name="fade-slide">
           <ul v-if="isOpenCategoryDropdown" class="dropdown-menu">
-            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">Táº¥t cáº£ danh má»¥c</li>
+            <li :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; isOpenCategoryDropdown = false">T&#7845;t c&#7843; danh m&#7909;c</li>
             <li v-for="category in filteredCategoriesForDropdown" :key="category.id_danhmuc" 
                 :class="{ active: String(selectedCategory) === String(category.id_danhmuc) }" 
                 @click="selectedCategory = category.id_danhmuc; isOpenCategoryDropdown = false">
@@ -2107,51 +1992,24 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="product-bulk-toolbar">
-      <div class="bulk-summary">
-        <span class="bulk-summary-icon">âœ“</span>
-        <div>
-          <b>{{ selectedProductIds.length }} sáº£n pháº©m Ä‘Ã£ chá»n</b>
-          <p>Tick tá»«ng dÃ²ng hoáº·c chá»n toÃ n bá»™ {{ paginatedProducts.length }} sáº£n pháº©m trÃªn trang hiá»‡n táº¡i.</p>
-        </div>
-      </div>
-      <div class="bulk-toolbar-actions">
-        <button class="bulk-btn ghost" :disabled="!selectedProductIds.length || isBulkDeleting" @click="clearProductSelection">
-          Bá» chá»n
-        </button>
-        <button class="bulk-btn danger" :disabled="!selectedProductIds.length || isBulkDeleting" @click="removeSelectedProducts">
-          {{ isBulkDeleting ? 'Äang xÃ³a...' : `XÃ³a Ä‘Ã£ chá»n (${selectedProductIds.length})` }}
-        </button>
-        <button class="bulk-btn danger-outline" :disabled="!filteredProducts.length || isBulkDeleting" @click="removeAllFilteredProducts">
-          XÃ³a toÃ n bá»™
-        </button>
-      </div>
-    </div>
-
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th class="select-col">
-              <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedProducts.length" @change="toggleCurrentPageSelection" />
-            </th>
             <th>STT</th>
-            <th>Sáº£n pháº©m</th>
-            <th>Danh má»¥c</th>
-            <th>ThÆ°Æ¡ng hiá»‡u</th>
-            <th>Tá»•ng biáº¿n thá»ƒ</th>
-            <th>Tráº¡ng thÃ¡i</th>
-            <th>Thao tÃ¡c</th>
+            <th>S&#7843;n ph&#7849;m</th>
+            <th>Danh m&#7909;c</th>
+            <th>Th&#432;&#417;ng hi&#7879;u</th>
+            <th>T&#7893;ng bi&#7871;n th&#7875;</th>
+            <th>Tr&#7841;ng th&#225;i</th>
+            <th>Thao t&#225;c</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!paginatedProducts.length">
-            <td colspan="8" class="empty">KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m nÃ o.</td>
+            <td colspan="7" class="empty">Kh&#244;ng t&#236;m th&#7845;y s&#7843;n ph&#7849;m n&#224;o.</td>
           </tr>
-          <tr v-for="(p, i) in paginatedProducts" :key="p.id" :class="{ 'row-selected': selectedProductIds.includes(p.id) }">
-            <td class="select-col">
-              <input type="checkbox" :checked="selectedProductIds.includes(p.id)" @change="toggleProductSelection(p.id)" />
-            </td>
+          <tr v-for="(p, i) in paginatedProducts" :key="p.id">
             <td>
               {{ (currentPage - 1) * PER_PAGE + i + 1 }}
             </td>
@@ -2165,24 +2023,17 @@ onMounted(() => {
             <td><span class="price">{{ p.brand }}</span></td>
             <td>
               <div class="stock-cell">
-                <span>{{ p.totalVariants }} biáº¿n thá»ƒ</span>
+                <span>{{ p.totalVariants }} bi&#7871;n th&#7875;</span>
               </div>
             </td>
-            <td><span class="status-badge" :class="p.status === 'Äang bÃ¡n' ? 'active' : 'draft'">{{ p.status }}</span>
+            <td><span class="status-badge" :class="p.status === '\u0110ang b\u00e1n' ? 'active' : 'draft'">{{ p.status }}</span>
             </td>
             <td>
               <div class="actions">
-                <button class="act-btn" title="Sá»­a" @click="openEditModal(p.id)">
+                <button class="act-btn" title="S&#7917;a" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button class="act-btn danger" title="XÃ³a" @click="removeProduct(p.id, p.name)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
                 </button>
               </div>
@@ -2194,15 +2045,11 @@ onMounted(() => {
     </div>
 
     <div class="pagination">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">â€¹</button>
+      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">&#8249;</button>
 
-      <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
-        :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-        @click="p !== '...' && goToPage(p)">
-        {{ p }}
-      </button>
+      <span class="pg-active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
 
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">â€º</button>
+      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">&#8250;</button>
     </div>
 
     </template><!-- end list view -->
@@ -2211,546 +2058,320 @@ onMounted(() => {
          VIEW: FORM Sáº¢N PHáº¨M (ThÃªm / Sá»­a)
     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <template v-if="currentView === 'product-form'">
-      <!-- Inline form header -->
       <div class="inline-form-header">
         <button class="back-btn" @click="closeModal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
-          Quay láº¡i danh sÃ¡ch
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+          Quay l&#7841;i danh s&#225;ch
         </button>
-        <h1>{{ isEditMode ? 'âœï¸ Chá»‰nh sá»­a sáº£n pháº©m' : 'âž• ThÃªm sáº£n pháº©m má»›i' }}</h1>
-        <p>{{ isEditMode ? 'Cáº­p nháº­t thÃ´ng tin vÃ  biáº¿n thá»ƒ cá»§a sáº£n pháº©m' : 'Äiá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin Ä‘á»ƒ thÃªm sáº£n pháº©m vÃ o há»‡ thá»‘ng' }}</p>
+        <h1 v-if="isEditMode">Ch&#7881;nh s&#7917;a s&#7843;n ph&#7849;m</h1>
+        <h1 v-else>Th&#234;m s&#7843;n ph&#7849;m m&#7899;i</h1>
+        <p v-if="isEditMode">C&#7853;p nh&#7853;t th&#244;ng tin v&#224; bi&#7871;n th&#7875; c&#7911;a s&#7843;n ph&#7849;m</p>
+        <p v-else>&#272;i&#7873;n &#273;&#7847;y &#273;&#7911; th&#244;ng tin &#273;&#7875; th&#234;m s&#7843;n ph&#7849;m v&#224;o h&#7879; th&#7889;ng</p>
       </div>
 
       <div class="inline-form-body">
-
-            <!-- Khối Hình ảnh (Tràn rộng ở trên cùng) -->
-            <div class="form-section-card images-section-card">
-              <div class="form-section-title">🖼️ Hình ảnh sản phẩm</div>
-              <div class="form-group">
-                <label>Ảnh sản phẩm <span class="required">*</span></label>
-                <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-                <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
-                  <small>PNG, JPG, WEBP — tối đa 5MB</small>
-                </div>
-                <div v-else class="img-preview-wrap">
-                  <button class="img-remove-btn" @click="removeImg">Xóa</button>
-                  <img :src="imgPreview" class="img-preview" alt="preview" />
-                </div>
-                <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
-              </div>
-
-              <div class="form-group">
-                <label>Hình ảnh phụ</label>
-                <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none"
-                  @change="onExtraFilesChange" />
-                <div class="upload-zone" @click="triggerExtraFileInput">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  <p>Kéo thả hoặc <span>bấm để chọn nhiều ảnh</span></p>
-                  <small>PNG, JPG, WEBP — có thể chọn nhiều ảnh</small>
-                </div>
-                <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
-                <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
-                  <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
-                    <img :src="img" class="multi-preview-img" :alt="`preview-${index}`" />
-                    <button class="multi-preview-remove" @click="removeExtraImage(index)">×</button>
-                  </div>
-                </div>
-              </div>
+        <div class="form-section-card images-section-card">
+          <div class="form-section-title">H&#236;nh &#7843;nh s&#7843;n ph&#7849;m</div>
+          <div class="form-group">
+            <label>&#7842;nh s&#7843;n ph&#7849;m <span class="required">*</span></label>
+            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
+            <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>K&#233;o th&#7843; ho&#7863;c <span>b&#7845;m &#273;&#7875; ch&#7885;n &#7843;nh</span></p>
+              <small>PNG, JPG, WEBP - t&#7889;i &#273;a 5MB</small>
             </div>
-
-            <div class="product-form-grid">
-              <!-- Cột chính (Trái) -->
-              <div class="form-main-col">
-                <!-- Khối Thông tin cơ bản -->
-                <div class="form-section-card">
-                  <div class="form-section-title">📝 Thông tin cơ bản</div>
-                  <div class="form-group">
-                    <label>Tên sản phẩm <span class="required">*</span></label>
-                    <input v-model="form.name" @input="fieldErrors.name = ''" placeholder="VD: VinaPro Laptop X2"
-                      :class="{ 'input-error': fieldErrors.name }" />
-                    <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
-                  </div>
-
-                  <div class="form-fields-row-3">
-                    <div class="form-group">
-                      <label>Thương hiệu <span class="required">*</span></label>
-                      <select v-model="form.brand" @change="fieldErrors.brand = ''" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
-                        <option value="">-- Chọn thương hiệu --</option>
-                        <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
-                          {{ brand.ten_thuonghieu }}
-                        </option>
-                      </select>
-                      <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
-                    </div>
-
-                    <div class="form-group">
-                      <label>Khối lượng (kg)</label>
-                      <input v-model="form.weight" type="number" min="0" step="0.01" @input="fieldErrors.weight = ''" placeholder="VD: 2.5" />
-                      <p v-if="fieldErrors.weight" class="field-error">{{ fieldErrors.weight }}</p>
-                    </div>
-
-                    <div class="form-group">
-                      <label>Trạng thái</label>
-                      <select v-model="form.status" @change="fieldErrors.status = ''" :class="{ 'input-error': fieldErrors.status }">
-                        <option>Đang bán</option>
-                        <option>Nháp</option>
-                      </select>
-                      <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Cột phụ (Phải) -->
-              <div class="form-sidebar-col">
-                <div class="form-section-card sticky-sidebar-card">
-                  <div class="form-section-title">📁 Danh mục sản phẩm <span class="required">*</span></div>
-                  
-                  <!-- selected category info badge -->
-                  <div class="selected-category-badge" :class="{ 'has-selected': form.category }">
-                    <span class="badge-icon">📁</span>
-                    <span class="badge-text">
-                      {{ form.category ? getSelectedCategoryName() : 'Chưa chọn danh mục sản phẩm' }}
-                    </span>
-                  </div>
-
-                  <div class="tree-select-static-container" :class="{ 'has-error': fieldErrors.category }">
-                    <!-- Search Input -->
-                    <div class="tree-search-wrapper">
-                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35" />
-                      </svg>
-                      <input 
-                        v-model="treeSearchQuery" 
-                        placeholder="Tìm kiếm nhanh danh mục..." 
-                        class="tree-search-input"
-                      />
-                      <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">×</button>
-                    </div>
-
-                    <!-- Tree list -->
-                    <div class="tree-list-container">
-                      <div v-if="filteredTreeCategories.length === 0" class="tree-empty">
-                        Không tìm thấy danh mục nào.
-                      </div>
-                      <div 
-                        v-for="parent in filteredTreeCategories" 
-                        :key="parent.id_danhmuc_cha" 
-                        class="tree-parent-node"
-                      >
-                        <!-- Parent header row -->
-                        <div 
-                          class="tree-parent-row" 
-                          @click="toggleParentExpand(parent.id_danhmuc_cha)"
-                        >
-                          <span class="tree-toggle-icon">
-                            {{ isParentExpanded(parent.id_danhmuc_cha) ? '▼' : '▶' }}
-                          </span>
-                          <span class="tree-folder-icon">📁</span>
-                          <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
-                        </div>
-
-                        <!-- Child list container -->
-                        <transition name="collapse">
-                          <div 
-                            v-show="isParentExpanded(parent.id_danhmuc_cha)" 
-                            class="tree-children-list"
-                          >
-                            <div 
-                              v-for="child in parent.children" 
-                              :key="child.id_danhmuc" 
-                              class="tree-child-node"
-                              :class="{ selected: String(form.category) === String(child.id_danhmuc) }"
-                              @click="selectTreeCategory(child)"
-                            >
-                              <span class="tree-leaf-icon">📄</span>
-                              <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
-                            </div>
-                          </div>
-                        </transition>
-                      </div>
-                    </div>
-                  </div>
-                  <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
-                </div>
-              </div>
+            <div v-else class="img-preview-wrap">
+              <button class="img-remove-btn" @click="removeImg">X&#243;a</button>
+              <img :src="imgPreview" class="img-preview" alt="Anh san pham" />
             </div>
-
-            <div class="form-section-card variants-section-card" v-if="form.category">
-              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
-              <div class="vs-wrapper">
-                <div class="vs-header">
-                  <div class="vs-title">
-                    <span class="vs-bar"></span>
-                    Biến thể sản phẩm
-                    <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">
-                      Cấp biến thể: {{ variationTierIds.size }}/3
-                    </span>
-                  </div>
-
-                  <div class="vs-steps">
-                    <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }">
-                      <span class="vss-dot">{{ vsPhase === 2 ? '✓' : '1' }}</span>
-                      Chọn giá trị
-                    </span>
-                    <span class="vss-line"></span>
-                    <span class="vss" :class="{ active: vsPhase === 2 }">
-                      <span class="vss-dot">2</span>
-                      Điền giá &amp; kho
-                    </span>
-                  </div>
-                </div>
-
-                <template v-if="vsPhase === 1">
-                  <div v-if="variantLoading" class="group-placeholder">
-                    <span>Đang tải dữ liệu biến thể...</span>
-                  </div>
-
-                  <div v-else-if="attributeGroups.length === 0" class="group-placeholder">
-                    <span>Không tìm thấy nhóm thuộc tính tương thích cho danh mục này.</span>
-                  </div>
-
-                  <div v-else class="accordion-container">
-                    <div 
-                      v-for="g in attributeGroups" 
-                      :key="g.id" 
-                      class="accordion-item"
-                      :class="{ 'is-open': activeAccordionGroups.has(String(g.id)) }"
-                    >
-                      <!-- Accordion Header -->
-                      <div class="accordion-header" @click="toggleAccordionGroup(g.id)">
-                        <div class="accordion-title">
-                          <span class="accordion-icon">{{ g.icon }}</span>
-                          <span class="accordion-name">{{ g.name }}</span>
-                          <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">
-                            Đang chọn {{ selectedCountInGroup(g) }}
-                          </span>
-                        </div>
-                        <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </div>
-
-                      <!-- Accordion Body -->
-                      <transition name="collapse">
-                        <div v-show="activeAccordionGroups.has(String(g.id))" class="accordion-body">
-                          <div class="flat-select-table">
-                            <div v-for="t in g.attrTypes" :key="t.id" class="fst-row">
-                              <div class="fst-label">
-                                <div class="fst-label-top">
-                                  <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                                  <span v-if="selectedOptions[t.id]?.size" class="fst-count">
-                                    {{ selectedOptions[t.id].size }}
-                                  </span>
-                                </div>
-                                
-                                <!-- Toggle Switch SKU/Spec -->
-                                <div class="mode-switch-wrapper" title="Biến thể (SKU): được chọn nhiều để tạo tổ hợp. Thông số: chỉ được chọn tối đa 1.">
-                                  <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">
-                                    {{ variationTierIds.has(String(t.id)) ? '⚡ Biến thể' : '📝 Thông số' }}
-                                  </span>
-                                  <label class="switch-control">
-                                    <input 
-                                      type="checkbox" 
-                                      :checked="variationTierIds.has(String(t.id))" 
-                                      @change="toggleVariationTier(t.id)" 
-                                    />
-                                    <span class="switch-slider"></span>
-                                  </label>
-                                </div>
-                              </div>
-
-                              <div class="fst-options-wrap">
-                                <!-- Color Swatches Visual Layout -->
-                                <div v-if="t.id === 'color-type'" class="color-swatches-grid">
-                                  <button 
-                                    v-for="opt in t.options" 
-                                    :key="getOptionValue(opt)"
-                                    class="color-swatch-btn"
-                                    :class="{ selected: isSelected(t.id, getOptionValue(opt)) }"
-                                    @click="toggleOption(t.id, getOptionValue(opt))"
-                                  >
-                                    <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }">
-                                      <span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span>
-                                    </span>
-                                    <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
-                                  </button>
-                                </div>
-
-                                <!-- Standard Options Buttons Layout -->
-                                <div v-else class="fst-options">
-                                  <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="[
-                                    'vbtn-' + t.color,
-                                    { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }
-                                  ]" @click="toggleOption(t.id, getOptionValue(opt))">
-                                    <svg v-if="isSelected(t.id, getOptionValue(opt))" viewBox="0 0 10 10" fill="none"
-                                      stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="9" height="9">
-                                      <polyline points="1,5 3.5,7.5 9,2" />
-                                    </svg>
-                                    <span>{{ getOptionLabel(opt) }}</span>
-                                  </button>
-                                </div>
-
-                                <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
-                                  {{ fieldErrors.variantGroups[t.id] }}
-                                </p>
-                              </div>
-
-                              <!-- Quick Action Buttons -->
-                              <div class="fst-actions-col">
-                                <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Chọn tất cả</button>
-                                <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">Bỏ chọn</button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </transition>
-                    </div>
-                  </div>
-
-                  <div class="p1-footer">
-                    <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
-                      <span class="combo-formula">
-                        <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
-                          <span class="cf-item">
-                            <span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span>
-                            <b>{{ selectedOptions[t.id]?.size }}</b>
-                          </span>
-                          <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">×</span>
-                        </template>
-                        <span class="cf-eq">= <b>{{ comboCount }} biến thể</b></span>
-                      </span>
-                    </div>
-
-                    <!-- Live Combo Preview Section -->
-                    <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
-                      <div class="preview-title">👁️ Xem trước các tổ hợp phân loại (tối đa 15):</div>
-                      <div class="preview-tags-list">
-                        <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">
-                          {{ name }}
-                        </span>
-                        <span v-if="liveComboPreview.length > 15" class="preview-tag-more">
-                          + {{ liveComboPreview.length - 15 }} tổ hợp khác...
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="p1-actions">
-                      <span v-if="fieldErrors.variants" class="field-error">
-                        {{ fieldErrors.variants }}
-                      </span>
-                      <span v-else class="p1-hint">
-                        Mở rộng các nhóm accordion bên trên; hệ thống sẽ tự động gộp tất cả lựa chọn để tạo SKU
-                      </span>
-
-                      <div class="p1-action-buttons">
-                        <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants"
-                          @click="continueVariantTable">
-                          Quay lại biến thể
-                        </button>
-
-                        <button class="btn-generate" @click="generateVariants">
-                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2"
-                            stroke-linecap="round" width="13" height="13">
-                            <rect x="1" y="1" width="12" height="12" rx="2" />
-                            <polyline points="3.5,7 5.5,9 10.5,4.5" />
-                          </svg>
-                          {{ isEditMode ? 'Cập nhật tổ hợp' : `Tự động sinh tổ hợp` }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-
-                <template v-if="vsPhase === 2">
-                  <div class="p2-toolbar">
-                    <button class="btn-back" @click="backToSelect">
-                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                        width="11" height="11">
-                        <polyline points="7.5,1.5 3,6 7.5,10.5" />
-                      </svg>
-                      {{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}
-                    </button>
-
-                    <div class="modal-excel-actions">
-                      <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel"
-                        @click="handleExportVariantsExcel">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                          fill="none">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Xuất Excel
-                      </button>
-                      <button class="btn-xl-sm btn-xl-import"
-                        title="Nhập danh sách biến thể từ Excel (Tự động check trùng)"
-                        @click="triggerImportVariantsExcel">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5"
-                          fill="none">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                        Nhập Excel (Check trùng)
-                      </button>
-                      <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls"
-                        @change="handleImportVariantsExcel" />
-                    </div>
-                  </div>
-
-                  <div class="p2-controls">
-                    <div class="p2-info">
-                      <template v-if="isEditMode">
-                        Đang hiển thị <b>{{ generatedRows.length }}</b> biến thể hiện có.
-                      </template>
-                      <template v-else>
-                        Đã tạo <b>{{ generatedRows.length }}</b> tổ hợp thực tế.
-                      </template>
-                    </div>
-
-                    <div class="bulk-stack">
-                      <div class="bulk-bar">
-                        <span class="bulk-lbl">Giá/kho chung:</span>
-                        <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (₫)" />
-                        <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
-                      </div>
-                      <div class="bulk-actions">
-                        <button class="btn-apply-outline" @click="applyRulesToAll(false)">
-                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" width="12" height="12">
-                            <circle cx="7" cy="7" r="5.5" />
-                            <polyline points="4.5,7 6,8.5 9.5,5" />
-                          </svg>
-                          Chỉ điền ô trống
-                        </button>
-                        <button class="btn-apply-solid" @click="applyRulesToAll(true)">
-                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" width="12" height="12">
-                            <polyline points="1.5,7 5,10.5 12.5,3" />
-                          </svg>
-                          Áp dụng tất cả
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-
-                  <div class="vt-scroll">
-
-                    <table class="vt-table">
-                      <thead>
-                        <tr>
-                          <th class="th-no">#</th>
-                          <th v-for="t in tableHeaders" :key="t.id">
-                            <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
-                          </th>
-                          <th class="th-price">Giá riêng (₫)</th>
-                          <th class="th-stock">Kho</th>
-                          <th class="th-del"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
-                          <td class="td-no">
-                            <span class="row-no">
-                              {{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}
-                            </span>
-                          </td>
-
-                          <td v-for="t in tableHeaders" :key="t.id">
-                            <span class="val-chip" :class="'vc-' + t.color">
-                              {{ row.attrs[t.id] || '' }}
-                            </span>
-                          </td>
-
-                          <td>
-                            <input :value="formatCurrency(row.price)" type="text" class="vt-input"
-                              @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" />
-                          </td>
-
-                          <td>
-                            <input :value="row.stock" type="number" min="0" class="vt-input vt-num"
-                              @input="(e) => { row.stock = e.target.value; markManualStock(row) }" />
-                          </td>
-
-                          <td class="td-del">
-                            <button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">
-                              ×
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
-                    <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">
-                      ‹
-                    </button>
-
-                    <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
-                      :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-                      @click="p !== '...' && goToVariantPage(p)">
-                      {{ p }}
-                    </button>
-
-                    <button :disabled="variantCurrentPage === variantTotalPages"
-                      @click="goToVariantPage(variantCurrentPage + 1)">
-                      ›
-                    </button>
-                  </div>
-
-                  <div class="p2-foot">
-                    <span class="p2-count">
-                      <b>{{ generatedRows.length }}</b> biến thể —
-                      trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}
-                    </span>
-                  </div>
-                </template>
-              </div>
-            </div>
-            
-            <div class="form-section-card variants-section-card empty-placeholder" v-else>
-              <div class="form-section-title">⚡ Biến thể sản phẩm</div>
-              <div class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8; border: none; background: transparent;">
-                <p>Vui lòng chọn danh mục sản phẩm ở cột bên phải trước khi cấu hình biến thể.</p>
-              </div>
-            </div>
-
-            <p v-if="fieldErrors.variantRows" class="field-error">
-              {{ fieldErrors.variantRows }}
-            </p>
-            <p v-if="formError" class="form-error">âš  {{ formError }}</p>
-
-          <!-- Inline footer actions -->
-          <div class="inline-form-footer">
-            <button class="btn-cancel" @click="closeModal">Há»§y</button>
-            <button class="btn-submit" @click="submitForm">
-              {{ isEditMode ? 'LÆ°u thay Ä‘á»•i' : 'ThÃªm sáº£n pháº©m' }}
-            </button>
+            <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
           </div>
-      </div><!-- end inline-form-body -->
+
+          <div class="form-group">
+            <label>H&#236;nh &#7843;nh ph&#7909;</label>
+            <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none" @change="onExtraFilesChange" />
+            <div class="upload-zone" @click="triggerExtraFileInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>K&#233;o th&#7843; ho&#7863;c <span>b&#7845;m &#273;&#7875; ch&#7885;n nhi&#7873;u &#7843;nh</span></p>
+              <small>PNG, JPG, WEBP - c&#243; th&#7875; ch&#7885;n nhi&#7873;u &#7843;nh</small>
+            </div>
+            <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
+            <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
+              <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
+                <img :src="img" class="multi-preview-img" :alt="'Anh phu ' + (index + 1)" />
+                <button class="multi-preview-remove" @click="removeExtraImage(index)">x</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-form-grid">
+          <div class="form-main-col">
+            <div class="form-section-card">
+              <div class="form-section-title">Th&#244;ng tin c&#417; b&#7843;n</div>
+              <div class="form-group">
+                <label>T&#234;n s&#7843;n ph&#7849;m <span class="required">*</span></label>
+                <input v-model="form.name" @input="fieldErrors.name = ''" placeholder="VD: MacBook Pro 14 inch M4 Pro" :class="{ 'input-error': fieldErrors.name }" />
+                <p v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</p>
+              </div>
+              <div class="form-fields-row-3">
+                <div class="form-group">
+                  <label>Th&#432;&#417;ng hi&#7879;u <span class="required">*</span></label>
+                  <select v-model="form.brand" @change="fieldErrors.brand = ''" :class="{ 'input-error': fieldErrors.brand }" :disabled="!form.category">
+                    <option value="">-- Ch&#7885;n th&#432;&#417;ng hi&#7879;u --</option>
+                    <option v-for="brand in brands" :key="brand.id_thuonghieu" :value="brand.id_thuonghieu">
+                      {{ brand.ten_thuonghieu }}
+                    </option>
+                  </select>
+                  <p v-if="fieldErrors.brand" class="field-error">{{ fieldErrors.brand }}</p>
+                </div>
+                <div class="form-group">
+                  <label>Kh&#7889;i l&#432;&#7907;ng (kg)</label>
+                  <input v-model="form.weight" type="number" min="0" step="0.01" @input="fieldErrors.weight = ''" placeholder="VD: 2.5" />
+                  <p v-if="fieldErrors.weight" class="field-error">{{ fieldErrors.weight }}</p>
+                </div>
+                <div class="form-group">
+                  <label>Tr&#7841;ng th&#225;i</label>
+                  <select v-model="form.status" @change="fieldErrors.status = ''" :class="{ 'input-error': fieldErrors.status }">
+                    <option>&#272;ang b&#225;n</option>
+                    <option>Nh&#225;p</option>
+                  </select>
+                  <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-sidebar-col">
+            <div class="form-section-card sticky-sidebar-card">
+              <div class="form-section-title">Danh m&#7909;c s&#7843;n ph&#7849;m <span class="required">*</span></div>
+              <div class="selected-category-badge" :class="{ 'has-selected': form.category }">
+                <span class="badge-icon">&#128193;</span>
+                <span class="badge-text">{{ form.category ? getSelectedCategoryName() : 'Chua chon danh muc san pham' }}</span>
+              </div>
+              <div class="tree-select-static-container" :class="{ 'has-error': fieldErrors.category }">
+                <div class="tree-search-wrapper">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <input v-model="treeSearchQuery" placeholder="T&#236;m ki&#7871;m nhanh danh m&#7909;c..." class="tree-search-input" />
+                  <button v-if="treeSearchQuery" @click="treeSearchQuery = ''" class="clear-search-btn">x</button>
+                </div>
+                <div class="tree-list-container">
+                  <div v-if="filteredTreeCategories.length === 0" class="tree-empty">Kh&#244;ng t&#236;m th&#7845;y danh m&#7909;c n&#224;o.</div>
+                  <div v-for="parent in filteredTreeCategories" :key="parent.id_danhmuc_cha" class="tree-parent-node">
+                    <div class="tree-parent-row" @click="toggleParentExpand(parent.id_danhmuc_cha)">
+                      <span class="tree-toggle-icon">{{ isParentExpanded(parent.id_danhmuc_cha) ? 'v' : '>' }}</span>
+                      <span class="tree-folder-icon">&#128193;</span>
+                      <span class="tree-parent-name">{{ parent.ten_danhmuc }}</span>
+                    </div>
+                    <transition name="collapse">
+                      <div v-show="isParentExpanded(parent.id_danhmuc_cha)" class="tree-children-list">
+                        <div v-for="child in parent.children" :key="child.id_danhmuc" class="tree-child-node" :class="{ selected: String(form.category) === String(child.id_danhmuc) }" @click="selectTreeCategory(child)">
+                          <span class="tree-leaf-icon">&#128196;</span>
+                          <span class="tree-child-name">{{ child.ten_danhmuc }}</span>
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
+                </div>
+              </div>
+              <p v-if="fieldErrors.category" class="field-error">{{ fieldErrors.category }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-card variants-section-card" v-if="form.category">
+          <div class="form-section-title">Bi&#7871;n th&#7875; s&#7843;n ph&#7849;m</div>
+          <div class="vs-wrapper">
+            <div class="vs-header">
+              <div class="vs-title">
+                <span class="vs-bar"></span>
+                Bi&#7871;n th&#7875; s&#7843;n ph&#7849;m
+                <span class="vs-tier-count" :class="{ 'at-limit': variationTierIds.size >= 3 }">C&#7845;p bi&#7871;n th&#7875;: {{ variationTierIds.size }}/3</span>
+              </div>
+              <div class="vs-steps">
+                <span class="vss" :class="{ active: vsPhase === 1, done: vsPhase === 2 }"><span class="vss-dot">{{ vsPhase === 2 ? 'OK' : '1' }}</span>Ch&#7885;n gi&#225; tr&#7883;</span>
+                <span class="vss-line"></span>
+                <span class="vss" :class="{ active: vsPhase === 2 }"><span class="vss-dot">2</span>&#272;i&#7873;n gi&#225; &amp; kho</span>
+              </div>
+            </div>
+
+            <template v-if="vsPhase === 1">
+              <div v-if="variantLoading" class="group-placeholder"><span>&#272;ang t&#7843;i d&#7919; li&#7879;u bi&#7871;n th&#7875;...</span></div>
+              <div v-else-if="attributeGroups.length === 0" class="group-placeholder"><span>Kh&#244;ng t&#236;m th&#7845;y nh&#243;m thu&#7897;c t&#237;nh t&#432;&#417;ng th&#237;ch cho danh m&#7909;c n&#224;y.</span></div>
+              <div v-else class="accordion-container">
+                <div v-for="g in attributeGroups" :key="g.id" class="accordion-item" :class="{ 'is-open': activeAccordionGroups.has(String(g.id)) }">
+                  <div class="accordion-header" @click="toggleAccordionGroup(g.id)">
+                    <div class="accordion-title">
+                      <span class="accordion-icon">{{ g.icon }}</span>
+                      <span class="accordion-name">{{ g.name }}</span>
+                      <span v-if="selectedCountInGroup(g) > 0" class="accordion-badge">&#272;ang ch&#7885;n {{ selectedCountInGroup(g) }}</span>
+                    </div>
+                    <svg class="chevron" :class="{ open: activeAccordionGroups.has(String(g.id)) }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                  <transition name="collapse">
+                    <div v-show="activeAccordionGroups.has(String(g.id))" class="accordion-body">
+                      <div class="flat-select-table">
+                        <div v-for="t in g.attrTypes" :key="t.id" class="fst-row">
+                          <div class="fst-label">
+                            <div class="fst-label-top">
+                              <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
+                              <span v-if="selectedOptions[t.id]?.size" class="fst-count">{{ selectedOptions[t.id].size }}</span>
+                            </div>
+                            <div class="mode-switch-wrapper" title="Bien the SKU: chon nhieu de tao to hop. Thong so: chon toi da 1.">
+                              <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">{{ variationTierIds.has(String(t.id)) ? 'Bien the' : 'Thong so' }}</span>
+                              <label class="switch-control">
+                                <input type="checkbox" :checked="variationTierIds.has(String(t.id))" @change="toggleVariationTier(t.id)" />
+                                <span class="switch-slider"></span>
+                              </label>
+                            </div>
+                          </div>
+                          <div class="fst-options-wrap">
+                            <div v-if="t.id === 'color-type'" class="color-swatches-grid">
+                              <button v-for="opt in t.options" :key="getOptionValue(opt)" class="color-swatch-btn" :class="{ selected: isSelected(t.id, getOptionValue(opt)) }" @click="toggleOption(t.id, getOptionValue(opt))">
+                                <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }"><span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">OK</span></span>
+                                <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
+                              </button>
+                            </div>
+                            <div v-else class="fst-options">
+                              <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn" :class="['vbtn-' + t.color, { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }]" @click="toggleOption(t.id, getOptionValue(opt))">
+                                <span>{{ getOptionLabel(opt) }}</span>
+                              </button>
+                            </div>
+                            <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">{{ fieldErrors.variantGroups[t.id] }}</p>
+                          </div>
+                          <div class="fst-actions-col">
+                            <button class="quick-act-btn select-all" @click="selectAllOptions(t.id, t.options)">Ch&#7885;n t&#7845;t c&#7843;</button>
+                            <button class="quick-act-btn clear-all" :disabled="!selectedOptions[t.id]?.size" @click="clearAllOptions(t.id)">B&#7887; ch&#7885;n</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+              </div>
+
+              <div class="p1-footer">
+                <div v-if="allSelectedAttrTypes.length > 0" class="combo-bar">
+                  <span class="combo-formula">
+                    <template v-for="(t, i) in allSelectedAttrTypes" :key="t.id">
+                      <span class="cf-item"><span class="type-pill-sm" :class="'tp-' + t.color">{{ t.label }}</span><b>{{ selectedOptions[t.id]?.size }}</b></span>
+                      <span v-if="i < allSelectedAttrTypes.length - 1" class="cf-x">x</span>
+                    </template>
+                    <span class="cf-eq">= <b>{{ comboCount }} bi&#7871;n th&#7875;</b></span>
+                  </span>
+                </div>
+                <div v-if="liveComboPreview.length > 0" class="live-preview-panel">
+                  <div class="preview-title">Xem tr&#432;&#7899;c c&#225;c t&#7893; h&#7907;p ph&#226;n lo&#7841;i (t&#7889;i &#273;a 15):</div>
+                  <div class="preview-tags-list">
+                    <span v-for="(name, index) in liveComboPreview.slice(0, 15)" :key="index" class="preview-tag">{{ name }}</span>
+                    <span v-if="liveComboPreview.length > 15" class="preview-tag-more">+ {{ liveComboPreview.length - 15 }} t&#7893; h&#7907;p kh&#225;c...</span>
+                  </div>
+                </div>
+                <div class="p1-actions">
+                  <span v-if="fieldErrors.variants" class="field-error">{{ fieldErrors.variants }}</span>
+                  <span v-else class="p1-hint">M&#7903; r&#7897;ng c&#225;c nh&#243;m thu&#7897;c t&#237;nh b&#234;n tr&#234;n; h&#7879; th&#7889;ng s&#7869; t&#7921; &#273;&#7897;ng g&#7897;p t&#7845;t c&#7843; l&#7921;a ch&#7885;n &#273;&#7875; t&#7841;o SKU.</span>
+                  <div class="p1-action-buttons">
+                    <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants" @click="continueVariantTable">Quay l&#7841;i bi&#7871;n th&#7875;</button>
+                    <button class="btn-generate" @click="generateVariants">{{ isEditMode ? 'Cap nhat to hop' : 'Tu dong sinh to hop' }}</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <template v-if="vsPhase === 2">
+              <div class="p2-toolbar">
+                <button class="btn-back" @click="backToSelect">{{ isEditMode ? 'Quay lai chon / chinh bien the' : 'Chinh lai lua chon' }}</button>
+                <div class="modal-excel-actions">
+                  <button class="btn-xl-sm btn-xl-export" title="Xuat danh sach bien the ra Excel" @click="handleExportVariantsExcel">Xu&#7845;t Excel</button>
+                  <button class="btn-xl-sm btn-xl-import" title="Nhap danh sach bien the tu Excel" @click="triggerImportVariantsExcel">Nh&#7853;p Excel</button>
+                  <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls" @change="handleImportVariantsExcel" />
+                </div>
+              </div>
+              <div class="p2-controls">
+                <div class="p2-info">
+                  <template v-if="isEditMode">&#272;ang hi&#7875;n th&#7883; <b>{{ generatedRows.length }}</b> bi&#7871;n th&#7875; hi&#7879;n c&#243;.</template>
+                  <template v-else>&#272;&#227; t&#7841;o <b>{{ generatedRows.length }}</b> t&#7893; h&#7907;p th&#7921;c t&#7871;.</template>
+                </div>
+                <div class="bulk-stack">
+                  <div class="bulk-bar">
+                    <span class="bulk-lbl">Gi&#225;/kho chung:</span>
+                    <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Gia chung (d)" />
+                    <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
+                  </div>
+                  <div class="bulk-actions">
+                    <button class="btn-apply-outline" @click="applyRulesToAll(false)">Ch&#7881; &#273;i&#7873;n &#244; tr&#7889;ng</button>
+                    <button class="btn-apply-solid" @click="applyRulesToAll(true)">&#193;p d&#7909;ng t&#7845;t c&#7843;</button>
+                  </div>
+                </div>
+              </div>
+              <div class="vt-scroll">
+                <table class="vt-table">
+                  <thead>
+                    <tr>
+                      <th class="th-no">#</th>
+                      <th v-for="t in tableHeaders" :key="t.id"><span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span></th>
+                      <th class="th-price">Gi&#225; ri&#234;ng (&#273;)</th>
+                      <th class="th-stock">Kho</th>
+                      <th class="th-del"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in paginatedVariants" :key="row.id" class="vt-row">
+                      <td class="td-no"><span class="row-no">{{ (variantCurrentPage - 1) * VARIANTS_PER_PAGE + ri + 1 }}</span></td>
+                      <td v-for="t in tableHeaders" :key="t.id"><span class="val-chip" :class="'vc-' + t.color">{{ row.attrs[t.id] || '' }}</span></td>
+                      <td><input :value="formatCurrency(row.price)" type="text" class="vt-input" @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" /></td>
+                      <td><input :value="row.stock" type="number" min="0" class="vt-input vt-num" @input="(e) => { row.stock = e.target.value; markManualStock(row) }" /></td>
+                      <td class="td-del"><button class="btn-row-del" @click="removeVariantRow(ri)" title="Xoa phien ban nay">x</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="generatedRows.length > VARIANTS_PER_PAGE" class="variant-pagination">
+                <button :disabled="variantCurrentPage === 1" @click="goToVariantPage(variantCurrentPage - 1)">&lt;</button>
+                <span class="pg-active page-indicator">{{ variantCurrentPage }}/{{ variantTotalPages }}</span>
+                <button :disabled="variantCurrentPage === variantTotalPages" @click="goToVariantPage(variantCurrentPage + 1)">&gt;</button>
+              </div>
+              <div class="p2-foot"><span class="p2-count"><b>{{ generatedRows.length }}</b> bi&#7871;n th&#7875; - trang <b>{{ variantCurrentPage }}</b>/{{ variantTotalPages }}</span></div>
+            </template>
+          </div>
+        </div>
+
+        <div class="form-section-card variants-section-card empty-placeholder" v-else>
+          <div class="form-section-title">Bi&#7871;n th&#7875; s&#7843;n ph&#7849;m</div>
+          <div class="vs-wrapper" style="text-align: center; padding: 40px; color: #94a3b8; border: none; background: transparent;">
+            <p>Vui l&#242;ng ch&#7885;n danh m&#7909;c s&#7843;n ph&#7849;m &#7903; c&#7897;t b&#234;n ph&#7843;i tr&#432;&#7899;c khi c&#7845;u h&#236;nh bi&#7871;n th&#7875;.</p>
+          </div>
+        </div>
+
+        <p v-if="fieldErrors.variantRows" class="field-error">{{ fieldErrors.variantRows }}</p>
+        <p v-if="formError" class="form-error">{{ formError }}</p>
+        <div class="inline-form-footer">
+          <button class="btn-cancel" @click="closeModal">H&#7911;y</button>
+          <button class="btn-submit" @click="submitForm">{{ isEditMode ? 'Luu thay doi' : 'Them san pham' }}</button>
+        </div>
+      </div>
     </template><!-- end product-form -->
 
-    <!-- Modal Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng -->
+    <!-- Modal Danh sách sản phẩm sắp hết hàng -->
     <Teleport to="body">
       <div v-if="showLowStockModal" class="modal-overlay" @click.self="closeLowStockModal">
         <div class="modal modal-wide">
           <div class="modal-header">
-            <h3>Danh sÃ¡ch sáº£n pháº©m sáº¯p háº¿t hÃ ng</h3>
-            <button class="modal-close" @click="closeLowStockModal">Ã—</button>
+            <h3>Danh sách sản phẩm sắp hết hàng</h3>
+            <button class="modal-close" @click="closeLowStockModal">×</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
@@ -2758,14 +2379,14 @@ onMounted(() => {
                 <thead>
                   <tr>
                     <th>STT</th>
-                    <th>HÃ¬nh áº£nh</th>
-                    <th>TÃªn SP</th>
-                    <th>HÃ nh Ä‘á»™ng</th>
+                    <th>Hình ảnh</th>
+                    <th>Tên SP</th>
+                    <th>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="!lowStockProducts.length">
-                    <td colspan="4" class="empty">KhÃ´ng cÃ³ sáº£n pháº©m nÃ o sáº¯p háº¿t hÃ ng.</td>
+                    <td colspan="4" class="empty">Không có sản phẩm nào sắp hết hàng.</td>
                   </tr>
                   <tr v-for="(p, i) in lowStockProducts" :key="p.id">
                     <td>{{ i + 1 }}</td>
@@ -2778,7 +2399,7 @@ onMounted(() => {
                     <td>
                       <button class="btn-apply-solid"
                         style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer;"
-                        @click="openLowStockVariantsModal(p)">Xem chi tiáº¿t</button>
+                        @click="openLowStockVariantsModal(p)">Xem chi tiết</button>
                     </td>
                   </tr>
                 </tbody>
@@ -2789,27 +2410,27 @@ onMounted(() => {
       </div>
     </Teleport>
 
-    <!-- Modal Danh sÃ¡ch biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng -->
+    <!-- Modal Danh sách biến thể sắp hết hàng -->
     <Teleport to="body">
       <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
         <div class="modal">
           <div class="modal-header">
-            <h3>Biáº¿n thá»ƒ sáº¯p háº¿t hÃ ng - {{ selectedLowStockProduct?.name }}</h3>
-            <button class="modal-close" @click="closeLowStockVariantsModal">Ã—</button>
+            <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
+            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>TÃªn biáº¿n thá»ƒ</th>
-                    <th>Sá»‘ lÆ°á»£ng</th>
+                    <th>Tên biến thể</th>
+                    <th>Số lượng</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
                     :key="v.id_bienthe || v.id">
-                    <td><b>{{ v.ten_bienthe || 'Biáº¿n thá»ƒ' }}</b></td>
+                    <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
                     <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
                   </tr>
                 </tbody>
@@ -3441,114 +3062,6 @@ onMounted(() => {
   transform: translateY(-8px);
 }
 
-.product-bulk-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 0 0 16px;
-  padding: 14px 16px;
-  background: #ffffff;
-  border: 1px solid #e8edf5;
-  border-radius: 14px;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
-}
-
-.bulk-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.bulk-summary-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #eff6ff;
-  color: #2563eb;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.bulk-summary b {
-  display: block;
-  font-size: 13px;
-  color: #0f172a;
-  margin-bottom: 2px;
-}
-
-.bulk-summary p {
-  margin: 0;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.bulk-toolbar-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.bulk-btn {
-  min-height: 34px;
-  padding: 8px 12px;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .18s;
-  border: 1px solid transparent;
-  font-family: inherit;
-  white-space: nowrap;
-}
-
-.bulk-btn:disabled {
-  opacity: .48;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.bulk-btn.ghost {
-  background: #f8fafc;
-  color: #334155;
-  border-color: #e2e8f0;
-}
-
-.bulk-btn.ghost:hover:not(:disabled) {
-  background: #eff6ff;
-  color: #2563eb;
-  border-color: #bfdbfe;
-}
-
-.bulk-btn.danger {
-  background: #ef4444;
-  color: #ffffff;
-  border-color: #ef4444;
-}
-
-.bulk-btn.danger:hover:not(:disabled) {
-  background: #dc2626;
-  border-color: #dc2626;
-  transform: translateY(-1px);
-}
-
-.bulk-btn.danger-outline {
-  background: #fff1f2;
-  color: #dc2626;
-  border-color: #fecaca;
-}
-
-.bulk-btn.danger-outline:hover:not(:disabled) {
-  background: #ffe4e6;
-  border-color: #fca5a5;
-}
-
 .table-wrap {
   background: white;
   border-radius: 14px;
@@ -3588,9 +3101,6 @@ tbody tr:hover {
   background: #fafbff;
 }
 
-tbody tr.row-selected {
-  background: #eff6ff;
-}
 
 tbody td {
   padding: 14px 16px;
@@ -3599,17 +3109,7 @@ tbody td {
   vertical-align: middle;
 }
 
-.select-col {
-  width: 44px;
-  text-align: center;
-}
 
-.select-col input {
-  width: 16px;
-  height: 16px;
-  accent-color: #2563eb;
-  cursor: pointer;
-}
 
 .empty {
   text-align: center;

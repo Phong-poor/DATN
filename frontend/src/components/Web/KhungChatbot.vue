@@ -104,7 +104,7 @@
         <!-- 2. VIEW: CHECKOUT -->
         <template v-else-if="chatbotView === 'checkout'">
           <!-- Header -->
-          <div class="chat-header">
+          <div class="chat-header checkout-chat-header">
             <div class="header-info">
               <button class="chat-back-navigation-btn" @click="chatbotView = 'chat'" title="Quay lại" type="button">
                 ←
@@ -119,11 +119,131 @@
 
           <!-- Body Form -->
           <div class="chat-body form-view">
-            <div class="checkout-product-mini" v-if="selectedProduct">
-              <img :src="getProductImage(selectedProduct)" class="mini-img" />
-              <div class="mini-info">
-                <div class="mini-name">{{ selectedProduct.ten_bienthe || getDisplayName(selectedProduct) }}</div>
-                <div class="mini-price">{{ formatPrice(selectedProduct.gia) }}</div>
+            <div class="shipping-designed-form">
+              <div class="checkout-steps">
+                <div class="step done">
+                  <span>✓</span>
+                  <small>CHAT</small>
+                </div>
+                <div class="step-line active"></div>
+                <div class="step active">
+                  <span>▣</span>
+                  <small>SHIPPING</small>
+                </div>
+                <div class="step-line"></div>
+                <div class="step">
+                  <span>◎</span>
+                  <small>CONFIRM</small>
+                </div>
+              </div>
+
+              <div class="checkout-scroll">
+                <div class="checkout-helper">
+                  <span>☻</span>
+                  <p>Great! Let's get your shipping details to finish up the order.</p>
+                </div>
+
+                <div class="shipping-card" v-if="checkoutProducts.length">
+                  <div class="shipping-products">
+                    <button
+                      v-for="prod in checkoutProducts"
+                      :key="prod.id_bienthe"
+                      type="button"
+                      class="shipping-product"
+                      :class="{ active: selectedProduct?.id_bienthe === prod.id_bienthe }"
+                      @click="selectCheckoutProduct(prod)"
+                    >
+                      <img :src="getProductImage(prod)" alt="product" />
+                      <span>
+                        <small>SELECTED VARIANT</small>
+                        <strong>{{ prod.ten_bienthe || getDisplayName(prod) }}</strong>
+                      </span>
+                      <b>{{ formatPrice(prod.gia) }}</b>
+                      <em>{{ selectedProduct?.id_bienthe === prod.id_bienthe ? 'Đang chọn' : 'Chọn' }}</em>
+                    </button>
+                  </div>
+                </div>
+
+                <form @submit.prevent="goToOrderConfirm" class="shipping-form">
+                  <div class="field" v-if="userAddresses.length > 0">
+                    <label>Địa chỉ đã lưu</label>
+                    <select v-model="selectedAddressId" @change="onAddressChange" class="saved-address-select">
+                      <option v-for="addr in userAddresses" :key="addr.id_diachi" :value="addr.id_diachi">
+                        {{ addr.ten_nguoinhan }} - {{ addr.sdt_nguoinhan }} ({{ addr.dia_chi_day_du }})
+                      </option>
+                      <option :value="null">-- Nhập địa chỉ mới --</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>Họ và tên người nhận</label>
+                    <input v-model="checkoutForm.name" placeholder="Lê Ngọc Tài" required />
+                  </div>
+                  <div class="field">
+                    <label>Số điện thoại</label>
+                    <input v-model="checkoutForm.phone" placeholder="09xx xxx xxx" type="tel" maxlength="10" required />
+                  </div>
+                  <div class="field">
+                    <label>Email nhận hóa đơn</label>
+                    <input v-model="checkoutForm.email" placeholder="email@example.com" type="email" required />
+                  </div>
+                  <div class="field">
+                    <label>Địa chỉ nhận hàng</label>
+                    <textarea v-model="checkoutForm.address" placeholder="Số nhà, tên đường..." required :readonly="!!selectedAddressId"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Phương thức thanh toán</label>
+                    <select v-model="checkoutForm.paymentMethod">
+                      <option value="cod">COD (Thanh toán khi nhận hàng)</option>
+                      <option value="bank">Chuyển khoản (Quét mã VietQR)</option>
+                      <option value="vnpay">Cổng VNPay (Thanh toán online)</option>
+                      <option value="momo">Ví MoMo (Thanh toán online)</option>
+                    </select>
+                  </div>
+
+                  <button type="submit" class="shipping-submit">Tiếp tục đặt hàng <span>→</span></button>
+                  <p class="shipping-secure">Thanh toán bảo mật & mã hóa SSL 256-bit</p>
+                </form>
+              </div>
+            </div>
+
+            <div class="deposit-policy">
+              <div class="deposit-row">
+                <span>Tổng giá trị</span>
+                <strong>{{ formatPrice(selectedProductPrice) }}</strong>
+              </div>
+              <div class="deposit-row highlight">
+                <span>Đặt cọc trước 50%</span>
+                <strong>{{ formatPrice(depositAmount) }}</strong>
+              </div>
+              <div class="deposit-row">
+                <span>Thanh toán khi nhận hàng</span>
+                <strong>{{ formatPrice(remainingAmount) }}</strong>
+              </div>
+              <label class="deposit-confirm">
+                <input type="checkbox" v-model="depositConfirmed" required />
+                <span>Tôi đồng ý chuyển trước 50% giá trị đơn hàng, 50% còn lại thanh toán khi nhận hàng.</span>
+              </label>
+              <button type="button" class="deposit-continue-btn" @click="goToOrderConfirm">Tiếp tục xác nhận</button>
+            </div>
+
+            <div class="checkout-product-picker" v-if="checkoutProducts.length">
+              <div class="picker-label">Chọn sản phẩm</div>
+              <div class="checkout-product-list">
+                <button
+                  v-for="prod in checkoutProducts"
+                  :key="prod.id_bienthe"
+                  type="button"
+                  class="checkout-product-mini"
+                  :class="{ active: selectedProduct?.id_bienthe === prod.id_bienthe }"
+                  @click="selectCheckoutProduct(prod)"
+                >
+                  <img :src="getProductImage(prod)" class="mini-img" />
+                  <div class="mini-info">
+                    <div class="mini-name">{{ prod.ten_bienthe || getDisplayName(prod) }}</div>
+                    <div class="mini-price">{{ formatPrice(prod.gia) }}</div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -218,9 +338,26 @@
               <b v-if="selectedProduct">{{ formatPrice(selectedProduct.gia) }}</b>
             </div>
 
+            <div class="confirm-deposit-plan">
+              <div>
+                <span>Cần chuyển cọc 50%</span>
+                <strong>{{ formatPrice(depositAmount) }}</strong>
+              </div>
+              <div>
+                <span>Còn lại khi giao hàng</span>
+                <strong>{{ formatPrice(remainingAmount) }}</strong>
+              </div>
+              <p>Đơn hàng chatbot yêu cầu đặt cọc 50% để tránh bom hàng. Hóa đơn xác nhận sẽ được gửi về email {{ checkoutForm.email }}.</p>
+            </div>
+
+            <label class="confirm-info-check">
+              <input type="checkbox" v-model="confirmInfoChecked" />
+              <span>Tôi xác nhận thông tin nhận hàng, email và số tiền đặt cọc ở trên là chính xác.</span>
+            </label>
+
             <div class="confirm-actions">
               <button type="button" class="cancel-btn" @click="chatbotView = 'checkout'">Quay lại</button>
-              <button type="button" class="confirm-btn" @click="submitDirectOrder" :disabled="isLoading">
+              <button type="button" class="confirm-btn" @click="submitDirectOrder" :disabled="isLoading || !confirmInfoChecked">
                 {{ isLoading ? 'Đang xử lý...' : 'Xác nhận mua ngay' }}
               </button>
             </div>
@@ -267,13 +404,27 @@
               
               <div class="bill-total">
                 <span>Tổng cộng:</span>
-                <b>{{ formatPrice(createdOrder.tong_tien || selectedProduct.gia) }}</b>
+                <b>{{ formatPrice(createdOrder.tongtien || createdOrder.tong_tien || selectedProduct.gia) }}</b>
+              </div>
+
+              <div class="bill-deposit-plan">
+                <div>
+                  <span>Cần chuyển cọc 50%</span>
+                  <strong>{{ formatPrice(depositAmount) }}</strong>
+                </div>
+                <div>
+                  <span>Còn lại khi giao hàng</span>
+                  <strong>{{ formatPrice(remainingAmount) }}</strong>
+                </div>
               </div>
             </div>
 
             <!-- VietQR block -->
-            <div v-if="createdOrder && (createdOrder.PTTT === 'Chuyển khoản' || createdOrder.PTTT === 'bank')" class="vietqr-payment-box">
+            <div v-if="createdOrder && (createdOrder.PTTT === 'Chuyển khoản' || createdOrder.PTTT === 'bank')" class="vietqr-payment-box" :class="{ expired: paymentQrExpired }">
               <div class="vietqr-heading">QUÉT MÃ ĐỂ THANH TOÁN CHUYỂN KHOẢN</div>
+              <div class="payment-expire-timer" :class="{ expired: paymentQrExpired }">
+                {{ paymentQrExpired ? 'Mã QR đã hết hạn sau 15 phút' : `Mã QR còn hiệu lực ${paymentQrRemainingText}` }}
+              </div>
               <div class="vietqr-image-wrapper">
                 <img :src="getVietQrUrl(createdOrder)" class="vietqr-qrcode-img" alt="VietQR VinaTech" />
               </div>
@@ -282,7 +433,7 @@
                   <span class="vqr-label">Ngân hàng:</span>
                   <span class="vqr-val">MB Bank (Quân Đội)</span>
                 </div>
-                <div class="vietqr-row clickable-copy" @click="copyText('0900123456789', 'Đã sao chép số tài khoản MB Bank!')" title="Click để sao chép">
+                <div class="vietqr-row clickable-copy" @click="copyPaymentText('0900123456789', 'Đã sao chép số tài khoản MB Bank!')" title="Click để sao chép">
                   <span class="vqr-label">Số tài khoản:</span>
                   <span class="vqr-val font-mono">0900123456789 <i class="copy-icon">📋</i></span>
                 </div>
@@ -290,12 +441,12 @@
                   <span class="vqr-label">Chủ tài khoản:</span>
                   <span class="vqr-val">CONG TY VINATECH</span>
                 </div>
-                <div class="vietqr-row clickable-copy" @click="copyText('VINATECH ' + (createdOrder.ma_dathang || createdOrder.id_dathang), 'Đã sao chép nội dung chuyển khoản!')" title="Click để sao chép">
+                <div class="vietqr-row clickable-copy" @click="copyPaymentText('VINATECH ' + (createdOrder.ma_dathang || createdOrder.id_dathang), 'Đã sao chép nội dung chuyển khoản!')" title="Click để sao chép">
                   <span class="vqr-label">Nội dung CK:</span>
                   <span class="vqr-val font-mono highlight-memo">VINATECH {{ createdOrder.ma_dathang || createdOrder.id_dathang }} <i class="copy-icon">📋</i></span>
                 </div>
               </div>
-              <div class="vietqr-hint">💡 Nhấp vào Số tài khoản hoặc Nội dung CK để sao chép nhanh!</div>
+              <div class="vietqr-hint">{{ paymentQrExpired ? 'Vui lòng tạo lại đơn hoặc liên hệ nhân viên để lấy mã mới.' : '💡 Nhấp vào Số tài khoản hoặc Nội dung CK để sao chép nhanh!' }}</div>
             </div>
 
             <div class="bill-actions">
@@ -312,7 +463,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { productImageUrl, storageUrl } from '@/services/urls';
@@ -376,11 +527,87 @@ const checkoutForm = ref({
   phone: '',
   email: '',
   address: '',
-  paymentMethod: 'cod'
+  paymentMethod: 'bank'
 });
 
 const userAddresses = ref([]);
 const selectedAddressId = ref(null);
+const depositConfirmed = ref(false);
+const confirmInfoChecked = ref(false);
+const paymentQrDurationMs = 15 * 60 * 1000;
+const paymentQrExpiresAt = ref(null);
+const paymentQrRemainingMs = ref(paymentQrDurationMs);
+let paymentQrTimer = null;
+
+const checkoutProducts = computed(() => {
+  const productMap = new Map();
+
+  messages.value.forEach((msg) => {
+    (msg.products || []).forEach((prod) => {
+      if (prod?.id_bienthe) {
+        productMap.set(prod.id_bienthe, prod);
+      }
+    });
+  });
+
+  if (selectedProduct.value?.id_bienthe) {
+    productMap.set(selectedProduct.value.id_bienthe, selectedProduct.value);
+  }
+
+  return Array.from(productMap.values());
+});
+
+const selectCheckoutProduct = (product) => {
+  selectedProduct.value = product;
+};
+
+const selectedProductPrice = computed(() => Number(selectedProduct.value?.gia || 0));
+const depositAmount = computed(() => Math.ceil(selectedProductPrice.value * 0.5));
+const remainingAmount = computed(() => Math.max(0, selectedProductPrice.value - depositAmount.value));
+const paymentQrExpired = computed(() => paymentQrRemainingMs.value <= 0);
+const paymentQrRemainingText = computed(() => {
+  const totalSeconds = Math.max(0, Math.ceil(paymentQrRemainingMs.value / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
+
+const stopPaymentQrTimer = () => {
+  if (paymentQrTimer) {
+    clearInterval(paymentQrTimer);
+    paymentQrTimer = null;
+  }
+};
+
+const updatePaymentQrRemaining = () => {
+  if (!paymentQrExpiresAt.value) {
+    paymentQrRemainingMs.value = paymentQrDurationMs;
+    return;
+  }
+
+  paymentQrRemainingMs.value = Math.max(0, paymentQrExpiresAt.value - Date.now());
+  if (paymentQrRemainingMs.value <= 0) {
+    stopPaymentQrTimer();
+  }
+};
+
+const startPaymentQrTimer = () => {
+  stopPaymentQrTimer();
+  paymentQrExpiresAt.value = Date.now() + paymentQrDurationMs;
+  updatePaymentQrRemaining();
+  paymentQrTimer = setInterval(updatePaymentQrRemaining, 1000);
+};
+
+const goToOrderConfirm = () => {
+  if (!depositConfirmed.value) {
+    swal.warning('Xác nhận đặt cọc', 'Vui lòng đồng ý chuyển trước 50% giá trị đơn hàng để tiếp tục.');
+    return;
+  }
+
+  checkoutForm.value.paymentMethod = 'bank';
+  confirmInfoChecked.value = false;
+  chatbotView.value = 'confirm';
+};
 
 const loadUserAddresses = async () => {
   try {
@@ -416,10 +643,15 @@ const onAddressChange = () => {
 };
 
 const resetChatbotView = () => {
+  stopPaymentQrTimer();
   chatbotView.value = 'chat';
   selectedProduct.value = null;
   createdOrder.value = null;
   payUrl.value = '';
+  depositConfirmed.value = false;
+  confirmInfoChecked.value = false;
+  paymentQrExpiresAt.value = null;
+  paymentQrRemainingMs.value = paymentQrDurationMs;
 };
 
 const goToProduct = (bt) => {
@@ -442,6 +674,12 @@ const chotDon = async (bt) => {
   }
 
   selectedProduct.value = bt;
+  checkoutForm.value.paymentMethod = 'bank';
+  depositConfirmed.value = false;
+  confirmInfoChecked.value = false;
+  stopPaymentQrTimer();
+  paymentQrExpiresAt.value = null;
+  paymentQrRemainingMs.value = paymentQrDurationMs;
   
   // Pre-fill user data
   const user = getUser();
@@ -457,6 +695,11 @@ const chotDon = async (bt) => {
 
 const submitDirectOrder = async () => {
   if (!selectedProduct.value) return;
+
+  if (!confirmInfoChecked.value) {
+    swal.warning('Xác nhận thông tin', 'Vui lòng xác nhận thông tin nhận hàng và khoản đặt cọc trước khi tạo đơn.');
+    return;
+  }
 
   // Validate phone number format (0 followed by 9 digits)
   const phoneStr = String(checkoutForm.value.phone || '').replace(/\D/g, '');
@@ -486,19 +729,27 @@ const submitDirectOrder = async () => {
 
   try {
     // 2. Tiến hành gọi API thanh toán/đặt hàng
+    checkoutForm.value.paymentMethod = 'bank';
     const response = await api.post('/checkout', {
         id_diachi: selectedAddressId.value || undefined,
         diachi: checkoutForm.value.address,
         name: checkoutForm.value.name,
         phone: phoneStr,
+        email: checkoutForm.value.email,
         PTTT: checkoutForm.value.paymentMethod === 'vnpay' ? 'VNPAY' : (checkoutForm.value.paymentMethod === 'momo' ? 'MOMO' : (checkoutForm.value.paymentMethod === 'bank' ? 'Chuyển khoản' : 'COD')),
-        selected_variants: [selectedProduct.value.id_bienthe]
+        selected_variants: [selectedProduct.value.id_bienthe],
+        chatbot_order: true,
+        deposit_percent: 50,
+        deposit_amount: depositAmount.value,
+        remaining_amount: remainingAmount.value,
+        note: `Chatbot deposit 50%: ${depositAmount.value}. Remaining on delivery: ${remainingAmount.value}.`
     });
 
     if (response.data.success) {
         createdOrder.value = response.data.order;
         payUrl.value = response.data.payUrl || '';
         chatbotView.value = 'bill';
+        startPaymentQrTimer();
         
         window.dispatchEvent(new Event('cart-updated'));
         
@@ -532,7 +783,7 @@ const getVietQrUrl = (order) => {
   const bankId = 'MB'; // MB Bank
   const accountNo = '0900123456789';
   const template = 'print'; // print or compact
-  const amount = order.tong_tien || selectedProduct.value?.gia || 0;
+  const amount = depositAmount.value || Math.ceil(Number(order.tongtien || order.tong_tien || selectedProduct.value?.gia || 0) * 0.5);
   const memo = `VINATECH ${order.ma_dathang || order.id_dathang}`;
   const accountName = 'CONG TY VINATECH';
   
@@ -545,6 +796,15 @@ const copyText = (text, successMsg) => {
   }).catch(err => {
     console.error('Lỗi sao chép:', err);
   });
+};
+
+const copyPaymentText = (text, successMsg) => {
+  if (paymentQrExpired.value) {
+    swal.warning('Mã QR đã hết hạn', 'Mã thanh toán chỉ có hiệu lực trong 15 phút. Vui lòng tạo lại đơn hoặc liên hệ nhân viên để lấy mã mới.');
+    return;
+  }
+
+  copyText(text, successMsg);
 };
 
 const getDisplayName = (bt) => {
@@ -705,6 +965,9 @@ onMounted(() => {
       const bt = JSON.parse(pending);
       localStorage.removeItem('pendingChatbotItem');
       selectedProduct.value = bt;
+      stopPaymentQrTimer();
+      paymentQrExpiresAt.value = null;
+      paymentQrRemainingMs.value = paymentQrDurationMs;
       
       const user = getUser();
       if (user) {
@@ -724,6 +987,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  stopPaymentQrTimer();
   window.removeEventListener('open-chatbot', handleOpenChatEvent);
   window.removeEventListener('open-admin-chat', handleOpenAdminChatEvent);
   window.removeEventListener('admin-chat-state', handleAdminStateEvent);
@@ -799,13 +1063,13 @@ onUnmounted(() => {
   right: 0;
   width: 350px;
   height: 500px;
-  background: #111f35;
+  background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(26, 39, 68, 0.18);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.28);
   transform-origin: bottom right;
 }
 
@@ -813,7 +1077,7 @@ onUnmounted(() => {
   margin-left: auto;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: #475569;
   font-size: 18px;
   cursor: pointer;
   padding: 4px 8px;
@@ -825,8 +1089,8 @@ onUnmounted(() => {
 }
 
 .chat-close-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
 }
 
 @media (max-width: 640px) {
@@ -858,16 +1122,17 @@ onUnmounted(() => {
 
 /* ===== HEADER ===== */
 .chat-header {
-  background: linear-gradient(135deg, #1a2744 0%, #1e3a8a 60%, #2563eb 100%);
+  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
   padding: 15px 20px;
-  color: white;
+  color: #0f172a;
   position: relative;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .mode-toggle-btn {
   margin-left: auto;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #2563eb;
+  border: 1px solid #2563eb;
   border-radius: 20px;
   color: white;
   padding: 5px 12px;
@@ -878,7 +1143,7 @@ onUnmounted(() => {
 }
 
 .mode-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #1d4ed8;
 }
 
 .header-info {
@@ -891,10 +1156,10 @@ onUnmounted(() => {
   position: relative;
   width: 45px;
   height: 45px;
-  background: #111f35;
+  background: #ffffff;
   border-radius: 50%;
   padding: 2px;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22), 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
 .avatar {
@@ -918,13 +1183,16 @@ onUnmounted(() => {
 .title-wrap .title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .title-wrap .subtitle {
   margin: 2px 0 0;
   font-size: 12px;
-  opacity: 0.85;
+  color: #64748b;
+  opacity: 1;
+  font-weight: 600;
 }
 
 /* ===== BODY ===== */
@@ -932,7 +1200,7 @@ onUnmounted(() => {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: #f0f4ff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -971,7 +1239,7 @@ onUnmounted(() => {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #111f35;
+  background: #ffffff;
   flex-shrink: 0;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
@@ -985,8 +1253,9 @@ onUnmounted(() => {
 .message-bubble {
   padding: 12px 16px;
   border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 14.5px;
+  line-height: 1.55;
+  font-weight: 600;
   word-wrap: break-word;
 }
 
@@ -1000,11 +1269,11 @@ onUnmounted(() => {
 
 /* Tin nhắn bot — trắng với viền xanh nhẹ */
 .message-bubble.bot {
-  background: #111f35;
-  color: #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
   border-bottom-left-radius: 4px;
-  border: 1px solid rgba(37, 99, 235, 0.1);
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
 }
 
 /* ===== BOT PRODUCT CARDS ===== */
@@ -1019,8 +1288,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #0d1b2e;
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 12px;
   padding: 8px;
   cursor: pointer;
@@ -1031,7 +1300,7 @@ onUnmounted(() => {
 .bot-product-card:hover {
   transform: translateY(-2px);
   border-color: #2563eb;
-  background: #111f35;
+  background: #eff6ff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 
@@ -1040,8 +1309,8 @@ onUnmounted(() => {
   height: 50px;
   object-fit: cover;
   border-radius: 8px;
-  background: #111f35;
-  border: 1px solid rgba(255,255,255,0.07);
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
 }
 
 .bot-product-info {
@@ -1054,7 +1323,7 @@ onUnmounted(() => {
 .bot-product-name {
   font-size: 13px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #0f172a;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1144,22 +1413,22 @@ onUnmounted(() => {
 /* ===== FOOTER ===== */
 .chat-footer {
   padding: 15px;
-  background: #111f35;
-  border-top: 1px solid rgba(37, 99, 235, 0.08);
+  background: #ffffff;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .input-form {
   display: flex;
   gap: 10px;
-  background: #f0f4ff;
+  background: #f8fafc;
   padding: 5px 5px 5px 15px;
   border-radius: 30px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(148, 163, 184, 0.28);
   transition: all 0.3s;
 }
 
 .input-form:focus-within {
-  background: #111f35;
+  background: #ffffff;
   border-color: #2563eb;
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
 }
@@ -1171,18 +1440,11 @@ onUnmounted(() => {
   font-size: 14px;
   outline: none;
   color: #1e293b !important;
-}
-
-.input-form:focus-within input {
-  color: #ffffff !important;
+  font-weight: 600;
 }
 
 .input-form input::placeholder {
   color: #64748b !important;
-}
-
-.input-form:focus-within input::placeholder {
-  color: #94a3b8 !important;
 }
 
 /* Nút gửi — xanh blue */
@@ -1312,6 +1574,40 @@ onUnmounted(() => {
   color: #e2e8f0;
 }
 
+.checkout-product-picker {
+  background: rgba(13, 27, 46, 0.55);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 10px;
+  padding: 7px;
+}
+
+.picker-label {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  margin: 0 0 5px 2px;
+}
+
+.checkout-product-list {
+  max-height: 92px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 3px;
+}
+
+.checkout-product-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.checkout-product-list::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.6);
+  border-radius: 999px;
+}
+
 .checkout-product-mini {
   display: flex;
   align-items: center;
@@ -1320,8 +1616,16 @@ onUnmounted(() => {
   border: 1px solid rgba(37, 99, 235, 0.12);
   border-radius: 12px;
   padding: 8px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checkout-product-mini.active {
+  border-color: rgba(56, 189, 248, 0.8);
+  background: #0f2744;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.16);
 }
 
 .checkout-product-mini .mini-img {
@@ -1753,12 +2057,35 @@ onUnmounted(() => {
   margin-top: 14px;
 }
 
+.vietqr-payment-box.expired {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
 .vietqr-heading {
   font-size: 11px;
   font-weight: 800;
   color: #4ade80;
   margin-bottom: 10px;
   letter-spacing: 0.5px;
+}
+
+.payment-expire-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 10px;
+  margin: -2px 0 10px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.payment-expire-timer.expired {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
 }
 
 .vietqr-image-wrapper {
@@ -1768,6 +2095,11 @@ onUnmounted(() => {
   display: inline-block;
   margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.vietqr-payment-box.expired .vietqr-image-wrapper {
+  opacity: 0.42;
+  filter: grayscale(1);
 }
 
 .vietqr-qrcode-img {
@@ -1832,5 +2164,867 @@ onUnmounted(() => {
   color: #94a3b8;
   margin-top: 6px;
   font-style: italic;
+}
+
+/* Compact checkout form inside chatbot */
+.chatbot-window.checkout-window {
+  width: 320px;
+  height: 430px;
+  border-radius: 18px;
+}
+
+.checkout-chat-header {
+  padding: 8px 14px;
+}
+
+.checkout-chat-header .header-info {
+  gap: 8px;
+}
+
+.checkout-chat-header .title-wrap .title {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.checkout-chat-header .title-wrap .subtitle {
+  font-size: 10.5px;
+  margin-top: 1px;
+}
+
+.checkout-chat-header .chat-back-navigation-btn,
+.checkout-chat-header .chat-close-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 17px;
+}
+
+.form-view {
+  padding: 10px 12px !important;
+  gap: 7px;
+  overflow-y: auto;
+}
+
+.checkout-product-picker {
+  padding: 6px;
+}
+
+.checkout-product-list {
+  max-height: 78px;
+}
+
+.checkout-product-mini {
+  gap: 8px;
+  padding: 6px 9px;
+  margin-bottom: 0;
+  border-radius: 9px;
+}
+
+.checkout-product-mini .mini-img {
+  width: 32px;
+  height: 32px;
+}
+
+.checkout-product-mini .mini-name {
+  font-size: 10.8px;
+  line-height: 1.25;
+}
+
+.checkout-product-mini .mini-price {
+  font-size: 11.5px;
+  margin-top: 1px;
+}
+
+.chatbot-checkout-form {
+  gap: 5px;
+}
+
+.chatbot-checkout-form .input-group {
+  gap: 2px;
+}
+
+.chatbot-checkout-form .input-group label {
+  font-size: 9px;
+  letter-spacing: 0.25px;
+}
+
+.chatbot-checkout-form input,
+.chatbot-checkout-form textarea,
+.chatbot-checkout-form select {
+  min-height: 30px !important;
+  padding: 5px 9px !important;
+  font-size: 11.5px !important;
+  margin-top: 1px !important;
+  border-radius: 7px !important;
+}
+
+.chatbot-checkout-form textarea {
+  height: 38px !important;
+}
+
+.payment-tip-badge {
+  font-size: 9px;
+  margin-top: 3px;
+  padding: 3px 6px;
+  line-height: 1.25;
+}
+
+.submit-btn {
+  padding: 7px 9px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  border-radius: 12px;
+}
+
+/* Shipping form redesign */
+.chatbot-window.checkout-window {
+  width: 285px;
+  height: 462px;
+  background: #111827;
+  border-color: rgba(80, 99, 133, 0.8);
+  border-radius: 8px;
+}
+
+.checkout-chat-header {
+  background: #202a3f;
+  border-bottom: 1px solid rgba(91, 111, 145, 0.35);
+  padding: 8px 12px;
+}
+
+.checkout-chat-header .title-wrap {
+  margin-left: 2px !important;
+}
+
+.checkout-chat-header .title-wrap .title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.checkout-chat-header .title-wrap .subtitle {
+  color: #7ee787;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.checkout-chat-header .chat-back-navigation-btn,
+.checkout-chat-header .chat-close-btn {
+  color: #cbd5e1;
+}
+
+.form-view {
+  padding: 0 !important;
+  gap: 0;
+  background: #111827 !important;
+  overflow: hidden;
+}
+
+.form-view > .checkout-product-picker,
+.form-view > .chatbot-checkout-form {
+  display: none !important;
+}
+
+.shipping-designed-form {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #111827;
+  color: #dbeafe;
+}
+
+.checkout-steps {
+  display: grid;
+  grid-template-columns: 44px 1fr 64px 1fr 52px;
+  align-items: center;
+  padding: 9px 13px 8px;
+  background: #111827;
+  border-bottom: 1px solid rgba(91, 111, 145, 0.22);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #59677e;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.step span {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.12);
+  color: #526075;
+  font-size: 10px;
+}
+
+.step small {
+  font-size: 7px;
+  letter-spacing: 0.45px;
+}
+
+.step.done span,
+.step.active span {
+  background: #12c781;
+  color: #06251b;
+}
+
+.step.active small {
+  color: #2ff3b2;
+}
+
+.step-line {
+  height: 1px;
+  background: #334155;
+}
+
+.step-line.active {
+  background: #12c781;
+}
+
+.checkout-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 13px 14px 12px;
+}
+
+.checkout-scroll::-webkit-scrollbar,
+.shipping-products::-webkit-scrollbar {
+  width: 4px;
+}
+
+.checkout-scroll::-webkit-scrollbar-thumb,
+.shipping-products::-webkit-scrollbar-thumb {
+  background: rgba(45, 243, 178, 0.5);
+  border-radius: 999px;
+}
+
+.checkout-helper {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 11px;
+}
+
+.checkout-helper span {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(18, 199, 129, 0.13);
+  color: #2ff3b2;
+  font-size: 9px;
+}
+
+.checkout-helper p {
+  margin: 0;
+  background: #202a3f;
+  border-radius: 6px;
+  padding: 8px 9px;
+  color: #dbeafe;
+  font-size: 9px;
+  line-height: 1.35;
+  font-style: italic;
+}
+
+.shipping-card {
+  margin-bottom: 10px;
+}
+
+.shipping-products {
+  max-height: 90px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.shipping-product {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: #202a3f;
+  border: 1px solid rgba(96, 116, 148, 0.65);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.shipping-product.active {
+  border-color: #2ff3b2;
+  box-shadow: 0 0 0 1px rgba(47, 243, 178, 0.18);
+}
+
+.shipping-product img {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  object-fit: cover;
+  background: #111827;
+}
+
+.shipping-product span {
+  min-width: 0;
+}
+
+.shipping-product small {
+  display: block;
+  color: #7ee787;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.45px;
+}
+
+.shipping-product strong {
+  display: block;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shipping-product b {
+  color: #2ff3b2;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.shipping-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shipping-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shipping-form label {
+  color: #7ee787;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+.shipping-form input,
+.shipping-form textarea,
+.shipping-form select {
+  width: 100%;
+  min-height: 31px;
+  padding: 8px 9px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #172033;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.shipping-form textarea {
+  height: 45px;
+  resize: none;
+}
+
+.shipping-form input::placeholder,
+.shipping-form textarea::placeholder {
+  color: #6b7890;
+}
+
+.shipping-form input:focus,
+.shipping-form textarea:focus,
+.shipping-form select:focus {
+  border-color: #2ff3b2;
+  box-shadow: 0 0 0 2px rgba(47, 243, 178, 0.12);
+}
+
+.shipping-submit {
+  min-height: 35px;
+  border: 0;
+  border-radius: 6px;
+  background: #16c784;
+  color: #102018;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.shipping-submit span {
+  margin-left: 5px;
+}
+
+.shipping-secure {
+  margin: 1px 0 0;
+  color: #738096;
+  font-size: 7px;
+  text-align: center;
+}
+
+.chatbot-window .form-view {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Checkout form should feel like the product cards inside the chatbot */
+.chatbot-window .checkout-chat-header {
+  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 15px 20px;
+}
+
+.chatbot-window .checkout-chat-header .title-wrap .title {
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.chatbot-window .checkout-chat-header .title-wrap .subtitle {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.chatbot-window .checkout-chat-header .chat-back-navigation-btn,
+.chatbot-window .checkout-chat-header .chat-close-btn {
+  color: #475569;
+}
+
+.chatbot-window .form-view {
+  background: #f8fafc !important;
+  overflow-y: auto;
+}
+
+.chatbot-window .shipping-designed-form {
+  background: #f8fafc;
+  color: #0f172a;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.chatbot-window .checkout-steps {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.chatbot-window .step {
+  color: #94a3b8;
+}
+
+.chatbot-window .step span {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.chatbot-window .step.done span,
+.chatbot-window .step.active span {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.chatbot-window .step.active small {
+  color: #16a34a;
+}
+
+.chatbot-window .step-line {
+  background: #cbd5e1;
+}
+
+.chatbot-window .step-line.active {
+  background: #16a34a;
+}
+
+.chatbot-window .checkout-scroll {
+  padding: 10px 20px 16px;
+}
+
+.chatbot-window .checkout-helper {
+  display: none;
+}
+
+.chatbot-window .shipping-products {
+  max-height: 170px;
+  gap: 8px;
+}
+
+.chatbot-window .shipping-products::-webkit-scrollbar-thumb,
+.chatbot-window .checkout-scroll::-webkit-scrollbar-thumb {
+  background: #bfdbfe;
+}
+
+.chatbot-window .shipping-product {
+  grid-template-columns: 48px minmax(0, 1fr) 58px;
+  gap: 8px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  color: #0f172a;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.chatbot-window .shipping-product.active {
+  border-color: #16a34a;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.14);
+}
+
+.chatbot-window .shipping-product img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.chatbot-window .shipping-product small {
+  display: none;
+}
+
+.chatbot-window .shipping-product strong {
+  color: #0f172a;
+  font-size: 12.5px;
+  line-height: 1.28;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.chatbot-window .shipping-product b {
+  color: #ef4444;
+  font-size: 13px;
+  grid-column: 2 / 3;
+  white-space: nowrap;
+}
+
+.chatbot-window .shipping-product em {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  justify-self: end;
+  align-self: center;
+  min-width: 48px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.chatbot-window .shipping-product.active em {
+  background: #15803d;
+}
+
+.chatbot-window .shipping-form {
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.chatbot-window .shipping-form label {
+  color: #475569;
+  font-size: 11px;
+}
+
+.chatbot-window .shipping-form input,
+.chatbot-window .shipping-form textarea,
+.chatbot-window .shipping-form select {
+  min-height: 38px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.chatbot-window .shipping-form textarea {
+  height: 58px;
+}
+
+.chatbot-window .shipping-form .field:last-of-type {
+  display: none;
+}
+
+.chatbot-window .shipping-submit {
+  background: #16a34a;
+  color: #ffffff;
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: none;
+}
+
+.chatbot-window .shipping-secure {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.deposit-policy,
+.confirm-deposit-plan,
+.bill-deposit-plan {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: #f0fdf4;
+  padding: 10px 12px;
+  color: #0f172a;
+}
+
+.deposit-policy {
+  margin: 10px 20px 0;
+  width: calc(100% - 40px);
+}
+
+.deposit-row,
+.confirm-deposit-plan > div,
+.bill-deposit-plan > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.deposit-row strong,
+.confirm-deposit-plan strong,
+.bill-deposit-plan strong {
+  color: #15803d;
+  white-space: nowrap;
+}
+
+.deposit-row.highlight strong,
+.confirm-deposit-plan > div:first-child strong,
+.bill-deposit-plan > div:first-child strong {
+  color: #ef4444;
+}
+
+.deposit-confirm,
+.confirm-info-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 9px;
+  color: #334155;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+  text-align: left;
+}
+
+.deposit-confirm input,
+.confirm-info-check input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin-top: 1px;
+  accent-color: #16a34a;
+}
+
+.deposit-continue-btn {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.confirm-deposit-plan {
+  margin-bottom: 10px;
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #e2e8f0;
+}
+
+.confirm-deposit-plan p {
+  margin: 8px 0 0;
+  color: #bbf7d0 !important;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.confirm-info-check {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.bill-deposit-plan {
+  margin-top: 10px;
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #e2e8f0;
+}
+
+/* Light confirmation step */
+.chatbot-window .confirm-view {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  padding: 16px 18px !important;
+}
+
+.chatbot-window .confirm-box {
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.chatbot-window .confirm-box .box-title {
+  color: #0284c7;
+}
+
+.chatbot-window .confirm-box p {
+  color: #334155 !important;
+}
+
+.chatbot-window .confirm-product-img {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.chatbot-window .confirm-product-info .prod-name {
+  color: #0f172a;
+}
+
+.chatbot-window .confirm-product-info .prod-price {
+  color: #ef4444;
+}
+
+.chatbot-window .confirm-total {
+  background: #eef6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+}
+
+.chatbot-window .confirm-total span {
+  color: #475569;
+}
+
+.chatbot-window .confirm-total b {
+  color: #0f172a;
+}
+
+.chatbot-window .confirm-deposit-plan {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #0f172a;
+}
+
+.chatbot-window .confirm-deposit-plan p {
+  color: #166534 !important;
+}
+
+.chatbot-window .confirm-info-check {
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  color: #334155;
+}
+
+.chatbot-window .confirm-actions .cancel-btn {
+  background: #e2e8f0;
+  color: #0f172a !important;
+}
+
+.chatbot-window .confirm-actions .confirm-btn {
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+/* Light invoice card inside chatbot */
+.chatbot-window .bill-view {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.chatbot-window .bill-title {
+  color: #0f172a;
+}
+
+.chatbot-window .bill-details {
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.chatbot-window .bill-details p {
+  color: #334155 !important;
+}
+
+.chatbot-window .bill-details p strong {
+  color: #0f172a;
+}
+
+.chatbot-window .order-code-text {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.chatbot-window .badge-status-waiting {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.chatbot-window .bill-divider {
+  border-top-color: #e2e8f0;
+}
+
+.chatbot-window .bill-product-img {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.chatbot-window .bill-product-info .prod-name {
+  color: #0f172a;
+}
+
+.chatbot-window .bill-product-info .prod-price {
+  color: #ef4444;
+}
+
+.chatbot-window .bill-total {
+  color: #0f172a;
+}
+
+.chatbot-window .bill-total b {
+  color: #0f172a;
+}
+
+.chatbot-window .bill-deposit-plan {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #0f172a;
 }
 </style>

@@ -1,5 +1,5 @@
 import { getToken, getUser } from '@/services/auth'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { prefetchProductDetail, prefetchProductsPage } from '@/services/productsPrefetch'
 
 const idle = (task, timeout = 1600) => {
   if (typeof window === 'undefined') return
@@ -17,47 +17,59 @@ const hasSlowConnection = () => {
 
 const routePreloads = {
   '/': () => Promise.all([
-    import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/Home.vue'),
+    import('@/components/Layout/BoCucChinh.vue'),
+    import('@/components/Web/TrangChu.vue'),
   ]),
-  '/products': () => Promise.all([
-    import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/ProductsPremiumPage.vue'),
-  ]),
-  '/gaming': () => Promise.all([
-    import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/GamingPage.vue'),
-  ]),
-  '/macbook': () => Promise.all([
-    import('@/components/Layout/MainLayout.vue'),
-    import('@/components/Web/ProductsPremiumPage.vue'),
-  ]),
-  '/products/:id': () => import('@/components/Web/ProductDetail.vue'),
-  '/cart': () => import('@/components/Web/Cart.vue'),
-  '/checkout': () => import('@/components/Web/Checkout.vue'),
-  '/news': () => import('@/components/Web/News.vue'),
-  '/news/:id': () => import('@/components/Web/NewsDetail.vue'),
-  '/contact': () => import('@/components/Web/Contact.vue'),
-  '/khuyen-mai': () => import('@/components/Web/Promotions.vue'),
-  '/workstation': () => import('@/components/Web/Workstation.vue'),
-  '/interactive-labs': () => import('@/components/Web/InteractiveLabs.vue'),
-  '/login': () => import('@/components/Auth/Login.vue'),
-  '/register': () => import('@/components/Auth/Register.vue'),
+  '/san-pham': () => routePreloads['/laptop'](),
+  '/products': () => routePreloads['/san-pham'](),
+  '/laptop': () => import('@/components/Web/TrangLaptop.vue'),
+  '/workstation': () => import('@/components/Web/TrangWorkstation.vue'),
+  '/san-pham/:id': () => import('@/components/Web/ChiTietSanPham.vue'),
+  '/products/:id': () => routePreloads['/san-pham/:id'](),
+  '/gio-hang': () => import('@/components/Web/GioHang.vue'),
+  '/cart': () => routePreloads['/gio-hang'](),
+  '/thanh-toan': () => import('@/components/Web/ThanhToan.vue'),
+  '/checkout': () => routePreloads['/thanh-toan'](),
+  '/tin-tuc': () => import('@/components/Web/TinTucKhachHang.vue'),
+  '/news': () => routePreloads['/tin-tuc'](),
+  '/tin-tuc/:id': () => import('@/components/Web/ChiTietTinTuc.vue'),
+  '/news/:id': () => routePreloads['/tin-tuc/:id'](),
+  '/lien-he': () => import('@/components/Web/LienHeKhachHang.vue'),
+  '/contact': () => routePreloads['/lien-he'](),
+  '/khuyen-mai': () => import('@/components/Web/KhuyenMaiKhachHang.vue'),
+  '/tiep-thi-lien-ket': () => import('@/components/Web/TrungTamTiepThi.vue'),
+  '/affiliate': () => routePreloads['/tiep-thi-lien-ket'](),
+  '/dang-nhap': () => import('@/components/Auth/DangNhap.vue'),
+  '/login': () => routePreloads['/dang-nhap'](),
+  '/dang-ky': () => import('@/components/Auth/DangKy.vue'),
+  '/register': () => routePreloads['/dang-ky'](),
   '/admin': () => Promise.all([
     import('@/components/Admin/Layout/AdminLayout.vue'),
-    import('@/components/Admin/Dashboard.vue'),
+    import('@/components/Admin/BangDieuKhien.vue'),
   ]),
-  '/admin/products': () => import('@/components/Admin/Products.vue'),
-  '/admin/orders': () => import('@/components/Admin/Orders.vue'),
-  '/admin/users': () => import('@/components/Admin/Users.vue'),
-  '/admin/news': () => import('@/components/Admin/News.vue'),
-  '/admin/variants': () => import('@/components/Admin/ProductVariants.vue'),
-  '/admin/categories': () => import('@/components/Admin/Categories.vue'),
-  '/admin/promotions': () => import('@/components/Admin/Promotions.vue'),
-  '/admin/banners': () => import('@/components/Admin/Banners.vue'),
-  '/admin/brands': () => import('@/components/Admin/Brands.vue'),
-  '/admin/contacts': () => import('@/components/Admin/Contact.vue'),
-  '/admin/reviews': () => import('@/components/Admin/ReviewManagement.vue'),
+  '/admin/quan-ly-san-pham': () => import('@/components/Admin/QuanLySanPham.vue'),
+  '/admin/products': () => routePreloads['/admin/quan-ly-san-pham'](),
+  '/admin/quan-ly-don-hang': () => import('@/components/Admin/QuanLyDonHang.vue'),
+  '/admin/orders': () => routePreloads['/admin/quan-ly-don-hang'](),
+  '/admin/quan-ly-nguoi-dung': () => import('@/components/Admin/QuanLyNguoiDung.vue'),
+  '/admin/users': () => routePreloads['/admin/quan-ly-nguoi-dung'](),
+  '/admin/quan-ly-tin-tuc': () => import('@/components/Admin/QuanLyTinTuc.vue'),
+  '/admin/news': () => routePreloads['/admin/quan-ly-tin-tuc'](),
+  '/admin/bien-the': () => import('@/components/Admin/BienTheSanPham.vue'),
+  '/admin/variants': () => routePreloads['/admin/bien-the'](),
+  '/admin/quan-ly-danh-muc': () => import('@/components/Admin/QuanLyDanhMuc.vue'),
+  '/admin/categories': () => routePreloads['/admin/quan-ly-danh-muc'](),
+  '/admin/quan-ly-khuyen-mai': () => import('@/components/Admin/QuanLyKhuyenMai.vue'),
+  '/admin/promotions': () => routePreloads['/admin/quan-ly-khuyen-mai'](),
+  '/admin/quan-ly-banner': () => import('@/components/Admin/QuanLyBanner.vue'),
+  '/admin/banners': () => routePreloads['/admin/quan-ly-banner'](),
+  '/admin/quan-ly-thuong-hieu': () => import('@/components/Admin/QuanLyThuongHieu.vue'),
+  '/admin/brands': () => routePreloads['/admin/quan-ly-thuong-hieu'](),
+  '/admin/quan-ly-lien-he': () => import('@/components/Admin/QuanLyLienHe.vue'),
+  '/admin/contacts': () => routePreloads['/admin/quan-ly-lien-he'](),
+  '/admin/reviews': () => import('@/components/Admin/QuanLyBinhLuan.vue'),
+  '/admin/flash-sales': () => import('@/components/Admin/FlashSaleManagement.vue'),
+  '/admin/flash-sale': () => routePreloads['/admin/flash-sales'](),
 }
 
 const preloadOnce = (() => {
@@ -75,26 +87,45 @@ const normalizePath = (href) => {
     const url = new URL(href, window.location.origin)
     if (url.origin !== window.location.origin) return null
     if (url.pathname.startsWith('/products/')) return '/products/:id'
+    if (url.pathname.startsWith('/san-pham/')) return '/san-pham/:id'
     if (url.pathname.startsWith('/news/')) return '/news/:id'
+    if (url.pathname.startsWith('/tin-tuc/')) return '/tin-tuc/:id'
     return url.pathname
   } catch {
     return null
   }
 }
 
+const getProductIdFromHref = (href) => {
+  try {
+    const url = new URL(href, window.location.origin)
+    const match = url.pathname.match(/^\/(?:products|san-pham)\/([^/?#]+)/)
+    return match?.[1] || null
+  } catch {
+    return null
+  }
+}
+
+const prefetchRouteData = (path, href) => {
+  if (['/', '/laptop', '/workstation'].includes(path)) {
+    prefetchProductsPage({ forceRefresh: false }).catch(() => {})
+    return
+  }
+
+  if (path === '/san-pham/:id' || path === '/products/:id') {
+    const id = getProductIdFromHref(href)
+    if (id) prefetchProductDetail(id).catch(() => {})
+  }
+}
+
 const preloadLinkTarget = (event) => {
   const link = event.target?.closest?.('a[href]')
   if (!link) return
-  const path = normalizePath(link.getAttribute('href'))
+  const href = link.getAttribute('href')
+  const path = normalizePath(href)
   if (!path) return
   preloadOnce(path)
-  prefetchRouteData(path)
-}
-
-const prefetchRouteData = (path) => {
-  if (['/', '/products', '/gaming', '/macbook', '/workstation', '/products/:id'].includes(path)) {
-    prefetchProductsPage({ forceRefresh: false }).catch(() => {})
-  }
+  prefetchRouteData(path, href)
 }
 
 const installLinkPrefetch = () => {
@@ -106,10 +137,11 @@ const warmCoreRoutes = () => {
   if (hasSlowConnection()) return
 
   const user = getUser()
-  const isAdmin = Boolean(getToken() && user?.role === 'admin')
-  const webQueue = ['/', '/products', '/gaming', '/macbook', '/news']
-  const adminQueue = isAdmin
-    ? ['/admin', '/admin/products', '/admin/orders', '/admin/users', '/admin/variants', '/admin/banners', '/admin/brands']
+  const role = String(user?.vaitro || user?.role || '').toLowerCase()
+  const isStaff = Boolean(getToken() && role && role !== 'user')
+  const webQueue = ['/', '/laptop', '/tin-tuc']
+  const adminQueue = isStaff
+    ? ['/admin', '/admin/quan-ly-san-pham', '/admin/quan-ly-don-hang', '/admin/quan-ly-nguoi-dung', '/admin/bien-the', '/admin/quan-ly-banner']
     : []
 
   const queue = [...webQueue, ...adminQueue]

@@ -316,7 +316,7 @@ const handleConsultantSubmit = () => {
   }
   swal.success(
     'Đã gửi yêu cầu thành công! 📞',
-    'Các chuyên gia Predator Group sẽ liên hệ lại với bạn trong vòng 15 phút để tư vấn cấu hình tối ưu nhất.'
+    'Các chuyên gia NextGen Group sẽ liên hệ lại với bạn trong vòng 15 phút để tư vấn cấu hình tối ưu nhất.'
   )
   consultantName.value = ''
   consultantPhone.value = ''
@@ -361,7 +361,7 @@ const handleGetAdviceNow = () => {
     if (result.isConfirmed) {
       swal.success(
         'Đăng ký thành công! 🎉',
-        `Predator Group đã tiếp nhận yêu cầu tư vấn cho lĩnh vực công việc của bạn. Chuyên viên sẽ gọi điện cho bạn sớm nhất.`
+        `NextGen Group đã tiếp nhận yêu cầu tư vấn cho lĩnh vực công việc của bạn. Chuyên viên sẽ gọi điện cho bạn sớm nhất.`
       )
     }
   })
@@ -576,7 +576,7 @@ onMounted(() => {
         <div class="section-header center scroll-reveal reveal-fade-up">
           <span class="section-badge-label">HỆ THỐNG MÁY TRẠM</span>
           <h2>Dòng Máy Trạm Workstation Nổi Bật</h2>
-          <p>Tuyển chọn các cấu hình máy trạm di động mạnh mẽ nhất thế giới có sẵn tại Predator Group.</p>
+          <p>Tuyển chọn các cấu hình máy trạm di động mạnh mẽ nhất thế giới có sẵn tại NextGen Group.</p>
         </div>
 
         <!-- Loading skeleton -->
@@ -755,7 +755,7 @@ onMounted(() => {
 
             <div class="dashboard-footer-info">
               <ShieldCheck class="db-shield-icon" />
-              <span>Kiểm thử được thực hiện trong phòng thí nghiệm Predator Lab dưới sự giám sát chặt chẽ của các kỹ sư hệ thống.</span>
+              <span>Kiểm thử được thực hiện trong phòng thí nghiệm NextGen Lab dưới sự giám sát chặt chẽ của các kỹ sư hệ thống.</span>
             </div>
           </div>
         </div>
@@ -768,7 +768,7 @@ onMounted(() => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="section-badge-label">DỰ ÁN THỰC TẾ</span>
           <h2>Case Study: Ứng Dụng Trong Thực Tế</h2>
-          <p>Xem cách các chuyên gia hàng đầu ứng dụng máy trạm Predator Workstation để hiện thực hóa dự án triệu đô.</p>
+          <p>Xem cách các chuyên gia hàng đầu ứng dụng máy trạm NextGen Workstation để hiện thực hóa dự án triệu đô.</p>
         </div>
 
         <div class="case-study-grid scroll-reveal reveal-stagger">
@@ -792,9 +792,9 @@ onMounted(() => {
         <div class="consultant-box border-glow scroll-reveal">
           <div class="consultant-layout">
             <div class="consultant-headline">
-              <span class="subtitle-cyan">PREDATOR EXPERT SUPPORT</span>
+              <span class="subtitle-cyan">NEXTGEN EXPERT SUPPORT</span>
               <h2>Không biết chọn cấu hình máy trạm nào?</h2>
-              <p>Hệ thống phần cứng máy trạm rất phức tạp. Hãy cung cấp thông tin nhu cầu, chuyên viên hệ thống của Predator Group sẽ gọi điện phân tích và báo giá cấu hình tối ưu nhất dành cho bạn.</p>
+              <p>Hệ thống phần cứng máy trạm rất phức tạp. Hãy cung cấp thông tin nhu cầu, chuyên viên hệ thống của NextGen Group sẽ gọi điện phân tích và báo giá cấu hình tối ưu nhất dành cho bạn.</p>
               
               <div class="expert-profile">
                 <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150" alt="Tech Expert" class="expert-avatar" />
@@ -871,7 +871,7 @@ onMounted(() => {
     <section v-if="false" class="ending-cta-section">
       <div class="cta-banner-image-tint"></div>
       <div class="cta-banner-container scroll-reveal">
-        <span class="cta-eyebrow">PREDATOR ENTERPRISE SOLUTIONS</span>
+        <span class="cta-eyebrow">NEXTGEN ENTERPRISE SOLUTIONS</span>
         <h2>WORKSTATION</h2>
         <p>Kiến tạo sức mạnh xử lý không giới hạn, đảm bảo hoạt động liên tục 24/7 với chế độ bảo hành chuyên biệt ProSupport.</p>
         <button @click="scrollToSection('ws-catalog-section')" class="btn btn-primary-glow">

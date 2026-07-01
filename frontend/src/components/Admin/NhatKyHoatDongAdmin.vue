@@ -47,15 +47,16 @@ function getAvatarUrl(avatar) {
   return normalizeImageUrl(avatar, null)
 }
 
-async function fetchActiveAdmins() {
-  loadingAdmins.value = true
+async function fetchActiveAdmins({ silent = false } = {}) {
+  if (!silent) loadingAdmins.value = true
   try {
+    await api.post('/user/heartbeat', {}, { showGlobalLoader: false, invalidateCache: false })
     const res = await api.get('/admin/account/active-admins')
     activeAdmins.value = res.data?.data || []
   } catch (e) {
     console.error('Failed to load active admins', e)
   } finally {
-    loadingAdmins.value = false
+    if (!silent) loadingAdmins.value = false
   }
 }
 
@@ -121,8 +122,8 @@ onMounted(() => {
   fetchActiveAdmins()
   fetchLogs(1)
   refreshInterval = setInterval(() => {
-    fetchActiveAdmins()
-  }, 30000)
+    fetchActiveAdmins({ silent: true })
+  }, 10000)
 })
 
 onUnmounted(() => {

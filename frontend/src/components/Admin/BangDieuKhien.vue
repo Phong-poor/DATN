@@ -5,7 +5,7 @@ import echo from '@/services/echo'
 
 // State
 const period = ref('all')          // all | week | month | year
-const DASHBOARD_CACHE_PREFIX = 'predator_admin_dashboard_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
 const statusLabels = [

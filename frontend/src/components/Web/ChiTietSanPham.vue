@@ -12,6 +12,7 @@ import ComboSelectionModal from './HopThoaiChonCombo.vue'
 const route = useRoute()
 const isLoading = ref(false)
 const router = useRouter()
+const DETAIL_CACHE_VERSION = 'detail-complete-v4'
 
 // ===================== STATE COMBO =====================
 const combos = ref([])
@@ -89,6 +90,7 @@ const fetchReviews = async () => {
         const productId = route.params.id || 1
         const res = await api.get(`/sanpham/${productId}/reviews`, { skipGlobalLoader: true })
         reviews.value = res.data.reviews || []
+        return true
     } catch (error) {
         console.error('Lỗi khi tải đánh giá:', error)
     }
@@ -148,34 +150,135 @@ const specsArrayToTechnicalSpecs = (specs = []) => {
         }))
 }
 
+const parseArrayLike = (value) => {
+    if (Array.isArray(value)) return value
+    if (!value) return []
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value)
+            return Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+            return []
+        }
+    }
+    return []
+}
+
+const normalizeTechnicalSpecs = (data = {}, variants = []) => {
+    const directSpecs = parseArrayLike(data.thong_so_ky_thuat)
+        .map((spec, index) => {
+            if (typeof spec === 'string') {
+                return {
+                    id_thuoctinh: `text-spec-${index}`,
+                    ten_thuoctinh: specLabelForValue(spec),
+                    giatri: spec,
+                }
+            }
+
+            return {
+                id_thuoctinh: spec?.id_thuoctinh || `spec-${index}`,
+                ten_thuoctinh: spec?.ten_thuoctinh || spec?.label || spec?.name || specLabelForValue(spec?.giatri || spec?.value || ''),
+                giatri: spec?.giatri || spec?.value || spec?.text || '',
+            }
+        })
+        .filter((spec) => spec.ten_thuoctinh && spec.giatri)
+
+    if (directSpecs.length > 0) return directSpecs
+
+    const cardSpecs = parseArrayLike(data.specs)
+    if (cardSpecs.length > 0) return specsArrayToTechnicalSpecs(cardSpecs)
+
+    const variantAttrs = []
+    const firstVariantWithAttrs = variants.find((variant) => getVariantAttributes(variant).length > 0)
+    if (firstVariantWithAttrs) {
+        getVariantAttributes(firstVariantWithAttrs).forEach((attr, index) => {
+            variantAttrs.push({
+                id_thuoctinh: attr.id_thuoctinh || `variant-spec-${index}`,
+                ten_thuoctinh: attr.ten_thuoctinh || specLabelForValue(attr.giatri),
+                giatri: attr.giatri,
+            })
+        })
+    }
+
+    return variantAttrs
+}
+
 const enrichProductForDetail = (data = {}) => {
-    const cardSpecs = Array.isArray(data.specs) ? data.specs : []
-    const technicalSpecs = Array.isArray(data.thong_so_ky_thuat) && data.thong_so_ky_thuat.length > 0
-        ? data.thong_so_ky_thuat
-        : specsArrayToTechnicalSpecs(cardSpecs)
     const existingVariants = data.bien_thes || data.bienThes || []
-    const fallbackVariant = {
-        id_bienthe: data.id_bienthe || data.id_sanpham || route.params.id,
+    const technicalSpecs = normalizeTechnicalSpecs(data, existingVariants)
+    const hasRealSingleVariant = Number.isInteger(Number(data.id_bienthe)) && Number(data.id_bienthe) > 0
+    const fallbackVariant = hasRealSingleVariant ? {
+        id_bienthe: data.id_bienthe,
         ten_bienthe: data.variantName || data.tenSP || 'Cấu hình tiêu chuẩn',
         gia: data.gia || 0,
         soluong: data.inStock === false ? 0 : 1,
         hinhanh: data.hinhanh || data.image || '',
+        isSingleVariantFallback: true,
         thuoc_tinh: technicalSpecs.map((spec) => ({
             id_thuoctinh: spec.id_thuoctinh,
             ten_thuoctinh: spec.ten_thuoctinh,
             giatri: spec.giatri,
         })),
-    }
-    const variants = existingVariants.length > 0 ? existingVariants : (cardSpecs.length > 0 || data.isFallbackProduct ? [fallbackVariant] : [])
+    } : null
+    const variants = existingVariants.length > 0 ? existingVariants : (fallbackVariant ? [fallbackVariant] : [])
+    const firstVariantImage = variants.find((variant) => variant?.hinhanh)?.hinhanh
 
     return {
         ...data,
-        hinhanh: data.hinhanh || data.image || '',
+        hinhanh: data.hinhanh || data.image || firstVariantImage || '',
         hinh_anhs: data.hinh_anhs || data.hinhAnhs || [],
         hinhAnhs: data.hinhAnhs || data.hinh_anhs || [],
         thong_so_ky_thuat: technicalSpecs,
         bienThes: variants,
     }
+}
+
+const isValidVariantForApi = (variant) => {
+    const id = Number(variant?.id_bienthe)
+    return Number.isInteger(id) && id > 0 && !variant?.isPendingDetail
+}
+
+const pickAvailableVariant = (variants = []) => {
+    const validVariants = variants.filter(isValidVariantForApi)
+    return validVariants.find(v => Number(v.soluong ?? 0) > 0) || validVariants[0] || null
+}
+
+const applySelectedVariant = (variant, { updateQuery = true } = {}) => {
+    if (!isValidVariantForApi(variant)) {
+        selectedVariant.value = null
+        selectedOptions.value = {}
+        return null
+    }
+
+    selectedVariant.value = variant
+    const options = {}
+    getVariantAttributes(variant).forEach(attr => {
+        options[attr.ten_thuoctinh] = attr.giatri
+    })
+    selectedOptions.value = options
+
+    if (variant.hinhanh) {
+        selectedImage.value = getImageUrl(variant.hinhanh)
+    }
+
+    if (updateQuery) {
+        replaceVariantQueryWithoutScroll(variant.id_bienthe)
+    }
+
+    return variant
+}
+
+const resolveSelectedVariantForApi = () => {
+    if (isValidVariantForApi(selectedVariant.value)) {
+        return selectedVariant.value
+    }
+
+    const fallback = pickAvailableVariant(product.value?.bienThes || [])
+    if (fallback) {
+        return applySelectedVariant(fallback)
+    }
+
+    return null
 }
 
 const variantGroups = computed(() => {
@@ -240,6 +343,11 @@ const tangSoLuong = () => {
 
 // THÊM GIỎ HÀNG
 const themVaoGioHang = async () => {
+    const variantForApi = resolveSelectedVariantForApi()
+    if (!variantForApi) {
+        hienThiThongBao('error', 'Đang tải cấu hình sản phẩm, vui lòng thử lại sau giây lát!')
+        return
+    }
 
     // ✅ CHECK ĐĂNG NHẬP TRƯỚC
     const token = getToken()
@@ -247,7 +355,7 @@ const themVaoGioHang = async () => {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
         if (selectedVariant.value) {
             localStorage.setItem('pendingCartItem', JSON.stringify({
-                id_bienthe: selectedVariant.value.id_bienthe,
+                id_bienthe: variantForApi.id_bienthe,
                 soluong: soLuongMua.value,
             }));
         }
@@ -261,12 +369,12 @@ const themVaoGioHang = async () => {
     }
 
     // ======================
-    if (!selectedVariant.value) {
+    if (!variantForApi) {
         hienThiThongBao('error', 'Vui lòng chọn biến thể sản phẩm!')
         return
     }
 
-    if (selectedVariant.value.soluong === 0) {
+    if (Number(variantForApi.soluong ?? 0) === 0) {
         hienThiThongBao('error', 'Sản phẩm này đã hết hàng!')
         return
     }
@@ -275,7 +383,7 @@ const themVaoGioHang = async () => {
 
     try {
         await api.post('/gio-hang/them', {
-            id_bienthe: selectedVariant.value.id_bienthe,
+            id_bienthe: variantForApi.id_bienthe,
             soluong: soLuongMua.value,
         })
 
@@ -548,9 +656,17 @@ const resetTilt = () => {
 // ===================== FETCH SẢN PHẨM =====================
 const loadCache = (productId) => {
     try {
-        const cached = localStorage.getItem(`predator_product_detail_cache_${productId}`)
+        const cached = localStorage.getItem(`nextgen_product_detail_cache_${productId}`)
         if (cached) {
             const parsed = JSON.parse(cached)
+            if (parsed.cacheVersion !== DETAIL_CACHE_VERSION) {
+                localStorage.removeItem(`nextgen_product_detail_cache_${productId}`)
+                return false
+            }
+            if (parsed.product?.isPendingDetail || parsed.product?.isNotFound) {
+                localStorage.removeItem(`nextgen_product_detail_cache_${productId}`)
+                return false
+            }
             if (parsed.product) product.value = enrichProductForDetail(parsed.product)
             if (parsed.reviews) reviews.value = parsed.reviews
             if (parsed.recentlyViewedProducts) recentlyViewedProducts.value = parsed.recentlyViewedProducts
@@ -590,7 +706,11 @@ const loadCache = (productId) => {
 
 const saveCache = (productId) => {
     try {
-        localStorage.setItem(`predator_product_detail_cache_${productId}`, JSON.stringify({
+        if (product.value?.isPendingDetail || product.value?.isNotFound || !product.value?.tenSP) {
+            return
+        }
+        localStorage.setItem(`nextgen_product_detail_cache_${productId}`, JSON.stringify({
+            cacheVersion: DETAIL_CACHE_VERSION,
             product: product.value,
             reviews: reviews.value,
             recentlyViewedProducts: recentlyViewedProducts.value,
@@ -616,63 +736,30 @@ const applyProductPayload = (data) => {
 
     if (variants.length > 0) {
         const variantId = route.query.variant
-        let targetVariant = variants[0]
+        let targetVariant = pickAvailableVariant(variants) || variants[0]
 
         if (variantId) {
             const found = variants.find(v => String(v.id_bienthe) === String(variantId))
             if (found) targetVariant = found
         }
 
-        selectedVariant.value = targetVariant
-        const options = {}
-        getVariantAttributes(targetVariant).forEach(attr => {
-            options[attr.ten_thuoctinh] = attr.giatri
-        })
-        selectedOptions.value = options
-
-        if (targetVariant.hinhanh) {
-            selectedImage.value = getImageUrl(targetVariant.hinhanh)
-        }
+        applySelectedVariant(targetVariant, { updateQuery: false })
+    } else {
+        selectedVariant.value = null
+        selectedOptions.value = {}
     }
 
     return true
 }
 
 const fetchProductDetail = async () => {
+    const productId = route.params.id || 1
     try {
-        const productId = route.params.id || 1
-        const response = await api.get(`/sanpham/${productId}`, { skipGlobalLoader: true })
+        const response = await api.get(`/sanpham/${productId}`, { skipGlobalLoader: true, cache: false })
         const data = response.data
-        applyProductPayload(data)
-        const enriched = enrichProductForDetail(data)
-        const variants = enriched.bienThes || []
-        product.value = enriched
-
-        if (product.value && product.value.tenSP) {
-            window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
-        }
-
-        if (allImages.value.length > 0) selectedImage.value = allImages.value[0]
-
-        if (variants.length > 0) {
-            const variantId = route.query.variant
-            let targetVariant = variants[0]
-
-            if (variantId) {
-                const found = variants.find(v => String(v.id_bienthe) === String(variantId))
-                if (found) targetVariant = found
-            }
-
-            selectedVariant.value = targetVariant
-            const options = {}
-            getVariantAttributes(targetVariant).forEach(attr => {
-                options[attr.ten_thuoctinh] = attr.giatri
-            })
-            selectedOptions.value = options
-
-            if (targetVariant.hinhanh) {
-                selectedImage.value = getImageUrl(targetVariant.hinhanh)
-            }
+        const applied = applyProductPayload(data)
+        if (!applied) {
+            throw new Error('INVALID_PRODUCT_PAYLOAD')
         }
 
         // Tải sản phẩm tương tự
@@ -760,6 +847,7 @@ const hydrateFromProductsList = async (productId) => {
 
 const loadPageData = async () => {
     const productId = route.params.id || 1
+    const detailPromise = fetchProductDetail()
     // Tải cache ngay lập tức để hiển thị tức thì
     const hasCache = loadCache(productId)
     if (hasCache) {
@@ -775,18 +863,26 @@ const loadPageData = async () => {
     }
 
     if (product.value?.isFallbackProduct) {
-        saveCache(productId)
         isLoading.value = false
-        return
     }
 
-    fetchProductDetail().then(() => {
-        if (!product.value?.id_sanpham) {
+    detailPromise.then((loaded) => {
+        const title = String(product.value?.tenSP || '').toLowerCase()
+        const stillPending = product.value?.isPendingDetail || title.includes('dang tai') || title.includes('đang tải')
+
+        if (loaded === false || stillPending || !product.value?.id_sanpham) {
             product.value = {
                 ...product.value,
-                tenSP: 'Khong tim thay san pham',
+                id_sanpham: null,
+                tenSP: 'Không tìm thấy sản phẩm',
+                gia: 0,
+                bienThes: [],
+                isPendingDetail: false,
                 isNotFound: true,
             }
+            selectedVariant.value = null
+            selectedOptions.value = {}
+            window.dispatchEvent(new CustomEvent('page-title-updated', { detail: product.value.tenSP }))
         }
         saveCache(productId)
         isLoading.value = false
@@ -859,6 +955,7 @@ const benchmarkData = computed(() => {
 })
 
 onMounted(() => {
+    showStickyBar.value = false
     window.scrollTo(0, 0)
     loadPageData()
     startAutoSlide()
@@ -876,6 +973,7 @@ onUnmounted(() => {
 
 watch(() => route.fullPath, (newPath, oldPath) => {
     if (route.path.startsWith('/san-pham/')) {
+        showStickyBar.value = false;
         selectedVariant.value = null;
         selectedOptions.value = {};
         thumbIndex.value = 0;
@@ -1078,6 +1176,11 @@ const fetchRelatedProducts = async (id_danhmuc, currentProductId) => {
 const dangThemYeuThich = ref(false)
 
 const themVaoYeuThich = async () => {
+    const variantForApi = resolveSelectedVariantForApi()
+    if (!variantForApi) {
+        hienThiThongBao('error', 'Đang tải cấu hình sản phẩm, vui lòng thử lại sau giây lát!')
+        return
+    }
     // 1. Check đăng nhập
     const token = getToken()
     if (!token) {
@@ -1089,7 +1192,7 @@ const themVaoYeuThich = async () => {
     }
 
     // 2. Check xem khách đã chọn biến thể (RAM, SSD, Màu...) chưa
-    if (!selectedVariant.value) {
+    if (!variantForApi) {
         hienThiThongBao('error', 'Vui lòng chọn biến thể sản phẩm trước khi yêu thích!')
         return
     }
@@ -1098,7 +1201,7 @@ const themVaoYeuThich = async () => {
     try {
         // 3. Gọi API thêm vào Database
         await api.post('/yeu-thich/them', {
-            id_bienthe: selectedVariant.value.id_bienthe,
+            id_bienthe: variantForApi.id_bienthe,
             soluong: soLuongMua.value, // Thích bao nhiêu cái thì truyền bấy nhiêu
         })
 
@@ -1445,15 +1548,6 @@ const handleSelectVariantById = (idBienThe) => {
     <div class="page">
         <div class="premium-hero-container">
             <div class="container">
-                <!-- Premium Breadcrumbs -->
-                <div class="premium-breadcrumb">
-                    <router-link to="/">Trang chủ</router-link>
-                    <span class="sep">/</span>
-                    <router-link :to="`/san-pham?cat=${product.id_danhmuc}`">{{ product.danh_muc?.ten_danhmuc || 'Sản phẩm' }}</router-link>
-                    <span class="sep">/</span>
-                    <span class="current">{{ product.tenSP }}</span>
-                </div>
-
                 <!-- MAIN DETAIL HERO GRID -->
                 <div class="detail-hero-grid">
                     <!-- GALLERY COLUMN (Left) -->
@@ -1705,7 +1799,7 @@ const handleSelectVariantById = (idBienThe) => {
                                             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/>
                                         </svg>
                                     </span>
-                                    <span class="benefit-text">Tặng ngay Balo Predator chống nước cao cấp trị giá 850.000đ.</span>
+                                    <span class="benefit-text">Tặng ngay Balo NextGen chống nước cao cấp trị giá 850.000đ.</span>
                                 </li>
                                 <li>
                                     <span class="benefit-icon">
@@ -1794,7 +1888,7 @@ const handleSelectVariantById = (idBienThe) => {
                                 </span>
                                 <div class="g-text-wrap">
                                     <span class="g-title">Hỗ Trợ 24/7</span>
-                                    <span class="g-desc">Trọn đời từ Predator</span>
+                                    <span class="g-desc">Trọn đời từ NextGen</span>
                                 </div>
                             </div>
                         </div>
@@ -2215,7 +2309,7 @@ const handleSelectVariantById = (idBienThe) => {
                         </div>
                     </div>
                     <div class="story-content">
-                        <span class="story-tag">PREDATOR INTELLIGENCE</span>
+                        <span class="story-tag">NEXTGEN INTELLIGENCE</span>
                         <h2 class="story-title">Kỷ nguyên trí tuệ nhân tạo local dẫn đầu xu hướng.</h2>
                         <p class="story-p">
                             Khởi động và vận hành các tác vụ trí tuệ nhân tạo AI cực nhanh mà không cần kết nối đám mây nhờ bộ vi xử lý được thiết kế chuyên biệt. Cho dù bạn đang xử lý thuật toán học sâu phức tạp hay tối ưu hình ảnh, bộ nhân NPU thế hệ mới sẽ giải quyết mọi thứ trong tích tắc với mức tiêu thụ điện năng tối thiểu nhất.
@@ -2385,13 +2479,7 @@ const handleSelectVariantById = (idBienThe) => {
                     <button class="pag-btn" :disabled="currentRelatedPage === 1" @click="currentRelatedPage--">
                         &laquo; Trước
                     </button>
-                    <div class="pag-numbers-box">
-                        <button v-for="p in totalRelatedPages" :key="p"
-                                :class="['pag-number-btn', { active: currentRelatedPage === p }]"
-                                @click="currentRelatedPage = p">
-                            {{ p }}
-                        </button>
-                    </div>
+                    <span class="pag-numbers-box page-indicator">{{ currentRelatedPage }}/{{ totalRelatedPages }}</span>
                     <button class="pag-btn" :disabled="currentRelatedPage === totalRelatedPages" @click="currentRelatedPage++">
                         Sau &raquo;
                     </button>
@@ -2442,13 +2530,7 @@ const handleSelectVariantById = (idBienThe) => {
                     <button class="pag-btn" :disabled="currentRecentlyViewedPage === 1" @click="currentRecentlyViewedPage--">
                         &laquo; Trước
                     </button>
-                    <div class="pag-numbers-box">
-                        <button v-for="p in totalRecentlyViewedPages" :key="p"
-                                :class="['pag-number-btn', { active: currentRecentlyViewedPage === p }]"
-                                @click="currentRecentlyViewedPage = p">
-                            {{ p }}
-                        </button>
-                    </div>
+                    <span class="pag-numbers-box page-indicator">{{ currentRecentlyViewedPage }}/{{ totalRecentlyViewedPages }}</span>
                     <button class="pag-btn" :disabled="currentRecentlyViewedPage === totalRecentlyViewedPages" @click="currentRecentlyViewedPage++">
                         Sau &raquo;
                     </button>
@@ -2591,7 +2673,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
-    top: 0;
+    top: var(--product-sticky-offset, 102px);
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -2599,10 +2681,26 @@ const handleSelectVariantById = (idBienThe) => {
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid #E2E8F0;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
-    z-index: 1000;
+    z-index: 990;
     padding: 12px 0;
     transform: translateY(0);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-detail-wrapper {
+    --product-sticky-offset: 102px;
+    min-height: 100vh;
+    background: #ffffff;
+}
+
+@media (max-width: 600px) {
+    .product-detail-wrapper {
+        --product-sticky-offset: 60px;
+    }
+
+    .sticky-buy-bar {
+        padding: 10px 0;
+    }
 }
 
 .sticky-bar-flex {
@@ -2951,6 +3049,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-family: var(--font-body);
     overflow-x: clip;
     position: relative;
+    min-height: calc(100vh - var(--product-sticky-offset, 102px));
 }
 
 /* ==================== TOAST & DECORATIONS ==================== */
@@ -3013,43 +3112,12 @@ const handleSelectVariantById = (idBienThe) => {
     z-index: 1;
 }
 
-/* ==================== BREADCRUMBS ==================== */
-.premium-breadcrumb {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 24px 0 16px 0;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-.premium-breadcrumb a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: var(--transition);
-}
-.premium-breadcrumb a:hover {
-    color: var(--primary);
-}
-.premium-breadcrumb .sep {
-    color: #cbd5e1;
-    font-size: 11px;
-}
-.premium-breadcrumb .current {
-    color: var(--primary);
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 250px;
-}
-
 /* ==================== IMMERSIVE HERO WRAPPER ==================== */
 .premium-hero-container {
     position: relative;
     padding-bottom: 40px;
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    min-height: calc(100vh - var(--product-sticky-offset, 102px));
 }
 
 .detail-hero-grid {
@@ -3057,6 +3125,7 @@ const handleSelectVariantById = (idBienThe) => {
     grid-template-columns: 1.1fr 0.9fr;
     gap: 48px;
     align-items: start;
+    min-height: calc(100vh - var(--product-sticky-offset, 102px) - 96px);
 }
 
 /* ==================== GALLERY COLUMN ==================== */
@@ -3391,19 +3460,31 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-selectors-wrapper {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 12px;
-    margin: 14px 0 16px;
+    gap: 8px;
+    margin: 10px 0 12px;
 }
 .premium-option-group {
     display: grid;
-    grid-template-columns: minmax(86px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-columns: minmax(64px, 0.62fr) minmax(0, 1.38fr);
     align-items: center;
-    gap: 8px 12px;
-    min-height: 52px;
-    padding: 10px 12px;
+    gap: 6px 8px;
+    min-height: 46px;
+    padding: 8px 10px;
     border: 1px solid #dbe5f0;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #ffffff;
+}
+
+@media (max-width: 1280px) {
+    .premium-selectors-wrapper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .premium-selectors-wrapper {
+        grid-template-columns: 1fr;
+    }
 }
 .option-header-row {
     display: flex;
@@ -3412,7 +3493,7 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
     gap: 2px;
     min-width: 0;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 750;
 }
 .option-label-title {
@@ -3425,7 +3506,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .option-selected-value {
     color: var(--primary);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1.25;
 }
@@ -5928,8 +6009,7 @@ const handleSelectVariantById = (idBienThe) => {
 .premium-variant-dropdown {
     position: relative;
     width: 100%;
-    margin-top: 8px;
-    margin-bottom: 14px;
+    margin: 0;
 }
 
 .dropdown-trigger {
@@ -5937,10 +6017,11 @@ const handleSelectVariantById = (idBienThe) => {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 12px 16px;
+    min-height: 42px;
+    padding: 9px 12px;
     background: var(--tn-surface, #ffffff);
     border: 1.5px solid var(--tn-border, #e2e8f0);
-    border-radius: 10px;
+    border-radius: 9px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
@@ -5962,12 +6043,13 @@ const handleSelectVariantById = (idBienThe) => {
 .selected-info-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    min-width: 0;
 }
 
 .selected-color-dot {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border-radius: 50%;
     border: 1px solid rgba(0, 0, 0, 0.15);
     flex-shrink: 0;
@@ -5975,11 +6057,14 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .selected-value-text {
-    font-size: 13.5px;
-    font-weight: 600;
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 650;
     color: #1e293b;
     flex-grow: 1;
     text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dropdown-arrow-icon {
@@ -6000,14 +6085,14 @@ const handleSelectVariantById = (idBienThe) => {
     top: calc(100% + 6px);
     left: 0;
     width: 100%;
-    max-height: 250px;
+    max-height: 220px;
     overflow-y: auto;
     background: var(--tn-surface, #ffffff);
     border: 1px solid var(--tn-border, #e2e8f0);
     border-radius: 10px;
     z-index: 99;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    padding: 6px;
+    padding: 5px;
     animation: dropdownSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -6025,8 +6110,8 @@ const handleSelectVariantById = (idBienThe) => {
 .dropdown-item-option {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
-    border-radius: 8px;
+    padding: 8px 10px;
+    border-radius: 7px;
     cursor: pointer;
     transition: all 0.15s ease;
     user-select: none;
@@ -6058,7 +6143,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .item-text-label {
-    font-size: 13px;
+    font-size: 12.5px;
     flex-grow: 1;
     color: inherit;
 }

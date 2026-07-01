@@ -126,11 +126,14 @@ const route = useRoute()
 
 const safeRedirectPath = (path) => {
   if (!path || typeof path !== 'string') return ''
-  if (!path.startsWith('/') || path.startsWith('/login')) return ''
+  if (!path.startsWith('/') || path.startsWith('/login') || path.startsWith('/dang-nhap')) return ''
   return path
 }
 
-const isAdminUser = (user) => String(user?.role || '').toLowerCase() === 'admin'
+const isAdminUser = (user) => {
+  const role = String(user?.vaitro || user?.role || '').toLowerCase()
+  return role !== '' && role !== 'user'
+}
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -319,7 +322,7 @@ const handleLogin = async () => {
   try {
     const res = await api.post('/login', {
       email: normalizeEmail(email.value),
-      password: password.value,
+      matkhau: password.value,
       remember: remember.value
     })
 

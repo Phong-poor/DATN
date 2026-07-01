@@ -183,7 +183,7 @@ const fetchRelated = async (currentPost) => {
 
 const loadCache = (id) => {
   try {
-    const cached = localStorage.getItem(`predator_news_detail_cache_${id}`)
+    const cached = localStorage.getItem(`nextgen_news_detail_cache_${id}`)
     if (cached) {
       const parsed = JSON.parse(cached)
       if (parsed.post) post.value = parsed.post
@@ -198,7 +198,7 @@ const loadCache = (id) => {
 
 const saveCache = (id) => {
   try {
-    localStorage.setItem(`predator_news_detail_cache_${id}`, JSON.stringify({
+    localStorage.setItem(`nextgen_news_detail_cache_${id}`, JSON.stringify({
       post: post.value,
       relatedPosts: relatedPosts.value
     }))

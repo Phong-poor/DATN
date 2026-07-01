@@ -423,11 +423,9 @@ const submitGroup = async () => {
       danh_muc_ids: groupForm.value.danh_muc_ids
     }
     if (modalType.value === 'editGroup') {
-      await api.put(`/admin/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
-      await api.put(`/nhomthuoctinh/${editingId}`, payload)
+      await api.put(`/admin/nhomthuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/admin/nhomthuoctinh', { ten_nhom: groupForm.value.name })
-      await api.post('/nhomthuoctinh', payload)
+      await api.post('/admin/nhomthuoctinh', payload)
     }
     await fetchAll()
     groupPagination.goToPage(1)
@@ -875,9 +873,7 @@ async function handleImportFile(e) {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button v-for="(p, index) in groupPageItems" :key="`${p}-${index}`" class="page-btn"
-              :class="{ active: p === groupPage, dots: p === '...' }" :disabled="p === '...'"
-              @click="p !== '...' && groupPagination.goToPage(p)">{{ p }}</button>
+            <span class="page-btn active page-indicator">{{ groupPage }}/{{ groupPages }}</span>
             <button class="page-btn" :disabled="groupPage === groupPages" @click="groupPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -956,9 +952,7 @@ async function handleImportFile(e) {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button v-for="(p, index) in attrPageItems" :key="`${p}-${index}`" class="page-btn"
-              :class="{ active: p === attrPage, dots: p === '...' }" :disabled="p === '...'"
-              @click="p !== '...' && attrPagination.goToPage(p)">{{ p }}</button>
+            <span class="page-btn active page-indicator">{{ attrPage }}/{{ attrPages }}</span>
             <button class="page-btn" :disabled="attrPage === attrPages" @click="attrPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -1115,9 +1109,7 @@ async function handleImportFile(e) {
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button v-for="(p, index) in variantPageItems" :key="`${p}-${index}`" class="page-btn"
-                :class="{ active: p === variantPage, dots: p === '...' }" :disabled="p === '...'"
-                @click="p !== '...' && variantPagination.goToPage(p)">{{ p }}</button>
+              <span class="page-btn active page-indicator">{{ variantPage }}/{{ variantPages }}</span>
               <button class="page-btn" :disabled="variantPage === variantPages" @click="variantPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />
@@ -1174,9 +1166,7 @@ async function handleImportFile(e) {
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button v-for="(p, index) in colorPageItems" :key="`${p}-${index}`" class="page-btn"
-                :class="{ active: p === colorPage, dots: p === '...' }" :disabled="p === '...'"
-                @click="p !== '...' && colorPagination.goToPage(p)">{{ p }}</button>
+              <span class="page-btn active page-indicator">{{ colorPage }}/{{ colorPages }}</span>
               <button class="page-btn" :disabled="colorPage === colorPages" @click="colorPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />

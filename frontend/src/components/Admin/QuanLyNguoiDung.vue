@@ -40,6 +40,17 @@ const roleStyle = {
     'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' }
 }
 
+Object.assign(roleStyle, {
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
+    'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
+    'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
+    'MARKETING': { bg: '#fce7f3', color: '#db2777' },
+    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#7e22ce' },
+    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#4338ca' },
+    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#0f766e' },
+    'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
+})
+
 const statusStyle = {
     'Hoạt động': { color: '#16a34a' },
     'Bị khóa': { color: '#dc2626' }
@@ -63,16 +74,37 @@ const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 
 // ─── NORMALIZE ───────────────────────
+const roleLabelMapFixed = {
+    admin: 'ADMIN',
+    user: 'KHÁCH HÀNG',
+    inventory: 'THỦ KHO',
+    order_manager: 'XỬ LÝ ĐƠN HÀNG',
+    marketing: 'MARKETING',
+    affiliate_manager: 'QUẢN LÝ AFFILIATE',
+    editor: 'BIÊN TẬP VIÊN',
+    support: 'TƯ VẤN VIÊN',
+    accountant: 'KẾ TOÁN'
+}
+
+const roleValueMapFixed = Object.fromEntries(Object.entries(roleLabelMapFixed).map(([value, label]) => [label, value]))
+const mapRoleLabel = (role) => roleLabelMapFixed[String(role || '').toLowerCase()] || 'KHÁCH HÀNG'
+const mapRoleValue = (label) => roleValueMapFixed[label] || 'user'
+const mapStatusLabel = (status) => String(status || '').toLowerCase() === 'locked' ? 'Bị khóa' : 'Hoạt động'
+const mapStatusValue = (label) => String(label || '').toLowerCase().includes('khóa') ? 'locked' : 'active'
+
+const protectedDeleteEmails = ['nextgenshop@gmail.com']
+const isProtectedDeleteUser = (user) => protectedDeleteEmails.includes(String(user?.email || '').toLowerCase())
+
 const normalizeUser = (u) => ({
     id: u.id,
-    name: u.name || '',
+    name: u.ten || u.name || '',
     email: u.email || '',
-    phone: u.phone || '',
-    role: mapRoleFromDB(u.role),
+    phone: u.sodienthoai || u.phone || '',
+    role: mapRoleLabel(u.vaitro || u.role),
     joined: u.created_at
         ? new Date(u.created_at).toLocaleDateString('vi-VN')
         : '',
-    status: mapStatus(u.status)
+    status: mapStatusLabel(u.trangthai || u.status)
 })
 
 // ─── FETCH ───────────────────────────
@@ -126,6 +158,8 @@ const dismissAffiliateCard = () => {
 // ─── FILTER (reset page khi search/tab thay đổi) ──
 const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
+    const tab = String(activeTab.value || '').toLowerCase()
+    const statusFilter = String(selectedStatus.value || '').toLowerCase()
     const map = {
         'Admin': 'ADMIN',
         'Khách hàng': 'KHÁCH HÀNG'
@@ -134,11 +168,16 @@ const filtered = computed(() => {
         const matchSearch =
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q)
+        const isCustomer = u.role === 'KHÁCH HÀNG' || u.role === 'KHÃCH HÃ€NG'
         const matchTab =
             activeTab.value === 'Tất cả' ||
-            u.role === map[activeTab.value]
+            tab.includes('admin') && !isCustomer ||
+            tab.includes('khách') && isCustomer ||
+            tab.includes('khÃ¡ch') && isCustomer
         const matchStatus =
             selectedStatus.value === 'Tất cả' ||
+            statusFilter.includes('tất') ||
+            statusFilter.includes('táº¥t') ||
             u.status === selectedStatus.value
         return matchSearch && matchTab && matchStatus
     })
@@ -204,24 +243,16 @@ const {
     filteredItems: filtered,
     pageItems: paginatedUsers,
     getId: item => item.id,
-    endpoint: id => `/admin/quan-ly-nguoi-dung/${id}`,
+    endpoint: id => `/admin/users/${id}`,
     entityLabel: 'người dùng',
     fetchItems: fetchUsers,
-    canDelete: item => item.id !== currentUser.value?.id,
+    canDelete: item => item.id !== currentUser.value?.id && !isProtectedDeleteUser(item),
     cannotDeleteMessage: 'Một số tài khoản không thể xóa, ví dụ tài khoản đang đăng nhập.',
 })
 
 // Dãy số trang hiển thị (tối đa 5 nút)
 const pageNumbers = computed(() => {
-    const total = totalPages.value
-    const current = currentPage.value
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-
-    let start = Math.max(1, current - 2)
-    let end = Math.min(total, start + 4)
-    if (end - start < 4) start = Math.max(1, end - 4)
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    return []
 })
 
 const goToPage = (p) => {
@@ -289,7 +320,7 @@ const toggleStatus = (u) => {
         onConfirm: async () => {
             const next = isLocking ? 'Bị khóa' : 'Hoạt động'
             try {
-                await api.put(`/admin/users/${u.id}`, { status: mapStatusToDB(next) })
+                await api.put(`/admin/users/${u.id}`, { trangthai: mapStatusValue(next) })
                 u.status = next
             } catch (err) {
                 console.error('Toggle user status failed:', err)
@@ -344,13 +375,13 @@ const submitForm = async () => {
 
     try {
         const { data } = await api.post('/admin/users', {
-            name: form.value.name,
+            ten: form.value.name,
             email: form.value.email,
-            phone: form.value.phone,
-            role: mapRoleToDB(form.value.role),
-            status: mapStatusToDB(form.value.status),
-            password: form.value.password,
-            password_confirmation: form.value.password
+            sodienthoai: form.value.phone,
+            vaitro: mapRoleValue(form.value.role),
+            trangthai: mapStatusValue(form.value.status),
+            matkhau: form.value.password,
+            matkhau_confirmation: form.value.password
         })
         users.value.unshift(normalizeUser(data.user))
         currentPage.value = 1
@@ -381,11 +412,15 @@ const submitEdit = async () => {
     if (err) return editError.value = err
 
     const payload = {
-        ...editForm.value,
-        role: mapRoleToDB(editForm.value.role),
-        status: mapStatusToDB(editForm.value.status)
+        ten: editForm.value.name,
+        email: editForm.value.email,
+        sodienthoai: editForm.value.phone,
+        vaitro: mapRoleValue(editForm.value.role),
+        trangthai: mapStatusValue(editForm.value.status),
+        matkhau: editForm.value.password || undefined,
+        matkhau_confirmation: editForm.value.password || undefined,
     }
-    if (!payload.password) delete payload.password
+    if (!payload.matkhau) { delete payload.matkhau; delete payload.matkhau_confirmation }
 
     try {
         const { data } = await api.put(`/admin/users/${editingUser.value.id}`, payload)
@@ -540,7 +575,7 @@ const submitEdit = async () => {
                     </tr>
                     <tr v-for="u in paginatedUsers" :key="u.id" :class="{ 'row-selected': selectedIds.includes(u.id) }">
                         <td class="select-col">
-                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id" @change="toggleItemSelection(u.id)" />
+                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
                         </td>
                         <td>
                             <div class="user-cell">
@@ -587,7 +622,7 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger"
+                                <button v-if="!isProtectedDeleteUser(u)" class="act-btn danger"
                                     :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : 'Xóa'"
                                     :disabled="u.id === currentUser?.id"
                                     :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
@@ -617,6 +652,7 @@ const submitEdit = async () => {
                 <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
                 <!-- Nút trang đầu nếu không hiển thị -->
+                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
                 <template v-if="pageNumbers[0] > 1">
                     <button @click="goToPage(1)">1</button>
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
@@ -705,6 +741,13 @@ const submitEdit = async () => {
                                 <select v-model="form.role">
                                     <option>KHÁCH HÀNG</option>
                                     <option>ADMIN</option>
+                                    <option>THỦ KHO</option>
+                                    <option>XỬ LÝ ĐƠN HÀNG</option>
+                                    <option>MARKETING</option>
+                                    <option>QUẢN LÝ AFFILIATE</option>
+                                    <option>BIÊN TẬP VIÊN</option>
+                                    <option>TƯ VẤN VIÊN</option>
+                                    <option>KẾ TOÁN</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -797,6 +840,13 @@ const submitEdit = async () => {
                                     :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
                                     <option>KHÁCH HÀNG</option>
                                     <option>ADMIN</option>
+                                    <option>THỦ KHO</option>
+                                    <option>XỬ LÝ ĐƠN HÀNG</option>
+                                    <option>MARKETING</option>
+                                    <option>QUẢN LÝ AFFILIATE</option>
+                                    <option>BIÊN TẬP VIÊN</option>
+                                    <option>TƯ VẤN VIÊN</option>
+                                    <option>KẾ TOÁN</option>
                                 </select>
                             </div>
                             <div class="form-group">

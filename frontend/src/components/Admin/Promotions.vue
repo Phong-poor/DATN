@@ -121,7 +121,7 @@
                   <span>{{ p.icon }}</span>
                 </div>
                 <div>
-                  <p class="promo-name">{{ p.name }}</p>
+                  <p class="promo-name">{{ p.ten || p.name }}</p>
                   <p class="promo-code">{{ p.code }}</p>
                 </div>
               </div>
@@ -129,16 +129,16 @@
             <td>
               <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount }}</span>
             </td>
-            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.startDate || '—') }}</td>
-            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.endDate || '—') }}</td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.startDate || '—') }}</td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.endDate || '—') }}</td>
             <td>
-              <span :class="['status-badge', p.is_public == 1 ? 'status-running' : 'status-open']">
-                {{ p.is_public == 1 ? 'Công khai' : 'Có điều kiện' }}
+              <span :class="['status-badge', p.congkhai == 1 ? 'status-running' : 'status-open']">
+                {{ p.congkhai == 1 ? 'Công khai' : 'Có điều kiện' }}
               </span>
             </td>
             <td>
-              <span :class="['status-badge', statusClass(p.status)]">
-                {{ statusLabel(p.status) }}
+              <span :class="['status-badge', statusClass(p.trangthai)]">
+                {{ statusLabel(p.trangthai) }}
               </span>
             </td>
             <td>
@@ -176,7 +176,7 @@
           <div class="rank-item" v-for="(r, i) in topPromos" :key="r.id">
             <span class="rank-num">#{{ i + 1 }}</span>
             <div class="rank-bar-wrap">
-              <p class="rank-name">{{ r.name }}</p>
+              <p class="rank-name">{{ r.ten || r.name }}</p>
               <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#4f46e5' : '#e2e8f0' }"></div></div>
             </div>
             <span class="rank-roi" :style="{ color: i === 0 ? '#4f46e5' : '#22c55e' }">+{{ r.roi }}% ROI</span>
@@ -459,10 +459,10 @@ const fetchPromos = async () => {
     const res = await api.get('/admin/promotions')
     promos.value = res.data.map(p => ({
       ...p,
-      startDate: formatDate(p.start_date),
-      endDate: formatDate(p.end_date),
+      startDate: formatDate(p.ngaybatdau),
+      endDate: formatDate(p.ngayketthuc),
       discount: discountLabel(p),
-      ...tagColors(p.type),
+      ...tagColors(p.loai),
       icon: '🏮',
       iconBg: '#fef3c7',
       roi: 20
@@ -482,7 +482,7 @@ const filteredPromos = computed(() => {
   if (!searchQuery.value) return promos.value
   const q = searchQuery.value.toLowerCase()
   return promos.value.filter(p =>
-    p.name.toLowerCase().includes(q) ||
+    (p.ten || p.name || '').toLowerCase().includes(q) ||
     p.code.toLowerCase().includes(q)
   )
 })
@@ -506,7 +506,7 @@ const {
 })
 
 const activeCount = computed(() =>
-  promos.value.filter(p => p.status === 'running' || p.status === 'open').length
+  promos.value.filter(p => p.trangthai === 'running' || p.trangthai === 'open').length
 )
 
 const topPromos = computed(() =>
@@ -564,10 +564,12 @@ function onCategoryChange() {
 }
 
 function discountLabel(f) {
-  if (f.type === 'percent') return `Giảm ${f.value}%`
-  if (f.type === 'fixed') return `Cố định ${f.value}đ`
-  if (f.type === 'maxprice') return `giảm theo giá tiền  ${f.value}%`
-  if (f.type === 'freeship') return `Freeship ${f.value}đ`
+  const type = f.loai || f.type
+  const value = f.giatri !== undefined ? f.giatri : f.value
+  if (type === 'percent') return `Giảm ${value}%`
+  if (type === 'fixed') return `Cố định ${value}đ`
+  if (type === 'maxprice') return `giảm theo giá tiền  ${value}%`
+  if (type === 'freeship') return `Freeship ${value}đ`
   return ''
 }
 
@@ -590,10 +592,14 @@ function formatDate(d) {
 }
 
 function formatVND(val) {
-  if (!val && val !== 0) return '';
-  const numStr = String(val).replace(/\D/g, '');
-  if (!numStr) return '';
-  return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+  if (val === undefined || val === null || val === '') return '';
+  const numVal = Number(val);
+  if (isNaN(numVal)) {
+    const numStr = String(val).replace(/\D/g, '');
+    if (!numStr) return '';
+    return new Intl.NumberFormat('vi-VN').format(Number(numStr));
+  }
+  return new Intl.NumberFormat('vi-VN').format(Math.round(numVal));
 }
 
 function parseVND(val) {
@@ -634,12 +640,16 @@ function openEdit(p) {
 
   form.value = {
     ...p,
-    category: p.category || 'product',
+    name: p.ten || '',
+    category: p.danhmuc || 'product',
+    type: p.loai || 'percent',
+    value: p.giatri || '',
     startDate: toInputDate(p.startDate),
     endDate: toInputDate(p.endDate),
+    status: p.trangthai || 'running',
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
-    is_public: p.is_public !== undefined ? Number(p.is_public) : 1,
+    is_public: p.congkhai !== undefined ? Number(p.congkhai) : 1,
     dieu_kien_tang: p.dieu_kien_tang || '',
     so_luong_phat: p.so_luong_phat || ''
   }
@@ -659,18 +669,18 @@ async function savePromo() {
   // Birthday luôn mở, freeship/product dùng ngày
   const isBirthday = form.value.category === 'birthday'
   const data = {
-    name:           form.value.name,
-    category:       form.value.category,
+    ten:            form.value.name,
+    danhmuc:        form.value.category,
     code:           form.value.code.toUpperCase(),
-    type:           form.value.type,
-    value:          form.value.value,
-    start_date:     isBirthday ? null : (form.value.startDate || null),
-    end_date:       isBirthday ? null : (form.value.endDate || null),
-    status:         isBirthday ? 'open' : 'running',
+    loai:           form.value.type,
+    giatri:         form.value.value,
+    ngaybatdau:     isBirthday ? null : (form.value.startDate || null),
+    ngayketthuc:    isBirthday ? null : (form.value.endDate || null),
+    trangthai:      isBirthday ? 'open' : 'running',
     mota:           form.value.mota,
     loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
     dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
-    is_public:      form.value.is_public,
+    congkhai:       form.value.is_public,
     dieu_kien_tang: form.value.is_public === 0 ? (form.value.dieu_kien_tang || null) : null,
     so_luong_phat:  form.value.is_public === 0 ? (form.value.so_luong_phat || null) : null,
   }

@@ -129,8 +129,11 @@
                     <span class="page-info">Trang {{ pagination.current_page }} / {{ pagination.last_page }} (Tổng {{ pagination.total }} đánh giá)</span>
                     <div class="page-btns">
                         <button class="page-btn arrow" :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
-                        <button v-for="p in pagination.last_page" :key="p" class="page-btn" :class="{ active: currentPage === p }"
-                            @click="currentPage = p">{{ p }}</button>
+                        <template v-for="(p, index) in compactPageNumbers" :key="`${p}-${index}`">
+                            <span v-if="p === '...'" class="page-dots">...</span>
+                            <button v-else class="page-btn" :class="{ active: currentPage === p }"
+                                @click="currentPage = p">{{ p }}</button>
+                        </template>
                         <button class="page-btn arrow" :disabled="currentPage === pagination.last_page" @click="currentPage++">&gt;</button>
                     </div>
                 </div>
@@ -216,6 +219,46 @@ const toast = ref({
 
 const filteredReviews = computed(() => {
     return reviews.value
+})
+
+const compactPageNumbers = computed(() => {
+    const total = Number(pagination.value.last_page || 1)
+    const current = Number(currentPage.value || 1)
+
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, index) => index + 1)
+    }
+
+    const pages = new Set([1, total])
+    const start = Math.max(2, current - 1)
+    const end = Math.min(total - 1, current + 1)
+
+    for (let page = start; page <= end; page++) {
+        pages.add(page)
+    }
+
+    if (current <= 3) {
+        pages.add(2)
+        pages.add(3)
+        pages.add(4)
+    }
+
+    if (current >= total - 2) {
+        pages.add(total - 3)
+        pages.add(total - 2)
+        pages.add(total - 1)
+    }
+
+    return [...pages]
+        .filter(page => page >= 1 && page <= total)
+        .sort((a, b) => a - b)
+        .reduce((items, page, index, sorted) => {
+            if (index > 0 && page - sorted[index - 1] > 1) {
+                items.push('...')
+            }
+            items.push(page)
+            return items
+        }, [])
 })
 
 const fetchReviews = async () => {

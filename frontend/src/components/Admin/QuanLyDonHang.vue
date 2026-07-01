@@ -318,7 +318,7 @@ const {
     filteredItems: filteredOrders,
     pageItems: paginatedOrders,
     getId: item => item.id_backend,
-    endpoint: id => `/admin/quan-ly-don-hang/${id}`,
+    endpoint: id => `/admin/orders/${id}`,
     entityLabel: 'don hang',
     fetchItems: fetchOrders,
 })

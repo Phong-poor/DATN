@@ -14,9 +14,7 @@ const showChatbot = computed(() =>
 )
 
 const showScrollTop = ref(false)
-const webIntroActive = ref(false)
 let scrollTicking = false
-let webIntroTimer = null
 
 const handleScroll = () => {
   if (scrollTicking) return
@@ -36,30 +34,18 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
-  if (sessionStorage.getItem('web_intro_animation') === '1') {
-    sessionStorage.removeItem('web_intro_animation')
-    webIntroActive.value = true
-    webIntroTimer = window.setTimeout(() => {
-      webIntroActive.value = false
-      webIntroTimer = null
-    }, 1350)
-  }
+  sessionStorage.removeItem('web_intro_animation')
 
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(() => {
-  if (webIntroTimer) {
-    clearTimeout(webIntroTimer)
-    webIntroTimer = null
-  }
-
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
 <template>
-  <div class="web-layout" :class="{ 'intro-active': webIntroActive }">
+  <div class="web-layout">
     <div class="web-intro-header">
       <Header />
     </div>
@@ -96,70 +82,30 @@ onUnmounted(() => {
 .web-layout {
   min-height: 100vh;
   background: #f8fafc;
-  padding-top: 102px;
+  padding-top: 116px;
+  overflow-x: clip;
 }
 
-.web-layout.intro-active {
-  animation: webIntroBase 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+.web-intro-header {
+  position: relative;
+  z-index: 1000;
+  min-height: 0;
 }
 
-.web-layout.intro-active .web-intro-header {
-  animation: webIntroHeader 0.82s cubic-bezier(0.16, 1, 0.3, 1) both;
+.web-intro-main {
+  position: relative;
+  min-height: calc(100vh - 116px);
+  isolation: isolate;
 }
 
-.web-layout.intro-active .web-intro-main {
-  animation: webIntroMain 1s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.08s ease;
 }
 
-.web-layout.intro-active .web-intro-footer {
-  animation: webIntroFooter 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.34s both;
-}
-
-@keyframes webIntroBase {
-  0% { background: #eef4ff; }
-  100% { background: #f8fafc; }
-}
-
-@keyframes webIntroHeader {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, -24px, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes webIntroMain {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 26px, 0) scale(0.992);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-@keyframes webIntroFooter {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 18px, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .web-layout.intro-active,
-  .web-layout.intro-active .web-intro-header,
-  .web-layout.intro-active .web-intro-main,
-  .web-layout.intro-active .web-intro-footer {
-    animation-duration: 0.01ms !important;
-  }
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 600px) {

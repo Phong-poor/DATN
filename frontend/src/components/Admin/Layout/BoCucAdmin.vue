@@ -14,7 +14,7 @@
       <div class="sidebar-logo">
         <img
           src="/ChatGPT_Image_08_35_43_4_thg_6__2026-removebg-preview.png"
-          alt="Predator Group"
+          alt="NextGen Group"
           class="admin-logo-img"
         />
       </div>
@@ -379,7 +379,7 @@ const adminVars = computed(() => {
   }
 })
 
-const userName = computed(() => 'Predator Group')
+const userName = computed(() => 'NextGen Group')
 const userEmail = computed(() => user.value?.email || user.value?.username || '')
 const userInitials = computed(() =>
   userName.value
@@ -590,7 +590,7 @@ onMounted(async () => {
     adminIntroTimer = window.setTimeout(() => {
       adminIntroActive.value = false
       adminIntroTimer = null
-    }, 1400)
+    }, 520)
   }
 
   document.addEventListener('mousedown', handleClickOutside)
@@ -836,42 +836,67 @@ a { text-decoration: none; }
 }
 .admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; }
 .admin-topbar-title p { margin: 4px 0 0; color: #64748b; font-size: 12.5px; }
-.admin-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.admin-topbar-actions { display: flex; align-items: center; gap: 10px; }
 .topbar-home-link { 
     display: inline-flex; 
     align-items: center; 
+    justify-content: center;
     gap: 6px; 
-    height: 38px; 
-    padding: 0 16px; 
-    border-radius: 20px; 
+    height: 44px; 
+    padding: 0 18px; 
+    border-radius: 999px; 
     border: 1px solid rgba(37, 99, 235, 0.2); 
     background: rgba(37, 99, 235, 0.04); 
     color: #2563eb; 
     text-decoration: none; 
     font-size: 13px; 
     font-weight: 600; 
-    transition: all 0.2s ease;
+    line-height: 1;
+    white-space: nowrap;
+    transform: translateY(0);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-home-link svg { width: 14px; height: 14px; }
-.topbar-home-link:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); }
-.topbar-icon-group { display: flex; align-items: center; gap: 10px; }
-.topbar-popover { position: relative; }
+.topbar-home-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar-home-link:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
+.topbar-home-link:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.16); }
+.topbar-icon-group { display: flex; align-items: center; gap: 10px; height: 44px; }
+.topbar-popover { position: relative; display: flex; align-items: center; }
 .topbar-icon-button { 
-    width: 38px; 
-    height: 38px; 
+    width: 44px; 
+    height: 44px; 
     border-radius: 50%; 
-    border: 1px solid rgba(15,23,42,.08); 
+    border: 1px solid rgba(15,23,42,.12); 
     background: #ffffff; 
     color: #475569; 
     display: grid; 
     place-items: center; 
     cursor: pointer; 
     position: relative; 
-    transition: all 0.2s ease;
+    transform: translateY(0) scale(1);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-icon-button svg { width: 18px; height: 18px; }
-.icon-flag { font-size: 11px; font-weight: 700; letter-spacing: .5px; }
-.icon-badge { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 9px; display: grid; place-items: center; padding: 0 4px; }
+.topbar-icon-button:hover,
+.topbar-icon-button.active {
+    background: #eef2ff;
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
+    transform: translateY(-2px);
+}
+.topbar-icon-button:active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
+}
+.topbar-icon-button:hover svg {
+    transform: scale(1.08);
+}
+.topbar-icon-button svg { width: 20px; height: 20px; }
+.topbar-icon-button svg { transition: transform 0.18s ease; }
+.icon-flag { font-size: 12px; font-weight: 700; letter-spacing: .4px; line-height: 1; }
+.icon-badge { position: absolute; top: 3px; right: 3px; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
+.topbar-icon-button:hover .icon-badge {
+    animation: topbarBadgePop 0.42s ease both, topbarBadgePulse 1.45s ease-in-out 0.42s infinite;
+}
 .topbar-dropdown { 
     position: absolute; 
     top: calc(100% + 8px); 
@@ -894,21 +919,31 @@ a { text-decoration: none; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
 .notify-title { font-size: 13px; color: #0f172a; font-weight: 600; }
 .notify-time { font-size: 11px; color: #64748b; }
-.topbar-divider { width: 1px; height: 24px; background: rgba(15,23,42,.08); }
-.topbar-user { position: relative; }
+.topbar-divider { width: 1px; height: 32px; background: rgba(15,23,42,.08); }
+.topbar-user { position: relative; display: flex; align-items: center; }
 .topbar-user-btn { 
     display: inline-flex; 
     align-items: center; 
     gap: 10px; 
-    padding: 5px 12px 5px 5px; 
+    height: 44px;
+    padding: 4px 12px 4px 4px; 
     border-radius: 999px; 
     border: 1px solid rgba(15,23,42,.08); 
     background: #ffffff; 
     cursor: pointer; 
-    transition: all 0.2s ease;
+    line-height: 1;
+    transform: translateY(0);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-user-btn:hover { background: #f8fafc; border-color: rgba(15, 23, 42, 0.12); }
+.topbar-user-btn:hover { background: #f8fafc; border-color: rgba(37, 99, 235, 0.22); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
+.topbar-user-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08); }
 .topbar-user-btn svg { width: 15px; height: 15px; color: #64748b; }
+.topbar-user-btn .user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+    flex-shrink: 0;
+}
 .user-meta { display: flex; flex-direction: column; align-items: flex-start; }
 .user-name { font-size: 13.5px; font-weight: 600; color: #0f172a; }
 .user-role { font-size: 11px; color: #64748b; }
@@ -926,6 +961,23 @@ a { text-decoration: none; }
 .dropdown-item.sign-out:hover { background: #fee2e2; color: #b91c1c; }
 .logout-item { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .logout-item svg { width: 15px; height: 15px; }
+
+@keyframes topbarBadgePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.30);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    transform: scale(1.08);
+  }
+}
+
+@keyframes topbarBadgePop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.28); }
+  100% { transform: scale(1.08); }
+}
 .admin-layout.dark .main, .admin-layout.dark .admin-topbar { background: #0f172a; border-color: rgba(255,255,255,.05); }
 .admin-layout.dark .admin-topbar-title h2 { color: #fff; }
 .admin-layout.dark .admin-topbar-title p, .admin-layout.dark .user-role { color: #94a3b8; }
@@ -935,19 +987,19 @@ a { text-decoration: none; }
 .admin-layout.dark .notify-item.unread, .admin-layout.dark .dropdown-item.active, .admin-layout.dark .dropdown-item:hover { background: rgba(37, 99, 235, 0.15); }
 
 .admin-layout.intro-active {
-  animation: adminIntroBase 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: adminIntroBase 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .admin-layout.intro-active .sidebar {
-  animation: adminIntroSidebar 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: adminIntroSidebar 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .admin-layout.intro-active .admin-topbar {
-  animation: adminIntroTopbar 0.82s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+  animation: adminIntroTopbar 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
 }
 
 .admin-layout.intro-active .main > :not(.admin-topbar) {
-  animation: adminIntroContent 0.96s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+  animation: adminIntroContent 0.36s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 
 @keyframes adminIntroBase {

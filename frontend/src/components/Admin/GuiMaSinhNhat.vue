@@ -74,6 +74,34 @@ const emailTemplates = [
 
 const availablePromotions = ref([])
 
+const formatPromotionOption = (p) => {
+  const valueText = p.type === 'percent'
+    ? `${p.value}%`
+    : `${new Intl.NumberFormat('vi-VN').format(p.value)}đ`
+
+  return {
+    id: p.id,
+    code: p.code,
+    name: `${p.code} - ${p.name} - Giảm ${valueText}`,
+    valueText,
+  }
+}
+
+const selectedPromotion = computed(() => {
+  return availablePromotions.value.find(p => Number(p.id) === Number(autoConfig.value.promotionId)) || null
+})
+
+const syncUnsentRowsPromotion = () => {
+  if (!autoConfig.value.promotionId) return
+  birthdayCustomers.value = birthdayCustomers.value.map(c => {
+    if (c.status === 'Đã gửi') return c
+    return {
+      ...c,
+      promotionId: c.promotionId || autoConfig.value.promotionId
+    }
+  })
+}
+
 // --- STATS COMPUTED ---
 const totalToday = computed(() => statsTotalToday.value)
 const countSent = computed(() => statsCountSent.value)
@@ -135,8 +163,9 @@ const fetchBirthdays = async () => {
     if (res.data?.success) {
       birthdayCustomers.value = (res.data.data || []).map(c => ({
         ...c,
-        promotionId: c.promotion_id
+        promotionId: c.promotion_id || autoConfig.value.promotionId
       }))
+      syncUnsentRowsPromotion()
       statsTotalToday.value = res.data.stats?.total || 0
       statsCountSent.value = res.data.stats?.sent || 0
       statsCountUnsent.value = res.data.stats?.unsent || 0
@@ -187,11 +216,12 @@ const fetchSettings = async () => {
       }
 
       if (res.data.promotions && Array.isArray(res.data.promotions)) {
-        availablePromotions.value = res.data.promotions.map(p => ({
-          id: p.id,
-          code: p.code,
-          name: `${p.code} - ${p.name} - Giảm ${p.type === 'percent' ? p.value + '%' : new Intl.NumberFormat('vi-VN').format(p.value) + 'đ'}`
-        }))
+        availablePromotions.value = res.data.promotions.map(formatPromotionOption)
+        if (!autoConfig.value.promotionId && availablePromotions.value.length > 0) {
+          autoConfig.value.promotionId = availablePromotions.value[0].id
+          autoConfig.value.promoCode = availablePromotions.value[0].code
+        }
+        syncUnsentRowsPromotion()
       }
     }
   } catch (err) {
@@ -203,11 +233,12 @@ const loadAvailablePromotions = async () => {
   try {
     const res = await api.get('/admin/birthday-codes/settings')
     if (res.data?.success && res.data.promotions) {
-      availablePromotions.value = res.data.promotions.map(p => ({
-        id: p.id,
-        code: p.code,
-        name: `${p.code} - ${p.name} - Giảm ${p.type === 'percent' ? p.value + '%' : new Intl.NumberFormat('vi-VN').format(p.value) + 'đ'}`
-      }))
+      availablePromotions.value = res.data.promotions.map(formatPromotionOption)
+      if (!autoConfig.value.promotionId && availablePromotions.value.length > 0) {
+        autoConfig.value.promotionId = availablePromotions.value[0].id
+        autoConfig.value.promoCode = availablePromotions.value[0].code
+      }
+      syncUnsentRowsPromotion()
     }
   } catch (e) {
     console.error('Failed to load promotions:', e)
@@ -247,14 +278,15 @@ const scanBirthdays = async () => {
 
 // Send Single Email (Initial send or resend)
 const sendSingleEmail = async (customer) => {
-  if (!autoConfig.value.promotionId) {
-    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trong phần cấu hình tự động trước khi gửi.', 'warning')
+  const promotionId = customer.promotionId || autoConfig.value.promotionId
+  if (!promotionId) {
+    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trước khi gửi.', 'warning')
     return
   }
   const isResend = customer.status === 'Đã gửi'
   const actionText = isResend ? 'Gửi lại' : 'Gửi ngay'
   
-  const selectedPromo = availablePromotions.value.find(p => p.id === customer.promotionId)
+  const selectedPromo = availablePromotions.value.find(p => Number(p.id) === Number(promotionId))
   const promoCode = selectedPromo ? selectedPromo.code : customer.code
   
   const isConfirmed = await swal.confirm(
@@ -266,10 +298,10 @@ const sendSingleEmail = async (customer) => {
   activeRowsLoading.value[customer.id] = true
   
   try {
-    const endpoint = isResend ? '/admin/gui-ma-sinh-nhat/resend' : '/admin/gui-ma-sinh-nhat/send'
+    const endpoint = isResend ? '/admin/birthday-codes/resend' : '/admin/birthday-codes/send'
     const payload = { 
       user_id: customer.id,
-      promotion_id: customer.promotionId
+      promotion_id: promotionId
     }
 
     const res = await api.post(endpoint, payload)
@@ -293,7 +325,7 @@ const sendSingleEmail = async (customer) => {
 // Send Bulk Emails
 const sendBulk = async () => {
   if (!autoConfig.value.promotionId) {
-    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trong phần cấu hình tự động trước khi gửi.', 'warning')
+    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trước khi gửi.', 'warning')
     return
   }
   if (selectedIds.value.length === 0) {
@@ -309,7 +341,7 @@ const sendBulk = async () => {
 
   const isConfirmed = await swal.confirm(
     'Gửi hàng loạt',
-    `Bạn có chắc chắn muốn gửi email sinh nhật cho ${itemsToSend.length} khách hàng được chọn?`
+    `Bạn có chắc chắn muốn gửi email sinh nhật cho ${itemsToSend.length} khách hàng được chọn bằng mã "${selectedPromotion.value?.code || ''}"?`
   )
   if (!isConfirmed) return
 
@@ -375,7 +407,8 @@ const runAutoNow = async () => {
   try {
     const res = await api.post('/admin/birthday-codes/run-auto-now', {
       date: dateFilter.value,
-      force: true
+      force: true,
+      promotion_id: autoConfig.value.promotionId
     })
     if (res.data?.success) {
       const result = res.data.data
@@ -434,8 +467,14 @@ watch(activeTab, (newTab) => {
   }
 })
 
+watch(() => autoConfig.value.promotionId, (promotionId) => {
+  const promo = availablePromotions.value.find(p => Number(p.id) === Number(promotionId))
+  autoConfig.value.promoCode = promo?.code || ''
+  syncUnsentRowsPromotion()
+})
+
 onMounted(async () => {
-  await loadAvailablePromotions()
+  await fetchSettings()
   await fetchBirthdays()
 })
 </script>
@@ -557,6 +596,16 @@ onMounted(async () => {
                 <span class="filter-label">Ngày sinh nhật:</span>
                 <input v-model="dateFilter" type="date" class="styled-date-input" />
               </div>
+
+              <div class="birthday-promo-select">
+                <span class="filter-label">Mã sinh nhật:</span>
+                <select v-model="autoConfig.promotionId" class="styled-select promo-select">
+                  <option :value="null" disabled>Chọn mã khuyến mãi</option>
+                  <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
+                    {{ promo.name }}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <div class="action-buttons-group">
@@ -579,6 +628,15 @@ onMounted(async () => {
             </div>
           </div>
 
+          <div class="promotion-empty-warning" v-if="availablePromotions.length === 0">
+            <AlertTriangle class="notice-icon" />
+            <span>
+              Chưa có mã khuyến mãi sinh nhật đang hoạt động. Tạo mã tại
+              <router-link to="/admin/quan-ly-khuyen-mai" class="inline-link">Khuyến mãi</router-link>
+              với loại sinh nhật trước khi gửi.
+            </span>
+          </div>
+
           <!-- Selection Info Notification -->
           <div class="selection-notice-bar" v-if="filteredBirthdays.length > 0">
             <div class="notice-info">
@@ -586,6 +644,7 @@ onMounted(async () => {
               <span>
                 Tìm thấy <strong>{{ filteredBirthdays.length }}</strong> khách hàng. Đang chọn
                 <strong>{{ selectedIds.length }}</strong> dòng.
+                Mã gửi: <strong>{{ selectedPromotion?.code || 'Chưa chọn' }}</strong>.
               </span>
             </div>
             <div class="notice-guide">
@@ -654,6 +713,7 @@ onMounted(async () => {
                       class="styled-select"
                       style="padding: 5px 10px; font-size: 12.5px; width: 140px; border-radius: 8px; cursor: pointer; border: 1px solid #cbd5e1; outline: none; background: #ffffff; color: #1e293b;"
                     >
+                      <option :value="null" disabled>Chọn mã</option>
                       <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
                         {{ promo.code }}
                       </option>
@@ -1287,10 +1347,19 @@ onMounted(async () => {
 }
 
 .filter-dropdown-select,
-.date-picker-box {
+.date-picker-box,
+.birthday-promo-select {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.birthday-promo-select {
+  min-width: 320px;
+}
+
+.promo-select {
+  width: min(360px, 48vw);
 }
 
 .filter-label {
@@ -1425,6 +1494,19 @@ onMounted(async () => {
   background: #eff6ff;
   border: 1px solid rgba(37, 99, 235, 0.15);
   border-radius: 12px;
+  padding: 12px 18px;
+}
+
+.promotion-empty-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 600;
   padding: 12px 18px;
 }
 
