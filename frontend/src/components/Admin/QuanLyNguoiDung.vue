@@ -168,16 +168,14 @@ const filtered = computed(() => {
         const matchSearch =
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q)
-        const isCustomer = u.role === 'KHÁCH HÀNG' || u.role === 'KHÃCH HÃ€NG'
+        const isCustomer = u.role === 'KHÁCH HÀNG'
         const matchTab =
             activeTab.value === 'Tất cả' ||
             tab.includes('admin') && !isCustomer ||
-            tab.includes('khách') && isCustomer ||
-            tab.includes('khÃ¡ch') && isCustomer
+            tab.includes('khách') && isCustomer
         const matchStatus =
             selectedStatus.value === 'Tất cả' ||
             statusFilter.includes('tất') ||
-            statusFilter.includes('táº¥t') ||
             u.status === selectedStatus.value
         return matchSearch && matchTab && matchStatus
     })

@@ -27,7 +27,7 @@ const swal = new Proxy({}, {
 })
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   DANH SÃCH Sáº¢N PHáº¨M
+   DANH SÁCH SẢN PHẨM
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const searchQuery = ref('')
 const selectedStatus = ref('')
@@ -180,8 +180,8 @@ const isProductsFetching = ref(false)
 const categories = ref([])
 const parentCategories = ref([])
 const childCategories = ref([])
-const allBrands = ref([]) // LÆ°u toÃ n bá»™ brand
-const brands = ref([]) // Hiá»ƒn thá»‹ trÃªn select
+const allBrands = ref([]) // Lưu toàn bộ brand
+const brands = ref([]) // Hiển thị trên select
 const colors = ref([])
 const readingExtraImages = ref(false)
 const variantLoading = ref(false)
@@ -316,7 +316,7 @@ const getErrorMessage = (error, fallback) => {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHáº¬P XUáº¤T EXCEL
+   NHẬP XUẤT EXCEL
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const handleExportExcel = async () => {
   if (isExporting.value) return
@@ -406,7 +406,7 @@ const handleImportExcel = async (e) => {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHáº¬P XUáº¤T EXCEL BIáº¾N THá»‚ (TRONG MODAL)
+   NHẬP XUẤT EXCEL BIẾN THỂ (TRONG MODAL)
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const handleExportVariantsExcel = async () => {
   const headers = tableHeaders.value
@@ -590,7 +590,7 @@ const fetchBrands = async () => {
 }
 
 /**
- * Fetch parent categories (danh má»¥c cha)
+ * Fetch parent categories (danh mục cha)
  */
 const fetchParentCategories = async () => {
   try {
@@ -666,7 +666,7 @@ const fetchColors = async () => {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   NHÃ“M THUá»˜C TÃNH & LOáº I THUá»˜C TÃNH
+   NHÓM THUỘC TÍNH & LOẠI THUỘC TÍNH
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const baseAttributeGroups = ref([])
 const attributeGroups = ref([])
@@ -1058,7 +1058,7 @@ const removeExtraImage = index => {
 const vsPhase = ref(1)
 const selectedGroupId = ref(null)
 const selectedOptions = ref({})
-const variationTierIds = ref(new Set()) // LÆ°u ID thuá»™c tÃ­nh dÃ¹ng lÃ m Biáº¿n thá»ƒ (max 2)
+const variationTierIds = ref(new Set()) // Lưu ID thuộc tính dùng làm Biến thể (max 2)
 const generatedRows = ref([])
 const editVariantHeaders = ref([])
 const VARIANTS_PER_PAGE = 15
@@ -1862,7 +1862,7 @@ onMounted(() => {
   <div class="admin">
 
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-         VIEW: DANH SÃCH sáº£n pháº©m (top, stats, filter, table)
+         VIEW: DANH SÁCH sản phẩm (top, stats, filter, table)
     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <template v-if="currentView === 'list'">
 
@@ -1925,7 +1925,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Tabs danh má»¥c cha -->
+    <!-- Tabs danh mục cha -->
     <div class="parent-tabs">
       <button 
         class="parent-tab-btn" 
@@ -2055,7 +2055,7 @@ onMounted(() => {
     </template><!-- end list view -->
 
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-         VIEW: FORM Sáº¢N PHáº¨M (ThÃªm / Sá»­a)
+         VIEW: FORM SẢN PHẨM (Thêm / Sửa)
     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <template v-if="currentView === 'product-form'">
       <div class="inline-form-header">
