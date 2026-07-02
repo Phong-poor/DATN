@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dathang_chitiet', function (Blueprint $table) {
-            $table->boolean('is_refund')->default(0)->after('combo_group_id');
+            if (! Schema::hasColumn('dathang_chitiet', 'hoantien')) {
+                $table->boolean('hoantien')->default(0)->after('updated_at');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('dathang_chitiet', function (Blueprint $table) {
-            $table->dropColumn('is_refund');
+            if (Schema::hasColumn('dathang_chitiet', 'hoantien')) {
+                $table->dropColumn('hoantien');
+            }
         });
     }
 };

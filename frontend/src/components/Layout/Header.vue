@@ -254,7 +254,7 @@ const navToCategory = (key) => {
   if (key === 'sale') {
     router.push('/khuyen-mai')
   } else if (key === 'gaming') {
-    router.push('/gaming')
+    router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
     router.push('/macbook')
   } else if (key === 'workstation') {
@@ -271,7 +271,7 @@ const navToMegaItem = (key, keyword) => {
     return
   }
   if (key === 'gaming') {
-    router.push({ path: '/gaming', query: keyword ? { q: keyword } : {} })
+    router.push({ path: '/laptop', query: keyword ? { line: 'gaming', q: keyword } : { line: 'gaming' } })
     return
   }
   if (key === 'macbook') {
@@ -283,7 +283,7 @@ const navToMegaItem = (key, keyword) => {
 
 const mobileMenuTarget = (key) => {
   if (key === 'sale') return '/khuyen-mai'
-  if (key === 'gaming') return '/gaming'
+  if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
   if (key === 'workstation') return '/workstation'
   return { path: '/products', query: { category: menuCategoryMap[key] || key } }
@@ -296,7 +296,7 @@ const isMenuCurrent = (key) => {
       (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
   }
 
-  if (key === 'gaming') return route.path === '/gaming'
+  if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
     (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'macbook')
   if (!['gaming', 'macbook'].includes(key)) return false
@@ -419,7 +419,7 @@ onMounted(() => {
   const warmProductsPage = () => {
     const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
-    import('../Web/Producpage.vue')
+    import('../Web/TrangLaptop.vue')
     prefetchProductsPage().catch(() => {})
   }
   if ('requestIdleCallback' in window) {
@@ -487,6 +487,13 @@ const handleOutside = (e) => {
 
 const user = ref(null)
 
+const getUserRole = (account) => String(account?.vaitro || account?.role || '').toLowerCase()
+const isAdminAccount = computed(() => {
+  const role = getUserRole(user.value)
+  return Boolean(role && role !== 'user')
+})
+const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'Predator Member')
+
 const avatarUrl = computed(() => {
   if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
   if (user.value.avatar.startsWith('http')) return user.value.avatar
@@ -514,7 +521,7 @@ const handleLogout = async () => {
 const warmProductsPageNow = () => {
   const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
   if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
-  import('../Web/Producpage.vue')
+  import('../Web/TrangLaptop.vue')
   prefetchProductsPage().catch(() => {})
 }
 </script>
@@ -746,11 +753,11 @@ const warmProductsPageNow = () => {
                 <div class="user-card-info">
                   <p class="uc-name">{{ user?.name || 'Khách hàng' }}</p>
                   <p class="uc-email">{{ user?.email }}</p>
-                  <span class="uc-badge">Predator Member</span>
+                  <span class="uc-badge">{{ accountBadge }}</span>
                 </div>
               </div>
               <div class="user-menu">
-                <template v-if="user && user.vaitro !== 'user'">
+                <template v-if="isAdminAccount">
                   <button class="um-item admin" @click="goAdmin">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>

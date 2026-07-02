@@ -108,6 +108,8 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $oldRole = $user->vaitro;
+        $oldStatus = $user->trangthai;
 
         $validated = $request->validate([
             'ten' => 'sometimes|required|string|max:255',
@@ -152,6 +154,10 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        if ($oldRole !== $user->vaitro || $oldStatus !== $user->trangthai) {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'message' => 'Cập nhật thành công',

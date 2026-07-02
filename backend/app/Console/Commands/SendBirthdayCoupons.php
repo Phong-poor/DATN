@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Services\BirthdayCouponService;
+use Illuminate\Console\Command;
 
 class SendBirthdayCoupons extends Command
 {
@@ -24,11 +24,11 @@ class SendBirthdayCoupons extends Command
     {
         $forced = $this->option('force') ?? false;
         $result = $service->runAutomaticBirthdayCoupons(null, $forced);
- 
+
         if ($result['success']) {
-            $this->info("Completed. Found: " . ($result['users_found'] ?? 0) . ", Sent: " . ($result['sent'] ?? 0) . ", Failed: " . ($result['failed'] ?? 0) . ", Skipped: " . ($result['skipped'] ?? 0));
+            $this->info('Completed. Found: '.($result['users_found'] ?? 0).', Sent: '.($result['sent'] ?? 0).', Failed: '.($result['failed'] ?? 0).', Skipped: '.($result['skipped'] ?? 0));
         } else {
-            $this->warn("Stopped. Reason: " . ($result['reason'] ?? 'Unknown'));
+            $this->warn('Stopped. Reason: '.($result['reason'] ?? 'Unknown'));
         }
 
         return self::SUCCESS;

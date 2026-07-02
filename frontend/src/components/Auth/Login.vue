@@ -126,12 +126,12 @@ const route = useRoute()
 
 const safeRedirectPath = (path) => {
   if (!path || typeof path !== 'string') return ''
-  if (!path.startsWith('/') || path.startsWith('/login')) return ''
+  if (!path.startsWith('/') || path.startsWith('/login') || path.startsWith('/dang-nhap')) return ''
   return path
 }
 
 const isAdminUser = (user) => {
-  const role = String(user?.vaitro || '').toLowerCase()
+  const role = String(user?.vaitro || user?.role || '').toLowerCase()
   return role !== '' && role !== 'user'
 }
 

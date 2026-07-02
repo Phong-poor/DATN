@@ -131,13 +131,12 @@ code, pre {
 
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.08s ease;
 }
 
 .page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
-  transform: translateY(3px);
 }
 
 .global-scroll-effect {

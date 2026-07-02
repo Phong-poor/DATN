@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\GiaTriThuocTinh;
 
 class BienThe extends Model
 {
-    protected $table      = 'bienthe';
+    protected $table = 'bienthe';
+
     protected $primaryKey = 'id_bienthe';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'id_sanpham',
@@ -22,6 +23,11 @@ class BienThe extends Model
     public function hinhAnhs()
     {
         return $this->hasMany(BienTheHinhAnh::class, 'id_bienthe', 'id_bienthe');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(DanhGia::class, 'id_bienthe', 'id_bienthe');
     }
 
     public function sanPham()

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Combo;
-use App\Models\ComboSanPham;
 use App\Helpers\ImageHelper;
+use App\Models\Combo;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ComboController extends Controller
 {
@@ -36,27 +36,27 @@ class ComboController extends Controller
                                 'id_sanpham' => $p->id_sanpham,
                                 'tenSP' => $p->tenSP,
                                 'SKU' => $p->SKU,
-                                'hinhanh' => $p->hinhanh ? asset('storage/' . $p->hinhanh) : null,
+                                'hinhanh' => $p->hinhanh ? asset('storage/'.$p->hinhanh) : null,
                                 'bien_thes' => $p->bienThes->map(function ($bt) {
                                     return [
                                         'id_bienthe' => $bt->id_bienthe,
                                         'ten_bienthe' => $bt->ten_bienthe,
                                         'gia' => $bt->gia,
                                         'soluong' => $bt->soluong,
-                                        'thuoc_tinh' => is_string($bt->thuoc_tinh_json) 
-                                            ? json_decode($bt->thuoc_tinh_json, true) 
+                                        'thuoc_tinh' => is_string($bt->thuoc_tinh_json)
+                                            ? json_decode($bt->thuoc_tinh_json, true)
                                             : $bt->thuoc_tinh_json,
                                     ];
-                                })
+                                }),
                             ];
-                        })
+                        }),
                     ];
                 });
         });
 
         return response()->json([
             'success' => true,
-            'data' => $combos
+            'data' => $combos,
         ]);
     }
 
@@ -68,10 +68,10 @@ class ComboController extends Controller
         $combo = Combo::with(['sanPhams.bienThes', 'sanPhams.hinhAnhs'])
             ->find($id);
 
-        if (!$combo) {
+        if (! $combo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy combo'
+                'message' => 'Không tìm thấy combo',
             ], 404);
         }
 
@@ -87,25 +87,25 @@ class ComboController extends Controller
                     'id_sanpham' => $p->id_sanpham,
                     'tenSP' => $p->tenSP,
                     'SKU' => $p->SKU,
-                    'hinhanh' => $p->hinhanh ? asset('storage/' . $p->hinhanh) : null,
+                    'hinhanh' => $p->hinhanh ? asset('storage/'.$p->hinhanh) : null,
                     'bien_thes' => $p->bienThes->map(function ($bt) {
                         return [
                             'id_bienthe' => $bt->id_bienthe,
                             'ten_bienthe' => $bt->ten_bienthe,
                             'gia' => $bt->gia,
                             'soluong' => $bt->soluong,
-                            'thuoc_tinh' => is_string($bt->thuoc_tinh_json) 
-                                ? json_decode($bt->thuoc_tinh_json, true) 
+                            'thuoc_tinh' => is_string($bt->thuoc_tinh_json)
+                                ? json_decode($bt->thuoc_tinh_json, true)
                                 : $bt->thuoc_tinh_json,
                         ];
-                    })
+                    }),
                 ];
-            })
+            }),
         ];
 
         return response()->json([
             'success' => true,
-            'data' => $formattedCombo
+            'data' => $formattedCombo,
         ]);
     }
 
@@ -132,13 +132,13 @@ class ComboController extends Controller
                             'id_sanpham' => $p->id_sanpham,
                             'tenSP' => $p->tenSP,
                         ];
-                    })
+                    }),
                 ];
             });
 
         return response()->json([
             'success' => true,
-            'data' => $combos
+            'data' => $combos,
         ]);
     }
 
@@ -182,14 +182,15 @@ class ComboController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Thêm combo mới thành công!',
-                'data' => $combo
+                'data' => $combo,
             ], 201);
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi: ' . $e->getMessage()
+                'message' => 'Lỗi: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -201,10 +202,10 @@ class ComboController extends Controller
     {
         $combo = Combo::find($id);
 
-        if (!$combo) {
+        if (! $combo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy combo để cập nhật'
+                'message' => 'Không tìm thấy combo để cập nhật',
             ], 404);
         }
 
@@ -248,14 +249,15 @@ class ComboController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật combo thành công!',
-                'data' => $combo
+                'data' => $combo,
             ]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi: ' . $e->getMessage()
+                'message' => 'Lỗi: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -267,10 +269,10 @@ class ComboController extends Controller
     {
         $combo = Combo::find($id);
 
-        if (!$combo) {
+        if (! $combo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy combo để xóa'
+                'message' => 'Không tìm thấy combo để xóa',
             ], 404);
         }
 
@@ -285,14 +287,15 @@ class ComboController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Xóa combo thành công!'
+                'message' => 'Xóa combo thành công!',
             ]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi: ' . $e->getMessage()
+                'message' => 'Lỗi: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -329,12 +332,13 @@ class ComboController extends Controller
             ->map(function ($offer) {
                 $offer->is_combo_in_stock = self::isComboInStock($offer->id_combo);
                 $offer->is_valid = self::isOfferValid($offer);
+
                 return $offer;
             });
 
         return response()->json([
             'success' => true,
-            'data' => $offers
+            'data' => $offers,
         ]);
     }
 
@@ -363,7 +367,7 @@ class ComboController extends Controller
         if ($existing) {
             return response()->json([
                 'success' => false,
-                'message' => 'Biến thể này đã được gán ưu đãi với combo này rồi!'
+                'message' => 'Biến thể này đã được gán ưu đãi với combo này rồi!',
             ], 400);
         }
 
@@ -406,7 +410,7 @@ class ComboController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Tạo ưu đãi biến thể thành công!',
-            'data' => $newOffer
+            'data' => $newOffer,
         ], 201);
     }
 
@@ -427,10 +431,10 @@ class ComboController extends Controller
         ]);
 
         $offer = DB::table('bienthe_combo_offers')->where('id', $id)->first();
-        if (!$offer) {
+        if (! $offer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy ưu đãi cần cập nhật'
+                'message' => 'Không tìm thấy ưu đãi cần cập nhật',
             ], 404);
         }
 
@@ -444,7 +448,7 @@ class ComboController extends Controller
         if ($dup) {
             return response()->json([
                 'success' => false,
-                'message' => 'Biến thể này đã được gán ưu đãi với combo này rồi!'
+                'message' => 'Biến thể này đã được gán ưu đãi với combo này rồi!',
             ], 400);
         }
 
@@ -464,7 +468,7 @@ class ComboController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Cập nhật ưu đãi biến thể thành công!'
+            'message' => 'Cập nhật ưu đãi biến thể thành công!',
         ]);
     }
 
@@ -474,10 +478,10 @@ class ComboController extends Controller
     public function deleteOffer($id)
     {
         $offer = DB::table('bienthe_combo_offers')->where('id', $id)->first();
-        if (!$offer) {
+        if (! $offer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy ưu đãi để xóa'
+                'message' => 'Không tìm thấy ưu đãi để xóa',
             ], 404);
         }
 
@@ -485,7 +489,7 @@ class ComboController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa ưu đãi thành công!'
+            'message' => 'Đã xóa ưu đãi thành công!',
         ]);
     }
 
@@ -495,7 +499,9 @@ class ComboController extends Controller
     public static function isComboInStock($comboId)
     {
         $combo = Combo::with('sanPhams.bienThes')->find($comboId);
-        if (!$combo) return false;
+        if (! $combo) {
+            return false;
+        }
 
         foreach ($combo->sanPhams as $product) {
             $productHasStock = false;
@@ -505,11 +511,12 @@ class ComboController extends Controller
                     break;
                 }
             }
-            if (!$productHasStock) {
+            if (! $productHasStock) {
                 // At least one accessory product in this combo has no stock in any variants!
                 return false;
             }
         }
+
         return true;
     }
 
@@ -518,14 +525,18 @@ class ComboController extends Controller
      */
     public static function isOfferValid($offer)
     {
-        if (!$offer) return false;
+        if (! $offer) {
+            return false;
+        }
 
         // 1. Basic status check
-        if (isset($offer->trangthai) && $offer->trangthai == 0) return false;
+        if (isset($offer->trangthai) && $offer->trangthai == 0) {
+            return false;
+        }
 
         // 2. Expiration date check
         if (isset($offer->ngay_het_han) && $offer->ngay_het_han !== null) {
-            if (now()->gt(\Carbon\Carbon::parse($offer->ngay_het_han))) {
+            if (now()->gt(Carbon::parse($offer->ngay_het_han))) {
                 return false;
             }
         }
@@ -539,7 +550,7 @@ class ComboController extends Controller
 
         // 4. Stock check of accessories in the combo
         if (isset($offer->id_combo)) {
-            if (!self::isComboInStock($offer->id_combo)) {
+            if (! self::isComboInStock($offer->id_combo)) {
                 return false;
             }
         }

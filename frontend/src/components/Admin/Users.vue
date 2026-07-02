@@ -89,6 +89,9 @@ const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 
 // ─── NORMALIZE ───────────────────────
+const protectedDeleteEmails = ['nextgenshop@gmail.com']
+const isProtectedDeleteUser = (user) => protectedDeleteEmails.includes(String(user?.email || '').toLowerCase())
+
 const normalizeUser = (u) => {
     const avatar = u.anhdaidien || u.avatar || ''
     const avatarUrl = avatar ? (avatar.startsWith('http') ? avatar : storageUrl(avatar)) : ''
@@ -234,21 +237,13 @@ const {
     endpoint: id => `/admin/users/${id}`,
     entityLabel: 'người dùng',
     fetchItems: fetchUsers,
-    canDelete: item => item.id !== currentUser.value?.id,
+    canDelete: item => item.id !== currentUser.value?.id && !isProtectedDeleteUser(item),
     cannotDeleteMessage: 'Một số tài khoản không thể xóa, ví dụ tài khoản đang đăng nhập.',
 })
 
 // Dãy số trang hiển thị (tối đa 5 nút)
 const pageNumbers = computed(() => {
-    const total = totalPages.value
-    const current = currentPage.value
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-
-    let start = Math.max(1, current - 2)
-    let end = Math.min(total, start + 4)
-    if (end - start < 4) start = Math.max(1, end - 4)
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    return []
 })
 
 const goToPage = (p) => {
@@ -571,7 +566,7 @@ const submitEdit = async () => {
                     </tr>
                     <tr v-for="u in paginatedUsers" :key="u.id" :class="{ 'row-selected': selectedIds.includes(u.id) }">
                         <td class="select-col">
-                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id" @change="toggleItemSelection(u.id)" />
+                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
                         </td>
                         <td>
                             <div class="user-cell">
@@ -621,7 +616,7 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger"
+                                <button v-if="!isProtectedDeleteUser(u)" class="act-btn danger"
                                     :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể xóa tài khoản Giám đốc sáng lập' : 'Xóa')"
                                     :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
                                     :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
@@ -651,6 +646,7 @@ const submitEdit = async () => {
                 <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
                 <!-- Nút trang đầu nếu không hiển thị -->
+                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
                 <template v-if="pageNumbers[0] > 1">
                     <button @click="goToPage(1)">1</button>
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>

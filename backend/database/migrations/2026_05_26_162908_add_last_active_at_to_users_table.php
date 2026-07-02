@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->timestamp('last_active_at')->nullable();
-        });
+        if (! Schema::hasColumn('khachhang', 'hoat_dong_cuoi_luc')) {
+            Schema::table('khachhang', function (Blueprint $table) {
+                $table->timestamp('hoat_dong_cuoi_luc')->nullable();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('last_active_at');
-        });
+        if (Schema::hasColumn('khachhang', 'hoat_dong_cuoi_luc')) {
+            Schema::table('khachhang', function (Blueprint $table) {
+                $table->dropColumn('hoat_dong_cuoi_luc');
+            });
+        }
     }
 };

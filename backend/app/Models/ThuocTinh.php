@@ -1,13 +1,16 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class ThuocTinh extends Model
 {
-    protected $table      = 'thuoctinh';
+    protected $table = 'thuoctinh';
+
     protected $primaryKey = 'id_thuoctinh';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'ten_thuoctinh',

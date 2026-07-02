@@ -254,7 +254,7 @@ class ChatController extends Controller
         return response()->json([
             'status' => 'success',
             'id' => $messageId,
-            'conversation_id' => $conversationId,
+            'id_cuoc_tro_chuyen' => $conversationId,
         ]);
     }
 

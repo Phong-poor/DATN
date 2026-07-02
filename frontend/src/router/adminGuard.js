@@ -4,14 +4,19 @@ export default function adminGuard(to, from, next) {
   const user = getUser();
 
   if (!user) {
-    return next("/login");
+    return next("/dang-nhap");
   }
 
-  if (user.vaitro === "user") {
+  const role = String(user.vaitro || user.role || '').toLowerCase();
+
+  if (role === "user") {
     return next("/");
   }
 
-  const role = String(user.vaitro || '').toLowerCase();
+  if (!role) {
+    return next("/");
+  }
+
   if (role !== 'admin') {
     const rolePermissions = {
       inventory: ['/admin', '/admin/products', '/admin/categories', '/admin/brands', '/admin/variants', '/admin/profile', '/admin/settings'],
@@ -37,4 +42,4 @@ export default function adminGuard(to, from, next) {
   }
 
   return next();
-}
+}
