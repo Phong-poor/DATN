@@ -15,7 +15,7 @@ class YeuThichController extends Controller
         
        
         $wishlist = YeuThich::with('bienthe.sanpham')
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->latest()
             ->get();
 
@@ -38,7 +38,7 @@ class YeuThichController extends Controller
         $soluong = $request->soluong ?? 1;
 
        
-        $yeuThich = YeuThich::where('user_id', $userId)
+        $yeuThich = YeuThich::where('id_khachhang', $userId)
                             ->where('id_bienthe', $idBienthe)
                             ->first();
 
@@ -49,7 +49,7 @@ class YeuThichController extends Controller
         } else {
             
             YeuThich::create([
-                'user_id' => $userId,
+                'id_khachhang' => $userId,
                 'id_bienthe' => $idBienthe,
                 'soluong' => $soluong
             ]);
@@ -69,7 +69,7 @@ class YeuThichController extends Controller
         ]);
 
       
-        $yeuThich = YeuThich::where('user_id', Auth::id())->findOrFail($id);
+        $yeuThich = YeuThich::where('id_khachhang', Auth::id())->findOrFail($id);
         
         $yeuThich->soluong = $request->soluong;
         $yeuThich->save();
@@ -83,7 +83,7 @@ class YeuThichController extends Controller
     
     public function xoa($id)
     {
-        $yeuThich = YeuThich::where('user_id', Auth::id())->findOrFail($id);
+        $yeuThich = YeuThich::where('id_khachhang', Auth::id())->findOrFail($id);
         $yeuThich->delete();
 
         return response()->json([
