@@ -8,23 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('birthday_coupon_logs', function (Blueprint $table) {
+        Schema::create('nhat_ky_gui_ma_sinh_nhat', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->integer('promotion_id')->nullable();
-            $table->foreign('promotion_id')->references('id')->on('promotions')->onDelete('set null');
-            $table->string('voucher_code');
+            $table->foreignId('id_khachhang')->constrained('khachhang')->onDelete('cascade');
+            $table->integer('id_voucher')->nullable();
+            $table->foreign('id_voucher')->references('id')->on('vouchers')->onDelete('set null');
+            $table->string('mavoucher');
             $table->string('email');
-            $table->date('birthday_date');
-            $table->timestamp('sent_at')->nullable();
-            $table->string('status')->default('pending'); // pending, sent, failed
-            $table->text('error_message')->nullable();
+            $table->date('ngaysinh');
+            $table->timestamp('guiluc')->nullable();
+            $table->string('trangthai')->default('pending');
+            $table->text('thongbaoloi')->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('birthday_coupon_logs');
+        Schema::dropIfExists('nhat_ky_gui_ma_sinh_nhat');
     }
 };

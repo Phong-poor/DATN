@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\DanhMuc;
+use App\Models\DanhMucCha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class DanhMucController extends Controller
 {
-    public function index(){
+    public function index()
+    {
         $danhmuc = Cache::remember('danhmuc_all', 120, function () {
             return DanhMuc::all();
         });
+
         return response()->json(['thongbao' => 'thành công', 'data' => $danhmuc]);
     }
 
@@ -21,8 +24,9 @@ class DanhMucController extends Controller
     public function getParentCategories()
     {
         $parents = Cache::remember('danhmuc_parents', 120, function () {
-            return \App\Models\DanhMucCha::all();
+            return DanhMucCha::all();
         });
+
         return response()->json(['data' => $parents]);
     }
 
@@ -32,6 +36,7 @@ class DanhMucController extends Controller
     public function getChildrenCategories($parentId)
     {
         $children = DanhMuc::where('id_danhmuc_cha', $parentId)->get();
+
         return response()->json(['data' => $children]);
     }
 
@@ -41,71 +46,75 @@ class DanhMucController extends Controller
     public function getCategoryWithInheritedAttributes($categoryId)
     {
         $category = DanhMuc::find($categoryId);
-        if (!$category) {
+        if (! $category) {
             return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
         }
 
         $inheritedAttrIds = $category->getInheritedAttributeIds();
-        
+
         return response()->json([
             'data' => [
                 'category' => $category,
-                'inherited_attribute_ids' => $inheritedAttrIds
-            ]
+                'inherited_attribute_ids' => $inheritedAttrIds,
+            ],
         ]);
     }
-    public function store(Request $request){
+
+    public function store(Request $request)
+    {
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc',
-            'trangthai'  => 'required|in:active,hidden',
+            'trangthai' => 'required|in:active,hidden',
             'id_danhmuc_cha' => 'required|exists:danhmuc_cha,id_danhmuc_cha',
         ]);
 
         $danhmuc = DanhMuc::create([
             'ten_danhmuc' => $validated['ten_danhmuc'],
             'trangthai' => $validated['trangthai'],
-            'id_danhmuc_cha' => $validated['id_danhmuc_cha']
+            'id_danhmuc_cha' => $validated['id_danhmuc_cha'],
         ]);
-        
+
         Cache::forget('danhmuc_all');
         Cache::forget('danhmuc_parents');
 
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Thêm danh mục thành công',
-            'data' => $danhmuc
+            'data' => $danhmuc,
         ], 201);
     }
+
     public function show($id)
     {
         $danhMuc = Cache::remember("danhmuc_show_{$id}", 120, function () use ($id) {
             return DanhMuc::find($id);
         });
 
-        if (!$danhMuc) {
+        if (! $danhMuc) {
             return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
         }
 
         return response()->json(['data' => $danhMuc], 200);
     }
+
     public function update(Request $request, $id)
     {
         $danhMuc = DanhMuc::find($id);
 
-        if (!$danhMuc) {
+        if (! $danhMuc) {
             return response()->json(['message' => 'Không tìm thấy danh mục để sửa'], 404);
         }
 
         $validated = $request->validate([
-            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc,' . $id . ',id_danhmuc',
-            'trangthai'  => 'required|in:active,hidden',
-            'id_danhmuc_cha'  => 'required|exists:danhmuc_cha,id_danhmuc_cha',
+            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc,ten_danhmuc,'.$id.',id_danhmuc',
+            'trangthai' => 'required|in:active,hidden',
+            'id_danhmuc_cha' => 'required|exists:danhmuc_cha,id_danhmuc_cha',
         ]);
 
         $danhMuc->update([
             'ten_danhmuc' => $validated['ten_danhmuc'],
             'trangthai' => $validated['trangthai'],
-            'id_danhmuc_cha' => $validated['id_danhmuc_cha']
+            'id_danhmuc_cha' => $validated['id_danhmuc_cha'],
         ]);
 
         Cache::forget('danhmuc_all');
@@ -115,14 +124,15 @@ class DanhMucController extends Controller
         return response()->json([
             'thongbao' => 'thành công',
             'message' => 'Cập nhật thành công',
-            'data' => $danhMuc
+            'data' => $danhMuc,
         ], 200);
-        }
-        public function destroy($id)
+    }
+
+    public function destroy($id)
     {
         $danhMuc = DanhMuc::find($id);
 
-        if (!$danhMuc) {
+        if (! $danhMuc) {
             return response()->json(['message' => 'Không tìm thấy danh mục để xóa'], 404);
         }
 
@@ -133,8 +143,7 @@ class DanhMucController extends Controller
 
         return response()->json([
             'thongbao' => 'thành công',
-            'message' => 'Đã xóa danh mục'
+            'message' => 'Đã xóa danh mục',
         ], 200);
     }
 }
-

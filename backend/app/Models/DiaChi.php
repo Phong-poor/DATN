@@ -10,6 +10,7 @@ class DiaChi extends Model
     use SoftDeletes;
 
     protected $table = 'diachi';
+
     protected $primaryKey = 'id_diachi';
 
     protected $fillable = [

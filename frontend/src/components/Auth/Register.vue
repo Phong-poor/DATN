@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
 import {
@@ -51,8 +51,7 @@ const closeModal = () => {
 }
 
 const router = useRouter()
-const route = useRoute()
-const referralCode = ref((route.query.ref || localStorage.getItem('affiliate_ref') || '').toString().trim().toUpperCase())
+const referralCode = ref('')
 
 const normalizedPhone = computed(() => normalizePhone(phone.value))
 
@@ -122,7 +121,7 @@ const handleRegister = async () => {
       sodienthoai: normalizedPhone.value,
       matkhau: password.value,
       matkhau_confirmation: confirm.value,
-      referral_code: referralCode.value || null,
+      referral_code: referralCode.value.trim().toUpperCase() || null,
     })
     showModal('success', 'Đăng ký thành công!', formatAuthMessage(res.data.message, 'Đăng ký thành công!'), () => {
       name.value = ''
@@ -130,6 +129,7 @@ const handleRegister = async () => {
       phone.value = ''
       password.value = ''
       confirm.value = ''
+      referralCode.value = ''
       acceptTerms.value = false
 
       router.push('/login')

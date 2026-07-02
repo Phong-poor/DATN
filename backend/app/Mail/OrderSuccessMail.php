@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -15,6 +14,7 @@ class OrderSuccessMail extends Mailable
     use Queueable, SerializesModels;
 
     public $order;
+
     public $user;
 
     /**
@@ -32,7 +32,7 @@ class OrderSuccessMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Xác nhận đơn hàng #' . $this->order->id_dathang,
+            subject: 'Xác nhận đơn hàng #'.$this->order->id_dathang,
         );
     }
 

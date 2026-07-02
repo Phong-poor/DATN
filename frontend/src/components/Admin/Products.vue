@@ -2249,11 +2249,7 @@ onMounted(() => {
     <div class="pagination">
       <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
-      <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
-        :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-        @click="p !== '...' && goToPage(p)">
-        {{ p }}
-      </button>
+      <span class="pg-active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
 
       <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
     </div>
@@ -2753,11 +2749,7 @@ onMounted(() => {
                       ‹
                     </button>
 
-                    <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
-                      :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-                      @click="p !== '...' && goToVariantPage(p)">
-                      {{ p }}
-                    </button>
+                    <span class="pg-active page-indicator">{{ variantCurrentPage }}/{{ variantTotalPages }}</span>
 
                     <button :disabled="variantCurrentPage === variantTotalPages"
                       @click="goToVariantPage(variantCurrentPage + 1)">

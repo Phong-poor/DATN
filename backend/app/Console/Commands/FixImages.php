@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use App\Models\BienThe;
 use App\Models\SanPham;
+use Illuminate\Console\Command;
 
 class FixImages extends Command
 {
@@ -29,7 +30,7 @@ class FixImages extends Command
         $products = SanPham::all();
         $count = 0;
 
-        foreach($products as $p) {
+        foreach ($products as $p) {
             if (str_starts_with($p->hinhanh, '["')) {
                 $decoded = json_decode($p->hinhanh, true);
                 if (is_array($decoded) && count($decoded) > 0) {
@@ -41,9 +42,9 @@ class FixImages extends Command
         }
         $this->info("Fixed images for $count products.");
 
-        $variants = \App\Models\BienThe::all();
+        $variants = BienThe::all();
         $vCount = 0;
-        foreach($variants as $v) {
+        foreach ($variants as $v) {
             if (empty($v->thuoc_tinh_json) || $v->thuoc_tinh_json === 'null' || $v->thuoc_tinh_json === '""') {
                 $v->thuoc_tinh_json = '[]';
                 $v->save();

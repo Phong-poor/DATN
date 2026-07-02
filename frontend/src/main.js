@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router/index.js'
 import { initGoogleAnalytics } from './services/analytics'
 import { installPerformanceWarmup } from './services/performanceWarmup'
+import { installOnlinePresence } from './services/onlinePresence'
 import { installScrollEffects } from './services/scrollEffects'
 import { installI18n } from './services/i18n'
 
@@ -70,6 +71,7 @@ createApp(App)
   .mount('#app')
 
 installPerformanceWarmup()
+installOnlinePresence()
 installScrollEffects(router)
 installI18n(router)
 
@@ -83,10 +85,10 @@ window.addEventListener('storage', (event) => {
     
     window.dispatchEvent(new Event('user-updated'))
     
-    const isProtected = window.location.pathname.startsWith('/admin') || 
-                        ['/profile', '/checkout', '/orderspage', '/wishlistpage'].includes(window.location.pathname)
+    const isProtected = window.location.pathname.startsWith('/admin') ||
+                        ['/profile', '/trang-ca-nhan', '/checkout', '/thanh-toan', '/orderspage', '/don-hang', '/wishlistpage', '/danh-sach-yeu-thich', '/yeu-thich'].includes(window.location.pathname)
     if (isProtected) {
-      window.location.href = '/login'
+      window.location.href = '/dang-nhap'
     }
   } else if (event.key === 'login-event' && event.newValue) {
     try {
@@ -106,7 +108,7 @@ window.addEventListener('storage', (event) => {
       window.dispatchEvent(new Event('user-updated'))
       
       // Nếu đang ở trang login, tự động chuyển hướng theo vai trò người dùng
-      if (window.location.pathname === '/login') {
+      if (window.location.pathname === '/login' || window.location.pathname === '/dang-nhap') {
         try {
           const decoded = JSON.parse(decodeURIComponent(escape(atob(user))))
           const role = String(decoded.vaitro || decoded.role || '').toLowerCase()

@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('dathang', 'ly_do_huy')) {
+            return;
+        }
+
         Schema::table('dathang', function (Blueprint $table) {
             $table->text('ly_do_huy')->nullable()->after('PTTT');
         });
@@ -21,6 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('dathang', 'ly_do_huy')) {
+            return;
+        }
+
         Schema::table('dathang', function (Blueprint $table) {
             $table->dropColumn('ly_do_huy');
         });

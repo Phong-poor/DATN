@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('banners')) {
+        if (! Schema::hasTable('banners')) {
             Schema::create('banners', function (Blueprint $table) {
                 $table->id();
                 $table->string('title');
@@ -27,28 +27,28 @@ return new class extends Migration
         }
 
         Schema::table('banners', function (Blueprint $table) {
-            if (!Schema::hasColumn('banners', 'eyebrow')) {
+            if (! Schema::hasColumn('banners', 'eyebrow')) {
                 $table->string('eyebrow', 120)->nullable()->after('subtitle');
             }
-            if (!Schema::hasColumn('banners', 'highlight')) {
+            if (! Schema::hasColumn('banners', 'highlight')) {
                 $table->string('highlight', 180)->nullable()->after('eyebrow');
             }
-            if (!Schema::hasColumn('banners', 'description')) {
+            if (! Schema::hasColumn('banners', 'description')) {
                 $table->text('description')->nullable()->after('highlight');
             }
-            if (!Schema::hasColumn('banners', 'product_id')) {
+            if (! Schema::hasColumn('banners', 'product_id')) {
                 $table->unsignedBigInteger('product_id')->nullable()->after('link_url');
             }
-            if (!Schema::hasColumn('banners', 'primary_label')) {
+            if (! Schema::hasColumn('banners', 'primary_label')) {
                 $table->string('primary_label', 60)->nullable()->after('product_id');
             }
-            if (!Schema::hasColumn('banners', 'secondary_label')) {
+            if (! Schema::hasColumn('banners', 'secondary_label')) {
                 $table->string('secondary_label', 60)->nullable()->after('primary_label');
             }
-            if (!Schema::hasColumn('banners', 'product_badge')) {
+            if (! Schema::hasColumn('banners', 'product_badge')) {
                 $table->string('product_badge', 80)->nullable()->after('secondary_label');
             }
-            if (!Schema::hasColumn('banners', 'product_feature')) {
+            if (! Schema::hasColumn('banners', 'product_feature')) {
                 $table->string('product_feature', 120)->nullable()->after('product_badge');
             }
         });
@@ -56,7 +56,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('banners')) {
+        if (! Schema::hasTable('banners')) {
             return;
         }
 

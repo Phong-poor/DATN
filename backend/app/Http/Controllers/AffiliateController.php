@@ -74,7 +74,7 @@ class AffiliateController extends Controller
     public function referrals(Request $request)
     {
         $user = $request->user();
-        $rows = AffiliateReferral::with('referredUser:id,name,email,created_at')
+        $rows = AffiliateReferral::with('referredUser:id,ten,email,created_at')
             ->where('id_affiliate_khachhang', $user->id)
             ->latest()
             ->get();
@@ -85,7 +85,7 @@ class AffiliateController extends Controller
     public function commissions(Request $request)
     {
         $user = $request->user();
-        $rows = AffiliateCommission::with(['referredUser:id,name,email', 'order:id_dathang,tongtien,trangthai,created_at'])
+        $rows = AffiliateCommission::with(['referredUser:id,ten,email', 'order:id_dathang,tongtien,trangthai,created_at'])
             ->where('id_affiliate_khachhang', $user->id)
             ->latest()
             ->get();

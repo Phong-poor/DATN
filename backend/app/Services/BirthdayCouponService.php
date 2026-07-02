@@ -76,7 +76,7 @@ class BirthdayCouponService
     }
 
     /**
-     * Assign voucher to user in users_voucher
+     * Assign voucher to user in khachhang_voucher
      */
     public function assignVoucherToUser($user, $promotion)
     {

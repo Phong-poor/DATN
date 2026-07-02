@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('dathang', function (Blueprint $table) {
             $table->id('id_dathang');
 
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('id_khachhang')->constrained('khachhang')->onDelete('cascade');
 
             $table->decimal('tongtien', 12, 2);
             $table->string('trangthai')->default('pending');

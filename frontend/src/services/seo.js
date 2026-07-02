@@ -134,7 +134,7 @@ export const websiteSchema = (url = '/') => ({
   url: absoluteUrl(url),
   potentialAction: {
     '@type': 'SearchAction',
-    target: `${absoluteUrl('/news')}?q={search_term_string}`,
+    target: `${absoluteUrl('/tin-tuc')}?q={search_term_string}`,
     'query-input': 'required name=search_term_string',
   },
 })

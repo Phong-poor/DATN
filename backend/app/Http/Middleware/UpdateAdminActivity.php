@@ -13,6 +13,13 @@ class UpdateAdminActivity
     {
         $user = Auth::guard('sanctum')->user() ?: $request->user();
         if ($user) {
+            if ($user->trangthai === 'locked') {
+                return response()->json([
+                    'message' => 'Tài khoản của bạn đã bị khóa.',
+                    'code' => 'ACCOUNT_LOCKED',
+                ], 423);
+            }
+
             // Performance optimization: Only update the database once every 1 minute instead of on every API call
             if (!$user->hoat_dong_cuoi_luc || Carbon::parse($user->hoat_dong_cuoi_luc)->diffInMinutes(now()) >= 1) {
                 $user->hoat_dong_cuoi_luc = now();

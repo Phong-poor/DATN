@@ -4,7 +4,7 @@ import { productImageUrl } from '@/services/urls'
 
 const TTL_MS = 30 * 60 * 1000
 const STALE_TTL_MS = 24 * 60 * 60 * 1000
-const STORAGE_KEY = 'predator_products_prefetch_cache'
+const STORAGE_KEY = 'nextgen_products_prefetch_cache'
 
 let cache = null
 let inFlight = null
@@ -129,7 +129,7 @@ export const primeProductsCache = (data) => {
   return cache
 }
 
-const getProductDetailCacheKey = (productId) => `predator_product_detail_cache_${productId}`
+const getProductDetailCacheKey = (productId) => `nextgen_product_detail_cache_${productId}`
 
 export const invalidateProductsPrefetchCache = (productId = null) => {
   cache = null
@@ -140,16 +140,16 @@ export const invalidateProductsPrefetchCache = (productId = null) => {
 
   try {
     localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem('predator_admin_products_cache')
-    localStorage.removeItem('predator_products_cache')
+    localStorage.removeItem('nextgen_admin_products_cache')
+    localStorage.removeItem('nextgen_products_cache')
     localStorage.removeItem('premium_home_cache')
-    localStorage.removeItem('predator_labs_real_products')
+    localStorage.removeItem('nextgen_labs_real_products')
 
     if (productId) {
       localStorage.removeItem(getProductDetailCacheKey(productId))
     } else {
       Object.keys(localStorage)
-        .filter((key) => key.startsWith('predator_product_detail_cache_'))
+        .filter((key) => key.startsWith('nextgen_product_detail_cache_'))
         .forEach((key) => localStorage.removeItem(key))
     }
   } catch {
@@ -157,7 +157,7 @@ export const invalidateProductsPrefetchCache = (productId = null) => {
   }
 }
 
-export const preloadProductDetailPage = () => import('@/components/Web/ProductDetail.vue')
+export const preloadProductDetailPage = () => import('@/components/Web/ChiTietSanPham.vue')
 
 const specLabelForValue = (value = '') => {
   const text = String(value).toLowerCase()
@@ -245,14 +245,7 @@ export const primeProductDetailFromCard = (product) => {
         hinhanh: product.image || product.hinhanh || '',
         thuoc_tinh: technicalSpecs,
       }]
-    : (sourceVariants.length > 0 ? sourceVariants : [{
-        id_bienthe: product.id_sanpham || product.id,
-        ten_bienthe: product.variantName || product.tenSP,
-        gia: product.gia || 0,
-        soluong: product.inStock === false ? 0 : 1,
-        hinhanh: product.image || product.hinhanh || '',
-        thuoc_tinh: technicalSpecs,
-      }])
+    : sourceVariants
 
   const instantProduct = {
     ...product,

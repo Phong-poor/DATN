@@ -16,6 +16,6 @@ class SendResetOtpMail extends Mailable
     public function build()
     {
         return $this->subject('Mã OTP đặt lại mật khẩu')
-                    ->view('emails.reset-otp');
+            ->view('emails.reset-otp');
     }
 }

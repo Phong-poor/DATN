@@ -8,27 +8,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id(); // = id_khachhang
+        Schema::create('khachhang', function (Blueprint $table) {
+            $table->id();
 
-            $table->string('name');              // tenKH
+            $table->string('ten');
             $table->string('email')->unique();
-            $table->string('phone')->nullable();
+            $table->string('sodienthoai')->nullable();
 
-            $table->enum('gender', ['male', 'female', 'other'])->nullable();
-            $table->date('birthday')->nullable();
+            $table->string('gioitinh', 10)->nullable();
+            $table->date('ngaysinh')->nullable();
 
-            $table->string('password');
+            $table->string('matkhau');
 
-            $table->enum('role', ['user', 'admin'])->default('user');
+            $table->enum('vaitro', ['user', 'admin'])->default('user');
+            $table->string('anhdaidien')->nullable();
+            $table->string('id_facebook')->nullable();
+            $table->enum('trangthai', ['active', 'locked'])->default('active');
+            $table->timestamp('hoat_dong_cuoi_luc')->nullable();
 
-            //  OTP
-            $table->string('otp')->nullable();
-            $table->timestamp('otp_expired_at')->nullable(); // otp_hethan
-            $table->timestamp('otp_wait_until')->nullable(); // otp_wait
+            $table->string('otp_khoiphuc', 10)->nullable();
+            $table->timestamp('otp_khoiphuc_hethan_luc')->nullable();
 
             $table->timestamp('email_verified_at')->nullable();
+
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
+
             $table->rememberToken();
+            $table->string('api_token', 64)->nullable()->unique();
 
             $table->timestamps();
         });
@@ -36,6 +44,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('khachhang');
     }
 };

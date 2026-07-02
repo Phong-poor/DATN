@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('birthday_coupon_settings', function (Blueprint $table) {
-            if (!Schema::hasColumn('birthday_coupon_settings', 'promotion_id')) {
-                $table->integer('promotion_id')->nullable()->after('run_time');
-                $table->foreign('promotion_id')->references('id')->on('promotions')->onDelete('set null');
+        Schema::table('cai_dat_ma_sinh_nhat', function (Blueprint $table) {
+            if (! Schema::hasColumn('cai_dat_ma_sinh_nhat', 'id_voucher')) {
+                $table->integer('id_voucher')->nullable()->after('giochay');
+                $table->foreign('id_voucher')->references('id')->on('vouchers')->onDelete('set null');
             }
         });
 
-        Schema::table('birthday_coupon_logs', function (Blueprint $table) {
-            if (!Schema::hasColumn('birthday_coupon_logs', 'user_voucher_id')) {
-                $table->integer('user_voucher_id')->nullable()->after('promotion_id');
-                $table->foreign('user_voucher_id')->references('id')->on('users_voucher')->onDelete('set null');
+        Schema::table('nhat_ky_gui_ma_sinh_nhat', function (Blueprint $table) {
+            if (! Schema::hasColumn('nhat_ky_gui_ma_sinh_nhat', 'id_khachhang_voucher')) {
+                $table->integer('id_khachhang_voucher')->nullable()->after('id_voucher');
+                $table->foreign('id_khachhang_voucher')->references('id')->on('khachhang_voucher')->onDelete('set null');
             }
         });
     }
@@ -31,14 +31,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('birthday_coupon_settings', function (Blueprint $table) {
-            $table->dropForeign(['promotion_id']);
-            $table->dropColumn('promotion_id');
-        });
-
-        Schema::table('birthday_coupon_logs', function (Blueprint $table) {
-            $table->dropForeign(['user_voucher_id']);
-            $table->dropColumn('user_voucher_id');
+        Schema::table('nhat_ky_gui_ma_sinh_nhat', function (Blueprint $table) {
+            if (Schema::hasColumn('nhat_ky_gui_ma_sinh_nhat', 'id_khachhang_voucher')) {
+                $table->dropForeign(['id_khachhang_voucher']);
+                $table->dropColumn('id_khachhang_voucher');
+            }
         });
     }
 };

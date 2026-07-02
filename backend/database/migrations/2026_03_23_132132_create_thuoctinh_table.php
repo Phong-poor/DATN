@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('thuoctinh', function (Blueprint $table) {
@@ -14,9 +15,9 @@ return new class extends Migration {
             $table->unsignedBigInteger('id_nhom');
 
             $table->foreign('id_nhom')
-                  ->references('id_nhom')
-                  ->on('nhom_thuoctinh')
-                  ->onDelete('cascade');
+                ->references('id_nhom')
+                ->on('nhom_thuoctinh')
+                ->onDelete('cascade');
 
             $table->boolean('trangthai')->default(1);
             $table->timestamps();

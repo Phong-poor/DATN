@@ -1,5 +1,21 @@
+export function normalizeAuthUser(user) {
+  if (!user || typeof user !== 'object') return user
+
+  const role = String(user.vaitro || user.role || '').toLowerCase()
+
+  return {
+    ...user,
+    id: user.id ?? user.id_user,
+    name: user.name || user.ten || user.email || 'User',
+    role: role || user.role,
+    vaitro: role || user.vaitro,
+    avatar: user.avatar || user.anhdaidien || user.anh_dai_dien,
+  }
+}
+
 export function saveAuth(token, user, remember = false) {
-  const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(user))))
+  const normalizedUser = normalizeAuthUser(user)
+  const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedUser))))
 
   if (remember) {
     localStorage.setItem('token', token)
@@ -13,7 +29,6 @@ export function saveAuth(token, user, remember = false) {
     localStorage.removeItem('user')
   }
 
-  // Ghi nhận sự kiện đăng nhập để đồng bộ qua các tab khác
   const loginData = { token, user: encodedUser, remember }
   localStorage.setItem('login-event', JSON.stringify(loginData))
   localStorage.removeItem('login-event')
@@ -26,11 +41,10 @@ export function clearAuth() {
   localStorage.removeItem('user')
   sessionStorage.removeItem('token')
   sessionStorage.removeItem('user')
-  
-  // Ghi nhận sự kiện đăng xuất để đồng bộ qua các tab khác
+
   localStorage.setItem('logout-event', Date.now().toString())
   localStorage.removeItem('logout-event')
-  
+
   window.dispatchEvent(new Event('user-updated'))
 }
 
@@ -49,11 +63,11 @@ export function getUser() {
   if (!raw) return null
 
   try {
-    if (raw.startsWith('{')) {
-      return JSON.parse(raw)
-    }
-    // Giải mã UTF-8 an toàn
-    return JSON.parse(decodeURIComponent(escape(atob(raw))))
+    const parsed = raw.startsWith('{')
+      ? JSON.parse(raw)
+      : JSON.parse(decodeURIComponent(escape(atob(raw))))
+
+    return normalizeAuthUser(parsed)
   } catch (e) {
     console.error('Failed to parse user data', e)
     return null
@@ -61,13 +75,16 @@ export function getUser() {
 }
 
 export function updateUser(user) {
-  const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(user))))
+  const normalizedUser = normalizeAuthUser(user)
+  const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedUser))))
 
   if (localStorage.getItem('user')) {
     localStorage.setItem('user', encodedUser)
   } else {
     sessionStorage.setItem('user', encodedUser)
   }
+
+  window.dispatchEvent(new Event('user-updated'))
 }
 
 export function isLoggedIn() {

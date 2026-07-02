@@ -13,17 +13,15 @@ return new class extends Migration
     {
         Schema::create('sanpham_daxem', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_user');
+            $table->unsignedBigInteger('id_khachhang');
             $table->unsignedBigInteger('id_sanpham');
-            $table->timestamp('viewed_at')->useCurrent();
+            $table->timestamp('xem_luc')->useCurrent();
             $table->timestamps();
 
-            // Foreign keys
-            $table->foreign('id_user')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('id_khachhang')->references('id')->on('khachhang')->onDelete('cascade');
             $table->foreign('id_sanpham')->references('id_sanpham')->on('sanpham')->onDelete('cascade');
-            
-            // Unique constraint to avoid duplicate pairs, we just update viewed_at
-            $table->unique(['id_user', 'id_sanpham']);
+
+            $table->unique(['id_khachhang', 'id_sanpham']);
         });
     }
 

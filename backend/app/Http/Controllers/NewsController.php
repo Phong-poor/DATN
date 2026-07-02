@@ -44,7 +44,7 @@ class NewsController extends Controller
         $query->orderByDesc('dang_luc')->orderByDesc('id');
 
         if (($request->scope ?? '') === 'public') {
-            $cacheKey = 'news_public_index_' . md5(json_encode($request->query()));
+            $cacheKey = 'news_public_index_'.md5(json_encode($request->query()));
 
             return response()->json(
                 Cache::remember($cacheKey, 60, fn () => $query->paginate($perPage))
@@ -177,14 +177,14 @@ class NewsController extends Controller
             'category' => 'nullable|string|max:100',
         ]);
 
-        if (!str_starts_with($request->image, 'data:image')) {
+        if (! str_starts_with($request->image, 'data:image')) {
             return response()->json([
                 'message' => 'Định dạng ảnh không hợp lệ.',
             ], 422);
         }
 
         $imagePath = ImageHelper::saveBase64Image($request->image, 'uploads/news/content');
-        if (!$imagePath) {
+        if (! $imagePath) {
             return response()->json([
                 'message' => 'Không thể lưu ảnh.',
             ], 422);

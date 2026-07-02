@@ -11,6 +11,7 @@ class DatHang extends Model
 
     protected $fillable = [
         'id_khachhang',
+        'user_id',
         'tongtien',
         'trangthai',
         'diachi',
@@ -39,6 +40,16 @@ class DatHang extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'id_khachhang');
+    }
+
+    public function getUserIdAttribute()
+    {
+        return $this->id_khachhang;
+    }
+
+    public function setUserIdAttribute($value): void
+    {
+        $this->attributes['id_khachhang'] = $value;
     }
 
     public function chi_tiets()
