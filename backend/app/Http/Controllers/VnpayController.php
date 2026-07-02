@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\DatHang;
 use App\Events\NewOrderPlaced;
+use App\Events\OrderStatusUpdated;
 
 class VnpayController extends Controller
 {
@@ -92,9 +93,15 @@ class VnpayController extends Controller
 
             if ($order) {
                 if ($inputData['vnp_ResponseCode'] == '00') {
-                    $order->update(['trangthai' => 'confirmed']);
+                    $order->update([
+                        'trangthai' => 'confirmed',
+                        'trang_thai_thanh_toan' => 'paid',
+                        'nha_cung_cap_thanh_toan' => 'vnpay',
+                        'thanh_toan_luc' => now(),
+                    ]);
                     
                     // Broadcast to Admin
+                    event(new OrderStatusUpdated($order));
                     event(new NewOrderPlaced($order));
 
                     return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
@@ -114,19 +121,56 @@ class VnpayController extends Controller
 
     public function vnpayReturn(Request $request)
     {
+        $inputData = $request->all();
+        $vnp_HashSecret = env('VNPAY_HASH_SECRET');
+        
+        $vnp_SecureHash = $inputData['vnp_SecureHash'] ?? '';
+        unset($inputData['vnp_SecureHashType']);
+        unset($inputData['vnp_SecureHash']);
+        ksort($inputData);
+        
+        $i = 0;
+        $hashData = "";
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashData = $hashData . urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+        }
+
+        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        
         $parts = explode('_', $request->vnp_TxnRef);
         $orderId = $parts[0];
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
 
-        if ($request->vnp_ResponseCode == '00') {
-            return redirect($frontendUrl . '/thank-you?status=success&order_id=' . $orderId);
-        } else {
-            $order = DatHang::find($orderId);
-            if ($order && $order->trangthai == 'pending') {
-                $this->restoreCartAndDeleteOrder($order);
+        if ($secureHash == $vnp_SecureHash) {
+            if ($request->vnp_ResponseCode == '00') {
+                $order = DatHang::find($orderId);
+                if ($order && $order->trang_thai_thanh_toan !== 'paid') {
+                    $order->update([
+                        'trangthai' => 'confirmed',
+                        'trang_thai_thanh_toan' => 'paid',
+                        'nha_cung_cap_thanh_toan' => 'vnpay',
+                        'thanh_toan_luc' => now(),
+                    ]);
+                    
+                    event(new OrderStatusUpdated($order));
+                    event(new NewOrderPlaced($order));
+                }
+                return redirect($frontendUrl . '/thank-you?status=success&order_id=' . $orderId);
+            } else {
+                $order = DatHang::find($orderId);
+                if ($order && $order->trangthai == 'pending') {
+                    $this->restoreCartAndDeleteOrder($order);
+                }
+                return redirect($frontendUrl . '/payment-failed');
             }
-            return redirect($frontendUrl . '/payment-failed');
         }
+        
+        return redirect($frontendUrl . '/payment-failed');
     }
 
     private function restoreCartAndDeleteOrder($order)
