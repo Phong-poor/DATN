@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_thuonghieu');
 
             $table->string('tenSP');
+            $table->string('SKU')->nullable();
             $table->string('maSP')->nullable();
             $table->decimal('giaSP', 12, 2);
             $table->decimal('giamgiaSP', 12, 2)->default(0);
@@ -26,6 +27,7 @@ return new class extends Migration
             $table->integer('soluong')->default(0);
             $table->float('khoiluong')->nullable();
             $table->text('mota')->nullable();
+            $table->string('trangthai')->default('active');
 
             $table->timestamps();
 

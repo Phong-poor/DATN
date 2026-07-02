@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -12,11 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('dathang')) {
+        if (! Schema::hasTable('dathang')) {
             return;
         }
 
-        if (!Schema::hasColumn('dathang', 'lydo')) {
+        if (! Schema::hasColumn('dathang', 'lydo')) {
             Schema::table('dathang', function (Blueprint $table) {
                 $table->text('lydo')->nullable();
             });
@@ -38,11 +38,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (!Schema::hasTable('dathang')) {
+        if (! Schema::hasTable('dathang')) {
             return;
         }
 
-        if (!Schema::hasColumn('dathang', 'ly_do_huy')) {
+        if (! Schema::hasColumn('dathang', 'ly_do_huy')) {
             Schema::table('dathang', function (Blueprint $table) {
                 $table->text('ly_do_huy')->nullable()->after('PTTT');
             });

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasColumn('dathang', 'ly_do_huy')) {
+        if (Schema::hasColumn('dathang', 'refund_proof')) {
             return;
         }
 
         Schema::table('dathang', function (Blueprint $table) {
-            $table->text('ly_do_huy')->nullable()->after('PTTT');
+            $table->text('refund_proof')->nullable()->after('lydo');
         });
     }
 
@@ -25,12 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (! Schema::hasColumn('dathang', 'ly_do_huy')) {
+        if (! Schema::hasColumn('dathang', 'refund_proof')) {
             return;
         }
 
         Schema::table('dathang', function (Blueprint $table) {
-            $table->dropColumn('ly_do_huy');
+            $table->dropColumn('refund_proof');
         });
     }
 };

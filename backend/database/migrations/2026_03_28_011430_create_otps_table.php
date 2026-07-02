@@ -10,15 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::create('otps', function (Blueprint $table) {
-        $table->id();
-        $table->string('email');
-        $table->string('otp');
-        $table->timestamp('expires_at');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('otps', function (Blueprint $table) {
+            $table->id();
+            $table->string('email');
+            $table->string('otp');
+            $table->timestamp('expires_at');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

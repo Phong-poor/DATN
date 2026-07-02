@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasColumn('dathang', 'ly_do_huy')) {
+        if (Schema::hasTable('password_reset_tokens')) {
             return;
         }
 
-        Schema::table('dathang', function (Blueprint $table) {
-            $table->text('ly_do_huy')->nullable()->after('PTTT');
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
         });
     }
 
@@ -25,12 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (! Schema::hasColumn('dathang', 'ly_do_huy')) {
-            return;
-        }
-
-        Schema::table('dathang', function (Blueprint $table) {
-            $table->dropColumn('ly_do_huy');
-        });
+        Schema::dropIfExists('password_reset_tokens');
     }
 };

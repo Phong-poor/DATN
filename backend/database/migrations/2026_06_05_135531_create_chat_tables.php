@@ -11,28 +11,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('chat_conversations', function (Blueprint $table) {
+        Schema::create('cuoc_tro_chuyen', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->text('last_message')->nullable();
-            $table->timestamp('last_message_at')->nullable();
+            $table->unsignedBigInteger('id_khachhang');
+            $table->text('tin_nhan_cuoi')->nullable();
+            $table->timestamp('tin_nhan_cuoi_luc')->nullable();
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('id_khachhang')->references('id')->on('khachhang')->onDelete('cascade');
         });
 
-        Schema::create('chat_messages', function (Blueprint $table) {
+        Schema::create('noi_dung_tro_chuyen', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('conversation_id');
-            $table->unsignedBigInteger('sender_id');
-            $table->text('message')->nullable();
-            $table->boolean('is_read')->default(false);
-            $table->string('attachment_path')->nullable();
-            $table->string('attachment_name')->nullable();
+            $table->unsignedBigInteger('id_cuoc_tro_chuyen');
+            $table->unsignedBigInteger('id_nguoigui');
+            $table->text('noidung')->nullable();
+            $table->boolean('daxem')->default(false);
+            $table->string('duongdan_dinhkem')->nullable();
+            $table->string('ten_dinhkem')->nullable();
             $table->timestamps();
 
-            $table->foreign('conversation_id')->references('id')->on('chat_conversations')->onDelete('cascade');
-            $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('id_cuoc_tro_chuyen')->references('id')->on('cuoc_tro_chuyen')->onDelete('cascade');
+            $table->foreign('id_nguoigui')->references('id')->on('khachhang')->onDelete('cascade');
         });
     }
 
@@ -41,7 +41,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('chat_messages');
-        Schema::dropIfExists('chat_conversations');
+        Schema::dropIfExists('noi_dung_tro_chuyen');
+        Schema::dropIfExists('cuoc_tro_chuyen');
     }
 };

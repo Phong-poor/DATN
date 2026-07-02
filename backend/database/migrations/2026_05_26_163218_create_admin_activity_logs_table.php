@@ -11,16 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('dathang', function (Blueprint $table) {
-            $table->id('id_dathang');
-
+        Schema::create('nhat_ky_admin', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('id_khachhang')->constrained('khachhang')->onDelete('cascade');
-
-            $table->decimal('tongtien', 12, 2);
-            $table->string('trangthai')->default('pending');
-            $table->string('diachi')->nullable();
-            $table->string('PTTT')->nullable(); // phương thức thanh toán
-
+            $table->string('hanhdong')->nullable();
+            $table->string('tenmodel')->nullable();
+            $table->string('id_doituong')->nullable();
+            $table->text('mota')->nullable();
+            $table->string('diachi_ip')->nullable();
+            $table->text('user_agent')->nullable();
             $table->timestamps();
         });
     }
@@ -30,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('dathang');
+        Schema::dropIfExists('nhat_ky_admin');
     }
 };
