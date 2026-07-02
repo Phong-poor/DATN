@@ -308,7 +308,7 @@ class PromotionController extends Controller
         try {
             \Illuminate\Support\Facades\DB::beginTransaction();
 
-            // 1. Xóa các bản ghi liên quan trong bảng users_voucher trước để tránh lỗi khóa ngoại
+            // 1. Xóa các bản ghi liên quan trong bảng khachhang_voucher trước để tránh lỗi khóa ngoại
             UserVoucher::where('id_voucher', $id)->delete();
 
             // 2. Cập nhật các đơn hàng sử dụng mã này thành null để tránh lỗi khóa ngoại mà vẫn giữ được đơn hàng

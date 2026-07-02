@@ -14,7 +14,7 @@ class AffiliateController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        $profile = AffiliateProfile::where('user_id', $user->id)->first();
+        $profile = AffiliateProfile::where('id_khachhang', $user->id)->first();
 
         if (!$profile) {
             return response()->json([
@@ -29,20 +29,20 @@ class AffiliateController extends Controller
             ]);
         }
 
-        $pending = AffiliateCommission::where('affiliate_user_id', $user->id)->where('status', 'pending')->sum('amount');
-        $approved = AffiliateCommission::where('affiliate_user_id', $user->id)->where('status', 'approved')->sum('amount');
-        $paid = AffiliateCommission::where('affiliate_user_id', $user->id)->where('status', 'paid')->sum('amount');
+        $pending = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'pending')->sum('so_tien');
+        $approved = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'approved')->sum('so_tien');
+        $paid = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'paid')->sum('so_tien');
 
         return response()->json([
-            'active' => $profile->status === 'active',
+            'active' => $profile->trangthai === 'active',
             'profile' => $profile,
-            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->affiliate_code,
+            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->ma_affiliate,
             'stats' => [
-                'total_referrals' => AffiliateReferral::where('affiliate_user_id', $user->id)->count(),
+                'total_referrals' => AffiliateReferral::where('id_affiliate_khachhang', $user->id)->count(),
                 'pending_commission' => (float) $pending,
                 'approved_commission' => (float) $approved,
                 'paid_commission' => (float) $paid,
-                'available_balance' => (float) max(0, $approved - AffiliateWithdrawRequest::where('affiliate_user_id', $user->id)->whereIn('status', ['pending', 'approved', 'paid'])->sum('amount')),
+                'available_balance' => (float) max(0, $approved - AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)->whereIn('trangthai', ['pending', 'approved', 'paid'])->sum('so_tien')),
             ],
         ]);
     }
@@ -54,28 +54,28 @@ class AffiliateController extends Controller
         ]);
 
         $user = $request->user();
-        $profile = AffiliateProfile::firstOrNew(['user_id' => $user->id]);
+        $profile = AffiliateProfile::firstOrNew(['id_khachhang' => $user->id]);
 
         if (!$profile->exists) {
-            $profile->affiliate_code = $this->generateAffiliateCode();
+            $profile->ma_affiliate = $this->generateAffiliateCode();
         }
 
-        $profile->commission_rate = $request->commission_rate ?? $profile->commission_rate ?? 5;
-        $profile->status = 'active';
+        $profile->ty_le_hoa_hong = $request->commission_rate ?? $profile->ty_le_hoa_hong ?? 5;
+        $profile->trangthai = 'active';
         $profile->save();
 
         return response()->json([
             'message' => 'Kich hoat affiliate thanh cong.',
             'profile' => $profile,
-            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->affiliate_code,
+            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->ma_affiliate,
         ]);
     }
 
     public function referrals(Request $request)
     {
         $user = $request->user();
-        $rows = AffiliateReferral::with('referredUser:id,name,email,created_at')
-            ->where('affiliate_user_id', $user->id)
+        $rows = AffiliateReferral::with('referredUser:id,ten,email,created_at')
+            ->where('id_affiliate_khachhang', $user->id)
             ->latest()
             ->get();
 
@@ -85,8 +85,8 @@ class AffiliateController extends Controller
     public function commissions(Request $request)
     {
         $user = $request->user();
-        $rows = AffiliateCommission::with(['referredUser:id,name,email', 'order:id_dathang,tongtien,trangthai,created_at'])
-            ->where('affiliate_user_id', $user->id)
+        $rows = AffiliateCommission::with(['referredUser:id,ten,email', 'order:id_dathang,tongtien,trangthai,created_at'])
+            ->where('id_affiliate_khachhang', $user->id)
             ->latest()
             ->get();
 
@@ -96,7 +96,7 @@ class AffiliateController extends Controller
     public function withdraws(Request $request)
     {
         $user = $request->user();
-        $rows = AffiliateWithdrawRequest::where('affiliate_user_id', $user->id)
+        $rows = AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)
             ->latest()
             ->get();
 
@@ -113,8 +113,8 @@ class AffiliateController extends Controller
         ]);
 
         $user = $request->user();
-        $approved = (float) AffiliateCommission::where('affiliate_user_id', $user->id)->where('status', 'approved')->sum('amount');
-        $locked = (float) AffiliateWithdrawRequest::where('affiliate_user_id', $user->id)->whereIn('status', ['pending', 'approved', 'paid'])->sum('amount');
+        $approved = (float) AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'approved')->sum('so_tien');
+        $locked = (float) AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)->whereIn('trangthai', ['pending', 'approved', 'paid'])->sum('so_tien');
         $available = max(0, $approved - $locked);
         $amount = (float) $request->amount;
 
@@ -126,12 +126,12 @@ class AffiliateController extends Controller
         }
 
         $row = AffiliateWithdrawRequest::create([
-            'affiliate_user_id' => $user->id,
-            'amount' => $amount,
-            'bank_name' => $request->bank_name,
-            'bank_account_name' => $request->bank_account_name,
-            'bank_account_number' => $request->bank_account_number,
-            'status' => 'pending',
+            'id_affiliate_khachhang' => $user->id,
+            'so_tien' => $amount,
+            'ten_ngan_hang' => $request->bank_name,
+            'ten_chu_tai_khoan' => $request->bank_account_name,
+            'so_tai_khoan' => $request->bank_account_number,
+            'trangthai' => 'pending',
         ]);
 
         return response()->json([
@@ -144,7 +144,7 @@ class AffiliateController extends Controller
     {
         do {
             $code = strtoupper(Str::random(8));
-        } while (AffiliateProfile::where('affiliate_code', $code)->exists());
+        } while (AffiliateProfile::where('ma_affiliate', $code)->exists());
 
         return $code;
     }

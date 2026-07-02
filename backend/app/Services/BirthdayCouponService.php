@@ -21,14 +21,14 @@ class BirthdayCouponService
         $settings = BirthdayCouponSetting::first();
         if (!$settings) {
             $settings = BirthdayCouponSetting::create([
-                'enabled' => true,
-                'run_time' => '08:30',
-                'promotion_code' => 'HAPPYBDAY100',
-                'promotion_id' => null,
-                'email_template_id' => 'tpl-bday-default',
-                'send_once_per_year' => true,
-                'retry_if_failed' => true,
-                'notify_admin' => true,
+                'kichhoat' => true,
+                'giochay' => '08:30',
+                'mavoucher' => 'HAPPYBDAY100',
+                'id_voucher' => null,
+                'id_mau_email' => 'tpl-bday-default',
+                'gui_mot_lan_moi_nam' => true,
+                'thu_lai_khi_that_bai' => true,
+                'thongbao_admin' => true,
             ]);
         }
         return $settings;
@@ -40,19 +40,19 @@ class BirthdayCouponService
     public function getBirthdayPromotion()
     {
         $settings = $this->getSettings();
-        if (!$settings->promotion_id) {
-            if ($settings->promotion_code) {
-                return Promotion::where('code', $settings->promotion_code)
-                    ->where('category', 'birthday')
-                    ->whereIn('status', ['running', 'open'])
+        if (!$settings->id_voucher) {
+            if ($settings->mavoucher) {
+                return Promotion::where('code', $settings->mavoucher)
+                    ->where('danhmuc', 'birthday')
+                    ->whereIn('trangthai', ['running', 'open'])
                     ->first();
             }
             return null;
         }
 
-        return Promotion::where('id', $settings->promotion_id)
-            ->where('category', 'birthday')
-            ->whereIn('status', ['running', 'open'])
+        return Promotion::where('id', $settings->id_voucher)
+            ->where('danhmuc', 'birthday')
+            ->whereIn('trangthai', ['running', 'open'])
             ->first();
     }
 
@@ -62,8 +62,8 @@ class BirthdayCouponService
     public function getBirthdayUsers($date)
     {
         $targetDate = Carbon::parse($date);
-        return User::whereMonth('date_of_birth', $targetDate->month)
-            ->whereDay('date_of_birth', $targetDate->day)
+        return User::whereMonth('ngaysinh', $targetDate->month)
+            ->whereDay('ngaysinh', $targetDate->day)
             ->get();
     }
 
@@ -76,12 +76,12 @@ class BirthdayCouponService
     }
 
     /**
-     * Assign voucher to user in users_voucher
+     * Assign voucher to user in khachhang_voucher
      */
     public function assignVoucherToUser($user, $promotion)
     {
         $exists = UserVoucher::where('id_user', $user->id)
-            ->where('id_promotion', $promotion->id)
+            ->where('id_voucher', $promotion->id)
             ->whereYear('ngay_nhan', Carbon::now()->year)
             ->first();
 
@@ -91,7 +91,7 @@ class BirthdayCouponService
 
         return UserVoucher::create([
             'id_user' => $user->id,
-            'id_promotion' => $promotion->id,
+            'id_voucher' => $promotion->id,
             'trang_thai' => 0, // 0 means unused
             'ngay_nhan' => now(),
         ]);
@@ -105,10 +105,10 @@ class BirthdayCouponService
         $settings = $this->getSettings();
 
         // Check if user already received birthday coupon this year (if not forced and limit once per year is enabled)
-        if (!$force && $settings->send_once_per_year) {
-            $alreadySentThisYear = BirthdayCouponLog::where('user_id', $user->id)
-                ->where('status', 'sent')
-                ->whereYear('sent_at', Carbon::now()->year)
+        if (!$force && $settings->gui_mot_lan_moi_nam) {
+            $alreadySentThisYear = BirthdayCouponLog::where('id_khachhang', $user->id)
+                ->where('trangthai', 'sent')
+                ->whereYear('guiluc', Carbon::now()->year)
                 ->exists();
 
             if ($alreadySentThisYear) {
@@ -126,16 +126,16 @@ class BirthdayCouponService
 
         // Initialize log entry
         $log = BirthdayCouponLog::updateOrCreate([
-            'user_id' => $user->id,
-            'birthday_date' => $user->date_of_birth ? Carbon::parse($user->date_of_birth) : Carbon::today(),
+            'id_khachhang' => $user->id,
+            'ngaysinh' => $user->ngaysinh ? Carbon::parse($user->ngaysinh) : Carbon::today(),
         ], [
-            'promotion_id' => $promotion->id,
-            'user_voucher_id' => $userVoucher->id,
-            'voucher_code' => $promotion->code,
+            'id_voucher' => $promotion->id,
+            'id_khachhang_voucher' => $userVoucher->id,
+            'mavoucher' => $promotion->code,
             'email' => $user->email,
-            'status' => 'pending',
-            'sent_at' => null,
-            'error_message' => null,
+            'trangthai' => 'pending',
+            'guiluc' => null,
+            'thongbaoloi' => null,
         ]);
 
         try {
@@ -143,9 +143,9 @@ class BirthdayCouponService
             $this->mailBirthdayCoupon($user, $promotion->code, $promotion);
 
             $log->update([
-                'status' => 'sent',
-                'sent_at' => Carbon::now(),
-                'user_voucher_id' => $userVoucher->id,
+                'trangthai' => 'sent',
+                'guiluc' => Carbon::now(),
+                'id_khachhang_voucher' => $userVoucher->id,
             ]);
 
             Log::info("Birthday coupon sent successfully to {$user->email}");
@@ -157,8 +157,8 @@ class BirthdayCouponService
             Log::error("Birthday coupon failed for {$user->email}: " . $e->getMessage());
 
             $log->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
+                'trangthai' => 'failed',
+                'thongbaoloi' => $e->getMessage(),
             ]);
 
             return [
@@ -181,12 +181,12 @@ class BirthdayCouponService
         if (!$promotion) {
             // If the code doesn't exist, retrieve or mock it (legacy fallback)
             $promotion = Promotion::create([
-                'name' => 'Sinh Nhật Khách Hàng',
-                'category' => 'birthday',
+                'ten' => 'Sinh Nhật Khách Hàng',
+                'danhmuc' => 'birthday',
                 'code' => $voucherCode,
-                'type' => 'fixed',
-                'value' => 100000,
-                'status' => 'running',
+                'loai' => 'fixed',
+                'giatri' => 100000,
+                'trangthai' => 'running',
             ]);
         }
 
@@ -239,7 +239,7 @@ class BirthdayCouponService
         $settings = $this->getSettings();
         Log::info("Auto birthday setting loaded");
 
-        if (!$force && !$settings->enabled) {
+        if (!$force && !$settings->kichhoat) {
             Log::info("Auto birthday sender disabled");
             return [
                 'success' => false,
@@ -249,8 +249,8 @@ class BirthdayCouponService
 
         if (!$force) {
             $currentTime = Carbon::now()->format('H:i');
-            if ($currentTime !== $settings->run_time) {
-                Log::info("Current time {$currentTime} does not match run_time {$settings->run_time}");
+            if ($currentTime !== $settings->giochay) {
+                Log::info("Current time {$currentTime} does not match run_time {$settings->giochay}");
                 return [
                     'success' => false,
                     'reason' => 'Time mismatch'
@@ -313,18 +313,18 @@ class BirthdayCouponService
     {
         $discountDesc = "Món quà giảm giá đặc biệt";
         if ($promo) {
-            if ($promo->type === 'percent') {
-                $discountDesc = "Giảm giá {$promo->value}%";
-            } elseif ($promo->type === 'fixed') {
-                $discountDesc = "Giảm ngay " . number_format($promo->value, 0, ',', '.') . "đ";
+            if ($promo->loai === 'percent') {
+                $discountDesc = "Giảm giá {$promo->giatri}%";
+            } elseif ($promo->loai === 'fixed') {
+                $discountDesc = "Giảm ngay " . number_format($promo->giatri, 0, ',', '.') . "đ";
             }
         }
 
         $emailData = [
-            'name' => $user->name,
+            'name' => $user->ten,
             'voucher_code' => $voucherCode,
             'discount' => $discountDesc,
-            'expiry' => $promo && $promo->end_date ? Carbon::parse($promo->end_date)->format('d/m/Y') : '30 ngày kể từ hôm nay',
+            'expiry' => $promo && $promo->ngayketthuc ? Carbon::parse($promo->ngayketthuc)->format('d/m/Y') : '30 ngày kể từ hôm nay',
         ];
 
         Mail::send([], [], function ($message) use ($user, $emailData) {
