@@ -10,35 +10,46 @@ class DatHang extends Model
     protected $primaryKey = 'id_dathang';
 
     protected $fillable = [
+        'id_khachhang',
         'user_id',
         'tongtien',
         'trangthai',
         'diachi',
         'PTTT',
         'lydo',
-        'refund_proof',
-        'promotion_id',
+        'minh_chung_hoan_tien',
+        'id_khuyenmai',
         'giam_gia',
-        'payment_provider',
-        'payment_status',
-        'payment_order_id',
-        'payment_request_id',
-        'payment_transaction_id',
-        'payment_result_code',
-        'payment_message',
-        'payment_pay_type',
-        'payment_paid_at',
-        'payment_payload',
+        'nha_cung_cap_thanh_toan',
+        'trang_thai_thanh_toan',
+        'ma_don_hang_thanh_toan',
+        'ma_yeu_cau_thanh_toan',
+        'ma_giao_dich_thanh_toan',
+        'ma_ket_qua_thanh_toan',
+        'thong_bao_thanh_toan',
+        'kieu_thanh_toan',
+        'thanh_toan_luc',
+        'du_lieu_thanh_toan',
     ];
 
     protected $casts = [
-        'payment_payload' => 'array',
-        'payment_paid_at' => 'datetime',
+        'du_lieu_thanh_toan' => 'array',
+        'thanh_toan_luc' => 'datetime',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_khachhang');
+    }
+
+    public function getUserIdAttribute()
+    {
+        return $this->id_khachhang;
+    }
+
+    public function setUserIdAttribute($value): void
+    {
+        $this->attributes['id_khachhang'] = $value;
     }
 
     public function chi_tiets()

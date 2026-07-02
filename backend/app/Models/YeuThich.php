@@ -12,7 +12,7 @@ class YeuThich extends Model
     protected $table = 'yeuthich';
 
     protected $fillable = [
-        'user_id',
+        'id_khachhang',
         'id_bienthe',
         'soluong',
     ];

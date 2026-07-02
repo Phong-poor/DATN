@@ -5,12 +5,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Color extends Model
 {
-    protected $table      = 'colors';
+    protected $table      = 'mausac';
     protected $primaryKey = 'id';
     public $timestamps    = false;
 
     protected $fillable = [
-        'name',
-        'hex_code',
+        'ten',
+        'mamau',
     ];
 }

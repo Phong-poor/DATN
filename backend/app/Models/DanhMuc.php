@@ -7,15 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class DanhMuc extends Model
 {
     public $timestamps = false;
+
     protected $table = 'danhmuc';
+
     protected $primaryKey = 'id_danhmuc';
 
-    protected $fillable = 
-    [
-        'ten_danhmuc',
-        'trangthai',
-        'id_danhmuc_cha'
-    ];
+    protected $fillable =
+        [
+            'ten_danhmuc',
+            'trangthai',
+            'id_danhmuc_cha',
+        ];
 
     /**
      * Relationship: Danh mục cha

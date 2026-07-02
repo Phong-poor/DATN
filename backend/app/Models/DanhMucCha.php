@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 class DanhMucCha extends Model
 {
     public $timestamps = false;
+
     protected $table = 'danhmuc_cha';
+
     protected $primaryKey = 'id_danhmuc_cha';
 
     protected $fillable = [

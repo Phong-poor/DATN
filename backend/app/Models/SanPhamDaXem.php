@@ -12,14 +12,14 @@ class SanPhamDaXem extends Model
     protected $table = 'sanpham_daxem';
 
     protected $fillable = [
-        'id_user',
+        'id_khachhang',
         'id_sanpham',
-        'viewed_at',
+        'xem_luc',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'id_user');
+        return $this->belongsTo(User::class, 'id_khachhang');
     }
 
     public function sanPham()
