@@ -94,4 +94,40 @@ class AuthenticationTest extends TestCase
 
         $response->assertTooManyRequests();
     }
+
+    public function test_locked_users_can_not_authenticate_through_api()
+    {
+        $user = User::factory()->create([
+            'status' => 'locked',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response
+            ->assertStatus(423)
+            ->assertJson([
+                'code' => 'ACCOUNT_LOCKED',
+            ]);
+    }
+
+    public function test_locked_authenticated_users_are_rejected_through_api()
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('session_token')->plainTextToken;
+
+        $user->forceFill(['status' => 'locked'])->save();
+
+        $response = $this
+            ->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/user/profile');
+
+        $response
+            ->assertStatus(423)
+            ->assertJson([
+                'code' => 'ACCOUNT_LOCKED',
+            ]);
+    }
 }

@@ -2,7 +2,6 @@
 
 use App\Models\News;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Mail;
 use Laravel\Fortify\Features;
 
 Route::get('/sitemap.xml', function () {
@@ -14,27 +13,28 @@ Route::get('/sitemap.xml', function () {
         ['loc' => "{$baseUrl}/contact", 'priority' => '0.6', 'changefreq' => 'monthly'],
     ];
 
-    News::where('status', 'published')
+    News::where('trangthai', 'published')
         ->where(function ($query) {
-            $query->whereNull('published_at')->orWhere('published_at', '<=', now());
+            $query->whereNull('dang_luc')->orWhere('dang_luc', '<=', now());
         })
-        ->orderByDesc('published_at')
-        ->get(['id', 'updated_at', 'published_at'])
+        ->orderByDesc('dang_luc')
+        ->get(['id', 'updated_at', 'dang_luc'])
         ->each(function (News $post) use (&$urls, $baseUrl) {
             $urls[] = [
                 'loc' => "{$baseUrl}/news/{$post->id}",
                 'priority' => '0.8',
                 'changefreq' => 'weekly',
-                'lastmod' => optional($post->updated_at ?? $post->published_at)->toDateString(),
+                'lastmod' => optional($post->updated_at ?? $post->dang_luc)->toDateString(),
             ];
         });
 
     $xml = collect($urls)
         ->map(function ($url) {
             $lastmod = empty($url['lastmod']) ? '' : "\n    <lastmod>{$url['lastmod']}</lastmod>";
-            return "  <url>\n    <loc>" . e($url['loc']) . "</loc>{$lastmod}\n    <changefreq>{$url['changefreq']}</changefreq>\n    <priority>{$url['priority']}</priority>\n  </url>";
+
+            return "  <url>\n    <loc>".e($url['loc'])."</loc>{$lastmod}\n    <changefreq>{$url['changefreq']}</changefreq>\n    <priority>{$url['priority']}</priority>\n  </url>";
         })
-        ->prepend('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        ->prepend('<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
         ->push('</urlset>')
         ->implode("\n");
 
@@ -47,13 +47,4 @@ Route::inertia('/', 'Welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-});
-
-Route::get('/test-mail', function () {
-    Mail::raw('Test gửi mail từ Laravel', function ($message) {
-        $message->to('tantaile175@gmail.com')
-                ->subject('Test Gmail SMTP');
-    });
-
-    return 'Gửi mail thành công';
 });

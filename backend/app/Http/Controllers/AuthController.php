@@ -156,6 +156,13 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if ($user->trangthai === 'locked') {
+            return response()->json([
+                'message' => 'Tài khoản của bạn đã bị khóa.',
+                'code' => 'ACCOUNT_LOCKED',
+            ], 423);
+        }
+
         $tokenName = !empty($validated['remember']) ? 'remember_token' : 'session_token';
         $token = $this->issueSingleSessionToken($user, $tokenName);
 
