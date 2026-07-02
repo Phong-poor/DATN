@@ -4970,9 +4970,9 @@ const handleSelectVariantById = (idBienThe) => {
     width: 100%;
     max-width: 1100px;
     max-height: 85vh;
-    background: #111f35;
+    background: #ffffff;
     border-radius: 28px;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.18);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.12);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -4980,7 +4980,7 @@ const handleSelectVariantById = (idBienThe) => {
 
 .compare-modal-header {
     padding: 24px 30px;
-    border-bottom: 1px solid #cbd5e1;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -5000,10 +5000,11 @@ const handleSelectVariantById = (idBienThe) => {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #111f35;
+    background: #f1f5f9;
     border: none;
     font-size: 16px;
     cursor: pointer;
+    color: #475569;
     transition: var(--transition);
 }
 .close-modal-btn:hover {
@@ -5020,7 +5021,7 @@ const handleSelectVariantById = (idBienThe) => {
 
 .compare-products-picker-panel {
     padding: 24px 30px;
-    border-right: 1px solid #cbd5e1;
+    border-right: 1px solid #e2e8f0;
     overflow-y: auto;
 }
 .panel-section-title {
@@ -5041,12 +5042,12 @@ const handleSelectVariantById = (idBienThe) => {
     gap: 10px;
     padding: 10px;
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid #e2e8f0;
     cursor: pointer;
     transition: var(--transition);
 }
 .picker-item-row:hover {
-    background: #0d1b2e;
+    background: #f1f5f9;
 }
 .custom-tech-checkbox {
     width: 16px;
@@ -5086,7 +5087,7 @@ const handleSelectVariantById = (idBienThe) => {
 .compare-results-table-panel {
     padding: 24px 30px;
     overflow-y: auto;
-    background: #0d1b2e;
+    background: #f8fafc;
 }
 
 .empty-compare-selection-state {
@@ -5125,7 +5126,7 @@ const handleSelectVariantById = (idBienThe) => {
     text-align: left;
 }
 .comparison-tech-table th {
-    background: #111f35;
+    background: #ffffff;
     font-family: var(--font-heading);
     font-size: 12px;
     font-weight: 800;
@@ -5366,7 +5367,7 @@ const handleSelectVariantById = (idBienThe) => {
     }
     .compare-products-picker-panel {
         border-right: none;
-        border-bottom: 1px solid #cbd5e1;
+        border-bottom: 1px solid #e2e8f0;
         max-height: 200px;
     }
 }
