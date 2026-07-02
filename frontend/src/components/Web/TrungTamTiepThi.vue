@@ -612,7 +612,7 @@ onMounted(loadAll)
 
                     <div class="input-group">
                       <label>S? tài khoản <span class="required">*</span></label>
-                      <input v-model="withdrawForm.bank_account_number" placeholder="Nh?p chính xác s? tài khoản ngân hàng" />
+              <input v-model="withdrawForm.bank_account_number" placeholder="Nhập chính xác số tài khoản ngân hàng" />
                     </div>
                   </div>
 

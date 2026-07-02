@@ -766,7 +766,7 @@ const fetchProductDetail = async () => {
         if (data.id_danhmuc) {
             fetchRelatedProducts(data.id_danhmuc, data.id_sanpham)
                 .then(() => saveCache(productId))
-                .catch((err) => console.error('Lá»—i khi táº£i sáº£n pháº©m tÆ°Æ¡ng tá»±:', err))
+                .catch((err) => console.error('Lỗi khi tải sản phẩm tương tự:', err))
         }
 
         // --- GHI NHẬN LƯỢT XEM SẢN PHẨM ---

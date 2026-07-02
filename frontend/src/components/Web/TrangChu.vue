@@ -895,7 +895,7 @@ onUnmounted(() => {
 
                 <!-- Có combo thì hiện danh sách -->
                 <div v-if="combos && combos.length" class="combo-carousel-shell scroll-reveal reveal-stagger">
-                    <button class="combo-carousel-btn prev" type="button" aria-label="LÆ°á»›t combo trÆ°á»›c" @click="scrollComboCarousel(-1)">
+                    <button class="combo-carousel-btn prev" type="button" aria-label="Lướt combo trước" @click="scrollComboCarousel(-1)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                     </button>
 
@@ -951,7 +951,7 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <button class="combo-carousel-btn next" type="button" aria-label="LÆ°á»›t combo tiáº¿p theo" @click="scrollComboCarousel(1)">
+                    <button class="combo-carousel-btn next" type="button" aria-label="Lướt combo tiếp theo" @click="scrollComboCarousel(1)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                 </div>
