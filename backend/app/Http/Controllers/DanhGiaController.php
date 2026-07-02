@@ -6,6 +6,7 @@ use App\Models\DanhGia;
 use App\Models\DatHang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class DanhGiaController extends Controller
@@ -25,7 +26,7 @@ class DanhGiaController extends Controller
 
         return response()->json([
             'success' => true,
-            'reviews' => $reviews
+            'reviews' => $reviews,
         ]);
     }
 
@@ -48,15 +49,15 @@ class DanhGiaController extends Controller
             'reviews' => $reviews->items(),
             'pagination' => [
                 'current_page' => $reviews->currentPage(),
-                'last_page'    => $reviews->lastPage(),
-                'total'        => $reviews->total(),
-                'per_page'     => $reviews->perPage(),
+                'last_page' => $reviews->lastPage(),
+                'total' => $reviews->total(),
+                'per_page' => $reviews->perPage(),
             ],
             'stats' => [
                 'total' => DanhGia::count(),
                 'pending' => DanhGia::where('trangthai', 'pending')->count(),
-                'avg' => round(DanhGia::avg('danhgia') ?: 0, 1)
-            ]
+                'avg' => round(DanhGia::avg('danhgia') ?: 0, 1),
+            ],
         ]);
     }
 
@@ -65,17 +66,17 @@ class DanhGiaController extends Controller
         $request->validate([
             'id_dathang' => 'required|exists:dathang,id_dathang',
             'id_bienthe' => 'required|exists:bienthe,id_bienthe',
-            'danhgia'    => 'required|integer|min:1|max:5',
-            'binhluan'   => 'nullable|string'
+            'danhgia' => 'required|integer|min:1|max:5',
+            'binhluan' => 'nullable|string',
         ]);
 
         $userId = Auth::id();
 
         $order = DatHang::where('id_dathang', $request->id_dathang)
-            ->where('user_id', $userId)
+            ->where('id_khachhang', $userId)
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Đơn hàng không hợp lệ.'], 403);
         }
 
@@ -84,7 +85,7 @@ class DanhGiaController extends Controller
         }
 
         $hasItem = $order->chi_tiets()->where('id_bienthe', $request->id_bienthe)->exists();
-        if (!$hasItem) {
+        if (! $hasItem) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này không nằm trong đơn hàng.'], 400);
         }
 
@@ -101,17 +102,17 @@ class DanhGiaController extends Controller
         $aiResult = $this->analyzeCommentWithAI($request->binhluan ?? '', $request->danhgia);
 
         $binhLuanFinal = $request->binhluan;
-        if ($aiResult['reply'] && !empty($binhLuanFinal)) {
-            $binhLuanFinal = $request->binhluan . "\n\n" . $aiResult['reply'];
+        if ($aiResult['reply'] && ! empty($binhLuanFinal)) {
+            $binhLuanFinal = $request->binhluan."\n\n".$aiResult['reply'];
         }
 
         $danhGia = DanhGia::create([
             'id_dathang' => $request->id_dathang,
             'id_bienthe' => $request->id_bienthe,
-            'user_id'    => $userId,
-            'danhgia'    => $request->danhgia,
-            'binhluan'   => $binhLuanFinal,
-            'trangthai'  => $aiResult['trangthai']
+            'user_id' => $userId,
+            'danhgia' => $request->danhgia,
+            'binhluan' => $binhLuanFinal,
+            'trangthai' => $aiResult['trangthai'],
         ]);
 
         $this->clearProductCacheByReview($danhGia);
@@ -124,9 +125,9 @@ class DanhGiaController extends Controller
         }
 
         return response()->json([
-            'success'   => true,
-            'message'   => $msg,
-            'danh_gia'  => $danhGia
+            'success' => true,
+            'message' => $msg,
+            'danh_gia' => $danhGia,
         ]);
     }
 
@@ -136,7 +137,7 @@ class DanhGiaController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'trangthai' => 'required|in:pending,approved,spam'
+            'trangthai' => 'required|in:pending,approved,spam',
         ]);
 
         $review = DanhGia::findOrFail($id);
@@ -147,7 +148,7 @@ class DanhGiaController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Cập nhật trạng thái đánh giá thành công!',
-            'review'  => $review
+            'review' => $review,
         ]);
     }
 
@@ -157,9 +158,9 @@ class DanhGiaController extends Controller
     public function destroy($id)
     {
         $review = DanhGia::findOrFail($id);
-        
+
         // Nếu không phải admin thì chỉ được xóa review của chính mình
-        if (Auth::user()->role !== 'admin' && $review->user_id !== Auth::id()) {
+        if (Auth::user()->vaitro === 'user' && $review->user_id !== Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền xóa đánh giá này.'], 403);
         }
 
@@ -169,7 +170,7 @@ class DanhGiaController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa đánh giá thành công.'
+            'message' => 'Đã xóa đánh giá thành công.',
         ]);
     }
 
@@ -186,12 +187,12 @@ class DanhGiaController extends Controller
             'mất dạy', 'mat day', 'cứt', 'cut', 'hãm', 'ham', 'đéo', 'deo', 'buồi', 'buoi',
             'cặc', 'cac', 'óc chó', 'oc cho', 'đĩ', 'di', 'điếm', 'diem', 'khốn nạn', 'khon nan',
             'bậy', 'bay', 'đớp', 'dop', 'hít', 'hit', 'địt', 'dit', 'mẹ mày', 'me may', 'cha mày', 'cha may',
-            'cl', 'dcm', 'vl', 'đmm', 'dmm'
+            'cl', 'dcm', 'vl', 'đmm', 'dmm',
         ];
 
         // Kiểm tra xem bình luận có chứa từ thô tục nào không
         $isSpam = false;
-        if (!empty($text)) {
+        if (! empty($text)) {
             foreach ($profanityWords as $word) {
                 if (mb_strpos($textLower, $word) !== false) {
                     $isSpam = true;
@@ -213,17 +214,17 @@ class DanhGiaController extends Controller
             $aiActive = filter_var(Storage::get('admin/ai_status.json'), FILTER_VALIDATE_BOOLEAN);
         }
 
-        if ($aiActive && !empty($text)) {
+        if ($aiActive && ! empty($text)) {
             // Phân tích cảm xúc tích cực để tự động duyệt & phản hồi
             $positiveWords = [
                 'tốt', 'tot', 'tuyệt vời', 'tuyet voi', 'ưng ý', 'ung y', 'chất lượng', 'chat luong',
                 'đẹp', 'dep', 'mượt', 'muot', 'nhanh', 'nhiệt tình', 'nhiet tinh', 'thích', 'thich',
                 'hài lòng', 'hai long', 'yêu', 'yeu', 'xịn', 'xin', 'quá ngon', 'qua ngon', 'ok',
-                'recommend', 'tuyệt', 'tuyet', 'quá đỉnh', 'qua dinh'
+                'recommend', 'tuyệt', 'tuyet', 'quá đỉnh', 'qua dinh',
             ];
 
             $isPositive = ($rating >= 4);
-            if (!$isPositive) {
+            if (! $isPositive) {
                 foreach ($positiveWords as $word) {
                     if (mb_strpos($textLower, $word) !== false) {
                         $isPositive = true;
@@ -235,10 +236,10 @@ class DanhGiaController extends Controller
             if ($isPositive) {
                 // Danh sách các câu trả lời tự động ngẫu nhiên của AI để tăng tính tự nhiên
                 $thankReplies = [
-                    "🤖 *Trợ lý AI VinaTech:* Cảm ơn bạn rất nhiều vì đánh giá tích cực! VinaTech rất tự hào khi mang đến trải nghiệm hài lòng cho bạn. Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm! ✨",
-                    "🤖 *Trợ lý AI VinaTech:* Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm của VinaTech! Sự hài lòng của bạn là động lực lớn nhất để chúng tôi không ngừng cải thiện chất lượng dịch vụ. Chúc bạn một ngày tốt lành! 🌸",
-                    "🤖 *Trợ lý AI VinaTech:* Tuyệt vời quá! Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn có thời gian làm việc và giải trí thật mượt mà và hiệu quả nhé! 💻🚀",
-                    "🤖 *Trợ lý AI VinaTech:* Cảm ơn phản hồi siêu chất lượng từ bạn! VinaTech cam kết luôn đồng hành và hỗ trợ bạn tốt nhất trong suốt quá trình sử dụng. Chúc bạn vạn sự như ý! 💎",
+                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn bạn rất nhiều vì đánh giá tích cực! VinaTech rất tự hào khi mang đến trải nghiệm hài lòng cho bạn. Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm! ✨',
+                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm của VinaTech! Sự hài lòng của bạn là động lực lớn nhất để chúng tôi không ngừng cải thiện chất lượng dịch vụ. Chúc bạn một ngày tốt lành! 🌸',
+                    '🤖 *Trợ lý AI VinaTech:* Tuyệt vời quá! Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn có thời gian làm việc và giải trí thật mượt mà và hiệu quả nhé! 💻🚀',
+                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn phản hồi siêu chất lượng từ bạn! VinaTech cam kết luôn đồng hành và hỗ trợ bạn tốt nhất trong suốt quá trình sử dụng. Chúc bạn vạn sự như ý! 💎',
                 ];
 
                 $reply = $thankReplies[array_rand($thankReplies)];
@@ -266,9 +267,10 @@ class DanhGiaController extends Controller
         if (Storage::exists('admin/ai_status.json')) {
             $status = filter_var(Storage::get('admin/ai_status.json'), FILTER_VALIDATE_BOOLEAN);
         }
+
         return response()->json([
             'success' => true,
-            'active' => $status
+            'active' => $status,
         ]);
     }
 
@@ -278,7 +280,7 @@ class DanhGiaController extends Controller
     public function toggleAiStatus(Request $request)
     {
         $request->validate([
-            'active' => 'required|boolean'
+            'active' => 'required|boolean',
         ]);
 
         Storage::put('admin/ai_status.json', $request->active ? 'true' : 'false');
@@ -286,7 +288,7 @@ class DanhGiaController extends Controller
         return response()->json([
             'success' => true,
             'active' => $request->active,
-            'message' => $request->active ? 'Đã kích hoạt Trợ lý AI Smart Reply thành công!' : 'Đã hủy kích hoạt Trợ lý AI Smart Reply!'
+            'message' => $request->active ? 'Đã kích hoạt Trợ lý AI Smart Reply thành công!' : 'Đã hủy kích hoạt Trợ lý AI Smart Reply!',
         ]);
     }
 
@@ -299,11 +301,11 @@ class DanhGiaController extends Controller
             $review->load('bienThe');
             if ($review->bienThe) {
                 $productId = $review->bienThe->id_sanpham;
-                \Illuminate\Support\Facades\Cache::forget("sanpham_show_{$productId}");
+                Cache::forget("sanpham_show_{$productId}");
             }
         }
-        \Illuminate\Support\Facades\Cache::put('sanpham_cache_bust', (string) microtime(true));
-        \Illuminate\Support\Facades\Cache::forget('sanpham_index_' . md5(json_encode([])));
-        \Illuminate\Support\Facades\Cache::forget('mobile_home_v2');
+        Cache::put('sanpham_cache_bust', (string) microtime(true));
+        Cache::forget('sanpham_index_'.md5(json_encode([])));
+        Cache::forget('mobile_home_v2');
     }
 }

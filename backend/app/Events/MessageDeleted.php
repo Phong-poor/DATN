@@ -13,6 +13,7 @@ class MessageDeleted implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $id;
+
     public int $conversationId;
 
     public function broadcastAs()
@@ -28,6 +29,6 @@ class MessageDeleted implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('chat.' . $this->conversationId)];
+        return [new PrivateChannel('chat.'.$this->conversationId)];
     }
 }
