@@ -343,9 +343,9 @@ const fetchCart = async () => {
       const comboGroups = new Set()
       let count = 0
       cartItems.value.forEach(item => {
-        if (item.id_combo && item.combo_group_id) {
-            if (!comboGroups.has(item.combo_group_id)) {
-                comboGroups.add(item.combo_group_id)
+        if (item.id_combo && item.id_nhom_combo) {
+            if (!comboGroups.has(item.id_nhom_combo)) {
+                comboGroups.add(item.id_nhom_combo)
                 count++
             }
         } else {
