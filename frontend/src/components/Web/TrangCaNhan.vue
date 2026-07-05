@@ -550,6 +550,33 @@ onUnmounted(() => {
   }
 })
 
+const showXuHistoryModal = ref(false)
+const xuHistoryList = ref([])
+const xuHistoryLoading = ref(false)
+const xuHistoryPage = ref(1)
+const xuHistoryTotalPages = ref(1)
+
+const openXuHistoryModal = () => {
+  showXuHistoryModal.value = true
+  fetchXuHistory(1)
+}
+
+const fetchXuHistory = async (page) => {
+  try {
+    xuHistoryLoading.value = true
+    const res = await api.get(`/xu/history?page=${page}`)
+    if (res.data.success) {
+      xuHistoryList.value = res.data.data.data || []
+      xuHistoryPage.value = res.data.data.current_page || 1
+      xuHistoryTotalPages.value = res.data.data.last_page || 1
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch sử xu:', error)
+  } finally {
+    xuHistoryLoading.value = false
+  }
+}
+
 const startEdit = () => {
   profileForm.value = { ...user.value }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
@@ -1444,6 +1471,71 @@ const promoStatusMap = {
       </div>
     </transition>
 
+    <!-- Xu History Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
+        <div class="modal" style="max-width: 550px;">
+          <div class="modal-head">
+            <div>
+              <h2 class="modal-title">Lịch sử giao dịch Xu</h2>
+              <p class="modal-id" style="color: #64748b; font-size: 12px; margin-top: 2px;">Theo dõi các giao dịch sử dụng và hoàn trả xu của bạn</p>
+            </div>
+            <button class="close-btn" @click="showXuHistoryModal = false">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body" style="padding-top: 10px;">
+            <div v-if="xuHistoryLoading" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
+              <p class="mt-2 text-muted" style="font-size: 13px;">Đang tải lịch sử giao dịch...</p>
+            </div>
+            <div v-else-if="xuHistoryList.length === 0" class="text-center py-4" style="color: #64748b;">
+              <p style="font-size: 14px; margin: 0;">Bạn chưa có giao dịch xài xu nào.</p>
+            </div>
+            <div v-else>
+              <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                <table class="table table-hover" style="font-size: 13px; margin: 0;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #e2e8f0;">
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Thời gian</th>
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px; text-align: right;">Số xu</th>
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Chi tiết giao dịch</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in xuHistoryList" :key="item.id_lichsu" style="border-bottom: 1px solid #f1f5f9; align-items: center;">
+                      <td style="padding: 10px 8px; color: #64748b;">
+                        {{ new Date(item.created_at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }}
+                      </td>
+                      <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;" :style="item.so_xu > 0 ? 'color: #10b981;' : 'color: #ef4444;'">
+                        {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
+                      </td>
+                      <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
+                        {{ item.mo_ta }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pagination -->
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top: 1px solid #e2e8f0; font-size: 12px;" v-if="xuHistoryTotalPages > 1">
+                <span class="text-muted">Trang {{ xuHistoryPage }}/{{ xuHistoryTotalPages }}</span>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === 1" @click="fetchXuHistory(xuHistoryPage - 1)">
+                    ‹ Trước
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === xuHistoryTotalPages" @click="fetchXuHistory(xuHistoryPage + 1)">
+                    Sau ›
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Refund Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
@@ -1707,8 +1799,14 @@ const promoStatusMap = {
             <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
             <div class="info-row">
               <span class="info-lbl">🪙 Xu tích lũy</span>
-              <span class="info-val">
-                <b style="color:#eab308; font-size:16px;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+              <span class="info-val" style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                <b style="color:#eab308; font-size:18px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 12px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                  <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Lịch sử
+                </button>
               </span>
             </div>
             <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
