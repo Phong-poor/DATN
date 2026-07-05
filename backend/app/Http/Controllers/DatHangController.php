@@ -392,7 +392,40 @@ class DatHangController extends Controller
             }
         }
 
-        $tongTienSauGiam = max(0, $tongTienGoc - $giamGia) + max(0, $shippingFee - $giamGiaShip);
+        // ── Xử lý Xu (Shopee/TikTok Shop Coins) ─────────
+        $xuDung = 0;
+        $xuNhan = 0;
+        $cauhinhXu = \App\Models\CauHinhXu::first();
+        
+        $subtotalAfterPromo = max(0, $tongTienGoc - $giamGia);
+        $shippingAfterPromo = max(0, $shippingFee - $giamGiaShip);
+
+        if ($cauhinhXu && $cauhinhXu->trang_thai) {
+            if ($request->input('dung_xu') === true || $request->input('dung_xu') === 'true') {
+                $user = Auth::user();
+                if ($user && $user->xu > 0) {
+                    // Giảm tối đa X% tiền hàng theo cấu hình
+                    $maxGiamGiaBangXu = round($subtotalAfterPromo * ($cauhinhXu->phan_tram_giam_toi_da / 100));
+                    $maxXuGiamToiDa = (int) floor($maxGiamGiaBangXu / $cauhinhXu->ti_le_quy_doi);
+
+                    $xuDungYeuCau = (int) $request->input('so_xu_dung', $user->xu);
+                    if ($xuDungYeuCau <= 0) {
+                        $xuDungYeuCau = $user->xu;
+                    }
+
+                    // Cực hạn số xu tối đa được phép dùng
+                    $xuDung = min($user->xu, $maxXuGiamToiDa, $xuDungYeuCau);
+                    $soTienGiamBangXu = $xuDung * $cauhinhXu->ti_le_quy_doi;
+
+                    $subtotalAfterPromo = max(0, $subtotalAfterPromo - $soTienGiamBangXu);
+                }
+            }
+            
+            // Tính tích xu khi đơn hoàn thành (Tạm thời bỏ: đặt bằng 0)
+            $xuNhan = 0;
+        }
+
+        $tongTienSauGiam = $subtotalAfterPromo + $shippingAfterPromo;
 
         $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
         $isMomoPayment = $paymentProvider === 'momo';
@@ -440,6 +473,8 @@ class DatHangController extends Controller
                 'PTTT' => $request->PTTT,
                 'giam_gia' => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'id_khuyenmai' => $promoId,      // lưu id promotion đã dùng
+                'xu_dung'     => $xuDung,
+                'xu_nhan'     => $xuNhan,
             ];
 
             if ($hasPaymentTracking) {
@@ -458,6 +493,12 @@ class DatHangController extends Controller
             }
 
             $donHang = DatHang::create($orderData);
+
+            // Trừ xu trong ví user ngay khi tạo đơn
+            if ($xuDung > 0) {
+                $user = Auth::user();
+                $user->decrement('xu', $xuDung);
+            }
 
             foreach ($gioHangItems as $item) {
                 $unitPrice = isset($allocatedPrices[$item->id_giohang])
