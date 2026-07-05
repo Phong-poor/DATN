@@ -39,6 +39,7 @@ class User extends Authenticatable
         'status',
         'hoat_dong_cuoi_luc',
         'last_active_at',
+        'xu',
     ];
 
     protected $hidden = [
@@ -65,6 +66,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserVoucher::class, 'id_user');
     }
+
+
 
     public function diaChis()
     {
