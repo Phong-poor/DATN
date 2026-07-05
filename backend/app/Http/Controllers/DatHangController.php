@@ -66,6 +66,14 @@ class DatHangController extends Controller
                 }
             }
 
+            // Hoàn lại số xu đã sử dụng về ví người dùng
+            if ($order->xu_dung > 0) {
+                $user = Auth::user();
+                if ($user) {
+                    $user->increment('xu', $order->xu_dung);
+                }
+            }
+
             DB::commit();
 
             return response()->json([
@@ -778,7 +786,7 @@ class DatHangController extends Controller
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded,refund_rejected',
         ]);
 
-        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
+        $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
         $oldStatus = $order->trangthai;
         $newStatus = $request->trangthai;
 
@@ -799,6 +807,14 @@ class DatHangController extends Controller
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
                     }
                 }
+
+                // Hoàn lại số xu đã sử dụng về ví người dùng khi hủy đơn hàng
+                if ($order->xu_dung > 0) {
+                    $user = $order->user;
+                    if ($user) {
+                        $user->increment('xu', $order->xu_dung);
+                    }
+                }
             }
 
             if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
@@ -817,6 +833,16 @@ class DatHangController extends Controller
                 $updateData['lydo'] = $request->lydo;
             }
             $order->update($updateData);
+
+            // Hoàn lại xu đã sử dụng cho ví người dùng nếu đơn hàng chuyển thành 'refunded' (Đã hoàn tiền)
+            if ($newStatus === 'refunded' && $oldStatus !== 'refunded') {
+                if ($order->xu_dung > 0) {
+                    $user = $order->user;
+                    if ($user) {
+                        $user->increment('xu', $order->xu_dung);
+                    }
+                }
+            }
 
             DB::commit();
 
