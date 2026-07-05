@@ -107,6 +107,7 @@ const adminChildren = [
   { path: 'flash-sales', alias: ['flash-sale'], name: 'admin-flash-sales', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Flash sale' } },
   { path: 'gui-ma-sinh-nhat', alias: ['birthdays', 'birthday-codes'], name: 'admin-birthday-codes', component: () => import('../components/Admin/GuiMaSinhNhat.vue'), meta: { title: 'Ma sinh nhat' } },
   { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quan ly combo' } },
+  { path: 'xu', name: 'admin-xu', component: () => import('../components/Admin/AdminXu.vue'), meta: { title: 'Cấu hình hệ thống Xu' } },
 ]
 
 const routes = [
@@ -223,7 +224,7 @@ router.beforeEach((to, from, next) => {
       const rolePermissions = {
         inventory: ['/admin', '/admin/quan-ly-san-pham', '/admin/products', '/admin/quan-ly-danh-muc', '/admin/categories', '/admin/quan-ly-thuong-hieu', '/admin/brands', '/admin/bien-the', '/admin/variants', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],
         order_manager: ['/admin', '/admin/quan-ly-don-hang', '/admin/orders', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],
-        marketing: ['/admin', '/admin/quan-ly-khuyen-mai', '/admin/promotions', '/admin/gui-ma-sinh-nhat', '/admin/birthdays', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sales', '/admin/flash-sale', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],
+        marketing: ['/admin', '/admin/quan-ly-khuyen-mai', '/admin/promotions', '/admin/gui-ma-sinh-nhat', '/admin/birthdays', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sales', '/admin/flash-sale', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings', '/admin/xu'],
         affiliate_manager: ['/admin', '/admin/quan-ly-tiep-thi', '/admin/affiliates', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],
         editor: ['/admin', '/admin/quan-ly-tin-tuc', '/admin/news', '/admin/reviews', '/admin/quan-ly-banner', '/admin/banners', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],
         support: ['/admin', '/admin/quan-ly-lien-he', '/admin/contacts', '/admin/ho-so-quan-tri', '/admin/profile', '/admin/cai-dat-he-thong', '/admin/settings'],

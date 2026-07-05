@@ -159,6 +159,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sanpham-daxem/{id}', [SanPhamDaXemController::class, 'logView']);
     Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
 
+    // ===== HỆ THỐNG XU =====
+    Route::get('/xu/balance', [App\Http\Controllers\XuController::class, 'getBalance']);
+    Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getPublicSettings']);
+
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
     Route::post('/affiliate/activate', [AffiliateController::class, 'activate']);
@@ -396,5 +400,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/flash-sales/{id}', [FlashSaleController::class, 'destroy']);
         Route::post('/flash-sales/{id}/products', [FlashSaleController::class, 'saveProducts']);
         Route::delete('/flash-sales/{id}/products/{productId}', [FlashSaleController::class, 'removeProduct']);
+
+        // ===== ADMIN COIN SETTINGS =====
+        Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getAdminSettings']);
+        Route::put('/xu/settings', [App\Http\Controllers\XuController::class, 'updateAdminSettings']);
 
 });

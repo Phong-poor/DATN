@@ -219,6 +219,7 @@ import {
   Gift,
   ChevronDown,
   Activity,
+  Coins,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -316,6 +317,7 @@ const menuConfig = [
       { path: '/admin/users', label: 'Người dùng', badge: 'ADMIN' },
     ]
   },
+  { path: '/admin/xu', label: 'Cấu hình Xu', icon: Coins },
   { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
