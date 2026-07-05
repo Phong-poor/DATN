@@ -71,6 +71,14 @@ class DatHangController extends Controller
                 $user = Auth::user();
                 if ($user) {
                     $user->increment('xu', $order->xu_dung);
+
+                    \App\Models\XuHistory::create([
+                        'id_khachhang' => $userId,
+                        'so_xu' => $order->xu_dung,
+                        'loai_giao_dich' => 'hoan_tra',
+                        'id_dathang' => $order->id_dathang,
+                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                    ]);
                 }
             }
 
@@ -506,6 +514,14 @@ class DatHangController extends Controller
             if ($xuDung > 0) {
                 $user = Auth::user();
                 $user->decrement('xu', $xuDung);
+
+                \App\Models\XuHistory::create([
+                    'id_khachhang' => $userId,
+                    'so_xu' => -$xuDung,
+                    'loai_giao_dich' => 'su_dung',
+                    'id_dathang' => $donHang->id_dathang,
+                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #' . $donHang->id_dathang,
+                ]);
             }
 
             foreach ($gioHangItems as $item) {
@@ -813,6 +829,14 @@ class DatHangController extends Controller
                     $user = $order->user;
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
+
+                        \App\Models\XuHistory::create([
+                            'id_khachhang' => $order->id_khachhang,
+                            'so_xu' => $order->xu_dung,
+                            'loai_giao_dich' => 'hoan_tra',
+                            'id_dathang' => $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                        ]);
                     }
                 }
             }
@@ -840,6 +864,14 @@ class DatHangController extends Controller
                     $user = $order->user;
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
+
+                        \App\Models\XuHistory::create([
+                            'id_khachhang' => $order->id_khachhang,
+                            'so_xu' => $order->xu_dung,
+                            'loai_giao_dich' => 'hoan_tra',
+                            'id_dathang' => $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #' . $order->id_dathang,
+                        ]);
                     }
                 }
             }
