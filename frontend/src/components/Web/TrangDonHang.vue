@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
@@ -445,6 +445,13 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <div class="modal-breakdown" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top:10px; margin-bottom:10px; font-size:13px; color:#cbd5e1; display:flex; flex-direction:column; gap:5px; box-sizing:border-box;" v-if="selectedOrder.xu_dung > 0">
+                            <div class="d-flex justify-content-between">
+                                <span>Sử dụng xu:</span>
+                                <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ formatPrice(selectedOrder.xu_dung) }})</span>
+                            </div>
+                        </div>
+
                         <div class="modal-total">
                             <span>Tổng cộng</span>
                             <span class="total-val">{{ formatPrice(selectedOrder.tongtien) }}</span>
@@ -549,8 +556,12 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <div class="order-foot">
-                        <span class="order-total">Tổng: <strong>{{ formatPrice(order.tongtien) }}</strong></span>
+                    <div class="order-foot" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-sizing:border-box;">
+                        <div class="order-info-coins" style="font-size:12px; text-align:left; display:flex; gap:15px; flex:1;">
+                            <span v-if="order.xu_dung > 0" style="color:#f59e0b; display:inline-flex; align-items:center; gap:3px;">🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu</span>
+
+                        </div>
+                        <span class="order-total" style="white-space:nowrap; margin-left:auto;">Tổng: <strong>{{ formatPrice(order.tongtien) }}</strong></span>
                         <div class="d-flex gap-2">
                             <button v-if="['pending', 'confirmed'].includes(order.trangthai)" 
                                 class="btn-cancel" @click="openCancelModal(order)">Hủy đơn</button>
