@@ -68,6 +68,7 @@ const user = ref({
   avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
   memberSince: 'Thành viên',
   joinDate: '',
+  xu: 0,
 })
 
 const tempAvatarUrl = ref('')
@@ -91,6 +92,7 @@ const updateUserData = (apiUser) => {
     birthday: apiUser.date_of_birth || '',
     gender: apiUser.gender || '',
     avatar: apiUser.avatar || user.value.avatar,
+    xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
     memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
@@ -180,6 +182,7 @@ const loadUser = async () => {
           phone: parsed.phone || '',
           birthday: parsed.birthday || '',
           gender: parsed.gender || '',
+          xu: parsed.xu || 0,
           memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
           joinDate: parsed.created_at
             ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
@@ -242,8 +245,10 @@ const fetchOrders = async () => {
           updated_at: order.updated_at,
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
+          giam_gia: order.giam_gia || 0,
           lydo: order.lydo,
           refund_proof: order.refund_proof,
+          xu_dung: order.xu_dung || 0,
           items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
             
@@ -544,6 +549,33 @@ onUnmounted(() => {
     echo.leave(`user.${userId}`)
   }
 })
+
+const showXuHistoryModal = ref(false)
+const xuHistoryList = ref([])
+const xuHistoryLoading = ref(false)
+const xuHistoryPage = ref(1)
+const xuHistoryTotalPages = ref(1)
+
+const openXuHistoryModal = () => {
+  showXuHistoryModal.value = true
+  fetchXuHistory(1)
+}
+
+const fetchXuHistory = async (page) => {
+  try {
+    xuHistoryLoading.value = true
+    const res = await api.get(`/xu/history?page=${page}`)
+    if (res.data.success) {
+      xuHistoryList.value = res.data.data.data || []
+      xuHistoryPage.value = res.data.data.current_page || 1
+      xuHistoryTotalPages.value = res.data.data.last_page || 1
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch sử xu:', error)
+  } finally {
+    xuHistoryLoading.value = false
+  }
+}
 
 const startEdit = () => {
   profileForm.value = { ...user.value }
@@ -1393,9 +1425,21 @@ const promoStatusMap = {
                   class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
               </div>
               
-              <div class="modal-total-wrap">
-                <span class="total-label">Tổng cộng</span>
-                <span class="total-value">{{ selectedOrder.total }}</span>
+              <div class="modal-total-wrap" style="width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                <div class="modal-breakdown" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top:10px; width: 100%; font-size: 13px; color: #94a3b8;" v-if="selectedOrder.xu_dung > 0 || selectedOrder.giam_gia > 0">
+                  <div class="d-flex justify-content-between mb-1" v-if="selectedOrder.giam_gia > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                    <span>Giảm giá voucher:</span>
+                    <span style="color:#ef4444;">-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.giam_gia) }}đ</span>
+                  </div>
+                  <div class="d-flex justify-content-between" v-if="selectedOrder.xu_dung > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                    <span>Sử dụng xu:</span>
+                    <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.xu_dung) }}đ)</span>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; width: 100%; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top:8px;">
+                  <span class="total-label">Thành tiền</span>
+                  <span class="total-value" style="font-size: 18px; color: #2563eb;">{{ selectedOrder.total }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1421,6 +1465,71 @@ const promoStatusMap = {
                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
               </button>
               <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Xu History Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
+        <div class="modal" style="max-width: 550px;">
+          <div class="modal-head">
+            <div>
+              <h2 class="modal-title">Lịch sử giao dịch Xu</h2>
+              <p class="modal-id" style="color: #64748b; font-size: 12px; margin-top: 2px;">Theo dõi các giao dịch sử dụng và hoàn trả xu của bạn</p>
+            </div>
+            <button class="close-btn" @click="showXuHistoryModal = false">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="modal-body" style="padding-top: 10px;">
+            <div v-if="xuHistoryLoading" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
+              <p class="mt-2 text-muted" style="font-size: 13px;">Đang tải lịch sử giao dịch...</p>
+            </div>
+            <div v-else-if="xuHistoryList.length === 0" class="text-center py-4" style="color: #64748b;">
+              <p style="font-size: 14px; margin: 0;">Bạn chưa có giao dịch xài xu nào.</p>
+            </div>
+            <div v-else>
+              <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                <table class="table table-hover" style="font-size: 13px; margin: 0;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #e2e8f0;">
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Thời gian</th>
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px; text-align: right;">Số xu</th>
+                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Chi tiết giao dịch</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in xuHistoryList" :key="item.id_lichsu" style="border-bottom: 1px solid #f1f5f9; align-items: center;">
+                      <td style="padding: 10px 8px; color: #64748b;">
+                        {{ new Date(item.created_at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }}
+                      </td>
+                      <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;" :style="item.so_xu > 0 ? 'color: #10b981;' : 'color: #ef4444;'">
+                        {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
+                      </td>
+                      <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
+                        {{ item.mo_ta }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pagination -->
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top: 1px solid #e2e8f0; font-size: 12px;" v-if="xuHistoryTotalPages > 1">
+                <span class="text-muted">Trang {{ xuHistoryPage }}/{{ xuHistoryTotalPages }}</span>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === 1" @click="fetchXuHistory(xuHistoryPage - 1)">
+                    ‹ Trước
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === xuHistoryTotalPages" @click="fetchXuHistory(xuHistoryPage + 1)">
+                    Sau ›
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1688,6 +1797,18 @@ const promoStatusMap = {
           </div>
           <div v-if="!editing" class="info-grid">
             <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
+            <div class="info-row">
+              <span class="info-lbl">🪙 Xu tích lũy</span>
+              <span class="info-val" style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                <b style="color:#eab308; font-size:18px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 12px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                  <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Lịch sử
+                </button>
+              </span>
+            </div>
             <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
             <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
             <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
@@ -1794,7 +1915,12 @@ const promoStatusMap = {
                 <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
                   <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span></td>
                   <td>{{ order.date }}</td>
-                  <td>{{ order.total }}</td>
+                  <td>
+                    <div style="font-weight: 600;">{{ order.total }}</div>
+                    <div v-if="order.xu_dung > 0" style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
+                      🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
+                    </div>
+                  </td>
                   <td>
                     <span class="status-cell" :style="{ color: statusMap[order.status].color }">
                       {{ statusMap[order.status].label }}

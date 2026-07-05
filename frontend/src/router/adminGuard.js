@@ -21,7 +21,7 @@ export default function adminGuard(to, from, next) {
     const rolePermissions = {
       inventory: ['/admin', '/admin/products', '/admin/categories', '/admin/brands', '/admin/variants', '/admin/profile', '/admin/settings'],
       order_manager: ['/admin', '/admin/orders', '/admin/profile', '/admin/settings'],
-      marketing: ['/admin', '/admin/promotions', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sale', '/admin/profile', '/admin/settings'],
+      marketing: ['/admin', '/admin/promotions', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sale', '/admin/profile', '/admin/settings', '/admin/xu'],
       affiliate_manager: ['/admin', '/admin/affiliates', '/admin/profile', '/admin/settings'],
       editor: ['/admin', '/admin/news', '/admin/reviews', '/admin/banners', '/admin/profile', '/admin/settings'],
       support: ['/admin', '/admin/contacts', '/admin/profile', '/admin/settings'],

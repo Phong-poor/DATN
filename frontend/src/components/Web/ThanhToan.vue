@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
@@ -23,6 +23,30 @@ const freeshipDiscount = ref(0)
 const shippingFee = ref(30000)
 const buyNowVariantId = computed(() => route.query.buy_now === '1' ? String(route.query.variant || '') : '')
 const buyNowCartItemId = computed(() => route.query.buy_now === '1' ? String(route.query.cart_item || '') : '')
+
+// ── HỆ THỐNG XU ───────────────────
+const dungXu = ref(false)
+const userXu = ref(0)
+const xuMuonDung = ref(0)
+const xuSettings = ref({
+    ti_le_quy_doi: 1,
+    ti_le_tich_luy: 1,
+    phan_tram_giam_toi_da: 50,
+    trang_thai: true
+})
+
+const fetchXuSettings = async () => {
+    try {
+        const response = await api.get('/xu/settings')
+        if (response.data?.success) {
+            xuSettings.value = response.data.settings
+        }
+    } catch (error) {
+        console.error('Lỗi khi tải cấu hình Xu:', error)
+    }
+}
+
+// Định nghĩa các biến phụ trợ Xu sau khi có subtotal
 
 const isLoading = ref(true)
 const isSubmitting = ref(false)
@@ -437,6 +461,7 @@ const fetchUserProfile = async () => {
     const cachedUser = getUser()
     if (cachedUser) {
         fillUserForm(cachedUser)
+        userXu.value = cachedUser.xu || 0
     }
 
     try {
@@ -444,6 +469,7 @@ const fetchUserProfile = async () => {
         const profile = response.data?.user || response.data?.data || response.data
         if (profile) {
             fillUserForm(profile)
+            userXu.value = profile.xu || 0
             updateUser({ ...(cachedUser || {}), ...profile })
         }
     } catch (error) {
@@ -585,6 +611,7 @@ onMounted(() => {
     fetchAddresses()
     fetchUserProfile()
     fetchVouchers()
+    fetchXuSettings()
 })
 
 const subtotal = computed(() =>
@@ -596,10 +623,55 @@ watch(subtotal, () => {
     apDungFreeship()
 })
 
+// ── ĐỊNH NGHĨA CÁC ĐẠI LƯỢNG XU SAU KHI CÓ ĐỦ BIẾN PHỤ THUỘC ──
+const maxXuDuocDung = computed(() => {
+    if (!xuSettings.value.trang_thai) return 0
+    const subtotalAfterPromo = Math.max(0, subtotal.value - discount.value)
+    
+    // Giảm tối đa X% tiền hàng theo cấu hình
+    const maxGiamGiaBangXu = Math.round(subtotalAfterPromo * (xuSettings.value.phan_tram_giam_toi_da / 100))
+    const maxXuGiamToiDa = Math.floor(maxGiamGiaBangXu / xuSettings.value.ti_le_quy_doi)
+    
+    return Math.min(userXu.value, maxXuGiamToiDa)
+})
+
+watch(maxXuDuocDung, (newMax) => {
+    if (dungXu.value && xuMuonDung.value > newMax) {
+        xuMuonDung.value = newMax
+    }
+})
+
+watch(dungXu, (isChecked) => {
+    if (isChecked) {
+        xuMuonDung.value = maxXuDuocDung.value
+    } else {
+        xuMuonDung.value = 0
+    }
+})
+
+const validateXuInput = () => {
+    if (xuMuonDung.value === null || xuMuonDung.value === undefined || xuMuonDung.value === '') {
+        return
+    }
+    if (xuMuonDung.value < 0) {
+        xuMuonDung.value = 0
+    }
+    if (xuMuonDung.value > maxXuDuocDung.value) {
+        xuMuonDung.value = maxXuDuocDung.value
+    }
+}
+
+const coinDiscountValue = computed(() => {
+    if (!dungXu.value || !xuSettings.value.trang_thai) return 0
+    return xuMuonDung.value * xuSettings.value.ti_le_quy_doi
+})
+
+
+
 const total = computed(() => {
     const afterDiscount = Math.max(0, subtotal.value - discount.value)
     const afterShipping = Math.max(0, shippingFee.value - freeshipDiscount.value)
-    return afterDiscount + afterShipping
+    return Math.max(0, afterDiscount - coinDiscountValue.value) + afterShipping
 })
 
 const format = (n) => n.toLocaleString('vi-VN') + 'đ'
@@ -637,7 +709,9 @@ const confirmOrder = async () => {
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value,
             selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : (route.query.selected ? route.query.selected.split(',') : undefined),
-            selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined
+            selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined,
+            dung_xu: dungXu.value,
+            so_xu_dung: dungXu.value ? xuMuonDung.value : 0
         })
 
         if (response.data.success) {
@@ -861,6 +935,30 @@ const confirmOrder = async () => {
                 Bạn chưa có voucher nào phù hợp.
               </div>
             </template>
+
+            <!-- TIÊU XU (COINS) -->
+            <div class="coin-row-wrapper" v-if="xuSettings.trang_thai && userXu > 0" style="margin-top: 12px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 8px; box-sizing: border-box;">
+              <div class="coin-row" style="margin-top: 0; border: 0; background: transparent; padding: 10px 10px 5px;">
+                <label class="coin-checkbox-label">
+                  <input type="checkbox" v-model="dungXu" class="coin-checkbox" />
+                  <span class="coin-text-wrapper">
+                    🪙 Dùng Xu tích lũy
+                    <span class="coin-subtext">(Hiện có: {{ userXu.toLocaleString('vi-VN') }} Xu)</span>
+                  </span>
+                </label>
+              </div>
+              <div class="coin-input-row" v-if="dungXu" style="margin-top: 5px; display: flex; align-items: center; gap: 10px; padding: 0 10px 10px; box-sizing: border-box;">
+                <span style="font-size: 13px; color: #475569;">Số xu muốn dùng:</span>
+                <input type="number" 
+                       v-model.number="xuMuonDung" 
+                       :min="0" 
+                       :max="maxXuDuocDung" 
+                       @input="validateXuInput"
+                       style="width: 110px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #fff; color: #1e293b;" />
+                <span style="font-size: 11px; color: #64748b;">(Tối đa: {{ maxXuDuocDung.toLocaleString('vi-VN') }} Xu)</span>
+              </div>
+            </div>
+
           </div>
 
           <div class="line"></div>
@@ -885,10 +983,17 @@ const confirmOrder = async () => {
             <b style="color:#16a34a">-{{ format(freeshipDiscount) }}</b>
           </div>
 
+          <div class="row" v-if="coinDiscountValue > 0">
+            <span>Dùng Xu giảm giá</span>
+            <b style="color:#f59e0b">-{{ format(coinDiscountValue) }}</b>
+          </div>
+
           <div class="total">
             <span>TỔNG CỘNG: </span>
             <b>{{ format(total) }}</b>
           </div>
+
+
 
           <button class="btn" @click="confirmOrder" :disabled="isSubmitting || cart.length === 0">
             <span v-if="isSubmitting">⏳ Đang xử lý...</span>
@@ -1888,6 +1993,55 @@ textarea {
 
 .voucher-select.green {
   border-color: #86efac;
+}
+
+/* HỆ THỐNG XU STYLES */
+/* Ẩn nút tăng giảm số của ô input số xu */
+.coin-input-row input::-webkit-outer-spin-button,
+.coin-input-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.coin-input-row input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.coin-row {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.coin-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+  user-select: none;
+}
+
+.coin-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #f59e0b;
+}
+
+.coin-text-wrapper {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.coin-subtext {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 4px;
 }
 
 .voucher-select.green:focus {

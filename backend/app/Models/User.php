@@ -39,6 +39,7 @@ class User extends Authenticatable
         'status',
         'hoat_dong_cuoi_luc',
         'last_active_at',
+        'xu',
     ];
 
     protected $hidden = [
@@ -64,6 +65,16 @@ class User extends Authenticatable
     public function vouchers()
     {
         return $this->hasMany(UserVoucher::class, 'id_user');
+    }
+
+
+
+    /**
+     * Lịch sử giao dịch xu
+     */
+    public function xuHistories()
+    {
+        return $this->hasMany(XuHistory::class, 'id_khachhang');
     }
 
     public function diaChis()

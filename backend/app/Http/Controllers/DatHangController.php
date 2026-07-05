@@ -66,6 +66,22 @@ class DatHangController extends Controller
                 }
             }
 
+            // Hoàn lại số xu đã sử dụng về ví người dùng
+            if ($order->xu_dung > 0) {
+                $user = Auth::user();
+                if ($user) {
+                    $user->increment('xu', $order->xu_dung);
+
+                    \App\Models\XuHistory::create([
+                        'id_khachhang' => $userId,
+                        'so_xu' => $order->xu_dung,
+                        'loai_giao_dich' => 'hoan_tra',
+                        'id_dathang' => $order->id_dathang,
+                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                    ]);
+                }
+            }
+
             DB::commit();
 
             return response()->json([
@@ -392,7 +408,40 @@ class DatHangController extends Controller
             }
         }
 
-        $tongTienSauGiam = max(0, $tongTienGoc - $giamGia) + max(0, $shippingFee - $giamGiaShip);
+        // ── Xử lý Xu (Shopee/TikTok Shop Coins) ─────────
+        $xuDung = 0;
+        $xuNhan = 0;
+        $cauhinhXu = \App\Models\CauHinhXu::first();
+        
+        $subtotalAfterPromo = max(0, $tongTienGoc - $giamGia);
+        $shippingAfterPromo = max(0, $shippingFee - $giamGiaShip);
+
+        if ($cauhinhXu && $cauhinhXu->trang_thai) {
+            if ($request->input('dung_xu') === true || $request->input('dung_xu') === 'true') {
+                $user = Auth::user();
+                if ($user && $user->xu > 0) {
+                    // Giảm tối đa X% tiền hàng theo cấu hình
+                    $maxGiamGiaBangXu = round($subtotalAfterPromo * ($cauhinhXu->phan_tram_giam_toi_da / 100));
+                    $maxXuGiamToiDa = (int) floor($maxGiamGiaBangXu / $cauhinhXu->ti_le_quy_doi);
+
+                    $xuDungYeuCau = (int) $request->input('so_xu_dung', $user->xu);
+                    if ($xuDungYeuCau <= 0) {
+                        $xuDungYeuCau = $user->xu;
+                    }
+
+                    // Cực hạn số xu tối đa được phép dùng
+                    $xuDung = min($user->xu, $maxXuGiamToiDa, $xuDungYeuCau);
+                    $soTienGiamBangXu = $xuDung * $cauhinhXu->ti_le_quy_doi;
+
+                    $subtotalAfterPromo = max(0, $subtotalAfterPromo - $soTienGiamBangXu);
+                }
+            }
+            
+            // Tính tích xu khi đơn hoàn thành (Tạm thời bỏ: đặt bằng 0)
+            $xuNhan = 0;
+        }
+
+        $tongTienSauGiam = $subtotalAfterPromo + $shippingAfterPromo;
 
         $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
         $isMomoPayment = $paymentProvider === 'momo';
@@ -440,6 +489,8 @@ class DatHangController extends Controller
                 'PTTT' => $request->PTTT,
                 'giam_gia' => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
                 'id_khuyenmai' => $promoId,      // lưu id promotion đã dùng
+                'xu_dung'     => $xuDung,
+                'xu_nhan'     => $xuNhan,
             ];
 
             if ($hasPaymentTracking) {
@@ -458,6 +509,20 @@ class DatHangController extends Controller
             }
 
             $donHang = DatHang::create($orderData);
+
+            // Trừ xu trong ví user ngay khi tạo đơn
+            if ($xuDung > 0) {
+                $user = Auth::user();
+                $user->decrement('xu', $xuDung);
+
+                \App\Models\XuHistory::create([
+                    'id_khachhang' => $userId,
+                    'so_xu' => -$xuDung,
+                    'loai_giao_dich' => 'su_dung',
+                    'id_dathang' => $donHang->id_dathang,
+                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #' . $donHang->id_dathang,
+                ]);
+            }
 
             foreach ($gioHangItems as $item) {
                 $unitPrice = isset($allocatedPrices[$item->id_giohang])
@@ -737,7 +802,7 @@ class DatHangController extends Controller
             'trangthai' => 'required|string|in:pending,confirmed,shipping,done,cancelled,refund_pending,refund_pickup,refund_delivering,refund_received,refunded,refund_rejected',
         ]);
 
-        $order = DatHang::with('chi_tiets.bienThe')->findOrFail($id);
+        $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
         $oldStatus = $order->trangthai;
         $newStatus = $request->trangthai;
 
@@ -758,6 +823,22 @@ class DatHangController extends Controller
                         $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
                     }
                 }
+
+                // Hoàn lại số xu đã sử dụng về ví người dùng khi hủy đơn hàng
+                if ($order->xu_dung > 0) {
+                    $user = $order->user;
+                    if ($user) {
+                        $user->increment('xu', $order->xu_dung);
+
+                        \App\Models\XuHistory::create([
+                            'id_khachhang' => $order->id_khachhang,
+                            'so_xu' => $order->xu_dung,
+                            'loai_giao_dich' => 'hoan_tra',
+                            'id_dathang' => $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                        ]);
+                    }
+                }
             }
 
             if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
@@ -776,6 +857,24 @@ class DatHangController extends Controller
                 $updateData['lydo'] = $request->lydo;
             }
             $order->update($updateData);
+
+            // Hoàn lại xu đã sử dụng cho ví người dùng nếu đơn hàng chuyển thành 'refunded' (Đã hoàn tiền)
+            if ($newStatus === 'refunded' && $oldStatus !== 'refunded') {
+                if ($order->xu_dung > 0) {
+                    $user = $order->user;
+                    if ($user) {
+                        $user->increment('xu', $order->xu_dung);
+
+                        \App\Models\XuHistory::create([
+                            'id_khachhang' => $order->id_khachhang,
+                            'so_xu' => $order->xu_dung,
+                            'loai_giao_dich' => 'hoan_tra',
+                            'id_dathang' => $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #' . $order->id_dathang,
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
 

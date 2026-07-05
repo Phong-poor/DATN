@@ -20,6 +20,8 @@ class DatHang extends Model
         'minh_chung_hoan_tien',
         'id_khuyenmai',
         'giam_gia',
+        'xu_dung',
+        'xu_nhan',
         'nha_cung_cap_thanh_toan',
         'trang_thai_thanh_toan',
         'ma_don_hang_thanh_toan',
@@ -31,6 +33,8 @@ class DatHang extends Model
         'thanh_toan_luc',
         'du_lieu_thanh_toan',
     ];
+
+
 
     protected $casts = [
         'du_lieu_thanh_toan' => 'array',
