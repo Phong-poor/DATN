@@ -69,6 +69,14 @@ class User extends Authenticatable
 
 
 
+    /**
+     * Lịch sử giao dịch xu
+     */
+    public function xuHistories()
+    {
+        return $this->hasMany(XuHistory::class, 'id_khachhang');
+    }
+
     public function diaChis()
     {
         return $this->hasMany(DiaChi::class, 'id_user');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\XuHistory;
 use App\Models\CauHinhXu;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,21 @@ class XuController extends Controller
         return response()->json([
             'success' => true,
             'xu' => $request->user()->xu ?? 0
+        ]);
+    }
+
+    /**
+     * Lấy lịch sử giao dịch Xu của người dùng (phân trang)
+     */
+    public function getHistory(Request $request)
+    {
+        $lichSu = XuHistory::where('id_khachhang', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $lichSu
         ]);
     }
 

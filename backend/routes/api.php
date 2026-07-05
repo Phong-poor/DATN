@@ -161,6 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ===== HỆ THỐNG XU =====
     Route::get('/xu/balance', [App\Http\Controllers\XuController::class, 'getBalance']);
+    Route::get('/xu/history', [App\Http\Controllers\XuController::class, 'getHistory']);
     Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getPublicSettings']);
 
     // ===== AFFILIATE =====
