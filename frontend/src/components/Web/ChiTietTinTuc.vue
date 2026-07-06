@@ -11,7 +11,7 @@ const relatedPosts = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
 
-const placeholderImage = 'https://via.placeholder.com/1200x650?text=Tin+tuc'
+const placeholderImage = 'https://placehold.co/1200x650?text=Tin+tuc'
 
 const imageUrl = (path) => {
   if (!path) return placeholderImage

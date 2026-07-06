@@ -423,7 +423,7 @@ const fetchCart = async () => {
                 desc: item.ten_bienthe,
                 price: item.gia,
                 qty: item.soluong,
-                img: normalizeImageUrl(item.hinh_anh, 'https://via.placeholder.com/200'),
+                img: normalizeImageUrl(item.hinh_anh, 'https://placehold.co/200'),
                 id_combo: item.id_combo,
                 id_nhom_combo: item.id_nhom_combo,
                 ten_combo: item.ten_combo,
