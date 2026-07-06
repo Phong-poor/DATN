@@ -75,14 +75,14 @@ const emailTemplates = [
 const availablePromotions = ref([])
 
 const formatPromotionOption = (p) => {
-  const valueText = p.type === 'percent'
-    ? `${p.value}%`
-    : `${new Intl.NumberFormat('vi-VN').format(p.value)}đ`
+  const valueText = p.loai === 'percent'
+    ? `${p.giatri}%`
+    : `${new Intl.NumberFormat('vi-VN').format(p.giatri)}đ`
 
   return {
     id: p.id,
     code: p.code,
-    name: `${p.code} - ${p.name} - Giảm ${valueText}`,
+    name: `${p.code} - ${p.ten} - Giảm ${valueText}`,
     valueText,
   }
 }

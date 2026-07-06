@@ -255,7 +255,7 @@ class AdminAccountController extends Controller
         $onlineWindowSeconds = 90;
         $onlineSince = now()->subSeconds($onlineWindowSeconds);
 
-        $admins = User::where('vaitro', 'admin')
+        $admins = User::where('vaitro', '!=', 'user')
             ->orderBy('hoat_dong_cuoi_luc', 'desc')
             ->get()
             ->map(function ($admin) use ($onlineSince) {
