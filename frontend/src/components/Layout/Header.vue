@@ -377,7 +377,7 @@ const formatPrice = (value) => {
 
 const getWishlistImg = (item) => {
   const imgPath = item.bienthe?.hinhanh || item.bienthe?.sanpham?.hinhanh
-  return imgPath ? storageUrl(imgPath) : 'https://via.placeholder.com/150'
+  return imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
 }
 
 const handleCartUpdated = () => fetchCart()
@@ -714,7 +714,7 @@ const warmProductsPageNow = () => {
                   <p>Giỏ hàng của bạn đang trống</p>
                 </div>
                 <div class="drop-item" v-for="item in cartItems" :key="item.id_giohang">
-                  <img :src="item.hinh_anh || 'https://via.placeholder.com/60'" :alt="item.ten_san_pham" />
+                  <img :src="item.hinh_anh || 'https://placehold.co/60'" :alt="item.ten_san_pham" />
                   <div class="drop-item-info">
                     <p class="di-name">{{ item.ten_san_pham }}</p>
                     <div class="di-meta" v-if="item.ten_bienthe"><span>{{ item.ten_bienthe }}</span></div>

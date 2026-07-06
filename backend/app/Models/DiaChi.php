@@ -25,6 +25,10 @@ class DiaChi extends Model
         'mac_dinh',
     ];
 
+    protected $appends = [
+        'dia_chi_day_du'
+    ];
+
     protected $casts = [
         'mac_dinh' => 'boolean',
         'latitude' => 'float',

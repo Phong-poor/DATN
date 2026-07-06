@@ -1,41 +1,37 @@
 <template>
   <div class="page">
-    <template v-if="!showForm">
-      <!-- TOPBAR -->
+    <!-- TOPBAR -->
     <div class="topbar">
       <div class="search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-        <input type="text" placeholder="Tìm kiếm banner..." v-model="searchQuery"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <input v-model="searchQuery" placeholder="Tìm kiếm theo tiêu đề..." />
       </div>
     </div>
 
     <!-- BREADCRUMB -->
     <div class="breadcrumb">
-      <span>HỆ THỐNG</span>
+      <span>Hệ thống</span>
       <span class="sep">›</span>
-      <span class="active-crumb">QUẢN LÝ BANNER</span>
+      <span class="active-crumb">Quản lý Banner</span>
     </div>
 
     <!-- PAGE HEADER -->
     <div class="page-header">
       <div>
-        <h1>Quản lý <span class="title-accent">Banner</span></h1>
-        <p>Cập nhật và sắp xếp các banner quảng cáo hiển thị trên trang chủ và trang ngành hàng.</p>
+        <h1>BANNER QUẢNG CÁO</h1>
+        <p>Tạo các chương trình khuyến mãi dạng banner trượt (Hero carousel) ở trang chủ.</p>
       </div>
-      <div class="action-row">
-        <button class="btn-new" @click="openCreate">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Thêm banner mới
-        </button>
-      </div>
+      <button class="btn-new" @click="openCreate" v-if="!showForm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Thêm banner mới
+      </button>
     </div>
 
+    <template v-if="!showForm">
+    <!-- BULK DELETE TOOLBAR -->
     <BulkDeleteToolbar
       :selected-count="selectedIds.length"
       :total-count="filteredBanners.length"
@@ -81,33 +77,33 @@
               <td>
                 <div class="media-preview-container">
                   <video
-                    v-if="item.media_type === 'video'"
-                    :src="mediaSrc(item.image)"
+                    v-if="item.loaimedia === 'video'"
+                    :src="mediaSrc(item.hinhanh)"
                     class="thumb"
                     muted
                     playsinline
                     preload="metadata"
                   ></video>
-                  <img v-else :src="mediaSrc(item.image)" class="thumb" alt="banner" />
+                  <img v-else :src="mediaSrc(item.hinhanh)" class="thumb" alt="banner" />
                 </div>
               </td>
               <td>
-                <div class="title">{{ item.title }}</div>
-                <div class="sub">{{ item.subtitle || "-" }}</div>
+                <div class="title">{{ item.tieude }}</div>
+                <div class="sub">{{ item.phude || "-" }}</div>
               </td>
-              <td><span class="position-badge">{{ item.position }}</span></td>
+              <td><span class="position-badge">{{ item.vitri }}</span></td>
               <td>
-                <span class="link-text" v-if="item.link_url">{{ item.link_url }}</span>
+                <span class="link-text" v-if="item.duongdan">{{ item.duongdan }}</span>
                 <span class="no-link" v-else>—</span>
               </td>
               <td>
-                <span class="media-type-tag" :class="item.media_type === 'video' ? 'video' : 'image'">
-                  {{ item.media_type === "video" ? "Video" : "Ảnh" }}
+                <span class="media-type-tag" :class="item.loaimedia === 'video' ? 'video' : 'image'">
+                  {{ item.loaimedia === "video" ? "Video" : "Ảnh" }}
                 </span>
               </td>
               <td>
-                <span class="status-dot" :class="item.is_active ? 'active' : 'draft'">
-                  ● {{ item.is_active ? "Hoạt động" : "Ẩn" }}
+                <span class="status-dot" :class="item.trangthai ? 'active' : 'draft'">
+                  ● {{ item.trangthai ? "Hoạt động" : "Ẩn" }}
                 </span>
               </td>
               <td>
@@ -118,11 +114,11 @@
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <button class="act-btn danger" @click="remove(item.id)" title="Xóa banner">
+                  <button class="act-btn delete" @click="remove(item.id)" title="Xóa banner">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
+                      <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                     </svg>
                   </button>
                 </div>
@@ -147,150 +143,150 @@
 
       <div class="inline-form-body">
         <div class="form-card">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>TIÊU ĐỀ BANNER <span class="req">*</span></label>
-                    <input v-model="form.title" placeholder="VD: Tết Sale Rực Rỡ 2026" />
-                  </div>
-                  <div class="form-group">
-                    <label>PHỤ ĐỀ / MÔ TẢ NGẮN</label>
-                    <input v-model="form.subtitle" placeholder="VD: Giảm sâu tới 50% toàn bộ sản phẩm" />
-                  </div>
-                </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>TIÊU ĐỀ BANNER <span class="req">*</span></label>
+              <input v-model="form.tieude" placeholder="VD: Tết Sale Rực Rỡ 2026" />
+            </div>
+            <div class="form-group">
+              <label>PHỤ ĐỀ / MÔ TẢ NGẮN</label>
+              <input v-model="form.phude" placeholder="VD: Giảm sâu tới 50% toàn bộ sản phẩm" />
+            </div>
+          </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>DÒNG NHÃN HERO</label>
-                    <input v-model="form.eyebrow" placeholder="VD: PREMIUM LAPTOP STORE 2026" />
-                  </div>
-                  <div class="form-group">
-                    <label>DÒNG CHỮ XANH NỔI BẬT</label>
-                    <input v-model="form.highlight" placeholder="VD: Sự Tinh Tế Chuyên Sâu" />
-                  </div>
-                </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>DÒNG NHÃN HERO</label>
+              <input v-model="form.chudenho" placeholder="VD: PREMIUM LAPTOP STORE 2026" />
+            </div>
+            <div class="form-group">
+              <label>DÒNG CHỮ XANH NỔI BẬT</label>
+              <input v-model="form.noibat" placeholder="VD: Sự Tinh Tế Chuyên Sâu" />
+            </div>
+          </div>
 
-                <div class="form-group">
-                  <label>MÔ TẢ HERO</label>
-                  <textarea v-model="form.description" rows="3" placeholder="Nhập đoạn mô tả hiển thị dưới tiêu đề banner"></textarea>
-                </div>
+          <div class="form-group">
+            <label>MÔ TẢ HERO</label>
+            <textarea v-model="form.mota" rows="3" placeholder="Nhập đoạn mô tả hiển thị dưới tiêu đề banner"></textarea>
+          </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>SẢN PHẨM THẬT GẮN BANNER</label>
-                    <select v-model="form.product_id" @change="syncProductLink">
-                      <option value="">Chọn sản phẩm hiển thị bên phải</option>
-                      <option v-for="p in productOptions" :key="p.id" :value="p.id">
-                        {{ p.name }} - {{ formatPrice(p.price) }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>NÚT CHÍNH / NÚT PHỤ</label>
-                    <div class="inline-inputs">
-                      <input v-model="form.primary_label" placeholder="Mua ngay" />
-                      <input v-model="form.secondary_label" placeholder="Xem bộ sưu tập" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>ĐƯỜNG DẪN LIÊN KẾT (URL)</label>
-                    <input v-model="form.link_url" placeholder="VD: /products/macbook-pro-m3" />
-                  </div>
-                  <div class="form-group">
-                    <label>VỊ TRÍ HIỂN THỊ (SẮP XẾP)</label>
-                    <input v-model.number="form.position" type="number" min="0" />
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>NGÀY BẮT ĐẦU</label>
-                    <input v-model="form.starts_at" type="datetime-local" />
-                  </div>
-                  <div class="form-group">
-                    <label>NGÀY KẾT THÚC</label>
-                    <input v-model="form.ends_at" type="datetime-local" />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label>MEDIA DESKTOP (ẢNH/VIDEO) <span class="req" v-if="!editingId">*</span></label>
-                  <div class="upload-zone" @click="desktopMediaRef.click()">
-                    <input ref="desktopMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'image')" style="display:none" />
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
-                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
-                    <p v-if="form.image && form.image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.image.name }}</p>
-                  </div>
-                </div>
-                
-                <div class="form-group" style="margin-top: 24px;">
-                  <label>MEDIA MOBILE (ẢNH/VIDEO)</label>
-                  <div class="upload-zone" @click="mobileMediaRef.click()">
-                    <input ref="mobileMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'mobile_image')" style="display:none" />
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
-                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
-                    <p v-if="form.mobile_image && form.mobile_image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.mobile_image.name }}</p>
-                  </div>
-                </div>
-                
-                <div style="height: 24px;"></div>
-
-                <div class="form-group">
-                  <label>TRẠNG THÁI HIỂN THỊ</label>
-                  <div class="toggle-group">
-                    <button type="button" class="toggle-btn"
-                      :class="{ 'tg-green': form.is_active }"
-                      @click="form.is_active = true">
-                      <span class="tdot"></span>Hoạt động
-                    </button>
-                    <button type="button" class="toggle-btn" :class="{ 'tg-yellow': !form.is_active }"
-                      @click="form.is_active = false">
-                      <span class="tdot"></span>Ẩn banner
-                    </button>
-                  </div>
-                </div>
-
-                <div class="banner-preview">
-                  <div class="preview-copy">
-                    <span>{{ form.eyebrow || 'PREMIUM LAPTOP STORE 2026' }}</span>
-                    <h4>{{ form.title || 'Sức Mạnh Hội Tụ' }}</h4>
-                    <strong>{{ form.highlight || form.subtitle || 'Sự Tinh Tế Chuyên Sâu' }}</strong>
-                    <p>{{ form.description || form.subtitle || 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.' }}</p>
-                  </div>
-                  <div class="preview-product">
-                    <img :src="selectedProduct?.image || '/hero_3d_laptop.png'" alt="preview product" />
-                    <div>
-                      <b>{{ selectedProduct?.name || 'Chọn sản phẩm thật' }}</b>
-                      <small>{{ selectedProduct ? formatPrice(selectedProduct.price) : 'Nút Thanh toán ngay sẽ lấy sản phẩm này' }}</small>
-                      <button type="button">Thanh toán ngay</button>
-                    </div>
-                  </div>
-                </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>SẢN PHẨM THẬT GẮN BANNER</label>
+              <select v-model="form.id_sanpham" @change="syncProductLink">
+                <option value="">Chọn sản phẩm hiển thị bên phải</option>
+                <option v-for="p in productOptions" :key="p.id" :value="p.id">
+                  {{ p.name }} - {{ formatPrice(p.price) }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>NÚT CHÍNH / NÚT PHỤ</label>
+              <div class="inline-inputs">
+                <input v-model="form.nhanchinh" placeholder="Mua ngay" />
+                <input v-model="form.nhanphu" placeholder="Xem bộ sưu tập" />
               </div>
+            </div>
+          </div>
 
-              <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-                <button class="btn-cancel" @click="closeForm">Hủy</button>
-                <button class="btn-submit" :disabled="saving" @click="save">
-                  <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {{ saving ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Tạo banner") }}
-                </button>
+          <div class="form-row">
+            <div class="form-group">
+              <label>ĐƯỜNG DẪN LIÊN KẾT (URL)</label>
+              <input v-model="form.duongdan" placeholder="VD: /products/macbook-pro-m3" />
+            </div>
+            <div class="form-group">
+              <label>VỊ TRÍ HIỂN THỊ (SẮP XẾP)</label>
+              <input v-model.number="form.vitri" type="number" min="0" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>NGÀY BẮT ĐẦU</label>
+              <input v-model="form.batdauluc" type="datetime-local" />
+            </div>
+            <div class="form-group">
+              <label>NGÀY KẾT THÚC</label>
+              <input v-model="form.ketthucluc" type="datetime-local" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>MEDIA DESKTOP (ẢNH/VIDEO) <span class="req" v-if="!editingId">*</span></label>
+            <div class="upload-zone" @click="desktopMediaRef.click()">
+              <input ref="desktopMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'hinhanh')" style="display:none" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+              <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+              <p v-if="form.hinhanh && form.hinhanh.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.hinhanh.name }}</p>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 24px;">
+            <label>MEDIA MOBILE (ẢNH/VIDEO)</label>
+            <div class="upload-zone" @click="mobileMediaRef.click()">
+              <input ref="mobileMediaRef" type="file" accept="image/*,video/*" @change="onFileChange($event, 'hinhanh_mobile')" style="display:none" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+              <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+              <p v-if="form.hinhanh_mobile && form.hinhanh_mobile.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.hinhanh_mobile.name }}</p>
+            </div>
+          </div>
+
+          <div style="height: 24px;"></div>
+
+          <div class="form-group">
+            <label>TRẠNG THÁI HIỂN THỊ</label>
+            <div class="toggle-group">
+              <button type="button" class="toggle-btn"
+                :class="{ 'tg-green': form.trangthai }"
+                @click="form.trangthai = true">
+                <span class="tdot"></span>Hoạt động
+              </button>
+              <button type="button" class="toggle-btn" :class="{ 'tg-yellow': !form.trangthai }"
+                @click="form.trangthai = false">
+                <span class="tdot"></span>Ẩn banner
+              </button>
+            </div>
+          </div>
+
+          <div class="banner-preview">
+            <div class="preview-copy">
+              <span>{{ form.chudenho || 'PREMIUM LAPTOP STORE 2026' }}</span>
+              <h4>{{ form.tieude || 'Sức Mạnh Hội Tụ' }}</h4>
+              <strong>{{ form.noibat || form.phude || 'Sự Tinh Tế Chuyên Sâu' }}</strong>
+              <p>{{ form.mota || form.phude || 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.' }}</p>
+            </div>
+            <div class="preview-product">
+              <img :src="selectedProduct?.image || '/hero_3d_laptop.png'" alt="preview product" />
+              <div>
+                <b>{{ selectedProduct?.name || 'Chọn sản phẩm thật' }}</b>
+                <small>{{ selectedProduct ? formatPrice(selectedProduct.price) : 'Nút Thanh toán ngay sẽ lấy sản phẩm này' }}</small>
+                <button type="button">Thanh toán ngay</button>
               </div>
+            </div>
+          </div>
         </div>
+
+        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+          <button class="btn-cancel" @click="closeForm">Hủy</button>
+          <button class="btn-submit" :disabled="saving" @click="save">
+            <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {{ saving ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Tạo banner") }}
+          </button>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -318,23 +314,23 @@ const currentPage = ref(1);
 const pageSize = 5;
 
 const defaultForm = () => ({
-  title: "",
-  subtitle: "",
-  eyebrow: "PREMIUM LAPTOP STORE 2026",
-  highlight: "Sự Tinh Tế Chuyên Sâu",
-  description: "Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.",
-  link_url: "",
-  product_id: "",
-  primary_label: "Mua ngay",
-  secondary_label: "Xem bộ sưu tập",
-  product_badge: "TRENDING NOW",
-  product_feature: "RTX 40-Series",
-  position: 0,
-  is_active: true,
-  starts_at: "",
-  ends_at: "",
-  image: null,
-  mobile_image: null,
+  tieude: "",
+  phude: "",
+  chudenho: "PREMIUM LAPTOP STORE 2026",
+  noibat: "Sự Tinh Tế Chuyên Sâu",
+  mota: "Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.",
+  duongdan: "",
+  id_sanpham: "",
+  nhanchinh: "Mua ngay",
+  nhanphu: "Xem bộ sưu tập",
+  huyhieu_sanpham: "TRENDING NOW",
+  dactinh_sanpham: "RTX 40-Series",
+  vitri: 0,
+  trangthai: true,
+  batdauluc: "",
+  ketthucluc: "",
+  hinhanh: null,
+  hinhanh_mobile: null,
 });
 
 const form = ref(defaultForm());
@@ -357,7 +353,7 @@ const productOptions = computed(() => {
 });
 
 const selectedProduct = computed(() => {
-  return productOptions.value.find(p => String(p.id) === String(form.value.product_id)) || null;
+  return productOptions.value.find(p => String(p.id) === String(form.value.id_sanpham)) || null;
 });
 
 const formatPrice = (price) => {
@@ -365,8 +361,8 @@ const formatPrice = (price) => {
 };
 
 const syncProductLink = () => {
-  if (form.value.product_id) {
-    form.value.link_url = `/san-pham/${form.value.product_id}`;
+  if (form.value.id_sanpham) {
+    form.value.duongdan = `/san-pham/${form.value.id_sanpham}`;
   }
 };
 
@@ -397,8 +393,8 @@ const filteredBanners = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return banners.value.filter(
     (b) =>
-      b.title.toLowerCase().includes(q) ||
-      (b.subtitle && b.subtitle.toLowerCase().includes(q))
+      b.tieude.toLowerCase().includes(q) ||
+      (b.phude && b.phude.toLowerCase().includes(q))
   );
 });
 
@@ -410,34 +406,6 @@ const paginatedBanners = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
   return filteredBanners.value.slice(start, start + pageSize);
 });
-
-const pageItems = computed(() => {
-  const total = totalPages.value;
-  const current = currentPage.value;
-
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  if (current <= 3) {
-    return [1, 2, 3, '...', total - 2, total - 1, total];
-  }
-  if (current >= total - 2) {
-    return [1, 2, 3, '...', total - 2, total - 1, total];
-  }
-  return [1, '...', current - 1, current, current + 1, '...', total];
-});
-
-const goToPage = (page) => {
-  if (page < 1) {
-    currentPage.value = 1;
-    return;
-  }
-  if (page > totalPages.value) {
-    currentPage.value = totalPages.value;
-    return;
-  }
-  currentPage.value = page;
-};
 
 watch(searchQuery, () => {
   currentPage.value = 1;
@@ -472,21 +440,21 @@ const openEdit = (item) => {
   editingId.value = item.id;
   form.value = {
     ...defaultForm(),
-    title: item.title || "",
-    subtitle: item.subtitle || "",
-    eyebrow: item.eyebrow || "PREMIUM LAPTOP STORE 2026",
-    highlight: item.highlight || item.subtitle || "Sự Tinh Tế Chuyên Sâu",
-    description: item.description || "",
-    link_url: item.link_url || "",
-    product_id: item.product_id || "",
-    primary_label: item.primary_label || "Mua ngay",
-    secondary_label: item.secondary_label || "Xem bộ sưu tập",
-    product_badge: item.product_badge || "TRENDING NOW",
-    product_feature: item.product_feature || "RTX 40-Series",
-    position: Number(item.position || 0),
-    is_active: Boolean(item.is_active),
-    starts_at: item.starts_at ? item.starts_at.slice(0, 16) : "",
-    ends_at: item.ends_at ? item.ends_at.slice(0, 16) : "",
+    tieude: item.tieude || "",
+    phude: item.phude || "",
+    chudenho: item.chudenho || "PREMIUM LAPTOP STORE 2026",
+    noibat: item.noibat || item.phude || "Sự Tinh Tế Chuyên Sâu",
+    mota: item.mota || "",
+    duongdan: item.duongdan || "",
+    id_sanpham: item.id_sanpham || "",
+    nhanchinh: item.nhanchinh || "Mua ngay",
+    nhanphu: item.nhanphu || "Xem bộ sưu tập",
+    huyhieu_sanpham: item.huyhieu_sanpham || "TRENDING NOW",
+    dactinh_sanpham: item.dactinh_sanpham || "RTX 40-Series",
+    vitri: Number(item.vitri || 0),
+    trangthai: Boolean(item.trangthai),
+    batdauluc: item.batdauluc ? item.batdauluc.slice(0, 16) : "",
+    ketthucluc: item.ketthucluc ? item.ketthucluc.slice(0, 16) : "",
   };
   showForm.value = true;
 };
@@ -510,32 +478,32 @@ const onFileChange = (event, key) => {
 
 const toFormData = () => {
   const fd = new FormData();
-  fd.append("title", form.value.title || "");
-  fd.append("subtitle", form.value.subtitle || "");
-  fd.append("eyebrow", form.value.eyebrow || "");
-  fd.append("highlight", form.value.highlight || "");
-  fd.append("description", form.value.description || "");
-  fd.append("link_url", form.value.link_url || "");
-  fd.append("product_id", form.value.product_id ? String(form.value.product_id) : "");
-  fd.append("primary_label", form.value.primary_label || "");
-  fd.append("secondary_label", form.value.secondary_label || "");
-  fd.append("product_badge", form.value.product_badge || "");
-  fd.append("product_feature", form.value.product_feature || "");
-  fd.append("position", String(form.value.position || 0));
-  fd.append("is_active", form.value.is_active ? "1" : "0");
-  if (form.value.starts_at) fd.append("starts_at", form.value.starts_at);
-  if (form.value.ends_at) fd.append("ends_at", form.value.ends_at);
-  if (form.value.image) fd.append("image", form.value.image);
-  if (form.value.mobile_image) fd.append("mobile_image", form.value.mobile_image);
+  fd.append("tieude", form.value.tieude || "");
+  fd.append("phude", form.value.phude || "");
+  fd.append("chudenho", form.value.chudenho || "");
+  fd.append("noibat", form.value.noibat || "");
+  fd.append("mota", form.value.mota || "");
+  fd.append("duongdan", form.value.duongdan || "");
+  fd.append("id_sanpham", form.value.id_sanpham ? String(form.value.id_sanpham) : "");
+  fd.append("nhanchinh", form.value.nhanchinh || "");
+  fd.append("nhanphu", form.value.nhanphu || "");
+  fd.append("huyhieu_sanpham", form.value.huyhieu_sanpham || "");
+  fd.append("dactinh_sanpham", form.value.dactinh_sanpham || "");
+  fd.append("vitri", String(form.value.vitri || 0));
+  fd.append("trangthai", form.value.trangthai ? "1" : "0");
+  if (form.value.batdauluc) fd.append("batdauluc", form.value.batdauluc);
+  if (form.value.ketthucluc) fd.append("ketthucluc", form.value.ketthucluc);
+  if (form.value.hinhanh) fd.append("hinhanh", form.value.hinhanh);
+  if (form.value.hinhanh_mobile) fd.append("hinhanh_mobile", form.value.hinhanh_mobile);
   return fd;
 };
 
 const save = async () => {
-  if (!form.value.title) {
+  if (!form.value.tieude) {
     swal.error("Thiếu thông tin", "Vui lòng nhập tiêu đề banner");
     return;
   }
-  if (!editingId.value && !form.value.image) {
+  if (!editingId.value && !form.value.hinhanh) {
     swal.error("Thiếu media", "Vui lòng chọn media desktop");
     return;
   }

@@ -261,7 +261,7 @@ const getFullProductName = (item) => {
 const getProductImage = (item) => {
     const sp = item.bien_the?.san_pham || item.bien_the?.sanPham || {}
     const variant = item.bien_the || item.bienThe || null
-    return productImageUrl(sp, variant, 'https://via.placeholder.com/200')
+    return productImageUrl(sp, variant, 'https://placehold.co/200')
 }
 
 onMounted(() => {

@@ -835,7 +835,7 @@ const getProductImage = (bt) => {
   const sp = bt.san_pham || bt.sanPham;
   const image = sp ? sp.hinhanh : bt.hinhanh; // Ưu tiên hình ảnh sản phẩm chính
   
-  if (!image) return 'https://via.placeholder.com/150';
+  if (!image) return 'https://placehold.co/150';
   if (image.startsWith('http')) return image;
   return storageUrl(image);
 };

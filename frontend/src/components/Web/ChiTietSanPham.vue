@@ -60,7 +60,7 @@ const product = ref({
     thong_so_ky_thuat: []
 })
 
-const selectedImage = ref('https://via.placeholder.com/600')
+const selectedImage = ref('https://placehold.co/600')
 const selectedVariant = ref(null)
 const selectedOptions = ref({})
 
@@ -414,7 +414,7 @@ const getSpecValue = (name) => {
 
 const getImageUrl = (path) => {
     return withImageVersion(
-        normalizeImageUrl(path, 'https://via.placeholder.com/600'),
+        normalizeImageUrl(path, 'https://placehold.co/600'),
         product.value?.updated_at || product.value?.updatedAt
     )
 }
@@ -434,7 +434,7 @@ const allImages = computed(() => {
         addImage(img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
     })
 
-    return images.length > 0 ? images : ['https://via.placeholder.com/600']
+    return images.length > 0 ? images : ['https://placehold.co/600']
 })
 
 // ===================== THUMB SLIDER =====================
@@ -827,7 +827,7 @@ const showInstantDetailShell = (productId) => {
         thong_so_ky_thuat: [],
         isPendingDetail: true,
     }
-    selectedImage.value = 'https://via.placeholder.com/600'
+    selectedImage.value = 'https://placehold.co/600'
     selectedVariant.value = null
     selectedOptions.value = {}
     isLoading.value = false

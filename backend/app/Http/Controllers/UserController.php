@@ -86,7 +86,15 @@ class UserController extends Controller
             'email' => 'required|email|unique:khachhang,email',
             'matkhau' => 'required|string|min:8|confirmed',
             'sodienthoai' => 'nullable|string|max:20',
-            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
+            'vaitro' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    if ($value !== 'user' && !\App\Models\VaiTro::where('ma_vaitro', $value)->exists()) {
+                        $fail('Vai trò không hợp lệ.');
+                    }
+                }
+            ],
             'trangthai' => 'nullable|in:active,locked',
         ]);
 
@@ -115,7 +123,15 @@ class UserController extends Controller
             'ten' => 'sometimes|required|string|max:255',
             'email' => ['sometimes', 'required', 'email', Rule::unique('khachhang', 'email')->ignore($id)],
             'sodienthoai' => 'nullable|string|max:20',
-            'vaitro' => 'nullable|in:admin,user,inventory,order_manager,marketing,affiliate_manager,editor,support,accountant',
+            'vaitro' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    if ($value !== 'user' && !\App\Models\VaiTro::where('ma_vaitro', $value)->exists()) {
+                        $fail('Vai trò không hợp lệ.');
+                    }
+                }
+            ],
             'trangthai' => 'nullable|in:active,locked',
             'matkhau' => 'nullable|string|min:8',
         ]);

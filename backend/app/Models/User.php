@@ -15,28 +15,20 @@ class User extends Authenticatable
 
     protected $table = 'khachhang';
 
-    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at'];
+    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth', 'facebook_id'];
 
     protected $fillable = [
         'ten',
         'name',
         'email',
         'sodienthoai',
-        'phone',
         'ngaysinh',
-        'date_of_birth',
         'gioitinh',
-        'gender',
         'anhdaidien',
-        'avatar',
         'matkhau',
-        'password',
         'vaitro',
-        'role',
         'id_facebook',
-        'facebook_id',
         'trangthai',
-        'status',
         'hoat_dong_cuoi_luc',
         'last_active_at',
         'xu',
@@ -66,8 +58,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserVoucher::class, 'id_user');
     }
-
-
 
     /**
      * Lịch sử giao dịch xu
@@ -108,6 +98,74 @@ class User extends Authenticatable
             return false;
         }
         return $this->hoat_dong_cuoi_luc->diffInMinutes(now()) < 5;
+    }
+
+    public function getCacQuyenAttribute()
+    {
+        if ($this->vaitro === 'user') {
+            return [];
+        }
+        if ($this->vaitro === 'admin') {
+            return [
+                'san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 
+                'danh_muc_xem', 'danh_muc_sua', 
+                'thuong_hieu_xem', 'thuong_hieu_sua', 
+                'bien_the_xem', 'bien_the_sua', 
+                'don_hang_xem', 'don_hang_sua', 'hoa_don_xem', 
+                'marketing_quan_ly', 'affiliate_quan_ly', 
+                'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
+                'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly'
+            ];
+        }
+
+        $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
+        if ($role) {
+            return is_array($role->quyen) ? $role->quyen : (json_decode($role->quyen, true) ?: []);
+        }
+
+        $defaults = [
+            'inventory' => ['san_pham_xem', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
+            'order_manager' => ['don_hang_xem', 'don_hang_sua'],
+            'marketing' => ['marketing_quan_ly'],
+            'affiliate_manager' => ['affiliate_quan_ly'],
+            'editor' => ['tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly'],
+            'support' => ['lien_he_quan_ly'],
+            'accountant' => ['don_hang_xem', 'hoa_don_xem'],
+        ];
+
+        return $defaults[strtolower($this->vaitro)] ?? [];
+    }
+
+    public function getTenVaitroHienthiAttribute()
+    {
+        if ($this->vaitro === 'user') {
+            return 'Khách hàng';
+        }
+        if ($this->vaitro === 'admin') {
+            return 'Quản trị viên';
+        }
+
+        $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
+        if ($role) {
+            return $role->ten_vaitro;
+        }
+
+        $defaults = [
+            'inventory' => 'Thủ kho',
+            'order_manager' => 'Xử lý đơn hàng',
+            'marketing' => 'Marketing',
+            'affiliate_manager' => 'Quản lý Affiliate',
+            'editor' => 'Biên tập viên',
+            'support' => 'Tư vấn viên',
+            'accountant' => 'Kế toán',
+        ];
+
+        return $defaults[strtolower($this->vaitro)] ?? 'Nhân viên';
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->matkhau;
     }
 
     public function getNameAttribute(): ?string
@@ -208,10 +266,5 @@ class User extends Authenticatable
     public function setLastActiveAtAttribute($value): void
     {
         $this->attributes['hoat_dong_cuoi_luc'] = $value;
-    }
-
-    public function getAuthPassword()
-    {
-        return $this->matkhau;
     }
 }

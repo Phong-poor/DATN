@@ -1,8 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { getUser } from '@/services/auth'
 import api from '@/services/api'
 import * as XLSX from 'xlsx'
 import swal from '@/services/swal'
+
+const user = ref(getUser() || {})
+const hasPermission = (perm) => {
+  if (user.value?.vaitro === 'admin') return true
+  return user.value?.cac_quyen?.includes(perm)
+}
 
 const activeTab = ref('Biến thể cấu hình')
 const newButtonLabel = computed(() => activeTab.value === 'Biến thể cấu hình' ? 'Thêm biến thể mới' : 'Thêm màu mới')
@@ -971,7 +978,7 @@ async function handleImportFile(e) {
         <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
           @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
       </div>
-      <button class="btn-new" @click="openModal(newButtonModalType)">
+      <button v-if="hasPermission('bien_the_sua')" class="btn-new" @click="openModal(newButtonModalType)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
@@ -1083,13 +1090,13 @@ async function handleImportFile(e) {
                 </td>
                 <td>
                   <div class="actions">
-                    <button class="act-btn" @click="openModal('editVariant', v)">
+                    <button v-if="hasPermission('bien_the_sua')" class="act-btn" @click="openModal('editVariant', v)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
-                    <button class="act-btn danger" @click="removeVariant(v.id)">
+                    <button v-if="hasPermission('bien_the_sua')" class="act-btn danger" @click="removeVariant(v.id)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -1140,13 +1147,13 @@ async function handleImportFile(e) {
                 <td class="variant-name">{{ c.name }}</td>
                 <td>
                   <div class="actions">
-                    <button class="act-btn" @click.stop="openModal('editColor', c)">
+                    <button v-if="hasPermission('bien_the_sua')" class="act-btn" @click.stop="openModal('editColor', c)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
-                    <button class="act-btn danger" @click.stop="removeColor(c.id)">
+                    <button v-if="hasPermission('bien_the_sua')" class="act-btn danger" @click.stop="removeColor(c.id)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -1182,7 +1189,7 @@ async function handleImportFile(e) {
         <div class="card side-card">
           <div class="side-header">
             <div class="card-title" style="font-size:14px"><span class="bar purple"></span>Bảng màu</div>
-            <button class="btn-add-sm" @click="openModal('color')">
+            <button v-if="hasPermission('bien_the_sua')" class="btn-add-sm" @click="openModal('color')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                 style="width:11px;height:11px;flex-shrink:0">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -1200,7 +1207,7 @@ async function handleImportFile(e) {
                 <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
                   {{ c.stock === 'Khả dụng' ? '●' : '○' }}
                 </span>
-                <button class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
+                <button v-if="hasPermission('bien_the_sua')" class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
