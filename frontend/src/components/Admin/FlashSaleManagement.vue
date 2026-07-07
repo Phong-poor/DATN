@@ -989,7 +989,7 @@ const removeProductFromSession = async (prod) => {
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1027,12 +1027,12 @@ const removeProductFromSession = async (prod) => {
 }
 
 .cat-tab:hover:not(:disabled) { 
-  color: #4f46e5; 
+  color: #2563eb; 
 }
 
 .cat-tab.active { 
-  color: #4f46e5; 
-  border-bottom-color: #4f46e5; 
+  color: #2563eb; 
+  border-bottom-color: #2563eb; 
 }
 
 .cat-tab:disabled {
@@ -1105,7 +1105,7 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #15803d; background: #dcfce7; border: 1px solid #86efac; }
+.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
 .status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
 .status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
 .status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }
@@ -1282,7 +1282,7 @@ td {
   padding: 11px 24px; 
   border-radius: 10px; 
   border: none; 
-  background: linear-gradient(135deg, #2563eb, #4f46e5); 
+  background: linear-gradient(135deg, #2563eb, #2563eb); 
   color: #fff; 
   font-size: 13px; 
   font-weight: 600; 
@@ -1670,7 +1670,7 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #15803d; background: #dcfce7; border: 1px solid #86efac; }
+.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
 .status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
 .status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
 .status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }

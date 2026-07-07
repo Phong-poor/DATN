@@ -38,18 +38,18 @@ const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
 const roleStyle = {
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#1d4ed8' },
     'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
     'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
     'MARKETING': { bg: '#fce7f3', color: '#db2777' },
-    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#7e22ce' },
-    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#4338ca' },
-    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#0f766e' },
+    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#1d4ed8' },
+    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#1d4ed8' },
+    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#1d4ed8' },
     'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
 }
 
 const statusStyle = {
-    'Hoạt động': { color: '#16a34a' },
+    'Hoạt động': { color: '#2563eb' },
     'Bị khóa': { color: '#dc2626' }
 }
 
@@ -252,7 +252,7 @@ const goToPage = (p) => {
 
 // ─── AVATAR ──────────────────────────
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2', '#ffedd5']
-const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c', '#c2410c']
+const avatarText = ['#1d4ed8', '#1d4ed8', '#1d4ed8', '#a16207', '#b91c1c', '#c2410c']
 
 const getAvatarStyle = (name) => {
     const i = (name || 'A').charCodeAt(0) % avatarColors.length
@@ -915,13 +915,13 @@ const submitEdit = async () => {
     padding: 9px 16px;
     border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #2563eb, #1D4ED8);
     color: white;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.2s;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 
 .btn-new-user:hover {
@@ -973,7 +973,7 @@ const submitEdit = async () => {
 }
 
 .stat-card.stat-teal {
-    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
     color: #fff;
 }
 
@@ -1005,7 +1005,7 @@ const submitEdit = async () => {
 .badge-up {
     font-size: 11px;
     font-weight: 700;
-    color: #16a34a;
+    color: #2563eb;
     background: #dcfce7;
     padding: 3px 8px;
     border-radius: 20px;
@@ -1592,7 +1592,7 @@ tbody td {
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1770,7 +1770,7 @@ tbody td {
     padding: 10px 22px;
     border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white;
     font-size: 13px;
     font-weight: 600;

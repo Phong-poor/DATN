@@ -582,7 +582,7 @@ const handleAddToCart = async () => {
 
 .add-to-cart-btn {
   width: 100%;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   border: none;
   padding: 15px 20px;
@@ -615,7 +615,7 @@ const handleAddToCart = async () => {
 
 /* Nút ưu đãi quà tặng VIP */
 .btn-gift-mode {
-  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35) !important;
   font-size: 16px !important;
 }
@@ -673,7 +673,7 @@ const handleAddToCart = async () => {
 .trigger-label {
   font-size: 10px;
   font-weight: 700;
-  color: #15803d;
+  color: #1d4ed8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -692,6 +692,6 @@ const handleAddToCart = async () => {
 .trigger-combo-free {
   font-size: 18px;
   font-weight: 900;
-  color: #16a34a;
+  color: #2563eb;
 }
 </style>

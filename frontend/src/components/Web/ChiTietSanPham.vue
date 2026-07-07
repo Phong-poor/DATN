@@ -950,7 +950,7 @@ const benchmarkData = computed(() => {
         { label: 'Gaming (FPS trung bình ở Ultra 1080p)', score: 85, color: '#f97316', desc: 'CS2: 240+ FPS | Cyberpunk 2077: 75+ FPS' },
         { label: 'Render 3D (Blender / V-Ray Cycles)', score: 92, color: '#2563eb', desc: 'Render thời gian thực cực mượt với nhân Ray Tracing' },
         { label: 'Đồ họa & Dựng Phim (Premiere Pro / DaVinci)', score: 88, color: '#00e5ff', desc: 'Xử lý video RAW 4K 10-bit không cần proxy' },
-        { label: 'AI & Lập trình (PyTorch / Xcode compiler)', score: 90, color: '#10b981', desc: 'Gia tốc NPU riêng biệt chạy mô hình LLM local' }
+        { label: 'AI & Lập trình (PyTorch / Xcode compiler)', score: 90, color: '#2563eb', desc: 'Gia tốc NPU riêng biệt chạy mô hình LLM local' }
     ]
 })
 
@@ -1812,7 +1812,7 @@ const handleSelectVariantById = (idBienThe) => {
                                 </li>
                                 <li>
                                     <span class="benefit-icon">
-                                        <svg viewBox="0 0 24 24" stroke="#10b981">
+                                        <svg viewBox="0 0 24 24" stroke="#2563eb">
                                             <line x1="19" y1="5" x2="5" y2="19"/>
                                             <circle cx="6.5" cy="6.5" r="2.5"/>
                                             <circle cx="17.5" cy="17.5" r="2.5"/>
@@ -1822,7 +1822,7 @@ const handleSelectVariantById = (idBienThe) => {
                                 </li>
                                 <li>
                                     <span class="benefit-icon">
-                                        <svg viewBox="0 0 24 24" stroke="#6366f1">
+                                        <svg viewBox="0 0 24 24" stroke="#3b82f6">
                                             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
                                         </svg>
                                     </span>
@@ -1858,7 +1858,7 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                             <div class="guarantee-card">
                                 <span class="g-icon">
-                                    <svg viewBox="0 0 24 24" stroke="#8b5cf6">
+                                    <svg viewBox="0 0 24 24" stroke="#3b82f6">
                                         <circle cx="12" cy="12" r="3"/>
                                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                                     </svg>
@@ -2373,7 +2373,7 @@ const handleSelectVariantById = (idBienThe) => {
                     <!-- Right Trust card -->
                     <div class="reviews-cskh-card">
                         <div class="cskh-avatar">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; color: #10b981; display: inline-block;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; color: #2563eb; display: inline-block;">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                                 <circle cx="9" cy="7" r="4"/>
                                 <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
@@ -3029,8 +3029,8 @@ const handleSelectVariantById = (idBienThe) => {
 .page {
     --primary: #2563EB;
     --primary-glow: rgba(37, 99, 235, 0.15);
-    --secondary: #06B6D4;
-    --secondary-glow: rgba(6, 182, 212, 0.15);
+    --secondary: #3B82F6;
+    --secondary-glow: rgba(37, 99, 235, 0.15);
     --accent: #f59e0b;
     --dark-bg: #0F172A;
     --dark-surface: #111827;
@@ -3077,7 +3077,7 @@ const handleSelectVariantById = (idBienThe) => {
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
 .toast.success {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
 }
 .toast.error {
     background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
@@ -3099,7 +3099,7 @@ const handleSelectVariantById = (idBienThe) => {
     left: 10%;
     width: 80%;
     height: 400px;
-    background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(6, 182, 212, 0.02) 50%, transparent 100%);
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.02) 50%, transparent 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -3154,7 +3154,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: absolute;
     width: 60%;
     height: 60%;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
     filter: blur(40px);
     pointer-events: none;
     z-index: 0;
@@ -3646,7 +3646,7 @@ const handleSelectVariantById = (idBienThe) => {
     border-radius: 50%;
     animation: dot-pulse 1.5s infinite;
 }
-.pulse-green-dot { background-color: #10B981; }
+.pulse-green-dot { background-color: #2563EB; }
 .pulse-red-dot { background-color: #EF4444; }
 
 @keyframes dot-pulse {
@@ -3997,15 +3997,15 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .spec-badge.pro {
-    background: rgba(99, 102, 241, 0.08);
-    color: #4f46e5;
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.1);
 }
 
 .spec-badge.new {
-    background: rgba(16, 185, 129, 0.08);
-    color: #059669;
-    border: 1px solid rgba(16, 185, 129, 0.1);
+    background: rgba(37, 99, 235, 0.08);
+    color: #1D4ED8;
+    border: 1px solid rgba(37, 99, 235, 0.1);
 }
 
 .inline-compare-area {
@@ -4294,11 +4294,11 @@ const handleSelectVariantById = (idBienThe) => {
 }
 .icon-screen {
     background: rgba(139, 92, 246, 0.08);
-    color: #8b5cf6;
+    color: #3b82f6;
 }
 .icon-battery {
-    background: rgba(16, 185, 129, 0.08);
-    color: #10b981;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
 }
 .icon-brain {
     background: rgba(236, 72, 153, 0.08);
@@ -4309,8 +4309,8 @@ const handleSelectVariantById = (idBienThe) => {
     color: #3b82f6;
 }
 .icon-cooling {
-    background: rgba(6, 182, 212, 0.08);
-    color: #06b6d4;
+    background: rgba(37, 99, 235, 0.08);
+    color: #3b82f6;
 }
 
 .highlight-item-card:hover .h-card-icon {
@@ -4325,14 +4325,14 @@ const handleSelectVariantById = (idBienThe) => {
     box-shadow: 0 8px 20px rgba(249, 115, 22, 0.25);
 }
 .highlight-item-card:hover .icon-screen {
-    background: #8b5cf6;
+    background: #3b82f6;
     color: #ffffff;
     box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
 }
 .highlight-item-card:hover .icon-battery {
-    background: #10b981;
+    background: #2563eb;
     color: #ffffff;
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
 }
 .highlight-item-card:hover .icon-brain {
     background: #ec4899;
@@ -4345,9 +4345,9 @@ const handleSelectVariantById = (idBienThe) => {
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
 }
 .highlight-item-card:hover .icon-cooling {
-    background: #06b6d4;
+    background: #3b82f6;
     color: #ffffff;
-    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.25);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
 }
 .highlight-item-card h3 {
     font-family: var(--font-heading);
@@ -5739,10 +5739,10 @@ const handleSelectVariantById = (idBienThe) => {
 .variant-offers-box {
     margin-top: 24px;
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 2px solid #22c55e;
+    border: 2px solid #3b82f6;
     border-radius: 16px;
     padding: 18px;
-    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.1);
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.1);
 }
 
 .offer-header-vip {
@@ -5753,7 +5753,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .badge-vip {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #2563eb, #1D4ED8);
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -5810,7 +5810,7 @@ const handleSelectVariantById = (idBienThe) => {
 .offer-p-item {
     background: #f0fdf4;
     border: 1px solid #dcfce7;
-    color: #15803d;
+    color: #1d4ed8;
     font-size: 11px;
     font-weight: 700;
     padding: 2px 8px;
@@ -5839,11 +5839,11 @@ const handleSelectVariantById = (idBienThe) => {
 .price-label-free .free-badge-text {
     font-size: 16px;
     font-weight: 800;
-    color: #22c55e;
+    color: #3b82f6;
 }
 
 .btn-claim-offer {
-    background: #22c55e;
+    background: #3b82f6;
     color: white;
     border: none;
     border-radius: 8px;
@@ -5851,12 +5851,12 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
     transition: background 0.2s ease;
 }
 
 .btn-claim-offer:hover {
-    background: #16a34a;
+    background: #2563eb;
 }
 
 /* ===== UPSELL TEASER BOX ===== */
@@ -5900,7 +5900,7 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .free-text-badge {
-    background: #22c55e;
+    background: #3b82f6;
     color: white;
     font-size: 9px;
     font-weight: 800;

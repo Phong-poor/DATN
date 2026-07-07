@@ -45,8 +45,8 @@ const displayedIsvPercent = ref(0)
 const statsData = computed(() => [
   { value: `${displayedRenderSpeed.value}%`, label: 'Render nhanh hơn', sub: 'So với thế hệ tiền nhiệm', icon: Zap, color: '#00e5ff' },
   { value: '4K UHD+', label: 'Hỗ trợ màn hình', sub: 'Độ rộng màu 100% DCI-P3', icon: Monitor, color: '#3b82f6' },
-  { value: `${displayedIsvPercent.value}%`, label: 'Chứng nhận ISV', sub: 'Tương thích 100% phần mềm', icon: Award, color: '#10b981' },
-  { value: 'Xeon / Ultra', label: 'Vi xử lý tối tân', sub: 'Intel Xeon & Core Ultra vPro', icon: Cpu, color: '#8b5cf6' }
+  { value: `${displayedIsvPercent.value}%`, label: 'Chứng nhận ISV', sub: 'Tương thích 100% phần mềm', icon: Award, color: '#2563eb' },
+  { value: 'Xeon / Ultra', label: 'Vi xử lý tối tân', sub: 'Intel Xeon & Core Ultra vPro', icon: Cpu, color: '#3b82f6' }
 ])
 
 // ===================== MOCK DATA =====================
@@ -95,7 +95,7 @@ const benchmarkData = {
     title: '3D Rendering Speed (V-Ray / Blender Cycles)',
     unit: 'Điểm số hiệu năng (Càng cao càng tốt)',
     items: [
-      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 100, color: '#00f2fe' },
+      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 100, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4000 Ada (Workstation Mid-range)', score: 78, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4070 (Gaming Standard Laptop)', score: 55, color: '#64748b' },
       { name: 'Intel Iris Xe Graphics (Office Standard Laptop)', score: 12, color: '#475569' }
@@ -105,7 +105,7 @@ const benchmarkData = {
     title: '8K Video Editing & Grading (DaVinci Resolve)',
     unit: 'FPS trung bình (Càng cao càng tốt)',
     items: [
-      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 92, color: '#00f2fe' },
+      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 92, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4000 Ada (Workstation Mid-range)', score: 72, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4070 (Gaming Standard Laptop)', score: 60, color: '#64748b' },
       { name: 'Intel Iris Xe Graphics (Office Standard Laptop)', score: 8, color: '#475569' }
@@ -115,7 +115,7 @@ const benchmarkData = {
     title: '3D CAD Modeling Viewport FPS (SolidWorks / Catia)',
     unit: 'FPS khung nhìn thực tế (Càng cao càng tốt)',
     items: [
-      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 100, color: '#00f2fe' },
+      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 100, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4000 Ada (Workstation Mid-range)', score: 85, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4070 (Gaming Standard Laptop)', score: 40, color: '#64748b' },
       { name: 'Intel Iris Xe Graphics (Office Standard Laptop)', score: 15, color: '#475569' }
@@ -125,7 +125,7 @@ const benchmarkData = {
     title: 'AI Model Training (PyTorch Epoch Duration)',
     unit: 'Tốc độ hoàn thành mẫu / giây (Càng cao càng tốt)',
     items: [
-      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 98, color: '#00f2fe' },
+      { name: 'NVIDIA RTX 5000 Ada (Workstation Flagship)', score: 98, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4000 Ada (Workstation Mid-range)', score: 76, color: '#3b82f6' },
       { name: 'NVIDIA RTX 4070 (Gaming Standard Laptop)', score: 48, color: '#64748b' },
       { name: 'Intel Iris Xe Graphics (Office Standard Laptop)', score: 5, color: '#475569' }
@@ -146,6 +146,153 @@ const articles = [
 ]
 
 // ===================== DỮ LIỆU ĐỘNG & ĐỒNG BỘ BACKEND =====================
+const normalizeText = (value = '') => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .replace(/Đ/g, 'D')
+  .toLowerCase()
+
+const parseMaybeJsonArray = (value) => {
+  if (Array.isArray(value)) return value
+  if (!value || typeof value !== 'string') return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const getProductVariants = (product = {}) => {
+  const variants = product.bien_thes || product.bienThes || product.bienthes || []
+  return Array.isArray(variants) ? variants : []
+}
+
+const getVariantPrice = (variant = {}, product = {}) => {
+  const salePrice = Number(variant.gia_khuyen_mai || variant.giakhuyenmai || 0)
+  const basePrice = Number(variant.gia || product.gia || 0)
+  return salePrice > 0 ? salePrice : basePrice
+}
+
+const getBestVariant = (product = {}) => {
+  const variants = getProductVariants(product)
+  if (!variants.length) return null
+  return variants
+    .slice()
+    .sort((a, b) => getVariantPrice(b, product) - getVariantPrice(a, product))[0]
+}
+
+const getProductSpecs = (product = {}, variant = null) => {
+  const generalSpecs = parseMaybeJsonArray(product.thong_so_ky_thuat)
+    .map(item => item?.giatri || item?.value || item?.ten || '')
+    .filter(Boolean)
+
+  const variantAttrs = parseMaybeJsonArray(variant?.thuoc_tinh_json)
+  const picked = {
+    cpu: '',
+    gpu: '',
+    ram: '',
+    storage: '',
+    screen: '',
+  }
+
+  variantAttrs.forEach(attr => {
+    const attrName = normalizeText(attr?.ten_thuoctinh || attr?.name || '')
+    const attrValue = attr?.giatri || attr?.value || ''
+    if (!attrValue) return
+    if (attrName.includes('cpu')) picked.cpu = attrValue
+    else if (attrName.includes('gpu') || attrName.includes('card')) picked.gpu = attrValue
+    else if (attrName.includes('ram')) picked.ram = attrValue
+    else if (attrName.includes('ssd') || attrName.includes('o cung') || attrName.includes('storage')) picked.storage = attrValue
+    else if (attrName.includes('man hinh') || attrName.includes('kich thuoc')) picked.screen = attrValue
+  })
+
+  return [picked.cpu, picked.gpu, picked.ram, picked.storage, picked.screen, ...generalSpecs]
+    .filter(Boolean)
+    .filter((value, index, arr) => arr.indexOf(value) === index)
+    .slice(0, 5)
+}
+
+const getPerformanceScore = (product = {}, price = 0, specs = []) => {
+  const haystack = normalizeText([
+    product.tenSP,
+    product.danh_muc?.ten_danhmuc,
+    product.danhmuc?.tenDM,
+    product.thuong_hieu?.ten_thuonghieu,
+    product.thuonghieu?.tenTH,
+    product.category,
+    specs.join(' '),
+  ].filter(Boolean).join(' '))
+
+  let score = Math.min(price / 1000000, 120)
+  const strongSignals = [
+    'workstation', 'precision', 'zbook', 'thinkpad p', 'proart', 'creator', 'conceptd',
+    'core i9', 'ultra 9', 'ryzen 9', 'xeon',
+    'rtx 4090', 'rtx 4080', 'rtx 4070', 'rtx 5000', 'rtx 4000', 'rtx 3500', 'rtx a',
+    '64gb', '32gb', '2tb', '1tb'
+  ]
+
+  strongSignals.forEach(signal => {
+    if (haystack.includes(signal)) score += 14
+  })
+
+  if (price >= 80000000) score += 36
+  else if (price >= 60000000) score += 26
+  else if (price >= 40000000) score += 16
+  else if (price >= 25000000) score += 8
+
+  return score
+}
+
+const mapApiProductToWorkstationCard = (product = {}) => {
+  const bestVariant = getBestVariant(product)
+  const price = getVariantPrice(bestVariant || {}, product)
+  const basePrice = Number(bestVariant?.gia || product.gia || price)
+  const specs = getProductSpecs(product, bestVariant)
+
+  return {
+    id: product.id_sanpham,
+    tenSP: product.tenSP,
+    brand: product.thuong_hieu?.ten_thuonghieu || product.thuonghieu?.tenTH || product.brand || 'Workstation',
+    category: 'Workstation',
+    gia: price,
+    oldPrice: basePrice > price ? basePrice : Math.floor(price * 1.08),
+    specs: specs.length ? specs : ['CPU hiệu năng cao', 'GPU rời NVIDIA RTX', 'RAM 32GB+', 'SSD NVMe tốc độ cao'],
+    image: productImageUrl(product, bestVariant, 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500'),
+    rating: product.rating_avg ? Number(product.rating_avg) : 4.9,
+    reviews: product.rating_count ? Number(product.rating_count) : 12,
+    promo: product.mota_ngan || 'Hỗ trợ trả góp 0% lãi suất + Tặng balo trạm cao cấp',
+    inStock: bestVariant ? Number(bestVariant.soluong || 0) > 0 : true,
+    score: getPerformanceScore(product, price, specs),
+  }
+}
+
+const loadHighPerformanceWorkstations = async () => {
+  isLoading.value = true
+  try {
+    const cache = await prefetchProductsPage({ forceRefresh: true })
+    const apiProducts = Array.isArray(cache?.productsRaw) ? cache.productsRaw : []
+    const rankedProducts = apiProducts
+      .map(mapApiProductToWorkstationCard)
+      .filter(product => product.id && product.gia >= 25000000)
+      .sort((a, b) => b.score - a.score || b.gia - a.gia)
+
+    products.value = rankedProducts.length
+      ? rankedProducts.slice(0, 8)
+      : generateFallbackWorkstations()
+  } catch (err) {
+    console.error('Lỗi khi tải sản phẩm hiệu năng cao:', err)
+    products.value = generateFallbackWorkstations()
+  } finally {
+    isLoading.value = false
+    nextTick(() => {
+      initScrollReveal()
+      initStatsObserver()
+    })
+  }
+}
+
 const loadPageData = async () => {
   isLoading.value = true
   try {
@@ -444,7 +591,7 @@ const initStatsObserver = () => {
 
 onMounted(() => {
   window.scrollTo({ top: 0 })
-  loadPageData()
+  loadHighPerformanceWorkstations()
 })
 </script>
 
@@ -889,7 +1036,7 @@ onMounted(() => {
 .workstation-shell {
   --primary-navy: #030e22;
   --secondary-navy: #0a1931;
-  --accent-cyan: #00f2fe;
+  --accent-cyan: #3b82f6;
   --accent-blue: #3b82f6;
   --text-white: #ffffff;
   --text-muted: #94a3b8;
@@ -920,8 +1067,8 @@ onMounted(() => {
 }
 .section-badge-label {
   display: inline-block;
-  background: rgba(0, 242, 254, 0.08);
-  border: 1px solid rgba(0, 242, 254, 0.25);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
   color: var(--accent-cyan);
   font-size: 11px;
   font-weight: 800;
@@ -1408,9 +1555,9 @@ onMounted(() => {
 }
 
 .isv-badge {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  color: #2563eb;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1489,8 +1636,8 @@ onMounted(() => {
 .seg-icon-box {
   width: 46px;
   height: 46px;
-  background: rgba(0, 242, 254, 0.08);
-  border: 1px solid rgba(0, 242, 254, 0.2);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -1610,8 +1757,8 @@ onMounted(() => {
   color: #ffffff;
 }
 .db-tab-btn.active {
-  background: rgba(0, 242, 254, 0.08);
-  border-color: rgba(0, 242, 254, 0.25);
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
   color: var(--accent-cyan);
 }
 .db-icon {
@@ -2043,8 +2190,8 @@ onMounted(() => {
   border: 1px solid var(--border-glass);
 }
 .border-glow:hover {
-  border-color: rgba(0, 242, 254, 0.25);
-  box-shadow: 0 0 20px rgba(0, 242, 254, 0.12);
+  border-color: rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.12);
 }
 
 .btn {

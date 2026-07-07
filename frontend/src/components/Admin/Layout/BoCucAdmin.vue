@@ -260,7 +260,7 @@ const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
 
 const appearance = ref({
   primary_color: '#2563eb',
-  accent_color: '#7c3aed',
+  accent_color: '#2563eb',
   border_radius: 12,
   card_shadow: 'medium',
   density: 'comfortable',
@@ -739,7 +739,7 @@ a { text-decoration: none; }
     color: #ffffff;
 }
 .item.active { 
-    background: linear-gradient(135deg, #2563eb, #06b6d4); 
+    background: linear-gradient(135deg, #2563eb, #3b82f6); 
     color: #ffffff;
     font-weight: 600; 
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
@@ -828,7 +828,7 @@ a { text-decoration: none; }
   color: #f87171;
 }
 .badge-sales {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(37, 99, 235, 0.1);
   color: #4ade80;
 }
 .badge-config {
@@ -982,7 +982,7 @@ a { text-decoration: none; }
 .apps-dropdown { width: 190px; display: grid; gap: 6px; }
 .notify-menu { width: 320px; }
 .notify-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 4px 4px 8px; border-bottom: 1px solid #edf2f7; }
-.notify-mark-read { border: 0; background: transparent; color: #4f46e5; font-size: 12px; cursor: pointer; }
+.notify-mark-read { border: 0; background: transparent; color: #2563eb; font-size: 12px; cursor: pointer; }
 .notify-empty { color: #64748b; font-size: 13px; padding: 14px 6px; }
 .notify-item { width: 100%; border: 1px solid #eef2f7; background: #fff; border-radius: 10px; padding: 9px 10px; margin-top: 6px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
@@ -1024,7 +1024,7 @@ a { text-decoration: none; }
 .user-dropdown-list { display: grid; gap: 6px; margin-bottom: 8px; }
 .dropdown-item { width: 100%; text-align: center; padding: 10px 12px; border-radius: 10px; border: none; background: #f8fafc; color: #0f172a; font-size: 13px; cursor: pointer; transition: all 0.2s ease; }
 .dropdown-item.compact { text-align: left; }
-.dropdown-item.active { background: #e0e7ff; color: #4338ca; font-weight: 700; }
+.dropdown-item.active { background: #e0e7ff; color: #1d4ed8; font-weight: 700; }
 .dropdown-item:hover { background: #eef2ff; }
 .dropdown-item.sign-out { background: #fef2f2; color: #dc2626; transition: background-color 0.2s, color 0.2s; }
 .dropdown-item.sign-out:hover { background: #fee2e2; color: #b91c1c; }

@@ -572,7 +572,7 @@ async function submit() {
 }
 
 .strength-requirements span.ok {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .submit-btn {

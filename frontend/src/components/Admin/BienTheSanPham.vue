@@ -23,8 +23,8 @@ const loading = ref(false)
 
 const typePalette = [
   { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#dcfce7', color: '#15803d' },
-  { bg: '#ede9fe', color: '#6d28d9' },
+  { bg: '#dcfce7', color: '#1d4ed8' },
+  { bg: '#ede9fe', color: '#1d4ed8' },
   { bg: '#fef3c7', color: '#b45309' },
   { bg: '#fee2e2', color: '#b91c1c' },
   { bg: '#e0f2fe', color: '#0369a1' },
@@ -1280,7 +1280,7 @@ async function handleImportFile(e) {
               </span>
               <span v-else>Chọn file Excel</span>
             </button>
-            <span v-if="importSuccess" style="font-size:11px;color:#16a34a;font-weight:600">✓ {{ importSuccess }}</span>
+            <span v-if="importSuccess" style="font-size:11px;color:#2563eb;font-weight:600">✓ {{ importSuccess }}</span>
             <span v-if="importError" style="font-size:11px;color:#dc2626;font-weight:600">✗ {{ importError }}</span>
           </div>
           <input ref="importFileRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
@@ -1617,7 +1617,7 @@ async function handleImportFile(e) {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -1681,7 +1681,7 @@ async function handleImportFile(e) {
   padding: 10px 18px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -2032,9 +2032,9 @@ async function handleImportFile(e) {
 }
 
 .bar.blue { background: #2563eb; }
-.bar.purple { background: #7c3aed; }
+.bar.purple { background: #2563eb; }
 .bar.purple2 { background: #9333ea; }
-.bar.green { background: #16a34a; }
+.bar.green { background: #2563eb; }
 
 .card-tools {
   display: flex;
@@ -2083,17 +2083,17 @@ async function handleImportFile(e) {
 }
 
 .green-btn {
-  border-color: #16a34a;
+  border-color: #2563eb;
   background: #f0fdf4;
-  color: #15803d;
+  color: #1d4ed8;
 }
 
 .green-btn:hover { background: #dcfce7; }
 
 .purple-btn {
-  border-color: #7c3aed;
+  border-color: #2563eb;
   background: #faf5ff;
-  color: #6d28d9;
+  color: #1d4ed8;
 }
 
 .purple-btn:hover { background: #ede9fe; }
@@ -2152,7 +2152,7 @@ tbody td {
   font-weight: 600;
 }
 
-.status-dot.active { color: #16a34a; }
+.status-dot.active { color: #2563eb; }
 .status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
@@ -2164,7 +2164,7 @@ tbody td {
 
 .count-badge {
   background: #f0fdf4;
-  color: #15803d;
+  color: #1d4ed8;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -2174,7 +2174,7 @@ tbody td {
 
 .group-tag {
   background: #ede9fe;
-  color: #6d28d9;
+  color: #1d4ed8;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 9px;
@@ -2203,9 +2203,9 @@ tbody td {
 }
 
 .green-icon { background: #f0fdf4; }
-.green-icon svg { stroke: #16a34a; }
+.green-icon svg { stroke: #2563eb; }
 .purple-icon { background: #faf5ff; }
-.purple-icon svg { stroke: #7c3aed; }
+.purple-icon svg { stroke: #2563eb; }
 
 .actions { display: flex; gap: 5px; }
 
@@ -2422,7 +2422,7 @@ tbody td {
   color: #ef4444;
 }
 
-.stock-ok { color: #16a34a; font-size: 12px; font-weight: 600; }
+.stock-ok { color: #2563eb; font-size: 12px; font-weight: 600; }
 .stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
 
 .preview-card { padding: 14px; }
@@ -2494,7 +2494,7 @@ tbody td {
   padding: 3px 8px;
   border-radius: 20px;
   background: #dcfce7;
-  color: #16a34a;
+  color: #2563eb;
   white-space: nowrap;
 }
 
@@ -2542,7 +2542,7 @@ tbody td {
 }
 
 .bottom-icon.blue { background: #dbeafe; color: #2563eb; }
-.bottom-icon.purple { background: #ede9fe; color: #7c3aed; }
+.bottom-icon.purple { background: #ede9fe; color: #2563eb; }
 
 .bottom-card h4 {
   font-size: 13px;
@@ -2559,7 +2559,7 @@ tbody td {
 }
 
 .dark-bottom {
-  background: linear-gradient(135deg, #1e40af, #4f46e5);
+  background: linear-gradient(135deg, #1e40af, #2563eb);
   border-color: transparent;
 }
 
@@ -2583,10 +2583,10 @@ tbody td {
 
 .export-sm-btn:hover:not(:disabled) { background: #2563eb; color: #fff; }
 .export-sm-btn:disabled { opacity: .5; cursor: not-allowed; }
-.export-sm-btn.purple-sm { border-color: #7c3aed; color: #7c3aed; }
-.export-sm-btn.purple-sm:hover { background: #7c3aed; color: #fff; }
-.export-sm-btn.green-sm { border-color: #16a34a; color: #16a34a; }
-.export-sm-btn.green-sm:hover:not(:disabled) { background: #16a34a; color: #fff; }
+.export-sm-btn.purple-sm { border-color: #2563eb; color: #2563eb; }
+.export-sm-btn.purple-sm:hover { background: #2563eb; color: #fff; }
+.export-sm-btn.green-sm { border-color: #2563eb; color: #2563eb; }
+.export-sm-btn.green-sm:hover:not(:disabled) { background: #2563eb; color: #fff; }
 .btn-loading-wrap { display: inline-flex; align-items: center; gap: 8px; }
 .btn-spinner {
   width: 14px;
@@ -2655,10 +2655,10 @@ tbody td {
   height: 17px;
 }
 
-.icon-add { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+.icon-add { background: linear-gradient(135deg, #2563eb, #2563eb); }
 .icon-edit { background: linear-gradient(135deg, #f59e0b, #f97316); }
-.icon-group { background: linear-gradient(135deg, #16a34a, #059669); }
-.icon-attr { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+.icon-group { background: linear-gradient(135deg, #2563eb, #1D4ED8); }
+.icon-attr { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
 
 .modal-title {
   font-size: 15px;
@@ -2840,7 +2840,7 @@ tbody td {
 }
 
 .purple-icon-prev { background: #ede9fe; }
-.purple-icon-prev svg { stroke: #7c3aed; }
+.purple-icon-prev svg { stroke: #2563eb; }
 
 .prev-name {
   font-size: 14px;
@@ -2883,8 +2883,8 @@ tbody td {
   transition: background .15s;
 }
 
-.tg-green { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
-.tg-green .tdot { background: #16a34a; }
+.tg-green { border-color: #2563eb; background: #f0fdf4; color: #1d4ed8; }
+.tg-green .tdot { background: #2563eb; }
 .tg-yellow { border-color: #d97706; background: #fffbeb; color: #b45309; }
 .tg-yellow .tdot { background: #d97706; }
 .tg-red { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
@@ -2920,7 +2920,7 @@ tbody td {
   padding: 9px 20px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 600;

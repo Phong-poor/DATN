@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
+import { mapNewsPosts } from '@/services/newsMapper'
 import { absoluteUrl, setSeo } from '@/services/seo'
 import { storageUrl } from '@/services/urls'
 
@@ -86,6 +87,31 @@ const pickRandomPost = () => {
   randomPost.value = posts.value[Math.floor(Math.random() * posts.value.length)]
 }
 
+const paginationPayload = (data) => {
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      currentPage: 1,
+      lastPage: 1,
+    }
+  }
+
+  return {
+    items: data?.data || data?.items || data?.posts || [],
+    currentPage: Number(data?.current_page || data?.meta?.current_page || 1),
+    lastPage: Number(data?.last_page || data?.meta?.last_page || 1),
+  }
+}
+
+const cachePostDetail = (post) => {
+  try {
+    const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
+    const cached = cachedStr ? JSON.parse(cachedStr) : {}
+    if (!cached.post) cached.post = post
+    localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
+  } catch (e) {}
+}
+
 const fetchNews = async (page = 1) => {
   if (posts.value.length === 0) loading.value = true
   errorMessage.value = ''
@@ -93,17 +119,11 @@ const fetchNews = async (page = 1) => {
     const params = { scope: 'public', per_page: 6, page }
     if (selectedCategory.value !== 'Mới nhất') params.danhmuc = selectedCategory.value
     const { data } = await api.get('/news', { params })
-    posts.value = data.data || []
-    posts.value.forEach(post => {
-      try {
-        const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
-        let cached = cachedStr ? JSON.parse(cachedStr) : {}
-        if (!cached.post) cached.post = post
-        localStorage.setItem(`nextgen_news_detail_cache_${post.id}`, JSON.stringify(cached))
-      } catch (e) {}
-    })
-    currentPage.value = data.current_page || 1
-    lastPage.value = data.last_page || 1
+    const payload = paginationPayload(data)
+    posts.value = mapNewsPosts(payload.items)
+    posts.value.forEach(cachePostDetail)
+    currentPage.value = payload.currentPage
+    lastPage.value = payload.lastPage
     pickRandomPost()
   } catch (error) {
     console.error('Lỗi tải tin tức:', error)
@@ -120,7 +140,7 @@ const fetchNews = async (page = 1) => {
 const fetchPopular = async () => {
   try {
     const { data } = await api.get('/news', { params: { scope: 'public', per_page: 20 } })
-    popularPosts.value = (data.data || []).sort((a, b) => (b.luotxem || 0) - (a.luotxem || 0)).slice(0, 3)
+    popularPosts.value = (data.data || []).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
     popularPosts.value.forEach(post => {
       try {
         const cachedStr = localStorage.getItem(`nextgen_news_detail_cache_${post.id}`)
@@ -146,8 +166,8 @@ const loadCache = () => {
     const cached = localStorage.getItem('nextgen_news_cache')
     if (cached) {
       const parsed = JSON.parse(cached)
-      if (parsed.posts) posts.value = parsed.posts
-      if (parsed.popularPosts) popularPosts.value = parsed.popularPosts
+      if (parsed.posts) posts.value = mapNewsPosts(parsed.posts)
+      if (parsed.popularPosts) popularPosts.value = mapNewsPosts(parsed.popularPosts)
     }
   } catch (e) {}
 }
@@ -493,7 +513,7 @@ onMounted(async () => {
         <!-- Xuương tìm kiếm -->
         <div class="sidebar-magazine-widget">
           <h4 class="widget-magazine-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #10b981;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="display: inline-block; vertical-align: middle; margin-right: 4px; color: #2563eb;">
               <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
               <polyline points="16 7 22 7 22 13"/>
             </svg>
@@ -573,8 +593,8 @@ onMounted(async () => {
 .news-page {
   --primary: #2563EB;
   --primary-glow: rgba(37, 99, 235, 0.15);
-  --secondary: #06B6D4;
-  --secondary-glow: rgba(6, 182, 212, 0.15);
+  --secondary: #3B82F6;
+  --secondary-glow: rgba(37, 99, 235, 0.15);
   --accent: #f59e0b;
   --dark-bg: #0F172A;
   --dark-surface: #111827;
@@ -1038,7 +1058,7 @@ onMounted(async () => {
 }
 .radar-glow-2 .radar-icon {
   background: rgba(139, 92, 246, 0.08);
-  color: #8b5cf6;
+  color: #3b82f6;
 }
 .radar-glow-3 .radar-icon {
   background: rgba(249, 115, 22, 0.08);
@@ -1065,11 +1085,11 @@ onMounted(async () => {
 .radar-card.radar-glow-2:hover {
   transform: translateY(-4px);
   background: #f5f3ff;
-  border-color: #8b5cf6;
+  border-color: #3b82f6;
   box-shadow: 0 12px 24px rgba(139, 92, 246, 0.12);
 }
 .radar-card.radar-glow-2:hover .radar-icon {
-  background: #8b5cf6;
+  background: #3b82f6;
   color: #ffffff;
 }
 .radar-card.radar-glow-3:hover {
@@ -1508,7 +1528,7 @@ onMounted(async () => {
   position: absolute;
   top: -50%; right: -20%;
   width: 90%; height: 180%;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -1525,7 +1545,7 @@ onMounted(async () => {
   color: var(--secondary);
   letter-spacing: 1px;
   padding: 3px 8px;
-  background: rgba(6, 182, 212, 0.1);
+  background: rgba(37, 99, 235, 0.1);
   border-radius: 4px;
   margin-bottom: 8px;
 }
