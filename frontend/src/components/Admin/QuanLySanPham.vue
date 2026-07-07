@@ -1,7 +1,14 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { getUser } from '@/services/auth'
 import api from '@/services/api'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+
+const user = ref(getUser() || {})
+const hasPermission = (perm) => {
+  if (user.value?.vaitro === 'admin') return true
+  return user.value?.cac_quyen?.includes(perm)
+}
 import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
 
 const PRODUCTS_CACHE_KEY = 'nextgen_admin_products_cache'
@@ -1883,7 +1890,7 @@ onMounted(() => {
           {{ isExporting ? '\u0110ang xu\u1ea5t...' : 'Xu\u1ea5t Excel' }}
         </button>
 
-        <button class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
+        <button v-if="hasPermission('nhap_xuat_kho')" class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
           <svg v-if="!isImporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
             fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1896,7 +1903,7 @@ onMounted(() => {
         <input type="file" ref="importExcelRef" style="display: none" accept=".xlsx, .xls"
           @change="handleImportExcel" />
 
-        <button class="add-btn" @click="openModal">+ Th&#234;m s&#7843;n ph&#7849;m</button>
+        <button v-if="hasPermission('san_pham_sua')" class="add-btn" @click="openModal">+ Th&#234;m s&#7843;n ph&#7849;m</button>
       </div>
     </div>
 
@@ -2030,7 +2037,7 @@ onMounted(() => {
             </td>
             <td>
               <div class="actions">
-                <button class="act-btn" title="S&#7917;a" @click="openEditModal(p.id)">
+                <button v-if="hasPermission('san_pham_sua')" class="act-btn" title="S&#7917;a" @click="openEditModal(p.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />

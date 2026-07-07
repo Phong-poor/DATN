@@ -35,13 +35,9 @@ const pageSize = 7
 const tabs = ['Tất cả', 'Admin', 'Khách hàng']
 const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
-const roleStyle = {
+const roleStyle = ref({
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#1d4ed8' }
-}
-
-Object.assign(roleStyle, {
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#1d4ed8' },
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
     'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
     'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
     'MARKETING': { bg: '#fce7f3', color: '#db2777' },
@@ -56,25 +52,7 @@ const statusStyle = {
     'Bị khóa': { color: '#dc2626' }
 }
 
-// ─── MAPPING ─────────────────────────
-const roleMap = {
-    admin: 'ADMIN',
-    user: 'KHÁCH HÀNG'
-}
-
-const roleReverseMap = {
-    'ADMIN': 'admin',
-    'KHÁCH HÀNG': 'user'
-}
-
-const mapRoleFromDB = (r) => roleMap[r?.toLowerCase()] || 'KHÁCH HÀNG'
-const mapRoleToDB = (r) => roleReverseMap[r] || 'user'
-
-const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
-const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
-
-// ─── NORMALIZE ───────────────────────
-const roleLabelMapFixed = {
+const roleLabelMapFixed = ref({
     admin: 'ADMIN',
     user: 'KHÁCH HÀNG',
     inventory: 'THỦ KHO',
@@ -84,11 +62,18 @@ const roleLabelMapFixed = {
     editor: 'BIÊN TẬP VIÊN',
     support: 'TƯ VẤN VIÊN',
     accountant: 'KẾ TOÁN'
-}
+})
 
-const roleValueMapFixed = Object.fromEntries(Object.entries(roleLabelMapFixed).map(([value, label]) => [label, value]))
-const mapRoleLabel = (role) => roleLabelMapFixed[String(role || '').toLowerCase()] || 'KHÁCH HÀNG'
-const mapRoleValue = (label) => roleValueMapFixed[label] || 'user'
+const roleValueMapFixed = computed(() => {
+    return Object.fromEntries(Object.entries(roleLabelMapFixed.value).map(([value, label]) => [label, value]))
+})
+
+const staffRoles = computed(() => {
+    return Object.values(roleLabelMapFixed.value).filter(lbl => lbl !== 'KHÁCH HÀNG')
+})
+
+const mapRoleLabel = (role) => roleLabelMapFixed.value[String(role || '').toLowerCase()] || 'KHÁCH HÀNG'
+const mapRoleValue = (label) => roleValueMapFixed.value[label] || 'user'
 const mapStatusLabel = (status) => String(status || '').toLowerCase() === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusValue = (label) => String(label || '').toLowerCase().includes('khóa') ? 'locked' : 'active'
 
@@ -136,8 +121,27 @@ const closeStatusDropdown = (e) => {
     }
 }
 
-onMounted(() => {
+const fetchRoles = async () => {
+    try {
+        const { data } = await api.get('/admin/vaitro')
+        if (data?.success && Array.isArray(data?.data)) {
+            data.data.forEach(role => {
+                const ma = String(role.ma_vaitro).toLowerCase()
+                const ten = String(role.ten_vaitro).toUpperCase()
+                roleLabelMapFixed.value[ma] = ten
+                if (!roleStyle.value[ten]) {
+                    roleStyle.value[ten] = { bg: '#f1f5f9', color: '#475569' }
+                }
+            })
+        }
+    } catch (err) {
+        console.error('Fetch roles failed in user management:', err)
+    }
+}
+
+onMounted(async () => {
     currentUser.value = getUser()
+    await fetchRoles()
     fetchUsers()
     fetchPendingAffiliateRequests()
     document.addEventListener('click', closeStatusDropdown)
@@ -586,7 +590,7 @@ const submitEdit = async () => {
                         </td>
                         <td>
                             <span class="role-badge"
-                                :style="{ background: roleStyle[u.role]?.bg, color: roleStyle[u.role]?.color }">
+                                :style="{ background: roleStyle[u.role]?.bg || '#f1f5f9', color: roleStyle[u.role]?.color || '#475569' }">
                                 {{ u.role }}
                             </span>
                         </td>
@@ -738,14 +742,7 @@ const submitEdit = async () => {
                                 <label>VAI TRÒ</label>
                                 <select v-model="form.role">
                                     <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
-                                    <option>THỦ KHO</option>
-                                    <option>XỬ LÝ ĐƠN HÀNG</option>
-                                    <option>MARKETING</option>
-                                    <option>QUẢN LÝ AFFILIATE</option>
-                                    <option>BIÊN TẬP VIÊN</option>
-                                    <option>TƯ VẤN VIÊN</option>
-                                    <option>KẾ TOÁN</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -837,14 +834,7 @@ const submitEdit = async () => {
                                 <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id"
                                     :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
                                     <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
-                                    <option>THỦ KHO</option>
-                                    <option>XỬ LÝ ĐƠN HÀNG</option>
-                                    <option>MARKETING</option>
-                                    <option>QUẢN LÝ AFFILIATE</option>
-                                    <option>BIÊN TẬP VIÊN</option>
-                                    <option>TƯ VẤN VIÊN</option>
-                                    <option>KẾ TOÁN</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">

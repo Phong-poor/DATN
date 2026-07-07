@@ -21,7 +21,6 @@ class News extends Model
         'dang_luc',
         'luotxem',
     ];
-
     protected $casts = [
         'dang_luc' => 'datetime',
     ];

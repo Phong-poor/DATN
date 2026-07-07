@@ -285,7 +285,7 @@ const fetchOrders = async () => {
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
-              img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://via.placeholder.com/200')
+              img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://placehold.co/200')
             }
           }),
           steps: [

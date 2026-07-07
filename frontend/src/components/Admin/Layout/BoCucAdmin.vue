@@ -21,7 +21,7 @@
 
       <div class="menu-section">
         <p class="menu-label">MAIN MENU</p>
-        <div v-for="item in menuConfig" :key="item.label || item.path" class="menu-wrapper">
+        <div v-for="item in filteredMenuConfig" :key="item.label || item.path" class="menu-wrapper">
           <!-- Normal Link -->
           <router-link
             v-if="!item.isDropdown"
@@ -74,7 +74,7 @@
         </div>
         <div class="user-info">
           <p class="user-name">{{ userName }}</p>
-          <p class="user-role">Quản trị viên</p>
+          <p class="user-role">{{ userRoleName }}</p>
         </div>
         <button class="sidebar-logout-btn" type="button" @click="handleLogout" aria-label="Đăng xuất">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -167,7 +167,7 @@
               </div>
               <div class="user-meta">
                 <span class="user-name">{{ userName }}</span>
-                <span class="user-role">Quản trị viên</span>
+                <span class="user-role">{{ userRoleName }}</span>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
             </button>
@@ -309,12 +309,67 @@ const menuConfig = [
     isDropdown: true,
     children: [
       { path: '/admin/quan-ly-nguoi-dung', label: 'User', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
       { path: '/admin/quan-ly-lien-he', label: 'Liên hệ', badge: 'SUPPORT' },
     ]
   },
   { path: '/admin/quan-ly-banner', label: 'Banner', icon: Image },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
+
+const filteredMenuConfig = computed(() => {
+  const userPerms = user.value?.cac_quyen || []
+  const isAdmin = user.value?.vaitro === 'admin'
+
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
+
+  const pathPermissionMap = {
+    '/admin/quan-ly-san-pham': 'san_pham_xem',
+    '/admin/quan-ly-danh-muc': 'danh_muc_xem',
+    '/admin/quan-ly-thuong-hieu': 'thuong_hieu_xem',
+    '/admin/bien-the-san-pham': 'bien_the_xem',
+    '/admin/bien-the': 'bien_the_xem',
+    
+    '/admin/quan-ly-don-hang': 'don_hang_xem',
+    '/admin/hoa-don': 'hoa_don_xem',
+    
+    '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
+    '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
+    '/admin/quan-ly-combo': 'marketing_quan_ly',
+    '/admin/quan-ly-tiep-thi': 'affiliate_quan_ly',
+    
+    '/admin/quan-ly-tin-tuc': 'tin_tuc_quan_ly',
+    '/admin/quan-ly-binh-luan': 'binh_luan_quan_ly',
+    
+    '/admin/quan-ly-nguoi-dung': 'tai_khoan_quan_ly',
+    '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
+    '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
+    
+    '/admin/quan-ly-banner': 'banner_quan_ly',
+    '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
+  }
+
+  return menuConfig.map(item => {
+    if (!item.isDropdown) {
+      const required = pathPermissionMap[item.path]
+      if (required && !hasPerm(required)) return null
+      return item
+    }
+
+    const filteredChildren = item.children.filter(child => {
+      const required = pathPermissionMap[child.path]
+      if (required && !hasPerm(required)) return false
+      return true
+    })
+
+    if (filteredChildren.length === 0) return null
+
+    return {
+      ...item,
+      children: filteredChildren
+    }
+  }).filter(Boolean)
+})
 
 const dropdownStates = ref({
   'Sản phẩm': false,
@@ -583,6 +638,19 @@ function handleSettingsUpdated(event) {
   if (ap) appearance.value = { ...appearance.value, ...ap }
 }
 
+async function fetchLatestUserProfile() {
+  try {
+    const res = await api.get('/admin/account/profile')
+    if (res.data?.success && res.data?.data) {
+      const latestUser = res.data.data
+      localStorage.setItem('user', JSON.stringify(latestUser))
+      user.value = latestUser
+    }
+  } catch (err) {
+    console.error('Failed to sync admin profile:', err)
+  }
+}
+
 onMounted(async () => {
   if (sessionStorage.getItem('admin_intro_animation') === '1') {
     sessionStorage.removeItem('admin_intro_animation')
@@ -600,6 +668,7 @@ onMounted(async () => {
   await loadAppearanceSettings()
   hydrateNotifications()
   await loadNotifications()
+  await fetchLatestUserProfile()
 })
 
 onUnmounted(() => {

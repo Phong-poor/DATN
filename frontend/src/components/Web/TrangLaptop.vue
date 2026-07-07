@@ -170,7 +170,7 @@ const normalizeProduct = (p) => {
     gia: price,
     oldPrice: Math.floor(price * 1.13),
     specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
-    image: productImageUrl(p, variant, 'https://via.placeholder.com/600x420?text=NextGen+Laptop'),
+    image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
     rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
     reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
   }

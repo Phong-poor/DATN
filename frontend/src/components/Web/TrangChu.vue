@@ -3,74 +3,12 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getToken } from '@/services/auth'
 
-import ComboSelectionModal from './HopThoaiChonCombo.vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { comboImageUrl, handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
-
-const combos = ref([])
-const comboCarouselRef = ref(null)
-const comboDragState = ref({
-    active: false,
-    startX: 0,
-    scrollLeft: 0
-})
-const showComboModal = ref(false)
-const selectedCombo = ref(null)
-
-const openCombo = (combo) => {
-    selectedCombo.value = combo
-    showComboModal.value = true
-}
-
-const scrollComboCarousel = (direction = 1) => {
-    const el = comboCarouselRef.value
-    if (!el) return
-    const firstCard = el.querySelector('.combo-home-card')
-    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : el.clientWidth * 0.8
-    const gap = 24
-    el.scrollBy({
-        left: direction * (cardWidth + gap),
-        behavior: 'smooth'
-    })
-}
-
-const handleComboWheel = (event) => {
-    const el = comboCarouselRef.value
-    if (!el || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return
-    event.preventDefault()
-    el.scrollBy({
-        left: event.deltaY,
-        behavior: 'smooth'
-    })
-}
-
-const startComboDrag = (event) => {
-    const el = comboCarouselRef.value
-    if (!el) return
-    comboDragState.value = {
-        active: true,
-        startX: event.clientX,
-        scrollLeft: el.scrollLeft
-    }
-    el.setPointerCapture?.(event.pointerId)
-}
-
-const moveComboDrag = (event) => {
-    const el = comboCarouselRef.value
-    if (!el || !comboDragState.value.active) return
-    const delta = event.clientX - comboDragState.value.startX
-    el.scrollLeft = comboDragState.value.scrollLeft - delta
-}
-
-const endComboDrag = (event) => {
-    const el = comboCarouselRef.value
-    comboDragState.value.active = false
-    el?.releasePointerCapture?.(event.pointerId)
-}
 
 const tickerItems = [
     '🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K',
@@ -81,8 +19,6 @@ const tickerItems = [
 
 // Proactive error handler for robust loading
 const handleImgError = (event, fallbackUrl) => handleImageFallback(event, fallbackUrl || imageFallbackUrl)
-const comboFallbackImage = imageFallbackUrl
-const getComboImage = (combo) => comboImageUrl(combo, comboFallbackImage)
 
 // Highly tailored premium slideshow in professional Vietnamese
 const defaultSlides = [
@@ -305,20 +241,20 @@ const mapNewsPost = (post = {}) => ({
 
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
-    eyebrow: banner.eyebrow || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.title || 'Sức Mạnh Hội Tụ',
-    highlight: banner.highlight || banner.subtitle || 'Sự Tinh Tế Chuyên Sâu',
-    desc: banner.description || banner.subtitle || '',
-    img: normalizeImageUrl(banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mobileImg: normalizeImageUrl(banner.mobile_image || banner.image, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.media_type || 'image',
-    mobileMediaType: banner.mobile_media_type || banner.media_type || 'image',
-    link: banner.link_url || '',
-    productId: banner.product_id ? String(banner.product_id) : '',
-    primary: banner.primary_label || 'Mua ngay',
-    secondary: banner.secondary_label || 'Xem bộ sưu tập',
-    productBadge: banner.product_badge || 'TRENDING NOW',
-    productFeature: banner.product_feature || 'RTX 40-Series',
+    eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
+    title: banner.tieude || 'Sức Mạnh Hội Tụ',
+    highlight: banner.noibat || banner.phude || 'Sự Tinh Tế Chuyên Sâu',
+    desc: banner.mota || banner.phude || '',
+    img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mediaType: banner.loaimedia || 'image',
+    mobileMediaType: banner.loai_media_mobile || banner.loaimedia || 'image',
+    link: banner.duongdan || '',
+    productId: banner.id_sanpham ? String(banner.id_sanpham) : '',
+    primary: banner.nhanchinh || 'Mua ngay',
+    secondary: banner.nhanphu || 'Xem bộ sưu tập',
+    productBadge: banner.huyhieu_sanpham || 'TRENDING NOW',
+    productFeature: banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
 const mapApiBannerToSlide = (banner = {}) => ({
@@ -347,8 +283,7 @@ const loadCache = () => {
             if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
             if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
             if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
-            if (parsed.latestNews) latestNews.value = parsed.latestNews.map(mapNewsPost)
-            if (parsed.combos) combos.value = parsed.combos
+            if (parsed.latestNews) latestNews.value = parsed.latestNews
             if (parsed.bannerSlides) bannerSlides.value = parsed.bannerSlides
         }
     } catch (e) {
@@ -363,7 +298,6 @@ const saveCache = () => {
             featuredAccessories: featuredAccessories.value,
             categories: categories.value,
             latestNews: latestNews.value,
-            combos: combos.value,
             bannerSlides: bannerSlides.value
         }))
     } catch (e) {
@@ -395,10 +329,9 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, productsBundle, combosRes, bannersRes] = await Promise.all([
+        const [newsRes, productsBundle, bannersRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 4 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
             prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
-            api.get('/combos').catch(e => { console.error('Combos API failed', e); return { data: { data: [] } }; }),
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; })
         ])
 
@@ -423,8 +356,6 @@ onMounted(async () => {
         const apiCategories = (productsBundle?.categories || []).slice(0, 4)
         categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
-        // Cập nhật combos
-        combos.value = combosRes.data?.data || []
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
         bannerSlides.value = apiBanners.map(mapApiBannerToSlide)
         saveCache()
@@ -910,90 +841,6 @@ onUnmounted(() => {
                 </div>
             </div>
         </section>
-
-        <!-- 2.7. HOME COMBOS (Special high value accessory packs) -->
-        <section class="section combos-section">
-            <div class="grid-container">
-                <div class="section-header scroll-reveal reveal-fade-up">
-                    <div class="label-wrapper">
-                        <span class="ambient-label">COMBO ƯU ĐÃI VIP</span>
-                        <h2>Phụ Kiện Theo Bộ - Siêu Tiết Kiệm</h2>
-                        <p>Mua sắm thiết bị cùng các gói phụ kiện được cấu hình sẵn với mức trợ giá đặc biệt cực khủng.</p>
-                    </div>
-                </div>
-
-                <!-- Có combo thì hiện danh sách -->
-                <div v-if="combos && combos.length" class="combo-carousel-shell scroll-reveal reveal-stagger">
-                    <button class="combo-carousel-btn prev" type="button" aria-label="Lướt combo trước" @click="scrollComboCarousel(-1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-
-                    <div
-                        ref="comboCarouselRef"
-                        class="combo-carousel-viewport"
-                        :class="{ dragging: comboDragState.active }"
-                        @wheel="handleComboWheel"
-                        @pointerdown="startComboDrag"
-                        @pointermove="moveComboDrag"
-                        @pointerup="endComboDrag"
-                        @pointercancel="endComboDrag"
-                        @pointerleave="endComboDrag"
-                    >
-                        <div class="combos-grid">
-                    <article class="combo-home-card" v-for="c in combos" :key="c.id_combo">
-                        <span class="badge-discount">TIẾT KIỆM KHỦNG</span>
-
-                        <div class="combo-home-img">
-                            <img
-                                :src="getComboImage(c)"
-                                :alt="c.ten_combo || 'Combo accessories'"
-                                @error="handleImgError($event, comboFallbackImage)"
-                            />
-                        </div>
-
-                        <div class="combo-home-info">
-                            <h3>{{ c.ten_combo }}</h3>
-                            <p class="desc">{{ c.mota }}</p>
-
-                            <div class="bundle-items" v-if="c.products && c.products.length > 0">
-                                <div class="b-item-line">
-                                    <span v-for="(p, pIdx) in c.products" :key="p.id_sanpham" class="b-item-inline">
-                                        <span class="clickable-product" @click="router.push(`/san-pham/${p.id_sanpham}`)">
-                                            {{ p.tenSP }}
-                                        </span>
-                                        <span class="sep" v-if="pIdx < c.products.length - 1"> + </span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="price-row">
-                                <div class="price-box">
-                                    <span class="lbl">GIÁ COMBO CHỈ TỪ</span>
-                                    <span class="price">{{ Number(c.giakhuyenmai || 0).toLocaleString('vi-VN') }}đ</span>
-                                </div>
-                                <button class="btn btn-premium-glow btn-sm" @click="openCombo(c)">
-                                    <span>Cấu hình Combo</span>
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                        </div>
-                    </div>
-
-                    <button class="combo-carousel-btn next" type="button" aria-label="Lướt combo tiếp theo" @click="scrollComboCarousel(1)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div>
-
-                <!-- Không có combo thì vẫn hiện giao diện -->
-                <div v-else class="combo-empty-state scroll-reveal reveal-fade-up">
-                    <div class="combo-empty-icon">🎁</div>
-                    <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
-                    <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng cập nhật database hoặc thêm combo trong trang quản trị.</p>
-                </div>
-            </div>
-        </section>
-
         <!-- 4. BEST SELLERS (Clean crisp white body background) -->
         <section class="section product-section">
             <div class="grid-container">
@@ -1296,13 +1143,7 @@ onUnmounted(() => {
             </div>
         </section>
 
-        <!-- Modal Chọn Biến Thể Combo -->
-        <ComboSelectionModal 
-            v-if="selectedCombo" 
-            :combo="selectedCombo" 
-            :show="showComboModal" 
-            @close="showComboModal = false" 
-        />
+
     </main>
   </div>
 </template>

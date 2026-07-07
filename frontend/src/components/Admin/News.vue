@@ -78,8 +78,8 @@ const statusStyle = {
   draft: { bg: '#f1f5f9', color: '#64748b' },
 }
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2']
-const avatarText = ['#1d4ed8', '#1d4ed8', '#1d4ed8', '#a16207', '#b91c1c']
-const placeholderImage = 'https://via.placeholder.com/160x100?text=News'
+const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c']
+const placeholderImage = 'https://placehold.co/160x100?text=News'
 const currentAuthorName = computed(() => String(currentUser.value?.name || '').trim() || 'Admin')
 
 const defaultForm = () => ({

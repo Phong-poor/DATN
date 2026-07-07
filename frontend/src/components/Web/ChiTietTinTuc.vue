@@ -11,7 +11,7 @@ const relatedPosts = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
 
-const placeholderImage = 'https://via.placeholder.com/1200x650?text=Tin+tuc'
+const placeholderImage = 'https://placehold.co/1200x650?text=Tin+tuc'
 
 const imageUrl = (path) => {
   if (!path) return placeholderImage
@@ -78,11 +78,11 @@ const parseArticleContent = (content = '') => content
   })
 
 const articleBlocks = computed(() => {
-  return parseArticleContent(post.value?.content || '')
+  return parseArticleContent(post.value?.noidung || '')
 })
 
 const articleImages = computed(() => articleBlocks.value.filter((block) => block.type === 'image'))
-const heroAlt = computed(() => post.value?.image_alt || post.value?.title || 'Ảnh minh họa bài viết VinaTech')
+const heroAlt = computed(() => post.value?.mota_hinhanh || post.value?.tieude || 'Ảnh minh họa bài viết VinaTech')
 
 const compactTitle = (title = '') => {
   const cleanTitle = title.trim()
@@ -92,7 +92,7 @@ const compactTitle = (title = '') => {
 }
 
 const articleDescription = (article) => {
-  const base = article.excerpt || truncateText(article.content || article.title, 180)
+  const base = article.tomtat || truncateText(article.noidung || article.tieude, 180)
   if (base.length >= 160) return truncateText(base, 240)
 
   return truncateText(
@@ -105,7 +105,7 @@ const seoSummary = computed(() => {
   if (!post.value) return []
 
   return [
-    `Bài viết "${post.value.title}" thuộc chuyên mục ${post.value.category}, tập trung vào nhu cầu tìm hiểu công nghệ và lựa chọn laptop thực tế.`,
+    `Bài viết "${post.value.tieude}" thuộc chuyên mục ${post.value.danhmuc}, tập trung vào nhu cầu tìm hiểu công nghệ và lựa chọn laptop thực tế.`,
     'Nội dung được biên tập để giúp người đọc nắm nhanh tiêu chí quan trọng, tránh mua sai cấu hình và hiểu rõ yếu tố ảnh hưởng đến trải nghiệm sử dụng.',
     'Bạn có thể dùng các gợi ý trong bài để so sánh sản phẩm, chuẩn bị ngân sách và chọn thiết bị phù hợp hơn cho học tập, làm việc hoặc giải trí.',
   ]
@@ -114,32 +114,32 @@ const seoSummary = computed(() => {
 const applyArticleSeo = (article) => {
   const description = articleDescription(article)
   const canonicalPath = `/tin-tuc/${article.id}`
-  const fullImageUrl = imageUrl(article.image)
-  const contentImages = parseArticleContent(article.content)
+  const fullImageUrl = imageUrl(article.hinhanh)
+  const contentImages = parseArticleContent(article.noidung)
     .filter((block) => block.type === 'image')
     .map((block) => imageUrl(block.src))
 
   setSeo({
-    title: compactTitle(article.title),
+    title: compactTitle(article.tieude),
     description,
-    keywords: `${article.category}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
+    keywords: `${article.danhmuc}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
     image: fullImageUrl,
     url: canonicalPath,
     type: 'article',
-    publishedTime: article.published_at,
+    publishedTime: article.dang_luc,
     modifiedTime: article.updated_at,
-    author: article.author || 'VinaTech',
+    author: article.tacgia || 'VinaTech',
     schema: {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: article.title,
+      headline: article.tieude,
       description,
       image: [fullImageUrl, ...contentImages],
-      datePublished: article.published_at || article.created_at,
-      dateModified: article.updated_at || article.published_at || article.created_at,
+      datePublished: article.dang_luc || article.created_at,
+      dateModified: article.updated_at || article.dang_luc || article.created_at,
       author: {
         '@type': 'Person',
-        name: article.author || 'VinaTech',
+        name: article.tacgia || 'VinaTech',
       },
       publisher: {
         '@type': 'Organization',
@@ -158,7 +158,7 @@ const applyArticleSeo = (article) => {
 }
 
 const fetchRelated = async (currentPost) => {
-  if (!currentPost?.category) {
+  if (!currentPost?.danhmuc) {
     relatedPosts.value = []
     return
   }
@@ -168,7 +168,7 @@ const fetchRelated = async (currentPost) => {
       params: {
         scope: 'public',
         per_page: 4,
-        category: currentPost.category,
+        danhmuc: currentPost.danhmuc,
       },
     })
 
@@ -275,24 +275,24 @@ onMounted(() => {
       <RouterLink to="/tin-tuc" class="back-link u-url">← Quay lại tin tức</RouterLink>
 
       <header class="article-head">
-        <span class="category p-category">{{ post.category }}</span>
-        <h1 class="p-name entry-title">{{ post.title }}</h1>
+        <span class="category p-category">{{ post.danhmuc }}</span>
+        <h1 class="p-name entry-title">{{ post.tieude }}</h1>
         <div class="meta">
-          <span class="p-author h-card author">{{ post.author || 'Admin' }}</span>
-          <time class="dt-published published" :datetime="post.published_at || post.created_at">
-            {{ formatDate(post.published_at || post.created_at) }}
+          <span class="p-author h-card author">{{ post.tacgia || 'Admin' }}</span>
+          <time class="dt-published published" :datetime="post.dang_luc || post.created_at">
+            {{ formatDate(post.dang_luc || post.created_at) }}
           </time>
           <time v-if="post.updated_at" class="dt-updated updated" :datetime="post.updated_at">
             Cập nhật {{ formatDate(post.updated_at) }}
           </time>
-          <span>{{ post.views || 0 }} lượt xem</span>
+          <span>{{ post.luotxem || 0 }} lượt xem</span>
         </div>
       </header>
 
-      <img class="hero-img u-photo" :src="imageUrl(post.image)" :alt="heroAlt" />
+      <img class="hero-img u-photo" :src="imageUrl(post.hinhanh)" :alt="heroAlt" />
 
       <div class="article-body e-content entry-content">
-        <p v-if="post.excerpt" class="lead p-summary">{{ post.excerpt }}</p>
+        <p v-if="post.tomtat" class="lead p-summary">{{ post.tomtat }}</p>
         <template v-for="(block, index) in articleBlocks" :key="index">
           <h2 v-if="block.type === 'h2'">{{ block.text }}</h2>
           <h3 v-else-if="block.type === 'h3'">{{ block.text }}</h3>
@@ -340,10 +340,10 @@ onMounted(() => {
             :to="`/tin-tuc/${item.id}`"
             class="related-card"
           >
-            <img :src="imageUrl(item.image)" :alt="item.title" />
+            <img :src="imageUrl(item.hinhanh)" :alt="item.tieude" />
             <div>
-              <span>{{ item.category }}</span>
-              <h4>{{ item.title }}</h4>
+              <span>{{ item.danhmuc }}</span>
+              <h4>{{ item.tieude }}</h4>
             </div>
           </RouterLink>
         </div>

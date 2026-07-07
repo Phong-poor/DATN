@@ -62,7 +62,7 @@ const statusOptions = [
   { value: 'draft', label: statusText.draft },
 ]
 const categoryOptions = computed(() => {
-  const merged = [...new Set([...defaultCategories, ...posts.value.map((post) => post.category).filter(Boolean)])]
+  const merged = [...new Set([...defaultCategories, ...posts.value.map((post) => post.danhmuc).filter(Boolean)])]
   return [{ value: 'all', label: 'Tất cả danh mục' }, ...merged.map((name) => ({ value: name, label: name }))]
 })
 
@@ -78,20 +78,21 @@ const statusStyle = {
   draft: { bg: '#f1f5f9', color: '#64748b' },
 }
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2']
-const avatarText = ['#1d4ed8', '#1d4ed8', '#1d4ed8', '#a16207', '#b91c1c']
-const placeholderImage = 'https://via.placeholder.com/160x100?text=News'
+const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c']
+const placeholderImage = 'https://placehold.co/160x100?text=News'
+
 const currentAuthorName = computed(() => String(currentUser.value?.name || '').trim() || 'Admin')
 
 const defaultForm = () => ({
-  title: '',
-  category: 'Công nghệ',
-  author: currentAuthorName.value,
-  status: 'draft',
-  published_at: '',
-  excerpt: '',
-  content: '',
-  image: '',
-  image_alt: '',
+  tieude: '',
+  danhmuc: 'Công nghệ',
+  tacgia: currentAuthorName.value,
+  trangthai: 'draft',
+  dang_luc: '',
+  tomtat: '',
+  noidung: '',
+  hinhanh: '',
+  mota_hinhanh: '',
 })
 const form = ref(defaultForm())
 
@@ -120,21 +121,21 @@ const extractSeoKeyword = (value = '') => {
   return (importantWords.length ? importantWords : words).slice(0, 5).join(' ')
 }
 
-const mainSeoKeyword = computed(() => extractSeoKeyword(form.value.title) || cleanText(form.value.category) || 'laptop')
-const shortArticleTitle = computed(() => cleanText((form.value.title || '').split(/[:|-]/)[0]).slice(0, 90))
+const mainSeoKeyword = computed(() => extractSeoKeyword(form.value.tieude) || cleanText(form.value.danhmuc) || 'laptop')
+const shortArticleTitle = computed(() => cleanText((form.value.tieude || '').split(/[:|-]/)[0]).slice(0, 90))
 
 const buildSmartAlt = (type = 'content') => {
-  const category = cleanText(form.value.category).toLowerCase() || 'tin tức công nghệ'
+  const danhmuc = cleanText(form.value.danhmuc).toLowerCase() || 'tin tức công nghệ'
   const keyword = mainSeoKeyword.value
-  const title = shortArticleTitle.value
+  const tieude = shortArticleTitle.value
 
   if (type === 'thumbnail') {
-    return `Ảnh đại diện ${category} về ${keyword}`
+    return `Ảnh đại diện ${danhmuc} về ${keyword}`
   }
 
-  return title
-    ? `Ảnh minh họa ${category} về ${keyword} trong bài ${title}`
-    : `Ảnh minh họa ${category} về ${keyword}`
+  return tieude
+    ? `Ảnh minh họa ${danhmuc} về ${keyword} trong bài ${tieude}`
+    : `Ảnh minh họa ${danhmuc} về ${keyword}`
 }
 
 const smartThumbnailAlt = computed(() => buildSmartAlt('thumbnail'))
@@ -169,7 +170,7 @@ const fetchCurrentUser = async () => {
     if (user?.name) {
       currentUser.value = user
       updateUser(user)
-      form.value.author = user.name
+      form.value.tacgia = user.name
     }
   } catch (error) {
     console.error('Lỗi tải thông tin admin đang đăng nhập:', error)
@@ -190,8 +191,8 @@ const fetchPosts = async (page = 1) => {
   try {
     const params = { per_page: 10, page }
     if (searchQuery.value.trim()) params.q = searchQuery.value.trim()
-    if (selectedCategory.value !== 'all') params.category = selectedCategory.value
-    if (selectedStatus.value !== 'all') params.status = selectedStatus.value
+    if (selectedCategory.value !== 'all') params.danhmuc = selectedCategory.value
+    if (selectedStatus.value !== 'all') params.trangthai = selectedStatus.value
 
     const { data } = await api.get('/admin/news', { params })
     posts.value = data.data || []
@@ -215,14 +216,14 @@ watch([searchQuery, selectedCategory, selectedStatus], () => {
   searchTimer = setTimeout(() => fetchPosts(1), 350)
 })
 
-watch(() => form.value.status, (status) => {
-  if (status !== 'scheduled') {
-    form.value.published_at = ''
+watch(() => form.value.trangthai, (trangthai) => {
+  if (trangthai !== 'scheduled') {
+    form.value.dang_luc = ''
   }
 })
 
 watch(currentAuthorName, (name) => {
-  form.value.author = name
+  form.value.tacgia = name
 })
 
 const onFileChange = (event) => {
@@ -231,16 +232,16 @@ const onFileChange = (event) => {
   const reader = new FileReader()
   reader.onload = (readerEvent) => {
     imgPreview.value = readerEvent.target.result
-    form.value.image = readerEvent.target.result
+    form.value.hinhanh = readerEvent.target.result
   }
   reader.readAsDataURL(file)
 }
 const insertContentAtCursor = async (text) => {
   const textarea = contentTextareaRef.value
-  const currentContent = form.value.content || ''
+  const currentContent = form.value.noidung || ''
 
   if (!textarea) {
-    form.value.content = `${currentContent}${currentContent ? '\n\n' : ''}${text}\n\n`
+    form.value.noidung = `${currentContent}${currentContent ? '\n\n' : ''}${text}\n\n`
     return
   }
 
@@ -251,7 +252,7 @@ const insertContentAtCursor = async (text) => {
   const prefix = before && !before.endsWith('\n') ? '\n\n' : ''
   const suffix = after && !after.startsWith('\n') ? '\n\n' : '\n\n'
 
-  form.value.content = `${before}${prefix}${text}${suffix}${after}`
+  form.value.noidung = `${before}${prefix}${text}${suffix}${after}`
 
   await nextTick()
   const cursorPosition = (before + prefix + text + suffix).length
@@ -273,8 +274,8 @@ const onContentImageChange = (event) => {
       const { data } = await api.post('/admin/news/upload-image', {
         image: readerEvent.target.result,
         alt,
-        title: form.value.title,
-        category: form.value.category,
+        tieude: form.value.tieude,
+        danhmuc: form.value.danhmuc,
       })
 
       await insertContentAtCursor(data.data.markdown)
@@ -292,7 +293,7 @@ const onContentImageChange = (event) => {
 }
 const removeImg = () => {
   imgPreview.value = ''
-  form.value.image = ''
+  form.value.hinhanh = ''
   if (fileRef.value) fileRef.value.value = ''
 }
 const openModal = () => {
@@ -306,17 +307,17 @@ const openModal = () => {
 const openEditModal = (post) => {
   editingPost.value = post
   form.value = {
-    title: post.title || '',
-    category: post.category || 'Công nghệ',
-    author: currentAuthorName.value,
-    status: post.status || 'draft',
-    published_at: toDateInput(post.published_at),
-    excerpt: post.excerpt || '',
-    content: post.content || '',
-    image: post.image || '',
-    image_alt: post.image_alt || post.title || '',
+    tieude: post.tieude || '',
+    danhmuc: post.danhmuc || 'Công nghệ',
+    tacgia: post.tacgia || currentAuthorName.value,
+    trangthai: post.trangthai || 'draft',
+    dang_luc: toDateInput(post.dang_luc),
+    tomtat: post.tomtat || '',
+    noidung: post.noidung || '',
+    hinhanh: post.hinhanh || '',
+    mota_hinhanh: post.mota_hinhanh || post.tieude || '',
   }
-  imgPreview.value = post.image ? imageUrl(post.image) : ''
+  imgPreview.value = post.hinhanh ? imageUrl(post.hinhanh) : ''
   contentImageAlt.value = ''
   formError.value = ''
   showModal.value = true
@@ -326,28 +327,28 @@ const closeModal = () => {
   submitting.value = false
 }
 const validateForm = () => {
-  if (!form.value.title.trim()) return 'Vui lòng nhập tiêu đề bài viết.'
-  if (!form.value.category.trim()) return 'Vui lòng chọn danh mục.'
+  if (!form.value.tieude.trim()) return 'Vui lòng nhập tiêu đề bài viết.'
+  if (!form.value.danhmuc.trim()) return 'Vui lòng chọn danh mục.'
   if (!currentAuthorName.value) return 'Không tìm thấy tên tài khoản đang đăng nhập.'
-  if (form.value.status === 'scheduled' && !form.value.published_at) return 'Vui lòng chọn ngày đăng cho bài viết hẹn lịch.'
+  if (form.value.trangthai === 'scheduled' && !form.value.dang_luc) return 'Vui lòng chọn ngày đăng cho bài viết hẹn lịch.'
   return ''
 }
 const submitForm = async (forcedStatus = null) => {
-  if (forcedStatus) form.value.status = forcedStatus
+  if (forcedStatus) form.value.trangthai = forcedStatus
   formError.value = validateForm()
   if (formError.value) return
 
   submitting.value = true
   const payload = {
-    title: form.value.title.trim(),
-    category: form.value.category.trim(),
-    author: currentAuthorName.value,
-    status: form.value.status,
-    published_at: form.value.status === 'scheduled' ? form.value.published_at : null,
-    excerpt: form.value.excerpt.trim() || null,
-    content: form.value.content.trim() || null,
-    image: form.value.image || null,
-    image_alt: form.value.image_alt.trim() || smartThumbnailAlt.value,
+    tieude: form.value.tieude.trim(),
+    danhmuc: form.value.danhmuc.trim(),
+    tacgia: form.value.tacgia.trim(),
+    trangthai: form.value.trangthai,
+    dang_luc: form.value.trangthai === 'scheduled' ? form.value.dang_luc : null,
+    tomtat: form.value.tomtat.trim() || null,
+    noidung: form.value.noidung.trim() || null,
+    hinhanh: form.value.hinhanh || null,
+    mota_hinhanh: form.value.mota_hinhanh.trim() || smartThumbnailAlt.value,
   }
 
   try {
@@ -368,7 +369,7 @@ const submitForm = async (forcedStatus = null) => {
   }
 }
 const removePost = async (post) => {
-  const confirmed = await swal.confirm('Xóa bài viết?', `Bài viết "${post.title}" sẽ bị xóa khỏi hệ thống.`, 'Xóa', 'Hủy')
+  const confirmed = await swal.confirm('Xóa bài viết?', `Bài viết "${post.tieude}" sẽ bị xóa khỏi hệ thống.`, 'Xóa', 'Hủy')
   if (!confirmed) return
 
   try {
@@ -539,29 +540,29 @@ onMounted(async () => {
             <tr v-for="post in posts" :key="post.id">
               <td>
                 <div class="post-cell">
-                <img :src="imageUrl(post.image)" :alt="post.image_alt || post.title" />
-                  <div><b>{{ post.title }}</b><span>Ngày đăng: {{ formatDate(post.published_at || post.created_at) }}</span></div>
+                <img :src="imageUrl(post.hinhanh)" :alt="post.mota_hinhanh || post.tieude" />
+                  <div><b>{{ post.tieude }}</b><span>Ngày đăng: {{ formatDate(post.dang_luc || post.created_at) }}</span></div>
                 </div>
               </td>
-              <td><span class="cat-badge" :style="catStyle[post.category] || { background: '#e2e8f0', color: '#475569' }">{{ post.category }}</span></td>
+              <td><span class="cat-badge" :style="catStyle[post.danhmuc] || { background: '#e2e8f0', color: '#475569' }">{{ post.danhmuc }}</span></td>
               <td>
                 <div class="author-cell">
-                  <div class="author-avatar" :style="getAvatarStyle(post.author)">{{ initials(post.author) }}</div>
-                  <span>{{ post.author }}</span>
+                  <div class="author-avatar" :style="getAvatarStyle(post.tacgia)">{{ initials(post.tacgia) }}</div>
+                  <span>{{ post.tacgia }}</span>
                 </div>
               </td>
               <td>
                 <div class="stats-cell">
                   <span class="stat-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-                    {{ formatNumber(post.views) }}
+                    {{ formatNumber(post.luotxem) }}
                   </span>
                 </div>
               </td>
-              <td><span class="status-badge" :style="statusStyle[post.status] || statusStyle.draft">{{ statusText[post.status] || post.status }}</span></td>
+              <td><span class="status-badge" :style="statusStyle[post.trangthai] || statusStyle.draft">{{ statusText[post.trangthai] || post.trangthai }}</span></td>
               <td>
                 <div class="actions">
-                  <RouterLink v-if="post.status === 'published'" class="act-btn" title="Xem" :to="`/tin-tuc/${post.id}`">
+                  <RouterLink v-if="post.trangthai === 'published'" class="act-btn" title="Xem" :to="`/tin-tuc/${post.id}`">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                   </RouterLink>
                   <button class="act-btn" title="Sửa" @click="openEditModal(post)">
@@ -611,36 +612,36 @@ onMounted(async () => {
             </div>
             <div class="form-group">
               <label>TIÊU ĐỀ BÀI VIẾT <span class="req">*</span></label>
-              <input v-model="form.title" placeholder="Nhập tiêu đề bài viết..." />
+              <input v-model="form.tieude" placeholder="Nhập tiêu đề bài viết..." />
             </div>
             <div class="form-group">
               <label>ALT ẢNH ĐẠI DIỆN</label>
-              <input v-model="form.image_alt" :placeholder="smartThumbnailAlt" />
+              <input v-model="form.mota_hinhanh" :placeholder="smartThumbnailAlt" />
               <small class="field-hint">Bỏ trống để hệ thống tự sinh ALT SEO theo tiêu đề, danh mục và từ khóa chính.</small>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>DANH MỤC <span class="req">*</span></label>
-                <select v-model="form.category"><option v-for="category in defaultCategories" :key="category" :value="category">{{ category }}</option></select>
+                <select v-model="form.danhmuc"><option v-for="category in defaultCategories" :key="category" :value="category">{{ category }}</option></select>
               </div>
               <div class="form-group">
                 <label>TRẠNG THÁI</label>
-                <select v-model="form.status"><option value="draft">Bản nháp</option><option value="published">Đã xuất bản</option><option value="scheduled">Sắp xuất bản</option></select>
+                <select v-model="form.trangthai"><option value="draft">Bản nháp</option><option value="published">Đã xuất bản</option><option value="scheduled">Sắp xuất bản</option></select>
               </div>
             </div>
-            <div class="form-row" :class="{ 'single-column': form.status !== 'scheduled' }">
+            <div class="form-row" :class="{ 'single-column': form.trangthai !== 'scheduled' }">
               <div class="form-group">
                 <label>TÁC GIẢ ĐANG ĐĂNG NHẬP <span class="req">*</span></label>
-                <input v-model="form.author" readonly placeholder="Tên tài khoản đang đăng nhập" />
+                <input v-model="form.tacgia" readonly placeholder="Tên tài khoản đang đăng nhập" />
               </div>
-              <div v-if="form.status === 'scheduled'" class="form-group">
+              <div v-if="form.trangthai === 'scheduled'" class="form-group">
                 <label>NGÀY ĐĂNG <span class="req">*</span></label>
-                <input v-model="form.published_at" type="date" />
+                <input v-model="form.dang_luc" type="date" />
               </div>
             </div>
             <div class="form-group">
               <label>NỘI DUNG TÓM TẮT</label>
-              <textarea v-model="form.excerpt" rows="3" placeholder="Nhập mô tả ngắn về bài viết..."></textarea>
+              <textarea v-model="form.tomtat" rows="3" placeholder="Nhập mô tả ngắn về bài viết..."></textarea>
             </div>
             <div class="form-group">
               <label>NỘI DUNG CHI TIẾT</label>
@@ -663,7 +664,7 @@ onMounted(async () => {
               <small class="field-hint">Bỏ trống ALT thì hệ thống tự sinh theo SEO. Ảnh sẽ được chèn vào nội dung theo dạng ![ALT ảnh](đường-dẫn-ảnh) và hiển thị đúng trong khung bài viết.</small>
               <textarea
                 ref="contentTextareaRef"
-                v-model="form.content"
+                v-model="form.noidung"
                 rows="8"
                 placeholder="Nhập nội dung bài viết..."
               ></textarea>

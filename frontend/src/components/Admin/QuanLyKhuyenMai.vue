@@ -121,7 +121,8 @@
                   <span>{{ p.icon }}</span>
                 </div>
                 <div>
-                  <p class="promo-name">{{ p.ten || p.name }}</p>
+                  <p class="promo-name">{{ p.ten }}</p>
+
                   <p class="promo-code">{{ p.code }}</p>
                 </div>
               </div>
@@ -129,16 +130,16 @@
             <td>
               <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
             </td>
-            <td class="date-cell">{{ (p.danhmuc || p.category) === 'birthday' ? '—' : (p.startDate || formatDate(p.ngaybatdau) || '—') }}</td>
-            <td class="date-cell">{{ (p.danhmuc || p.category) === 'birthday' ? '—' : (p.endDate || formatDate(p.ngayketthuc) || '—') }}</td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngaybatdau || '—') }}</td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngayketthuc || '—') }}</td>
             <td>
-              <span :class="['status-badge', (p.congkhai ?? p.is_public) == 1 ? 'status-running' : 'status-open']">
-                {{ (p.congkhai ?? p.is_public) == 1 ? 'Công khai' : 'Có điều kiện' }}
+              <span :class="['status-badge', p.congkhai == 1 ? 'status-running' : 'status-open']">
+                {{ p.congkhai == 1 ? 'Công khai' : 'Có điều kiện' }}
               </span>
             </td>
             <td>
-              <span :class="['status-badge', statusClass(p.trangthai || p.status)]">
-                {{ statusLabel(p.trangthai || p.status) }}
+              <span :class="['status-badge', statusClass(p.trangthai)]">
+                {{ statusLabel(p.trangthai) }}
               </span>
             </td>
             <td>
@@ -176,8 +177,8 @@
           <div class="rank-item" v-for="(r, i) in topPromos" :key="r.id">
             <span class="rank-num">#{{ i + 1 }}</span>
             <div class="rank-bar-wrap">
-              <p class="rank-name">{{ r.ten || r.name }}</p>
-              <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#2563eb' : '#e2e8f0' }"></div></div>
+              <p class="rank-name">{{ r.ten }}</p>
+              <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#4f46e5' : '#e2e8f0' }"></div></div>
             </div>
             <span class="rank-roi" :style="{ color: i === 0 ? '#2563eb' : '#3b82f6' }">+{{ r.roi }}% ROI</span>
           </div>
@@ -222,7 +223,7 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Loại Voucher <span class="req">*</span></label>
-            <select class="form-input" v-model="form.category" @change="onCategoryChange">
+            <select class="form-input" v-model="form.danhmuc" @change="onCategoryChange">
               <option value="product">Giảm giá sản phẩm</option>
               <option value="birthday">Mã Sinh nhật</option>
               <option value="freeship">Miễn phí vận chuyển (Freeship)</option>
@@ -230,25 +231,25 @@
           </div>
           <div class="form-group">
             <label class="form-label">Tên Voucher <span class="req">*</span></label>
-            <input class="form-input" :class="{ err: errors.name }" v-model="form.name" placeholder="VD: Tết 2026 Sale" @input="autoCode"/>
-            <p class="err-msg" v-if="errors.name">{{ errors.name }}</p>
+            <input class="form-input" :class="{ err: errors.ten }" v-model="form.ten" placeholder="VD: Tết 2026 Sale" @input="autoCode"/>
+            <p class="err-msg" v-if="errors.ten">{{ errors.ten }}</p>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Mã Voucher <span class="req">*</span></label>
           <div class="code-input-row">
-            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase" :readonly="form.category === 'birthday'"/>
-            <button type="button" class="btn-gen-code" @click="generateRandomCode" :disabled="form.category === 'birthday'">Tạo ngẫu nhiên</button>
+            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026" style="text-transform:uppercase" :readonly="form.danhmuc === 'birthday'"/>
+            <button type="button" class="btn-gen-code" @click="generateRandomCode" :disabled="form.danhmuc === 'birthday'">Tạo ngẫu nhiên</button>
           </div>
           <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
           <p class="form-hint">Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
         </div>
 
-        <div class="form-row" v-if="form.category !== 'freeship'">
+        <div class="form-row" v-if="form.danhmuc !== 'freeship'">
           <div class="form-group">
             <label class="form-label">Loại ưu đãi <span class="req">*</span></label>
-            <select class="form-input" v-model="form.type" :disabled="form.category === 'birthday'">
+            <select class="form-input" v-model="form.loai" :disabled="form.danhmuc === 'birthday'">
               <option value="percent">Giảm %</option>
               <option value="fixed">Giảm theo giá tiền</option>
               <option value="maxprice">Giảm % tối đa</option>
@@ -257,14 +258,14 @@
           <div class="form-group">
             <label class="form-label">Giá trị <span class="req">*</span></label>
             <div class="input-suffix-wrap">
-              <input class="form-input" :class="{ err: errors.value }" 
+              <input class="form-input" :class="{ err: errors.giatri }" 
                 type="text" 
-                :value="form.type === 'percent' || form.type === 'maxprice' ? form.value : formatVND(form.value)"
-                @input="form.value = (form.type === 'percent' || form.type === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
+                :value="form.loai === 'percent' || form.loai === 'maxprice' ? form.giatri : formatVND(form.giatri)"
+                @input="form.giatri = (form.loai === 'percent' || form.loai === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
                 placeholder="50" />
-              <span class="input-suffix">{{ form.type === 'percent' || form.type === 'maxprice' ? '%' : 'VNĐ' }}</span>
+              <span class="input-suffix">{{ form.loai === 'percent' || form.loai === 'maxprice' ? '%' : 'VNĐ' }}</span>
             </div>
-            <p class="err-msg" v-if="errors.value">{{ errors.value }}</p>
+            <p class="err-msg" v-if="errors.giatri">{{ errors.giatri }}</p>
           </div>
         </div>
 
@@ -274,11 +275,11 @@
             <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
             <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
               <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="radio" :value="1" v-model="form.is_public" />
+                <input type="radio" :value="1" v-model="form.congkhai" />
                 Công khai (Hiện trên web)
               </label>
               <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="radio" :value="0" v-model="form.is_public" />
+                <input type="radio" :value="0" v-model="form.congkhai" />
                 Tặng khi đủ điều kiện
               </label>
             </div>
@@ -286,7 +287,7 @@
           </div>
         </div>
 
-        <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;" v-if="form.is_public === 0">
+        <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;" v-if="form.congkhai === 0">
           <div class="form-group">
             <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
             <div class="input-suffix-wrap">
@@ -307,8 +308,8 @@
         </div>
 
         <!-- Điều kiện đơn hàng (để sử dụng voucher) -->
-        <div class="form-row condition-row" :class="{ 'freeship-row': form.category === 'freeship' }" v-if="form.category === 'product' || form.category === 'freeship'">
-          <div class="form-group" v-if="form.category === 'product'">
+        <div class="form-row condition-row" :class="{ 'freeship-row': form.danhmuc === 'freeship' }" v-if="form.danhmuc === 'product' || form.danhmuc === 'freeship'">
+          <div class="form-group" v-if="form.danhmuc === 'product'">
             <label class="form-label">
               <span class="condition-badge">🎯 Điều kiện đơn hàng</span>
             </label>
@@ -318,7 +319,7 @@
               <option value="=">＝ Tạm tính bằng đúng</option>
             </select>
           </div>
-          <div class="form-group" v-if="form.category === 'freeship'">
+          <div class="form-group" v-if="form.danhmuc === 'freeship'">
             <label class="form-label">
               <span class="condition-badge freeship-badge">🚚 Điều kiện miễn phí ship</span>
             </label>
@@ -326,22 +327,22 @@
           </div>
           <div class="form-group">
             <label class="form-label">
-              {{ form.category === 'freeship' ? 'Đơn hàng tối thiểu (VNĐ)' : 'Giá trị điều kiện (VNĐ)' }}
+              {{ form.danhmuc === 'freeship' ? 'Đơn hàng tối thiểu (VNĐ)' : 'Giá trị điều kiện (VNĐ)' }}
             </label>
             <div class="input-suffix-wrap">
               <input
                 class="form-input condition-input"
-                :class="{ err: errors.dieu_kien, 'freeship-input': form.category === 'freeship' }"
+                :class="{ err: errors.dieu_kien, 'freeship-input': form.danhmuc === 'freeship' }"
                 type="text"
                 :value="formatVND(form.dieu_kien)"
                 @input="form.dieu_kien = parseVND($event.target.value)"
-                :placeholder="form.category === 'freeship' ? 'VD: 300.000' : 'VD: 500.000'"
+                :placeholder="form.danhmuc === 'freeship' ? 'VD: 300.000' : 'VD: 500.000'"
               />
               <span class="input-suffix">đ</span>
             </div>
             <p class="err-msg" v-if="errors.dieu_kien">{{ errors.dieu_kien }}</p>
             <p class="form-hint">
-              {{ form.category === 'freeship'
+              {{ form.danhmuc === 'freeship'
                 ? 'Để trống = freeship cho mọi đơn hàng. Nhập số để giới hạn điều kiện tối thiểu.'
                 : 'Để trống nếu không cần điều kiện tạm tính.' }}
             </p>
@@ -349,17 +350,17 @@
         </div>
 
         <!-- Ngày bắt đầu & Kết thúc -->
-        <div class="form-row" v-if="form.category !== 'birthday'">
+        <div class="form-row" v-if="form.danhmuc !== 'birthday'">
           <div class="form-group">
             <label class="form-label">Ngày bắt đầu</label>
-            <input class="form-input" type="date" v-model="form.startDate"/>
+            <input class="form-input" type="date" v-model="form.ngaybatdau"/>
           </div>
           <div class="form-group">
             <label class="form-label">Ngày kết thúc</label>
-            <input class="form-input" type="date" v-model="form.endDate"/>
+            <input class="form-input" type="date" v-model="form.ngayketthuc"/>
           </div>
         </div>
-        <div class="form-group" v-if="form.category === 'birthday'">
+        <div class="form-group" v-if="form.danhmuc === 'birthday'">
           <div class="birthday-status-info">
             <span class="birthday-icon">🎂</span>
             <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
@@ -407,8 +408,6 @@ import swal from '@/services/swal'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
-
-
 const searchQuery = ref('')
 const currentView = ref('list') // 'list' | 'promo-form'
 const isEdit = ref(false)
@@ -440,11 +439,11 @@ const iconOptions = [
 ]
 
 const defaultForm = () => ({
-  name: '', category: 'product', code: '', type: 'percent', value: '',
-  startDate: '', endDate: '', status: 'running',
+  ten: '', danhmuc: 'product', code: '', loai: 'percent', giatri: '',
+  ngaybatdau: '', ngayketthuc: '', trangthai: 'running',
   mota: '', icon: '🏮', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
-  is_public: 1, dieu_kien_tang: '', so_luong_phat: ''
+  congkhai: 1, dieu_kien_tang: '', so_luong_phat: ''
 })
 
 const form = ref(defaultForm())
@@ -455,14 +454,13 @@ const promos = ref([])
 const fetchPromos = async () => {
   loading.value = true
   try {
-    // GET /admin/promotions
     const res = await api.get('/admin/promotions')
     promos.value = res.data.map(p => ({
       ...p,
-      startDate: formatDate(p.ngaybatdau || p.start_date),
-      endDate: formatDate(p.ngayketthuc || p.end_date),
+      ngaybatdau: formatDate(p.ngaybatdau),
+      ngayketthuc: formatDate(p.ngayketthuc),
       discount: discountLabel(p),
-      ...tagColors(p.loai || p.type),
+      ...tagColors(p.loai),
       icon: '🏮',
       iconBg: '#fef3c7',
       roi: 20
@@ -482,8 +480,8 @@ const filteredPromos = computed(() => {
   if (!searchQuery.value) return promos.value
   const q = searchQuery.value.toLowerCase()
   return promos.value.filter(p =>
-    (p.ten || p.name || '').toLowerCase().includes(q) ||
-    (p.code || '').toLowerCase().includes(q)
+    p.ten.toLowerCase().includes(q) ||
+    p.code.toLowerCase().includes(q)
   )
 })
 
@@ -506,7 +504,7 @@ const {
 })
 
 const activeCount = computed(() =>
-  promos.value.filter(p => ['running', 'open'].includes(p.trangthai || p.status)).length
+  promos.value.filter(p => p.trangthai === 'running' || p.trangthai === 'open').length
 )
 
 const topPromos = computed(() =>
@@ -523,8 +521,8 @@ function statusLabel(s) {
 }
 
 function autoCode() {
-  if (!isEdit.value && form.value.category !== 'birthday') {
-    const base = form.value.name
+  if (!isEdit.value && form.value.danhmuc !== 'birthday') {
+    const base = form.value.ten
       .toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/Đ/gi, 'D')
@@ -548,28 +546,26 @@ function generateRandomCode() {
 }
 
 function onCategoryChange() {
-  if (form.value.category === 'freeship') {
-     form.value.type = 'percent'
-     form.value.value = 100
-     form.value.status = 'running'
-  } else if (form.value.category === 'birthday') {
-     form.value.type = 'fixed'
+  if (form.value.danhmuc === 'freeship') {
+     form.value.loai = 'percent'
+     form.value.giatri = 100
+     form.value.trangthai = 'running'
+  } else if (form.value.danhmuc === 'birthday') {
+     form.value.loai = 'fixed'
      form.value.code = 'BIRTHDAY'
-     form.value.status = 'open'
-     form.value.startDate = ''
-     form.value.endDate = ''
+     form.value.trangthai = 'open'
+     form.value.ngaybatdau = ''
+     form.value.ngayketthuc = ''
   } else {
-     form.value.status = 'running'
+     form.value.trangthai = 'running'
   }
 }
 
 function discountLabel(f) {
-  const type = f.loai || f.type
-  const value = f.giatri ?? f.value ?? ''
-  if (type === 'percent') return `Giảm ${value}%`
-  if (type === 'fixed') return `Cố định ${formatVND(value)}đ`
-  if (type === 'maxprice') return `Giảm tối đa ${formatVND(value)}đ`
-  if (type === 'freeship') return `Freeship ${formatVND(value)}đ`
+  if (f.loai === 'percent') return `Giảm ${f.giatri}%`
+  if (f.loai === 'fixed') return `Cố định ${f.giatri}đ`
+  if (f.loai === 'maxprice') return `giảm theo giá tiền  ${f.giatri}%`
+  if (f.loai === 'freeship') return `Freeship ${f.giatri}đ`
   return ''
 }
 
@@ -606,10 +602,10 @@ function parseVND(val) {
 // ================= VALIDATE =================
 function validate() {
   errors.value = {}
-  if (!form.value.name.trim()) errors.value.name = 'Tên không được để trống.'
+  if (!form.value.ten.trim()) errors.value.ten = 'Tên không được để trống.'
   if (!form.value.code.trim()) errors.value.code = 'Mã không được để trống.'
-  if (form.value.value === '' || form.value.value === null)
-    errors.value.value = 'Vui lòng nhập giá trị.'
+  if (form.value.giatri === '' || form.value.giatri === null)
+    errors.value.giatri = 'Vui lòng nhập giá trị.'
   return Object.keys(errors.value).length === 0
 }
 
@@ -636,16 +632,12 @@ function openEdit(p) {
 
   form.value = {
     ...p,
-    name: p.ten || p.name || '',
-    category: p.danhmuc || p.category || 'product',
-    type: p.loai || p.type || 'percent',
-    value: p.giatri ?? p.value ?? '',
-    startDate: toInputDate(p.startDate),
-    endDate: toInputDate(p.endDate),
-    status: p.trangthai || p.status || 'running',
+    danhmuc: p.danhmuc || 'product',
+    ngaybatdau: toInputDate(p.ngaybatdau),
+    ngayketthuc: toInputDate(p.ngayketthuc),
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
-    is_public: p.congkhai !== undefined ? Number(p.congkhai) : (p.is_public !== undefined ? Number(p.is_public) : 1),
+    congkhai: p.congkhai !== undefined ? Number(p.congkhai) : 1,
     dieu_kien_tang: p.dieu_kien_tang || '',
     so_luong_phat: p.so_luong_phat || ''
   }
@@ -663,22 +655,22 @@ async function savePromo() {
   saving.value = true
 
   // Birthday luôn mở, freeship/product dùng ngày
-  const isBirthday = form.value.category === 'birthday'
+  const isBirthday = form.value.danhmuc === 'birthday'
   const data = {
-    ten:            form.value.name,
-    danhmuc:        form.value.category,
+    ten:            form.value.ten,
+    danhmuc:        form.value.danhmuc,
     code:           form.value.code.toUpperCase(),
-    loai:           form.value.type,
-    giatri:         form.value.value,
-    ngaybatdau:     isBirthday ? null : (form.value.startDate || null),
-    ngayketthuc:    isBirthday ? null : (form.value.endDate || null),
+    loai:           form.value.loai,
+    giatri:         form.value.giatri,
+    ngaybatdau:     isBirthday ? null : (form.value.ngaybatdau || null),
+    ngayketthuc:    isBirthday ? null : (form.value.ngayketthuc || null),
     trangthai:      isBirthday ? 'open' : 'running',
     mota:           form.value.mota,
-    loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
-    dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
-    congkhai:       form.value.is_public,
-    dieu_kien_tang: form.value.is_public === 0 ? (form.value.dieu_kien_tang || null) : null,
-    so_luong_phat:  form.value.is_public === 0 ? (form.value.so_luong_phat || null) : null,
+    loai_dieu_kien: form.value.danhmuc === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
+    dieu_kien:      (form.value.danhmuc === 'product' || form.value.danhmuc === 'freeship') ? (form.value.dieu_kien || null) : null,
+    congkhai:       form.value.congkhai,
+    dieu_kien_tang: form.value.congkhai === 0 ? (form.value.dieu_kien_tang || null) : null,
+    so_luong_phat:  form.value.congkhai === 0 ? (form.value.so_luong_phat || null) : null,
   }
 
   try {

@@ -12,7 +12,7 @@ import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 const getOrderItemImage = (item) => {
   const bt = item?.bien_the || item?.bienThe
   const sp = bt?.san_pham || bt?.sanPham
-  return productImageUrl(sp, bt, 'https://via.placeholder.com/60')
+  return productImageUrl(sp, bt, 'https://placehold.co/60')
 }
 
 const getOrderItemName = (item) => {

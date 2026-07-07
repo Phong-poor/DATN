@@ -623,10 +623,10 @@ onMounted(() => {
                   {{ entry.ton_kho > 0 ? 'Còn hàng' : 'Hết hàng' }}
                 </div>
                 <img
-                  :src="normalizeImageUrl(entry.hinh_anh, 'https://via.placeholder.com/90')"
+                  :src="normalizeImageUrl(entry.hinh_anh, 'https://placehold.co/90')"
                   :alt="entry.ten_san_pham"
                   class="item-img"
-                  @error="e => e.target.src = 'https://via.placeholder.com/90'"
+                  @error="e => e.target.src = 'https://placehold.co/90'"
                 />
               </div>
 
@@ -695,7 +695,7 @@ onMounted(() => {
               </div>
               <div class="combo-child-list">
                 <div class="child-item" v-for="child in entry.items" :key="child.id_giohang">
-                  <img :src="normalizeImageUrl(child.hinh_anh, 'https://via.placeholder.com/90')" />
+                  <img :src="normalizeImageUrl(child.hinh_anh, 'https://placehold.co/90')" />
                   <div class="child-info">
                     <h4>{{ getFullProductName(child) }}</h4>
                     <p>{{ child.ten_bienthe }}</p>

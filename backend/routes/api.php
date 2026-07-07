@@ -35,6 +35,7 @@ use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\BirthdayCodeController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
+use App\Http\Controllers\VaiTroController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -279,6 +280,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+        // ===== ADMIN ROLES =====
+        Route::apiResource('vaitro', VaiTroController::class);
         Route::post('/danhmuc-cha', [DanhMucChaController::class, 'store']);
         Route::put('/danhmuc-cha/{id}', [DanhMucChaController::class, 'update']);
         Route::delete('/danhmuc-cha/{id}', [DanhMucChaController::class, 'destroy']);

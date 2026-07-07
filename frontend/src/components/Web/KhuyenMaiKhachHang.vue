@@ -3,7 +3,8 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
-import { productImageUrl } from '@/services/urls'
+import ComboSelectionModal from './HopThoaiChonCombo.vue'
+import { productImageUrl, comboImageUrl, imageFallbackUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import {
@@ -62,6 +63,31 @@ const userVouchers = ref([])
 const ownedActiveIds = ref(new Set())
 // Loading user vouchers
 const isLoadingUserVouchers = ref(false)
+
+// Combos State & Helpers
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+
+const openCombo = (combo) => {
+  selectedCombo.value = combo
+  showComboModal.value = true
+}
+
+const getComboImage = (combo) => comboImageUrl(combo, imageFallbackUrl)
+
+const getOriginalPrice = (combo) => {
+  if (!combo.products) return 0
+  return combo.products.reduce((sum, p) => {
+    const firstVariantPrice = p.bien_thes?.[0]?.gia || 0
+    return sum + Number(firstVariantPrice)
+  }, 0)
+}
+
+// Flash Sale State & Helpers
+const flashSaleSession = ref(null)
+const flashSaleProductsList = ref([])
+const isFlashSaleActive = ref(false)
 
 // Stats counters (for dynamic increment count animation)
 const displayedProductsCount = ref(0)
@@ -213,6 +239,47 @@ async function fetchPromotionsData() {
     } else {
       products.value = generateFallbackProducts()
     }
+
+    // 3. Load combos from API
+    try {
+      const comboResponse = await api.get('/combos')
+      if (comboResponse.data && Array.isArray(comboResponse.data.data)) {
+        combos.value = comboResponse.data.data
+      }
+    } catch (comboErr) {
+      console.error('Lỗi khi tải danh sách combos:', comboErr)
+    }
+
+    // 4. Load current flash sale session from API
+    try {
+      const fsRes = await api.get('/flash-sale/current')
+      if (fsRes.data && fsRes.data.success && fsRes.data.status === 'active') {
+        flashSaleSession.value = fsRes.data.session
+        flashSaleProductsList.value = (fsRes.data.products || []).map(p => {
+          const limit = p.so_luong_gioi_han || 1
+          const sold = p.so_luong_da_ban || 0
+          const soldPercent = Math.min(Math.round((sold / limit) * 100), 100)
+          const remainingCount = Math.max(limit - sold, 0)
+          return {
+            ...p,
+            id: p.id_sanpham,
+            soldPercent,
+            remainingCount
+          }
+        })
+        isFlashSaleActive.value = true
+        startFlashSaleCountdown(fsRes.data.session.thoi_gian_ket_thuc)
+      } else {
+        isFlashSaleActive.value = false
+        flashSaleSession.value = null
+        flashSaleProductsList.value = []
+      }
+    } catch (fsErr) {
+      console.error('Lỗi khi tải thông tin flash sale:', fsErr)
+      isFlashSaleActive.value = false
+      flashSaleSession.value = null
+      flashSaleProductsList.value = []
+    }
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu trang Khuyến Mãi:', err)
     products.value = generateFallbackProducts()
@@ -325,47 +392,43 @@ const filteredProducts = computed(() => {
 })
 
 const flashSaleProducts = computed(() => {
-  return products.value
-    .filter(p => p.oldPrice > p.gia)
-    .slice(0, 5)
-    .map((p, index) => {
-      const soldPercent = 75 + (index * 6) % 20
-      const remainingCount = 18 - (index * 3) % 15
-      return {
-        ...p,
-        soldPercent,
-        remainingCount
-      }
-    })
+  return flashSaleProductsList.value
 })
 
 // ===================== TIMERS CONTROLLER =====================
 let countdownInterval = null
 const startTimers = () => {
-  let fsTotalSeconds = 4 * 60 * 60 + 12 * 60 + 45
-  let esTotalSeconds = 1 * 60 * 60 + 32 * 60 + 8
+  // Empty stub since we now start timers dynamically when active session is fetched
+}
 
-  countdownInterval = setInterval(() => {
-    if (fsTotalSeconds > 0) fsTotalSeconds--
-    const fH = Math.floor(fsTotalSeconds / 3600)
-    const fM = Math.floor((fsTotalSeconds % 3600) / 60)
-    const fS = fsTotalSeconds % 60
-    fsHours.value = String(fH).padStart(2, '0')
-    fsMinutes.value = String(fM).padStart(2, '0')
-    fsSeconds.value = String(fS).padStart(2, '0')
-
-    if (esTotalSeconds > 0) esTotalSeconds--
-    const eH = Math.floor(esTotalSeconds / 3600)
-    const eM = Math.floor((esTotalSeconds % 3600) / 60)
-    const eS = esTotalSeconds % 60
-    esHours.value = String(eH).padStart(2, '0')
-    esMinutes.value = String(eM).padStart(2, '0')
-    esSeconds.value = String(eS).padStart(2, '0')
-
-    if (fsTotalSeconds <= 0 && esTotalSeconds <= 0) {
-      clearInterval(countdownInterval)
+const startFlashSaleCountdown = (endTimeStr) => {
+  if (countdownInterval) clearInterval(countdownInterval)
+  
+  const updateTimer = () => {
+    const now = new Date().getTime()
+    const end = new Date(endTimeStr).getTime()
+    const diff = end - now
+    
+    if (diff <= 0) {
+      fsHours.value = '00'
+      fsMinutes.value = '00'
+      fsSeconds.value = '00'
+      isFlashSaleActive.value = false
+      if (countdownInterval) clearInterval(countdownInterval)
+      return
     }
-  }, 1000)
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    
+    fsHours.value = String(hours).padStart(2, '0')
+    fsMinutes.value = String(minutes).padStart(2, '0')
+    fsSeconds.value = String(seconds).padStart(2, '0')
+  }
+  
+  updateTimer()
+  countdownInterval = setInterval(updateTimer, 1000)
 }
 
 // ===================== INTERACTIVE ACTIONS =====================
@@ -729,7 +792,7 @@ const initScrollReveal = () => {
     </section>
 
     <!-- 4. FLASH SALE TODAY -->
-    <section id="flash-sale" class="section flash-sale-dark-section">
+    <section id="flash-sale" class="section flash-sale-dark-section" v-if="isFlashSaleActive && flashSaleProducts && flashSaleProducts.length">
       <div class="grid-container">
         <div class="flash-header-row scroll-reveal reveal-fade-up">
           <div class="flash-header-left">
@@ -868,42 +931,50 @@ const initScrollReveal = () => {
           <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
-        <div class="combos-bento-layout scroll-reveal reveal-stagger">
-          <div v-for="(combo, cIdx) in comboDetailsList" :key="cIdx" class="combo-bento-card">
+        <div class="combos-bento-layout scroll-reveal reveal-stagger" v-if="combos && combos.length">
+          <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
             <div class="combo-main-content">
               <div class="combo-details">
-                <span class="combo-discount-badge">{{ combo.discountBadge }}</span>
-                <h3>{{ combo.title }}</h3>
-                <p>{{ combo.desc }}</p>
+                <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                  Tiết kiệm {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+                </span>
+                <h3>{{ combo.ten_combo }}</h3>
+                <p>{{ combo.mota }}</p>
                 
                 <div class="combo-pricing-group">
                   <div class="price-block">
                     <span class="price-label">Giá Combo:</span>
-                    <span class="price-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.comboPrice) }}</span>
+                    <span class="price-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.giakhuyenmai) }}</span>
                   </div>
-                  <div class="price-block old-price-block">
+                  <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
                     <span class="price-label">Tổng Giá gốc:</span>
-                    <span class="price-val-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.originalPrice) }}</span>
+                    <span class="price-val-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(getOriginalPrice(combo)) }}</span>
                   </div>
                 </div>
 
-                <router-link to="/" class="btn btn-primary-glass combo-action-btn">
+                <button type="button" class="btn btn-primary-glass combo-action-btn" @click="openCombo(combo)">
                   Mua Trọn Bộ Combo
                   <ChevronRight class="btn-chevron" />
-                </router-link>
+                </button>
               </div>
 
-              <div class="combo-visual-connector">
-                <div v-for="(item, itemIdx) in combo.items" :key="itemIdx" class="connector-node">
+              <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
+                <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
                   <div class="node-image-box">
-                    <img :src="item.img" :alt="item.name" />
+                    <img :src="item.hinhanh || productImageUrl(item, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" :alt="item.tenSP" />
                   </div>
-                  <span class="node-title">{{ item.name }}</span>
-                  <div v-if="itemIdx < combo.items.length - 1" class="node-plus-sign">+</div>
+                  <span class="node-title">{{ item.tenSP }}</span>
+                  <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <div v-else class="combo-empty-state scroll-reveal reveal-fade-up" style="text-align: center; padding: 40px 20px;">
+          <div class="combo-empty-icon" style="font-size: 48px; margin-bottom: 16px;">🎁</div>
+          <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
+          <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng thêm combo trong trang quản trị.</p>
         </div>
       </div>
     </section>
@@ -1071,6 +1142,14 @@ const initScrollReveal = () => {
         </div>
       </div>
     </section>
+
+    <!-- Combo Selection variant modal -->
+    <ComboSelectionModal
+      v-if="selectedCombo"
+      :combo="selectedCombo"
+      :show="showComboModal"
+      @close="showComboModal = false"
+    />
   </div>
 </template>
 

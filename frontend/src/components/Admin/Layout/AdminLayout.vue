@@ -21,7 +21,7 @@
 
       <div class="menu-section">
         <p class="menu-label">MAIN MENU</p>
-        <div v-for="item in menuConfig" :key="item.label || item.path" class="menu-wrapper">
+        <div v-for="item in filteredMenuConfig" :key="item.label || item.path" class="menu-wrapper">
           <!-- Normal Link -->
           <router-link
             v-if="!item.isDropdown"
@@ -315,11 +315,67 @@ const menuConfig = [
     isDropdown: true,
     children: [
       { path: '/admin/users', label: 'Người dùng', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
     ]
   },
   { path: '/admin/xu', label: 'Cấu hình Xu', icon: Coins },
   { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
+
+const filteredMenuConfig = computed(() => {
+  const userPerms = user.value?.cac_quyen || []
+  const isAdmin = user.value?.vaitro === 'admin'
+
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
+
+  const pathPermissionMap = {
+    '/admin/products': 'san_pham_xem',
+    '/admin/categories': 'danh_muc_xem',
+    '/admin/brands': 'thuong_hieu_xem',
+    '/admin/variants': 'bien_the_xem',
+    
+    '/admin/orders': 'don_hang_xem',
+    
+    '/admin/promotions': 'marketing_quan_ly',
+    '/admin/birthday-codes': 'marketing_quan_ly',
+    '/admin/combos': 'marketing_quan_ly',
+    '/admin/flash-sale': 'marketing_quan_ly',
+    
+    '/admin/affiliates': 'affiliate_quan_ly',
+    
+    '/admin/news': 'tin_tuc_quan_ly',
+    '/admin/reviews': 'binh_luan_quan_ly',
+    '/admin/banners': 'banner_quan_ly',
+    
+    '/admin/contacts': 'lien_he_quan_ly',
+    
+    '/admin/users': 'tai_khoan_quan_ly',
+    '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
+    
+    '/admin/activity-log': 'nhat_ky_quan_ly',
+  }
+
+  return menuConfig.map(item => {
+    if (!item.isDropdown) {
+      const required = pathPermissionMap[item.path]
+      if (required && !hasPerm(required)) return null
+      return item
+    }
+
+    const filteredChildren = item.children.filter(child => {
+      const required = pathPermissionMap[child.path]
+      if (required && !hasPerm(required)) return false
+      return true
+    })
+
+    if (filteredChildren.length === 0) return null
+
+    return {
+      ...item,
+      children: filteredChildren
+    }
+  }).filter(Boolean)
+})
 
 const dropdownStates = ref({
   'Thủ kho': false,
@@ -603,6 +659,18 @@ onMounted(async () => {
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
   document.documentElement.lang = currentLocale.value
+  
+  // Sync user profile and permissions from server
+  try {
+    const res = await api.get('/admin/account/profile')
+    if (res.data?.success && res.data?.data) {
+      localStorage.setItem('user', JSON.stringify(res.data.data))
+      user.value = res.data.data
+    }
+  } catch (err) {
+    console.error('Failed to sync profile in AdminLayout:', err)
+  }
+
   await loadAppearanceSettings()
   hydrateNotifications()
   await loadNotifications()

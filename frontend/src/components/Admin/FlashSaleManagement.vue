@@ -102,7 +102,7 @@
             <tbody>
               <tr v-for="p in sessionProducts" :key="p.id_sanpham_flashsale">
                 <td class="prod-img-td">
-                  <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://via.placeholder.com/100')" alt="" class="table-thumb" />
+                  <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://placehold.co/100')" alt="" class="table-thumb" />
                 </td>
                 <td>
                   <p class="cat-name">{{ p.bien_the?.san_pham?.tenSP || 'N/A' }}</p>
@@ -274,7 +274,7 @@
                   @click="selectTargetProduct(p)"
                 >
                   <div class="prod-card-img-box">
-                    <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://via.placeholder.com/100'" alt="" />
+                    <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://placehold.co/100'" alt="" />
                   </div>
                   <div class="prod-card-info">
                     <span class="prod-card-brand">{{ p.thuong_hieu?.ten_thuonghieu || p.brand || 'Laptop' }}</span>
@@ -650,7 +650,7 @@ const parseCurrency = (val) => {
 }
 
 const getStorageUrl = (path) => {
-  if (!path) return 'https://via.placeholder.com/100'
+  if (!path) return 'https://placehold.co/100'
   if (path.startsWith('http')) return path
   return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${path}`
 }

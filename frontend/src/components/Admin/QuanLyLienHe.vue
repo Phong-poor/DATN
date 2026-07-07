@@ -155,9 +155,9 @@
               <div class="customer-cell">
                 <div class="customer-avatar" :style="{ background: c.avatarBg }">{{ c.initials }}</div>
                 <div>
-                  <p class="customer-name">{{ c.name }}</p>
+                  <p class="customer-name">{{ c.hoten }}</p>
                   <p class="customer-email">{{ c.email }}</p>
-                  <p class="customer-phone">{{ c.phone }}</p>
+                  <p class="customer-phone">{{ c.sodienthoai }}</p>
                 </div>
               </div>
             </td>
@@ -172,7 +172,7 @@
               <p class="time-date">{{ c.date }}</p>
             </td>
             <td>
-              <span :class="['status-badge', 'status-' + c.status]">{{ statusLabel(c.status) }}</span>
+              <span :class="['status-badge', 'status-' + c.trangthai]">{{ statusLabel(c.trangthai) }}</span>
             </td>
             <td @click.stop>
               <div class="actions">
@@ -212,8 +212,8 @@
             <div class="modal-header-left">
               <div class="customer-avatar lg" :style="{ background: selected?.avatarBg }">{{ selected?.initials }}</div>
               <div>
-                <h3 class="modal-title">{{ selected?.name }}</h3>
-                <p class="modal-subtitle">{{ selected?.email }} · {{ selected?.phone }}</p>
+                <h3 class="modal-title">{{ selected?.hoten }}</h3>
+                <p class="modal-subtitle">{{ selected?.email }} · {{ selected?.sodienthoai }}</p>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -229,12 +229,12 @@
               </div>
               <div class="meta-item">
                 <span class="meta-key">Trạng thái</span>
-                <span :class="['status-badge', 'status-' + selected?.status]">{{ statusLabel(selected?.status) }}</span>
+                <span :class="['status-badge', 'status-' + selected?.trangthai]">{{ statusLabel(selected?.trangthai) }}</span>
               </div>
             </div>
             <div class="detail-content">
               <p class="detail-label">Nội dung yêu cầu</p>
-              <p class="detail-body">{{ selected?.fullContent }}</p>
+              <p class="detail-body">{{ selected?.noidung }}</p>
             </div>
             <div>
               <p class="detail-label">Cập nhật trạng thái</p>
@@ -261,7 +261,7 @@
                 </div>
                 <div>
                   <h3 class="modal-title">Gửi email tư vấn</h3>
-                  <p class="modal-subtitle">Phản hồi yêu cầu của <strong>{{ emailTarget?.name }}</strong></p>
+                  <p class="modal-subtitle">Phản hồi yêu cầu của <strong>{{ emailTarget?.hoten }}</strong></p>
                 </div>
               </div>
               <button class="modal-close" @click="showEmail = false">
@@ -400,21 +400,20 @@ function getTagStyle(category) {
 }
 
 function mapItem(item) {
-  const tag = getTagStyle(item.category)
+  const tag = getTagStyle(item.danhmuc)
   return {
     id:          item.id,
-    name:        item.name,
-    initials:    getInitials(item.name),
+    hoten:       item.hoten,
+    initials:    getInitials(item.hoten),
     avatarBg:    '#dbeafe',
     email:       item.email,
-    phone:       item.phone || 'Chưa cập nhật',
-    preview:     (item.message || '').slice(0, 30),
-    fullContent: item.message,
+    sodienthoai: item.sodienthoai || 'Chưa cập nhật',
+    preview:     (item.noidung || '').slice(0, 30),
+    noidung:     item.noidung,
     tags:        [tag],
     time: new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     date: new Date(item.created_at).toLocaleDateString('vi-VN'),
-    // ✅ map 'replied' (DB) → 'resolved' (Vue)
-    status: item.status === 'replied' ? 'resolved' : (item.status || 'new'),
+    trangthai: item.trangthai === 'replied' ? 'resolved' : (item.trangthai || 'new'),
   }
 }
 
@@ -431,24 +430,11 @@ function statusLabel(s) {
   }[s] || s
 }
 
-function getStatusClass(status) {
-  switch (status) {
-    case 'processing':
-      return 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
-    case 'resolved':
-      return 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
-    default:
-      return 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
-  }
-}
-
-
 // ─── API calls ───────────────────────────────────────────
 async function fetchContacts() {
   loading.value  = true
   errorMsg.value = ''
   try {
-    // ✅ Gọi đúng route: GET /api/contacts (đã thêm vào api.php)
     const res = await api.get('/admin/lien-he')
     contacts.value = res.data.map(mapItem)
   } catch (err) {
@@ -463,12 +449,11 @@ async function sendEmail() {
   if (!validateEmail()) return
   sending.value = true
   try {
-    // ✅ Gọi đúng route: POST /api/contacts/{id}/reply
     await api.post(`/admin/lien-he/reply/${emailTarget.value.id}`, {
       reply: emailForm.value.body
     })
     const idx = contacts.value.findIndex(c => c.id === emailTarget.value.id)
-    if (idx !== -1) contacts.value[idx].status = 'resolved'
+    if (idx !== -1) contacts.value[idx].trangthai = 'resolved'
     showEmail.value = false
     swal.success(`Đã gửi email đến ${emailTarget.value.email} thành công!`)
   } catch (err) {
@@ -492,15 +477,15 @@ async function deleteContact(id) {
 }
 
 // ─── Computed ────────────────────────────────────────────
-const newCount        = computed(() => contacts.value.filter(c => c.status === 'new').length)
-const processingCount = computed(() => contacts.value.filter(c => c.status === 'processing').length)
-const resolvedCount   = computed(() => contacts.value.filter(c => c.status === 'resolved').length)
+const newCount        = computed(() => contacts.value.filter(c => c.trangthai === 'new').length)
+const processingCount = computed(() => contacts.value.filter(c => c.trangthai === 'processing').length)
+const resolvedCount   = computed(() => contacts.value.filter(c => c.trangthai === 'resolved').length)
 
 const filteredContacts = computed(() => {
   return contacts.value.filter(c => {
     const q = searchQuery.value.toLowerCase()
-    const matchQ      = !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
-    const matchStatus = !filterStatus.value || c.status === filterStatus.value
+    const matchQ      = !q || c.hoten.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    const matchStatus = !filterStatus.value || c.trangthai === filterStatus.value
     const matchCat    = !filterCategory.value || c.tags.some(t => {
       const label = t.label.toLowerCase()
       if (filterCategory.value === 'tu-van')    return label.includes('tư vấn')
