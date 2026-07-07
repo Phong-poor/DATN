@@ -234,7 +234,7 @@ const handleSelectOptionWithReset = (groupName, value) => {
 // ===================== SỐ LƯỢNG MUA =====================
 const giamSoLuong = () => { if (soLuongMua.value > 1) soLuongMua.value-- }
 const tangSoLuong = () => {
-    const maxTonKho = selectedVariant.value?.soluong ?? 999
+    const maxTonKho = Number(selectedVariant.value?.soluong ?? 999)
     if (soLuongMua.value < maxTonKho) soLuongMua.value++
 }
 
@@ -266,7 +266,7 @@ const themVaoGioHang = async () => {
         return
     }
 
-    if (selectedVariant.value.soluong === 0) {
+    if (Number(selectedVariant.value.soluong) <= 0) {
         hienThiThongBao('error', 'Sản phẩm này đã hết hàng!')
         return
     }
@@ -1204,7 +1204,7 @@ const machineInfoRows = computed(() => {
     addRow('Tổng quan', 'Danh mục', product.value.danh_muc?.ten_danhmuc)
     addRow('Tổng quan', 'Mã sản phẩm', product.value.SKU || product.value.sku || product.value.id_sanpham)
     addRow('Giá & kho', 'Giá đang chọn', selectedVariant.value ? formatPrice(selectedVariant.value.gia) : formatPrice(product.value.gia))
-    addRow('Giá & kho', 'Tình trạng', selectedVariant.value ? (selectedVariant.value.soluong > 0 ? `Còn ${selectedVariant.value.soluong} sản phẩm` : 'Hết hàng') : 'Đang cập nhật')
+    addRow('Giá & kho', 'Tình trạng', selectedVariant.value ? (Number(selectedVariant.value.soluong) > 0 ? `Còn ${selectedVariant.value.soluong} sản phẩm` : 'Hết hàng') : 'Đang cập nhật')
     addRow('Biến thể', 'Mã biến thể', selectedVariant.value?.SKU || selectedVariant.value?.sku || selectedVariant.value?.id_bienthe)
 
     if (selectedVariant.value) {
@@ -1432,14 +1432,14 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="sticky-price-glow">
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
-                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
                         <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="9" cy="21" r="1"></circle>
                             <circle cx="20" cy="21" r="1"></circle>
                             <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
                         </svg>
                     </button>
-                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || selectedVariant.soluong === 0">
+                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0">
                         Mua ngay
                     </button>
                 </div>
@@ -1660,7 +1660,7 @@ const handleSelectVariantById = (idBienThe) => {
 
                         <!-- Stock Status -->
                         <div class="premium-stock-banner" v-if="selectedVariant">
-                            <div v-if="selectedVariant.soluong > 0" class="stock-status in-stock">
+                            <div v-if="Number(selectedVariant.soluong) > 0" class="stock-status in-stock">
                                 <span class="pulse-green-dot"></span>
                                 <span class="stock-text">Hệ thống sẵn sàng: Còn {{ selectedVariant.soluong }} sản phẩm tại cửa hàng</span>
                             </div>
@@ -1671,7 +1671,7 @@ const handleSelectVariantById = (idBienThe) => {
                         </div>
 
                         <!-- Qty and CTAs buy buttons -->
-                        <div class="purchase-actions-box" v-if="selectedVariant && selectedVariant.soluong > 0">
+                        <div class="purchase-actions-box" v-if="selectedVariant && Number(selectedVariant.soluong) > 0">
                             <!-- Qty Control -->
                             <div class="premium-qty-stepper">
                                 <button @click="giamSoLuong" :disabled="soLuongMua <= 1" class="stepper-btn" aria-label="Giảm số lượng">
@@ -1680,7 +1680,7 @@ const handleSelectVariantById = (idBienThe) => {
                                     </svg>
                                 </button>
                                 <span class="stepper-value">{{ soLuongMua }}</span>
-                                <button @click="tangSoLuong" :disabled="soLuongMua >= selectedVariant.soluong" class="stepper-btn" aria-label="Tăng số lượng">
+                                <button @click="tangSoLuong" :disabled="soLuongMua >= Number(selectedVariant.soluong)" class="stepper-btn" aria-label="Tăng số lượng">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1691,7 +1691,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <!-- Buttons action grid -->
                             <div class="actions-grid">
                                 <button class="btn-buy-now btn-glow-primary"
-                                        :disabled="!selectedVariant || selectedVariant.soluong === 0 || dangThem"
+                                        :disabled="!selectedVariant || Number(selectedVariant.soluong) <= 0 || dangThem"
                                         @click="themVaoGioHang">
                                     <span class="btn-ripple-bg"></span>
                                     <span v-if="dangThem" class="loading-spin-circle"></span>
