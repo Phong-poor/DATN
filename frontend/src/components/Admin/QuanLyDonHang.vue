@@ -80,12 +80,12 @@ const statusMap = {
     'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     'confirmed': { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     'shipping':  { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
-    'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#16a34a' },
+    'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#2563eb' },
     'refund_pending': { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
     'refund_pickup': { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
     'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
     'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
-    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#8b5cf6' },
+    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#3b82f6' },
     'refund_rejected': { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
     'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
@@ -356,7 +356,7 @@ const parseAttr = (json) => {
 }
 
 const avatarColors = ['#dbeafe', '#dcfce7', '#fef9c3', '#ede9fe', '#fee2e2', '#ffedd5']
-const avatarTextColors = ['#1d4ed8', '#15803d', '#a16207', '#6d28d9', '#b91c1c', '#c2410c']
+const avatarTextColors = ['#1d4ed8', '#1d4ed8', '#a16207', '#1d4ed8', '#b91c1c', '#c2410c']
 const getAvatarStyle = (name) => {
     const idx = name.charCodeAt(0) % avatarColors.length
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
@@ -569,7 +569,7 @@ async function exportExcel() {
 
                                 <!-- Nút xử lý hoàn trả -->
                                 <button v-if="o.status === 'refund_pending'" 
-                                        class="act-btn" style="color: #16a34a;"
+                                        class="act-btn" style="color: #2563eb;"
                                         @click="confirmApproveRefund(o.id_backend)" 
                                         title="Chấp nhận hoàn trả">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -799,7 +799,7 @@ async function exportExcel() {
 
 .btn-create {
     padding: 10px 20px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: opacity 0.2s, transform 0.2s;
 }
@@ -1065,9 +1065,9 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background: white; border: 1px solid #f1f5f9;
     padding: 10px 16px; border-radius: 12px;
 }
-.revenue-chip svg { width: 20px; height: 20px; color: #16a34a; }
+.revenue-chip svg { width: 20px; height: 20px; color: #2563eb; }
 .revenue-chip span { font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.06em; display: block; }
-.revenue-chip b { font-size: 16px; font-weight: 700; color: #16a34a; }
+.revenue-chip b { font-size: 16px; font-weight: 700; color: #2563eb; }
 
 /* ===== MODAL ===== */
 .modal-overlay {
@@ -1146,7 +1146,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
 .btn-submit {
     padding: 10px 22px; border-radius: 8px; border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: opacity 0.2s, transform 0.2s;
 }
@@ -1253,8 +1253,8 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 <style scoped>
 .category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.cat-tab:hover { color: #2563eb; }
+.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
 </style>
 
 <style scoped>
@@ -1265,9 +1265,9 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: white; }
 
 .tl-dot svg { width: 16px; height: 16px; }
-.tl-item.done .tl-dot { background: #10b981; border-color: #10b981; }
+.tl-item.done .tl-dot { background: #2563eb; border-color: #2563eb; }
 .tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
-.tl-line.done { background: #10b981; }
+.tl-line.done { background: #2563eb; }
 .tl-content { padding: 0 10px; }
 .tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .tl-date { font-size: 11px; color: #94a3b8; margin: 0; }

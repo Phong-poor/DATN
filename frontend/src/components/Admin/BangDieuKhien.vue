@@ -110,14 +110,14 @@ async function fetchDashboard() {
 function getColor(status) {
     return {
         pending: '#facc15',
-        confirmed: '#34d399',
+        confirmed: '#93c5fd',
         shipping: '#60a5fa',
         done: '#2563eb',
         cancelled: '#f87171',
-        refund_pending: '#a855f7',
+        refund_pending: '#3b82f6',
         refund_pickup: '#fb923c',
-        refund_delivering: '#06b6d4',
-        refund_received: '#10b981',
+        refund_delivering: '#3b82f6',
+        refund_received: '#2563eb',
         refunded: '#ec4899'
     }[status] || '#ccc'
 }
@@ -194,7 +194,7 @@ const stats = computed(() => {
             value: data.value.bien_the ?? 0,
             icon: '🗃️',
             iconBg: 'rgba(255,255,255,.16)',
-            cardBg: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+            cardBg: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
             borderColor: 'transparent',
             labelColor: 'rgba(255,255,255,.88)'
         },
@@ -536,12 +536,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <defs>
                                     <!-- Gradient for Revenue Bars -->
                                     <linearGradient id="revenueBarGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#4f46e5" />
-                                        <stop offset="100%" stop-color="#818cf8" />
+                                        <stop offset="0%" stop-color="#2563eb" />
+                                        <stop offset="100%" stop-color="#93c5fd" />
                                     </linearGradient>
                                     <!-- Soft Glow Filter for Line Chart -->
                                     <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#10b981" flood-opacity="0.3" />
+                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2563eb" flood-opacity="0.3" />
                                     </filter>
                                 </defs>
 
@@ -632,8 +632,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <svg class="revenue-svg" :viewBox="`0 0 ${productChart.width} ${productChart.height}`" preserveAspectRatio="none">
                                 <defs>
                                     <linearGradient id="productBarGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#14b8a6" />
-                                        <stop offset="100%" stop-color="#0f766e" />
+                                        <stop offset="0%" stop-color="#3b82f6" />
+                                        <stop offset="100%" stop-color="#1d4ed8" />
                                     </linearGradient>
                                 </defs>
                                 <line v-for="tick in productChart.yTicks" :key="`grid-prod-${tick.y}`" :x1="productChart.left"
@@ -811,7 +811,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #2563eb, #14b8a6, #7c3aed);
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);
     background-size: 200% 100%;
     animation: background-slide 1.2s infinite linear;
     z-index: 99999;
@@ -1227,31 +1227,31 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .dot.revenue {
-    background: #4f46e5;
+    background: #2563eb;
 }
 
 .dot.orders {
-    background: #10b981;
+    background: #2563eb;
 }
 
 .revenue-bar {
     fill: url(#revenueBarGradient);
     opacity: 0.88;
     rx: 6px;
-    filter: drop-shadow(0 4px 10px rgba(79, 70, 229, 0.15));
+    filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.15));
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
 
 .revenue-bar:hover {
     opacity: 1;
-    fill: #4f46e5;
-    filter: drop-shadow(0 6px 15px rgba(79, 70, 229, 0.35));
+    fill: #2563eb;
+    filter: drop-shadow(0 6px 15px rgba(37, 99, 235, 0.35));
 }
 
 .orders-line {
     fill: none;
-    stroke: #10b981;
+    stroke: #2563eb;
     stroke-width: 3.5;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -1260,7 +1260,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .orders-point {
     fill: #ffffff;
-    stroke: #10b981;
+    stroke: #2563eb;
     stroke-width: 3;
     r: 5;
     transition: all 0.2s ease;
@@ -1269,7 +1269,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .orders-point:hover {
     r: 7;
-    fill: #10b981;
+    fill: #2563eb;
     stroke: #ffffff;
 }
 
@@ -1441,12 +1441,12 @@ tbody td {
 
 .status-badge.ok {
     background: #dcfce7;
-    color: #16a34a;
+    color: #2563eb;
 }
 
 .status-badge.confirmed {
     background: #d1fae5;
-    color: #059669;
+    color: #1D4ED8;
 }
 
 .status-badge.warn {
@@ -1624,7 +1624,7 @@ tbody td {
 
 /* Product Chart Specific Elements */
 .dot.product-legend-dot {
-    background: #14b8a6;
+    background: #3b82f6;
 }
 
 .product-bar {
@@ -1638,7 +1638,7 @@ tbody td {
 
 .product-bar:hover {
     opacity: 1;
-    fill: #14b8a6;
+    fill: #3b82f6;
     filter: drop-shadow(0 6px 15px rgba(20, 184, 166, 0.35));
 }
 

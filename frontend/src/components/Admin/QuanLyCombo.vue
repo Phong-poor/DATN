@@ -912,7 +912,7 @@ onMounted(() => {
                       Đã dùng: <b>{{ offer.da_su_dung }}</b> / {{ offer.gioi_han_soluong || '∞' }} suất
                     </div>
                     <div v-if="offer.gioi_han_soluong" class="usage-bar-bg" style="width: 100px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 2px;">
-                      <div class="usage-bar-fill" :style="{ width: Math.min((offer.da_su_dung / offer.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #4f46e5, #6366f1); border-radius: 3px;"></div>
+                      <div class="usage-bar-fill" :style="{ width: Math.min((offer.da_su_dung / offer.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 3px;"></div>
                     </div>
                   </div>
                   
@@ -1264,13 +1264,13 @@ onMounted(() => {
               <label>Bước 4: Loại ưu đãi</label>
               <div class="offer-type-cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; width: 100%;">
                 <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'free' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="free" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #4f46e5; margin: 0; cursor: pointer;" />
+                  <input type="radio" value="free" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
                   <span style="font-size: 20px; margin-bottom: 8px;">🎁</span>
                   <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Tặng miễn phí (0đ)</b>
                   <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Combo phụ kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</span>
                 </label>
                 <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'discount' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #4f46e5; margin: 0; cursor: pointer;" />
+                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
                   <span style="font-size: 20px; margin-bottom: 8px;">🏷️</span>
                   <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Mua kèm giá đặc biệt</b>
                   <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Khách hàng được mua kèm combo phụ kiện này với một mức giá ưu đãi tự chọn.</span>
@@ -1372,7 +1372,7 @@ onMounted(() => {
                 <div class="detail-section-title">🎁 Combo quà tặng / mua kèm</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Combo áp dụng</span>
-                  <span class="detail-info-value" style="color: #7c3aed; font-weight: bold;">{{ selectedOfferDetail.combo_ten }}</span>
+                  <span class="detail-info-value" style="color: #2563eb; font-weight: bold;">{{ selectedOfferDetail.combo_ten }}</span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Giá trị Combo gốc</span>
@@ -1410,7 +1410,7 @@ onMounted(() => {
                   <span class="detail-info-value">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <div class="usage-bar-bg" style="width: 100px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; display: inline-block;">
-                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #4f46e5, #6366f1); border-radius: 3px;"></div>
+                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 3px;"></div>
                       </div>
                       <span style="font-size: 11px; color: #475569; font-weight: bold;">
                         {{ Math.round((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100) }}%
@@ -1556,7 +1556,7 @@ onMounted(() => {
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1609,7 +1609,7 @@ onMounted(() => {
 }
 
 .stat-card.stat-teal {
-  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
   color: #fff;
 }
 
@@ -2033,9 +2033,9 @@ onMounted(() => {
 
 .act-btn:hover {
   background: #f8fafc;
-  border-color: #4f46e5;
-  color: #4f46e5;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+  border-color: #2563eb;
+  color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
   transform: translateY(-1px);
 }
 
@@ -2248,9 +2248,9 @@ onMounted(() => {
 .inline-form-body .form-group input:focus,
 .inline-form-body .form-group select:focus,
 .inline-form-body .form-group textarea:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .inline-form-body .form-group input.input-error,
@@ -2284,16 +2284,16 @@ onMounted(() => {
 }
 
 .tab-btn:hover {
-  border-color: #4f46e5;
-  color: #4f46e5;
+  border-color: #2563eb;
+  color: #2563eb;
   background: #f5f3ff;
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
-  border-color: #4f46e5;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 /* Accessory selection tags */
@@ -2307,7 +2307,7 @@ onMounted(() => {
 .p-tag {
   background: #eef2ff;
   border: 1px solid #c7d2fe;
-  color: #4338ca;
+  color: #1d4ed8;
   padding: 8px 14px;
   border-radius: 20px;
   font-size: 12.5px;
@@ -2328,7 +2328,7 @@ onMounted(() => {
   background: #c7d2fe;
   border: none;
   font-size: 14px;
-  color: #4338ca;
+  color: #1d4ed8;
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -2343,7 +2343,7 @@ onMounted(() => {
 }
 
 .p-tag button:hover {
-  background: #818cf8;
+  background: #93c5fd;
   color: white;
 }
 
@@ -2366,8 +2366,8 @@ onMounted(() => {
 }
 
 .pool-search-box input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* Product selection pool grid */
@@ -2403,9 +2403,9 @@ onMounted(() => {
 }
 
 .pool-item.selected {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: #f5f3ff;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.06);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
 }
 
 .pool-item .chk {
@@ -2425,8 +2425,8 @@ onMounted(() => {
 }
 
 .pool-item.selected .chk {
-  border-color: #4f46e5;
-  background: #4f46e5;
+  border-color: #2563eb;
+  background: #2563eb;
 }
 
 .pool-item .p-info {
@@ -2455,7 +2455,7 @@ onMounted(() => {
 .pool-item .p-info .p-pool-price {
   font-size: 12px;
   font-weight: 700;
-  color: #4f46e5 !important;
+  color: #2563eb !important;
   margin-top: 4px;
 }
 
@@ -2475,14 +2475,14 @@ onMounted(() => {
 }
 
 .upload-zone:hover {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: linear-gradient(135deg, #ebe8ff 0%, #f0f4ff 100%);
 }
 
 .upload-zone svg {
   width: 44px;
   height: 44px;
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 .upload-zone p {
@@ -2493,7 +2493,7 @@ onMounted(() => {
 }
 
 .upload-zone p span {
-  color: #4f46e5;
+  color: #2563eb;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -2544,8 +2544,8 @@ onMounted(() => {
 }
 
 .img-change:hover {
-  border-color: #4f46e5;
-  color: #4f46e5;
+  border-color: #2563eb;
+  color: #2563eb;
   background: #f5f3ff;
 }
 
@@ -2589,18 +2589,18 @@ onMounted(() => {
   padding: 12px 26px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .btn-submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
 }
 
 .btn-submit:disabled {
@@ -2639,7 +2639,7 @@ onMounted(() => {
 
 .tab-nav-btn.active {
   background: white;
-  color: #4f46e5;
+  color: #2563eb;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
 }
 
@@ -2761,13 +2761,13 @@ onMounted(() => {
 
 .badge-green {
   background: #dcfce7;
-  color: #15803d;
+  color: #1d4ed8;
   border: 1.5px solid #bbf7d0;
 }
 
 .badge-active-green {
   background: #dcfce7;
-  color: #15803d;
+  color: #1d4ed8;
   border: 1.5px solid #bbf7d0;
 }
 
@@ -2833,7 +2833,7 @@ onMounted(() => {
 }
 
 .free-text {
-  color: #16a34a !important;
+  color: #2563eb !important;
 }
 
 .mota-cell {
@@ -2893,9 +2893,9 @@ onMounted(() => {
 }
 
 .offer-type-card.active {
-  border-color: #4f46e5 !important;
+  border-color: #2563eb !important;
   background: #f5f3ff !important;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
 }
 
 /* ── Detail Modal styling ── */

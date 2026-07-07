@@ -141,7 +141,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1><span class="icon" style="color: #4f46e5; margin-right: 8px;">+</span> {{ editingId ? "Cập nhật Banner" : "Thêm Banner mới" }}</h1>
+        <h1><span class="icon" style="color: #2563eb; margin-right: 8px;">+</span> {{ editingId ? "Cập nhật Banner" : "Thêm Banner mới" }}</h1>
         <p>Điền đầy đủ thông tin để thiết lập banner hiển thị trên hệ thống</p>
       </div>
 
@@ -226,7 +226,7 @@
                     </svg>
                     <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
                     <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
-                    <p v-if="form.image && form.image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.image.name }}</p>
+                    <p v-if="form.image && form.image.name" style="margin-top: 10px; font-weight: 600; color: #2563eb; font-size: 13px;">✓ {{ form.image.name }}</p>
                   </div>
                 </div>
                 
@@ -241,7 +241,7 @@
                     </svg>
                     <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
                     <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
-                    <p v-if="form.mobile_image && form.mobile_image.name" style="margin-top: 10px; font-weight: 600; color: #4f46e5; font-size: 13px;">✓ {{ form.mobile_image.name }}</p>
+                    <p v-if="form.mobile_image && form.mobile_image.name" style="margin-top: 10px; font-weight: 600; color: #2563eb; font-size: 13px;">✓ {{ form.mobile_image.name }}</p>
                   </div>
                 </div>
                 
@@ -643,7 +643,7 @@ onMounted(() => {
 }
 
 .active-crumb {
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 .page-header {
@@ -662,7 +662,7 @@ onMounted(() => {
 }
 
 .title-accent {
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 .page-header p {
@@ -686,14 +686,14 @@ onMounted(() => {
   padding: 10px 18px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   transition: transform .15s, opacity .15s;
 }
 
@@ -769,7 +769,7 @@ td {
 .select-col input {
   width: 16px;
   height: 16px;
-  accent-color: #4f46e5;
+  accent-color: #2563eb;
   cursor: pointer;
 }
 
@@ -812,7 +812,7 @@ td {
 
 .link-text {
   font-size: 12.5px;
-  color: #4f46e5;
+  color: #2563eb;
   font-weight: 500;
 }
 
@@ -830,7 +830,7 @@ td {
 
 .media-type-tag.video {
   background: #ede9fe;
-  color: #6d28d9;
+  color: #1d4ed8;
 }
 
 .media-type-tag.image {
@@ -847,7 +847,7 @@ td {
 }
 
 .status-dot.active {
-  color: #16a34a;
+  color: #2563eb;
   background: #dcfce7;
 }
 
@@ -903,7 +903,7 @@ td {
   width: 14px;
   height: 14px;
   border: 2px solid #cbd5e1;
-  border-top-color: #4f46e5;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin-right: 6px;
@@ -959,7 +959,7 @@ td {
 }
 
 .icon-add {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
 }
 
 .icon-edit {
@@ -1058,8 +1058,8 @@ td {
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .inline-inputs {
@@ -1081,7 +1081,7 @@ td {
 
 .file-hint {
   font-size: 11px;
-  color: #16a34a;
+  color: #2563eb;
   font-weight: 600;
 }
 
@@ -1109,7 +1109,7 @@ td {
 .toggle-btn:hover {
   background: #eef2ff;
   border-color: #c7d2fe;
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 .tdot {
@@ -1123,12 +1123,12 @@ td {
 .toggle-btn.tg-green {
   border-color: #86efac;
   background: #f0fdf4;
-  color: #16a34a;
+  color: #2563eb;
   font-weight: 600;
 }
 
 .toggle-btn.tg-green .tdot {
-  background: #16a34a;
+  background: #2563eb;
 }
 
 .toggle-btn.tg-yellow {
@@ -1180,7 +1180,7 @@ td {
 
 .preview-copy strong {
   display: block;
-  color: #22d3ee;
+  color: #3b82f6;
   font-size: 22px;
   line-height: 1.1;
   margin-top: 2px;
@@ -1232,7 +1232,7 @@ td {
   width: 100%;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
   height: 34px;
   font-weight: 800;
@@ -1267,12 +1267,12 @@ td {
   padding: 9px 20px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   transition: transform 0.15s;
   font-family: inherit;
 }
@@ -1388,13 +1388,13 @@ td {
   gap: 8px;
 }
 .upload-zone:hover {
-  border-color: #6366f1;
+  border-color: #3b82f6;
   background: #eef2ff;
 }
 .upload-zone svg {
   width: 32px;
   height: 32px;
-  color: #6366f1;
+  color: #3b82f6;
   margin-bottom: 8px;
 }
 .upload-zone p {
@@ -1403,7 +1403,7 @@ td {
   color: #475569;
 }
 .upload-zone span {
-  color: #6366f1;
+  color: #3b82f6;
   font-weight: 600;
   text-decoration: underline;
 }

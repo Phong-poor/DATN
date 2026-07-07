@@ -70,7 +70,7 @@ select{border:1px solid #dbe2ea;border-radius:10px;padding:8px 10px}
 .chart{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;align-items:end;height:240px}
 .col{display:flex;flex-direction:column;align-items:center;gap:6px}
 .bar-wrap{height:160px;width:100%;display:flex;align-items:flex-end;justify-content:center}
-.bar{width:18px;max-height:160px;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,#6366f1,#4f46e5)}
+.bar{width:18px;max-height:160px;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,#3b82f6,#2563eb)}
 small{color:#64748b;font-size:11px}
 p{margin:0;color:#334155;font-size:12px}
 @media (max-width:900px){.stats{grid-template-columns:1fr}}

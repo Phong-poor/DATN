@@ -104,7 +104,7 @@
                                             </svg>
                                         </button>
 
-                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#10b981" title="Khôi phục trạng thái" @click="undoReview(review)">
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Khôi phục trạng thái" @click="undoReview(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
@@ -733,7 +733,7 @@ td {
 
 .status-badge.approved {
     background: #dcfce7;
-    color: #16a34a;
+    color: #2563eb;
 }
 
 .status-badge.pending {
@@ -977,12 +977,12 @@ td {
 
 .banner-btn.active-btn {
     border: none;
-    background: #10b981;
+    background: #2563eb;
     color: #fff;
 }
 
 .banner-btn.active-btn:hover {
-    background: #059669;
+    background: #1D4ED8;
     transform: scale(1.03);
 }
 

@@ -903,8 +903,8 @@ onMounted(loadData)
 
 .metric-card.blue { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
 .metric-card.amber { background: linear-gradient(135deg, #c2410c, #f97316); }
-.metric-card.teal { background: linear-gradient(135deg, #0f766e, #14b8a6); }
-.metric-card.violet { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
+.metric-card.teal { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+.metric-card.violet { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
 
 .metric-icon {
   width: 54px;
@@ -1100,7 +1100,7 @@ onMounted(loadData)
   display: grid;
   place-items: center;
   color: #fff;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   font-weight: 900;
 }
 
@@ -1135,7 +1135,7 @@ onMounted(loadData)
 
 .money,
 .positive {
-  color: #059669;
+  color: #1D4ED8;
   font-weight: 900;
 }
 
@@ -1153,7 +1153,7 @@ onMounted(loadData)
 
 .status-pill.pending { color: #b45309; background: #fef3c7; }
 .status-pill.active,
-.status-pill.approved { color: #047857; background: #d1fae5; }
+.status-pill.approved { color: #1E40AF; background: #d1fae5; }
 .status-pill.paid { color: #1d4ed8; background: #dbeafe; }
 .status-pill.suspended { color: #92400e; background: #ffedd5; }
 .status-pill.rejected,
@@ -1339,7 +1339,7 @@ onMounted(loadData)
 
 .action.approve,
 .mini.approve {
-  color: #047857;
+  color: #1E40AF;
   background: #ecfdf5;
   border-color: #a7f3d0;
 }
@@ -1438,7 +1438,7 @@ td {
   margin: 18px 0;
   font-size: 26px;
   font-weight: 900;
-  color: #0f766e;
+  color: #1d4ed8;
 }
 
 .withdraw-card dl {

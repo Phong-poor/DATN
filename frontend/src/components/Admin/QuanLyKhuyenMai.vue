@@ -121,24 +121,24 @@
                   <span>{{ p.icon }}</span>
                 </div>
                 <div>
-                  <p class="promo-name">{{ p.name }}</p>
+                  <p class="promo-name">{{ p.ten || p.name }}</p>
                   <p class="promo-code">{{ p.code }}</p>
                 </div>
               </div>
             </td>
             <td>
-              <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount }}</span>
+              <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
             </td>
-            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.startDate || '—') }}</td>
-            <td class="date-cell">{{ p.category === 'birthday' ? '—' : (p.endDate || '—') }}</td>
+            <td class="date-cell">{{ (p.danhmuc || p.category) === 'birthday' ? '—' : (p.startDate || formatDate(p.ngaybatdau) || '—') }}</td>
+            <td class="date-cell">{{ (p.danhmuc || p.category) === 'birthday' ? '—' : (p.endDate || formatDate(p.ngayketthuc) || '—') }}</td>
             <td>
-              <span :class="['status-badge', p.is_public == 1 ? 'status-running' : 'status-open']">
-                {{ p.is_public == 1 ? 'Công khai' : 'Có điều kiện' }}
+              <span :class="['status-badge', (p.congkhai ?? p.is_public) == 1 ? 'status-running' : 'status-open']">
+                {{ (p.congkhai ?? p.is_public) == 1 ? 'Công khai' : 'Có điều kiện' }}
               </span>
             </td>
             <td>
-              <span :class="['status-badge', statusClass(p.status)]">
-                {{ statusLabel(p.status) }}
+              <span :class="['status-badge', statusClass(p.trangthai || p.status)]">
+                {{ statusLabel(p.trangthai || p.status) }}
               </span>
             </td>
             <td>
@@ -176,10 +176,10 @@
           <div class="rank-item" v-for="(r, i) in topPromos" :key="r.id">
             <span class="rank-num">#{{ i + 1 }}</span>
             <div class="rank-bar-wrap">
-              <p class="rank-name">{{ r.name }}</p>
-              <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#4f46e5' : '#e2e8f0' }"></div></div>
+              <p class="rank-name">{{ r.ten || r.name }}</p>
+              <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#2563eb' : '#e2e8f0' }"></div></div>
             </div>
-            <span class="rank-roi" :style="{ color: i === 0 ? '#4f46e5' : '#22c55e' }">+{{ r.roi }}% ROI</span>
+            <span class="rank-roi" :style="{ color: i === 0 ? '#2563eb' : '#3b82f6' }">+{{ r.roi }}% ROI</span>
           </div>
         </div>
       </div>
@@ -424,7 +424,7 @@ const showToast = (msg, type = 'success') => {
 }
 
 const statusOptions = [
-  { value: 'running', label: 'Đang chạy', color: '#16a34a', bg: '#f0fdf4' },
+  { value: 'running', label: 'Đang chạy', color: '#2563eb', bg: '#f0fdf4' },
   { value: 'open',    label: 'Luôn mở',   color: '#2563eb', bg: '#eff6ff' },
 ]
 
@@ -459,10 +459,10 @@ const fetchPromos = async () => {
     const res = await api.get('/admin/promotions')
     promos.value = res.data.map(p => ({
       ...p,
-      startDate: formatDate(p.start_date),
-      endDate: formatDate(p.end_date),
+      startDate: formatDate(p.ngaybatdau || p.start_date),
+      endDate: formatDate(p.ngayketthuc || p.end_date),
       discount: discountLabel(p),
-      ...tagColors(p.type),
+      ...tagColors(p.loai || p.type),
       icon: '🏮',
       iconBg: '#fef3c7',
       roi: 20
@@ -482,8 +482,8 @@ const filteredPromos = computed(() => {
   if (!searchQuery.value) return promos.value
   const q = searchQuery.value.toLowerCase()
   return promos.value.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.code.toLowerCase().includes(q)
+    (p.ten || p.name || '').toLowerCase().includes(q) ||
+    (p.code || '').toLowerCase().includes(q)
   )
 })
 
@@ -506,7 +506,7 @@ const {
 })
 
 const activeCount = computed(() =>
-  promos.value.filter(p => p.status === 'running' || p.status === 'open').length
+  promos.value.filter(p => ['running', 'open'].includes(p.trangthai || p.status)).length
 )
 
 const topPromos = computed(() =>
@@ -564,10 +564,12 @@ function onCategoryChange() {
 }
 
 function discountLabel(f) {
-  if (f.type === 'percent') return `Giảm ${f.value}%`
-  if (f.type === 'fixed') return `Cố định ${f.value}đ`
-  if (f.type === 'maxprice') return `giảm theo giá tiền  ${f.value}%`
-  if (f.type === 'freeship') return `Freeship ${f.value}đ`
+  const type = f.loai || f.type
+  const value = f.giatri ?? f.value ?? ''
+  if (type === 'percent') return `Giảm ${value}%`
+  if (type === 'fixed') return `Cố định ${formatVND(value)}đ`
+  if (type === 'maxprice') return `Giảm tối đa ${formatVND(value)}đ`
+  if (type === 'freeship') return `Freeship ${formatVND(value)}đ`
   return ''
 }
 
@@ -634,12 +636,16 @@ function openEdit(p) {
 
   form.value = {
     ...p,
-    category: p.category || 'product',
+    name: p.ten || p.name || '',
+    category: p.danhmuc || p.category || 'product',
+    type: p.loai || p.type || 'percent',
+    value: p.giatri ?? p.value ?? '',
     startDate: toInputDate(p.startDate),
     endDate: toInputDate(p.endDate),
+    status: p.trangthai || p.status || 'running',
     loai_dieu_kien: p.loai_dieu_kien || '>=',
     dieu_kien: p.dieu_kien || '',
-    is_public: p.is_public !== undefined ? Number(p.is_public) : 1,
+    is_public: p.congkhai !== undefined ? Number(p.congkhai) : (p.is_public !== undefined ? Number(p.is_public) : 1),
     dieu_kien_tang: p.dieu_kien_tang || '',
     so_luong_phat: p.so_luong_phat || ''
   }
@@ -659,18 +665,18 @@ async function savePromo() {
   // Birthday luôn mở, freeship/product dùng ngày
   const isBirthday = form.value.category === 'birthday'
   const data = {
-    name:           form.value.name,
-    category:       form.value.category,
+    ten:            form.value.name,
+    danhmuc:        form.value.category,
     code:           form.value.code.toUpperCase(),
-    type:           form.value.type,
-    value:          form.value.value,
-    start_date:     isBirthday ? null : (form.value.startDate || null),
-    end_date:       isBirthday ? null : (form.value.endDate || null),
-    status:         isBirthday ? 'open' : 'running',
+    loai:           form.value.type,
+    giatri:         form.value.value,
+    ngaybatdau:     isBirthday ? null : (form.value.startDate || null),
+    ngayketthuc:    isBirthday ? null : (form.value.endDate || null),
+    trangthai:      isBirthday ? 'open' : 'running',
     mota:           form.value.mota,
     loai_dieu_kien: form.value.category === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
     dieu_kien:      (form.value.category === 'product' || form.value.category === 'freeship') ? (form.value.dieu_kien || null) : null,
-    is_public:      form.value.is_public,
+    congkhai:       form.value.is_public,
     dieu_kien_tang: form.value.is_public === 0 ? (form.value.dieu_kien_tang || null) : null,
     so_luong_phat:  form.value.is_public === 0 ? (form.value.so_luong_phat || null) : null,
   }
@@ -737,7 +743,7 @@ async function deletePromo(id) {
 .admin-info { display: flex; align-items: center; gap: 9px; }
 .admin-name { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
 .admin-role { font-size: 11px; color: #94a3b8; text-align: right; }
-.admin-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.admin-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #3b82f6); border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
 /* TOAST */
 .toast { position: fixed; top: 24px; right: 24px; z-index: 99999; padding: 12px 20px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
@@ -755,7 +761,7 @@ async function deletePromo(id) {
 .stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
 .stat-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 6px; }
 .stat-card.stat-active {
-  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
   border: none;
   box-shadow: 0 10px 24px rgba(20, 184, 166, 0.28);
   position: relative;
@@ -793,10 +799,10 @@ async function deletePromo(id) {
 .stat-value { font-size: 30px; font-weight: 800; color: #0f172a; }
 .stat-unit { font-size: 14px; font-weight: 600; color: #64748b; }
 .stat-sub { font-size: 12px; color: #64748b; }
-.stat-sub.green { color: #16a34a; font-weight: 600; }
+.stat-sub.green { color: #2563eb; font-weight: 600; }
 .stat-bar { height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
-.stat-bar-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, #6366f1); border-radius: 99px; }
-.stat-card-gradient { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%); border: none; justify-content: space-between; box-shadow: 0 10px 24px rgba(99, 102, 241, 0.28); position: relative; overflow: hidden; }
+.stat-bar-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 99px; }
+.stat-card-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%); border: none; justify-content: space-between; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28); position: relative; overflow: hidden; }
 .stat-card-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,0.7); }
 .stat-card-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.6; }
 .stat-card-desc strong { color: #fff; }
@@ -810,7 +816,7 @@ async function deletePromo(id) {
 .list-actions { display: flex; gap: 10px; }
 .btn-filter { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; }
 .btn-filter svg { width: 14px; height: 14px; stroke: #475569; stroke-width: 2; fill: none; }
-.btn-primary { display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); transition: transform 0.15s; }
+.btn-primary { display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: transform 0.15s; }
 .btn-primary:hover { transform: translateY(-1px); }
 .btn-primary svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 2.5; fill: none; }
 
@@ -825,7 +831,7 @@ tbody tr:hover { background: #fafbff; }
 tbody tr.row-selected { background: #eff6ff; }
 td { padding: 14px 18px; vertical-align: middle; }
 .select-col { width: 44px; text-align: center; }
-.select-col input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
+.select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
 .promo-name-cell { display: flex; align-items: center; gap: 12px; }
 .promo-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .promo-name { font-size: 13.5px; font-weight: 700; color: #1e293b; }
@@ -833,7 +839,7 @@ td { padding: 14px 18px; vertical-align: middle; }
 .discount-tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
 .date-cell { font-size: 13px; color: #475569; }
 .status-badge { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-block; }
-.status-running { color: #16a34a; background: #dcfce7; }
+.status-running { color: #2563eb; background: #dcfce7; }
 .status-expired { color: #dc2626; background: #fee2e2; }
 .status-open    { color: #2563eb; background: #dbeafe; }
 .actions { display: flex; gap: 6px; }
@@ -843,13 +849,13 @@ td { padding: 14px 18px; vertical-align: middle; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 28px; }
-.loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+.loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .pagination-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-top: 1px solid #f1f5f9; }
 .page-info { font-size: 12.5px; color: #64748b; }
 .pagination { display: flex; gap: 4px; }
 .page-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 12.5px; color: #475569; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.page-btn.active { background: #4f46e5; border-color: #4f46e5; color: #fff; font-weight: 600; }
+.page-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
 
 /* BOTTOM */
 .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -860,13 +866,13 @@ td { padding: 14px 18px; vertical-align: middle; }
 .icon-btn-sm svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 2; fill: none; }
 .rank-list { display: flex; flex-direction: column; gap: 12px; }
 .rank-item { display: flex; align-items: center; gap: 10px; }
-.rank-num { font-size: 12px; font-weight: 800; color: #4f46e5; width: 24px; flex-shrink: 0; }
+.rank-num { font-size: 12px; font-weight: 800; color: #2563eb; width: 24px; flex-shrink: 0; }
 .rank-bar-wrap { flex: 1; }
 .rank-name { font-size: 12.5px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
 .rank-bar { height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
 .rank-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
 .rank-roi { font-size: 12px; font-weight: 700; white-space: nowrap; }
-.bottom-card-gradient { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 60%, #818cf8 100%); border: none; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.bottom-card-gradient { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 60%, #93c5fd 100%); border: none; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
 .dist-add-btn { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .dist-add-btn svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 2.5; fill: none; }
 .dist-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.6); }
@@ -883,7 +889,7 @@ td { padding: 14px 18px; vertical-align: middle; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 18px; border-bottom: 1px solid #f1f5f9; }
 .modal-header-left { display: flex; align-items: center; gap: 12px; }
 .modal-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.icon-create { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.icon-create { background: linear-gradient(135deg, #2563eb, #3b82f6); }
 .icon-edit { background: linear-gradient(135deg, #f59e0b, #f97316); }
 .modal-icon svg { width: 19px; height: 19px; stroke: #fff; stroke-width: 2.2; fill: none; }
 .modal-title { font-size: 15px; font-weight: 700; color: #0f172a; }
@@ -898,7 +904,7 @@ td { padding: 14px 18px; vertical-align: middle; }
 .form-label { font-size: 12.5px; font-weight: 600; color: #374151; }
 .req { color: #ef4444; }
 .form-input { padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; color: #1e293b; outline: none; font-family: inherit; width: 100%; background: #fff; transition: border-color 0.2s, box-shadow 0.2s; }
-.form-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.form-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 .form-input.err { border-color: #ef4444; }
 .form-textarea { resize: vertical; min-height: 72px; }
 .mono { font-family: monospace; }
@@ -912,23 +918,23 @@ select.form-input { cursor: pointer; }
 /* CONDITION ROW */
 .condition-row { margin-top: 2px; background: #f5f3ff; border: 1.5px dashed #a5b4fc; border-radius: 12px; padding: 12px 14px; grid-template-columns: 1.3fr 1fr; }
 .condition-row.freeship-row { background: #f0fdf4; border-color: #86efac; }
-.condition-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #4f46e5; background: #ede9fe; padding: 3px 10px; border-radius: 20px; }
-.freeship-badge { color: #047857; background: #d1fae5; }
+.condition-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #2563eb; background: #ede9fe; padding: 3px 10px; border-radius: 20px; }
+.freeship-badge { color: #1E40AF; background: #d1fae5; }
 .condition-select option { font-size: 12.5px; }
 .condition-input { border-color: #c4b5fd !important; }
-.condition-input:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important; }
+.condition-input:focus { border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important; }
 .condition-input.freeship-input { border-color: #6ee7b7 !important; }
-.condition-input.freeship-input:focus { border-color: #059669 !important; box-shadow: 0 0 0 3px rgba(5,150,105,0.12) !important; }
+.condition-input.freeship-input:focus { border-color: #1D4ED8 !important; box-shadow: 0 0 0 3px rgba(5,150,105,0.12) !important; }
 .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
 .icon-picker { display: flex; gap: 8px; flex-wrap: wrap; }
 .icon-option { width: 40px; height: 40px; border-radius: 10px; border: 2px solid transparent; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
 .icon-option:hover { transform: scale(1.1); }
-.icon-option-active { border-color: #4f46e5; transform: scale(1.1); }
+.icon-option-active { border-color: #2563eb; transform: scale(1.1); }
 .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid #f1f5f9; background: #fafbff; }
 .btn-cancel { padding: 9px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fff; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; font-family: inherit; }
-.btn-save { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); transition: transform 0.15s; font-family: inherit; }
+.btn-save { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: transform 0.15s; font-family: inherit; }
 .btn-save:hover:not(:disabled) { transform: translateY(-1px); }
 .btn-save:disabled { opacity: 0.7; cursor: not-allowed; }
 .btn-save svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 2; fill: none; }
@@ -1027,9 +1033,9 @@ select.form-input { cursor: pointer; }
   box-sizing: border-box;
 }
 .inline-form-body .form-input:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 .inline-form-body .form-input.err {
   border-color: #f87171;
