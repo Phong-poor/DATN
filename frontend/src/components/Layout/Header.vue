@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '../../services/api' 
+import api from '../../services/api.js' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
@@ -37,53 +37,53 @@ const activeMegaMenu = ref(null)
 let megaLeaveTimer = null
 
 const megaMenuData = {
-  gaming: {
-    label: 'Gaming',
-    accent: '#ef4444',
-    accentBg: 'rgba(239,68,68,0.07)',
+  laptop: {
+    label: 'Labtop',
+    accent: '#2563eb',
+    accentBg: 'rgba(37,99,235,0.08)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 10v4M6 12h4m6-2v4m0-2h2"/></svg>`,
     img: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80',
     sections: [
       {
-        title: 'Theo GPU', icon: '🎮',
+        title: 'Dong laptop', icon: '🎮',
         items: [
-          { label: 'RTX 5090', badge: 'NEW', q: 'RTX 5090' },
-          { label: 'RTX 5080', badge: '', q: 'RTX 5080' },
-          { label: 'RTX 5070', badge: '', q: 'RTX 5070' },
-          { label: 'RTX 4070', badge: 'HOT', q: 'RTX 4070' },
+          { label: 'Laptop Gaming RTX', badge: 'HOT', q: 'gaming rtx' },
+          { label: 'MacBook Pro & Air', badge: 'NEW', q: 'macbook apple' },
+          { label: 'Laptop van phong', badge: '', q: 'laptop van phong' },
+          { label: 'Laptop hoc tap', badge: '', q: 'laptop sinh vien' },
         ]
       },
       {
-        title: 'Thương hiệu', icon: '🏷️',
+        title: 'Thuong hieu', icon: '🏷️',
         items: [
           { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
-          { label: 'MSI Titan', badge: '', q: 'MSI Titan' },
+          { label: 'Apple MacBook', badge: 'PRO', q: 'MacBook' },
           { label: 'Lenovo Legion', badge: 'HOT', q: 'Lenovo Legion' },
-          { label: 'Acer Predator', badge: '', q: 'Acer Predator' },
+          { label: 'Dell Gaming', badge: '', q: 'Dell Gaming' },
         ]
       },
       {
-        title: 'Mức giá', icon: '💰',
+        title: 'Nhu cau', icon: '💰',
         items: [
-          { label: 'Dưới 20 triệu', badge: '', q: 'gaming duoi 20 trieu' },
-          { label: '20M – 35M', badge: '', q: 'gaming 20-35 trieu' },
-          { label: '35M – 60M', badge: '', q: 'gaming 35-60 trieu' },
-          { label: 'Trên 60 triệu', badge: 'PRO', q: 'gaming flagship' },
+          { label: 'Workstation do hoa', badge: 'PRO', q: 'workstation' },
+          { label: 'Laptop AI PC', badge: 'NEW', q: 'AI PC' },
+          { label: 'Phu kien laptop', badge: '', q: 'phu kien laptop' },
+          { label: 'Flagship Premium', badge: 'PRO', q: 'flagship premium' },
         ]
       },
     ],
-    featured: { name: 'ASUS ROG Zephyrus G16', price: '52.990.000₫', oldPrice: '59.990.000₫', tag: 'HOT', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=200&q=80' },
-    quickLinks: ['RTX 5090 Gaming', 'Gaming dưới 20 triệu', 'So sánh gaming laptop'],
+    featured: { name: 'Labtop Gaming + MacBook Premium', price: 'Tu 19.990.000d', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&q=80' },
+    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop van phong'],
   },
   aipc: {
     label: 'AI PC',
-    accent: '#6366f1',
-    accentBg: 'rgba(99,102,241,0.07)',
+    accent: '#3b82f6',
+    accentBg: 'rgba(37,99,235,0.07)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
     img: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&q=80',
     sections: [
       {
-        title: 'Dòng chip', icon: '⚡',
+        title: 'Dòng chip',
         items: [
           { label: 'Intel Core Ultra 9', badge: 'NEW', q: 'Intel Core Ultra 9' },
           { label: 'AMD Ryzen AI 9', badge: 'NEW', q: 'AMD Ryzen AI 9' },
@@ -92,7 +92,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Thương hiệu', icon: '🏷️',
+        title: 'Thương hiệu',
         items: [
           { label: 'Dell XPS', badge: 'HOT', q: 'Dell XPS' },
           { label: 'HP Spectre', badge: '', q: 'HP Spectre' },
@@ -101,7 +101,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Tính năng AI', icon: '🤖',
+        title: 'Tính năng AI',
         items: [
           { label: 'NPU tích hợp 45 TOPs', badge: '', q: 'NPU laptop' },
           { label: 'Copilot+ Certified', badge: '', q: 'Copilot plus' },
@@ -121,7 +121,7 @@ const megaMenuData = {
     img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
     sections: [
       {
-        title: 'Dòng sản phẩm', icon: '🍎',
+        title: 'Dòng sản phẩm',
         items: [
           { label: 'MacBook Air M4', badge: 'NEW', q: 'MacBook Air M4' },
           { label: 'MacBook Pro M4', badge: 'HOT', q: 'MacBook Pro M4' },
@@ -130,7 +130,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Kích thước', icon: '📐',
+        title: 'Kích thước',
         items: [
           { label: '13 inch – Air', badge: '', q: 'MacBook 13 inch' },
           { label: '14 inch – Pro', badge: 'HOT', q: 'MacBook 14 inch' },
@@ -139,7 +139,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Cấu hình RAM', icon: '💾',
+        title: 'Cấu hình RAM',
         items: [
           { label: '8GB / 256GB', badge: '', q: 'MacBook 8GB' },
           { label: '16GB / 512GB', badge: 'HOT', q: 'MacBook 16GB' },
@@ -153,13 +153,13 @@ const megaMenuData = {
   },
   workstation: {
     label: 'Workstation',
-    accent: '#8b5cf6',
+    accent: '#3b82f6',
     accentBg: 'rgba(139,92,246,0.07)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>`,
     img: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=400&q=80',
     sections: [
       {
-        title: 'Brands', icon: '🏷️',
+        title: 'Brands',
         items: [
           { label: 'ThinkPad', badge: 'HOT', q: 'ThinkPad' },
           { label: 'Dell', badge: '', q: 'Dell Precision' },
@@ -168,7 +168,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Use Cases', icon: '🎯',
+        title: 'Use Cases',
         items: [
           { label: 'CAD', badge: '', q: 'CAD workstation' },
           { label: 'AI Training', badge: 'PRO', q: 'AI workstation' },
@@ -177,7 +177,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Specifications', icon: '⚙️',
+        title: 'Specifications',
         items: [
           { label: 'RTX 5000 Ada', badge: 'PRO', q: 'RTX 5000 Ada' },
           { label: 'RTX 4000 Ada', badge: '', q: 'RTX 4000 Ada' },
@@ -206,7 +206,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Trả góp 0%', icon: '💳',
+        title: 'Trả góp 0%',
         items: [
           { label: '6 tháng không lãi', badge: '', q: 'tra gop 6 thang' },
           { label: '12 tháng 0% lãi', badge: 'HOT', q: 'tra gop 12 thang' },
@@ -215,7 +215,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Combo ưu đãi', icon: '🎁',
+        title: 'Combo ưu đãi',
         items: [
           { label: 'Laptop + Chuột Gaming', badge: '', q: 'combo laptop chuot' },
           { label: 'Laptop + Balo + Hub', badge: 'HOT', q: 'combo laptop balo' },
@@ -230,7 +230,7 @@ const megaMenuData = {
 }
 
 const visibleMegaMenuData = computed(() => {
-  const { aipc, ...menus } = megaMenuData
+  const { aipc, macbook, ...menus } = megaMenuData
   return menus
 })
 
@@ -244,6 +244,7 @@ const closeMega = () => {
 const keepMega = () => { clearTimeout(megaLeaveTimer) }
 
 const menuCategoryMap = {
+  laptop: 'Laptop',
   gaming: 'Laptop Gaming',
   macbook: 'MacBook',
   workstation: 'Workstation',
@@ -253,6 +254,8 @@ const navToCategory = (key) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
     router.push('/khuyen-mai')
+  } else if (key === 'laptop') {
+    router.push('/laptop')
   } else if (key === 'gaming') {
     router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
@@ -260,7 +263,7 @@ const navToCategory = (key) => {
   } else if (key === 'workstation') {
     router.push('/workstation')
   } else {
-    router.push({ path: '/products', query: { category: menuCategoryMap[key] || key } })
+    router.push({ path: '/san-pham', query: { category: menuCategoryMap[key] || key } })
   }
 }
 
@@ -268,6 +271,10 @@ const navToMegaItem = (key, keyword) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
     router.push({ path: '/khuyen-mai', query: keyword ? { q: keyword } : {} })
+    return
+  }
+  if (key === 'laptop') {
+    router.push({ path: '/laptop', query: keyword ? { q: keyword } : {} })
     return
   }
   if (key === 'gaming') {
@@ -278,30 +285,32 @@ const navToMegaItem = (key, keyword) => {
     router.push({ path: '/macbook', query: keyword ? { q: keyword } : {} })
     return
   }
-  router.push({ path: '/products', query: { category: menuCategoryMap[key] || key, q: keyword } })
+  router.push({ path: '/san-pham', query: { category: menuCategoryMap[key] || key, q: keyword } })
 }
 
 const mobileMenuTarget = (key) => {
   if (key === 'sale') return '/khuyen-mai'
+  if (key === 'laptop') return '/laptop'
   if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
   if (key === 'workstation') return '/workstation'
-  return { path: '/products', query: { category: menuCategoryMap[key] || key } }
+  return { path: '/san-pham', query: { category: menuCategoryMap[key] || key } }
 }
 
 const isMenuCurrent = (key) => {
   if (key === 'sale') return route.path === '/khuyen-mai'
+  if (key === 'laptop') return ['/laptop', '/labtop', '/gaming', '/macbook'].includes(route.path)
   if (key === 'workstation') {
     return route.path === '/workstation' ||
-      (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
+      (route.path === '/san-pham' && String(route.query.category || '').toLowerCase() === 'workstation')
   }
 
   if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
-    (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'macbook')
+    (route.path === '/san-pham' && String(route.query.category || '').toLowerCase() === 'macbook')
   if (!['gaming', 'macbook'].includes(key)) return false
   const currentCategory = String(route.query.category || '').toLowerCase()
-  return route.path === '/products' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
+  return route.path === '/san-pham' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
 }
 
 // ===================== TÌM KIẾM =====================
@@ -311,7 +320,7 @@ const searchFocused = ref(false)
 const handleSearch = () => {
   const keyword = searchQuery.value.trim()
   if (!keyword) return
-  router.push({ path: '/products', query: { q: keyword } })
+  router.push({ path: '/san-pham', query: { q: keyword } })
   searchQuery.value = ''
   isMobileMenuOpen.value = false
   searchFocused.value = false
@@ -452,22 +461,22 @@ const goToCart = async () => {
   if (!token) {
     const swal = await getSwal()
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước!')
-    router.push({ path: '/login', query: { redirect: '/cart' } })
+    router.push({ path: '/dang-nhap', query: { redirect: '/gio-hang' } })
     return
   }
-  router.push('/cart')
+  router.push('/gio-hang')
 }
 
 const toggleWishlist = () => {
   const token = getToken()
-  if (!token) { router.push('/login'); return }
+  if (!token) { router.push('/dang-nhap'); return }
   showWishlist.value = !showWishlist.value
   if (showWishlist.value) showUser.value = false
 }
 
 const toggleUser = () => {
   const token = getToken()
-  if (!token) { router.push('/login'); return }
+  if (!token) { router.push('/dang-nhap'); return }
   showUser.value = !showUser.value
   if (showUser.value) showWishlist.value = false
 }
@@ -492,7 +501,7 @@ const isAdminAccount = computed(() => {
   const role = getUserRole(user.value)
   return Boolean(role && role !== 'user')
 })
-const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'Predator Member')
+const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'NextGen Member')
 
 const avatarUrl = computed(() => {
   if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
@@ -515,7 +524,7 @@ const handleLogout = async () => {
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
-  router.push('/login')
+  router.push('/dang-nhap')
 }
 
 const warmProductsPageNow = () => {
@@ -553,8 +562,8 @@ const warmProductsPageNow = () => {
     <div class="header-inner">
 
       <!-- LOGO -->
-      <router-link to="/" class="logo-wrap" aria-label="Predator Group">
-        <img src="/predator_group_logo_header.png" alt="Predator Group" class="logo-img" />
+      <router-link to="/" class="logo-wrap" aria-label="NextGen Laptop">
+        <img src="/nextgen_logo_header.png" alt="NextGen Laptop" class="logo-img" />
       </router-link>
 
       <!-- MEGA MENU NAVIGATION -->
@@ -632,8 +641,8 @@ const warmProductsPageNow = () => {
         </div>
 
         <!-- Extra links -->
-        <router-link to="/news" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
-        <router-link to="/contact" class="nav-plain-link">Liên hệ</router-link>
+        <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
+        <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
       </nav>
 
       <!-- SEARCH BAR -->
@@ -689,7 +698,7 @@ const warmProductsPageNow = () => {
                 </div>
               </div>
               <div class="drop-foot" v-if="wishlistItems.length > 0">
-                <router-link to="/wishlistpage" class="drop-cta" @click="showWishlist = false">Xem tất cả →</router-link>
+                <router-link to="/danh-sach-yeu-thich" class="drop-cta" @click="showWishlist = false">Xem tất cả →</router-link>
               </div>
             </div>
           </transition>
@@ -730,7 +739,7 @@ const warmProductsPageNow = () => {
                   <span>Tổng cộng</span>
                   <span class="cart-total-val">{{ formatPrice(cartTotal) }}</span>
                 </div>
-                <router-link to="/cart" class="drop-cta" @click="showCartDropdown = false">
+                <router-link to="/gio-hang" class="drop-cta" @click="showCartDropdown = false">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                   Xem giỏ hàng
                 </router-link>
@@ -767,7 +776,7 @@ const warmProductsPageNow = () => {
                   </button>
                 </template>
                 <template v-else>
-                  <router-link to="/profile" @click="showUser = false" class="um-item">
+                  <router-link to="/trang-ca-nhan" @click="showUser = false" class="um-item">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       Thông tin cá nhân
@@ -775,7 +784,7 @@ const warmProductsPageNow = () => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </router-link>
 
-                  <router-link to="/affiliate" @click="showUser = false" class="um-item">
+                  <router-link to="/tiep-thi-lien-ket" @click="showUser = false" class="um-item">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                       Affiliate Center
@@ -810,7 +819,7 @@ const warmProductsPageNow = () => {
     <div class="mob-drawer" v-if="isMobileMenuOpen">
       <div class="mob-head">
         <router-link to="/" class="mob-logo" @click="isMobileMenuOpen = false">
-          <img src="/predator_group_logo_header.png" alt="Predator Group" />
+          <img src="/nextgen_logo_header.png" alt="NextGen Laptop" />
         </router-link>
         <button class="mob-close" @click="isMobileMenuOpen = false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -829,18 +838,18 @@ const warmProductsPageNow = () => {
 
       <nav class="mob-nav">
         <div class="mob-nav-label">Danh mục</div>
-        <router-link v-for="(menu, key) in megaMenuData" :key="key"
+        <router-link v-for="(menu, key) in visibleMegaMenuData" :key="key"
           :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link" :class="{ current: isMenuCurrent(key) }">
           {{ menu.label }}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </router-link>
         <div class="mob-nav-label">Thêm</div>
-        <router-link to="/news" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
-        <router-link to="/contact" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+        <router-link to="/tin-tuc" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
+        <router-link to="/lien-he" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
       </nav>
 
       <div class="mob-footer">
-        <router-link to="/cart" @click="isMobileMenuOpen = false" class="mob-cta">
+        <router-link to="/gio-hang" @click="isMobileMenuOpen = false" class="mob-cta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-13z"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
           Giỏ hàng {{ cartCount > 0 ? '(' + cartCount + ')' : '' }}
         </router-link>
@@ -862,34 +871,44 @@ const warmProductsPageNow = () => {
   right: 0;
   z-index: 1001;
   background: #0f172a;
-  height: 34px;
+  color: #94a3b8;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
   display: flex;
   align-items: center;
   overflow: hidden;
+  contain: layout paint;
 }
 .ann-container {
   max-width: none;
   width: 100%;
   margin: auto;
-  padding: 0 100px;
+  padding: 0 clamp(64px, 7vw, 120px);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 38px;
+  min-width: 0;
 }
 .ann-text {
   font-family: 'Inter', sans-serif;
-  font-size: 12.5px;
+  font-size: 13.5px;
+  line-height: 38px;
   color: #94a3b8;
   letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ann-text :deep(strong) { color: #e2e8f0; font-weight: 600; }
 .ann-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ann-link {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; color: #94a3b8; text-decoration: none; cursor: pointer;
+  font-size: 13px; color: #94a3b8; text-decoration: none; cursor: pointer;
   transition: color 0.2s; font-family: 'Inter', sans-serif;
 }
-.ann-link svg { width: 12px; height: 12px; }
+.ann-link svg { width: 14px; height: 14px; }
 .ann-link:hover { color: #e2e8f0; }
 .ann-sep { color: #cbd5e1; font-size: 12px; }
 
@@ -901,15 +920,19 @@ const warmProductsPageNow = () => {
 /* ============================= MAIN HEADER ============================= */
 .header {
   position: fixed;
-  top: 34px;
+  top: 38px;
   left: 0;
   right: 0;
   z-index: 1000;
   background: rgba(13, 27, 46, 0.95);
+  min-height: 78px;
+  max-height: 78px;
+  height: 78px;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: visible;
 }
 .header.scrolled {
   background: rgba(13, 27, 46, 0.99);
@@ -918,14 +941,17 @@ const warmProductsPageNow = () => {
 }
 
 .header-inner {
-  width: 100%;
+  width: min(100%, 100vw);
   margin: 0 auto;
-  padding: 0 100px;
-  height: 68px;
+  padding: 0 clamp(64px, 7vw, 120px);
+  height: 78px;
+  min-height: 78px;
+  max-height: 78px;
   display: grid;
-  grid-template-columns: minmax(270px, 320px) minmax(max-content, 1fr) minmax(260px, 330px) auto;
+  grid-template-columns: minmax(245px, 305px) minmax(max-content, 1fr) minmax(245px, 330px) auto;
   align-items: center;
-  gap: clamp(10px, 1.05vw, 18px);
+  column-gap: clamp(10px, 1.1vw, 18px);
+  overflow: visible;
 }
 
 /* LOGO */
@@ -934,18 +960,18 @@ const warmProductsPageNow = () => {
   justify-self: start;
   display: flex;
   align-items: center;
-  width: clamp(255px, 16.5vw, 285px);
-  height: 66px;
+  width: clamp(265px, 17vw, 320px);
+  height: 78px;
   text-decoration: none;
   flex-shrink: 0;
   overflow: visible;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: filter 0.18s ease;
 }
-.logo-wrap:hover { transform: scale(1.04); }
+.logo-wrap:hover { filter: brightness(1.08); }
 .logo-img {
   width: 100%;
   height: 100%;
-  max-height: 66px;
+  max-height: 76px;
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 3px 8px rgba(0,0,0,0.25));
@@ -954,25 +980,37 @@ const warmProductsPageNow = () => {
 /* ============================= MEGA NAV ============================= */
 .mega-nav {
   grid-column: 2;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: clamp(4px, 0.65vw, 12px);
-  justify-content: center;
+  gap: clamp(8px, 0.85vw, 16px);
+  justify-content: flex-start;
+  justify-self: start;
+  width: 100%;
+  height: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
-.mega-nav-item { position: relative; }
+.mega-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
 
 .nav-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px clamp(8px, 0.65vw, 12px);
+  justify-content: center;
+  gap: 5px;
+  min-height: 48px;
+  padding: 0 clamp(10px, 0.7vw, 14px);
   border: none;
   background: transparent;
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 15.5px;
+  font-weight: 700;
   color: #cbd5e1;
   cursor: pointer;
   border-radius: 10px;
@@ -989,17 +1027,21 @@ const warmProductsPageNow = () => {
   font-weight: 700;
 }
 .nav-chevron {
-  width: 12px; height: 12px;
+  width: 15px; height: 15px;
   transition: transform 0.2s;
   stroke: currentColor;
 }
 .nav-btn.active .nav-chevron { transform: rotate(180deg); }
 
 .nav-plain-link {
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 12px;
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 15.5px;
+  font-weight: 700;
   color: #cbd5e1;
   text-decoration: none;
   border-radius: 10px;
@@ -1020,74 +1062,56 @@ const warmProductsPageNow = () => {
 /* MEGA DROPDOWN */
 .mega-dropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(8, 17, 30, 0.96);
-  backdrop-filter: blur(30px) saturate(190%);
-  -webkit-backdrop-filter: blur(30px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  box-shadow: 
-    0 24px 50px rgba(0, 0, 0, 0.55), 
-    0 8px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   z-index: 9999;
-  width: 860px;
+  width: 585px;
   overflow: hidden;
-  padding: 24px 28px;
+  padding: 7px 8px;
 }
-/* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
+/* Bridge trong suốt lấp khoảng trống 10px giữa button và dropdown */
 .mega-dropdown::before {
   content: '';
   position: absolute;
-  top: -16px;
+  top: -14px;       /* cao hơn khoảng gap 10px để chắc chắn không hở */
   left: 0;
   right: 0;
-  height: 16px;
+  height: 14px;
   background: transparent;
 }
 
 /* BODY LAYOUT - 4 COLUMNS WITH DIVIDERS */
 .mega-body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.35fr;
-  gap: 24px;
+  grid-template-columns: 0.9fr 0.9fr 0.9fr 1.18fr;
+  gap: 0;
   background: transparent;
 }
 
 .mega-col {
-  padding: 0;
+  padding: 0 5px;
+  border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  position: relative;
-}
-
-/* Vertical dividers using pseudo-elements for precision styling */
-.mega-col::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  right: -12px;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.mega-body .mega-col:nth-child(3)::after {
-  display: none; /* Hide before featured panel */
 }
 
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #94a3b8;
-  margin-bottom: 14px;
-  padding-left: 8px;
+  color: #ffffff;
+  margin-bottom: 5px;
+  padding-left: 6px;
 }
 
 /* COMPACT CLEAN LINKS */
@@ -1095,52 +1119,49 @@ const warmProductsPageNow = () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .mega-link {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 3px 5px;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
 }
 .mega-link-text {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #cbd5e1;
-  transition: all 0.2s ease;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: color 0.15s ease;
 }
 .mega-link:hover {
-  background: var(--accent-bg);
-  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.08);
 }
 .mega-link:hover .mega-link-text {
-  color: var(--accent);
-  font-weight: 600;
+  color: #ffffff;
 }
 
 /* ITEM BADGES */
 .mega-item-badge {
-  font-size: 9px;
+  font-size: 7.5px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  padding: 1px 4.5px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
   flex-shrink: 0;
-  margin-left: 2px;
-  text-transform: uppercase;
+  margin-left: 0;
 }
-.mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
-.mega-item-badge.new  { background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
-.mega-item-badge.pro  { background: rgba(139,92,246,0.18); color: #a78bfa; border: 1px solid rgba(139,92,246,0.15); }
-.mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
+.mega-item-badge.hot  { background: rgba(239,68,68,0.15); color: #f87171; }
+.mega-item-badge.new  { background: rgba(34,197,94,0.15); color: #4ade80; }
+.mega-item-badge.pro  { background: rgba(139,92,246,0.15); color: #a78bfa; }
+.mega-item-badge.sale { background: rgba(249,115,22,0.15); color: #fb923c; }
 
 .mega-featured-panel {
-  padding: 0;
+  padding: 0 0 0 7px;
   display: flex;
   flex-direction: column;
 }
@@ -1149,81 +1170,71 @@ const warmProductsPageNow = () => {
 }
 
 .mfp-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  padding: 5px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 .mfp-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--accent);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 15px var(--accent-bg);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2);
 }
 
 .mfp-img-box {
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  height: 100px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  overflow: hidden;
+  padding: 2px;
 }
 .mfp-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s ease;
 }
 .mfp-card:hover .mfp-img {
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .mfp-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 8.5px;
+  top: 4px;
+  right: 4px;
+  font-size: 7px;
   font-weight: 800;
   color: white;
-  padding: 2.5px 7px;
-  border-radius: 6px;
+  padding: 1.5px 4.5px;
+  border-radius: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 .mfp-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .mfp-name {
-  font-size: 13px;
+  font-size: 9.5px;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.4;
-  transition: color 0.2s ease;
-}
-.mfp-card:hover .mfp-name {
-  color: var(--accent);
+  line-height: 1.3;
 }
 
 .mfp-price {
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.2px;
 }
 
 .mfp-btn {
@@ -1231,20 +1242,19 @@ const warmProductsPageNow = () => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 8px 12px;
+  padding: 3.5px;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   color: white;
   font-family: 'Outfit', sans-serif;
-  font-size: 11px;
+  font-size: 8.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 4px;
+  transition: opacity 0.2s ease;
+  margin-top: 1px;
 }
 .mfp-btn:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 12px var(--accent-bg);
+  opacity: 0.9;
 }
 
 /* MEGA DROPDOWN TRANSITIONS */
@@ -1266,7 +1276,7 @@ const warmProductsPageNow = () => {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 99px;
   padding: 0 0 0 16px;
-  height: 40px;
+  height: 42px;
   overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.035),
@@ -1286,8 +1296,8 @@ const warmProductsPageNow = () => {
   background: transparent;
   outline: none;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 600;
   color: #e7e7e7 !important;
   padding: 0 10px 0 0;
   min-width: 0;
@@ -1295,19 +1305,19 @@ const warmProductsPageNow = () => {
 }
 .search-input::placeholder { color: #68686b !important; opacity: 1; }
 .search-clear {
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   border: none; background: rgba(255,255,255,0.08); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; margin-right: 8px;
   transition: background 0.2s;
 }
 .search-clear:hover { background: rgba(239,68,68,0.15); }
-.search-clear svg { width: 12px; height: 12px; color: #94a3b8; }
+.search-clear svg { width: 13px; height: 13px; color: #94a3b8; }
 .search-keyboard {
   position: relative;
-  width: 21px;
-  height: 14px;
-  margin-right: 10px;
+  width: 24px;
+  height: 16px;
+  margin-right: 12px;
   flex-shrink: 0;
   opacity: 0.78;
 }
@@ -1346,23 +1356,23 @@ const warmProductsPageNow = () => {
 }
 .search-submit::before {
   content: '';
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: 2.3px solid currentColor;
   border-radius: 50%;
   position: absolute;
-  top: 10px;
-  left: 18px;
+  top: 11px;
+  left: 20px;
 }
 .search-submit::after {
   content: '';
-  width: 10px;
+  width: 11px;
   height: 2.3px;
   background: currentColor;
   border-radius: 999px;
   position: absolute;
-  top: 25px;
-  left: 32px;
+  top: 28px;
+  left: 36px;
   transform: rotate(45deg);
   transform-origin: left center;
 }
@@ -1376,14 +1386,14 @@ const warmProductsPageNow = () => {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .icon-action {
   position: relative;
-  width: 40px; height: 40px;
-  border-radius: 12px;
+  width: 42px; height: 42px;
+  border-radius: 13px;
   border: 1.5px solid transparent;
   background: transparent;
   display: flex; align-items: center; justify-content: center;
@@ -1392,7 +1402,7 @@ const warmProductsPageNow = () => {
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 .icon-action svg { width: 20px; height: 20px; }
-.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
+.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
 .icon-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
 .cart-action {
@@ -1401,12 +1411,12 @@ const warmProductsPageNow = () => {
   border: 1.5px solid transparent;
 }
 .cart-action svg { stroke: currentColor; }
-.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
+.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
 .cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
 .user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.user-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;
@@ -1497,7 +1507,6 @@ const warmProductsPageNow = () => {
 .drop-item:hover { 
   background: rgba(37,99,235,0.08); 
   border-color: rgba(37,99,235,0.25); 
-  transform: translateY(-1px); 
   box-shadow: 0 4px 12px rgba(37,99,235,0.12); 
 }
 .drop-item img { 
@@ -1556,7 +1565,7 @@ const warmProductsPageNow = () => {
   transition: all 0.22s;
 }
 .drop-cta svg { width: 14px; height: 14px; }
-.drop-cta:hover { transform: translateY(-2.0px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+.drop-cta:hover { box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
 
 /* USER CARD */
 .user-card {
@@ -1585,8 +1594,8 @@ const warmProductsPageNow = () => {
 .um-item > svg { width: 13px; height: 13px; color: #cbd5e1; }
 .um-item:hover { background: rgba(37,99,235,0.42); border-color: rgba(96,165,250,0.62); color: #ffffff; }
 .um-item:hover > svg { color: #bfdbfe; }
-.um-item.admin { background: rgba(99,102,241,0.24); border-color: rgba(129,140,248,0.28); color: #ede9fe; }
-.um-item.admin:hover { background: rgba(99,102,241,0.42); border-color: rgba(167,139,250,0.55); color: #ffffff; }
+.um-item.admin { background: rgba(37,99,235,0.24); border-color: rgba(96,165,250,0.32); color: #dbeafe; }
+.um-item.admin:hover { background: rgba(37,99,235,0.42); border-color: rgba(96,165,250,0.58); color: #ffffff; }
 .um-item.logout { color: #fecaca; background: rgba(239,68,68,0.20); border-color: rgba(239,68,68,0.34); }
 .um-item.logout:hover { background: rgba(220,38,38,0.5); border-color: rgba(239,68,68,0.7); color: #ffffff; }
 .um-divider { height: 1px; background: rgba(148,163,184,0.18); margin: 4px 0; }
@@ -1684,7 +1693,7 @@ const warmProductsPageNow = () => {
   color: #2563eb;
   font-weight: 700;
 }
-.mob-link.labs { color: #6366f1; }
+.mob-link.labs { color: #2563eb; }
 
 .mob-footer {
   padding: 16px 20px 24px;
@@ -1694,9 +1703,9 @@ const warmProductsPageNow = () => {
 .mob-cta {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 13px; border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: white; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
-  text-decoration: none; box-shadow: 0 6px 18px rgba(99,102,241,0.25);
+  text-decoration: none; box-shadow: 0 6px 18px rgba(37,99,235,0.25);
   transition: all 0.2s;
 }
 .mob-cta svg { width: 16px; height: 16px; }
@@ -1710,11 +1719,15 @@ const warmProductsPageNow = () => {
 /* ============================= RESPONSIVE ============================= */
 @media (max-width: 1200px) {
   .ann-container {
-    padding: 0 100px;
+    padding: 0 72px;
   }
   .header-inner {
-    padding: 0 100px;
-    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+    padding: 0 72px;
+    grid-template-columns: auto minmax(240px, 1fr) auto auto;
+  }
+  .logo-wrap {
+    width: clamp(270px, 27vw, 330px);
+    height: 78px;
   }
   .mega-nav { display: none; }
   .search-wrap {
@@ -1724,14 +1737,17 @@ const warmProductsPageNow = () => {
   .header-actions { grid-column: 3; }
   .hamburger { grid-column: 4; }
   .hamburger { display: flex; }
-  .search-wrap { max-width: 260px; }
+  .search-wrap { max-width: 300px; }
 }
 
 @media (max-width: 900px) {
   .search-wrap { display: none; }
   .header-inner {
     grid-template-columns: auto 1fr auto;
-    gap: 12px;
+    gap: 14px;
+  }
+  .logo-wrap {
+    width: clamp(245px, 38vw, 300px);
   }
   .header-actions {
     grid-column: 2;
@@ -1744,11 +1760,23 @@ const warmProductsPageNow = () => {
   .ann-bar { display: none; }
   .header {
     top: 0;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
   }
   .header-inner {
     width: calc(100% - 32px);
     padding: 0;
-    height: 60px;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
+  }
+  .logo-wrap {
+    width: clamp(190px, 52vw, 235px);
+    height: 62px;
+  }
+  .logo-img {
+    max-height: 60px;
   }
 }
 
