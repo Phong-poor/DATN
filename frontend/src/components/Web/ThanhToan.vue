@@ -980,7 +980,7 @@ const confirmOrder = async () => {
 
           <div class="row" v-if="freeshipDiscount > 0">
             <span>Freeship ({{ freeshipCode }})</span>
-            <b style="color:#16a34a">-{{ format(freeshipDiscount) }}</b>
+            <b style="color:#2563eb">-{{ format(freeshipDiscount) }}</b>
           </div>
 
           <div class="row" v-if="coinDiscountValue > 0">
@@ -1362,18 +1362,18 @@ textarea {
   display: inline-block;
   margin-right: 6px;
   font-size: 11px;
-  color: #22d3ee;
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #3b82f6;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
   padding: 3px 8px;
   border-radius: 99px;
   font-weight: 700;
 }
 
 .address-card .default-tag {
-  color: #22d3ee;
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #3b82f6;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
 /* MODAL OVERLAY */
@@ -1571,19 +1571,19 @@ textarea {
   gap: 8px;
   padding: 9px 21px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%) !important;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%) !important;
   border: none !important;
   color: #ffffff !important;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
 }
 
 .btn-save:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(6, 182, 212, 0.3) !important;
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3) !important;
 }
 
 .btn-save:disabled {
@@ -1817,7 +1817,7 @@ textarea {
   gap: 4px;
   white-space: nowrap;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: linear-gradient(135deg, #3b82f6, #3b82f6);
   color: white;
   font-size: 9px;
   font-weight: 800;
@@ -2045,14 +2045,14 @@ textarea {
 }
 
 .voucher-select.green:focus {
-  border-color: #16a34a;
+  border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
 }
 
 .voucher-applied {
   margin-top: 6px;
   font-size: 12px;
-  color: #15803d;
+  color: #1d4ed8;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   border-radius: 6px;

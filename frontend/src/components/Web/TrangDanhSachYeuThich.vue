@@ -107,8 +107,8 @@
               <path d="M32 56s-24-14-24-28a12 12 0 0 1 24 0 12 12 0 0 1 24 0C56 42 32 56 32 56z" fill="url(#heartGrad)" />
               <defs>
                 <linearGradient id="heartGrad" x1="8" y1="16" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#818cf8"/>
-                  <stop offset="1" stop-color="#6366f1"/>
+                  <stop stop-color="#93c5fd"/>
+                  <stop offset="1" stop-color="#3b82f6"/>
                 </linearGradient>
               </defs>
             </svg>
@@ -425,11 +425,11 @@ const onImgError = (e) => {
 
 /* ===================== PAGE LAYOUT ===================== */
 .wishlist-page {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #eef2ff;
-  --primary-glow: rgba(99, 102, 241, 0.18);
-  --success: #22c55e;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-glow: rgba(37, 99, 235, 0.18);
+  --success: #3b82f6;
   --danger: #ef4444;
   --text-1: #0f172a;
   --text-2: #475569;
@@ -509,7 +509,7 @@ const onImgError = (e) => {
 .btn-primary svg { width: 15px; height: 15px; }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
 }
 
 .btn-secondary {
@@ -573,8 +573,8 @@ const onImgError = (e) => {
   height: 22px;
 }
 .stat-icon.purple { background: rgba(139, 92, 246, 0.1); color: rgb(139, 92, 246); }
-.stat-icon.green  { background: rgba(34, 197, 94, 0.1); color: rgb(34, 197, 94); }
-.stat-icon.indigo { background: rgba(99, 102, 241, 0.1); color: rgb(99, 102, 241); }
+.stat-icon.green  { background: rgba(37, 99, 235, 0.1); color: rgb(34, 197, 94); }
+.stat-icon.indigo { background: rgba(37, 99, 235, 0.1); color: rgb(99, 102, 241); }
 .stat-icon.amber  { background: rgba(245, 158, 11, 0.1); color: rgb(245, 158, 11); }
 
 .stat-val {
@@ -709,7 +709,7 @@ const onImgError = (e) => {
 
 .product-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.08);
   border-color: #c7d2fe;
 }
 
@@ -771,9 +771,9 @@ const onImgError = (e) => {
   z-index: 3;
 }
 .stock-badge.in-stock  { 
-  background: rgba(34, 197, 94, 0.08); 
-  color: #16a34a; 
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(37, 99, 235, 0.08); 
+  color: #2563eb; 
+  border: 1px solid rgba(37, 99, 235, 0.2);
 }
 .stock-badge.out-stock { 
   background: rgba(239, 68, 68, 0.08); 
@@ -971,13 +971,13 @@ const onImgError = (e) => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
   transition: var(--transition);
 }
 .btn-add-cart svg { width: 13px; height: 13px; }
 .btn-add-cart:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
 }
 
 .btn-notify {

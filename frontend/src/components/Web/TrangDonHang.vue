@@ -63,12 +63,12 @@ const statusMap = {
     pending: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
     confirmed: { label: 'Đã xác nhận', color: '#0ea5e9', bg: '#e0f2fe' },
     shipping: { label: 'Đang giao', color: '#2563eb', bg: '#dbeafe' },
-    done: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
+    done: { label: 'Hoàn thành', color: '#2563eb', bg: '#dcfce7' },
     refund_pending: { label: 'Yêu cầu hoàn trả', color: '#f97316', bg: '#ffedd5' },
     refund_pickup: { label: 'Chờ lấy hàng hoàn', color: '#d97706', bg: '#fef3c7' },
     refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
     refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
-    refunded: { label: 'Đã hoàn tiền', color: '#8b5cf6', bg: '#ede9fe' },
+    refunded: { label: 'Đã hoàn tiền', color: '#3b82f6', bg: '#ede9fe' },
     refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
@@ -1130,8 +1130,8 @@ onUnmounted(() => {
 
 .category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.cat-tab:hover { color: #2563eb; }
+.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
 </style>
 <style scoped>
 
@@ -1140,9 +1140,9 @@ onUnmounted(() => {
 .tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
 .tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; }
 .tl-dot svg { width: 16px; height: 16px; }
-.tl-item.done .tl-dot { background: #10b981; border-color: #10b981; }
+.tl-item.done .tl-dot { background: #2563eb; border-color: #2563eb; }
 .tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
-.tl-line.done { background: #10b981; }
+.tl-line.done { background: #2563eb; }
 .tl-content { padding: 0 10px; }
 .tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .tl-date { font-size: 11px; color: #94a3b8; margin: 0; }

@@ -1347,7 +1347,7 @@ onUnmounted(() => {
 }
 
 .bot-product-buy-btn {
-  background: linear-gradient(135deg, #22c55e, #15803d);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white !important;
   border: none;
   padding: 4px 10px;
@@ -1360,7 +1360,7 @@ onUnmounted(() => {
 
 .bot-product-buy-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
 .bot-product-buy-btn:active {
@@ -1709,7 +1709,7 @@ onUnmounted(() => {
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white !important;
   border: none;
   border-radius: 20px;
@@ -1723,7 +1723,7 @@ onUnmounted(() => {
 
 .submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* CONFIRM VIEW */
@@ -1787,7 +1787,7 @@ onUnmounted(() => {
 
 .confirm-total b {
   font-size: 16px;
-  color: #22c55e;
+  color: #3b82f6;
   font-weight: 800;
 }
 
@@ -1810,7 +1810,7 @@ onUnmounted(() => {
 }
 
 .confirm-actions .confirm-btn {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white !important;
   border: none;
   border-radius: 20px;
@@ -1822,7 +1822,7 @@ onUnmounted(() => {
 }
 
 .confirm-actions .confirm-btn:hover {
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .confirm-actions button:disabled {
@@ -1842,8 +1842,8 @@ onUnmounted(() => {
 .bill-success-icon {
   width: 48px;
   height: 48px;
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: rgba(37, 99, 235, 0.15);
+  color: #3b82f6;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1914,7 +1914,7 @@ onUnmounted(() => {
 }
 
 .bill-total b {
-  color: #22c55e;
+  color: #3b82f6;
 }
 
 .bill-actions {
@@ -2036,7 +2036,7 @@ onUnmounted(() => {
 
 .payment-tip-badge.vnpay,
 .payment-tip-badge.momo {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(37, 99, 235, 0.1);
   color: #4ade80;
 }
 
@@ -2048,7 +2048,7 @@ onUnmounted(() => {
 /* ===== VIETQR STYLING ===== */
 .vietqr-payment-box {
   background: #0d1b2e;
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.2);
   border-radius: 12px;
   width: 100%;
   padding: 14px;
@@ -2635,12 +2635,12 @@ onUnmounted(() => {
 
 .chatbot-window .step.done span,
 .chatbot-window .step.active span {
-  background: #16a34a;
+  background: #2563eb;
   color: #ffffff;
 }
 
 .chatbot-window .step.active small {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .chatbot-window .step-line {
@@ -2648,7 +2648,7 @@ onUnmounted(() => {
 }
 
 .chatbot-window .step-line.active {
-  background: #16a34a;
+  background: #2563eb;
 }
 
 .chatbot-window .checkout-scroll {
@@ -2681,7 +2681,7 @@ onUnmounted(() => {
 }
 
 .chatbot-window .shipping-product.active {
-  border-color: #16a34a;
+  border-color: #2563eb;
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.14);
 }
 
@@ -2722,7 +2722,7 @@ onUnmounted(() => {
   min-width: 48px;
   padding: 6px 8px;
   border-radius: 8px;
-  background: #16a34a;
+  background: #2563eb;
   color: #ffffff;
   font-style: normal;
   font-size: 11.5px;
@@ -2732,7 +2732,7 @@ onUnmounted(() => {
 }
 
 .chatbot-window .shipping-product.active em {
-  background: #15803d;
+  background: #1d4ed8;
 }
 
 .chatbot-window .shipping-form {
@@ -2769,7 +2769,7 @@ onUnmounted(() => {
 }
 
 .chatbot-window .shipping-submit {
-  background: #16a34a;
+  background: #2563eb;
   color: #ffffff;
   min-height: 42px;
   border-radius: 10px;
@@ -2814,7 +2814,7 @@ onUnmounted(() => {
 .deposit-row strong,
 .confirm-deposit-plan strong,
 .bill-deposit-plan strong {
-  color: #15803d;
+  color: #1d4ed8;
   white-space: nowrap;
 }
 
@@ -2843,7 +2843,7 @@ onUnmounted(() => {
   height: 16px;
   flex: 0 0 16px;
   margin-top: 1px;
-  accent-color: #16a34a;
+  accent-color: #2563eb;
 }
 
 .deposit-continue-btn {
@@ -2852,7 +2852,7 @@ onUnmounted(() => {
   margin-top: 10px;
   border: 0;
   border-radius: 10px;
-  background: #16a34a;
+  background: #2563eb;
   color: #ffffff;
   font-size: 13px;
   font-weight: 900;
@@ -2862,7 +2862,7 @@ onUnmounted(() => {
 .confirm-deposit-plan {
   margin-bottom: 10px;
   background: rgba(22, 163, 74, 0.1);
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: rgba(37, 99, 235, 0.35);
   color: #e2e8f0;
 }
 
@@ -2883,8 +2883,8 @@ onUnmounted(() => {
 
 .bill-deposit-plan {
   margin-top: 10px;
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.28);
   color: #e2e8f0;
 }
 
@@ -2959,7 +2959,7 @@ onUnmounted(() => {
 }
 
 .chatbot-window .confirm-actions .confirm-btn {
-  background: #16a34a;
+  background: #2563eb;
   color: #ffffff !important;
 }
 

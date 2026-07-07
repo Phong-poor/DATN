@@ -73,7 +73,7 @@ const statsData = [
   { value: '500+', label: 'Sản phẩm giảm giá', icon: Flame, color: '#ef4444' },
   { value: '100+', label: 'Voucher độc quyền', icon: TicketPercent, color: '#3b82f6' },
   { value: 'Mỗi ngày', label: 'Flash Sale giờ vàng', icon: Sparkles, color: '#00e5ff' },
-  { value: 'Miễn phí', label: 'Vận chuyển toàn quốc', icon: Truck, color: '#10b981' }
+  { value: 'Miễn phí', label: 'Vận chuyển toàn quốc', icon: Truck, color: '#2563eb' }
 ]
 
 const fallbackVouchers = [
@@ -612,7 +612,7 @@ const initScrollReveal = () => {
 
         <div class="stat-box-card scroll-reveal reveal-fade-up" style="transition-delay: 0.3s;">
           <div class="stat-visual">
-            <Truck class="stat-icon" style="color: #10b981;" />
+            <Truck class="stat-icon" style="color: #2563eb;" />
           </div>
           <div class="stat-info">
             <h3>Miễn Phí Ship</h3>
@@ -1868,7 +1868,7 @@ const initScrollReveal = () => {
   pointer-events: none;
 }
 
-.voucher-glass-card.shipping .voucher-glow-accent { background: #10b981; }
+.voucher-glass-card.shipping .voucher-glow-accent { background: #2563eb; }
 .voucher-glass-card.payment .voucher-glow-accent { background: #00e5ff; }
 .voucher-glass-card.product .voucher-glow-accent { background: #3b82f6; }
 
@@ -1889,8 +1889,8 @@ const initScrollReveal = () => {
   text-transform: uppercase;
 }
 
-.voucher-glass-card.shipping .voucher-badge { color: #34d399 !important; background: rgba(16, 185, 129, 0.08); }
-.voucher-glass-card.payment .voucher-badge { color: #22d3ee !important; background: rgba(0, 229, 255, 0.08); }
+.voucher-glass-card.shipping .voucher-badge { color: #93c5fd !important; background: rgba(37, 99, 235, 0.08); }
+.voucher-glass-card.payment .voucher-badge { color: #3b82f6 !important; background: rgba(0, 229, 255, 0.08); }
 .voucher-glass-card.product .voucher-badge { color: #60a5fa !important; background: rgba(59, 130, 246, 0.08); }
 
 .voucher-code-label {
@@ -1944,7 +1944,7 @@ const initScrollReveal = () => {
 }
 
 .btn-copy-code.copied {
-  background: #10b981 !important;
+  background: #2563eb !important;
   color: white !important;
   border-color: transparent !important;
 }
@@ -1999,7 +1999,7 @@ const initScrollReveal = () => {
 }
 
 .combo-discount-badge {
-  background: linear-gradient(135deg, #a855f7 0%, #7928ca 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   font-size: 11px;
   font-weight: 800;

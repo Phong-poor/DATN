@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="floating-menu-container" :class="{ 'menu-open': isOpen }">
     <!-- Menu Options -->
     <transition name="speed-dial">
@@ -96,7 +96,7 @@ const triggerAction = (type) => {
   align-items: center;
   justify-content: center;
   box-shadow: 
-    0 10px 25px rgba(99, 102, 241, 0.35), 
+    0 10px 25px rgba(37, 99, 235, 0.35), 
     0 0 20px rgba(217, 70, 239, 0.2);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
@@ -107,7 +107,7 @@ const triggerAction = (type) => {
 .master-menu-btn:hover {
   transform: translateY(-3px) scale(1.04);
   box-shadow: 
-    0 14px 30px rgba(99, 102, 241, 0.45), 
+    0 14px 30px rgba(37, 99, 235, 0.45), 
     0 0 25px rgba(217, 70, 239, 0.35);
 }
 
@@ -144,19 +144,19 @@ const triggerAction = (type) => {
   border: 2px solid white;
   border-radius: 50%;
   z-index: 10;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
   animation: status-pulse 2s infinite;
 }
 
 @keyframes status-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+    box-shadow: 0 0 0 6px rgba(96, 165, 250, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0);
   }
 }
 
@@ -287,12 +287,12 @@ const triggerAction = (type) => {
 
 /* Option Button Specifics */
 .ai-btn {
-  background: #4f46e5;
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.3);
+  background: #2563eb;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.3);
 }
 
 .ai-btn:hover {
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
 }
 
 .zalo-btn {

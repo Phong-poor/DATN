@@ -583,7 +583,7 @@ onMounted(() => {
                 <circle cx="40" cy="44" r="3" fill="url(#bagGrad)"/>
                 <defs>
                   <linearGradient id="bagGrad" x1="8" y1="8" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#818cf8"/><stop offset="1" stop-color="#6366f1"/>
+                    <stop stop-color="#93c5fd"/><stop offset="1" stop-color="#3b82f6"/>
                   </linearGradient>
                 </defs>
               </svg>
@@ -898,11 +898,11 @@ onMounted(() => {
 
 /* ==================== CSS VARIABLES ==================== */
 .cart-page {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #eef2ff;
-  --primary-glow: rgba(99, 102, 241, 0.2);
-  --success: #22c55e;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-glow: rgba(37, 99, 235, 0.2);
+  --success: #3b82f6;
   --danger: #ef4444;
   --text-1: #0f172a;
   --text-2: #475569;
@@ -948,7 +948,7 @@ onMounted(() => {
   box-shadow: 0 12px 32px rgba(0,0,0,0.15);
   backdrop-filter: blur(10px);
 }
-.premium-toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+.premium-toast.success { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
 .premium-toast.error   { background: linear-gradient(135deg, #dc2626, #b91c1c); }
 .toast-icon {
   width: 22px; height: 22px; border-radius: 50%;
@@ -1165,7 +1165,7 @@ onMounted(() => {
   text-decoration: none; box-shadow: 0 6px 18px var(--primary-glow); transition: var(--tr);
 }
 .empty-cta svg { width: 16px; height: 16px; }
-.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.35); }
+.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(37, 99, 235, 0.35); }
 
 /* ITEMS LIST */
 .items-list { display: flex; flex-direction: column; gap: 12px; }
@@ -1186,11 +1186,11 @@ onMounted(() => {
 .cart-item-card.is-selected {
   border-color: var(--primary);
   background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
-  box-shadow: 0 4px 16px rgba(99,102,241,0.12);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.12);
 }
 .cart-item-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1);
   border-color: #c7d2fe;
 }
 .cart-item-card.is-selected:hover { border-color: var(--primary-dark); }
@@ -1301,7 +1301,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1;
+  color: #3b82f6;
   transition: var(--tr);
 }
 .qty-btn svg { width: 12px; height: 12px; }
@@ -1371,7 +1371,7 @@ onMounted(() => {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 24px;
-  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.06);
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.06);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1414,7 +1414,7 @@ onMounted(() => {
 .sum-val.discount { color: var(--success); }
 .promo-badge {
   background: #dcfce7;
-  color: #16a34a;
+  color: #2563eb;
   font-size: 9px;
   font-weight: 800;
   padding: 2px 6px;
@@ -1427,7 +1427,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #16a34a;
+  color: #2563eb;
   font-weight: 600;
 }
 .freeship-label svg { width: 12px; height: 12px; }
@@ -1442,10 +1442,10 @@ onMounted(() => {
 .freeship-header-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .freeship-icon {
   width: 28px; height: 28px; border-radius: 8px;
-  background: #d1fae5; color: #15803d;
+  background: #d1fae5; color: #1d4ed8;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.freeship-icon.met { background: #15803d; color: white; }
+.freeship-icon.met { background: #1d4ed8; color: white; }
 .freeship-icon svg { width: 14px; height: 14px; }
 .freeship-text { font-size: 12px; font-weight: 600; color: #166534; }
 .freeship-text.pending { color: #92400e; }
@@ -1455,7 +1455,7 @@ onMounted(() => {
 }
 .freeship-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #16a34a);
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
   border-radius: 10px;
   transition: width 0.5s ease;
 }
@@ -1473,7 +1473,7 @@ onMounted(() => {
   letter-spacing: 0.3px;
 }
 .coupon-label svg { width: 12px; height: 12px; }
-.coupon-label.green { color: #16a34a; }
+.coupon-label.green { color: #2563eb; }
 
 .coupon-select {
   width: 100%;
@@ -1541,7 +1541,7 @@ onMounted(() => {
 }
 .checkout-btn svg { width: 18px; height: 18px; }
 .arrow-right { margin-left: auto; }
-.checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4); }
+.checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); }
 .checkout-disabled { pointer-events: none; opacity: 0.45; }
 
 .admin-shopping-lock {
@@ -1576,7 +1576,7 @@ onMounted(() => {
 .pay-method.mc     { border-color: #eb001b; color: #eb001b; }
 .pay-method.momo   { border-color: #a50064; color: #a50064; }
 .pay-method.vnpay  { border-color: #0066b3; color: #0066b3; }
-.pay-method.cod    { border-color: var(--success); color: #16a34a; }
+.pay-method.cod    { border-color: var(--success); color: #2563eb; }
 
 /* TRUST BADGES */
 .trust-grid {
@@ -1601,8 +1601,8 @@ onMounted(() => {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .trust-icon svg { width: 13px; height: 13px; }
-.trust-icon.shield { background: #ede9fe; color: #7c3aed; }
-.trust-icon.check  { background: #dcfce7; color: #16a34a; }
+.trust-icon.shield { background: #ede9fe; color: #2563eb; }
+.trust-icon.check  { background: #dcfce7; color: #2563eb; }
 .trust-icon.refresh{ background: #fef3c7; color: #d97706; }
 .trust-icon.credit { background: #dbeafe; color: #2563eb; }
 
@@ -1688,11 +1688,11 @@ onMounted(() => {
 
 .gift-offer-text span {
     font-size: 11px;
-    color: #15803d;
+    color: #1d4ed8;
 }
 
 .gift-free-badge {
-    background: #16a34a;
+    background: #2563eb;
     color: white;
     font-size: 13px;
     font-weight: 900;
@@ -1704,12 +1704,12 @@ onMounted(() => {
 
 /* Badge xanh l� cho combo qu� t?ng */
 .badge-tag-gift {
-    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
 }
 
 /* Gi� mi?n ph� */
 .free-price-text {
-    color: #16a34a !important;
+    color: #2563eb !important;
     font-weight: 900 !important;
     font-size: 12px !important;
 }
@@ -1717,7 +1717,7 @@ onMounted(() => {
 .free-combo-price {
     font-size: 18px;
     font-weight: 900;
-    color: #16a34a !important;
+    color: #2563eb !important;
     letter-spacing: 0.5px;
 }
 
@@ -1750,7 +1750,7 @@ onMounted(() => {
     gap: 4px;
     white-space: nowrap;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    background: linear-gradient(135deg, #3b82f6, #3b82f6);
     color: white;
     font-size: 10px;
     font-weight: 800;
