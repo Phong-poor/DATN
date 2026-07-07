@@ -342,10 +342,22 @@ const addToWishlist = async (product) => {
   }
 }
 
+const scrollToCatalog = () => {
+  setTimeout(() => {
+    const el = document.getElementById('catalog')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 250)
+}
+
 watch(() => route.fullPath, () => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
   if (line && laptopLines.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
+  if (route.query.scroll === 'catalog' || route.query.q) {
+    scrollToCatalog()
+  }
 })
 
 watch(filteredProducts, () => {
@@ -357,6 +369,9 @@ onMounted(() => {
   if (line && laptopLines.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   loadProducts()
+  if (route.query.scroll === 'catalog' || route.query.q) {
+    scrollToCatalog()
+  }
 })
 </script>
 

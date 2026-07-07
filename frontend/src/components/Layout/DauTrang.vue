@@ -316,14 +316,119 @@ const isMenuCurrent = (key) => {
 // ===================== TÌM KIẾM =====================
 const searchQuery = ref('')
 const searchFocused = ref(false)
+const searchSuggestions = ref([])
+const isSearchingSuggestions = ref(false)
+const showSearchSuggestions = ref(false)
+let debounceTimeout = null
+
+const fetchSearchSuggestions = async () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) {
+    searchSuggestions.value = []
+    showSearchSuggestions.value = false
+    return
+  }
+  isSearchingSuggestions.value = true
+  showSearchSuggestions.value = true
+  try {
+    const res = await api.get('/sanpham/search', {
+      params: { q: keyword },
+      skipGlobalLoader: true
+    })
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    searchSuggestions.value = items.slice(0, 3).map(p => {
+      const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+      const variant = variants.length
+        ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
+        : null
+      const price = Number(variant?.gia || p.gia || 0)
+      
+      const gallery = p.hinh_anhs || p.hinhAnhs || []
+      const firstGallery = Array.isArray(gallery)
+        ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+        : null
+      const firstGalleryImage = firstGallery?.duongdan
+        || firstGallery?.duong_dan
+        || firstGallery?.url
+        || firstGallery?.path
+        || firstGallery?.image
+        || ''
+      
+      const imgPath = variant?.hinhanh || variant?.image || p.hinhanh || firstGalleryImage
+      const image = imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+      return {
+        id_sanpham: p.id_sanpham,
+        id_bienthe: variant?.id_bienthe || null,
+        tenSP: p.tenSP,
+        gia: price,
+        image
+      }
+    })
+  } catch (err) {
+    console.error('Lỗi tìm kiếm gợi ý:', err)
+    searchSuggestions.value = []
+  } finally {
+    isSearchingSuggestions.value = false
+  }
+}
+
+const onSearchInput = () => {
+  clearTimeout(debounceTimeout)
+  if (!searchQuery.value.trim()) {
+    searchSuggestions.value = []
+    showSearchSuggestions.value = false
+    return
+  }
+  showSearchSuggestions.value = true
+  debounceTimeout = setTimeout(() => {
+    fetchSearchSuggestions()
+  }, 300)
+}
+
+const onSearchFocus = () => {
+  searchFocused.value = true
+  if (searchQuery.value.trim()) {
+    showSearchSuggestions.value = true
+    if (searchSuggestions.value.length === 0) {
+      fetchSearchSuggestions()
+    }
+  }
+}
+
+const onSearchBlur = () => {
+  searchFocused.value = false
+  setTimeout(() => {
+    showSearchSuggestions.value = false
+  }, 200)
+}
 
 const handleSearch = () => {
   const keyword = searchQuery.value.trim()
   if (!keyword) return
-  router.push({ path: '/san-pham', query: { q: keyword } })
+  router.push({ path: '/laptop', query: { q: keyword, scroll: 'catalog' } })
   searchQuery.value = ''
   isMobileMenuOpen.value = false
   searchFocused.value = false
+  showSearchSuggestions.value = false
+}
+
+const goToProductDetail = (product) => {
+  router.push({
+    path: `/san-pham/${product.id_sanpham}`,
+    query: product.id_bienthe ? { variant: product.id_bienthe } : {}
+  })
+  showSearchSuggestions.value = false
+  searchFocused.value = false
+  searchQuery.value = ''
+}
+
+const goToMoreResults = () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) return
+  router.push({ path: '/laptop', query: { q: keyword, scroll: 'catalog' } })
+  showSearchSuggestions.value = false
+  searchFocused.value = false
+  searchQuery.value = ''
 }
 
 // ===================== GIỎ HÀNG BADGE =====================
@@ -492,6 +597,9 @@ const handleOutside = (e) => {
     showUser.value = false
     activeMegaMenu.value = null
   }
+  if (!e.target.closest('.search-container')) {
+    showSearchSuggestions.value = false
+  }
 }
 
 const user = ref(null)
@@ -646,23 +754,52 @@ const warmProductsPageNow = () => {
       </nav>
 
       <!-- SEARCH BAR -->
-      <div class="search-wrap" :class="{ focused: searchFocused }">
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Tìm kiếm"
-          v-model="searchQuery"
-          @keyup.enter="handleSearch"
-          @focus="searchFocused = true"
-          @blur="searchFocused = false"
-        />
-        <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''; searchFocused = false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <span class="search-keyboard" aria-hidden="true"></span>
-        <button type="button" class="search-submit" @click="handleSearch" aria-label="Tim kiem" title="Tim kiem">
-          Tìm
-        </button>
+      <div class="search-container">
+        <div class="search-wrap" :class="{ focused: searchFocused }">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Tìm kiếm"
+            v-model="searchQuery"
+            @input="onSearchInput"
+            @keyup.enter="handleSearch"
+            @focus="onSearchFocus"
+            @blur="onSearchBlur"
+          />
+          <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''; searchFocused = false; searchSuggestions = []; showSearchSuggestions = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <span class="search-keyboard" aria-hidden="true"></span>
+          <button type="button" class="search-submit" @click="handleSearch" aria-label="Tim kiem" title="Tim kiem">
+            Tìm
+          </button>
+        </div>
+
+        <!-- SUGGESTIONS DROPDOWN -->
+        <transition name="suggest-fade">
+          <div class="search-suggestions" v-if="showSearchSuggestions && searchQuery.trim() && (searchSuggestions.length > 0 || isSearchingSuggestions)">
+            <div v-if="isSearchingSuggestions" class="suggest-loading">
+              <span>Đang tìm kiếm...</span>
+            </div>
+            <div v-else class="suggest-list">
+              <div 
+                v-for="product in searchSuggestions" 
+                :key="product.id_sanpham" 
+                class="suggest-item"
+                @mousedown="goToProductDetail(product)"
+              >
+                <img :src="product.image" class="suggest-img" alt="product" />
+                <div class="suggest-info">
+                  <p class="suggest-name">{{ product.tenSP }}</p>
+                  <p class="suggest-price">{{ formatPrice(product.gia) }}</p>
+                </div>
+              </div>
+              <div class="suggest-more" @mousedown="goToMoreResults">
+                Xem thêm &quot;{{ searchQuery }}&quot; &rarr;
+              </div>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <!-- HEADER ACTIONS -->
@@ -1264,11 +1401,16 @@ const warmProductsPageNow = () => {
 .mega-drop-leave-to   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
 
 /* ============================= SEARCH ============================= */
-.search-wrap {
+.search-container {
   grid-column: 3;
   width: 100%;
   max-width: 330px;
   justify-self: end;
+  position: relative;
+  z-index: 1000;
+}
+.search-wrap {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0;
@@ -1289,6 +1431,96 @@ const warmProductsPageNow = () => {
   box-shadow:
     0 0 0 2px rgba(255,255,255,0.035),
     inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #141415;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  z-index: 1001;
+}
+.suggest-loading {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+}
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.suggest-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(4px);
+}
+.suggest-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #1e1e1f;
+  flex-shrink: 0;
+}
+.suggest-info {
+  flex: 1;
+  min-width: 0;
+}
+.suggest-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.suggest-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0;
+  text-align: left;
+}
+.suggest-more {
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.05);
+  transition: background 0.2s, color 0.2s;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+.suggest-more:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+}
+
+/* Transitions */
+.suggest-fade-enter-active,
+.suggest-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.suggest-fade-enter-from,
+.suggest-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 .search-input {
   flex: 1;
@@ -1730,18 +1962,18 @@ const warmProductsPageNow = () => {
     height: 78px;
   }
   .mega-nav { display: none; }
-  .search-wrap {
+  .search-container {
     grid-column: 2;
     justify-self: center;
+    max-width: 300px;
   }
   .header-actions { grid-column: 3; }
   .hamburger { grid-column: 4; }
   .hamburger { display: flex; }
-  .search-wrap { max-width: 300px; }
 }
 
 @media (max-width: 900px) {
-  .search-wrap { display: none; }
+  .search-container { display: none; }
   .header-inner {
     grid-template-columns: auto 1fr auto;
     gap: 14px;
