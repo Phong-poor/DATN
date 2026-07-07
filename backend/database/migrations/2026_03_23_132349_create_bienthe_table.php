@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->unsignedBigInteger('id_sanpham');
 
-            $table->string('ten_bienthe')->nullable(); 
+            $table->string('ten_bienthe')->nullable();
             // "16GB - 512GB"
 
             $table->decimal('gia', 12, 2);   // giá riêng

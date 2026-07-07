@@ -362,24 +362,24 @@ onUnmounted(() => {
 .pulse-indicator-green {
   width: 10px;
   height: 10px;
-  background-color: #22c55e;
+  background-color: #3b82f6;
   border-radius: 50%;
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
   animation: pulse-green 2s infinite;
 }
 
 @keyframes pulse-green {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
   }
 }
 
@@ -449,12 +449,12 @@ onUnmounted(() => {
 }
 
 .admin-profile-capsule.online {
-  border-color: rgba(34, 197, 94, 0.25);
+  border-color: rgba(37, 99, 235, 0.25);
   background: rgba(240, 253, 244, 0.75);
 }
 
 .admin-profile-capsule.online:hover {
-  border-color: rgba(34, 197, 94, 0.45);
+  border-color: rgba(37, 99, 235, 0.45);
   background: #fff;
 }
 
@@ -477,7 +477,7 @@ onUnmounted(() => {
 .admin-avatar-fallback {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #3b82f6);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -499,7 +499,7 @@ onUnmounted(() => {
 }
 
 .status-dot.online {
-  background-color: #22c55e;
+  background-color: #3b82f6;
 }
 
 .status-dot.offline {
@@ -538,8 +538,8 @@ onUnmounted(() => {
 }
 
 .status-pill.online {
-  background: #22c55e;
-  box-shadow: 0 0 4px #22c55e;
+  background: #3b82f6;
+  box-shadow: 0 0 4px #3b82f6;
 }
 
 .status-pill.offline {
@@ -723,7 +723,7 @@ onUnmounted(() => {
 .log-user-fallback {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -759,7 +759,7 @@ onUnmounted(() => {
 
 .action-tag.action-create {
   background: #dcfce7;
-  color: #15803d;
+  color: #1d4ed8;
 }
 
 .action-tag.action-update {

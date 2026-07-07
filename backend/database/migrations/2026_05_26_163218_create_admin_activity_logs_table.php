@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('admin_activity_logs', function (Blueprint $table) {
+        Schema::create('nhat_ky_admin', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('action')->nullable();
-            $table->string('model_name')->nullable();
-            $table->string('target_id')->nullable();
-            $table->text('description')->nullable();
-            $table->string('ip_address')->nullable();
+            $table->foreignId('id_khachhang')->constrained('khachhang')->onDelete('cascade');
+            $table->string('hanhdong')->nullable();
+            $table->string('tenmodel')->nullable();
+            $table->string('id_doituong')->nullable();
+            $table->text('mota')->nullable();
+            $table->string('diachi_ip')->nullable();
             $table->text('user_agent')->nullable();
             $table->timestamps();
         });
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('admin_activity_logs');
+        Schema::dropIfExists('nhat_ky_admin');
     }
 };

@@ -10,6 +10,7 @@ class DiaChi extends Model
     use SoftDeletes;
 
     protected $table = 'diachi';
+
     protected $primaryKey = 'id_diachi';
 
     protected $fillable = [
@@ -22,6 +23,10 @@ class DiaChi extends Model
         'longitude',
         'loai_diachi',
         'mac_dinh',
+    ];
+
+    protected $appends = [
+        'dia_chi_day_du'
     ];
 
     protected $casts = [

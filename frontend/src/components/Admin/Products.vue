@@ -2249,11 +2249,7 @@ onMounted(() => {
     <div class="pagination">
       <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
-      <button v-for="(p, index) in pageItems" :key="`${p}-${index}`"
-        :class="{ 'pg-active': p === currentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-        @click="p !== '...' && goToPage(p)">
-        {{ p }}
-      </button>
+      <span class="pg-active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
 
       <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
     </div>
@@ -2753,11 +2749,7 @@ onMounted(() => {
                       ‹
                     </button>
 
-                    <button v-for="(p, index) in variantPageItems" :key="`variant-${p}-${index}`"
-                      :class="{ 'pg-active': p === variantCurrentPage, 'pg-dots': p === '...' }" :disabled="p === '...'"
-                      @click="p !== '...' && goToVariantPage(p)">
-                      {{ p }}
-                    </button>
+                    <span class="pg-active page-indicator">{{ variantCurrentPage }}/{{ variantTotalPages }}</span>
 
                     <button :disabled="variantCurrentPage === variantTotalPages"
                       @click="goToVariantPage(variantCurrentPage + 1)">
@@ -3072,9 +3064,9 @@ onMounted(() => {
 .inline-form-body .form-group input:focus,
 .inline-form-body .form-group select:focus,
 .inline-form-body .form-group textarea:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .inline-form-body .form-group input.input-error,
@@ -3099,14 +3091,14 @@ onMounted(() => {
 }
 
 .inline-form-body .upload-zone:hover {
-  border-color: #4f46e5;
+  border-color: #2563eb;
   background: linear-gradient(135deg, #ebe8ff 0%, #f0f4ff 100%);
 }
 
 .inline-form-body .upload-zone svg {
   width: 44px;
   height: 44px;
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 .inline-form-body .upload-zone p {
@@ -3117,7 +3109,7 @@ onMounted(() => {
 }
 
 .inline-form-body .upload-zone p span {
-  color: #4f46e5;
+  color: #2563eb;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -3167,7 +3159,7 @@ onMounted(() => {
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3208,7 +3200,7 @@ onMounted(() => {
 }
 
 .btn-export {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .btn-export:hover:not(:disabled) {
@@ -3246,7 +3238,7 @@ onMounted(() => {
 }
 
 .btn-xl-export {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .btn-xl-export:hover {
@@ -3320,7 +3312,7 @@ onMounted(() => {
 }
 
 .stat-card.stat-teal {
-  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
   color: #fff;
 }
 
@@ -3760,7 +3752,7 @@ tbody td {
 
 .status-badge.active {
   background: #dcfce7;
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .status-badge.draft {
@@ -4087,7 +4079,7 @@ tbody td {
   padding: 10px 22px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -4130,7 +4122,7 @@ tbody td {
   display: inline-block;
   width: 3px;
   height: 17px;
-  background: linear-gradient(180deg, #2563eb, #4f46e5);
+  background: linear-gradient(180deg, #2563eb, #2563eb);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -4155,7 +4147,7 @@ tbody td {
 }
 
 .vss.done {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .vss-dot {
@@ -4178,8 +4170,8 @@ tbody td {
 }
 
 .vss.done .vss-dot {
-  border-color: #16a34a;
-  background: #16a34a;
+  border-color: #2563eb;
+  background: #2563eb;
   color: white;
 }
 
@@ -4433,7 +4425,7 @@ tbody td {
 
 .tp-teal {
   background: #ccfbf1;
-  color: #0f766e;
+  color: #1d4ed8;
 }
 
 .tp-red {
@@ -4477,7 +4469,7 @@ tbody td {
 
 .type-pill-sm.tp-teal {
   background: #ccfbf1;
-  color: #0f766e;
+  color: #1d4ed8;
 }
 
 .vbtn {
@@ -4524,7 +4516,7 @@ tbody td {
 
 .vbtn-teal:hover {
   border-color: #5eead4;
-  color: #0f766e;
+  color: #1d4ed8;
 }
 
 .vbtn-red:hover {
@@ -4540,8 +4532,8 @@ tbody td {
 }
 
 .vbtn-green.vbtn-on {
-  border-color: #16a34a;
-  background: #16a34a;
+  border-color: #2563eb;
+  background: #2563eb;
   color: white;
   font-weight: 600;
 }
@@ -4561,8 +4553,8 @@ tbody td {
 }
 
 .vbtn-purple.vbtn-on {
-  border-color: #7c3aed;
-  background: #7c3aed;
+  border-color: #2563eb;
+  background: #2563eb;
   color: white;
   font-weight: 600;
 }
@@ -4672,7 +4664,7 @@ tbody td {
   padding: 10px 22px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 700;
@@ -4769,7 +4761,7 @@ tbody td {
   padding: 6px 13px;
   border-radius: 7px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 12px;
   font-weight: 700;
@@ -4939,7 +4931,7 @@ tbody td {
 .vc-teal {
   background: #f0fdfa;
   border-color: #99f6e4;
-  color: #0f766e;
+  color: #1d4ed8;
 }
 
 .vc-red {
@@ -5175,7 +5167,7 @@ tbody td {
   padding: 7px 14px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 12px;
   font-weight: 600;
@@ -5368,8 +5360,8 @@ tbody td {
 }
 
 .tree-select-static-container:focus-within {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .tree-select-static-container.has-error {
@@ -5704,7 +5696,7 @@ tbody td {
 }
 
 .switch-control input:checked + .switch-slider {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
 }
 
 .switch-control input:checked + .switch-slider:before {
@@ -5997,8 +5989,8 @@ tbody td {
 }
 
 .nhap-them-input:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .real-stock-calc {
@@ -6030,7 +6022,7 @@ tbody td {
 }
 
 .real-stock-calc .added-stock.active {
-  color: #22c55e;
+  color: #3b82f6;
 }
 
 .real-stock-calc .total-stock {
@@ -6041,7 +6033,7 @@ tbody td {
 }
 
 .real-stock-calc .total-stock.highlight {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .low-stock-save-row {
@@ -6053,7 +6045,7 @@ tbody td {
 }
 
 .btn-save-stock {
-  background: #22c55e;
+  background: #3b82f6;
   color: #ffffff;
   border: none;
   padding: 10px 20px;
@@ -6062,11 +6054,11 @@ tbody td {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.1);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
 .btn-save-stock:hover:not(:disabled) {
-  background: #16a34a;
+  background: #2563eb;
   box-shadow: 0 4px 8px rgba(22, 163, 74, 0.2);
   transform: translateY(-1px);
 }

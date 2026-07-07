@@ -16,6 +16,13 @@ use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
+    private function issueSingleSessionToken(User $user, string $tokenName = 'session_token'): string
+    {
+        $user->tokens()->delete();
+
+        return $user->createToken($tokenName)->plainTextToken;
+    }
+
     private function frontendUrl(string $path, array $query = []): string
     {
         $url = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . $path;
@@ -29,6 +36,13 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (!$request->filled('matkhau') && $request->filled('password')) {
+            $request->merge([
+                'matkhau' => $request->input('password'),
+                'matkhau_confirmation' => $request->input('password_confirmation'),
+            ]);
+        }
+
         if ($request->has('sodienthoai')) {
             $request->merge([
                 'sodienthoai' => preg_replace('/[\s\.-]+/', '', (string) $request->input('sodienthoai')),
@@ -120,6 +134,10 @@ class AuthController extends Controller
             $request->merge(['email' => trim($request->input('email'))]);
         }
 
+        if (!$request->filled('matkhau') && $request->filled('password')) {
+            $request->merge(['matkhau' => $request->input('password')]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'matkhau' => ['required', 'string'],
@@ -138,8 +156,15 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if ($user->trangthai === 'locked') {
+            return response()->json([
+                'message' => 'Tài khoản của bạn đã bị khóa.',
+                'code' => 'ACCOUNT_LOCKED',
+            ], 423);
+        }
+
         $tokenName = !empty($validated['remember']) ? 'remember_token' : 'session_token';
-        $token = $user->createToken($tokenName)->plainTextToken;
+        $token = $this->issueSingleSessionToken($user, $tokenName);
 
         return response()->json([
             'message' => 'Đăng nhập thành công.',
@@ -260,7 +285,7 @@ class AuthController extends Controller
             return redirect($this->frontendUrl('/login', ['social_error' => 'google_user_not_found']));
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $this->issueSingleSessionToken($user, 'auth_token');
         return redirect($this->frontendUrl('/login-success', [
             'token' => $token,
             'provider' => 'google',
@@ -400,7 +425,7 @@ class AuthController extends Controller
             return redirect($this->frontendUrl('/login', ['social_error' => 'facebook_user_not_found']));
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $this->issueSingleSessionToken($user, 'auth_token');
         return redirect($this->frontendUrl('/login-success', [
             'token' => $token,
             'provider' => 'facebook',

@@ -1,120 +1,161 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import swal from '@/services/swal'
+import { getUser, getToken } from '../services/auth'
 
-// Vô hiệu hóa tính năng tự động khôi phục vị trí cuộn của trình duyệt khi reload trang
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual'
 }
 
-// ── Layout ──
-const MainLayout = () => import('../components/Layout/MainLayout.vue')
+const MainLayout = () => import('../components/Layout/BoCucChinh.vue')
 
-// ── Web Pages ──
-const Home = () => import('../components/Web/Home.vue')
-const Producpage = () => import('../components/Web/ProductsPremiumPage.vue')
-const GamingPage = () => import('../components/Web/GamingPage.vue')
-const LandingPage = () => import('../components/Web/LandingPage.vue')
-const News = () => import('../components/Web/News.vue')
-const NewsDetail = () => import('../components/Web/NewsDetail.vue')
-const Cart = () => import('../components/Web/Cart.vue')
-const Checkout = () => import('../components/Web/Checkout.vue')
-const ProductDetail = () => import('../components/Web/ProductDetail.vue')
-const Contact = () => import('../components/Web/Contact.vue')
-const Profile = () => import('../components/Web/Profile.vue')
-const ChatbotWidget = () => import('../components/Web/ChatbotWidget.vue')
-const Orderspage = () => import('../components/Web/Orderspage.vue')
-const Passwordpage = () => import('../components/Web/Passwordpage.vue')
-const LoginSuccess = () => import('../components/Web/LoginSuccess.vue')
-const WishlistPage = () => import('../components/Web/WishlistPage.vue')
-const ThankYou = () => import('../components/Web/ThankYou.vue')
-const PaymentFailed = () => import('../components/Web/PaymentFailed.vue')
-const InteractiveLabs = () => import('../components/Web/InteractiveLabs.vue')
-const AffiliateCenter = () => import('../components/Web/AffiliateCenter.vue')
-const Promotions = () => import('../components/Web/Promotions.vue')
-const Workstation = () => import('../components/Web/Workstation.vue')
+const Home = () => import('../components/Web/TrangChu.vue')
+const LaptopPage = () => import('../components/Web/TrangLaptop.vue')
+const WorkstationPage = () => import('../components/Web/TrangWorkstation.vue')
+const News = () => import('../components/Web/TinTucKhachHang.vue')
+const NewsDetail = () => import('../components/Web/ChiTietTinTuc.vue')
+const Cart = () => import('../components/Web/GioHang.vue')
+const Checkout = () => import('../components/Web/ThanhToan.vue')
+const ProductDetail = () => import('../components/Web/ChiTietSanPham.vue')
+const Contact = () => import('../components/Web/LienHeKhachHang.vue')
+const Profile = () => import('../components/Web/TrangCaNhan.vue')
+const ChatbotWidget = () => import('../components/Web/KhungChatbot.vue')
+const Orderspage = () => import('../components/Web/TrangDonHang.vue')
+const Passwordpage = () => import('../components/Web/TrangMatKhau.vue')
+const LoginSuccess = () => import('../components/Web/DangNhapThanhCong.vue')
+const WishlistPage = () => import('../components/Web/TrangDanhSachYeuThich.vue')
+const ThankYou = () => import('../components/Web/CamOn.vue')
+const PaymentFailed = () => import('../components/Web/ThanhToanThatBai.vue')
+const Promotions = () => import('../components/Web/KhuyenMaiKhachHang.vue')
+const AffiliateCenter = () => import('../components/Web/TrungTamTiepThi.vue')
 
+const Login = () => import('../components/Auth/DangNhap.vue')
+const Register = () => import('../components/Auth/DangKy.vue')
+const ForgotPassword = () => import('../components/Auth/QuenMatKhau.vue')
+const OtpVerify = () => import('../components/Auth/XacThucOtp.vue')
+const ResetPassword = () => import('../components/Auth/DatLaiMatKhau.vue')
 
-// ── Auth ──
-const Login = () => import('../components/Auth/Login.vue')
-const Register = () => import('../components/Auth/Register.vue')
-const ForgotPassword = () => import('../components/Auth/ForgotPassword.vue')
-const OtpVerify = () => import('../components/Auth/OtpVerify.vue')
-const ResetPassword = () => import('../components/Auth/ResetPassword.vue')
-
-import { getUser, getToken } from '../services/auth'
-
-// ── Admin ──
 const AdminLayout = () => import('../components/Admin/Layout/AdminLayout.vue')
-const AdminDashboard = () => import('../components/Admin/Dashboard.vue')
+
+const getUserRole = (user) => String(user?.vaitro || user?.role || '').toLowerCase()
+
+const getDefaultAdminPath = (user = getUser()) => {
+  const role = getUserRole(user)
+  const defaults = {
+    admin: '/admin/bang-dieu-khien',
+    inventory: '/admin/quan-ly-san-pham',
+    order_manager: '/admin/quan-ly-don-hang',
+    marketing: '/admin/quan-ly-khuyen-mai',
+    affiliate_manager: '/admin/affiliates',
+    editor: '/admin/quan-ly-tin-tuc',
+    support: '/admin/quan-ly-lien-he',
+    accountant: '/admin/quan-ly-don-hang',
+  }
+
+  return defaults[role] || '/admin/bang-dieu-khien'
+}
+
+const publicPages = [
+  '/',
+  '/laptop',
+  '/phu-kien',
+  '/gaming',
+  '/workstation',
+  '/login',
+  '/dang-nhap',
+  '/register',
+  '/dang-ky',
+  '/forgot-password',
+  '/quen-mat-khau',
+  '/otp-verify',
+  '/xac-thuc-otp',
+  '/reset-password',
+  '/reset_password',
+  '/dat-lai-mat-khau',
+  '/login-success',
+  '/dang-nhap-thanh-cong',
+  '/news',
+  '/tin-tuc',
+  '/contact',
+  '/lien-he',
+  '/cart',
+  '/gio-hang',
+  '/thank-you',
+  '/cam-on',
+  '/payment-failed',
+  '/thanh-toan-that-bai',
+  '/khuyen-mai',
+]
+
+const adminChildren = [
+  { path: '', redirect: () => getDefaultAdminPath() },
+  { path: 'bang-dieu-khien', alias: ['dashboard'], name: 'admin-dashboard', component: () => import('../components/Admin/BangDieuKhien.vue'), meta: { title: 'Bang dieu khien' } },
+  { path: 'quan-ly-san-pham', alias: ['products'], name: 'admin-products', component: () => import('../components/Admin/QuanLySanPham.vue'), meta: { title: 'Quan ly san pham' } },
+  { path: 'quan-ly-don-hang', alias: ['orders'], name: 'admin-orders', component: () => import('../components/Admin/QuanLyDonHang.vue'), meta: { title: 'Quan ly don hang' } },
+  { path: 'quan-ly-nguoi-dung', alias: ['users'], name: 'admin-users', component: () => import('../components/Admin/QuanLyNguoiDung.vue'), meta: { title: 'Quan ly nguoi dung' } },
+  { path: 'quan-ly-tin-tuc', alias: ['news'], name: 'admin-news', component: () => import('../components/Admin/QuanLyTinTuc.vue'), meta: { title: 'Quan ly bai viet' } },
+  { path: 'bien-the', alias: ['variants'], name: 'admin-variants', component: () => import('../components/Admin/BienTheSanPham.vue'), meta: { title: 'Quan ly bien the' } },
+  { path: 'quan-ly-danh-muc', alias: ['categories'], name: 'admin-categories', component: () => import('../components/Admin/QuanLyDanhMuc.vue'), meta: { title: 'Quan ly danh muc' } },
+  { path: 'quan-ly-khuyen-mai', alias: ['promotions'], name: 'admin-promotions', component: () => import('../components/Admin/QuanLyKhuyenMai.vue'), meta: { title: 'Quan ly khuyen mai' } },
+  { path: 'quan-ly-banner', alias: ['banners'], name: 'admin-banners', component: () => import('../components/Admin/QuanLyBanner.vue'), meta: { title: 'Quan ly banner' } },
+  { path: 'quan-ly-lien-he', alias: ['contacts'], name: 'admin-contacts', component: () => import('../components/Admin/QuanLyLienHe.vue'), meta: { title: 'Quan ly lien he' } },
+  { path: 'quan-ly-thuong-hieu', alias: ['brands'], name: 'admin-brands', component: () => import('../components/Admin/QuanLyThuongHieu.vue'), meta: { title: 'Quan ly thuong hieu' } },
+  { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/QuanLyBinhLuan.vue'), meta: { title: 'Quan ly binh luan' } },
+  { path: 'cai-dat-he-thong', alias: ['settings'], name: 'admin-settings', component: () => import('../components/Admin/CaiDatHeThong.vue'), meta: { title: 'Cai dat' } },
+  { path: 'ho-so-quan-tri', alias: ['profile'], name: 'admin-profile', component: () => import('../components/Admin/HoSoAdmin.vue'), meta: { title: 'Ho so admin' } },
+  { path: 'nhat-ky-hoat-dong', alias: ['activity-log'], name: 'admin-activity-log', component: () => import('../components/Admin/NhatKyHoatDongAdmin.vue'), meta: { title: 'Nhat ky hoat dong' } },
+  { path: 'quan-ly-tiep-thi', alias: ['affiliates'], name: 'admin-affiliates', component: () => import('../components/Admin/TiepThiLienKet.vue'), meta: { title: 'Tiep thi lien ket' } },
+  { path: 'hoa-don', alias: ['billing'], name: 'admin-billing', component: () => import('../components/Admin/HoaDonAdmin.vue'), meta: { title: 'Hoa don' } },
+  { path: 'flash-sales', alias: ['flash-sale'], name: 'admin-flash-sales', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Flash sale' } },
+  { path: 'gui-ma-sinh-nhat', alias: ['birthdays', 'birthday-codes'], name: 'admin-birthday-codes', component: () => import('../components/Admin/GuiMaSinhNhat.vue'), meta: { title: 'Ma sinh nhat' } },
+  { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quan ly combo' } },
+  { path: 'xu', name: 'admin-xu', component: () => import('../components/Admin/AdminXu.vue'), meta: { title: 'Cấu hình hệ thống Xu' } },
+  { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quan ly vai tro' } },
+]
 
 const routes = [
-  // ── WEB ──
   {
     path: '/',
     component: MainLayout,
     children: [
       { path: '', name: 'home', component: Home },
-      { path: 'products', name: 'products', component: Producpage },
-      { path: 'gaming', name: 'gaming', component: GamingPage },
-      { path: 'macbook', name: 'macbook', component: Producpage, meta: { category: 'MacBook' } },
-      { path: 'products/:id', name: 'product-detail', component: ProductDetail },
-      { path: 'news', name: 'news', component: News },
-      { path: 'news/:id', name: 'news-detail', component: NewsDetail },
-      { path: 'contact', name: 'contact', component: Contact },
-      { path: 'cart', name: 'cart', component: Cart },
-      { path: 'checkout', name: 'checkout', component: Checkout },
-      { path: 'profile', name: 'profile', component: Profile },
+      { path: 'san-pham', alias: ['/products'], name: 'products', redirect: '/laptop' },
+      { path: 'laptop', name: 'laptop', component: LaptopPage },
+      { path: 'phu-kien', name: 'phu-kien', component: LaptopPage },
+      { path: 'gaming', name: 'gaming', redirect: '/laptop' },
+      { path: 'macbook', name: 'macbook', redirect: '/laptop' },
+      { path: 'workstation', name: 'workstation', component: WorkstationPage },
+      { path: 'san-pham/:id', alias: ['/products/:id'], name: 'product-detail', component: ProductDetail },
+      { path: 'tin-tuc', alias: ['/news'], name: 'news', component: News },
+      { path: 'tin-tuc/:id', alias: ['/news/:id'], name: 'news-detail', component: NewsDetail },
+      { path: 'lien-he', alias: ['/contact'], name: 'contact', component: Contact },
+      { path: 'gio-hang', alias: ['/cart'], name: 'cart', component: Cart },
+      { path: 'thanh-toan', alias: ['/checkout'], name: 'checkout', component: Checkout },
+      { path: 'trang-ca-nhan', alias: ['/profile'], name: 'profile', component: Profile },
       { path: 'chat', name: 'chat', component: ChatbotWidget },
-      { path: 'orderspage', name: 'orderspage', component: Orderspage },
-      { path: 'passwordpage', name: 'passwordpage', component: Passwordpage },
-      { path: 'wishlistpage', name: 'wishlistpage', component: WishlistPage },
-      { path: 'thank-you', name: 'thank-you', component: ThankYou },
-      { path: 'payment-failed', name: 'payment-failed', component: PaymentFailed },
-      { path: 'interactive-labs', name: 'interactive-labs', component: InteractiveLabs },
-      { path: 'affiliate', name: 'affiliate', component: AffiliateCenter },
+      { path: 'don-hang', alias: ['/orderspage'], name: 'orderspage', component: Orderspage },
+      { path: 'doi-mat-khau', alias: ['/passwordpage'], name: 'passwordpage', component: Passwordpage },
+      { path: 'danh-sach-yeu-thich', alias: ['/wishlistpage', '/yeu-thich'], name: 'wishlistpage', component: WishlistPage },
+      { path: 'cam-on', alias: ['/thank-you'], name: 'thank-you', component: ThankYou },
+      { path: 'thanh-toan-that-bai', alias: ['/payment-failed'], name: 'payment-failed', component: PaymentFailed },
       { path: 'khuyen-mai', name: 'promotions', component: Promotions },
-      { path: 'workstation', name: 'workstation', component: Workstation },
+      { path: 'tiep-thi-lien-ket', alias: ['/affiliate'], name: 'affiliate-center', component: AffiliateCenter },
     ],
   },
 
-  // ── AUTH ──
-  { path: '/login', name: 'login', component: Login },
-  { path: '/register', name: 'register', component: Register },
-  { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword },
-  { path: '/otp-verify', name: 'otp-verify', component: OtpVerify },
-  { path: '/reset-password', alias: '/reset_password', name: 'reset-password', component: ResetPassword },
-  { path: '/login-success', name: 'login-success', component: LoginSuccess },
+  { path: '/dang-nhap', alias: ['/login'], name: 'login', component: Login },
+  { path: '/dang-ky', alias: ['/register'], name: 'register', component: Register },
+  { path: '/quen-mat-khau', alias: ['/forgot-password'], name: 'forgot-password', component: ForgotPassword },
+  { path: '/xac-thuc-otp', alias: ['/otp-verify'], name: 'otp-verify', component: OtpVerify },
+  { path: '/dat-lai-mat-khau', alias: ['/reset-password', '/reset_password'], name: 'reset-password', component: ResetPassword },
+  { path: '/dang-nhap-thanh-cong', alias: ['/login-success'], name: 'login-success', component: LoginSuccess },
 
-  // ── ADMIN ──
   {
     path: '/admin',
     component: AdminLayout,
     meta: { requiresAdmin: true },
-    children: [
-      { path: '', name: 'admin-dashboard', component: AdminDashboard, meta: { title: 'Tổng quan hệ thống' } },
-      { path: 'products', name: 'admin-products', component: () => import('../components/Admin/Products.vue'), meta: { title: 'Quản lý sản phẩm' } },
-      { path: 'orders', name: 'admin-orders', component: () => import('../components/Admin/Orders.vue'), meta: { title: 'Quản lý đơn hàng' } },
-      { path: 'users', name: 'admin-users', component: () => import('../components/Admin/Users.vue'), meta: { title: 'Quản lý người dùng' } },
-      { path: 'news', name: 'admin-news', component: () => import('../components/Admin/News.vue'), meta: { title: 'Quản lý bài viết' } },
-      { path: 'settings', name: 'admin-settings', component: () => import('../components/Admin/Settings.vue'), meta: { title: 'Cài đặt hệ thống' } },
-      { path: 'profile', name: 'admin-profile', component: () => import('../components/Admin/AdminProfile.vue'), meta: { title: 'Hồ sơ quản trị' } },
-      { path: 'activity-log', name: 'admin-activity-log', component: () => import('../components/Admin/AdminActivityLog.vue'), meta: { title: 'Nhật ký hoạt động' } },
-      { path: 'billing', name: 'admin-billing', component: () => import('../components/Admin/AdminBilling.vue'), meta: { title: 'Billing quản trị' } },
-      { path: 'variants', name: 'admin-variants', component: () => import('../components/Admin/ProductVariants.vue'), meta: { title: 'Quản lý biến thể' } },
-      { path: 'categories', name: 'admin-categories', component: () => import('../components/Admin/Categories.vue'), meta: { title: 'Quản lý danh mục' } },
-      { path: 'promotions', name: 'admin-promotions', component: () => import('../components/Admin/Promotions.vue'), meta: { title: 'Quản lý khuyến mãi' } },
-      { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/ComboManagement.vue'), meta: { title: 'Quản lý Combo' } },
-      { path: 'banners', name: 'admin-banners', component: () => import('../components/Admin/Banners.vue'), meta: { title: 'Quản lý banner' } },
-      { path: 'contacts', name: 'admin-contacts', component: () => import('../components/Admin/Contact.vue'), meta: { title: 'Quản lý liên hệ' } },
-      { path: 'brands', name: 'admin-brands', component: () => import('../components/Admin/Brands.vue'), meta: { title: 'Quản lý thương hiệu' } },
-      { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/ReviewManagement.vue'), meta: { title: 'Quản lý bình luận' } },
-      { path: 'affiliates', name: 'admin-affiliates', component: () => import('../components/Admin/Affiliates.vue'), meta: { title: 'Quản lý affiliate' } },
-      { path: 'birthday-codes', name: 'admin-birthday-codes', component: () => import('../components/Admin/BirthdayCodes.vue'), meta: { title: 'Gửi mã sinh nhật' } },
-      { path: 'flash-sale', name: 'admin-flash-sale', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Quản lý Flash Sale' } },
-    ],
+    children: adminChildren,
   },
 
-  // 404 fallback
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
@@ -123,25 +164,28 @@ const router = createRouter({
   routes,
   scrollBehavior() {
     return { top: 0, left: 0 }
-  }
+  },
 })
 
 const forceScrollTop = () => {
+  if (typeof window === 'undefined') return
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
 }
 
 const showRouteLoader = () => {
-  window.dispatchEvent(new CustomEvent('global-loader-show', {
-    detail: { immediate: true, minDuration: 260 }
-  }))
+  if (typeof window === 'undefined') return
+
+  window.dispatchEvent(
+    new CustomEvent('global-loader-show', {
+      detail: { immediate: true, minDuration: 260 },
+    })
+  )
 }
 
 router.afterEach(() => {
-  // Cưỡng bức cuộn lên đầu trang ngay khi chuyển trang xong ở mức router
   forceScrollTop()
   requestAnimationFrame(forceScrollTop)
 
-  // Thực hiện cuộn phụ sau 120ms để bù đắp sự thay đổi chiều cao do các tiến trình render bất đồng bộ (API/Transitions)
   setTimeout(() => {
     forceScrollTop()
     window.dispatchEvent(new Event('global-loader-force-hide'))
@@ -149,72 +193,107 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
-  const shouldShowRouteLoader = to.fullPath !== from.fullPath && !to.path.startsWith('/products/')
+  const shouldShowRouteLoader =
+    to.fullPath !== from.fullPath && !to.path.startsWith('/products/') && !to.path.startsWith('/san-pham/')
+
   if (shouldShowRouteLoader) {
     showRouteLoader()
   }
+
   forceScrollTop()
+
   const user = getUser()
   const token = getToken()
-
-  const publicPages = [
-    '/',
-    '/products',
-    '/gaming',
-    '/macbook',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/otp-verify',
-    '/reset-password',
-    '/reset_password',
-    '/login-success',
-    '/news',
-    '/contact',
-    '/cart',
-    '/thank-you',
-    '/payment-failed',
-    '/interactive-labs',
-    '/khuyen-mai',
-    '/workstation',
-  ]
-
   const isPublic =
     publicPages.includes(to.path) ||
     to.path.startsWith('/products/') ||
-    to.path.startsWith('/news/')
+    to.path.startsWith('/san-pham/') ||
+    to.path.startsWith('/news/') ||
+    to.path.startsWith('/tin-tuc/')
 
   if (!isPublic && !token) {
-    return next('/login')
+    return next({ path: '/dang-nhap', query: { redirect: to.fullPath } })
   }
 
-  if (to.matched.some(route => route.meta.requiresAdmin)) {
-    if (!user || !token) return next('/login')
-    if (user.vaitro === 'user') return next('/')
+  if (to.matched.some((route) => route.meta.requiresAdmin)) {
+    if (!user || !token) return next({ path: '/dang-nhap', query: { redirect: to.fullPath } })
+    const role = getUserRole(user)
 
-    const role = String(user.vaitro || '').toLowerCase()
+    if (role === 'user') return next('/')
+
+    if (!role) return next('/')
+
     if (role !== 'admin') {
-      const rolePermissions = {
-        inventory: ['/admin', '/admin/products', '/admin/categories', '/admin/brands', '/admin/variants', '/admin/profile', '/admin/settings'],
-        order_manager: ['/admin', '/admin/orders', '/admin/profile', '/admin/settings'],
-        marketing: ['/admin', '/admin/promotions', '/admin/birthday-codes', '/admin/combos', '/admin/flash-sale', '/admin/profile', '/admin/settings'],
-        affiliate_manager: ['/admin', '/admin/affiliates', '/admin/profile', '/admin/settings'],
-        editor: ['/admin', '/admin/news', '/admin/reviews', '/admin/banners', '/admin/profile', '/admin/settings'],
-        support: ['/admin', '/admin/contacts', '/admin/profile', '/admin/settings'],
-        accountant: ['/admin', '/admin/orders', '/admin/profile', '/admin/settings'],
+      const pathPermissionMap = {
+        '/admin/quan-ly-san-pham': 'san_pham_xem',
+        '/admin/products': 'san_pham_xem',
+        '/admin/quan-ly-danh-muc': 'danh_muc_xem',
+        '/admin/categories': 'danh_muc_xem',
+        '/admin/quan-ly-thuong-hieu': 'thuong_hieu_xem',
+        '/admin/brands': 'thuong_hieu_xem',
+        '/admin/bien-the': 'bien_the_xem',
+        '/admin/variants': 'bien_the_xem',
+        '/admin/quan-ly-don-hang': 'don_hang_xem',
+        '/admin/orders': 'don_hang_xem',
+        '/admin/hoa-don': 'hoa_don_xem',
+        '/admin/billing': 'hoa_don_xem',
+        '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
+        '/admin/promotions': 'marketing_quan_ly',
+        '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
+        '/admin/birthdays': 'marketing_quan_ly',
+        '/admin/birthday-codes': 'marketing_quan_ly',
+        '/admin/combos': 'marketing_quan_ly',
+        '/admin/flash-sales': 'marketing_quan_ly',
+        '/admin/flash-sale': 'marketing_quan_ly',
+        '/admin/quan-ly-tiep-thi': 'affiliate_quan_ly',
+        '/admin/affiliates': 'affiliate_quan_ly',
+        '/admin/quan-ly-tin-tuc': 'tin_tuc_quan_ly',
+        '/admin/news': 'tin_tuc_quan_ly',
+        '/admin/reviews': 'binh_luan_quan_ly',
+        '/admin/quan-ly-banner': 'banner_quan_ly',
+        '/admin/banners': 'banner_quan_ly',
+        '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
+        '/admin/contacts': 'lien_he_quan_ly',
+        '/admin/quan-ly-nguoi-dung': 'tai_khoan_quan_ly',
+        '/admin/users': 'tai_khoan_quan_ly',
+        '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
+        '/admin/roles': 'vai_tro_quan_ly',
+        '/admin/vaitro': 'vai_tro_quan_ly',
+        '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
+        '/admin/activity-log': 'nhat_ky_quan_ly',
       }
 
-      const allowedPaths = rolePermissions[role] || []
-      const isAllowed = allowedPaths.some(path => {
-        if (path === '/admin') {
-          return to.path === '/admin'
-        }
-        return to.path === path || to.path.startsWith(path + '/')
+      const basicPaths = [
+        '/admin',
+        '/admin/bang-dieu-khien',
+        '/admin/ho-so-quan-tri',
+        '/admin/profile',
+        '/admin/cai-dat-he-thong',
+        '/admin/settings'
+      ]
+
+      const cleanPath = to.path.replace(/\/$/, '')
+      const isBasic = basicPaths.some(path => {
+        if (path === '/admin') return cleanPath === '/admin'
+        return cleanPath === path || cleanPath.startsWith(path + '/')
       })
 
-      if (!isAllowed) {
-        swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!')
-        return next(false)
+      if (!isBasic) {
+        let requiredPerm = null
+        for (const [routePath, permission] of Object.entries(pathPermissionMap)) {
+          if (cleanPath === routePath || cleanPath.startsWith(routePath + '/')) {
+            requiredPerm = permission
+            break
+          }
+        }
+
+        if (requiredPerm) {
+          const userPerms = user.cac_quyen || []
+          if (!userPerms.includes(requiredPerm)) {
+            swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!')
+            return next(false)
+          }
+        }
       }
     }
   }

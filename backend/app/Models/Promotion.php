@@ -8,9 +8,6 @@ class Promotion extends Model
 {
     protected $table = 'vouchers';
 
-    /**
-     * Get the user vouchers for the promotion.
-     */
     public function userVouchers()
     {
         return $this->hasMany(UserVoucher::class, 'id_voucher');

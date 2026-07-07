@@ -1045,8 +1045,8 @@ onMounted(async () => {
 }
 
 .stat-green .stat-icon-wrapper {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
 }
 .stat-green::after {
   content: '';
@@ -1054,7 +1054,7 @@ onMounted(async () => {
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.03);
+  background: rgba(37, 99, 235, 0.03);
   top: -20px;
   right: -20px;
 }
@@ -1129,7 +1129,7 @@ onMounted(async () => {
 
 .trend-up {
   background: #dcfce7;
-  color: #15803d;
+  color: #1d4ed8;
 }
 
 .trend-down {
@@ -1150,7 +1150,7 @@ onMounted(async () => {
 
 .trend-safe {
   background: #ecfdf5;
-  color: #047857;
+  color: #1E40AF;
 }
 
 /* CONTAINER BLOCK */
@@ -1589,9 +1589,9 @@ onMounted(async () => {
 }
 
 /* Avatar backgrounds */
-.bg-indigo { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-.bg-teal { background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); }
-.bg-purple { background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); }
+.bg-indigo { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.bg-teal { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.bg-purple { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
 .bg-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
 .bg-pink { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
 
@@ -1653,7 +1653,7 @@ onMounted(async () => {
 
 .status-success {
   background-color: #dcfce7;
-  color: #15803d;
+  color: #1d4ed8;
 }
 
 .status-warning {
@@ -1822,7 +1822,7 @@ onMounted(async () => {
 }
 
 .success-text {
-  color: #16a34a;
+  color: #2563eb;
   font-weight: 500;
 }
 
@@ -2009,7 +2009,7 @@ onMounted(async () => {
 }
 
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #10b981;
+  background-color: #2563eb;
 }
 
 .toggle-checkbox:checked + .toggle-label::after {

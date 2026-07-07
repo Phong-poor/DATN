@@ -29,15 +29,13 @@ use App\Http\Controllers\AdminAffiliateController;
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
-// use App\Http\Controllers\AffiliateController;
-// use App\Http\Controllers\AdminAffiliateController;
-// use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\BirthdayCodeController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
+use App\Http\Controllers\VaiTroController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -73,12 +71,28 @@ Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 
-// Ảnh chat (phục vụ qua API, không phụ thuộc symlink storage/public)
+// Ảnh chat phục vụ qua API, không phụ thuộc symlink storage/public.
 Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
     ->where('filename', '[A-Za-z0-9._-]+');
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/auth/session', function (\Illuminate\Http\Request $request) {
+        $user = $request->user();
+
+        if ($user && $user->trangthai === 'locked') {
+            return response()->json([
+                'message' => 'Tài khoản của bạn đã bị khóa.',
+                'code' => 'ACCOUNT_LOCKED',
+            ], 423);
+        }
+
+        return response()->json([
+            'authenticated' => true,
+            'user' => $user,
+        ]);
+    });
+    Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/address/suggestions', [GeocodeController::class, 'suggestions']);
@@ -87,6 +101,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/user/profile', [UserController::class, 'profile']);
+    Route::post('/user/heartbeat', function (\Illuminate\Http\Request $request) {
+        $request->user()->forceFill([
+            'hoat_dong_cuoi_luc' => now(),
+        ])->saveQuietly();
+
+        return response()->json([
+            'success' => true,
+            'online_window_seconds' => 90,
+        ]);
+    });
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     Route::get('/user/change-password/captcha', [UserController::class, 'passwordCaptcha']);
@@ -135,6 +159,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== SẢN PHẨM ĐÃ XEM =====
     Route::post('/sanpham-daxem/{id}', [SanPhamDaXemController::class, 'logView']);
     Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
+
+    // ===== HỆ THỐNG XU =====
+    Route::get('/xu/balance', [App\Http\Controllers\XuController::class, 'getBalance']);
+    Route::get('/xu/history', [App\Http\Controllers\XuController::class, 'getHistory']);
+    Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getPublicSettings']);
 
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
@@ -236,21 +265,6 @@ Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update'])
 Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
 
-// ================= TEST =================
-Route::get('/test', function () {
-    return 'OK API';
-});
-
-use Illuminate\Support\Facades\Mail;
-
-Route::get('/test-mail', function () {
-    Mail::raw('Test gửi mail thành công', function ($msg) {
-        $msg->to('machquanlac5@gmail.com')
-            ->subject('Test Mail Laravel');
-    });
-
-    return 'OK';
-});
 // ================= CHATBOT =================
 Route::post('/chat', [ChatbotController::class, 'chat']);
 
@@ -266,6 +280,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+        // ===== ADMIN ROLES =====
+        Route::apiResource('vaitro', VaiTroController::class);
         Route::post('/danhmuc-cha', [DanhMucChaController::class, 'store']);
         Route::put('/danhmuc-cha/{id}', [DanhMucChaController::class, 'update']);
         Route::delete('/danhmuc-cha/{id}', [DanhMucChaController::class, 'destroy']);
@@ -307,10 +324,8 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/lien-he', [LienHeController::class, 'index']);
         Route::post('/lien-he/reply/{id}', [LienHeController::class, 'reply']);
         Route::delete('/contacts/{id}', [LienHeController::class, 'destroy']);
-        Route::get('/reviews', [App\Http\Controllers\DanhGiaController::class, 'adminIndex']);
 
         Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
-        Route::apiResource('promotions', PromotionController::class);
         Route::get('/promotions', [PromotionController::class, 'index']);
         Route::post('/promotions', [PromotionController::class, 'store']);
         Route::put('/promotions/{id}', [PromotionController::class, 'update']);
@@ -326,8 +341,6 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/birthday-codes/logs', [BirthdayCodeController::class, 'logs']);
         Route::get('/birthday-codes/settings', [BirthdayCodeController::class, 'getSettingsApi']);
         Route::post('/birthday-codes/settings', [BirthdayCodeController::class, 'saveSettingsApi']);
-        Route::put('/reviews/{id}/status', [App\Http\Controllers\DanhGiaController::class, 'updateStatus']);
-        Route::delete('/reviews/{id}', [App\Http\Controllers\DanhGiaController::class, 'destroy']);
         Route::get('/banners', [BannerController::class, 'adminIndex']);
         Route::post('/banners', [BannerController::class, 'store']);
         Route::post('/banners/{id}', [BannerController::class, 'update']);
@@ -362,6 +375,7 @@ Route::middleware(['auth:sanctum', 'admin'])
 
         // ===== AFFILIATE ADMIN =====
         Route::get('/affiliates', [AdminAffiliateController::class, 'index']);
+        Route::put('/affiliate-profiles/{id}', [AdminAffiliateController::class, 'updateProfile']);
         Route::put('/affiliate-commissions/{id}/status', [AdminAffiliateController::class, 'updateCommissionStatus']);
         Route::put('/affiliate-withdraws/{id}/status', [AdminAffiliateController::class, 'updateWithdrawStatus']);
 
@@ -391,5 +405,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/flash-sales/{id}', [FlashSaleController::class, 'destroy']);
         Route::post('/flash-sales/{id}/products', [FlashSaleController::class, 'saveProducts']);
         Route::delete('/flash-sales/{id}/products/{productId}', [FlashSaleController::class, 'removeProduct']);
+
+        // ===== ADMIN COIN SETTINGS =====
+        Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getAdminSettings']);
+        Route::put('/xu/settings', [App\Http\Controllers\XuController::class, 'updateAdminSettings']);
 
 });

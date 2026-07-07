@@ -20,7 +20,9 @@ class ChatMessage extends Model
         'ten_dinhkem',
     ];
 
-    protected $appends = ['duongdan_dinhkem_url'];
+    protected $appends = [
+        'duongdan_dinhkem_url',
+    ];
 
     public function getDuongdanDinhkemUrlAttribute()
     {

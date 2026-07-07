@@ -248,7 +248,8 @@ class SanPhamController extends Controller
 
     public function show($id)
     {
-        $result = Cache::remember("sanpham_show_{$id}", 600, function () use ($id) {
+        $cacheVersion = $this->sanPhamCacheVersion();
+        $result = Cache::remember("sanpham_show_{$cacheVersion}_{$id}", 600, function () use ($id, $cacheVersion) {
             $sanpham = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
@@ -270,7 +271,7 @@ class SanPhamController extends Controller
             'id_danhmuc'        => $sanpham->id_danhmuc,
             'id_thuonghieu'     => $sanpham->id_thuonghieu,
             'thong_so_ky_thuat' => $sanpham->thong_so_ky_thuat,
-            'updated_at'        => $this->sanPhamCacheVersion(),
+            'updated_at'        => $cacheVersion,
 
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
@@ -315,6 +316,7 @@ class SanPhamController extends Controller
                     'ten_bienthe' => $bt->ten_bienthe,
                     'gia'         => $bt->gia,
                     'soluong'     => $bt->soluong,
+                    'hinhanh'     => $bt->hinhanh,
                     'thuoc_tinh'  => $thuocTinhJson,
                     'combo_offers' => $bt->comboOffers->filter(function ($combo) {
                         $offer = (object)[
@@ -647,6 +649,7 @@ class SanPhamController extends Controller
 
         if ($id) {
             Cache::forget("sanpham_show_{$id}");
+            Cache::forget("sanpham_show_" . $this->sanPhamCacheVersion() . "_{$id}");
         }
 
         // Danh sách admin/frontend thường gọi /sanpham không query

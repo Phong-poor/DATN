@@ -38,18 +38,18 @@ const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
 const roleStyle = {
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#1d4ed8' },
     'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
     'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
     'MARKETING': { bg: '#fce7f3', color: '#db2777' },
-    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#7e22ce' },
-    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#4338ca' },
-    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#0f766e' },
+    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#1d4ed8' },
+    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#1d4ed8' },
+    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#1d4ed8' },
     'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
 }
 
 const statusStyle = {
-    'Hoạt động': { color: '#16a34a' },
+    'Hoạt động': { color: '#2563eb' },
     'Bị khóa': { color: '#dc2626' }
 }
 
@@ -89,6 +89,9 @@ const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 
 // ─── NORMALIZE ───────────────────────
+const protectedDeleteEmails = ['nextgenshop@gmail.com']
+const isProtectedDeleteUser = (user) => protectedDeleteEmails.includes(String(user?.email || '').toLowerCase())
+
 const normalizeUser = (u) => {
     const avatar = u.anhdaidien || u.avatar || ''
     const avatarUrl = avatar ? (avatar.startsWith('http') ? avatar : storageUrl(avatar)) : ''
@@ -234,21 +237,13 @@ const {
     endpoint: id => `/admin/users/${id}`,
     entityLabel: 'người dùng',
     fetchItems: fetchUsers,
-    canDelete: item => item.id !== currentUser.value?.id,
+    canDelete: item => item.id !== currentUser.value?.id && !isProtectedDeleteUser(item),
     cannotDeleteMessage: 'Một số tài khoản không thể xóa, ví dụ tài khoản đang đăng nhập.',
 })
 
 // Dãy số trang hiển thị (tối đa 5 nút)
 const pageNumbers = computed(() => {
-    const total = totalPages.value
-    const current = currentPage.value
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-
-    let start = Math.max(1, current - 2)
-    let end = Math.min(total, start + 4)
-    if (end - start < 4) start = Math.max(1, end - 4)
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    return []
 })
 
 const goToPage = (p) => {
@@ -257,7 +252,7 @@ const goToPage = (p) => {
 
 // ─── AVATAR ──────────────────────────
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2', '#ffedd5']
-const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c', '#c2410c']
+const avatarText = ['#1d4ed8', '#1d4ed8', '#1d4ed8', '#a16207', '#b91c1c', '#c2410c']
 
 const getAvatarStyle = (name) => {
     const i = (name || 'A').charCodeAt(0) % avatarColors.length
@@ -571,7 +566,7 @@ const submitEdit = async () => {
                     </tr>
                     <tr v-for="u in paginatedUsers" :key="u.id" :class="{ 'row-selected': selectedIds.includes(u.id) }">
                         <td class="select-col">
-                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id" @change="toggleItemSelection(u.id)" />
+                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
                         </td>
                         <td>
                             <div class="user-cell">
@@ -621,7 +616,7 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger"
+                                <button v-if="!isProtectedDeleteUser(u)" class="act-btn danger"
                                     :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể xóa tài khoản Giám đốc sáng lập' : 'Xóa')"
                                     :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
                                     :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
@@ -651,6 +646,7 @@ const submitEdit = async () => {
                 <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
                 <!-- Nút trang đầu nếu không hiển thị -->
+                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
                 <template v-if="pageNumbers[0] > 1">
                     <button @click="goToPage(1)">1</button>
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
@@ -919,13 +915,13 @@ const submitEdit = async () => {
     padding: 9px 16px;
     border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #2563eb, #1D4ED8);
     color: white;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.2s;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 
 .btn-new-user:hover {
@@ -977,7 +973,7 @@ const submitEdit = async () => {
 }
 
 .stat-card.stat-teal {
-    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
     color: #fff;
 }
 
@@ -1009,7 +1005,7 @@ const submitEdit = async () => {
 .badge-up {
     font-size: 11px;
     font-weight: 700;
-    color: #16a34a;
+    color: #2563eb;
     background: #dcfce7;
     padding: 3px 8px;
     border-radius: 20px;
@@ -1596,7 +1592,7 @@ tbody td {
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1774,7 +1770,7 @@ tbody td {
     padding: 10px 22px;
     border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white;
     font-size: 13px;
     font-weight: 600;

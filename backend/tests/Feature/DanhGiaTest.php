@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\DanhMuc;
-use App\Models\ThuongHieu;
-use App\Models\SanPham;
 use App\Models\BienThe;
+use App\Models\DanhGia;
+use App\Models\DanhMuc;
 use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
-use App\Models\DanhGia;
+use App\Models\SanPham;
+use App\Models\ThuongHieu;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -20,10 +20,15 @@ class DanhGiaTest extends TestCase
     use RefreshDatabase;
 
     private $user;
+
     private $danhmuc;
+
     private $thuonghieu;
+
     private $sanpham;
+
     private $bienthe;
+
     private $order;
 
     protected function setUp(): void
@@ -35,12 +40,12 @@ class DanhGiaTest extends TestCase
 
         $this->danhmuc = DanhMuc::create([
             'ten_danhmuc' => 'Điện thoại',
-            'trangthai' => 1
+            'trangthai' => 1,
         ]);
 
         $this->thuonghieu = ThuongHieu::create([
             'ten_thuonghieu' => 'Apple',
-            'trangthai' => 1
+            'trangthai' => 1,
         ]);
 
         $this->sanpham = new SanPham([
@@ -48,7 +53,7 @@ class DanhGiaTest extends TestCase
             'id_thuonghieu' => $this->thuonghieu->id_thuonghieu,
             'tenSP' => 'iPhone 15 Pro Max',
             'trangthai' => 'active',
-            'SKU' => 'IPHONE15PM'
+            'SKU' => 'IPHONE15PM',
         ]);
         $this->sanpham->giaSP = 30000000;
         $this->sanpham->save();
@@ -57,7 +62,7 @@ class DanhGiaTest extends TestCase
             'id_sanpham' => $this->sanpham->id_sanpham,
             'ten_bienthe' => 'iPhone 15 Pro Max 256GB Gold',
             'gia' => 30000000,
-            'soluong' => 10
+            'soluong' => 10,
         ]);
 
         // 2. Tạo đơn hàng hoàn thành (đã hoàn tất)
@@ -66,7 +71,7 @@ class DanhGiaTest extends TestCase
             'tongtien' => 30000000,
             'trangthai' => 'done',
             'diachi' => 'Hà Nội, Việt Nam',
-            'PTTT' => 'COD'
+            'PTTT' => 'COD',
         ]);
 
         // Chi tiết đơn hàng chứa biến thể
@@ -74,7 +79,7 @@ class DanhGiaTest extends TestCase
             'id_dathang' => $this->order->id_dathang,
             'id_bienthe' => $this->bienthe->id_bienthe,
             'soluong' => 1,
-            'gia' => 30000000
+            'gia' => 30000000,
         ]);
 
         // Kích hoạt AI Smart Reply cho bộ test mặc định
@@ -93,20 +98,20 @@ class DanhGiaTest extends TestCase
             'id_dathang' => $this->order->id_dathang,
             'id_bienthe' => $this->bienthe->id_bienthe,
             'danhgia' => 5,
-            'binhluan' => 'Sản phẩm dùng cực kỳ tuyệt vời và mượt mà, dịch vụ rất nhiệt tình!'
+            'binhluan' => 'Sản phẩm dùng cực kỳ tuyệt vời và mượt mà, dịch vụ rất nhiệt tình!',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
 
         // Kiểm tra db xem đánh giá có được tạo với trạng thái approved không
         $danhGia = DanhGia::first();
         $this->assertNotNull($danhGia);
         $this->assertEquals('approved', $danhGia->trangthai);
         $this->assertEquals(5, $danhGia->danhgia);
-        
+
         // Kiểm tra xem bình luận đã được đính kèm câu trả lời của Trợ lý AI
         $this->assertStringContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
         $this->assertStringContainsString('Sản phẩm dùng cực kỳ tuyệt vời và mượt mà', $danhGia->binhluan);
@@ -124,19 +129,19 @@ class DanhGiaTest extends TestCase
             'id_dathang' => $this->order->id_dathang,
             'id_bienthe' => $this->bienthe->id_bienthe,
             'danhgia' => 1,
-            'binhluan' => 'Hàng vcl đéo chạy được, làm ăn như lồn'
+            'binhluan' => 'Hàng vcl đéo chạy được, làm ăn như lồn',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
 
         $danhGia = DanhGia::first();
         $this->assertNotNull($danhGia);
         // Trạng thái tự động ẩn (spam)
         $this->assertEquals('spam', $danhGia->trangthai);
-        
+
         // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
         $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
     }
@@ -153,18 +158,18 @@ class DanhGiaTest extends TestCase
             'id_dathang' => $this->order->id_dathang,
             'id_bienthe' => $this->bienthe->id_bienthe,
             'danhgia' => 3,
-            'binhluan' => 'Sản phẩm tạm ổn, thời gian giao hàng hơi lâu một chút.'
+            'binhluan' => 'Sản phẩm tạm ổn, thời gian giao hàng hơi lâu một chút.',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
 
         $danhGia = DanhGia::first();
         $this->assertNotNull($danhGia);
         $this->assertEquals('pending', $danhGia->trangthai);
-        
+
         // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
         $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
     }
@@ -184,19 +189,19 @@ class DanhGiaTest extends TestCase
             'id_dathang' => $this->order->id_dathang,
             'id_bienthe' => $this->bienthe->id_bienthe,
             'danhgia' => 5,
-            'binhluan' => 'Sản phẩm dùng cực kỳ tuyệt vời và mượt mà, dịch vụ rất nhiệt tình!'
+            'binhluan' => 'Sản phẩm dùng cực kỳ tuyệt vời và mượt mà, dịch vụ rất nhiệt tình!',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
 
         $danhGia = DanhGia::first();
         $this->assertNotNull($danhGia);
         // Trạng thái giữ nguyên là pending (chờ duyệt)
         $this->assertEquals('pending', $danhGia->trangthai);
-        
+
         // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
         $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
     }
@@ -212,26 +217,26 @@ class DanhGiaTest extends TestCase
         // 1. Tải trạng thái ban đầu
         $response = $this->getJson('/api/admin/reviews/ai-status');
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
 
         // 2. Tắt trạng thái AI
         $response = $this->postJson('/api/admin/reviews/ai-status', ['active' => false]);
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'active' => false
-                 ]);
+            ->assertJson([
+                'success' => true,
+                'active' => false,
+            ]);
         $this->assertEquals('false', Storage::get('admin/ai_status.json'));
 
         // 3. Bật lại trạng thái AI
         $response = $this->postJson('/api/admin/reviews/ai-status', ['active' => true]);
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'active' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+                'active' => true,
+            ]);
         $this->assertEquals('true', Storage::get('admin/ai_status.json'));
     }
 }

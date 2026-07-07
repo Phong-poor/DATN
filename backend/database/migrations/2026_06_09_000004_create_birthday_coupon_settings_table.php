@@ -8,21 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('birthday_coupon_settings', function (Blueprint $table) {
+        Schema::create('cai_dat_ma_sinh_nhat', function (Blueprint $table) {
             $table->id();
-            $table->boolean('enabled')->default(true);
-            $table->string('run_time')->default('08:30');
-            $table->string('promotion_code')->nullable(); // e.g. HAPPYBDAY100
-            $table->string('email_template_id')->nullable()->default('tpl-bday-default');
-            $table->boolean('send_once_per_year')->default(true);
-            $table->boolean('retry_if_failed')->default(true);
-            $table->boolean('notify_admin')->default(true);
+            $table->boolean('kichhoat')->default(true);
+            $table->time('giochay')->default('08:00:00');
+            $table->integer('id_voucher')->nullable();
+            $table->string('mavoucher')->default('BIRTHDAY');
+            $table->string('id_mau_email')->default('birthday_default');
+            $table->boolean('gui_mot_lan_moi_nam')->default(true);
+            $table->boolean('thu_lai_khi_that_bai')->default(true);
+            $table->boolean('thongbao_admin')->default(false);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('birthday_coupon_settings');
+        Schema::dropIfExists('cai_dat_ma_sinh_nhat');
     }
 };

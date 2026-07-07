@@ -21,7 +21,7 @@
 
       <div class="menu-section">
         <p class="menu-label">MAIN MENU</p>
-        <div v-for="item in menuConfig" :key="item.label || item.path" class="menu-wrapper">
+        <div v-for="item in filteredMenuConfig" :key="item.label || item.path" class="menu-wrapper">
           <!-- Normal Link -->
           <router-link
             v-if="!item.isDropdown"
@@ -219,6 +219,7 @@ import {
   Gift,
   ChevronDown,
   Activity,
+  Coins,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -241,7 +242,7 @@ const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
 
 const appearance = ref({
   primary_color: '#2563eb',
-  accent_color: '#7c3aed',
+  accent_color: '#2563eb',
   border_radius: 12,
   card_shadow: 'medium',
   density: 'comfortable',
@@ -314,10 +315,67 @@ const menuConfig = [
     isDropdown: true,
     children: [
       { path: '/admin/users', label: 'Người dùng', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
     ]
   },
+  { path: '/admin/xu', label: 'Cấu hình Xu', icon: Coins },
   { path: '/admin/activity-log', label: 'Nhật ký hệ thống', icon: Activity },
 ]
+
+const filteredMenuConfig = computed(() => {
+  const userPerms = user.value?.cac_quyen || []
+  const isAdmin = user.value?.vaitro === 'admin'
+
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
+
+  const pathPermissionMap = {
+    '/admin/products': 'san_pham_xem',
+    '/admin/categories': 'danh_muc_xem',
+    '/admin/brands': 'thuong_hieu_xem',
+    '/admin/variants': 'bien_the_xem',
+    
+    '/admin/orders': 'don_hang_xem',
+    
+    '/admin/promotions': 'marketing_quan_ly',
+    '/admin/birthday-codes': 'marketing_quan_ly',
+    '/admin/combos': 'marketing_quan_ly',
+    '/admin/flash-sale': 'marketing_quan_ly',
+    
+    '/admin/affiliates': 'affiliate_quan_ly',
+    
+    '/admin/news': 'tin_tuc_quan_ly',
+    '/admin/reviews': 'binh_luan_quan_ly',
+    '/admin/banners': 'banner_quan_ly',
+    
+    '/admin/contacts': 'lien_he_quan_ly',
+    
+    '/admin/users': 'tai_khoan_quan_ly',
+    '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
+    
+    '/admin/activity-log': 'nhat_ky_quan_ly',
+  }
+
+  return menuConfig.map(item => {
+    if (!item.isDropdown) {
+      const required = pathPermissionMap[item.path]
+      if (required && !hasPerm(required)) return null
+      return item
+    }
+
+    const filteredChildren = item.children.filter(child => {
+      const required = pathPermissionMap[child.path]
+      if (required && !hasPerm(required)) return false
+      return true
+    })
+
+    if (filteredChildren.length === 0) return null
+
+    return {
+      ...item,
+      children: filteredChildren
+    }
+  }).filter(Boolean)
+})
 
 const dropdownStates = ref({
   'Thủ kho': false,
@@ -601,6 +659,18 @@ onMounted(async () => {
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
   document.documentElement.lang = currentLocale.value
+  
+  // Sync user profile and permissions from server
+  try {
+    const res = await api.get('/admin/account/profile')
+    if (res.data?.success && res.data?.data) {
+      localStorage.setItem('user', JSON.stringify(res.data.data))
+      user.value = res.data.data
+    }
+  } catch (err) {
+    console.error('Failed to sync profile in AdminLayout:', err)
+  }
+
   await loadAppearanceSettings()
   hydrateNotifications()
   await loadNotifications()
@@ -674,7 +744,7 @@ a { text-decoration: none; }
     color: #ffffff;
 }
 .item.active { 
-    background: linear-gradient(135deg, #2563eb, #06b6d4); 
+    background: linear-gradient(135deg, #2563eb, #3b82f6); 
     color: #ffffff;
     font-weight: 600; 
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
@@ -765,10 +835,10 @@ a { text-decoration: none; }
 }
 .badge-đơn-hàng {
   background: rgba(34, 211, 238, 0.15);
-  color: #22d3ee;
+  color: #3b82f6;
 }
 .badge-marketing {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(37, 99, 235, 0.15);
   color: #4ade80;
 }
 .badge-tiếp-thị {
@@ -893,7 +963,7 @@ a { text-decoration: none; }
 
 .notify-menu { width: 320px; }
 .notify-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 4px 4px 8px; border-bottom: 1px solid #edf2f7; }
-.notify-mark-read { border: 0; background: transparent; color: #4f46e5; font-size: 12px; cursor: pointer; }
+.notify-mark-read { border: 0; background: transparent; color: #2563eb; font-size: 12px; cursor: pointer; }
 .notify-empty { color: #64748b; font-size: 13px; padding: 14px 6px; }
 .notify-item { width: 100%; border: 1px solid #eef2f7; background: #fff; border-radius: 10px; padding: 9px 10px; margin-top: 6px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
@@ -925,7 +995,7 @@ a { text-decoration: none; }
 .user-dropdown-list { display: grid; gap: 6px; margin-bottom: 8px; }
 .dropdown-item { width: 100%; text-align: center; padding: 10px 12px; border-radius: 10px; border: none; background: #f8fafc; color: #0f172a; font-size: 13px; cursor: pointer; transition: all 0.2s ease; }
 .dropdown-item.compact { text-align: left; }
-.dropdown-item.active { background: #e0e7ff; color: #4338ca; font-weight: 700; }
+.dropdown-item.active { background: #e0e7ff; color: #1d4ed8; font-weight: 700; }
 .dropdown-item:hover { background: #eef2ff; }
 .dropdown-item.sign-out { background: #fef2f2; color: #dc2626; transition: background-color 0.2s, color 0.2s; }
 .dropdown-item.sign-out:hover { background: #fee2e2; color: #b91c1c; }

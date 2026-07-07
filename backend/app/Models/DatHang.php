@@ -11,6 +11,7 @@ class DatHang extends Model
 
     protected $fillable = [
         'id_khachhang',
+        'user_id',
         'tongtien',
         'trangthai',
         'diachi',
@@ -19,6 +20,8 @@ class DatHang extends Model
         'minh_chung_hoan_tien',
         'id_khuyenmai',
         'giam_gia',
+        'xu_dung',
+        'xu_nhan',
         'nha_cung_cap_thanh_toan',
         'trang_thai_thanh_toan',
         'ma_don_hang_thanh_toan',
@@ -31,6 +34,8 @@ class DatHang extends Model
         'du_lieu_thanh_toan',
     ];
 
+
+
     protected $casts = [
         'du_lieu_thanh_toan' => 'array',
         'thanh_toan_luc' => 'datetime',
@@ -39,6 +44,16 @@ class DatHang extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'id_khachhang');
+    }
+
+    public function getUserIdAttribute()
+    {
+        return $this->id_khachhang;
+    }
+
+    public function setUserIdAttribute($value): void
+    {
+        $this->attributes['id_khachhang'] = $value;
     }
 
     public function chi_tiets()

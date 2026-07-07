@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('giohang', function (Blueprint $table) {
             $table->id('id_giohang');
 
-            $table->foreignId('user_id')
-                ->constrained('users')
+            $table->foreignId('id_khachhang')
+                ->constrained('khachhang')
                 ->onDelete('cascade');
 
             $table->unsignedBigInteger('id_bienthe');
@@ -29,7 +29,7 @@ return new class extends Migration
                 ->on('bienthe')
                 ->onDelete('cascade');
 
-            $table->unique(['user_id', 'id_bienthe']);
+            $table->unique(['id_khachhang', 'id_bienthe']);
         });
     }
 

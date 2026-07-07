@@ -102,7 +102,7 @@
             <tbody>
               <tr v-for="p in sessionProducts" :key="p.id_sanpham_flashsale">
                 <td class="prod-img-td">
-                  <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://via.placeholder.com/100')" alt="" class="table-thumb" />
+                  <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://placehold.co/100')" alt="" class="table-thumb" />
                 </td>
                 <td>
                   <p class="cat-name">{{ p.bien_the?.san_pham?.tenSP || 'N/A' }}</p>
@@ -274,7 +274,7 @@
                   @click="selectTargetProduct(p)"
                 >
                   <div class="prod-card-img-box">
-                    <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://via.placeholder.com/100'" alt="" />
+                    <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://placehold.co/100'" alt="" />
                   </div>
                   <div class="prod-card-info">
                     <span class="prod-card-brand">{{ p.thuong_hieu?.ten_thuonghieu || p.brand || 'Laptop' }}</span>
@@ -650,7 +650,7 @@ const parseCurrency = (val) => {
 }
 
 const getStorageUrl = (path) => {
-  if (!path) return 'https://via.placeholder.com/100'
+  if (!path) return 'https://placehold.co/100'
   if (path.startsWith('http')) return path
   return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${path}`
 }
@@ -989,7 +989,7 @@ const removeProductFromSession = async (prod) => {
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1027,12 +1027,12 @@ const removeProductFromSession = async (prod) => {
 }
 
 .cat-tab:hover:not(:disabled) { 
-  color: #4f46e5; 
+  color: #2563eb; 
 }
 
 .cat-tab.active { 
-  color: #4f46e5; 
-  border-bottom-color: #4f46e5; 
+  color: #2563eb; 
+  border-bottom-color: #2563eb; 
 }
 
 .cat-tab:disabled {
@@ -1105,7 +1105,7 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #15803d; background: #dcfce7; border: 1px solid #86efac; }
+.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
 .status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
 .status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
 .status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }
@@ -1282,7 +1282,7 @@ td {
   padding: 11px 24px; 
   border-radius: 10px; 
   border: none; 
-  background: linear-gradient(135deg, #2563eb, #4f46e5); 
+  background: linear-gradient(135deg, #2563eb, #2563eb); 
   color: #fff; 
   font-size: 13px; 
   font-weight: 600; 
@@ -1670,7 +1670,7 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #15803d; background: #dcfce7; border: 1px solid #86efac; }
+.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
 .status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
 .status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
 .status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }

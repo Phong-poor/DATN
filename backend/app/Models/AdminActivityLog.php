@@ -11,6 +11,13 @@ class AdminActivityLog extends Model
 
     protected $table = 'nhat_ky_admin';
 
+    protected $appends = [
+        'action',
+        'model_name',
+        'description',
+        'ip_address',
+    ];
+
     protected $fillable = [
         'id_khachhang',
         'hanhdong',
@@ -24,5 +31,25 @@ class AdminActivityLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'id_khachhang');
+    }
+
+    public function getActionAttribute()
+    {
+        return $this->hanhdong;
+    }
+
+    public function getModelNameAttribute()
+    {
+        return $this->tenmodel;
+    }
+
+    public function getDescriptionAttribute()
+    {
+        return $this->mota;
+    }
+
+    public function getIpAddressAttribute()
+    {
+        return $this->diachi_ip;
     }
 }

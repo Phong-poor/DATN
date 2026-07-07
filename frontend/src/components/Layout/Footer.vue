@@ -59,7 +59,7 @@ onUnmounted(() => {
         <!-- COLUMN 1: BRAND HUB & LIVE STATUS -->
         <div class="dir-col brand-hub">
           <div class="footer-brand">
-            <img src="/predator_logo.svg" alt="Predator Logo" class="footer-logo" />
+            <img src="/nextgen_logo.svg" alt="NextGen Logo" class="footer-logo" />
             <span class="cyber-badge-glow">TECH</span>
           </div>
           <p class="brand-slogan">
@@ -103,11 +103,11 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
           <ul class="footer-links">
-            <li><router-link to="/products?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
+            <li><router-link to="/san-pham?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
             <li><router-link to="/macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
-            <li><router-link to="/products?category=workstation" class="link-item">Workstation Đồ Họa & Render</router-link></li>
-            <li><router-link to="/products?category=gear" class="link-item">Gaming Gear & Phụ Kiện High-End</router-link></li>
-            <li><router-link to="/products?category=office" class="link-item">Laptop Văn Phòng AI Intel Ultra</router-link></li>
+            <li><router-link to="/san-pham?category=workstation" class="link-item">Workstation Đồ Họa & Render</router-link></li>
+            <li><router-link to="/san-pham?category=gear" class="link-item">Gaming Gear & Phụ Kiện High-End</router-link></li>
+            <li><router-link to="/san-pham?category=office" class="link-item">Laptop Văn Phòng AI Intel Ultra</router-link></li>
           </ul>
         </div>
 
@@ -115,11 +115,11 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Hệ Sinh Thái</h4>
           <ul class="footer-links">
-            <li><router-link to="/interactive-labs" class="link-item">Predator Interactive Labs</router-link></li>
-            <li><router-link to="/interactive-labs" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
-            <li><router-link to="/news" class="link-item">Tin Tức Công Nghệ AI & Review</router-link></li>
-            <li><router-link to="/products" class="link-item">Góc Setup VIP Cộng Đồng</router-link></li>
-            <li><router-link to="/interactive-labs" class="link-item">VIP Club & Esports Tournaments</router-link></li>
+            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">NextGen Interactive Labs</router-link></li>
+            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
+            <li><router-link to="/tin-tuc" class="link-item">Tin Tức Công Nghệ AI & Review</router-link></li>
+            <li><router-link to="/san-pham" class="link-item">Góc Setup VIP Cộng Đồng</router-link></li>
+            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">VIP Club & Esports Tournaments</router-link></li>
           </ul>
         </div>
 
@@ -127,7 +127,7 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Hỗ Trợ Kỹ Thuật</h4>
           <ul class="footer-links">
-            <li><router-link to="/contact" class="link-item">Liên Hệ & Gửi Yêu Cầu Hỗ Trợ</router-link></li>
+            <li><router-link to="/lien-he" class="link-item">Liên Hệ & Gửi Yêu Cầu Hỗ Trợ</router-link></li>
             <li><a href="#" class="link-item">Chính Sách Bảo Hành Ultimate Care</a></li>
             <li><a href="#" class="link-item">Tra Cứu Bảo Hành Điện Tử VIP</a></li>
             <li><a href="#" class="link-item">Tải Driver & Firmware Mới Nhất</a></li>
@@ -183,7 +183,7 @@ onUnmounted(() => {
         <div class="bottom-inner">
           <div class="b-left">
             <p class="copyright">
-              © 2026 <strong>VinaTech Predator</strong>. Thiết kế & phát triển với công nghệ tối ưu.
+              © 2026 <strong>VinaTech NextGen</strong>. Thiết kế & phát triển với công nghệ tối ưu.
             </p>
             <div class="bottom-links">
               <a href="#">Chính Sách Bảo Mật</a>
@@ -257,9 +257,9 @@ onUnmounted(() => {
 <style scoped>
 /* ================= GLOBAL CUSTOM DESIGN TOKENS ================= */
 .footer {
-  --neon-cyan: #00f2fe;
-  --neon-purple: #9d4edd;
-  --neon-green: #10b981;
+  --neon-cyan: #3b82f6;
+  --neon-purple: #2563eb;
+  --neon-green: #2563eb;
   --cyber-dark-bg: #070a13;
   --cyber-card-bg: rgba(11, 16, 29, 0.65);
   --text-primary: #ffffff;
@@ -271,7 +271,7 @@ onUnmounted(() => {
   padding: 80px 0 32px;
   position: relative;
   overflow: hidden;
-  border-top: 1px solid rgba(0, 242, 254, 0.15); /* Sleek neon cyan top line */
+  border-top: 1px solid rgba(37, 99, 235, 0.22);
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -280,7 +280,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(circle at 1px 1px, rgba(0, 242, 254, 0.035) 1px, transparent 0),
+    radial-gradient(circle at 1px 1px, rgba(37, 99, 235, 0.04) 1px, transparent 0),
     linear-gradient(rgba(255, 255, 255, 0.002) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.002) 1px, transparent 1px);
   background-size: 32px 32px;
@@ -342,12 +342,12 @@ onUnmounted(() => {
 .footer-logo {
   height: 38px;
   object-fit: contain;
-  filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.4));
+  filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.38));
   animation: logoBreath 4s ease-in-out infinite alternate;
 }
 @keyframes logoBreath {
-  0% { filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.3)); transform: translateY(0); }
-  100% { filter: drop-shadow(0 0 16px rgba(0, 242, 254, 0.6)); transform: translateY(-2px); }
+  0% { filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.3)); transform: translateY(0); }
+  100% { filter: drop-shadow(0 0 16px rgba(37, 99, 235, 0.58)); transform: translateY(-2px); }
 }
 .cyber-badge-glow {
   font-size: 9px;
@@ -357,7 +357,7 @@ onUnmounted(() => {
   padding: 2px 7px;
   border-radius: 5px;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.25);
   font-family: monospace;
 }
 .brand-slogan {
@@ -389,13 +389,13 @@ onUnmounted(() => {
   height: 8px;
   background-color: var(--neon-green);
   border-radius: 50%;
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
   animation: pulseDot 1.8s infinite;
 }
 @keyframes pulseDot {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
 }
 .live-label {
   font-size: 11px;
@@ -406,7 +406,7 @@ onUnmounted(() => {
 }
 .green-text {
   color: var(--neon-green);
-  text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  text-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
 }
 .widget-details {
   display: flex;
@@ -447,7 +447,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 10px rgba(59, 89, 152, 0.25);
 }
 .social-btn.instagram {
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #ffffff;
   border: none;
   box-shadow: 0 4px 10px rgba(220, 39, 67, 0.25);
@@ -477,7 +477,7 @@ onUnmounted(() => {
 }
 .social-btn.facebook:hover { box-shadow: 0 8px 24px rgba(59, 89, 152, 0.45); }
 .social-btn.instagram:hover { box-shadow: 0 8px 24px rgba(220, 39, 67, 0.45); }
-.social-btn.youtube:hover { box-shadow: 0 8px 24px rgba(255, 0, 0, 0.45); }
+.social-btn.youtube:hover { box-shadow: 0 8px 24px rgba(37, 99, 235, 0.42); }
 .social-btn.tiktok:hover { box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2); }
 .social-btn.discord:hover { box-shadow: 0 8px 24px rgba(88, 101, 242, 0.45); }
 
@@ -534,7 +534,7 @@ onUnmounted(() => {
 .footer-links .link-item:hover {
   color: var(--neon-cyan);
   padding-left: 16px;
-  text-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+  text-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
 }
 .footer-links .link-item:hover::before {
   opacity: 1;
@@ -562,28 +562,30 @@ onUnmounted(() => {
 }
 .subscribe-box-glass:focus-within {
   border-color: var(--neon-cyan);
-  background: rgba(0, 242, 254, 0.02);
-  box-shadow: 0 0 15px rgba(0, 242, 254, 0.12);
+  background: rgba(37, 99, 235, 0.04);
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.12);
 }
 .sub-mail-icon {
   font-size: 16px;
-  color: #475569;
+  color: #dbeafe;
 }
 .subscribe-input {
   flex: 1;
   background: transparent;
   border: none;
   padding: 8px 0;
-  color: #ffffff;
+  color: #f8fafc;
   font-size: 13px;
+  font-weight: 700;
   outline: none;
 }
 .subscribe-input::placeholder {
-  color: #475569;
+  color: #cbd5e1;
+  opacity: 0.95;
 }
 .subscribe-btn {
-  background: linear-gradient(135deg, var(--neon-cyan), #00b4d8);
-  color: #070a13;
+  background: linear-gradient(135deg, var(--neon-cyan), #1d4ed8);
+  color: #ffffff;
   border: none;
   padding: 9px 16px;
   border-radius: 12px;
@@ -594,7 +596,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(0, 242, 254, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  text-shadow: 0 1px 8px rgba(2, 6, 23, 0.28);
 }
 .arrow-svg {
   width: 14px;
@@ -603,7 +606,7 @@ onUnmounted(() => {
 }
 .subscribe-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 242, 254, 0.4);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.36);
   filter: brightness(1.08);
 }
 .subscribe-btn:hover .arrow-svg {
@@ -624,20 +627,20 @@ onUnmounted(() => {
 }
 .hotline-card:hover {
   background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(0, 242, 254, 0.2);
+  border-color: rgba(37, 99, 235, 0.2);
 }
 .hotline-icon-box {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(0, 242, 254, 0.08);
-  border: 1px solid rgba(0, 242, 254, 0.15);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--neon-cyan);
   flex-shrink: 0;
-  box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.1);
 }
 .phone-svg {
   width: 18px;
@@ -703,7 +706,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   color: var(--neon-cyan);
   margin-top: 2px;
-  filter: drop-shadow(0 0 6px rgba(0, 242, 254, 0.4));
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.36));
 }
 
 /* ================= 3. BOTTOM FOOTER BAR ================= */
@@ -748,7 +751,7 @@ onUnmounted(() => {
 }
 .bottom-links a:hover {
   color: var(--neon-cyan);
-  text-shadow: 0 0 5px rgba(0, 242, 254, 0.2);
+  text-shadow: 0 0 5px rgba(37, 99, 235, 0.2);
 }
 .dot-separator {
   width: 4px;
@@ -860,10 +863,10 @@ onUnmounted(() => {
   font-family: monospace;
 }
 .trust-badge.security-ssl {
-  border-color: rgba(0, 242, 254, 0.3);
-  background: rgba(0, 242, 254, 0.05);
+  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(37, 99, 235, 0.06);
   color: var(--neon-cyan);
-  text-shadow: 0 0 5px rgba(0, 242, 254, 0.2);
+  text-shadow: 0 0 5px rgba(37, 99, 235, 0.2);
 }
 .lock-svg {
   width: 10px;
@@ -876,7 +879,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, #e11d48, #be123c);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   border-radius: 10px;
   padding: 5px 12px 5px 14px;
   text-decoration: none;
@@ -912,7 +915,7 @@ onUnmounted(() => {
   height: 14px;
   border-radius: 50%;
   background: #ffffff;
-  color: #be123c;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -976,7 +979,7 @@ onUnmounted(() => {
 .back-to-top-widget:hover {
   transform: translateY(-5px);
   border-color: var(--neon-cyan);
-  box-shadow: 0 15px 35px rgba(0, 242, 254, 0.25);
+  box-shadow: 0 15px 35px rgba(37, 99, 235, 0.24);
 }
 .back-to-top-widget:hover .arrow-container {
   transform: translateY(-2px);

@@ -10,7 +10,7 @@ return new class extends Migration
         $now = now();
         $findProductId = function (string $name): ?int {
             $id = DB::table('sanpham')
-                ->where('tenSP', 'like', '%' . $name . '%')
+                ->where('tenSP', 'like', '%'.$name.'%')
                 ->value('id_sanpham');
 
             return $id ? (int) $id : null;
@@ -72,7 +72,7 @@ return new class extends Migration
             [
                 'title' => 'Trải Nghiệm Đắm Chìm',
                 'subtitle' => 'Không Gian Cao Cấp',
-                'eyebrow' => 'PREDATOR SHOWROOM',
+                'eyebrow' => 'NEXTGEN SHOWROOM',
                 'highlight' => 'Không Gian Cao Cấp',
                 'description' => 'Khám phá không gian laptop hiện đại với các dòng máy cao cấp được trưng bày thực tế cho game, sáng tạo và công việc chuyên nghiệp.',
                 'image' => '/Gemini_Generated_Image_dp15ytdp15ytdp15.png',
@@ -91,7 +91,7 @@ return new class extends Migration
                 ->where('image', $banner['image'])
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 $productId = $banner['product_id'] ?? null;
 
                 DB::table('banners')->insert(array_merge($banner, [
@@ -99,7 +99,7 @@ return new class extends Migration
                     'mobile_image' => null,
                     'mobile_media_type' => null,
                     'product_id' => $productId,
-                    'link_url' => $productId ? '/products/' . $productId : $banner['link_url'],
+                    'link_url' => $productId ? '/products/'.$productId : $banner['link_url'],
                     'is_active' => true,
                     'starts_at' => null,
                     'ends_at' => null,

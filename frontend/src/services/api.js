@@ -1,5 +1,5 @@
 ﻿import axios from 'axios'
-import { clearAuth, getToken } from './auth'
+import { clearAuth, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
 
 const api = axios.create({
@@ -14,6 +14,13 @@ const api = axios.create({
 const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
 const inFlightGetRequests = new Map()
+const NO_CACHE_GET_PREFIXES = [
+  '/gio-hang',
+  '/yeu-thich',
+  '/orders',
+  '/user/vouchers',
+  '/affiliate',
+]
 
 export const clearApiGetCache = () => {
   getCache.clear()
@@ -21,7 +28,11 @@ export const clearApiGetCache = () => {
 }
 
 const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
-const shouldCacheGet = (config = {}) => config.method?.toLowerCase?.() === 'get' && config.cache !== false
+const shouldCacheGet = (config = {}) => {
+  if (config.method?.toLowerCase?.() !== 'get' || config.cache === false) return false
+  const url = String(config.url || '')
+  return !NO_CACHE_GET_PREFIXES.some((prefix) => url === prefix || url.startsWith(`${prefix}/`))
+}
 
 const stableStringify = (value) => {
   if (!value || typeof value !== 'object') return value ? String(value) : ''
@@ -36,7 +47,7 @@ const getCacheKey = (url, config = {}) => {
 
 api.interceptors.request.use((config) => {
   const method = config.method?.toLowerCase?.()
-  if (method && method !== 'get') {
+  if (method && method !== 'get' && config.invalidateCache !== false) {
     clearApiGetCache()
   }
 
@@ -45,7 +56,13 @@ api.interceptors.request.use((config) => {
   }
 
   const token = getToken()
-  if (token) {
+  const hasAuthorizationHeader = Boolean(
+    config.headers?.Authorization ||
+    config.headers?.authorization ||
+    (typeof config.headers?.get === 'function' && config.headers.get('Authorization'))
+  )
+
+  if (token && !hasAuthorizationHeader) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -67,10 +84,22 @@ api.interceptors.response.use(
     if (shouldShowGlobalLoader(error.config)) {
       window.dispatchEvent(new Event('global-loader-hide'))
     }
-    if (error.response?.status === 401) {
+    if (error.response?.status === 423 || error.response?.data?.code === 'ACCOUNT_LOCKED') {
+      const message = error.response?.data?.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+      localStorage.setItem('account_locked_message', message)
       clearAuth()
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      if (window.location.pathname !== '/dang-nhap') {
+        window.location.href = '/dang-nhap?account_locked=1'
+      }
+    } else if (error.response?.status === 403 && error.response?.data?.code === 'ADMIN_ACCESS_REVOKED') {
+      clearAuth()
+      if (window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/dang-nhap?admin_revoked=1'
+      }
+    } else if (error.response?.status === 401) {
+      clearAuth()
+      if (window.location.pathname !== '/dang-nhap') {
+        window.location.href = '/dang-nhap'
       }
     }
     return Promise.reject(error)
@@ -103,5 +132,48 @@ api.get = (url, config = {}) => {
   inFlightGetRequests.set(key, request)
   return request
 }
+
+const SESSION_CHECK_INTERVAL_MS = 10000
+let sessionCheckTimer = null
+
+const isAuthPage = () => {
+  if (typeof window === 'undefined') return true
+  return ['/dang-nhap', '/login', '/login-success', '/dang-nhap-thanh-cong'].some((path) => window.location.pathname.startsWith(path))
+}
+
+export const startSessionGuard = () => {
+  if (typeof window === 'undefined' || sessionCheckTimer) return
+
+  sessionCheckTimer = window.setInterval(() => {
+    if (!getToken() || isAuthPage()) return
+
+    rawGet('/auth/session', {
+      cache: false,
+      invalidateCache: false,
+      showGlobalLoader: false,
+    }).then((response) => {
+      const user = response.data?.user
+      if (!user) return
+
+      updateUser(user)
+
+      const role = String(user.vaitro || user.role || '').toLowerCase()
+      if (window.location.pathname.startsWith('/admin') && (!role || role === 'user')) {
+        clearAuth()
+        window.location.href = '/dang-nhap?admin_revoked=1'
+      }
+    }).catch(() => {
+      // 401/403/423 are handled by the response interceptor, so no extra UI is needed here.
+    })
+  }, SESSION_CHECK_INTERVAL_MS)
+}
+
+export const stopSessionGuard = () => {
+  if (typeof window === 'undefined' || !sessionCheckTimer) return
+  window.clearInterval(sessionCheckTimer)
+  sessionCheckTimer = null
+}
+
+startSessionGuard()
 
 export default api

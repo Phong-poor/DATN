@@ -18,11 +18,11 @@
   --tn-border:       #E2E8F0;        /* Light border */
   --tn-border-hover: #cbd5e1;
 
-  /* --- TechNova Accent Blue (Electric Indigo) --- */
-  --tn-primary:      #4F46E5;        /* Electric Indigo */
-  --tn-primary-hover:#4338CA;
-  --tn-primary-glow: rgba(79, 70, 229, 0.15);
-  --tn-primary-muted:rgba(79, 70, 229, 0.08);
+  /* --- NextGen Accent Blue --- */
+  --tn-primary:      #2563EB;
+  --tn-primary-hover:#1D4ED8;
+  --tn-primary-glow: rgba(37, 99, 235, 0.15);
+  --tn-primary-muted:rgba(37, 99, 235, 0.08);
 
   /* --- Text --- */
   --tn-text:         #0F172A;        /* Midnight Slate */
@@ -31,7 +31,7 @@
 
   /* --- Status Colors --- */
   --tn-red:          #ef4444;        
-  --tn-green:        #10B981;        
+  --tn-green:        #2563EB;        
   --tn-orange:       #f97316;        
   --tn-yellow:       #eab308;        
 
@@ -131,13 +131,12 @@ code, pre {
 
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.08s ease;
 }
 
 .page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
-  transform: translateY(3px);
 }
 
 .global-scroll-effect {
@@ -542,18 +541,18 @@ body {
 }
 
 .badge-premium.badge-cyan {
-  background: rgba(0, 229, 255, 0.1);
+  background: rgba(37, 99, 235, 0.1);
   color: #00E5FF;
 }
 
 .badge-premium.badge-orange {
-  background: rgba(249, 115, 22, 0.1);
+  background: rgba(37, 99, 235, 0.1);
   color: #F97316;
 }
 
 .badge-premium.badge-green {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10B981;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563EB;
 }
 
 /* Section Header Shared Style */

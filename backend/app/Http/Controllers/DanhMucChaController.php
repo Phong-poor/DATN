@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DanhMucCha;
 use App\Models\DanhMuc;
+use App\Models\DanhMucCha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,15 +14,17 @@ class DanhMucChaController extends Controller
         $parents = Cache::remember('danhmuc_cha_all', 120, function () {
             return DanhMucCha::all();
         });
+
         return response()->json(['data' => $parents]);
     }
 
     public function show($id)
     {
         $parent = DanhMucCha::find($id);
-        if (!$parent) {
+        if (! $parent) {
             return response()->json(['message' => 'Không tìm thấy danh mục cha'], 404);
         }
+
         return response()->json(['data' => $parent]);
     }
 
@@ -30,25 +32,26 @@ class DanhMucChaController extends Controller
     {
         $validated = $request->validate([
             'ten_danhmuc' => 'required|string|max:255|unique:danhmuc_cha,ten_danhmuc',
-            'trangthai'  => 'required|in:active,hidden',
+            'trangthai' => 'required|in:active,hidden',
         ]);
 
         $parent = DanhMucCha::create($validated);
         Cache::forget('danhmuc_cha_all');
         Cache::forget('danhmuc_all'); // Clear all related caches
+
         return response()->json(['message' => 'Thêm danh mục cha thành công', 'data' => $parent], 201);
     }
 
     public function update(Request $request, $id)
     {
         $parent = DanhMucCha::find($id);
-        if (!$parent) {
+        if (! $parent) {
             return response()->json(['message' => 'Không tìm thấy danh mục cha'], 404);
         }
 
         $validated = $request->validate([
-            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc_cha,ten_danhmuc,' . $id . ',id_danhmuc_cha',
-            'trangthai'  => 'required|in:active,hidden',
+            'ten_danhmuc' => 'required|string|max:255|unique:danhmuc_cha,ten_danhmuc,'.$id.',id_danhmuc_cha',
+            'trangthai' => 'required|in:active,hidden',
         ]);
 
         $parent->update($validated);
@@ -61,7 +64,7 @@ class DanhMucChaController extends Controller
     public function destroy($id)
     {
         $parent = DanhMucCha::find($id);
-        if (!$parent) {
+        if (! $parent) {
             return response()->json(['message' => 'Không tìm thấy danh mục cha'], 404);
         }
 

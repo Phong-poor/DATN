@@ -68,18 +68,18 @@ const categoryOptions = computed(() => {
 
 const catStyle = {
   'Công nghệ': { bg: '#dbeafe', color: '#1d4ed8' },
-  'Sự kiện': { bg: '#dcfce7', color: '#15803d' },
+  'Sự kiện': { bg: '#dcfce7', color: '#1d4ed8' },
   'Sản phẩm': { bg: '#fef9c3', color: '#a16207' },
-  'Nội bộ': { bg: '#ede9fe', color: '#6d28d9' },
+  'Nội bộ': { bg: '#ede9fe', color: '#1d4ed8' },
 }
 const statusStyle = {
-  published: { bg: '#dcfce7', color: '#15803d' },
+  published: { bg: '#dcfce7', color: '#1d4ed8' },
   scheduled: { bg: '#fef9c3', color: '#a16207' },
   draft: { bg: '#f1f5f9', color: '#64748b' },
 }
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2']
 const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c']
-const placeholderImage = 'https://via.placeholder.com/160x100?text=News'
+const placeholderImage = 'https://placehold.co/160x100?text=News'
 const currentAuthorName = computed(() => String(currentUser.value?.name || '').trim() || 'Admin')
 
 const defaultForm = () => ({
@@ -714,7 +714,7 @@ onMounted(async () => {
 .icon-btn:hover { background: #f1f5f9; }
 .admin-text b { color: #0f172a; display: block; font-size: 12px; font-weight: 600; }
 .admin-text span, .post-cell span { color: #94a3b8; font-size: 11px; }
-.avatar-circle { align-items: center; background: linear-gradient(135deg,#2563eb,#4f46e5); border-radius: 50%; color: white; display: flex; font-size: 11px; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
+.avatar-circle { align-items: center; background: linear-gradient(135deg,#2563eb,#2563eb); border-radius: 50%; color: white; display: flex; font-size: 11px; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
 .breadcrumb { align-items: center; color: #94a3b8; display: flex; font-size: 12px; gap: 6px; padding: 16px 32px 0; }
 .crumb-active { color: #2563eb; font-weight: 500; }
 
@@ -726,7 +726,7 @@ onMounted(async () => {
 .btn-new {
     display: flex; align-items: center; gap: 7px; white-space: nowrap;
     padding: 11px 20px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg,#2563eb,#4f46e5);
+    background: linear-gradient(135deg,#2563eb,#2563eb);
     color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.2s;
 }
 .btn-new svg { width: 14px; height: 14px; }
@@ -758,8 +758,8 @@ onMounted(async () => {
 }
 .stat-card.stat-blue { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
-.stat-card.stat-purple { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); }
-.stat-card.stat-amber { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+.stat-card.stat-purple { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
+.stat-card.stat-amber { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
 .stat-card p { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.82); letter-spacing: 0.08em; margin: 0 0 6px; }
 .stat-card b { font-size: 24px; font-weight: 800; color: #fff; }
 .stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -894,7 +894,7 @@ table { width: 100%; border-collapse: collapse; }
 .page-header { align-items: flex-start; display: flex; justify-content: space-between; padding: 12px 32px 20px; }
 .page-header h1 { color: #0f172a; font-size: 28px; font-weight: 800; margin: 0 0 6px; }
 .page-header p { color: #64748b; font-size: 13px; line-height: 1.5; margin: 0; max-width: 470px; }
-.btn-new, .btn-submit { background: linear-gradient(135deg,#2563eb,#4f46e5); border: 0; border-radius: 10px; color: white; cursor: pointer; font-size: 13px; font-weight: 600; padding: 11px 20px; }
+.btn-new, .btn-submit { background: linear-gradient(135deg,#2563eb,#2563eb); border: 0; border-radius: 10px; color: white; cursor: pointer; font-size: 13px; font-weight: 600; padding: 11px 20px; }
 .btn-new { align-items: center; display: flex; gap: 7px; }
 .btn-new svg { height: 14px; width: 14px; }
 .stats { display: grid; gap: 16px; grid-template-columns: repeat(4,1fr); padding: 0 32px 20px; }
@@ -904,8 +904,8 @@ table { width: 100%; border-collapse: collapse; }
 .stat-icon { align-items: center; border-radius: 12px; display: flex; height: 44px; justify-content: center; width: 44px; }
 .stat-icon svg { height: 20px; width: 20px; }
 .blue { background: #dbeafe; color: #2563eb; }
-.green { background: #dcfce7; color: #16a34a; }
-.purple { background: #ede9fe; color: #7c3aed; }
+.green { background: #dcfce7; color: #2563eb; }
+.purple { background: #ede9fe; color: #2563eb; }
 .amber { background: #fef9c3; color: #d97706; }
 .filter-bar { align-items: center; display: flex; justify-content: space-between; padding: 0 32px 14px; }
 .filter-left select, .btn-advanced { background: white; border: 1px solid #e2e8f0; border-radius: 8px; color: #334155; cursor: pointer; font-size: 13px; padding: 8px 14px; }
