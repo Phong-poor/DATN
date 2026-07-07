@@ -37,43 +37,43 @@ const activeMegaMenu = ref(null)
 let megaLeaveTimer = null
 
 const megaMenuData = reactive({
-  gaming: {
-    label: 'Gaming',
-    accent: '#ef4444',
-    accentBg: 'rgba(239,68,68,0.07)',
+  laptop: {
+    label: 'Labtop',
+    accent: '#2563eb',
+    accentBg: 'rgba(37,99,235,0.08)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 10v4M6 12h4m6-2v4m0-2h2"/></svg>`,
     img: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80',
     sections: [
       {
-        title: 'Theo GPU', icon: '🎮',
+        title: 'Dong laptop', icon: '🎮',
         items: [
-          { label: 'RTX 5090', badge: 'NEW', q: 'RTX 5090' },
-          { label: 'RTX 5080', badge: '', q: 'RTX 5080' },
-          { label: 'RTX 5070', badge: '', q: 'RTX 5070' },
-          { label: 'RTX 4070', badge: 'HOT', q: 'RTX 4070' },
+          { label: 'Laptop Gaming RTX', badge: 'HOT', q: 'gaming rtx' },
+          { label: 'MacBook Pro & Air', badge: 'NEW', q: 'macbook apple' },
+          { label: 'Laptop van phong', badge: '', q: 'laptop van phong' },
+          { label: 'Laptop hoc tap', badge: '', q: 'laptop sinh vien' },
         ]
       },
       {
-        title: 'Thương hiệu', icon: '🏷️',
+        title: 'Thuong hieu', icon: '🏷️',
         items: [
           { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
-          { label: 'MSI Titan', badge: '', q: 'MSI Titan' },
+          { label: 'Apple MacBook', badge: 'PRO', q: 'MacBook' },
           { label: 'Lenovo Legion', badge: 'HOT', q: 'Lenovo Legion' },
-          { label: 'Acer Predator', badge: '', q: 'Acer Predator' },
+          { label: 'Dell Gaming', badge: '', q: 'Dell Gaming' },
         ]
       },
       {
-        title: 'Mức giá', icon: '💰',
+        title: 'Nhu cau', icon: '💰',
         items: [
-          { label: 'Dưới 20 triệu', badge: '', q: 'gaming duoi 20 trieu' },
-          { label: '20M – 35M', badge: '', q: 'gaming 20-35 trieu' },
-          { label: '35M – 60M', badge: '', q: 'gaming 35-60 trieu' },
-          { label: 'Trên 60 triệu', badge: 'PRO', q: 'gaming flagship' },
+          { label: 'Workstation do hoa', badge: 'PRO', q: 'workstation' },
+          { label: 'Laptop AI PC', badge: 'NEW', q: 'AI PC' },
+          { label: 'Phu kien laptop', badge: '', q: 'phu kien laptop' },
+          { label: 'Flagship Premium', badge: 'PRO', q: 'flagship premium' },
         ]
       },
     ],
     featured: null,
-    quickLinks: ['RTX 5090 Gaming', 'Gaming dưới 20 triệu', 'So sánh gaming laptop'],
+    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop van phong'],
   },
   aipc: {
     label: 'AI PC',
@@ -259,7 +259,7 @@ const megaMenuData = reactive({
 })
 
 const visibleMegaMenuData = computed(() => {
-  const { aipc, ...menus } = megaMenuData
+  const { aipc, macbook, ...menus } = megaMenuData
   return menus
 })
 
@@ -967,8 +967,8 @@ const warmProductsPageNow = () => {
         </div>
 
         <!-- Extra links -->
-        <router-link to="/news" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
-        <router-link to="/contact" class="nav-plain-link">Liên hệ</router-link>
+        <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
+        <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
       </nav>
 
       <!-- SEARCH BAR -->
