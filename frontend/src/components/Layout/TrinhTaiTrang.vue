@@ -181,7 +181,7 @@ onUnmounted(() => {
   height: 86px;
   border: 2px solid transparent;
   border-top: 2px solid #3b82f6;
-  border-right: 2px solid #a855f7;
+  border-right: 2px solid #3b82f6;
   border-radius: 50%;
   animation: spin-clockwise 1.4s cubic-bezier(0.4, 0.1, 0.2, 0.9) infinite;
   z-index: 2;
@@ -193,7 +193,7 @@ onUnmounted(() => {
   width: 70px;
   height: 70px;
   border: 2px solid transparent;
-  border-bottom: 2px solid #06b6d4;
+  border-bottom: 2px solid #3b82f6;
   border-left: 2px solid #3b82f6;
   border-radius: 50%;
   animation: spin-counter 0.9s cubic-bezier(0.4, 0.1, 0.2, 0.9) infinite;
@@ -291,13 +291,13 @@ onUnmounted(() => {
 }
 
 .dots-loading .dot:nth-child(2) {
-  background-color: #6366f1;
-  box-shadow: 0 0 6px rgba(99, 102, 241, 0.8);
+  background-color: #3b82f6;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.8);
   animation-delay: 0.2s;
 }
 
 .dots-loading .dot:nth-child(3) {
-  background-color: #a855f7;
+  background-color: #3b82f6;
   box-shadow: 0 0 6px rgba(168, 85, 247, 0.8);
   animation-delay: 0.4s;
 }

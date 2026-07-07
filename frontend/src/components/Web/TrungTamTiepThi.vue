@@ -1041,7 +1041,7 @@ onMounted(loadAll)
   background: #1e293b;
 }
 .btn-copy.copied {
-  background: #10b981;
+  background: #2563eb;
 }
 .btn-icon {
   width: 14px;
@@ -1085,8 +1085,8 @@ onMounted(loadAll)
 }
 .icon-blue { background: #eff6ff; color: #2563eb; }
 .icon-amber { background: #fffbeb; color: #d97706; }
-.icon-emerald { background: #ecfdf5; color: #059669; }
-.icon-indigo { background: #eef2ff; color: #4f46e5; }
+.icon-emerald { background: #ecfdf5; color: #1D4ED8; }
+.icon-indigo { background: #eef2ff; color: #2563eb; }
 
 .stat-details {
   min-width: 0;
@@ -1184,7 +1184,7 @@ onMounted(loadAll)
 .font-semibold { font-weight: 600; }
 .text-muted { color: #64748b; }
 .order-code { font-family: monospace; font-weight: 700; color: #2563eb; }
-.commission-amount { font-weight: 700; color: #10b981; }
+.commission-amount { font-weight: 700; color: #2563eb; }
 
 .table-empty {
   text-align: center;

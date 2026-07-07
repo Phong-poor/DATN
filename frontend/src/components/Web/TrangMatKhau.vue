@@ -41,7 +41,7 @@ const strength = computed(() => {
 })
 
 const strengthLabel = computed(() => ['', 'Yếu', 'Trung bình', 'Mạnh', 'Rất mạnh'][strength.value])
-const strengthColor = computed(() => ['', '#ef4444', '#f59e0b', '#2563eb', '#16a34a'][strength.value])
+const strengthColor = computed(() => ['', '#ef4444', '#f59e0b', '#2563eb', '#2563eb'][strength.value])
 
 const requirements = computed(() => [
     { label: 'Tối thiểu 8 ký tự', ok: form.value.newPass.length >= 8 },
@@ -607,11 +607,11 @@ const save = async () => {
 }
 
 .req-list li.ok {
-    color: #16a34a;
+    color: #2563eb;
 }
 
 .req-list li.ok svg {
-    stroke: #16a34a;
+    stroke: #2563eb;
 }
 
 .tip-card {

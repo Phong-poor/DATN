@@ -26,7 +26,7 @@ const defaultSettings = () => ({
   },
   appearance: {
     primary_color: '#2563eb',
-    accent_color: '#7c3aed',
+    accent_color: '#2563eb',
     theme_mode: 'system',
     font_family: 'Inter',
     border_radius: 12,
@@ -459,7 +459,7 @@ onMounted(async () => {
 .menu-item b{display:block;font-size:18px;color:#0f172a;line-height:1.2}
 .menu-item span{display:block;margin-top:3px;font-size:13px;color:#64748b;line-height:1.25}
 .menu-item.active{background:#eef2ff}
-.menu-item.active b,.menu-item.active span{color:#4f46e5}
+.menu-item.active b,.menu-item.active span{color:#2563eb}
 .right-pane{display:grid;gap:16px;min-width:0}
 .panel{overflow:hidden}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #edf2f7}
@@ -467,7 +467,7 @@ onMounted(async () => {
 .panel-head p{margin:4px 0 0;color:#64748b;font-size:13px;line-height:1.45}
 .head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .save-btn,.ghost-btn{border-radius:11px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap}
-.save-btn{border:1px solid #4f46e5;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;box-shadow:0 8px 18px rgba(79,70,229,.22)}
+.save-btn{border:1px solid #2563eb;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;box-shadow:0 8px 18px rgba(37,99,235,.22)}
 .ghost-btn{border:1px solid #dbe2ea;background:#fff;color:#334155}
 .save-btn:disabled{opacity:.65;cursor:not-allowed}
 .state{padding:22px;color:#64748b;font-size:14px}
@@ -480,7 +480,7 @@ onMounted(async () => {
 .switch input{opacity:0;width:0;height:0}
 .slider{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;transition:.2s}
 .slider::before{content:'';position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(15,23,42,.15)}
-.switch input:checked + .slider{background:#6366f1}
+.switch input:checked + .slider{background:#3b82f6}
 .switch input:checked + .slider::before{transform:translateX(22px)}
 .form-grid,.appearance-grid{padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .form-grid.compact{grid-template-columns:minmax(220px,360px);padding-top:0}
@@ -502,7 +502,7 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .log-list{padding:16px 20px 20px;display:grid;gap:10px}
 .log-row{display:flex;gap:12px;padding:13px;border:1px solid #edf2f7;border-radius:13px;background:#fbfdff}
 .log-type{height:fit-content;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase}
-.log-type.order{background:#e0e7ff;color:#4338ca}
+.log-type.order{background:#e0e7ff;color:#1d4ed8}
 .log-type.user{background:#dcfce7;color:#166534}
 .log-row b{font-size:14px;color:#0f172a}
 .log-row p{margin:4px 0;color:#475569;font-size:13px}
@@ -513,12 +513,12 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .stat-card span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.82}
 .stat-card b{font-size:24px;margin-top:8px}
 .stat-card.blue{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
-.stat-card.violet{background:linear-gradient(135deg,#6d28d9,#8b5cf6)}
-.stat-card.green{background:linear-gradient(135deg,#047857,#10b981)}
+.stat-card.violet{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
+.stat-card.green{background:linear-gradient(135deg,#1E40AF,#2563eb)}
 .chart{padding:12px 20px 24px;height:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:10px;align-items:end}
 .chart-col{height:210px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .bar-wrap{height:150px;width:100%;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px dashed #cbd5e1}
-.bar{width:20px;max-height:150px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#6366f1,#2563eb)}
+.bar{width:20px;max-height:150px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#3b82f6,#2563eb)}
 .chart-col small{font-size:11px;color:#64748b}
 .chart-col p{margin:0;color:#334155;font-size:12px}
 @media (max-width:1100px){.settings-v2{grid-template-columns:1fr}.left-card{position:static}.form-grid,.appearance-grid,.preview-card,.stats{grid-template-columns:1fr}.panel-head{align-items:flex-start;flex-direction:column}.row{align-items:flex-start}.switch{margin-top:4px}}

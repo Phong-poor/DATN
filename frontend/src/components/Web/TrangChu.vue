@@ -188,8 +188,8 @@ const mapProducts = (rawProducts) => {
                 id_thuonghieu: String(p.id_thuonghieu || ''),
                 brandName: p.thuong_hieu?.ten_thuonghieu || '',
                 weight: p.khoiluong,
-                priceNum: bt.gia || 0,
-                oldPriceNum: bt.gia_khuyen_mai || 0,
+                priceNum: Number(bt.gia_khuyen_mai || 0) > 0 ? Number(bt.gia_khuyen_mai) : Number(bt.gia || 0),
+                oldPriceNum: Number(bt.gia || 0),
                 specs: specs,
                 img: productImageUrl(p, bt),
                 badge: p.trangthai === 'Hot' ? 'HOT' : (p.trangthai === 'Mới' ? 'NEW' : ''),
@@ -228,6 +228,17 @@ const newsImageUrl = (path) => {
     return normalizeImageUrl(path, newsPlaceholderImage)
 }
 
+const mapNewsPost = (post = {}) => ({
+    ...post,
+    id: post.id,
+    title: post.title || post.tieude || 'Bài viết công nghệ',
+    excerpt: post.excerpt || post.tomtat || post.mota || '',
+    image: post.image || post.hinhanh || post.thumbnail || '',
+    category: post.category || post.danhmuc || 'Công nghệ',
+    views: post.views ?? post.luotxem ?? 0,
+    publishedAt: post.publishedAt || post.dang_luc || post.created_at || '',
+})
+
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
     eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
@@ -244,6 +255,24 @@ const mapBannerToSlide = (banner = {}) => ({
     secondary: banner.nhanphu || 'Xem bộ sưu tập',
     productBadge: banner.huyhieu_sanpham || 'TRENDING NOW',
     productFeature: banner.dactinh_sanpham || 'RTX 40-Series',
+})
+
+const mapApiBannerToSlide = (banner = {}) => ({
+    id: banner.id,
+    eyebrow: banner.eyebrow || banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
+    title: banner.title || banner.tieude || 'Sức Mạnh Hội Tụ',
+    highlight: banner.highlight || banner.phude || banner.noibat || 'Sự Tinh Tế Chuyên Sâu',
+    desc: banner.description || banner.mota || banner.phude || '',
+    img: normalizeImageUrl(banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mobileImg: normalizeImageUrl(banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
+    mediaType: banner.media_type || banner.loaimedia || 'image',
+    mobileMediaType: banner.mobile_media_type || banner.loai_media_mobile || banner.media_type || banner.loaimedia || 'image',
+    link: banner.link_url || banner.duongdan || '',
+    productId: banner.product_id || banner.id_sanpham ? String(banner.product_id || banner.id_sanpham) : '',
+    primary: banner.primary_label || banner.nhanchinh || 'Mua ngay',
+    secondary: banner.secondary_label || banner.nhanphu || 'Xem bộ sưu tập',
+    productBadge: banner.product_badge || banner.huyhieu_sanpham || 'TRENDING NOW',
+    productFeature: banner.product_feature || banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
 const loadCache = () => {
@@ -306,7 +335,7 @@ onMounted(async () => {
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; })
         ])
 
-        latestNews.value = newsRes.data?.data || []
+        latestNews.value = (newsRes.data?.data || []).map(mapNewsPost)
         
         const rawProducts = productsBundle?.productsRaw || []
         const allProducts = mapProducts(rawProducts)
@@ -328,7 +357,7 @@ onMounted(async () => {
         categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
-        bannerSlides.value = apiBanners.map(mapBannerToSlide)
+        bannerSlides.value = apiBanners.map(mapApiBannerToSlide)
         saveCache()
         setTimeout(initScrollReveal, 200)
     } catch (error) {
@@ -812,9 +841,6 @@ onUnmounted(() => {
                 </div>
             </div>
         </section>
-
-
-
         <!-- 4. BEST SELLERS (Clean crisp white body background) -->
         <section class="section product-section">
             <div class="grid-container">
@@ -1137,7 +1163,7 @@ onUnmounted(() => {
     --bg-card-light: #ffffff;
     
     --accent-blue: #2563EB;
-    --accent-cyan: #22D3EE;
+    --accent-cyan: #3B82F6;
     
     --text-dark: #0f172a;
     --text-muted-dark: #64748b;
@@ -1149,7 +1175,7 @@ onUnmounted(() => {
     --col-secondary: #f8fafc;
     --col-accent: var(--accent-blue);
     --col-highlight: var(--accent-cyan);
-    --col-success: #10B981;
+    --col-success: #2563EB;
     --col-warning: #F59E0B;
     --col-text: var(--tn-text);
     --col-muted: var(--tn-text-muted);
@@ -1480,9 +1506,9 @@ onUnmounted(() => {
     align-self: flex-start;
     font-size: 10.5px;
     font-weight: 800;
-    color: #10B981 !important;
-    background: rgba(16, 185, 129, 0.06);
-    border: 1px solid rgba(16, 185, 129, 0.18);
+    color: #2563EB !important;
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.18);
     padding: 3px 8px;
     border-radius: 6px;
 }
@@ -1786,7 +1812,7 @@ onUnmounted(() => {
 }
 
 .hero-product-brand {
-    color: #22d3ee !important;
+    color: #3b82f6 !important;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1833,7 +1859,7 @@ onUnmounted(() => {
 .spec-tag .spec-icon {
     width: 11px;
     height: 11px;
-    color: #22d3ee;
+    color: #3b82f6;
     flex-shrink: 0;
 }
 
@@ -1961,7 +1987,7 @@ onUnmounted(() => {
 .hero-product-bottom-row .float-bottom .badge-icon {
     width: 18px;
     height: 18px;
-    color: #22d3ee;
+    color: #3b82f6;
     flex-shrink: 0;
 }
 
@@ -2998,8 +3024,8 @@ onUnmounted(() => {
     font-size: 10px;
     font-weight: 800;
     color: var(--col-success);
-    background: rgba(16, 185, 129, 0.05);
-    border: 1px solid rgba(16, 185, 129, 0.12);
+    background: rgba(37, 99, 235, 0.05);
+    border: 1px solid rgba(37, 99, 235, 0.12);
     padding: 3px 8px;
     border-radius: 4px;
 }
@@ -3475,14 +3501,14 @@ onUnmounted(() => {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: linear-gradient(135deg, #ff007f, #7928ca);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: white;
     font-size: 10px;
     font-weight: 800;
     padding: 5px 10px;
     border-radius: 30px;
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(255, 0, 127, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
     letter-spacing: 0.5px;
 }
 

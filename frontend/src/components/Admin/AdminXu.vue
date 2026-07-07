@@ -111,10 +111,10 @@ onMounted(async () => {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  border: 1px solid #4f46e5;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border: 1px solid #2563eb;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
-  box-shadow: 0 8px 18px rgba(79, 70, 229, .22);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, .22);
   transition: opacity 0.18s;
 }
 .save-btn:disabled {

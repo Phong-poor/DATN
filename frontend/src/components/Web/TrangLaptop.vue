@@ -535,10 +535,6 @@ onMounted(() => {
       </div>
       <div class="flagship-row">
         <article v-for="product in flagshipProducts" :key="product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <div class="badge-row">
-            <span>Flagship</span>
-            <small>Premium</small>
-          </div>
           <img :src="product.image" :alt="product.tenSP" />
           <h3>{{ product.tenSP }}</h3>
           <div class="specs">
@@ -1396,7 +1392,7 @@ onMounted(() => {
   --lp-primary: #2563eb;
   --lp-primary-dark: #1d4ed8;
   --lp-price: #2563eb;
-  --lp-accent: #06b6d4;
+  --lp-accent: #3b82f6;
   --lp-ink: #0f172a;
   --lp-muted: #64748b;
   --lp-soft: #f8fafc;
@@ -1409,7 +1405,7 @@ onMounted(() => {
   --lp-ease: 220ms cubic-bezier(0.22, 1, 0.36, 1);
   background:
     radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.08), transparent 32%),
-    radial-gradient(circle at 88% 26%, rgba(6, 182, 212, 0.08), transparent 28%),
+    radial-gradient(circle at 88% 26%, rgba(37, 99, 235, 0.07), transparent 28%),
     linear-gradient(180deg, #f8fbff 0%, #f3f6fb 46%, #f8fafc 100%);
 }
 
@@ -1525,8 +1521,8 @@ onMounted(() => {
 }
 
 .line-btn.promo:hover {
-  color: #dc2626;
-  background: linear-gradient(135deg, #fff7ed, #fff1f2);
+  color: var(--lp-primary-dark);
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
   transform: translateX(3px);
 }
 
@@ -1728,12 +1724,12 @@ onMounted(() => {
 }
 
 .badge-row small {
-  background: linear-gradient(135deg, #f59e0b, #f97316);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
 .discount {
-  background: linear-gradient(135deg, #ef4444, #fb7185);
-  box-shadow: 0 10px 18px rgba(239, 68, 68, 0.24);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
 }
 
 .cart-btn {
@@ -2833,10 +2829,14 @@ onMounted(() => {
 .lp-catalog .pagination {
   gap: 10px;
   margin: 22px 0 6px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .lp-catalog .pagination .page-nav,
-.lp-catalog .pagination .page-indicator {
+.lp-catalog .pagination .page-indicator,
+.lp-catalog .pagination .page-number,
+.lp-catalog .pagination .page-ellipsis {
   height: 38px;
   border-radius: 10px;
   border: 1px solid #d8e4f4;
@@ -2854,16 +2854,40 @@ onMounted(() => {
   padding: 0 14px;
 }
 
-.lp-catalog .pagination .page-indicator {
-  min-width: 64px;
-  background: #0ea5e9;
-  border-color: #0ea5e9;
-  color: #ffffff;
+.lp-catalog .pagination .page-number {
+  min-width: 42px;
+  padding: 0 12px;
 }
 
-.lp-catalog .pagination .page-nav:hover:not(:disabled) {
+.lp-catalog .pagination .page-indicator {
+  min-width: 64px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.24);
+}
+
+.lp-catalog .pagination .page-number.active {
+  min-width: 48px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.24);
+}
+
+.lp-catalog .pagination .page-ellipsis {
+  min-width: 30px;
+  border-color: transparent;
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.lp-catalog .pagination .page-nav:hover:not(:disabled),
+.lp-catalog .pagination .page-number:hover:not(.active) {
   background: #e0f2fe;
-  color: #0284c7;
+  color: #2563eb;
   transform: translateY(-2px);
 }
 
@@ -3181,35 +3205,51 @@ onMounted(() => {
 
 @media (min-width: 1101px) {
   .lp-catalog .catalog-layout {
-    height: auto;
+    height: calc(100vh - var(--lp-catalog-sticky-top, 118px) - 24px);
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
     align-items: start;
   }
 
   .lp-catalog .filter-card {
     position: sticky;
     top: var(--lp-catalog-sticky-top, 118px);
-    height: fit-content;
-    max-height: none;
-    overflow: visible;
-    overscroll-behavior: auto;
-    scrollbar-gutter: auto;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     padding-bottom: 28px;
-    scrollbar-width: none;
+    scrollbar-width: thin;
     transform: none;
     will-change: auto;
   }
 
   .catalog-results {
-    height: auto;
+    height: 100%;
     min-height: 0;
-    overflow: visible;
-    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 8px 0 0;
     scroll-behavior: smooth;
-    overscroll-behavior: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
     contain: none;
     will-change: auto;
+  }
+
+  .catalog-results::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .catalog-results::-webkit-scrollbar-thumb {
+    background: rgba(37, 99, 235, 0.42);
+    border: 2px solid rgba(226, 232, 240, 0.72);
+    border-radius: 999px;
   }
 
   .catalog-results .product-grid,

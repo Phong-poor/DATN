@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../../services/api'
@@ -96,7 +96,7 @@ onMounted(async () => {
 }
 
 .icon.success {
-  color: #10b981;
+  color: #2563eb;
 }
 
 .icon.error {

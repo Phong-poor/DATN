@@ -678,12 +678,12 @@ const statusMap = {
   pending: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
   confirmed: { label: 'Đã xác nhận', color: '#0369a1', bg: '#e0f2fe' },
   shipping: { label: 'Đang giao', color: '#2563eb', bg: '#dbeafe' },
-  done: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
+  done: { label: 'Hoàn thành', color: '#2563eb', bg: '#dcfce7' },
   refund_pending: { label: 'Yêu cầu hoàn trả', color: '#f97316', bg: '#ffedd5' },
   refund_pickup: { label: 'Chờ lấy hàng hoàn', color: '#d97706', bg: '#fef3c7' },
   refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
   refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
-  refunded: { label: 'Đã hoàn tiền', color: '#8b5cf6', bg: '#ede9fe' },
+  refunded: { label: 'Đã hoàn tiền', color: '#3b82f6', bg: '#ede9fe' },
   refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
   cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
@@ -1213,7 +1213,7 @@ const pwStrengthLabel = computed(
 )
 
 const pwStrengthColor = computed(
-  () => ['', '#ef4444', '#f59e0b', '#2563eb', '#16a34a'][pwStrength.value]
+  () => ['', '#ef4444', '#f59e0b', '#2563eb', '#2563eb'][pwStrength.value]
 )
 
 const pwRequirements = computed(() => [
@@ -1327,7 +1327,7 @@ const totalPromoPages = computed(() =>
 )
 
 const promoStatusMap = {
-  0: { label: 'Chưa sử dụng', color: '#16a34a', bg: '#dcfce7' },
+  0: { label: 'Chưa sử dụng', color: '#2563eb', bg: '#dcfce7' },
   1: { label: 'Đã sử dụng',   color: '#94a3b8', bg: '#f1f5f9' },
   expired: { label: 'Hết hạn', color: '#dc2626', bg: '#fee2e2' },
 }
@@ -1507,7 +1507,7 @@ const promoStatusMap = {
                       <td style="padding: 10px 8px; color: #64748b;">
                         {{ new Date(item.created_at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }}
                       </td>
-                      <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;" :style="item.so_xu > 0 ? 'color: #10b981;' : 'color: #ef4444;'">
+                      <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;" :style="item.so_xu > 0 ? 'color: #2563eb;' : 'color: #ef4444;'">
                         {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
                       </td>
                       <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
@@ -1799,9 +1799,9 @@ const promoStatusMap = {
             <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
             <div class="info-row">
               <span class="info-lbl">🪙 Xu tích lũy</span>
-              <span class="info-val" style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-                <b style="color:#eab308; font-size:18px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
-                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 12px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+              <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
+                <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
                   <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -2271,9 +2271,9 @@ const promoStatusMap = {
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
-  color: #22d3ee;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(37, 99, 235, 0.15));
-  border: 1px solid rgba(6, 182, 212, 0.3);
+  color: #3b82f6;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(37, 99, 235, 0.3);
   padding: 3px 12px;
   border-radius: 20px;
   text-transform: uppercase;
@@ -2323,7 +2323,7 @@ const promoStatusMap = {
   transition: all 0.25s ease;
 }
 .stat-card:hover svg {
-  stroke: #22d3ee;
+  stroke: #3b82f6;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
 .stat-val {
@@ -2396,19 +2396,19 @@ const promoStatusMap = {
   transform: translateX(0);
 }
 .side-btn.active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(6, 182, 212, 0.12));
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.12));
   border: 1px solid rgba(56, 189, 248, 0.15);
-  color: #22d3ee;
+  color: #3b82f6;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   font-weight: 700;
 }
 .side-btn.active svg:not(.arrow) {
-  stroke: #22d3ee;
+  stroke: #3b82f6;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.35));
 }
 .side-btn.active .arrow {
   opacity: 1;
-  stroke: #22d3ee;
+  stroke: #3b82f6;
   transform: translateX(0);
 }
 
@@ -2422,7 +2422,7 @@ const promoStatusMap = {
   -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
   border: 1px solid rgba(56, 189, 248, 0.12);
-  padding: 26px;
+  padding: 22px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
 }
 .page-header-inline {
@@ -2444,7 +2444,7 @@ const promoStatusMap = {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   gap: 16px;
 }
 
@@ -2464,10 +2464,10 @@ const promoStatusMap = {
   transition: all 0.25s ease;
 }
 .btn-edit:hover {
-  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 .btn-edit svg {
   width: 14px;
@@ -2479,18 +2479,19 @@ const promoStatusMap = {
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  padding-top: 4px;
+  gap: 12px;
+  padding-top: 2px;
 }
 .info-row {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 5px;
-  padding: 13px 16px;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
+  border-radius: 12px;
   transition: all 0.2s ease;
 }
 .info-row:hover {
@@ -2498,14 +2499,14 @@ const promoStatusMap = {
   border-color: rgba(56, 189, 248, 0.15);
 }
 .info-lbl {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #64748b;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 .info-val {
-  font-size: 13.5px;
+  font-size: 13px;
   color: #e2e8f0;
   font-weight: 600;
 }
@@ -2616,18 +2617,18 @@ const promoStatusMap = {
   gap: 8px;
   padding: 9px 21px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
   border: none;
   color: #ffffff;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 .btn-save:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
 }
 .btn-save:disabled {
   opacity: 0.6;
@@ -2678,8 +2679,8 @@ const promoStatusMap = {
   color: #38bdf8;
 }
 .cat-tab.active {
-  color: #22d3ee;
-  border-bottom-color: #22d3ee;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 .badge-cart-like {
   background-color: #f43f5e;
@@ -2835,7 +2836,7 @@ const promoStatusMap = {
   box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
 }
 .btn-mua-lai {
-  background: #059669;
+  background: #1D4ED8;
   color: #ffffff;
   border: none;
   padding: 6px 14px;
@@ -2846,7 +2847,7 @@ const promoStatusMap = {
   font-size: 12px;
 }
 .btn-mua-lai:hover {
-  background: #047857;
+  background: #1E40AF;
   box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
 }
 .btn-huy-don {
@@ -2957,7 +2958,7 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   margin-bottom: 20px;
-  color: #22d3ee;
+  color: #3b82f6;
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
 }
 .empty-icon-custom {
@@ -2983,18 +2984,18 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
   padding: 11px 26px;
-  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 .btn-shop-now:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 /* ADDRESS */
@@ -3004,7 +3005,7 @@ const promoStatusMap = {
   gap: 8px;
   padding: 10px 20px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
   border: none;
   color: #ffffff;
   font-size: 13.5px;
@@ -3014,7 +3015,7 @@ const promoStatusMap = {
 }
 .btn-add:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 .btn-add svg {
   width: 15px;
@@ -3058,9 +3059,9 @@ const promoStatusMap = {
 .default-badge {
   font-size: 11px;
   font-weight: 700;
-  color: #22d3ee;
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #3b82f6;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
   padding: 3px 10px;
   border-radius: 99px;
 }
@@ -3105,7 +3106,7 @@ const promoStatusMap = {
 }
 .addr-btn-default:hover {
   background: rgba(34, 211, 238, 0.1);
-  color: #22d3ee;
+  color: #3b82f6;
   border-color: rgba(34, 211, 238, 0.25);
 }
 .addr-btn-delete:hover {
@@ -3213,7 +3214,7 @@ const promoStatusMap = {
 }
 .captcha-refresh:hover:not(:disabled) {
   background: rgba(56, 189, 248, 0.12);
-  color: #22d3ee;
+  color: #3b82f6;
 }
 .captcha-refresh:disabled {
   opacity: 0.5;
@@ -3310,10 +3311,10 @@ const promoStatusMap = {
   transition: stroke 0.2s ease;
 }
 .req-list li.ok {
-  color: #10b981;
+  color: #2563eb;
 }
 .req-list li.ok svg {
-  stroke: #10b981;
+  stroke: #2563eb;
 }
 .tip-card {
   background: rgba(56, 189, 248, 0.03);
@@ -3491,7 +3492,7 @@ const promoStatusMap = {
   margin-top: 12px;
 }
 .btn-modal-mua {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
   color: #ffffff;
   border: none;
   padding: 11px 24px;
@@ -3749,9 +3750,9 @@ const promoStatusMap = {
 .reviewed-tag {
   display: inline-block;
   font-size: 11px;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
   padding: 2.5px 8px;
   border-radius: 999px;
   font-weight: 700;
@@ -3868,10 +3869,11 @@ const promoStatusMap = {
 @media (max-width: 576px) {
   .info-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
   .info-row {
-    padding: 12px 16px;
+    min-height: 68px;
+    padding: 10px 14px;
   }
   .card-header {
     flex-direction: column;
@@ -3941,8 +3943,8 @@ const promoStatusMap = {
 
 .category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #4f46e5; }
-.cat-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+.cat-tab:hover { color: #2563eb; }
+.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
 
 .empty-msg {
   display: flex;
@@ -3987,7 +3989,7 @@ const promoStatusMap = {
   border: 2px solid #64748b;
   border-radius: 3px;
   background: #f8fafc;
-  color: #16a34a;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4418,8 +4420,8 @@ const promoStatusMap = {
 
 .req-list li.ok,
 .req-list li.ok svg {
-  color: #16a34a;
-  stroke: #16a34a;
+  color: #2563eb;
+  stroke: #2563eb;
 }
 
 .tip-card {
