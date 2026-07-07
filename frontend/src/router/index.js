@@ -57,6 +57,7 @@ const getDefaultAdminPath = (user = getUser()) => {
 const publicPages = [
   '/',
   '/laptop',
+  '/phu-kien',
   '/gaming',
   '/workstation',
   '/login',
@@ -119,6 +120,7 @@ const routes = [
       { path: '', name: 'home', component: Home },
       { path: 'san-pham', alias: ['/products'], name: 'products', redirect: '/laptop' },
       { path: 'laptop', name: 'laptop', component: LaptopPage },
+      { path: 'phu-kien', name: 'phu-kien', component: LaptopPage },
       { path: 'gaming', name: 'gaming', redirect: '/laptop' },
       { path: 'macbook', name: 'macbook', redirect: '/laptop' },
       { path: 'workstation', name: 'workstation', component: WorkstationPage },

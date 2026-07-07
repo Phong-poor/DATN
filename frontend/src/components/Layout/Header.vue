@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,7 +36,7 @@ const handleScroll = () => { isScrolled.value = window.scrollY > 20 }
 const activeMegaMenu = ref(null)
 let megaLeaveTimer = null
 
-const megaMenuData = {
+const megaMenuData = reactive({
   gaming: {
     label: 'Gaming',
     accent: '#ef4444',
@@ -72,7 +72,7 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'ASUS ROG Zephyrus G16', price: '52.990.000₫', oldPrice: '59.990.000₫', tag: 'HOT', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=200&q=80' },
+    featured: null,
     quickLinks: ['RTX 5090 Gaming', 'Gaming dưới 20 triệu', 'So sánh gaming laptop'],
   },
   aipc: {
@@ -110,7 +110,7 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'Dell XPS 15 Core Ultra 9', price: '48.990.000₫', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
+    featured: null,
     quickLinks: ['AI PC Copilot+', 'Intel Core Ultra so sánh', 'AI PC cho lập trình'],
   },
   macbook: {
@@ -148,8 +148,37 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'MacBook Pro 16" M4 Max', price: '89.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=200&q=80' },
+    featured: null,
     quickLinks: ['MacBook Air M4 giá rẻ', 'So sánh MacBook Pro', 'MacBook cho sinh viên'],
+  },
+  'phu-kien': {
+    label: 'Phụ kiện',
+    accent: '#0ea5e9',
+    accentBg: 'rgba(14,165,233,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400&q=80',
+    sections: [
+      {
+        title: 'Loại phụ kiện', icon: '🖱️',
+        items: [
+          { label: 'Chuột', badge: 'HOT', q: 'Chuột' },
+          { label: 'Bàn phím', badge: 'NEW', q: 'Bàn phím' },
+          { label: 'Tai nghe', badge: '', q: 'Tai nghe' },
+          { label: 'Lót chuột', badge: '', q: 'Lót chuột' },
+        ]
+      },
+      {
+        title: 'Thương hiệu', icon: '🏷️',
+        items: [
+          { label: 'Logitech', badge: '', q: 'Logitech' },
+          { label: 'Razer', badge: 'PRO', q: 'Razer' },
+          { label: 'Akko / DareU', badge: '', q: 'Akko DareU' },
+          { label: 'Corsair / HyperX', badge: '', q: 'Corsair HyperX' },
+        ]
+      },
+    ],
+    featured: null,
+    quickLinks: ['Bàn phím cơ giá rẻ', 'Chuột gaming Logitech', 'Phụ kiện Ugreen'],
   },
   workstation: {
     label: 'Workstation',
@@ -186,7 +215,7 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'ASUS ProArt Studiobook 16', price: '65.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&q=80' },
+    featured: null,
     quickLinks: ['Workstation cho render 3D', 'So sánh Workstation', 'Trả góp Workstation'],
   },
   sale: {
@@ -224,10 +253,10 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'Acer Nitro V RTX 4060', price: '22.990.000₫', oldPrice: '30.990.000₫', tag: 'SALE -25%', img: 'https://images.unsplash.com/photo-1593642632623-9f5b9e3c4a0c?w=200&q=80' },
+    featured: null,
     quickLinks: ['Laptop dưới 15 triệu', 'Sinh viên ưu đãi', 'Flash Sale hôm nay'],
   },
-}
+})
 
 const visibleMegaMenuData = computed(() => {
   const { aipc, ...menus } = megaMenuData
@@ -244,8 +273,10 @@ const closeMega = () => {
 const keepMega = () => { clearTimeout(megaLeaveTimer) }
 
 const menuCategoryMap = {
+  laptop: 'Laptop',
   gaming: 'Laptop Gaming',
   macbook: 'MacBook',
+  'phu-kien': 'Phụ kiện',
   workstation: 'Workstation',
 }
 
@@ -253,6 +284,10 @@ const navToCategory = (key) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
     router.push('/khuyen-mai')
+  } else if (key === 'laptop') {
+    router.push('/laptop')
+  } else if (key === 'phu-kien') {
+    router.push('/phu-kien')
   } else if (key === 'gaming') {
     router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
@@ -260,14 +295,197 @@ const navToCategory = (key) => {
   } else if (key === 'workstation') {
     router.push('/workstation')
   } else {
-    router.push({ path: '/products', query: { category: menuCategoryMap[key] || key } })
+    router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key } })
   }
+}
+
+const navToFeaturedItem = async (key, featured) => {
+  activeMegaMenu.value = null
+  const name = featured?.name
+  if (!name) return
+
+  if (key === 'laptop') {
+    router.push('/laptop')
+    return
+  }
+
+  try {
+    const res = await api.get('/sanpham/search', {
+      params: { q: name },
+      skipGlobalLoader: true
+    })
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    if (items.length > 0) {
+      const product = items[0]
+      const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+      const variant = variants.length ? variants[0] : null
+      router.push({
+        path: `/san-pham/${product.id_sanpham}`,
+        query: variant?.id_bienthe ? { variant: variant.id_bienthe } : {}
+      })
+      return
+    }
+  } catch (err) {
+    console.error('Lỗi khi định tuyến sản phẩm nổi bật:', err)
+  }
+
+  navToMegaItem(key, name)
+}
+
+const isAccessory = (p) => {
+  const cat = String(p.category || p.ten_danhmuc || p.danh_muc?.ten_danhmuc || '').toLowerCase()
+  const name = String(p.tenSP || '').toLowerCase()
+  const accessoryCats = ['chuột', 'bàn phím', 'tai nghe', 'lót chuột', 'ổ cứng ssd', 'ram', 'màn hình', 'hub chuyển đổi', 'webcam', 'balo laptop', 'router', 'microphone', 'phụ kiện', 'accessory']
+  if (accessoryCats.some(c => cat.includes(c))) return true
+  if (cat === 'laptop' && (name.includes('chuột') || name.includes('bàn phím') || name.includes('tai nghe') || name.includes('lót chuột') || name.includes('mouse') || name.includes('keyboard') || name.includes('headphone'))) {
+    return true
+  }
+  return false
+}
+
+const variantImage = (product, variant) => {
+  const gallery = product.hinh_anhs || product.hinhAnhs || []
+  const firstGallery = Array.isArray(gallery)
+    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+    : null
+  const firstGalleryImage = firstGallery?.duongdan
+    || firstGallery?.duong_dan
+    || firstGallery?.url
+    || firstGallery?.path
+    || firstGallery?.image
+    || ''
+  const imgPath = variant?.hinhanh || variant?.image || product.hinhanh || firstGalleryImage
+  return imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+}
+
+const resolveProductPrice = (product) => {
+  const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+  if (variants.length > 0) {
+    const sorted = variants.slice().sort((a, b) => Number(a.gia || 0) - Number(b.gia || 0))
+    return Number(sorted[0].gia || 0)
+  }
+  return Number(product.gia || 0)
+}
+
+const updateFeaturedProducts = (productsList) => {
+  if (!Array.isArray(productsList) || !productsList.length) return
+  const formatVnd = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(num || 0))
+
+  // 1. MacBook
+  const macbooks = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('macbook')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (macbooks.length > 0) {
+    const p = macbooks[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.macbook.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: p.gia_truockhuyenmai ? formatVnd(p.gia_truockhuyenmai) : '',
+      tag: 'MACBOOK',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 2. Workstation
+  const workstations = productsList.filter(p => {
+    const nameText = String(p.tenSP || '').toLowerCase()
+    const catText = String(p.category || p.danh_muc?.ten_danhmuc || '').toLowerCase()
+    return nameText.includes('workstation') || catText.includes('workstation') || nameText.includes('precision') || nameText.includes('zbook')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (workstations.length > 0) {
+    const p = workstations[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.workstation.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'WORKSTATION',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 3. Phụ kiện
+  const accessories = productsList.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (accessories.length > 0) {
+    const p = accessories[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData['phu-kien'].featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'BESTSELLER',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 4. AI PC
+  const aipcs = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('ultra') || text.includes('ai') || text.includes('npu')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (aipcs.length > 0) {
+    const p = aipcs[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.aipc.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'AIPC',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 5. Sale
+  const saleItems = productsList.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
+  if (saleItems.length > 0) {
+    const p = saleItems[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.sale.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: formatVnd(p.gia_truockhuyenmai),
+      tag: 'SALE HOT',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 6. Gaming
+  const gamingLaptops = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('gaming') || text.includes('rtx') || text.includes('rog')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (gamingLaptops.length > 0) {
+    const p = gamingLaptops[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.gaming.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'GAMING',
+      img: variantImage(p, variants[0])
+    }
+  }
+}
+
+const warm = getPrefetchedProductsData()
+if (warm && Array.isArray(warm.productsRaw)) {
+  updateFeaturedProducts(warm.productsRaw)
 }
 
 const navToMegaItem = (key, keyword) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
     router.push({ path: '/khuyen-mai', query: keyword ? { q: keyword } : {} })
+    return
+  }
+  if (key === 'laptop') {
+    router.push({ path: '/laptop', query: keyword ? { q: keyword } : {} })
+    return
+  }
+  if (key === 'phu-kien') {
+    router.push({ path: '/phu-kien', query: keyword ? { q: keyword } : {} })
     return
   }
   if (key === 'gaming') {
@@ -278,30 +496,34 @@ const navToMegaItem = (key, keyword) => {
     router.push({ path: '/macbook', query: keyword ? { q: keyword } : {} })
     return
   }
-  router.push({ path: '/products', query: { category: menuCategoryMap[key] || key, q: keyword } })
+  router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key, q: keyword } })
 }
 
 const mobileMenuTarget = (key) => {
   if (key === 'sale') return '/khuyen-mai'
+  if (key === 'laptop') return '/laptop'
+  if (key === 'phu-kien') return '/phu-kien'
   if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
   if (key === 'workstation') return '/workstation'
-  return { path: '/products', query: { category: menuCategoryMap[key] || key } }
+  return { path: '/laptop', query: { category: menuCategoryMap[key] || key } }
 }
 
 const isMenuCurrent = (key) => {
   if (key === 'sale') return route.path === '/khuyen-mai'
+  if (key === 'laptop') return ['/laptop', '/labtop', '/gaming', '/macbook'].includes(route.path)
+  if (key === 'phu-kien') return route.path === '/phu-kien'
   if (key === 'workstation') {
     return route.path === '/workstation' ||
-      (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'workstation')
+      (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation')
   }
 
   if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
-    (route.path === '/products' && String(route.query.category || '').toLowerCase() === 'macbook')
+    (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'macbook')
   if (!['gaming', 'macbook'].includes(key)) return false
   const currentCategory = String(route.query.category || '').toLowerCase()
-  return route.path === '/products' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
+  return route.path === '/laptop' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
 }
 
 // ===================== TÌM KIẾM =====================
@@ -525,7 +747,11 @@ onMounted(() => {
     const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
     import('../Web/TrangLaptop.vue')
-    prefetchProductsPage().catch(() => {})
+    prefetchProductsPage().then(res => {
+      if (res && Array.isArray(res.productsRaw)) {
+        updateFeaturedProducts(res.productsRaw)
+      }
+    }).catch(() => {})
   }
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(warmProductsPage, { timeout: 900 })
@@ -688,6 +914,7 @@ const warmProductsPageNow = () => {
             <div
               v-if="activeMegaMenu === key"
               class="mega-dropdown"
+              :class="{ 'cols-3': menu.sections.length === 2 }"
               :style="{ '--accent': menu.accent, '--accent-bg': menu.accentBg }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
@@ -714,9 +941,9 @@ const warmProductsPageNow = () => {
                 </div>
 
                 <!-- FEATURED PANEL (Column 4) -->
-                <div class="mega-featured-panel">
+                <div v-if="menu.featured" class="mega-featured-panel">
                   <div class="mega-col-title">NỔI BẬT</div>
-                  <div class="mfp-card" @click="navToMegaItem(key, menu.featured.name)">
+                  <div class="mfp-card" @click="navToFeaturedItem(key, menu.featured)">
                     <div class="mfp-img-box">
                       <img :src="menu.featured.img" :alt="menu.featured.name" class="mfp-img"
                         @error="e => e.target.style.display='none'" />
@@ -1173,6 +1400,12 @@ const warmProductsPageNow = () => {
   width: 860px;
   overflow: hidden;
   padding: 24px 28px;
+}
+.mega-dropdown.cols-3 {
+  width: 660px;
+}
+.mega-dropdown.cols-3 .mega-body {
+  grid-template-columns: 1fr 1fr 1.35fr;
 }
 /* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
