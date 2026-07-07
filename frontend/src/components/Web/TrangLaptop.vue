@@ -37,6 +37,23 @@ const currentPage = ref(1)
 const catalogResults = ref(null)
 const itemsPerPage = 16
 
+const isAccessoryPage = computed(() => route.path.includes('phu-kien'))
+
+const isProductAccessory = (product) => {
+  const cat = String(product.category || '').toLowerCase()
+  const name = String(product.tenSP || '').toLowerCase()
+  const accessoryCats = ['chuột', 'bàn phím', 'tai nghe', 'lót chuột', 'ổ cứng ssd', 'ram', 'màn hình', 'hub chuyển đổi', 'webcam', 'balo laptop', 'router', 'microphone', 'phụ kiện', 'accessory']
+  if (accessoryCats.some(c => cat.includes(c))) return true
+  if (cat === 'laptop' && (name.includes('chuột') || name.includes('bàn phím') || name.includes('tai nghe') || name.includes('lót chuột') || name.includes('mouse') || name.includes('keyboard') || name.includes('headphone'))) {
+    return true
+  }
+  return false
+}
+
+const isProductLaptop = (product) => {
+  return !isProductAccessory(product)
+}
+
 const laptopLines = [
   { key: 'all', label: 'Tất cả laptop', icon: Laptop, q: '' },
   { key: 'gaming', label: 'Laptop Gaming RTX', icon: Zap, q: 'gaming rtx' },
@@ -47,7 +64,17 @@ const laptopLines = [
   { key: 'accessory', label: 'Phụ kiện laptop', icon: Headphones, q: 'phu kien chuot ban phim tai nghe' },
 ]
 
-const visibleLaptopLines = computed(() => laptopLines.filter(line => line.key !== 'workstation'))
+const accessoryLines = [
+  { key: 'all', label: 'Tất cả phụ kiện', icon: Headphones, q: '' },
+  { key: 'mouse', label: 'Chuột', icon: Zap, q: 'chuot mouse' },
+  { key: 'keyboard', label: 'Bàn phím', icon: Monitor, q: 'ban phim keyboard' },
+  { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone' },
+  { key: 'pad', label: 'Lót chuột', icon: ShieldCheck, q: 'lot chuot mousepad' },
+  { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen' },
+]
+
+const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
+const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'workstation'))
 
 const tabs = [
   { key: 'popular', label: 'Bán chạy' },
@@ -78,6 +105,16 @@ const heroCategories = [
   { label: 'Tai nghe Gaming', icon: Headphones, line: 'accessory', q: 'tai nghe gaming' },
   { label: 'Lót chuột Gaming', icon: Monitor, line: 'accessory', q: 'lot chuot gaming' },
 ]
+
+const heroAccessoryCategories = [
+  { label: 'Chuột Gaming Logitech', icon: BadgeCheck, line: 'mouse', q: 'logitech mouse' },
+  { label: 'Bàn phím cơ Akko', icon: ShieldCheck, line: 'keyboard', q: 'akko keyboard' },
+  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'razer headphone' },
+  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot pad' },
+  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'other', q: 'ugreen hub cap' },
+]
+
+const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAccessoryCategories : heroCategories)
 
 const showroomHighlights = [
   {
@@ -196,6 +233,16 @@ const canonicalText = (value) => String(value || '').toLowerCase()
 const lineMatcher = (product, line = activeLine.value) => {
   const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
   if (line === 'all') return true
+  
+  if (isAccessoryPage.value) {
+    if (line === 'mouse') return text.includes('chuot') || text.includes('mouse')
+    if (line === 'keyboard') return text.includes('ban phim') || text.includes('keyboard')
+    if (line === 'headphone') return text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
+    if (line === 'pad') return text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k))
+    return true
+  }
+
   if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion')
   if (line === 'macbook') return text.includes('macbook') || text.includes('apple')
   if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad')
@@ -206,17 +253,29 @@ const lineMatcher = (product, line = activeLine.value) => {
 }
 
 const brandOptions = computed(() => {
-  const names = products.value.map(p => p.brand).filter(Boolean)
+  const list = isAccessoryPage.value 
+    ? products.value.filter(isProductAccessory) 
+    : products.value.filter(isProductLaptop)
+  const names = list.map(p => p.brand).filter(Boolean)
   return [...new Set(names)].slice(0, 10)
 })
 
 const cpuOptions = ['Apple M4', 'Apple M3', 'Intel Core Ultra', 'Ryzen 9']
 
-const lineCount = (lineKey) => products.value.filter(product => lineMatcher(product, lineKey)).length
+const lineCount = (lineKey) => {
+  const list = isAccessoryPage.value 
+    ? products.value.filter(isProductAccessory) 
+    : products.value.filter(isProductLaptop)
+  return list.filter(product => lineMatcher(product, lineKey)).length
+}
 
 const filteredProducts = computed(() => {
   const keyword = canonicalText(searchQuery.value)
-  let list = products.value.filter(product => {
+  const sourceProducts = isAccessoryPage.value 
+    ? products.value.filter(isProductAccessory) 
+    : products.value.filter(isProductLaptop)
+    
+  let list = sourceProducts.filter(product => {
     const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
     const matchLine = lineMatcher(product)
     const matchBrand = selectedBrands.value.length === 0 || selectedBrands.value.includes(product.brand)
@@ -254,8 +313,13 @@ const compactPages = computed(() => {
 })
 
 const heroProducts = computed(() => filteredProducts.value.slice(0, 5))
-const flagshipProducts = computed(() => products.value.slice().sort((a, b) => b.gia - a.gia).slice(0, 5))
-const accessoryProducts = computed(() => products.value.filter(p => lineMatcher(p, 'accessory')).slice(0, 10))
+const flagshipProducts = computed(() => {
+  const list = isAccessoryPage.value 
+    ? products.value.filter(isProductAccessory) 
+    : products.value.filter(isProductLaptop)
+  return list.slice().sort((a, b) => b.gia - a.gia).slice(0, 5)
+})
+const accessoryProducts = computed(() => products.value.filter(p => isProductAccessory(p)).slice(0, 10))
 
 const selectLine = (line) => {
   activeLine.value = line
@@ -263,7 +327,7 @@ const selectLine = (line) => {
 }
 
 const selectHeroCategory = (category) => {
-  activeLine.value = category.line || 'gaming'
+  activeLine.value = category.line || 'all'
   searchQuery.value = category.q || ''
   currentPage.value = 1
 }
@@ -282,7 +346,7 @@ const toggleCpu = (cpu) => {
 const clearFilters = () => {
   selectedBrands.value = []
   selectedCpus.value = []
-  maxPrice.value = 200000000
+  maxPrice.value = isAccessoryPage.value ? 15000000 : 200000000
   searchQuery.value = ''
   activeLine.value = 'all'
   activeSort.value = 'popular'
@@ -342,10 +406,31 @@ const addToWishlist = async (product) => {
   }
 }
 
+const scrollToCatalog = () => {
+  setTimeout(() => {
+    const el = document.getElementById('catalog')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 250)
+}
+
 watch(() => route.fullPath, () => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && laptopLines.some(item => item.key === line)) activeLine.value = line
+  if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
+  if (route.query.scroll === 'catalog' || route.query.q) {
+    scrollToCatalog()
+  }
+})
+
+watch(isAccessoryPage, (newVal) => {
+  maxPrice.value = newVal ? 15000000 : 200000000
+  activeLine.value = 'all'
+  searchQuery.value = ''
+  selectedBrands.value = []
+  selectedCpus.value = []
+  currentPage.value = 1
 })
 
 watch(filteredProducts, () => {
@@ -354,9 +439,12 @@ watch(filteredProducts, () => {
 
 onMounted(() => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && laptopLines.some(item => item.key === line)) activeLine.value = line
+  if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   loadProducts()
+  if (route.query.scroll === 'catalog' || route.query.q) {
+    scrollToCatalog()
+  }
 })
 </script>
 
@@ -364,9 +452,9 @@ onMounted(() => {
   <main class="laptop-page">
     <section class="lp-hero">
       <aside class="lp-sidebar">
-        <h3>Danh mục Gaming Laptop</h3>
+        <h3>{{ isAccessoryPage ? 'Danh mục Phụ kiện' : 'Danh mục Gaming Laptop' }}</h3>
         <button
-          v-for="category in heroCategories"
+          v-for="category in heroCategoriesToDisplay"
           :key="category.label"
           class="line-btn"
           :class="{ active: searchQuery === category.q }"
@@ -387,11 +475,11 @@ onMounted(() => {
             <ChevronLeft />
           </button>
           <div class="hero-copy">
-            <span class="hero-kicker">Công nghệ gaming</span>
-            <h1>Hiệu năng đỉnh cao Chơi game cực chất</h1>
-            <p>Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.</p>
+            <span class="hero-kicker">{{ isAccessoryPage ? 'Phụ kiện cao cấp' : 'Công nghệ gaming' }}</span>
+            <h1>{{ isAccessoryPage ? 'Trải nghiệm đỉnh cao Phụ kiện cực chất' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
+            <p>{{ isAccessoryPage ? 'Khám phá chuột, bàn phím, tai nghe chính hãng với chất lượng vượt trội.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
             <div class="hero-actions">
-              <button @click="selectLine('gaming')">Mua ngay</button>
+              <button @click="isAccessoryPage ? selectLine('all') : selectLine('gaming')">Mua ngay</button>
               <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
             </div>
           </div>
@@ -441,8 +529,8 @@ onMounted(() => {
       <div class="section-copy">
         <span></span>
         <div>
-          <h2>Máy flagship đắt tiền nhất</h2>
-          <p>Những cấu hình cao cấp nhất trong kho, gồm cả laptop gaming và MacBook.</p>
+          <h2>{{ isAccessoryPage ? 'Phụ kiện cao cấp bán chạy' : 'Máy flagship đắt tiền nhất' }}</h2>
+          <p>{{ isAccessoryPage ? 'Những phụ kiện đỉnh cấp và chuyên nghiệp nhất dành cho góc máy của bạn.' : 'Những cấu hình cao cấp nhất trong kho, gồm cả laptop gaming và MacBook.' }}</p>
         </div>
       </div>
       <div class="flagship-row">
@@ -464,8 +552,8 @@ onMounted(() => {
     <section class="lp-catalog" id="catalog">
       <div class="catalog-title">
         <div>
-          <span>Premium catalog</span>
-          <h2>Danh sách Laptop Premium</h2>
+          <span>{{ isAccessoryPage ? 'Accessories catalog' : 'Premium catalog' }}</span>
+          <h2>{{ isAccessoryPage ? 'Danh sách Phụ kiện Premium' : 'Danh sách Laptop Premium' }}</h2>
         </div>
         <label class="search-box">
           <Search />
@@ -483,8 +571,8 @@ onMounted(() => {
             <button @click="clearFilters">Xóa tất cả</button>
           </div>
           <div class="filter-group filter-checks">
-            <h4>Dòng máy</h4>
-            <label v-for="line in visibleLaptopLines" :key="line.key" :class="{ active: activeLine === line.key }">
+            <h4>{{ isAccessoryPage ? 'Loại phụ kiện' : 'Dòng máy' }}</h4>
+            <label v-for="line in visibleLines" :key="line.key" :class="{ active: activeLine === line.key }">
               <span class="check-ui">
                 <input type="checkbox" :checked="activeLine === line.key" @change="selectLine(line.key)" />
                 <i></i>
@@ -501,13 +589,13 @@ onMounted(() => {
           </div>
           <div class="filter-group filter-price">
             <h4>Giá</h4>
-            <input v-model.number="maxPrice" type="range" min="10000000" max="200000000" step="1000000" @input="currentPage = 1" />
+            <input v-model.number="maxPrice" type="range" :min="isAccessoryPage ? 100000 : 10000000" :max="isAccessoryPage ? 15000000 : 200000000" :step="isAccessoryPage ? 100000 : 1000000" @input="currentPage = 1" />
             <div>
-              <span>10.000.000đ</span>
+              <span>{{ isAccessoryPage ? '100.000đ' : '10.000.000đ' }}</span>
               <span>{{ formatPrice(maxPrice) }}</span>
             </div>
           </div>
-          <div class="filter-group filter-tags">
+          <div v-if="!isAccessoryPage" class="filter-group filter-tags">
             <h4>CPU Type</h4>
             <button v-for="cpu in cpuOptions" :key="cpu" :class="{ active: selectedCpus.includes(cpu) }" @click="toggleCpu(cpu)">
               {{ cpu }}
@@ -575,7 +663,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section v-if="accessoryProducts.length" class="lp-accessories">
+    <section v-if="accessoryProducts.length && !isAccessoryPage" class="lp-accessories">
       <div class="section-copy compact">
         <span></span>
         <div>
