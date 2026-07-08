@@ -173,12 +173,7 @@ const fallbackProducts = [
   },
 ]
 
-const normalizeProduct = (p) => {
-  const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
-  const variant = variants.length
-    ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
-    : null
-
+const normalizeVariant = (p, variant) => {
   let specs = []
   try {
     const attrs = typeof variant?.thuoc_tinh_json === 'string'
@@ -198,6 +193,10 @@ const normalizeProduct = (p) => {
 
   const price = Number(variant?.gia || p.gia || 0) || 19990000
 
+  // Extract CPU and RAM for subtitle display
+  const cpuSpec = specs.find(s => /i[3579][-\s]|ryzen|core ultra|xeon|m[1-4]|celeron|pentium/i.test(s)) || ''
+  const ramSpec = specs.find(s => /\d+gb.*ram|ram.*\d+gb|\d+gb(?!.*ssd|.*nvme|.*storage)/i.test(s)) || ''
+
   return {
     id_sanpham: p.id_sanpham,
     id_bienthe: variant?.id_bienthe,
@@ -207,19 +206,89 @@ const normalizeProduct = (p) => {
     gia: price,
     oldPrice: Math.floor(price * 1.13),
     specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
+    cpu: cpuSpec,
+    ram: ramSpec,
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
     rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
     reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
   }
 }
 
+// Legacy single-variant fallback
+const normalizeProduct = (p) => {
+  const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+  const variant = variants.length
+    ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
+    : null
+  return normalizeVariant(p, variant)
+}
+
+/**
+ * Expand all variants: mỗi biến thể = 1 card riêng
+ */
+const expandAllVariants = (rawProducts) => {
+  const result = []
+  for (const p of rawProducts) {
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    if (variants.length === 0) {
+      result.push({ items: [normalizeProduct(p)], productId: p.id_sanpham })
+    } else {
+      result.push({
+        items: variants.map(v => normalizeVariant(p, v)),
+        productId: p.id_sanpham
+      })
+    }
+  }
+  return result
+}
+
+/**
+ * Thuật toán interleave: xen kẽ biến thể từ các sản phẩm khác nhau
+ * để tránh biến thể cùng 1 sản phẩm đứng cạnh nhau.
+ * Dùng round-robin với queue ưu tiên (greedy: ưu tiên sản phẩm có nhiều biến thể nhất).
+ */
+const interleaveVariants = (groups) => {
+  // Tạo queue: mỗi group là 1 hàng đợi các biến thể
+  const queues = groups.map(g => [...g.items])
+  const result = []
+  let lastProductId = null
+
+  while (queues.some(q => q.length > 0)) {
+    // Lọc queues còn hàng và không cùng sản phẩm vừa thêm
+    const eligible = queues
+      .map((q, i) => ({ q, i, productId: groups[i].productId }))
+      .filter(({ q, productId }) => q.length > 0 && productId !== lastProductId)
+
+    if (eligible.length === 0) {
+      // Fallback: nếu chỉ còn cùng 1 sản phẩm, lấy luôn
+      const fallback = queues.find(q => q.length > 0)
+      if (fallback) {
+        result.push(fallback.shift())
+        lastProductId = result[result.length - 1].id_sanpham
+      }
+      continue
+    }
+
+    // Ưu tiên sản phẩm có nhiều biến thể còn lại nhất (tránh bị dồn cuối)
+    eligible.sort((a, b) => b.q.length - a.q.length)
+    const chosen = eligible[0]
+    result.push(chosen.q.shift())
+    lastProductId = chosen.productId
+  }
+
+  return result
+}
+
 const loadProducts = async () => {
   isLoading.value = true
   try {
     const cache = await prefetchProductsPage()
-    products.value = cache?.productsRaw?.length
-      ? cache.productsRaw.map(normalizeProduct)
-      : [...fallbackProducts]
+    if (cache?.productsRaw?.length) {
+      const groups = expandAllVariants(cache.productsRaw)
+      products.value = interleaveVariants(groups)
+    } else {
+      products.value = [...fallbackProducts]
+    }
   } catch (error) {
     console.error('Khong tai duoc danh sach laptop:', error)
     products.value = [...fallbackProducts]
@@ -297,6 +366,7 @@ const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredProducts.value.slice(start, start + itemsPerPage)
 })
+
 
 const compactPages = computed(() => {
   const total = pageCount.value
@@ -632,6 +702,11 @@ onMounted(() => {
               <span class="discount">-13%</span>
               <img :src="product.image" :alt="product.tenSP" />
               <h3>{{ product.tenSP }}</h3>
+              <p v-if="product.cpu || product.ram" class="variant-subtitle">
+                <span v-if="product.cpu">{{ product.cpu }}</span>
+                <span v-if="product.cpu && product.ram"> · </span>
+                <span v-if="product.ram">{{ product.ram }}</span>
+              </p>
               <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }} đánh giá)</span></div>
               <div class="specs">
                 <span v-for="spec in product.specs.slice(0, 4)" :key="spec">{{ spec }}</span>
@@ -1126,7 +1201,17 @@ onMounted(() => {
   font-size: 15px;
   line-height: 1.35;
   min-height: 42px;
-  margin: 14px 0 8px;
+  margin: 14px 0 4px;
+}
+
+.variant-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .specs {
@@ -1216,6 +1301,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
 
 .filter-card {
