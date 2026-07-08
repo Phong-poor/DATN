@@ -951,30 +951,34 @@ const submitEdit = async () => {
 /* STATS */
 .stats {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1.2fr;
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 20px;
     padding: 0 32px 20px;
 }
 
 .stat-card {
     background: white;
-    border-radius: 14px;
+    min-height: 136px;
+    border-radius: 16px;
     border: 1px solid transparent;
-    padding: 20px 22px;
+    padding: 26px 28px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
 }
 
 .stat-card::after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     border-radius: 999px;
-    right: -26px;
-    top: -26px;
-    background: rgba(255, 255, 255, 0.12);
+    right: -28px;
+    top: -54px;
+    background: rgba(255, 255, 255, 0.13);
+    pointer-events: none;
 }
 
 .stat-card.stat-blue {
@@ -993,15 +997,18 @@ const submitEdit = async () => {
 }
 
 .stat-info p {
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.82);
-    letter-spacing: 0.08em;
-    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.03em;
+    margin: 0 0 20px;
+    text-transform: uppercase;
 }
 
 .stat-info b {
-    font-size: 26px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: #fff;
 }
@@ -1013,29 +1020,29 @@ const submitEdit = async () => {
 }
 
 .badge-up {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #2563eb;
     background: #dcfce7;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-down {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #dc2626;
     background: #fee2e2;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-neutral {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #2563eb;
     background: #dbeafe;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
@@ -1054,14 +1061,15 @@ const submitEdit = async () => {
 }
 
 .big-growth {
-    font-size: 30px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: white !important;
 }
 
 .trend-svg {
-    width: 80px;
-    height: 40px;
+    width: 96px;
+    height: 48px;
     opacity: 0.8;
 }
 

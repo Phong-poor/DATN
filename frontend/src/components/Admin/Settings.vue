@@ -400,10 +400,11 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .log-row p{margin:4px 0;color:#475569;font-size:13px}
 .log-row small{color:#64748b;font-size:12px}
 .small-select{min-width:130px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:20px 20px 8px}
-.stat-card{border-radius:15px;padding:17px 18px;color:#fff;min-height:100px;display:flex;flex-direction:column;justify-content:center}
-.stat-card span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.82}
-.stat-card b{font-size:24px;margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:20px;padding:20px 20px 8px}
+.stat-card{border-radius:16px;padding:26px 28px;color:#fff;min-height:136px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;box-shadow:0 12px 26px rgba(15,23,42,.12)}
+.stat-card::after{content:'';position:absolute;width:150px;height:150px;border-radius:999px;right:-28px;top:-54px;background:rgba(255,255,255,.13);pointer-events:none}
+.stat-card span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;opacity:.88}
+.stat-card b{font-size:34px;line-height:1;font-weight:800;margin-top:20px}
 .stat-card.blue{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
 .stat-card.violet{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
 .stat-card.green{background:linear-gradient(135deg,#1E40AF,#2563eb)}

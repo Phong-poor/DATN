@@ -16,11 +16,44 @@ export const backendBaseUrl = String(rawBackendBaseUrl).replace(/\/+$/, '')
 
 
 
+const unwrapImageValue = (value) => {
+  if (Array.isArray(value)) {
+    return unwrapImageValue(value.find((item) => String(unwrapImageValue(item) || '').trim()))
+  }
+
+  if (value && typeof value === 'object') {
+    return unwrapImageValue(
+      value.duongdan
+      || value.duong_dan
+      || value.hinhanh
+      || value.hinh_anh
+      || value.image_url
+      || value.thumbnail
+      || value.url
+      || value.path
+      || value.image
+    )
+  }
+
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  if (/^[\[{]/.test(raw)) {
+    try {
+      return unwrapImageValue(JSON.parse(raw))
+    } catch {
+      return raw
+    }
+  }
+
+  return raw
+}
+
 export const storageUrl = (path) => {
 
   if (!path) return ''
 
-  let raw = String(path).trim()
+  let raw = unwrapImageValue(path)
   if (!raw) return ''
 
   // Globally replace seeder orange phone image with realistic laptop image
@@ -61,7 +94,7 @@ export const imageFallbackUrl = 'https://images.unsplash.com/photo-1593642632823
 export const normalizeImageUrl = (value, fallback = imageFallbackUrl) => {
   if (!value) return fallback
 
-  const raw = String(value).trim()
+  const raw = unwrapImageValue(value)
   if (!raw) return fallback
 
   return storageUrl(raw)
@@ -84,20 +117,18 @@ export const withImageVersion = (url, version) => {
 export const productImageUrl = (product = {}, variant = null, fallback = imageFallbackUrl) => {
   const gallery = product.hinh_anhs || product.hinhAnhs || []
   const firstGallery = Array.isArray(gallery)
-    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+    ? gallery.find((img) => unwrapImageValue(img))
     : null
-  const firstGalleryImage = firstGallery?.duongdan
-    || firstGallery?.duong_dan
-    || firstGallery?.url
-    || firstGallery?.path
-    || firstGallery?.image
-    || ''
+  const firstGalleryImage = unwrapImageValue(firstGallery)
 
   const url = firstImageUrl([
     variant?.hinhanh,
+    variant?.hinh_anh,
     variant?.image_url,
+    variant?.thumbnail,
     variant?.image,
     product.hinhanh,
+    product.hinh_anh,
     product.image_url,
     product.image,
     product.thumbnail,
@@ -110,15 +141,17 @@ export const productImageUrl = (product = {}, variant = null, fallback = imageFa
 export const comboImageUrl = (combo = {}, fallback = imageFallbackUrl) => {
   const products = Array.isArray(combo.products) ? combo.products : []
   const productWithImage = products.find((product) =>
-    product?.hinhanh || product?.image_url || product?.image || product?.thumbnail
+    product?.hinhanh || product?.hinh_anh || product?.image_url || product?.image || product?.thumbnail
   )
 
   const url = firstImageUrl([
     combo.hinhanh,
+    combo.hinh_anh,
     combo.image_url,
     combo.image,
     combo.thumbnail,
     productWithImage?.hinhanh,
+    productWithImage?.hinh_anh,
     productWithImage?.image_url,
     productWithImage?.image,
     productWithImage?.thumbnail,
