@@ -635,20 +635,13 @@ const saveProfile = async () => {
 }
 
 const rewardPoints = computed(() => {
-  // Tính tổng tiền từ các đơn hàng hoàn thành (done hoặc completed)
-  const completedOrders = orders.value.filter(o => o.status === 'done' || o.trangthai === 'completed' || o.trangthai === 'done')
-  const totalSpent = completedOrders.reduce((sum, o) => sum + (o.tongtien || 0), 0)
-
-  // Quy đổi: 10.000đ = 1 điểm thưởng
-  const points = Math.floor(totalSpent / 10000)
-
-  return new Intl.NumberFormat('vi-VN').format(points)
+  return new Intl.NumberFormat('vi-VN').format(user.value.xu || 0)
 })
 
 const stats = computed(() => [
   { label: 'Đơn hàng', value: orders.value.length.toString(), icon: 'orders' },
   { label: 'Yêu thích', value: wishlistCount.value.toString(), icon: 'heart' },
-  { label: 'Điểm thưởng', value: rewardPoints.value, icon: 'star' },
+  { label: 'Xu', value: rewardPoints.value, icon: 'star' },
 ])
 
 // ════════════════════════════════════════════════
