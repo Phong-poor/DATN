@@ -2009,7 +2009,7 @@ const promoStatusMap = {
                   </td>
                 </tr>
                 <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
-                  <td><span style="font-weight:600; color: #e2e8f0;">{{ item.promotion?.ten }}</span></td>
+                  <td><span style="font-weight:600; color: #1e293b;">{{ item.promotion?.ten }}</span></td>
                   <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
                   <td style="color: #64748b; font-size:13px;">
                     {{ item.promotion?.loai === 'percent' ? 'Phần trăm' : (item.promotion?.loai === 'maxprice' ? 'Tối đa' : 'Cố định') }}

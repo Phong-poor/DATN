@@ -316,14 +316,14 @@ function formatDate(dateStr) {
 
 // Helper: check if a voucher is still valid (not expired)
 function isVoucherValid(v) {
-  if (!v.end_date) return true // no end date = always valid
-  return new Date(v.end_date) >= new Date()
+  if (!v.ngayketthuc) return true // no end date = always valid
+  return new Date(v.ngayketthuc) >= new Date()
 }
 
 // Helper: check if a voucher has started
 function isVoucherStarted(v) {
-  if (!v.start_date) return true
-  return new Date(v.start_date) <= new Date()
+  if (!v.ngaybatdau) return true
+  return new Date(v.ngaybatdau) <= new Date()
 }
 
 const allVouchers = computed(() => {
@@ -351,20 +351,12 @@ const allVouchers = computed(() => {
 
     // 4. Nếu user đã đăng nhập:
     // - Chưa sở hữu → hiện
-    // - Đã sở hữu còn hiệu lực (trang_thai != 'het_han' && trang_thai != 2) → không hiện
-    // - Đã sở hữu nhưng đã hết hạn → hiện lại để nhận
+    // - Đã sở hữu (bất kể trạng thái) → không hiện
     const owned = userVouchers.value.find(uv =>
-      Number(uv.id_promotion) === Number(v.id)
+      Number(uv.id_voucher) === Number(v.id)
     )
-    if (!owned) return true // chưa sở hữu → hiện
-
-    // Đã sở hữu: kiểm tra trang_thai
-    // trang_thai = 0: chưa dùng, 1: đã dùng, 2/het_han: hết hạn
-    const status = String(owned.trang_thai)
-    if (status === '2' || status === 'het_han' || status === 'expired') {
-      return true // đã sở hữu nhưng hết hạn → hiện để nhận lại
-    }
-    return false // đã sở hữu còn hiệu lực → không hiện
+    if (owned) return false // đã sở hữu -> không hiện
+    return true // chưa sở hữu -> hiện
   })
 })
 
@@ -450,7 +442,7 @@ async function fetchUserVouchers() {
           const s = String(uv.trang_thai)
           return s !== '2' && s !== 'het_han' && s !== 'expired'
         })
-        .map(uv => Number(uv.id_promotion))
+        .map(uv => Number(uv.id_voucher))
     )
   } catch (e) {
     // Not logged in or error → ignore
@@ -470,7 +462,7 @@ const claimVoucher = async (v) => {
   if (claimingId.value === v.id) return
   claimingId.value = v.id
   try {
-    await api.post('/user/vouchers/claim', { id_promotion: v.id })
+    await api.post('/user/vouchers/claim', { id_voucher: v.id })
     claimedVoucherId.value = v.id
     swal.success('Chúc mừng!', 'Chúc mừng nhận voucher thành công, đã lưu vô thông tin cá nhân!')
     await fetchUserVouchers()
