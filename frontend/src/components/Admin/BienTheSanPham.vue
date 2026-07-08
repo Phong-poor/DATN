@@ -748,16 +748,17 @@ async function handleImportFile(e) {
       try {
         if (isColorFile) {
           const name = String(obj['Tên màu'] || '').trim()
-          const hex = String(obj['Mã màu (HEX)'] || '#000000').trim()
+          const hex = normalizeHex(obj['Mã màu (HEX)'], name)
           if (!name) { skipCount++; continue }
 
           const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
+          const payload = { name, hex_code: hex, ten: name, mamau: hex }
           if (existingColor) {
             // Cập nhật màu hiện có
-            await api.put(`/admin/colors/${existingColor.id}`, { name, hex_code: hex })
+            await api.put(`/admin/colors/${existingColor.id}`, payload)
           } else {
             // Thêm màu mới
-            await api.post('/admin/colors', { name, hex_code: hex })
+            await api.post('/admin/colors', payload)
           }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
@@ -1204,9 +1205,9 @@ async function handleImportFile(e) {
             <tbody>
               <tr v-for="c in pagedColors" :key="c.id" @click="selectedColor = c" style="cursor:pointer">
                 <td>
-                  <div class="color-swatch-cell" :style="{ background: c.hex }"></div>
+                  <div class="color-swatch-cell" :style="{ background: c.hex || '#E5E7EB' }"></div>
                 </td>
-                <td class="variant-name">{{ c.name }}</td>
+                <td class="variant-name">{{ c.name || 'Chưa đặt tên' }}</td>
                 <td>
                   <div class="actions">
                     <button v-if="hasPermission('bien_the_sua')" class="act-btn" @click.stop="openModal('editColor', c)">
@@ -1263,8 +1264,8 @@ async function handleImportFile(e) {
           <div class="color-list">
             <div v-for="c in colors" :key="c.id" class="color-row-item"
               :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
-              <div class="color-dot" :style="{ background: c.hex }"></div>
-              <div class="color-info"><b>{{ c.name }}</b><span>{{ c.hex }}</span></div>
+              <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
+              <div class="color-info"><b>{{ c.name || 'Chưa đặt tên' }}</b><span>{{ c.hex || '#E5E7EB' }}</span></div>
               <div class="color-row-actions">
                 <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
                   {{ c.stock === 'Khả dụng' ? '●' : '○' }}
@@ -2218,10 +2219,11 @@ tbody td {
 .status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, .08);
+  border: 2px solid rgba(15, 23, 42, .08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8);
 }
 
 .count-badge {
@@ -2406,39 +2408,46 @@ tbody td {
 .color-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .color-row-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: 9px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 9px 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all .15s;
-  border: 1px solid transparent;
+  border: 1px solid #edf2f7;
+  background: #fff;
 }
 
-.color-row-item:hover { background: #f8fafc; }
+.color-row-item:hover {
+  background: #f8fafc;
+  border-color: #bfdbfe;
+}
+
 .color-row-item.color-selected {
   background: #f0f6ff;
   border-color: #bfdbfe;
 }
 
 .color-dot {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid rgba(0, 0, 0, .08);
+  border: 2px solid rgba(15, 23, 42, .08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8);
 }
 
 .color-info { flex: 1; min-width: 0; }
 .color-info b {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
@@ -2446,8 +2455,11 @@ tbody td {
 }
 
 .color-info span {
-  font-size: 10px;
-  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 .color-row-actions {
