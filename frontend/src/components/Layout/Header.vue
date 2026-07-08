@@ -857,7 +857,7 @@ const openLuckyWheelMobile = () => {
 
       <!-- LOGO -->
       <router-link to="/" class="logo-wrap" aria-label="Predator Group">
-        <img src="/predator_group_logo_header.png" alt="Predator Group" class="logo-img" />
+        <img src="/nextgen_logo_header.png" alt="NextGen Laptop" class="logo-img" />
       </router-link>
 
       <!-- MEGA MENU NAVIGATION -->
@@ -1158,7 +1158,7 @@ const openLuckyWheelMobile = () => {
     <div class="mob-drawer" v-if="isMobileMenuOpen">
       <div class="mob-head">
         <router-link to="/" class="mob-logo" @click="isMobileMenuOpen = false">
-          <img src="/predator_group_logo_header.png" alt="Predator Group" />
+          <img src="/nextgen_logo_header.png" alt="NextGen Laptop" />
         </router-link>
         <button class="mob-close" @click="isMobileMenuOpen = false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1220,7 +1220,7 @@ const openLuckyWheelMobile = () => {
   max-width: none;
   width: 100%;
   margin: auto;
-  padding: 0 100px;
+  padding: 0 110px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1268,13 +1268,14 @@ const openLuckyWheelMobile = () => {
 
 .header-inner {
   width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 0 100px;
-  height: 68px;
+  padding: 0 110px;
+  height: 74px;
   display: grid;
-  grid-template-columns: minmax(270px, 320px) minmax(max-content, 1fr) minmax(260px, 330px) auto;
+  grid-template-columns: minmax(300px, 360px) minmax(470px, 1fr) minmax(300px, 330px) max-content;
   align-items: center;
-  gap: clamp(10px, 1.05vw, 18px);
+  gap: clamp(16px, 1.3vw, 26px);
 }
 
 /* LOGO */
@@ -1283,18 +1284,20 @@ const openLuckyWheelMobile = () => {
   justify-self: start;
   display: flex;
   align-items: center;
-  width: clamp(255px, 16.5vw, 285px);
-  height: 66px;
+  justify-content: center;
+  width: 340px;
+  min-width: 340px;
+  height: 72px;
   text-decoration: none;
   flex-shrink: 0;
   overflow: visible;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: filter 0.2s ease;
 }
-.logo-wrap:hover { transform: scale(1.04); }
+.logo-wrap:hover { filter: brightness(1.05); }
 .logo-img {
   width: 100%;
   height: 100%;
-  max-height: 66px;
+  max-height: 72px;
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 3px 8px rgba(0,0,0,0.25));
@@ -1305,18 +1308,31 @@ const openLuckyWheelMobile = () => {
   grid-column: 2;
   display: flex;
   align-items: center;
-  gap: clamp(4px, 0.65vw, 12px);
-  justify-content: center;
+  justify-self: start;
+  width: auto;
+  max-width: 560px;
+  margin-left: clamp(4px, 0.6vw, 12px);
+  gap: clamp(4px, 0.55vw, 10px);
+  justify-content: flex-start;
   min-width: 0;
+  z-index: 2;
 }
 
-.mega-nav-item { position: relative; }
+.mega-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .nav-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 8px clamp(8px, 0.65vw, 12px);
+  height: 44px;
+  min-width: 82px;
+  padding: 8px 6px;
   border: none;
   background: transparent;
   font-family: 'Outfit', sans-serif;
@@ -1345,7 +1361,12 @@ const openLuckyWheelMobile = () => {
 .nav-btn.active .nav-chevron { transform: rotate(180deg); }
 
 .nav-plain-link {
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  min-width: 76px;
+  padding: 8px 8px;
   font-family: 'Outfit', sans-serif;
   font-size: 13.5px;
   font-weight: 600;
@@ -1625,7 +1646,7 @@ const openLuckyWheelMobile = () => {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 99px;
   padding: 0 0 0 16px;
-  height: 40px;
+  height: 48px;
   overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.035),
@@ -1825,13 +1846,15 @@ const openLuckyWheelMobile = () => {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 4px;
+  height: 48px;
+  gap: 10px;
   flex-shrink: 0;
+  min-width: max-content;
 }
 
 .icon-action {
   position: relative;
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   border-radius: 12px;
   border: 1.5px solid transparent;
   background: transparent;
@@ -1854,8 +1877,9 @@ const openLuckyWheelMobile = () => {
 .cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
 .user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
+.user-action:hover { transform: none; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;
@@ -2159,10 +2183,10 @@ const openLuckyWheelMobile = () => {
 /* ============================= RESPONSIVE ============================= */
 @media (max-width: 1200px) {
   .ann-container {
-    padding: 0 100px;
+    padding: 0 clamp(32px, 5vw, 64px);
   }
   .header-inner {
-    padding: 0 100px;
+    padding: 0 clamp(32px, 5vw, 64px);
     grid-template-columns: auto minmax(220px, 1fr) auto auto;
   }
   .mega-nav { display: none; }
@@ -2182,6 +2206,10 @@ const openLuckyWheelMobile = () => {
     grid-template-columns: auto 1fr auto;
     gap: 12px;
   }
+  .logo-wrap {
+    width: 240px;
+    min-width: 240px;
+  }
   .header-actions {
     grid-column: 2;
     justify-self: end;
@@ -2197,6 +2225,11 @@ const openLuckyWheelMobile = () => {
   .header-inner {
     width: calc(100% - 32px);
     padding: 0;
+    height: 60px;
+  }
+  .logo-wrap {
+    width: 200px;
+    min-width: 200px;
     height: 60px;
   }
 }
