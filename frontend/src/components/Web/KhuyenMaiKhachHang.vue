@@ -223,6 +223,7 @@ async function fetchPromotionsData() {
 
         return {
           id: p.id_sanpham,
+          id_bienthe: baseVariant?.id_bienthe || p.id_bienthe || null,
           tenSP: p.tenSP,
           brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'ASUS',
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop Gaming',
@@ -481,6 +482,28 @@ const claimVoucher = async (v) => {
     swal.error('Lỗi', msg)
   } finally {
     claimingId.value = null
+  }
+}
+
+const toggleWishlist = async (product) => {
+  const token = getToken()
+  if (!token) {
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để lưu sản phẩm yêu thích!')
+    router.push('/login')
+    return
+  }
+
+  try {
+    const variantId = product.id_bienthe || product.id
+    await api.post('/yeu-thich/them', {
+      id_bienthe: variantId,
+      soluong: 1
+    })
+    swal.success('Yêu thích', 'Đã thêm vào danh sách yêu thích!')
+    window.dispatchEvent(new Event('wishlist-updated'))
+  } catch (err) {
+    console.error('Lỗi yêu thích:', err)
+    swal.error('Thông báo', err.response?.data?.message || 'Đã xảy ra sự cố.')
   }
 }
 
@@ -1012,13 +1035,13 @@ const initScrollReveal = () => {
         </div>
 
         <div v-if="filteredProducts.length > 0" class="promotions-product-grid scroll-reveal reveal-stagger">
-          <div v-for="prod in filteredProducts" :key="prod.id" class="promo-product-card" @click="goToDetail(prod.id)">
+          <div v-for="prod in filteredProducts" :key="prod.id" class="promo-product-card" @click="goToDetail(prod)">
             <div class="prod-img-wrap">
               <img :src="prod.image" :alt="prod.tenSP" />
               <div class="badge-percent-overlay">
                 -{{ Math.round((1 - prod.gia / prod.oldPrice) * 100) }}%
               </div>
-              <button class="wishlist-fav-btn" @click.stop="">
+              <button class="wishlist-fav-btn" @click.stop="toggleWishlist(prod)">
                 <Heart class="fav-icon" />
               </button>
             </div>

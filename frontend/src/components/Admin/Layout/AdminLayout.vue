@@ -281,6 +281,7 @@ const menuConfig = [
       { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'MARKETING' },
       { path: '/admin/combos', label: 'Quản lý Combo', badge: 'MARKETING' },
       { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'MARKETING' },
+      { path: '/admin/vong-quay', label: 'Vòng quay may mắn', badge: 'MARKETING' },
     ]
   },
   {
@@ -340,6 +341,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/birthday-codes': 'marketing_quan_ly',
     '/admin/combos': 'marketing_quan_ly',
     '/admin/flash-sale': 'marketing_quan_ly',
+    '/admin/vong-quay': 'marketing_quan_ly',
     
     '/admin/affiliates': 'affiliate_quan_ly',
     

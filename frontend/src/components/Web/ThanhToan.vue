@@ -520,15 +520,28 @@ const fetchVouchers = async () => {
     loadingPromos.value = true
     try {
         const token = getToken()
+        let rawPromos = []
         if (token) {
             const res = await api.get('/user/vouchers')
             if (res.data && res.data.vouchers) {
-                allPromos.value = res.data.vouchers.map(v => v.promotion).filter(Boolean)
+                rawPromos = res.data.vouchers.map(v => v.promotion).filter(Boolean)
             }
         } else {
             const res = await api.get('/promotions')
-            allPromos.value = res.data
+            rawPromos = res.data || []
         }
+
+        allPromos.value = rawPromos.map(p => ({
+            id: p.id,
+            code: p.code,
+            name: p.ten,
+            type: p.loai,
+            value: Number(p.giatri),
+            category: p.danhmuc,
+            status: p.trangthai,
+            end_date: p.ngayketthuc,
+            dieu_kien: p.dieu_kien
+        }))
     } catch (err) {
         console.error('Lỗi tải khuyến mãi:', err)
     } finally {

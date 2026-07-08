@@ -10,7 +10,6 @@ const MainLayout = () => import('../components/Layout/BoCucChinh.vue')
 
 const Home = () => import('../components/Web/TrangChu.vue')
 const LaptopPage = () => import('../components/Web/TrangLaptop.vue')
-const WorkstationPage = () => import('../components/Web/TrangWorkstation.vue')
 const News = () => import('../components/Web/TinTucKhachHang.vue')
 const NewsDetail = () => import('../components/Web/ChiTietTinTuc.vue')
 const Cart = () => import('../components/Web/GioHang.vue')
@@ -57,8 +56,8 @@ const getDefaultAdminPath = (user = getUser()) => {
 const publicPages = [
   '/',
   '/laptop',
+  '/phu-kien',
   '/gaming',
-  '/workstation',
   '/login',
   '/dang-nhap',
   '/register',
@@ -108,6 +107,7 @@ const adminChildren = [
   { path: 'gui-ma-sinh-nhat', alias: ['birthdays', 'birthday-codes'], name: 'admin-birthday-codes', component: () => import('../components/Admin/GuiMaSinhNhat.vue'), meta: { title: 'Mã sinh nhật' } },
   { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quản lý combo' } },
   { path: 'xu', name: 'admin-xu', component: () => import('../components/Admin/AdminXu.vue'), meta: { title: 'Cấu hình hệ thống Xu' } },
+  { path: 'vong-quay', name: 'admin-vongquay', component: () => import('../components/Admin/QuanLyVongQuay.vue'), meta: { title: 'Quản lý Vòng quay' } },
   { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quản lý vai trò' } },
 ]
 
@@ -119,9 +119,9 @@ const routes = [
       { path: '', name: 'home', component: Home },
       { path: 'san-pham', alias: ['/products'], name: 'products', redirect: '/laptop' },
       { path: 'laptop', name: 'laptop', component: LaptopPage },
+      { path: 'phu-kien', name: 'phu-kien', component: LaptopPage },
       { path: 'gaming', name: 'gaming', redirect: '/laptop' },
       { path: 'macbook', name: 'macbook', redirect: '/laptop' },
-      { path: 'workstation', name: 'workstation', component: WorkstationPage },
       { path: 'san-pham/:id', alias: ['/products/:id'], name: 'product-detail', component: ProductDetail },
       { path: 'tin-tuc', alias: ['/news'], name: 'news', component: News },
       { path: 'tin-tuc/:id', alias: ['/news/:id'], name: 'news-detail', component: NewsDetail },

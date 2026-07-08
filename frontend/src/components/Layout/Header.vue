@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '../../services/api.js' 
+import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,7 +36,7 @@ const handleScroll = () => { isScrolled.value = window.scrollY > 20 }
 const activeMegaMenu = ref(null)
 let megaLeaveTimer = null
 
-const megaMenuData = {
+const megaMenuData = reactive({
   laptop: {
     label: 'Laptop',
     accent: '#2563eb',
@@ -77,13 +77,13 @@ const megaMenuData = {
   },
   aipc: {
     label: 'AI PC',
-    accent: '#3b82f6',
-    accentBg: 'rgba(37,99,235,0.07)',
+    accent: '#6366f1',
+    accentBg: 'rgba(99,102,241,0.07)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
     img: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&q=80',
     sections: [
       {
-        title: 'Dòng chip',
+        title: 'Dòng chip', icon: '⚡',
         items: [
           { label: 'Intel Core Ultra 9', badge: 'NEW', q: 'Intel Core Ultra 9' },
           { label: 'AMD Ryzen AI 9', badge: 'NEW', q: 'AMD Ryzen AI 9' },
@@ -92,7 +92,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Thương hiệu',
+        title: 'Thương hiệu', icon: '🏷️',
         items: [
           { label: 'Dell XPS', badge: 'HOT', q: 'Dell XPS' },
           { label: 'HP Spectre', badge: '', q: 'HP Spectre' },
@@ -101,7 +101,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Tính năng AI',
+        title: 'Tính năng AI', icon: '🤖',
         items: [
           { label: 'NPU tích hợp 45 TOPs', badge: '', q: 'NPU laptop' },
           { label: 'Copilot+ Certified', badge: '', q: 'Copilot plus' },
@@ -110,7 +110,7 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'Dell XPS 15 Core Ultra 9', price: '48.990.000₫', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
+    featured: null,
     quickLinks: ['AI PC Copilot+', 'Intel Core Ultra so sánh', 'AI PC cho lập trình'],
   },
   macbook: {
@@ -121,7 +121,7 @@ const megaMenuData = {
     img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
     sections: [
       {
-        title: 'Dòng sản phẩm',
+        title: 'Dòng sản phẩm', icon: '🍎',
         items: [
           { label: 'MacBook Air M4', badge: 'NEW', q: 'MacBook Air M4' },
           { label: 'MacBook Pro M4', badge: 'HOT', q: 'MacBook Pro M4' },
@@ -130,7 +130,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Kích thước',
+        title: 'Kích thước', icon: '📐',
         items: [
           { label: '13 inch – Air', badge: '', q: 'MacBook 13 inch' },
           { label: '14 inch – Pro', badge: 'HOT', q: 'MacBook 14 inch' },
@@ -139,7 +139,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Cấu hình RAM',
+        title: 'Cấu hình RAM', icon: '💾',
         items: [
           { label: '8GB / 256GB', badge: '', q: 'MacBook 8GB' },
           { label: '16GB / 512GB', badge: 'HOT', q: 'MacBook 16GB' },
@@ -148,47 +148,39 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'MacBook Pro 16" M4 Max', price: '89.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=200&q=80' },
+    featured: null,
     quickLinks: ['MacBook Air M4 giá rẻ', 'So sánh MacBook Pro', 'MacBook cho sinh viên'],
   },
-  workstation: {
-    label: 'Workstation',
-    accent: '#3b82f6',
-    accentBg: 'rgba(139,92,246,0.07)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>`,
-    img: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=400&q=80',
+  'phu-kien': {
+    label: 'Phụ kiện',
+    accent: '#0ea5e9',
+    accentBg: 'rgba(14,165,233,0.07)',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+    img: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400&q=80',
     sections: [
       {
-        title: 'Brands',
+        title: 'Loại phụ kiện', icon: '🖱️',
         items: [
-          { label: 'ThinkPad', badge: 'HOT', q: 'ThinkPad' },
-          { label: 'Dell', badge: '', q: 'Dell Precision' },
-          { label: 'HP ZBook', badge: '', q: 'HP ZBook' },
-          { label: 'ASUS ProArt', badge: 'NEW', q: 'ASUS ProArt' },
+          { label: 'Chuột', badge: 'HOT', q: 'Chuột' },
+          { label: 'Bàn phím', badge: 'NEW', q: 'Bàn phím' },
+          { label: 'Tai nghe', badge: '', q: 'Tai nghe' },
+          { label: 'Lót chuột', badge: '', q: 'Lót chuột' },
         ]
       },
       {
-        title: 'Use Cases',
+        title: 'Thương hiệu', icon: '🏷️',
         items: [
-          { label: 'CAD', badge: '', q: 'CAD workstation' },
-          { label: 'AI Training', badge: 'PRO', q: 'AI workstation' },
-          { label: 'Rendering', badge: 'HOT', q: 'rendering workstation' },
-          { label: 'SolidWorks', badge: '', q: 'SolidWorks' },
-        ]
-      },
-      {
-        title: 'Specifications',
-        items: [
-          { label: 'RTX 5000 Ada', badge: 'PRO', q: 'RTX 5000 Ada' },
-          { label: 'RTX 4000 Ada', badge: '', q: 'RTX 4000 Ada' },
-          { label: '64GB RAM', badge: '', q: 'workstation 64GB' },
-          { label: '128GB RAM', badge: 'PRO', q: 'workstation 128GB' },
+          { label: 'Logitech', badge: '', q: 'Logitech' },
+          { label: 'Razer', badge: 'PRO', q: 'Razer' },
+          { label: 'Akko / DareU', badge: '', q: 'Akko DareU' },
+          { label: 'Corsair / HyperX', badge: '', q: 'Corsair HyperX' },
         ]
       },
     ],
-    featured: { name: 'ASUS ProArt Studiobook 16', price: '65.990.000₫', oldPrice: '', tag: 'PRO', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&q=80' },
-    quickLinks: ['Workstation cho render 3D', 'So sánh Workstation', 'Trả góp Workstation'],
+    featured: null,
+    quickLinks: ['Bàn phím cơ giá rẻ', 'Chuột gaming Logitech', 'Phụ kiện Ugreen'],
   },
+
   sale: {
     label: 'Khuyến mãi',
     accent: '#f59e0b',
@@ -206,7 +198,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Trả góp 0%',
+        title: 'Trả góp 0%', icon: '💳',
         items: [
           { label: '6 tháng không lãi', badge: '', q: 'tra gop 6 thang' },
           { label: '12 tháng 0% lãi', badge: 'HOT', q: 'tra gop 12 thang' },
@@ -215,7 +207,7 @@ const megaMenuData = {
         ]
       },
       {
-        title: 'Combo ưu đãi',
+        title: 'Combo ưu đãi', icon: '🎁',
         items: [
           { label: 'Laptop + Chuột Gaming', badge: '', q: 'combo laptop chuot' },
           { label: 'Laptop + Balo + Hub', badge: 'HOT', q: 'combo laptop balo' },
@@ -224,10 +216,10 @@ const megaMenuData = {
         ]
       },
     ],
-    featured: { name: 'Acer Nitro V RTX 4060', price: '22.990.000₫', oldPrice: '30.990.000₫', tag: 'SALE -25%', img: 'https://images.unsplash.com/photo-1593642632623-9f5b9e3c4a0c?w=200&q=80' },
+    featured: null,
     quickLinks: ['Laptop dưới 15 triệu', 'Sinh viên ưu đãi', 'Flash Sale hôm nay'],
   },
-}
+})
 
 const visibleMegaMenuData = computed(() => {
   const { aipc, macbook, ...menus } = megaMenuData
@@ -247,7 +239,7 @@ const menuCategoryMap = {
   laptop: 'Laptop',
   gaming: 'Laptop Gaming',
   macbook: 'MacBook',
-  workstation: 'Workstation',
+  'phu-kien': 'Phụ kiện',
 }
 
 const navToCategory = (key) => {
@@ -256,15 +248,190 @@ const navToCategory = (key) => {
     router.push('/khuyen-mai')
   } else if (key === 'laptop') {
     router.push('/laptop')
+  } else if (key === 'phu-kien') {
+    router.push('/phu-kien')
   } else if (key === 'gaming') {
     router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
     router.push('/macbook')
-  } else if (key === 'workstation') {
-    router.push('/workstation')
   } else {
-    router.push({ path: '/san-pham', query: { category: menuCategoryMap[key] || key } })
+    router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key } })
   }
+}
+
+const navToFeaturedItem = async (key, featured) => {
+  activeMegaMenu.value = null
+  const name = featured?.name
+  if (!name) return
+
+  if (key === 'laptop') {
+    router.push('/laptop')
+    return
+  }
+
+  try {
+    const res = await api.get('/sanpham/search', {
+      params: { q: name },
+      skipGlobalLoader: true
+    })
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    if (items.length > 0) {
+      const product = items[0]
+      const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+      const variant = variants.length ? variants[0] : null
+      router.push({
+        path: `/san-pham/${product.id_sanpham}`,
+        query: variant?.id_bienthe ? { variant: variant.id_bienthe } : {}
+      })
+      return
+    }
+  } catch (err) {
+    console.error('Lỗi khi định tuyến sản phẩm nổi bật:', err)
+  }
+
+  navToMegaItem(key, name)
+}
+
+const isAccessory = (p) => {
+  const cat = String(p.category || p.ten_danhmuc || p.danh_muc?.ten_danhmuc || '').toLowerCase()
+  const name = String(p.tenSP || '').toLowerCase()
+  const accessoryCats = ['chuột', 'bàn phím', 'tai nghe', 'lót chuột', 'ổ cứng ssd', 'ram', 'màn hình', 'hub chuyển đổi', 'webcam', 'balo laptop', 'router', 'microphone', 'phụ kiện', 'accessory']
+  if (accessoryCats.some(c => cat.includes(c))) return true
+  if (cat === 'laptop' && (name.includes('chuột') || name.includes('bàn phím') || name.includes('tai nghe') || name.includes('lót chuột') || name.includes('mouse') || name.includes('keyboard') || name.includes('headphone'))) {
+    return true
+  }
+  return false
+}
+
+const variantImage = (product, variant) => {
+  const gallery = product.hinh_anhs || product.hinhAnhs || []
+  const firstGallery = Array.isArray(gallery)
+    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+    : null
+  const firstGalleryImage = firstGallery?.duongdan
+    || firstGallery?.duong_dan
+    || firstGallery?.url
+    || firstGallery?.path
+    || firstGallery?.image
+    || ''
+  const imgPath = variant?.hinhanh || variant?.image || product.hinhanh || firstGalleryImage
+  return imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+}
+
+const resolveProductPrice = (product) => {
+  const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+  if (variants.length > 0) {
+    const sorted = variants.slice().sort((a, b) => Number(a.gia || 0) - Number(b.gia || 0))
+    return Number(sorted[0].gia || 0)
+  }
+  return Number(product.gia || 0)
+}
+
+const updateFeaturedProducts = (productsList) => {
+  if (!Array.isArray(productsList) || !productsList.length) return
+  const formatVnd = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(num || 0))
+
+  // 1. MacBook
+  const macbooks = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('macbook')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (macbooks.length > 0) {
+    const p = macbooks[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.macbook.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: p.gia_truockhuyenmai ? formatVnd(p.gia_truockhuyenmai) : '',
+      tag: 'MACBOOK',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 2. Workstation
+  const workstations = productsList.filter(p => {
+    const nameText = String(p.tenSP || '').toLowerCase()
+    const catText = String(p.category || p.danh_muc?.ten_danhmuc || '').toLowerCase()
+    return nameText.includes('workstation') || catText.includes('workstation') || nameText.includes('precision') || nameText.includes('zbook')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (workstations.length > 0) {
+    const p = workstations[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.workstation.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'WORKSTATION',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 3. Phụ kiện
+  const accessories = productsList.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (accessories.length > 0) {
+    const p = accessories[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData['phu-kien'].featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'BESTSELLER',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 4. AI PC
+  const aipcs = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('ultra') || text.includes('ai') || text.includes('npu')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (aipcs.length > 0) {
+    const p = aipcs[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.aipc.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'AIPC',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 5. Sale
+  const saleItems = productsList.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
+  if (saleItems.length > 0) {
+    const p = saleItems[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.sale.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: formatVnd(p.gia_truockhuyenmai),
+      tag: 'SALE HOT',
+      img: variantImage(p, variants[0])
+    }
+  }
+
+  // 6. Gaming
+  const gamingLaptops = productsList.filter(p => {
+    const text = String(p.tenSP || '').toLowerCase()
+    return text.includes('gaming') || text.includes('rtx') || text.includes('rog')
+  }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  if (gamingLaptops.length > 0) {
+    const p = gamingLaptops[0]
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    megaMenuData.gaming.featured = {
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: '',
+      tag: 'GAMING',
+      img: variantImage(p, variants[0])
+    }
+  }
+}
+
+const warm = getPrefetchedProductsData()
+if (warm && Array.isArray(warm.productsRaw)) {
+  updateFeaturedProducts(warm.productsRaw)
 }
 
 const navToMegaItem = (key, keyword) => {
@@ -277,6 +444,10 @@ const navToMegaItem = (key, keyword) => {
     router.push({ path: '/laptop', query: keyword ? { q: keyword } : {} })
     return
   }
+  if (key === 'phu-kien') {
+    router.push({ path: '/phu-kien', query: keyword ? { q: keyword } : {} })
+    return
+  }
   if (key === 'gaming') {
     router.push({ path: '/laptop', query: keyword ? { line: 'gaming', q: keyword } : { line: 'gaming' } })
     return
@@ -285,45 +456,152 @@ const navToMegaItem = (key, keyword) => {
     router.push({ path: '/macbook', query: keyword ? { q: keyword } : {} })
     return
   }
-  router.push({ path: '/san-pham', query: { category: menuCategoryMap[key] || key, q: keyword } })
+  router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key, q: keyword } })
 }
 
 const mobileMenuTarget = (key) => {
   if (key === 'sale') return '/khuyen-mai'
   if (key === 'laptop') return '/laptop'
+  if (key === 'phu-kien') return '/phu-kien'
   if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
   if (key === 'workstation') return '/workstation'
-  return { path: '/san-pham', query: { category: menuCategoryMap[key] || key } }
+  return { path: '/laptop', query: { category: menuCategoryMap[key] || key } }
 }
 
 const isMenuCurrent = (key) => {
   if (key === 'sale') return route.path === '/khuyen-mai'
   if (key === 'laptop') return ['/laptop', '/labtop', '/gaming', '/macbook'].includes(route.path)
+  if (key === 'phu-kien') return route.path === '/phu-kien'
   if (key === 'workstation') {
     return route.path === '/workstation' ||
-      (route.path === '/san-pham' && String(route.query.category || '').toLowerCase() === 'workstation')
+      (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation')
   }
 
   if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
-    (route.path === '/san-pham' && String(route.query.category || '').toLowerCase() === 'macbook')
+    (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'macbook')
   if (!['gaming', 'macbook'].includes(key)) return false
   const currentCategory = String(route.query.category || '').toLowerCase()
-  return route.path === '/san-pham' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
+  return route.path === '/laptop' && currentCategory === String(menuCategoryMap[key] || key).toLowerCase()
 }
 
 // ===================== TÌM KIẾM =====================
 const searchQuery = ref('')
 const searchFocused = ref(false)
+const searchSuggestions = ref([])
+const isSearchingSuggestions = ref(false)
+const showSearchSuggestions = ref(false)
+let debounceTimeout = null
+
+const fetchSearchSuggestions = async () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) {
+    searchSuggestions.value = []
+    showSearchSuggestions.value = false
+    return
+  }
+  isSearchingSuggestions.value = true
+  showSearchSuggestions.value = true
+  try {
+    const res = await api.get('/sanpham/search', {
+      params: { q: keyword },
+      skipGlobalLoader: true
+    })
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    searchSuggestions.value = items.slice(0, 3).map(p => {
+      const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+      const variant = variants.length
+        ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
+        : null
+      const price = Number(variant?.gia || p.gia || 0)
+      
+      const gallery = p.hinh_anhs || p.hinhAnhs || []
+      const firstGallery = Array.isArray(gallery)
+        ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
+        : null
+      const firstGalleryImage = firstGallery?.duongdan
+        || firstGallery?.duong_dan
+        || firstGallery?.url
+        || firstGallery?.path
+        || firstGallery?.image
+        || ''
+      
+      const imgPath = variant?.hinhanh || variant?.image || p.hinhanh || firstGalleryImage
+      const image = imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+      return {
+        id_sanpham: p.id_sanpham,
+        id_bienthe: variant?.id_bienthe || null,
+        tenSP: p.tenSP,
+        gia: price,
+        image
+      }
+    })
+  } catch (err) {
+    console.error('Lỗi tìm kiếm gợi ý:', err)
+    searchSuggestions.value = []
+  } finally {
+    isSearchingSuggestions.value = false
+  }
+}
+
+const onSearchInput = () => {
+  clearTimeout(debounceTimeout)
+  if (!searchQuery.value.trim()) {
+    searchSuggestions.value = []
+    showSearchSuggestions.value = false
+    return
+  }
+  showSearchSuggestions.value = true
+  debounceTimeout = setTimeout(() => {
+    fetchSearchSuggestions()
+  }, 300)
+}
+
+const onSearchFocus = () => {
+  searchFocused.value = true
+  if (searchQuery.value.trim()) {
+    showSearchSuggestions.value = true
+    if (searchSuggestions.value.length === 0) {
+      fetchSearchSuggestions()
+    }
+  }
+}
+
+const onSearchBlur = () => {
+  searchFocused.value = false
+  setTimeout(() => {
+    showSearchSuggestions.value = false
+  }, 200)
+}
 
 const handleSearch = () => {
   const keyword = searchQuery.value.trim()
   if (!keyword) return
-  router.push({ path: '/san-pham', query: { q: keyword } })
+  router.push({ path: '/laptop', query: { q: keyword, scroll: 'catalog' } })
   searchQuery.value = ''
   isMobileMenuOpen.value = false
   searchFocused.value = false
+  showSearchSuggestions.value = false
+}
+
+const goToProductDetail = (product) => {
+  router.push({
+    path: `/san-pham/${product.id_sanpham}`,
+    query: product.id_bienthe ? { variant: product.id_bienthe } : {}
+  })
+  showSearchSuggestions.value = false
+  searchFocused.value = false
+  searchQuery.value = ''
+}
+
+const goToMoreResults = () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) return
+  router.push({ path: '/laptop', query: { q: keyword, scroll: 'catalog' } })
+  showSearchSuggestions.value = false
+  searchFocused.value = false
+  searchQuery.value = ''
 }
 
 // ===================== GIỎ HÀNG BADGE =====================
@@ -429,7 +707,11 @@ onMounted(() => {
     const connection = navigator.connection || navigator.webkitConnection || navigator.mozConnection
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
     import('../Web/TrangLaptop.vue')
-    prefetchProductsPage().catch(() => {})
+    prefetchProductsPage().then(res => {
+      if (res && Array.isArray(res.productsRaw)) {
+        updateFeaturedProducts(res.productsRaw)
+      }
+    }).catch(() => {})
   }
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(warmProductsPage, { timeout: 900 })
@@ -461,22 +743,22 @@ const goToCart = async () => {
   if (!token) {
     const swal = await getSwal()
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước!')
-    router.push({ path: '/dang-nhap', query: { redirect: '/gio-hang' } })
+    router.push({ path: '/login', query: { redirect: '/cart' } })
     return
   }
-  router.push('/gio-hang')
+  router.push('/cart')
 }
 
 const toggleWishlist = () => {
   const token = getToken()
-  if (!token) { router.push('/dang-nhap'); return }
+  if (!token) { router.push('/login'); return }
   showWishlist.value = !showWishlist.value
   if (showWishlist.value) showUser.value = false
 }
 
 const toggleUser = () => {
   const token = getToken()
-  if (!token) { router.push('/dang-nhap'); return }
+  if (!token) { router.push('/login'); return }
   showUser.value = !showUser.value
   if (showUser.value) showWishlist.value = false
 }
@@ -492,6 +774,9 @@ const handleOutside = (e) => {
     showUser.value = false
     activeMegaMenu.value = null
   }
+  if (!e.target.closest('.search-container')) {
+    showSearchSuggestions.value = false
+  }
 }
 
 const user = ref(null)
@@ -501,7 +786,7 @@ const isAdminAccount = computed(() => {
   const role = getUserRole(user.value)
   return Boolean(role && role !== 'user')
 })
-const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'NextGen Member')
+const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'Predator Member')
 
 const avatarUrl = computed(() => {
   if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
@@ -524,7 +809,7 @@ const handleLogout = async () => {
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
-  router.push('/dang-nhap')
+  router.push('/login')
 }
 
 const warmProductsPageNow = () => {
@@ -532,6 +817,15 @@ const warmProductsPageNow = () => {
   if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
   import('../Web/TrangLaptop.vue')
   prefetchProductsPage().catch(() => {})
+}
+
+const openLuckyWheel = () => {
+  window.dispatchEvent(new Event('open-lucky-wheel'))
+}
+
+const openLuckyWheelMobile = () => {
+  isMobileMenuOpen.value = false
+  openLuckyWheel()
 }
 </script>
 
@@ -562,8 +856,8 @@ const warmProductsPageNow = () => {
     <div class="header-inner">
 
       <!-- LOGO -->
-      <router-link to="/" class="logo-wrap" aria-label="NextGen Laptop">
-        <img src="/nextgen_logo_header.png" alt="NextGen Laptop" class="logo-img" />
+      <router-link to="/" class="logo-wrap" aria-label="Predator Group">
+        <img src="/predator_group_logo_header.png" alt="Predator Group" class="logo-img" />
       </router-link>
 
       <!-- MEGA MENU NAVIGATION -->
@@ -589,12 +883,27 @@ const warmProductsPageNow = () => {
             <div
               v-if="activeMegaMenu === key"
               class="mega-dropdown"
-              :style="{ '--accent': menu.accent, '--accent-bg': menu.accentBg }"
+              :style="{
+                '--accent': menu.accent,
+                '--accent-bg': menu.accentBg,
+                width: (menu.sections.length + (menu.featured ? 1 : 0)) === 2
+                  ? '440px'
+                  : (menu.sections.length + (menu.featured ? 1 : 0)) === 3
+                    ? '660px'
+                    : '860px'
+              }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
             >
               <!-- BODY -->
-              <div class="mega-body">
+              <div
+                class="mega-body"
+                :style="{
+                  gridTemplateColumns: menu.featured
+                    ? `repeat(${menu.sections.length}, 1fr) 1.35fr`
+                    : `repeat(${menu.sections.length}, 1fr)`
+                }"
+              >
                 <!-- SECTIONS (Columns 1, 2, 3) -->
                 <div v-for="(section, sIdx) in menu.sections" :key="section.title" class="mega-col" :class="`col-${sIdx + 1}`">
                   <div class="mega-col-title">
@@ -615,9 +924,9 @@ const warmProductsPageNow = () => {
                 </div>
 
                 <!-- FEATURED PANEL (Column 4) -->
-                <div class="mega-featured-panel">
+                <div v-if="menu.featured" class="mega-featured-panel">
                   <div class="mega-col-title">NỔI BẬT</div>
-                  <div class="mfp-card" @click="navToMegaItem(key, menu.featured.name)">
+                  <div class="mfp-card" @click="navToFeaturedItem(key, menu.featured)">
                     <div class="mfp-img-box">
                       <img :src="menu.featured.img" :alt="menu.featured.name" class="mfp-img"
                         @error="e => e.target.style.display='none'" />
@@ -643,26 +952,56 @@ const warmProductsPageNow = () => {
         <!-- Extra links -->
         <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
         <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
+
       </nav>
 
       <!-- SEARCH BAR -->
-      <div class="search-wrap" :class="{ focused: searchFocused }">
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Tìm kiếm"
-          v-model="searchQuery"
-          @keyup.enter="handleSearch"
-          @focus="searchFocused = true"
-          @blur="searchFocused = false"
-        />
-        <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''; searchFocused = false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <span class="search-keyboard" aria-hidden="true"></span>
-        <button type="button" class="search-submit" @click="handleSearch" aria-label="Tim kiem" title="Tim kiem">
-          Tìm
-        </button>
+      <div class="search-container">
+        <div class="search-wrap" :class="{ focused: searchFocused }">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Tìm kiếm"
+            v-model="searchQuery"
+            @input="onSearchInput"
+            @keyup.enter="handleSearch"
+            @focus="onSearchFocus"
+            @blur="onSearchBlur"
+          />
+          <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''; searchFocused = false; searchSuggestions = []; showSearchSuggestions = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <span class="search-keyboard" aria-hidden="true"></span>
+          <button type="button" class="search-submit" @click="handleSearch" aria-label="Tim kiem" title="Tim kiem">
+            Tìm
+          </button>
+        </div>
+
+        <!-- SUGGESTIONS DROPDOWN -->
+        <transition name="suggest-fade">
+          <div class="search-suggestions" v-if="showSearchSuggestions && searchQuery.trim() && (searchSuggestions.length > 0 || isSearchingSuggestions)">
+            <div v-if="isSearchingSuggestions" class="suggest-loading">
+              <span>Đang tìm kiếm...</span>
+            </div>
+            <div v-else class="suggest-list">
+              <div 
+                v-for="product in searchSuggestions" 
+                :key="product.id_sanpham" 
+                class="suggest-item"
+                @mousedown="goToProductDetail(product)"
+              >
+                <img :src="product.image" class="suggest-img" alt="product" />
+                <div class="suggest-info">
+                  <p class="suggest-name">{{ product.tenSP }}</p>
+                  <p class="suggest-price">{{ formatPrice(product.gia) }}</p>
+                </div>
+              </div>
+              <div class="suggest-more" @mousedown="goToMoreResults">
+                Xem thêm &quot;{{ searchQuery }}&quot; &rarr;
+              </div>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <!-- HEADER ACTIONS -->
@@ -698,7 +1037,7 @@ const warmProductsPageNow = () => {
                 </div>
               </div>
               <div class="drop-foot" v-if="wishlistItems.length > 0">
-                <router-link to="/danh-sach-yeu-thich" class="drop-cta" @click="showWishlist = false">Xem tất cả →</router-link>
+                <router-link to="/wishlistpage" class="drop-cta" @click="showWishlist = false">Xem tất cả →</router-link>
               </div>
             </div>
           </transition>
@@ -739,7 +1078,7 @@ const warmProductsPageNow = () => {
                   <span>Tổng cộng</span>
                   <span class="cart-total-val">{{ formatPrice(cartTotal) }}</span>
                 </div>
-                <router-link to="/gio-hang" class="drop-cta" @click="showCartDropdown = false">
+                <router-link to="/cart" class="drop-cta" @click="showCartDropdown = false">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                   Xem giỏ hàng
                 </router-link>
@@ -776,7 +1115,7 @@ const warmProductsPageNow = () => {
                   </button>
                 </template>
                 <template v-else>
-                  <router-link to="/trang-ca-nhan" @click="showUser = false" class="um-item">
+                  <router-link to="/profile" @click="showUser = false" class="um-item">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       Thông tin cá nhân
@@ -784,7 +1123,7 @@ const warmProductsPageNow = () => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </router-link>
 
-                  <router-link to="/tiep-thi-lien-ket" @click="showUser = false" class="um-item">
+                  <router-link to="/affiliate" @click="showUser = false" class="um-item">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                       Affiliate Center
@@ -819,7 +1158,7 @@ const warmProductsPageNow = () => {
     <div class="mob-drawer" v-if="isMobileMenuOpen">
       <div class="mob-head">
         <router-link to="/" class="mob-logo" @click="isMobileMenuOpen = false">
-          <img src="/nextgen_logo_header.png" alt="NextGen Laptop" />
+          <img src="/predator_group_logo_header.png" alt="Predator Group" />
         </router-link>
         <button class="mob-close" @click="isMobileMenuOpen = false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -838,18 +1177,19 @@ const warmProductsPageNow = () => {
 
       <nav class="mob-nav">
         <div class="mob-nav-label">Danh mục</div>
-        <router-link v-for="(menu, key) in visibleMegaMenuData" :key="key"
+        <router-link v-for="(menu, key) in megaMenuData" :key="key"
           :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link" :class="{ current: isMenuCurrent(key) }">
           {{ menu.label }}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </router-link>
         <div class="mob-nav-label">Thêm</div>
-        <router-link to="/tin-tuc" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
-        <router-link to="/lien-he" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+        <router-link to="/news" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
+        <router-link to="/contact" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+        <a href="#" @click.prevent="openLuckyWheelMobile" class="mob-link">Vòng quay may mắn</a>
       </nav>
 
       <div class="mob-footer">
-        <router-link to="/gio-hang" @click="isMobileMenuOpen = false" class="mob-cta">
+        <router-link to="/cart" @click="isMobileMenuOpen = false" class="mob-cta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-13z"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
           Giỏ hàng {{ cartCount > 0 ? '(' + cartCount + ')' : '' }}
         </router-link>
@@ -871,44 +1211,34 @@ const warmProductsPageNow = () => {
   right: 0;
   z-index: 1001;
   background: #0f172a;
-  color: #94a3b8;
-  height: 38px;
-  min-height: 38px;
-  max-height: 38px;
+  height: 34px;
   display: flex;
   align-items: center;
   overflow: hidden;
-  contain: layout paint;
 }
 .ann-container {
   max-width: none;
   width: 100%;
   margin: auto;
-  padding: 0 clamp(64px, 7vw, 120px);
+  padding: 0 100px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 38px;
-  min-width: 0;
 }
 .ann-text {
   font-family: 'Inter', sans-serif;
-  font-size: 13.5px;
-  line-height: 38px;
+  font-size: 12.5px;
   color: #94a3b8;
   letter-spacing: 0.1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .ann-text :deep(strong) { color: #e2e8f0; font-weight: 600; }
 .ann-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ann-link {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 13px; color: #94a3b8; text-decoration: none; cursor: pointer;
+  font-size: 12px; color: #94a3b8; text-decoration: none; cursor: pointer;
   transition: color 0.2s; font-family: 'Inter', sans-serif;
 }
-.ann-link svg { width: 14px; height: 14px; }
+.ann-link svg { width: 12px; height: 12px; }
 .ann-link:hover { color: #e2e8f0; }
 .ann-sep { color: #cbd5e1; font-size: 12px; }
 
@@ -920,19 +1250,15 @@ const warmProductsPageNow = () => {
 /* ============================= MAIN HEADER ============================= */
 .header {
   position: fixed;
-  top: 38px;
+  top: 34px;
   left: 0;
   right: 0;
   z-index: 1000;
   background: rgba(13, 27, 46, 0.95);
-  min-height: 78px;
-  max-height: 78px;
-  height: 78px;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  transition: background-color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  overflow: visible;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .header.scrolled {
   background: rgba(13, 27, 46, 0.99);
@@ -941,17 +1267,14 @@ const warmProductsPageNow = () => {
 }
 
 .header-inner {
-  width: min(100%, 100vw);
+  width: 100%;
   margin: 0 auto;
-  padding: 0 clamp(64px, 7vw, 120px);
-  height: 78px;
-  min-height: 78px;
-  max-height: 78px;
+  padding: 0 100px;
+  height: 68px;
   display: grid;
-  grid-template-columns: minmax(245px, 305px) minmax(max-content, 1fr) minmax(245px, 330px) auto;
+  grid-template-columns: minmax(270px, 320px) minmax(max-content, 1fr) minmax(260px, 330px) auto;
   align-items: center;
-  column-gap: clamp(10px, 1.1vw, 18px);
-  overflow: visible;
+  gap: clamp(10px, 1.05vw, 18px);
 }
 
 /* LOGO */
@@ -960,18 +1283,18 @@ const warmProductsPageNow = () => {
   justify-self: start;
   display: flex;
   align-items: center;
-  width: clamp(265px, 17vw, 320px);
-  height: 78px;
+  width: clamp(255px, 16.5vw, 285px);
+  height: 66px;
   text-decoration: none;
   flex-shrink: 0;
   overflow: visible;
-  transition: filter 0.18s ease;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.logo-wrap:hover { filter: brightness(1.08); }
+.logo-wrap:hover { transform: scale(1.04); }
 .logo-img {
   width: 100%;
   height: 100%;
-  max-height: 76px;
+  max-height: 66px;
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 3px 8px rgba(0,0,0,0.25));
@@ -980,37 +1303,25 @@ const warmProductsPageNow = () => {
 /* ============================= MEGA NAV ============================= */
 .mega-nav {
   grid-column: 2;
-  position: relative;
   display: flex;
   align-items: center;
-  gap: clamp(8px, 0.85vw, 16px);
-  justify-content: flex-start;
-  justify-self: start;
-  width: 100%;
-  height: 100%;
+  gap: clamp(4px, 0.65vw, 12px);
+  justify-content: center;
   min-width: 0;
-  overflow: visible;
 }
 
-.mega-nav-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
+.mega-nav-item { position: relative; }
 
 .nav-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-height: 48px;
-  padding: 0 clamp(10px, 0.7vw, 14px);
+  gap: 4px;
+  padding: 8px clamp(8px, 0.65vw, 12px);
   border: none;
   background: transparent;
   font-family: 'Outfit', sans-serif;
-  font-size: 15.5px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   color: #cbd5e1;
   cursor: pointer;
   border-radius: 10px;
@@ -1027,21 +1338,17 @@ const warmProductsPageNow = () => {
   font-weight: 700;
 }
 .nav-chevron {
-  width: 15px; height: 15px;
+  width: 12px; height: 12px;
   transition: transform 0.2s;
   stroke: currentColor;
 }
 .nav-btn.active .nav-chevron { transform: rotate(180deg); }
 
 .nav-plain-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  padding: 0 12px;
+  padding: 8px 10px;
   font-family: 'Outfit', sans-serif;
-  font-size: 15.5px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   color: #cbd5e1;
   text-decoration: none;
   border-radius: 10px;
@@ -1062,28 +1369,32 @@ const warmProductsPageNow = () => {
 /* MEGA DROPDOWN */
 .mega-dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(24px) saturate(145%);
-  -webkit-backdrop-filter: blur(24px) saturate(145%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(8, 17, 30, 0.96);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 
+    0 24px 50px rgba(0, 0, 0, 0.55), 
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 9999;
   width: min(760px, calc(100vw - 48px));
   overflow: hidden;
-  padding: 14px 16px;
+  padding: 24px 28px;
 }
-/* Bridge trong suốt lấp khoảng trống 10px giữa button và dropdown */
+
+/* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
   content: '';
   position: absolute;
-  top: -14px;       /* cao hơn khoảng gap 10px để chắc chắn không hở */
+  top: -16px;
   left: 0;
   right: 0;
-  height: 14px;
+  height: 16px;
   background: transparent;
 }
 
@@ -1101,13 +1412,30 @@ const warmProductsPageNow = () => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  position: relative;
+}
+
+/* Vertical dividers using pseudo-elements for precision styling */
+.mega-col::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  right: -12px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mega-body .mega-col:nth-child(3)::after {
+  display: none; /* Hide before featured panel */
 }
 
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
   font-size: 11px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: #ffffff;
   margin-bottom: 9px;
@@ -1128,9 +1456,9 @@ const warmProductsPageNow = () => {
   gap: 6px;
   padding: 7px 8px;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mega-link-text {
   font-size: 13px;
@@ -1139,26 +1467,30 @@ const warmProductsPageNow = () => {
   transition: color 0.15s ease;
 }
 .mega-link:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--accent-bg);
+  transform: translateX(4px);
 }
 .mega-link:hover .mega-link-text {
-  color: #ffffff;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* ITEM BADGES */
 .mega-item-badge {
+  font-size: 9px;
   font-size: 9px;
   font-weight: 800;
   padding: 2px 5px;
   border-radius: 4px;
   letter-spacing: 0.2px;
   flex-shrink: 0;
-  margin-left: 0;
+  margin-left: 2px;
+  text-transform: uppercase;
 }
-.mega-item-badge.hot  { background: rgba(239,68,68,0.15); color: #f87171; }
-.mega-item-badge.new  { background: rgba(34,197,94,0.15); color: #4ade80; }
-.mega-item-badge.pro  { background: rgba(139,92,246,0.15); color: #a78bfa; }
-.mega-item-badge.sale { background: rgba(249,115,22,0.15); color: #fb923c; }
+.mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
+.mega-item-badge.new  { background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
+.mega-item-badge.pro  { background: rgba(139,92,246,0.18); color: #a78bfa; border: 1px solid rgba(139,92,246,0.15); }
+.mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
 
 .mega-featured-panel {
   padding: 0 0 0 12px;
@@ -1175,15 +1507,16 @@ const warmProductsPageNow = () => {
   border-radius: 9px;
   padding: 8px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .mfp-card:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.13);
-  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2);
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 15px var(--accent-bg);
 }
 
 .mfp-img-box {
@@ -1194,16 +1527,18 @@ const warmProductsPageNow = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  overflow: hidden;
 }
 .mfp-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.25s ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mfp-card:hover .mfp-img {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .mfp-badge {
@@ -1213,28 +1548,35 @@ const warmProductsPageNow = () => {
   font-size: 9px;
   font-weight: 800;
   color: white;
-  padding: 1.5px 4.5px;
-  border-radius: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 .mfp-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .mfp-name {
   font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.3;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+.mfp-card:hover .mfp-name {
+  color: var(--accent);
 }
 
 .mfp-price {
   font-family: 'Outfit', sans-serif;
   font-size: 12px;
   font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .mfp-btn {
@@ -1244,17 +1586,19 @@ const warmProductsPageNow = () => {
   width: 100%;
   padding: 7px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   color: white;
   font-family: 'Outfit', sans-serif;
   font-size: 11px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s ease;
-  margin-top: 1px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 4px;
 }
 .mfp-btn:hover {
-  opacity: 0.9;
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px var(--accent-bg);
 }
 
 /* MEGA DROPDOWN TRANSITIONS */
@@ -1264,11 +1608,16 @@ const warmProductsPageNow = () => {
 .mega-drop-leave-to   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
 
 /* ============================= SEARCH ============================= */
-.search-wrap {
+.search-container {
   grid-column: 3;
   width: 100%;
   max-width: 330px;
   justify-self: end;
+  position: relative;
+  z-index: 1000;
+}
+.search-wrap {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0;
@@ -1276,7 +1625,7 @@ const warmProductsPageNow = () => {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 99px;
   padding: 0 0 0 16px;
-  height: 42px;
+  height: 40px;
   overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.035),
@@ -1290,14 +1639,104 @@ const warmProductsPageNow = () => {
     0 0 0 2px rgba(255,255,255,0.035),
     inset 0 1px 0 rgba(255,255,255,0.04);
 }
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #141415;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  z-index: 1001;
+}
+.suggest-loading {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+}
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.suggest-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(4px);
+}
+.suggest-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #1e1e1f;
+  flex-shrink: 0;
+}
+.suggest-info {
+  flex: 1;
+  min-width: 0;
+}
+.suggest-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.suggest-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0;
+  text-align: left;
+}
+.suggest-more {
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.05);
+  transition: background 0.2s, color 0.2s;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+.suggest-more:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+}
+
+/* Transitions */
+.suggest-fade-enter-active,
+.suggest-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.suggest-fade-enter-from,
+.suggest-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
 .search-input {
   flex: 1;
   border: none;
   background: transparent;
   outline: none;
   font-family: 'Inter', sans-serif;
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: #e7e7e7 !important;
   padding: 0 10px 0 0;
   min-width: 0;
@@ -1305,19 +1744,19 @@ const warmProductsPageNow = () => {
 }
 .search-input::placeholder { color: #68686b !important; opacity: 1; }
 .search-clear {
-  width: 24px; height: 24px;
+  width: 22px; height: 22px;
   border: none; background: rgba(255,255,255,0.08); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; margin-right: 8px;
   transition: background 0.2s;
 }
 .search-clear:hover { background: rgba(239,68,68,0.15); }
-.search-clear svg { width: 13px; height: 13px; color: #94a3b8; }
+.search-clear svg { width: 12px; height: 12px; color: #94a3b8; }
 .search-keyboard {
   position: relative;
-  width: 24px;
-  height: 16px;
-  margin-right: 12px;
+  width: 21px;
+  height: 14px;
+  margin-right: 10px;
   flex-shrink: 0;
   opacity: 0.78;
 }
@@ -1356,23 +1795,23 @@ const warmProductsPageNow = () => {
 }
 .search-submit::before {
   content: '';
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 2.3px solid currentColor;
   border-radius: 50%;
   position: absolute;
-  top: 11px;
-  left: 20px;
+  top: 10px;
+  left: 18px;
 }
 .search-submit::after {
   content: '';
-  width: 11px;
+  width: 10px;
   height: 2.3px;
   background: currentColor;
   border-radius: 999px;
   position: absolute;
-  top: 28px;
-  left: 36px;
+  top: 25px;
+  left: 32px;
   transform: rotate(45deg);
   transform-origin: left center;
 }
@@ -1386,14 +1825,14 @@ const warmProductsPageNow = () => {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .icon-action {
   position: relative;
-  width: 42px; height: 42px;
-  border-radius: 13px;
+  width: 40px; height: 40px;
+  border-radius: 12px;
   border: 1.5px solid transparent;
   background: transparent;
   display: flex; align-items: center; justify-content: center;
@@ -1402,7 +1841,7 @@ const warmProductsPageNow = () => {
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 .icon-action svg { width: 20px; height: 20px; }
-.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
+.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
 .icon-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
 .cart-action {
@@ -1411,12 +1850,12 @@ const warmProductsPageNow = () => {
   border: 1.5px solid transparent;
 }
 .cart-action svg { stroke: currentColor; }
-.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
+.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
 .cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
 .user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+.user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;
@@ -1507,6 +1946,7 @@ const warmProductsPageNow = () => {
 .drop-item:hover { 
   background: rgba(37,99,235,0.08); 
   border-color: rgba(37,99,235,0.25); 
+  transform: translateY(-1px); 
   box-shadow: 0 4px 12px rgba(37,99,235,0.12); 
 }
 .drop-item img { 
@@ -1565,7 +2005,7 @@ const warmProductsPageNow = () => {
   transition: all 0.22s;
 }
 .drop-cta svg { width: 14px; height: 14px; }
-.drop-cta:hover { box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+.drop-cta:hover { transform: translateY(-2.0px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
 
 /* USER CARD */
 .user-card {
@@ -1594,8 +2034,8 @@ const warmProductsPageNow = () => {
 .um-item > svg { width: 13px; height: 13px; color: #cbd5e1; }
 .um-item:hover { background: rgba(37,99,235,0.42); border-color: rgba(96,165,250,0.62); color: #ffffff; }
 .um-item:hover > svg { color: #bfdbfe; }
-.um-item.admin { background: rgba(37,99,235,0.24); border-color: rgba(96,165,250,0.32); color: #dbeafe; }
-.um-item.admin:hover { background: rgba(37,99,235,0.42); border-color: rgba(96,165,250,0.58); color: #ffffff; }
+.um-item.admin { background: rgba(99,102,241,0.24); border-color: rgba(129,140,248,0.28); color: #ede9fe; }
+.um-item.admin:hover { background: rgba(99,102,241,0.42); border-color: rgba(167,139,250,0.55); color: #ffffff; }
 .um-item.logout { color: #fecaca; background: rgba(239,68,68,0.20); border-color: rgba(239,68,68,0.34); }
 .um-item.logout:hover { background: rgba(220,38,38,0.5); border-color: rgba(239,68,68,0.7); color: #ffffff; }
 .um-divider { height: 1px; background: rgba(148,163,184,0.18); margin: 4px 0; }
@@ -1693,7 +2133,7 @@ const warmProductsPageNow = () => {
   color: #2563eb;
   font-weight: 700;
 }
-.mob-link.labs { color: #2563eb; }
+.mob-link.labs { color: #6366f1; }
 
 .mob-footer {
   padding: 16px 20px 24px;
@@ -1703,9 +2143,9 @@ const warmProductsPageNow = () => {
 .mob-cta {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 13px; border-radius: 14px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
-  text-decoration: none; box-shadow: 0 6px 18px rgba(37,99,235,0.25);
+  text-decoration: none; box-shadow: 0 6px 18px rgba(99,102,241,0.25);
   transition: all 0.2s;
 }
 .mob-cta svg { width: 16px; height: 16px; }
@@ -1719,35 +2159,28 @@ const warmProductsPageNow = () => {
 /* ============================= RESPONSIVE ============================= */
 @media (max-width: 1200px) {
   .ann-container {
-    padding: 0 72px;
+    padding: 0 100px;
   }
   .header-inner {
-    padding: 0 72px;
-    grid-template-columns: auto minmax(240px, 1fr) auto auto;
-  }
-  .logo-wrap {
-    width: clamp(270px, 27vw, 330px);
-    height: 78px;
+    padding: 0 100px;
+    grid-template-columns: auto minmax(220px, 1fr) auto auto;
   }
   .mega-nav { display: none; }
-  .search-wrap {
+  .search-container {
     grid-column: 2;
     justify-self: center;
+    max-width: 260px;
   }
   .header-actions { grid-column: 3; }
   .hamburger { grid-column: 4; }
   .hamburger { display: flex; }
-  .search-wrap { max-width: 300px; }
 }
 
 @media (max-width: 900px) {
-  .search-wrap { display: none; }
+  .search-container { display: none; }
   .header-inner {
     grid-template-columns: auto 1fr auto;
-    gap: 14px;
-  }
-  .logo-wrap {
-    width: clamp(245px, 38vw, 300px);
+    gap: 12px;
   }
   .header-actions {
     grid-column: 2;
@@ -1760,23 +2193,11 @@ const warmProductsPageNow = () => {
   .ann-bar { display: none; }
   .header {
     top: 0;
-    height: 64px;
-    min-height: 64px;
-    max-height: 64px;
   }
   .header-inner {
     width: calc(100% - 32px);
     padding: 0;
-    height: 64px;
-    min-height: 64px;
-    max-height: 64px;
-  }
-  .logo-wrap {
-    width: clamp(190px, 52vw, 235px);
-    height: 62px;
-  }
-  .logo-img {
-    max-height: 60px;
+    height: 60px;
   }
 }
 
