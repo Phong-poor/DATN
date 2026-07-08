@@ -690,7 +690,7 @@ const groupIconMap = {
 const colorPool = ['blue', 'green', 'amber', 'pink', 'purple', 'teal']
 
 const getGroupIcon = (name) => {
-  return groupIconMap[name] || '📦'
+  return groupIconMap[name] || 'PKG'
 }
 
 const getTypeColor = (name) => {
@@ -989,6 +989,12 @@ const onFileChange = e => {
   r.readAsDataURL(file)
 }
 
+const onMainImageDrop = (event) => {
+  const file = event.dataTransfer?.files?.[0]
+  if (!file) return
+  onFileChange({ target: { files: [file] } })
+}
+
 const onExtraFilesChange = async (e) => {
   const files = Array.from(e.target.files || [])
   if (!files.length) return
@@ -1041,7 +1047,13 @@ const onExtraFilesChange = async (e) => {
   }
 }
 
+const onExtraImagesDrop = (event) => {
+  const files = Array.from(event.dataTransfer?.files || [])
+  if (!files.length) return
+  onExtraFilesChange({ target: { files } })
+}
 
+const triggerFileInput = () => fileInputRef.value?.click()
 const triggerExtraFileInput = () => extraFileInputRef.value?.click()
 
 const removeImg = () => {
@@ -1909,14 +1921,26 @@ onMounted(() => {
 
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">&#128230;</span>
+        <span class="stat-icon blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+            <path d="m3.3 7 8.7 5 8.7-5" />
+            <path d="M12 22V12" />
+          </svg>
+        </span>
         <div>
           <p>T&#7893;ng s&#7843;n ph&#7849;m</p>
           <b>{{ totalProductStats.toLocaleString('vi-VN') }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange clickable-stat" @click="openLowStockModal">
-        <span class="stat-icon red">&#9888;&#65039;</span>
+        <span class="stat-icon red" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+        </span>
         <div>
           <p>S&#7855;p h&#7871;t h&#224;ng</p>
           <b>{{ lowStockStats.toLocaleString('vi-VN') }}</b>
@@ -1924,7 +1948,15 @@ onMounted(() => {
       </div>
 
       <div class="stat-card stat-teal">
-        <span class="stat-icon purple">&#127981;</span>
+        <span class="stat-icon purple" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18" />
+            <path d="M5 21V8l6 4V8l6 4v9" />
+            <path d="M17 21v-5h2v5" />
+            <path d="M7 16h2" />
+            <path d="M11 16h2" />
+          </svg>
+        </span>
         <div>
           <p>Kho l&#432;u tr&#7919;</p>
           <b>{{ totalInventoryStats.toLocaleString('vi-VN') }}</b>
@@ -2083,8 +2115,14 @@ onMounted(() => {
           <div class="form-section-title">H&#236;nh &#7843;nh s&#7843;n ph&#7849;m</div>
           <div class="form-group">
             <label>&#7842;nh s&#7843;n ph&#7849;m <span class="required">*</span></label>
-            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-            <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+            <input id="product-main-image-input" ref="fileInputRef" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" class="visually-hidden-file" @change="onFileChange" />
+            <label
+              v-if="!imgPreview"
+              class="upload-zone"
+              for="product-main-image-input"
+              @dragover.prevent
+              @drop.prevent="onMainImageDrop"
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
@@ -2092,18 +2130,23 @@ onMounted(() => {
               </svg>
               <p>K&#233;o th&#7843; ho&#7863;c <span>b&#7845;m &#273;&#7875; ch&#7885;n &#7843;nh</span></p>
               <small>PNG, JPG, WEBP - t&#7889;i &#273;a 5MB</small>
-            </div>
+            </label>
             <div v-else class="img-preview-wrap">
               <button class="img-remove-btn" @click="removeImg">X&#243;a</button>
-              <img :src="imgPreview" class="img-preview" alt="Anh san pham" />
+              <img :src="imgPreview" class="img-preview" alt="Ảnh sản phẩm" />
             </div>
             <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
           </div>
 
           <div class="form-group">
             <label>H&#236;nh &#7843;nh ph&#7909;</label>
-            <input ref="extraFileInputRef" type="file" accept="image/*" multiple style="display:none" @change="onExtraFilesChange" />
-            <div class="upload-zone" @click="triggerExtraFileInput">
+            <input id="product-extra-images-input" ref="extraFileInputRef" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple class="visually-hidden-file" @change="onExtraFilesChange" />
+            <label
+              class="upload-zone"
+              for="product-extra-images-input"
+              @dragover.prevent
+              @drop.prevent="onExtraImagesDrop"
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
@@ -2111,11 +2154,11 @@ onMounted(() => {
               </svg>
               <p>K&#233;o th&#7843; ho&#7863;c <span>b&#7845;m &#273;&#7875; ch&#7885;n nhi&#7873;u &#7843;nh</span></p>
               <small>PNG, JPG, WEBP - c&#243; th&#7875; ch&#7885;n nhi&#7873;u &#7843;nh</small>
-            </div>
+            </label>
             <p v-if="fieldErrors.images" class="field-error">{{ fieldErrors.images }}</p>
             <div v-if="extraImagePreviews.length" class="multi-preview-wrap">
               <div v-for="(img, index) in extraImagePreviews" :key="index" class="multi-preview-item">
-                <img :src="img" class="multi-preview-img" :alt="'Anh phu ' + (index + 1)" />
+                <img :src="img" class="multi-preview-img" :alt="'Ảnh phụ ' + (index + 1)" />
                 <button class="multi-preview-remove" @click="removeExtraImage(index)">x</button>
               </div>
             </div>
@@ -2164,7 +2207,7 @@ onMounted(() => {
               <div class="form-section-title">Danh m&#7909;c s&#7843;n ph&#7849;m <span class="required">*</span></div>
               <div class="selected-category-badge" :class="{ 'has-selected': form.category }">
                 <span class="badge-icon">&#128193;</span>
-                <span class="badge-text">{{ form.category ? getSelectedCategoryName() : 'Chua chon danh muc san pham' }}</span>
+                <span class="badge-text">{{ form.category ? getSelectedCategoryName() : 'Chưa chọn danh mục sản phẩm' }}</span>
               </div>
               <div class="tree-select-static-container" :class="{ 'has-error': fieldErrors.category }">
                 <div class="tree-search-wrapper">
@@ -2237,8 +2280,8 @@ onMounted(() => {
                               <span class="type-pill" :class="'tp-' + t.color">{{ t.label }}</span>
                               <span v-if="selectedOptions[t.id]?.size" class="fst-count">{{ selectedOptions[t.id].size }}</span>
                             </div>
-                            <div class="mode-switch-wrapper" title="Bien the SKU: chon nhieu de tao to hop. Thong so: chon toi da 1.">
-                              <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">{{ variationTierIds.has(String(t.id)) ? 'Bien the' : 'Thong so' }}</span>
+                            <div class="mode-switch-wrapper" title="Biến thể SKU: chọn nhiều để tạo tổ hợp. Thông số: chọn tối đa 1.">
+                              <span class="mode-label" :class="{ active: variationTierIds.has(String(t.id)) }">{{ variationTierIds.has(String(t.id)) ? 'Biến thể' : 'Thông số' }}</span>
                               <label class="switch-control">
                                 <input type="checkbox" :checked="variationTierIds.has(String(t.id))" @change="toggleVariationTier(t.id)" />
                                 <span class="switch-slider"></span>
@@ -2292,7 +2335,7 @@ onMounted(() => {
                   <span v-else class="p1-hint">M&#7903; r&#7897;ng c&#225;c nh&#243;m thu&#7897;c t&#237;nh b&#234;n tr&#234;n; h&#7879; th&#7889;ng s&#7869; t&#7921; &#273;&#7897;ng g&#7897;p t&#7845;t c&#7843; l&#7921;a ch&#7885;n &#273;&#7875; t&#7841;o SKU.</span>
                   <div class="p1-action-buttons">
                     <button v-if="isEditMode && !hasVariantSelectionChanged" class="btn-back-variants" @click="continueVariantTable">Quay l&#7841;i bi&#7871;n th&#7875;</button>
-                    <button class="btn-generate" @click="generateVariants">{{ isEditMode ? 'Cap nhat to hop' : 'Tu dong sinh to hop' }}</button>
+                    <button class="btn-generate" @click="generateVariants">{{ isEditMode ? 'Cập nhật tổ hợp' : 'Tự động sinh tổ hợp' }}</button>
                   </div>
                 </div>
               </div>
@@ -2300,10 +2343,10 @@ onMounted(() => {
 
             <template v-if="vsPhase === 2">
               <div class="p2-toolbar">
-                <button class="btn-back" @click="backToSelect">{{ isEditMode ? 'Quay lai chon / chinh bien the' : 'Chinh lai lua chon' }}</button>
+                <button class="btn-back" @click="backToSelect">{{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}</button>
                 <div class="modal-excel-actions">
-                  <button class="btn-xl-sm btn-xl-export" title="Xuat danh sach bien the ra Excel" @click="handleExportVariantsExcel">Xu&#7845;t Excel</button>
-                  <button class="btn-xl-sm btn-xl-import" title="Nhap danh sach bien the tu Excel" @click="triggerImportVariantsExcel">Nh&#7853;p Excel</button>
+                  <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel" @click="handleExportVariantsExcel">Xu&#7845;t Excel</button>
+                  <button class="btn-xl-sm btn-xl-import" title="Nhập danh sách biến thể từ Excel" @click="triggerImportVariantsExcel">Nh&#7853;p Excel</button>
                   <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls" @change="handleImportVariantsExcel" />
                 </div>
               </div>
@@ -2315,7 +2358,7 @@ onMounted(() => {
                 <div class="bulk-stack">
                   <div class="bulk-bar">
                     <span class="bulk-lbl">Gi&#225;/kho chung:</span>
-                    <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Gia chung (d)" />
+                    <input :value="formatCurrency(basePrice)" @input="basePrice = parseCurrency($event.target.value)" class="bulk-in" placeholder="Giá chung (đ)" />
                     <input v-model="baseStock" class="bulk-in bulk-num" type="number" min="0" placeholder="Kho chung" />
                   </div>
                   <div class="bulk-actions">
@@ -2341,7 +2384,7 @@ onMounted(() => {
                       <td v-for="t in tableHeaders" :key="t.id"><span class="val-chip" :class="'vc-' + t.color">{{ row.attrs[t.id] || '' }}</span></td>
                       <td><input :value="formatCurrency(row.price)" type="text" class="vt-input" @input="(e) => { row.price = parseCurrency(e.target.value); markManualPrice(row) }" /></td>
                       <td><input :value="row.stock" type="number" min="0" class="vt-input vt-num" @input="(e) => { row.stock = e.target.value; markManualStock(row) }" /></td>
-                      <td class="td-del"><button class="btn-row-del" @click="removeVariantRow(ri)" title="Xoa phien ban nay">x</button></td>
+                      <td class="td-del"><button class="btn-row-del" @click="removeVariantRow(ri)" title="Xóa phiên bản này">x</button></td>
                     </tr>
                   </tbody>
                 </table>
@@ -2367,7 +2410,7 @@ onMounted(() => {
         <p v-if="formError" class="form-error">{{ formError }}</p>
         <div class="inline-form-footer">
           <button class="btn-cancel" @click="closeModal">H&#7911;y</button>
-          <button class="btn-submit" @click="submitForm">{{ isEditMode ? 'Luu thay doi' : 'Them san pham' }}</button>
+          <button class="btn-submit" @click="submitForm">{{ isEditMode ? 'Lưu thay đổi' : 'Thêm sản phẩm' }}</button>
         </div>
       </div>
     </template><!-- end product-form -->
@@ -2831,33 +2874,34 @@ onMounted(() => {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 18px 20px;
+  min-height: 136px;
+  border-radius: 16px;
+  padding: 26px 28px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
 }
 
 .stat-card::after {
   content: '';
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  right: -24px;
-  top: -24px;
-  background: rgba(255, 255, 255, 0.12);
+  right: -28px;
+  top: -54px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 
 .stat-card.stat-blue {
@@ -2887,25 +2931,36 @@ onMounted(() => {
 
 .stat-card p {
   font-size: 12px;
+  line-height: 1.2;
   color: rgba(255, 255, 255, 0.88);
-  margin: 0 0 4px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
 }
 
 .stat-card b {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
   color: #fff;
 }
 
 .stat-icon {
-  font-size: 22px;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.stat-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .stat-icon.blue {
@@ -2913,7 +2968,7 @@ onMounted(() => {
 }
 
 .stat-icon.green {
-  background: #dcfce7
+  background: rgba(255, 255, 255, 0.18)
 }
 
 .stat-icon.red {
@@ -3367,6 +3422,14 @@ tbody td {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.visually-hidden-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .upload-zone:hover {
