@@ -67,7 +67,6 @@ const defaultSlides = [
 const defaultCategories = [
     { id_danhmuc: 'gaming', ten_danhmuc: 'Laptop Gaming', mota: 'Cau hinh RTX, tan nhiet tot va man hinh tan so quet cao cho game thu.' },
     { id_danhmuc: 'macbook', ten_danhmuc: 'MacBook', mota: 'Thiet ke mong nhe, pin lau va hieu nang on dinh cho cong viec hang ngay.' },
-    { id_danhmuc: 'workstation', ten_danhmuc: 'Workstation', mota: 'May tram cho do hoa, render, lap trinh va cac tac vu nang.' },
     { id_danhmuc: 'office', ten_danhmuc: 'Laptop Van Phong', mota: 'Lua chon gon nhe, ben bi va toi uu chi phi cho hoc tap, lam viec.' }
 ]
 
@@ -114,7 +113,6 @@ const getCategoryTarget = (category) => {
     const name = String(category?.ten_danhmuc || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     if (id === 'gaming' || name.includes('gaming')) return '/gaming'
     if (id === 'macbook' || name.includes('macbook')) return '/macbook'
-    if (id === 'workstation' || name.includes('workstation')) return '/workstation'
     if (id === 'office' || name.includes('van phong')) return '/san-pham?category=Laptop+van+phong'
     return `/san-pham?cat=${category.id_danhmuc}`
 }
