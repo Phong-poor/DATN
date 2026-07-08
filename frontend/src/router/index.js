@@ -10,7 +10,6 @@ const MainLayout = () => import('../components/Layout/BoCucChinh.vue')
 
 const Home = () => import('../components/Web/TrangChu.vue')
 const LaptopPage = () => import('../components/Web/TrangLaptop.vue')
-const WorkstationPage = () => import('../components/Web/TrangWorkstation.vue')
 const News = () => import('../components/Web/TinTucKhachHang.vue')
 const NewsDetail = () => import('../components/Web/ChiTietTinTuc.vue')
 const Cart = () => import('../components/Web/GioHang.vue')
@@ -59,7 +58,6 @@ const publicPages = [
   '/laptop',
   '/phu-kien',
   '/gaming',
-  '/workstation',
   '/login',
   '/dang-nhap',
   '/register',
@@ -124,7 +122,6 @@ const routes = [
       { path: 'phu-kien', name: 'phu-kien', component: LaptopPage },
       { path: 'gaming', name: 'gaming', redirect: '/laptop' },
       { path: 'macbook', name: 'macbook', redirect: '/laptop' },
-      { path: 'workstation', name: 'workstation', component: WorkstationPage },
       { path: 'san-pham/:id', alias: ['/products/:id'], name: 'product-detail', component: ProductDetail },
       { path: 'tin-tuc', alias: ['/news'], name: 'news', component: News },
       { path: 'tin-tuc/:id', alias: ['/news/:id'], name: 'news-detail', component: NewsDetail },

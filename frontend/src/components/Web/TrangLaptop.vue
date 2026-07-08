@@ -59,7 +59,6 @@ const laptopLines = [
   { key: 'gaming', label: 'Laptop Gaming RTX', icon: Zap, q: 'gaming rtx' },
   { key: 'macbook', label: 'MacBook Pro & Air', icon: Monitor, q: 'macbook apple' },
   { key: 'office', label: 'Laptop văn phòng', icon: BadgeCheck, q: 'van phong' },
-  { key: 'workstation', label: 'Workstation đồ họa', icon: SlidersHorizontal, q: 'workstation' },
   { key: 'student', label: 'Laptop học tập', icon: ShieldCheck, q: 'hoc sinh sinh vien' },
   { key: 'accessory', label: 'Phụ kiện laptop', icon: Headphones, q: 'phu kien chuot ban phim tai nghe' },
 ]
@@ -74,7 +73,7 @@ const accessoryLines = [
 ]
 
 const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
-const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'workstation'))
+const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
 
 const tabs = [
   { key: 'popular', label: 'Bán chạy' },
@@ -119,7 +118,7 @@ const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAcces
 const showroomHighlights = [
   {
     text: 'Trải nghiệm trực quan',
-    desc: 'Đầy đủ laptop gaming, MacBook và workstation sẵn sàng dùng thử thực tế.',
+    desc: 'Đầy đủ laptop gaming và MacBook sẵn sàng dùng thử thực tế.',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
   },
   {
@@ -315,7 +314,6 @@ const lineMatcher = (product, line = activeLine.value) => {
   if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion')
   if (line === 'macbook') return text.includes('macbook') || text.includes('apple')
   if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad')
-  if (line === 'workstation') return text.includes('workstation') || text.includes('precision') || text.includes('zbook') || text.includes('proart')
   if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin')
   if (line === 'accessory') return text.includes('chuot') || text.includes('ban phim') || text.includes('tai nghe') || text.includes('phu kien')
   return true

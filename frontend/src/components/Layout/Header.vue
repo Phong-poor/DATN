@@ -180,44 +180,7 @@ const megaMenuData = reactive({
     featured: null,
     quickLinks: ['Bàn phím cơ giá rẻ', 'Chuột gaming Logitech', 'Phụ kiện Ugreen'],
   },
-  workstation: {
-    label: 'Workstation',
-    accent: '#8b5cf6',
-    accentBg: 'rgba(139,92,246,0.07)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>`,
-    img: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=400&q=80',
-    sections: [
-      {
-        title: 'Brands', icon: '🏷️',
-        items: [
-          { label: 'ThinkPad', badge: 'HOT', q: 'ThinkPad' },
-          { label: 'Dell', badge: '', q: 'Dell Precision' },
-          { label: 'HP ZBook', badge: '', q: 'HP ZBook' },
-          { label: 'ASUS ProArt', badge: 'NEW', q: 'ASUS ProArt' },
-        ]
-      },
-      {
-        title: 'Use Cases', icon: '🎯',
-        items: [
-          { label: 'CAD', badge: '', q: 'CAD workstation' },
-          { label: 'AI Training', badge: 'PRO', q: 'AI workstation' },
-          { label: 'Rendering', badge: 'HOT', q: 'rendering workstation' },
-          { label: 'SolidWorks', badge: '', q: 'SolidWorks' },
-        ]
-      },
-      {
-        title: 'Specifications', icon: '⚙️',
-        items: [
-          { label: 'RTX 5000 Ada', badge: 'PRO', q: 'RTX 5000 Ada' },
-          { label: 'RTX 4000 Ada', badge: '', q: 'RTX 4000 Ada' },
-          { label: '64GB RAM', badge: '', q: 'workstation 64GB' },
-          { label: '128GB RAM', badge: 'PRO', q: 'workstation 128GB' },
-        ]
-      },
-    ],
-    featured: null,
-    quickLinks: ['Workstation cho render 3D', 'So sánh Workstation', 'Trả góp Workstation'],
-  },
+
   sale: {
     label: 'Khuyến mãi',
     accent: '#f59e0b',
@@ -277,7 +240,6 @@ const menuCategoryMap = {
   gaming: 'Laptop Gaming',
   macbook: 'MacBook',
   'phu-kien': 'Phụ kiện',
-  workstation: 'Workstation',
 }
 
 const navToCategory = (key) => {
@@ -292,8 +254,6 @@ const navToCategory = (key) => {
     router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
     router.push('/macbook')
-  } else if (key === 'workstation') {
-    router.push('/workstation')
   } else {
     router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key } })
   }
@@ -923,13 +883,27 @@ const openLuckyWheelMobile = () => {
             <div
               v-if="activeMegaMenu === key"
               class="mega-dropdown"
-              :class="{ 'cols-3': menu.sections.length === 2 }"
-              :style="{ '--accent': menu.accent, '--accent-bg': menu.accentBg }"
+              :style="{
+                '--accent': menu.accent,
+                '--accent-bg': menu.accentBg,
+                width: (menu.sections.length + (menu.featured ? 1 : 0)) === 2
+                  ? '440px'
+                  : (menu.sections.length + (menu.featured ? 1 : 0)) === 3
+                    ? '660px'
+                    : '860px'
+              }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
             >
               <!-- BODY -->
-              <div class="mega-body">
+              <div
+                class="mega-body"
+                :style="{
+                  gridTemplateColumns: menu.featured
+                    ? `repeat(${menu.sections.length}, 1fr) 1.35fr`
+                    : `repeat(${menu.sections.length}, 1fr)`
+                }"
+              >
                 <!-- SECTIONS (Columns 1, 2, 3) -->
                 <div v-for="(section, sIdx) in menu.sections" :key="section.title" class="mega-col" :class="`col-${sIdx + 1}`">
                   <div class="mega-col-title">
@@ -978,7 +952,7 @@ const openLuckyWheelMobile = () => {
         <!-- Extra links -->
         <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
         <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
-        <a href="#" @click.prevent="openLuckyWheel" class="nav-plain-link">Vòng quay</a>
+
       </nav>
 
       <!-- SEARCH BAR -->
@@ -1412,12 +1386,7 @@ const openLuckyWheelMobile = () => {
   overflow: hidden;
   padding: 24px 28px;
 }
-.mega-dropdown.cols-3 {
-  width: 660px;
-}
-.mega-dropdown.cols-3 .mega-body {
-  grid-template-columns: 1fr 1fr 1.35fr;
-}
+
 /* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
   content: '';
