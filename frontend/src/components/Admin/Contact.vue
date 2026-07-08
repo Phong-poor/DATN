@@ -615,20 +615,22 @@ onMounted(fetchContacts)
 /* STATS */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 20px;
   width: 100%;
   align-items: stretch;
 }
 .stat-card {
   background: #fff;
-  border-radius: 14px;
-  padding: 18px;
+  min-height: 136px;
+  border-radius: 16px;
+  padding: 26px 28px;
   border: 1px solid transparent;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 10px;
   position: relative;
   overflow: hidden;
   color: #fff;
@@ -636,27 +638,28 @@ onMounted(fetchContacts)
 .stat-card::after {
   content: '';
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  right: -22px;
-  top: -22px;
-  background: rgba(255, 255, 255, 0.12);
+  right: -28px;
+  top: -54px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 .stat-card.stat-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
 .stat-card.stat-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-teal { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
-.stat-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
-.stat-icon-wrap svg { width: 18px; height: 18px; stroke-width: 2; fill: none; }
+.stat-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.stat-icon-wrap svg { width: 24px; height: 24px; stroke-width: 2.2; fill: none; }
 .stat-icon-blue,
 .stat-icon-orange,
 .stat-icon-green { background: rgba(255,255,255,.18); }
 .stat-icon-blue svg,
 .stat-icon-orange svg,
 .stat-icon-green svg { stroke: #fff; }
-.stat-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,.82); }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: uppercase; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
-.stat-value { font-size: 28px; font-weight: 800; color: #fff; }
+.stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-card-gradient { background: linear-gradient(135deg, #93c5fd, #3b82f6, #2563eb); border: none; justify-content: flex-end; min-height: 120px; }
 .stat-card-gradient .stat-value { color: #fff; font-size: 36px; }
 .stat-card-check { width: 28px; height: 28px; background: rgba(255,255,255,.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: auto; }
