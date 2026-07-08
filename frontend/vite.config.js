@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 const root = fileURLToPath(new URL('.', import.meta.url))
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost/DATN/backend/public'
 
 export default defineConfig({
     root,
@@ -39,12 +40,12 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://127.0.0.1:8000',
+                target: backendUrl,
                 changeOrigin: true,
                 secure: false,
             },
             '/storage': {
-                target: 'http://127.0.0.1:8000',
+                target: backendUrl,
                 changeOrigin: true,
                 secure: false,
             }

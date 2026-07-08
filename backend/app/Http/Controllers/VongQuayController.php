@@ -140,9 +140,20 @@ class VongQuayController extends Controller
 
                 case 'voucher':
                     if ($winningPrize->id_voucher) {
+                        $voucher = Promotion::find($winningPrize->id_voucher);
+                        if (!$voucher) {
+                            $winningPrize->id_voucher = null;
+                            $winningPrize->save();
+
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Phần thưởng voucher này chưa được liên kết với mã voucher hợp lệ. Vui lòng liên hệ Admin cập nhật vòng quay.',
+                            ], 422);
+                        }
+
                         UserVoucher::create([
                             'id_user' => $user->id,
-                            'id_voucher' => $winningPrize->id_voucher,
+                            'id_voucher' => $voucher->id,
                             'trang_thai' => 0, // Unused
                             'ngay_nhan' => now(),
                         ]);

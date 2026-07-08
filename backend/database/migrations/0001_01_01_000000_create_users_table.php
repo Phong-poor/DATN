@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('matkhau');
 
             $table->enum('vaitro', ['user', 'admin'])->default('user');
-            $table->string('anhdaidien')->nullable();
+            $table->text('anhdaidien')->nullable();
             $table->string('id_facebook')->nullable();
             $table->enum('trangthai', ['active', 'locked'])->default('active');
             $table->timestamp('hoat_dong_cuoi_luc')->nullable();

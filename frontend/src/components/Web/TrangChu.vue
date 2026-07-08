@@ -1550,7 +1550,8 @@ onUnmounted(() => {
 .ticker-bar {
     background: var(--tn-surface);
     border-bottom: 1px solid #e2e8f0;
-    padding: 6px 0;
+    min-height: 28px;
+    padding: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -1559,17 +1560,20 @@ onUnmounted(() => {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    font-size: 10px;
+    font-size: 10.5px;
+    line-height: 1.1;
     font-weight: 800;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     color: #334155;
     min-width: max-content;
+    height: 28px;
     will-change: transform;
     animation: run-ticker 34s linear infinite;
 }
 .ticker-item {
     display: inline-flex;
     align-items: center;
+    height: 28px;
     gap: 32px;
     padding-right: 32px;
 }
