@@ -189,12 +189,19 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
+        $request->merge([
+            'ten' => $request->input('ten', $request->input('name')),
+            'sodienthoai' => $request->input('sodienthoai', $request->input('phone')),
+            'ngaysinh' => $request->input('ngaysinh', $request->input('date_of_birth')),
+            'gioitinh' => $request->input('gioitinh', $request->input('gender')),
+        ]);
+
         $validated = $request->validate([
             'ten' => 'required|string|max:255',
             'email' => 'required|email|unique:khachhang,email,' . $user->id,
             'sodienthoai' => 'nullable|string|max:20',
             'ngaysinh' => 'nullable|date',
-            'gioitinh' => 'nullable|in:male,female',
+            'gioitinh' => 'nullable|in:male,female,Nam,Nữ,Nu',
         ]);
 
         $date = (!empty($validated['ngaysinh']))
@@ -213,6 +220,7 @@ class UserController extends Controller
         $user->gioitinh = isset($validated['gioitinh']) ? $genderMap[$validated['gioitinh']] : null;
 
         $user->save();
+        $user->refresh();
 
         return response()->json([
             'message' => 'Cập nhật thành công',
