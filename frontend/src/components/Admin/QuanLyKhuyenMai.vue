@@ -138,8 +138,8 @@
               </span>
             </td>
             <td>
-              <span :class="['status-badge', statusClass(p.trangthai)]">
-                {{ statusLabel(p.trangthai) }}
+              <span :class="['status-badge', statusClass(p.actual_trangthai)]">
+                {{ statusLabel(p.actual_trangthai) }}
               </span>
             </td>
             <td>
@@ -455,16 +455,28 @@ const fetchPromos = async () => {
   loading.value = true
   try {
     const res = await api.get('/admin/promotions')
-    promos.value = res.data.map(p => ({
-      ...p,
-      ngaybatdau: formatDate(p.ngaybatdau),
-      ngayketthuc: formatDate(p.ngayketthuc),
-      discount: discountLabel(p),
-      ...tagColors(p.loai),
-      icon: '🏮',
-      iconBg: '#fef3c7',
-      roi: 20
-    }))
+    const now = new Date()
+    promos.value = res.data.map(p => {
+      let actualStatus = p.trangthai
+      if (actualStatus === 'running' && p.ngayketthuc) {
+        const endDate = new Date(p.ngayketthuc)
+        endDate.setHours(23, 59, 59, 999)
+        if (endDate < now) {
+          actualStatus = 'expired'
+        }
+      }
+      return {
+        ...p,
+        actual_trangthai: actualStatus,
+        ngaybatdau: formatDate(p.ngaybatdau),
+        ngayketthuc: formatDate(p.ngayketthuc),
+        discount: discountLabel(p),
+        ...tagColors(p.loai),
+        icon: '🏮',
+        iconBg: '#fef3c7',
+        roi: 20
+      }
+    })
   } catch (err) {
     swal.error('Lỗi', 'Lỗi tải danh sách khuyến mãi!')
     console.error(err)
@@ -504,7 +516,7 @@ const {
 })
 
 const activeCount = computed(() =>
-  promos.value.filter(p => p.trangthai === 'running' || p.trangthai === 'open').length
+  promos.value.filter(p => p.actual_trangthai === 'running' || p.actual_trangthai === 'open').length
 )
 
 const topPromos = computed(() =>
