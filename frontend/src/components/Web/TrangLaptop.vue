@@ -35,7 +35,7 @@ const selectedCpus = ref([])
 const maxPrice = ref(200000000)
 const currentPage = ref(1)
 const catalogResults = ref(null)
-const itemsPerPage = 16
+const itemsPerPage = 12
 
 const isAccessoryPage = computed(() => route.path.includes('phu-kien'))
 
@@ -241,38 +241,45 @@ const expandAllVariants = (rawProducts) => {
   return result
 }
 
-/**
- * Thuật toán interleave: xen kẽ biến thể từ các sản phẩm khác nhau
- * để tránh biến thể cùng 1 sản phẩm đứng cạnh nhau.
- * Dùng round-robin với queue ưu tiên (greedy: ưu tiên sản phẩm có nhiều biến thể nhất).
- */
 const interleaveVariants = (groups) => {
-  // Tạo queue: mỗi group là 1 hàng đợi các biến thể
-  const queues = groups.map(g => [...g.items])
+  // Trộn các nhóm sản phẩm một cách nhất quán (deterministic shuffle) để tránh việc các sản phẩm
+  // ở đầu danh sách database chiếm giữ hết trang đầu tiên.
+  const shuffledGroups = [...groups].sort((a, b) => {
+    const hashA = (a.productId * 9301 + 49297) % 233280
+    const hashB = (b.productId * 9301 + 49297) % 233280
+    return hashA - hashB
+  })
+
+  // Tạo queue cho từng sản phẩm
+  const queues = shuffledGroups.map(g => [...g.items])
   const result = []
-  let lastProductId = null
+  const history = [] // Lưu lịch sử id_sanpham của các card vừa thêm
 
   while (queues.some(q => q.length > 0)) {
-    // Lọc queues còn hàng và không cùng sản phẩm vừa thêm
-    const eligible = queues
-      .map((q, i) => ({ q, i, productId: groups[i].productId }))
-      .filter(({ q, productId }) => q.length > 0 && productId !== lastProductId)
+    let chosen = null
 
-    if (eligible.length === 0) {
-      // Fallback: nếu chỉ còn cùng 1 sản phẩm, lấy luôn
-      const fallback = queues.find(q => q.length > 0)
-      if (fallback) {
-        result.push(fallback.shift())
-        lastProductId = result[result.length - 1].id_sanpham
+    // Tìm kiếm sản phẩm phù hợp sao cho khoảng cách giữa các biến thể cùng loại là lớn nhất có thể (tối đa 4 card cách nhau).
+    // Nếu không tìm được sản phẩm nào thỏa mãn khoảng cách tối đa, ta giảm dần khoảng cách xuống cho đến khi tìm được.
+    for (let dist = 4; dist >= 0; dist--) {
+      const activeHistory = history.slice(-dist)
+      const eligible = queues
+        .map((q, i) => ({ q, i, productId: shuffledGroups[i].productId }))
+        .filter(({ q, productId }) => q.length > 0 && !activeHistory.includes(productId))
+
+      if (eligible.length > 0) {
+        // Ưu tiên hàng đợi còn nhiều biến thể nhất để giải phóng sớm các sản phẩm có nhiều cấu hình
+        eligible.sort((a, b) => b.q.length - a.q.length)
+        chosen = eligible[0]
+        break
       }
-      continue
     }
 
-    // Ưu tiên sản phẩm có nhiều biến thể còn lại nhất (tránh bị dồn cuối)
-    eligible.sort((a, b) => b.q.length - a.q.length)
-    const chosen = eligible[0]
-    result.push(chosen.q.shift())
-    lastProductId = chosen.productId
+    if (chosen) {
+      result.push(chosen.q.shift())
+      history.push(chosen.productId)
+    } else {
+      break
+    }
   }
 
   return result
@@ -361,6 +368,7 @@ const filteredProducts = computed(() => {
 
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage)))
 const paginatedProducts = computed(() => {
+  console.log('Laptop itemsPerPage is:', itemsPerPage)
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredProducts.value.slice(start, start + itemsPerPage)
 })
@@ -369,10 +377,18 @@ const paginatedProducts = computed(() => {
 const compactPages = computed(() => {
   const total = pageCount.value
   const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+  if (total <= 4) return Array.from({ length: total }, (_, i) => i + 1)
   const pages = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
+  
+  let start = Math.max(2, current - 1)
+  let end = Math.min(total - 1, current + 1)
+
+  if (current <= 2) {
+    end = 3
+  } else if (current >= total - 1) {
+    start = total - 2
+  }
+
   if (start > 2) pages.push('...')
   for (let page = start; page <= end; page++) pages.push(page)
   if (end < total - 1) pages.push('...')
@@ -696,15 +712,15 @@ onMounted(() => {
             </article>
           </div>
           <div v-else class="product-grid">
-            <article v-for="product in paginatedProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
+            <article v-for="product in paginatedProducts" :key="product.id_bienthe ? 'v-' + product.id_bienthe : 'p-' + product.id_sanpham" class="product-card" @click="viewDetail(product)">
               <span class="discount">-13%</span>
               <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
-              <h3>{{ product.tenSP }}</h3>
-              <p v-if="product.cpu || product.ram" class="variant-subtitle">
-                <span v-if="product.cpu">{{ product.cpu }}</span>
-                <span v-if="product.cpu && product.ram"> · </span>
-                <span v-if="product.ram">{{ product.ram }}</span>
-              </p>
+              <h3>
+                {{ product.tenSP }}
+                <span v-if="product.cpu || product.ram" class="title-specs-suffix">
+                  ({{ [product.cpu, product.ram].filter(Boolean).join(' / ') }})
+                </span>
+              </h3>
               <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }} đánh giá)</span></div>
               <div class="specs">
                 <span v-for="spec in product.specs.slice(0, 4)" :key="spec">{{ spec }}</span>
@@ -727,12 +743,25 @@ onMounted(() => {
             </article>
           </div>
 
-          <div class="pagination" v-if="pageCount > 1">
-            <button class="page-nav" :disabled="currentPage === 1" @click="currentPage--">Trước</button>
-            <span class="page-indicator">{{ currentPage }}/{{ pageCount }}</span>
-            <button class="page-nav" :disabled="currentPage === pageCount" @click="currentPage++">Sau</button>
-          </div>
         </div>
+      </div>
+
+      <div class="pagination" v-if="pageCount > 1">
+        <button class="page-nav" :disabled="currentPage === 1" @click="currentPage--">Trước</button>
+        
+        <template v-for="(page, idx) in compactPages" :key="idx">
+          <span v-if="page === '...'" class="page-ellipsis">...</span>
+          <button 
+            v-else 
+            class="page-number" 
+            :class="{ active: page === currentPage }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+        </template>
+
+        <button class="page-nav" :disabled="currentPage === pageCount" @click="currentPage++">Sau</button>
       </div>
     </section>
 
@@ -1199,17 +1228,14 @@ onMounted(() => {
   font-size: 15px;
   line-height: 1.35;
   min-height: 42px;
-  margin: 14px 0 4px;
+  margin: 14px 0 8px;
 }
 
-.variant-subtitle {
-  font-size: 12px;
+.title-specs-suffix {
+  font-size: 13px;
   color: #64748b;
-  margin: 0 0 8px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 500;
+  margin-left: 4px;
 }
 
 .specs {
@@ -1297,14 +1323,14 @@ onMounted(() => {
 
 .catalog-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
 
 .filter-card {
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px 14px;
   align-self: start;
   position: sticky;
   top: 124px;
@@ -1326,11 +1352,11 @@ onMounted(() => {
 
 .filter-group {
   border-top: 1px solid #edf2f7;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .filter-group h4 {
@@ -2606,10 +2632,10 @@ onMounted(() => {
 
 .apply-filter {
   width: 100%;
-  height: 42px;
-  margin-top: 18px;
+  height: 38px;
+  margin-top: 14px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #0f6be8, #004cc5);
   color: #fff;
   display: inline-flex;
@@ -2911,8 +2937,10 @@ onMounted(() => {
 }
 
 .lp-catalog .pagination {
+  display: flex;
+  justify-content: center;
   gap: 10px;
-  margin: 22px 0 6px;
+  margin: 36px 0 12px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -3287,60 +3315,7 @@ onMounted(() => {
   border-radius: 12px;
 }
 
-@media (min-width: 1101px) {
-  .lp-catalog .catalog-layout {
-    height: calc(100vh - var(--lp-catalog-sticky-top, 118px) - 24px);
-    min-height: 0;
-    overflow: hidden;
-    align-items: start;
-  }
 
-  .lp-catalog .filter-card {
-    position: sticky;
-    top: var(--lp-catalog-sticky-top, 118px);
-    height: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    padding-bottom: 28px;
-    scrollbar-width: thin;
-    transform: none;
-    will-change: auto;
-  }
-
-  .catalog-results {
-    height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 8px 0 0;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-    contain: none;
-    will-change: auto;
-  }
-
-  .catalog-results::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .catalog-results::-webkit-scrollbar-thumb {
-    background: rgba(37, 99, 235, 0.42);
-    border: 2px solid rgba(226, 232, 240, 0.72);
-    border-radius: 999px;
-  }
-
-  .catalog-results .product-grid,
-  .catalog-results .skeleton-grid {
-    padding-right: 0;
-  }
-}
 
 .laptop-page {
   -webkit-font-smoothing: antialiased;
@@ -3497,6 +3472,35 @@ onMounted(() => {
   .lp-showroom-visual,
   .lp-showroom-visual img {
     min-height: 230px;
+  }
+}
+
+@media (min-width: 1101px) {
+  .lp-catalog .product-grid,
+  .lp-catalog .skeleton-grid {
+    max-height: 640px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar-thumb,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar-track,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 </style>
