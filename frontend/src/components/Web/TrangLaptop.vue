@@ -21,11 +21,12 @@ import api from '@/services/api'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 import { handleImageFallback, productImageUrl } from '@/services/urls'
+import ComboSelectionModal from './HopThoaiChonCombo.vue'
 
 const router = useRouter()
 const route = useRoute()
 
-const products = ref([])
+const rawProductsList = ref([])
 const isLoading = ref(true)
 const activeLine = ref('all')
 const activeSort = ref('popular')
@@ -39,8 +40,41 @@ const itemsPerPage = 12
 
 const isAccessoryPage = computed(() => route.path.includes('phu-kien'))
 
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+
+const getOriginalPrice = (combo) => {
+  if (!combo.products) return 0
+  return combo.products.reduce((sum, p) => {
+    const firstVariantPrice = p.bien_thes?.[0]?.gia || 0
+    return sum + Number(firstVariantPrice)
+  }, 0)
+}
+
+const openCombo = (combo) => {
+  selectedCombo.value = combo
+  showComboModal.value = true
+}
+
+const products = computed(() => {
+  if (isAccessoryPage.value) {
+    return rawProductsList.value.filter(isProductAccessory).map(normalizeProduct)
+  } else {
+    const laptopRaw = rawProductsList.value.filter(isProductLaptop)
+    if (laptopRaw.length === 0) return []
+    const groups = expandAllVariants(laptopRaw)
+    return interleaveVariants(groups)
+  }
+})
+
 const isProductAccessory = (product) => {
-  const cat = String(product.category || '').toLowerCase()
+  const cat = String(
+    product.category || 
+    product.danh_muc?.ten_danhmuc || 
+    product.danhmuc?.tenDM || 
+    ''
+  ).toLowerCase()
   const name = String(product.tenSP || '').toLowerCase()
   const accessoryCats = ['chuột', 'bàn phím', 'tai nghe', 'lót chuột', 'ổ cứng ssd', 'ram', 'màn hình', 'hub chuyển đổi', 'webcam', 'balo laptop', 'router', 'microphone', 'phụ kiện', 'accessory']
   if (accessoryCats.some(c => cat.includes(c))) return true
@@ -290,16 +324,25 @@ const loadProducts = async () => {
   try {
     const cache = await prefetchProductsPage()
     if (cache?.productsRaw?.length) {
-      const groups = expandAllVariants(cache.productsRaw)
-      products.value = interleaveVariants(groups)
+      rawProductsList.value = cache.productsRaw
     } else {
-      products.value = [...fallbackProducts]
+      rawProductsList.value = [...fallbackProducts]
     }
   } catch (error) {
     console.error('Khong tai duoc danh sach laptop:', error)
-    products.value = [...fallbackProducts]
+    rawProductsList.value = [...fallbackProducts]
   } finally {
     isLoading.value = false
+  }
+
+  // Load combos
+  try {
+    const comboResponse = await api.get('/combos')
+    if (comboResponse.data && Array.isArray(comboResponse.data.data)) {
+      combos.value = comboResponse.data.data
+    }
+  } catch (comboErr) {
+    console.error('Loi tai combo:', comboErr)
   }
 }
 
@@ -783,7 +826,60 @@ onMounted(() => {
       </div>
     </section>
 
-    <section id="showroom-section" class="lp-showroom">
+    <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
+      <div class="combos-header">
+        <span class="ambient-label">🎁 Combo Độc Quyền</span>
+        <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
+        <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
+      </div>
+
+      <div class="combos-bento-layout" v-if="combos && combos.length">
+        <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
+          <div class="combo-main-content">
+            <div class="combo-details">
+              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+              </span>
+              <h3>{{ combo.ten_combo }}</h3>
+              <p>{{ combo.mota }}</p>
+              
+              <div class="combo-pricing-group">
+                <div class="price-block">
+                  <span class="price-label">Giá Combo:</span>
+                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                </div>
+                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                  <span class="price-label">Tổng Giá gốc:</span>
+                  <span class="price-val-old">{{ formatPrice(getOriginalPrice(combo)) }}</span>
+                </div>
+              </div>
+
+              <button type="button" class="combo-action-btn" @click="openCombo(combo)">
+                Mua Trọn Bộ Combo
+                <ChevronRight class="btn-chevron" />
+              </button>
+            </div>
+
+            <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
+              <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
+                <div class="node-image-box">
+                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" />
+                </div>
+                <span class="node-title">{{ item.tenSP }}</span>
+                <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="combo-empty-state">
+        <div class="combo-empty-icon">🎁</div>
+        <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
+        <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng thêm combo trong trang quản trị.</p>
+      </div>
+    </section>
+
+    <section v-else id="showroom-section" class="lp-showroom">
       <div class="lp-showroom-copy">
         <small>NEXTGEN SHOWROOM</small>
         <h2>Trải nghiệm trực tiếp tại Showroom NextGen</h2>
@@ -808,6 +904,8 @@ onMounted(() => {
         <img src="/Gemini_Generated_Image_v5vppjv5vppjv5vp (2).png" alt="NextGen laptop showroom" />
       </div>
     </section>
+
+    <ComboSelectionModal v-if="selectedCombo" :combo="selectedCombo" :show="showComboModal" @close="showComboModal = false; selectedCombo = null" />
   </main>
 </template>
 
@@ -3502,5 +3600,242 @@ onMounted(() => {
   .lp-catalog .skeleton-grid::-webkit-scrollbar-track {
     background: transparent;
   }
+}
+
+/* ============================================================
+   COMBOS SECTION (for Accessories page)
+   ============================================================ */
+.lp-combos {
+  margin-top: 56px;
+  padding: 40px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.combos-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.combos-header h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: #0f172a;
+  margin: 12px 0 8px;
+  text-transform: uppercase;
+}
+
+.combos-header .section-sub {
+  font-size: 14.5px;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.combos-header .ambient-label {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.combos-bento-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.combo-bento-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  transition: all 0.25s ease;
+}
+
+.combo-bento-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.combo-main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .combo-main-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.combo-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.combo-discount-badge {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.combo-details h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: #0f172a;
+}
+
+.combo-details p {
+  font-size: 13.5px;
+  color: #64748b;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.combo-pricing-group {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  width: 100%;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.price-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.price-val-old {
+  font-size: 17px;
+  font-weight: 650;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.combo-action-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.combo-action-btn:hover {
+  opacity: 0.9;
+}
+
+.btn-chevron {
+  width: 14px;
+  height: 14px;
+}
+
+.combo-visual-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  border-radius: 14px;
+}
+
+.connector-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.node-image-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.node-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.node-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 8px;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 32px;
+  line-height: 1.4;
+}
+
+.node-plus-sign {
+  position: absolute;
+  right: -18px;
+  top: 24px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.combo-empty-state {
+  text-align: center;
+  padding: 30px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+
+.combo-empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
 }
 </style>
