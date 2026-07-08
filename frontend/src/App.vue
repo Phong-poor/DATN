@@ -8,7 +8,7 @@
   <GlobalLoader />
   <ZaloWidget v-if="showChatbot && widgetsReady" />
   <FloatingContactMenu v-if="showChatbot && widgetsReady" />
-  <VongQuayNoi v-if="showChatbot && widgetsReady" />
+  <VongQuayNoi v-if="showLuckyWheel && widgetsReady" />
   <VongQuayPopup v-if="showWheelPopup" @close="showWheelPopup = false" />
 </template>
 
@@ -36,6 +36,11 @@ const showChatbot = computed(() => {
   if (route.name && hiddenRouteNames.includes(route.name)) return false
   if (route.path && route.path.startsWith('/admin')) return false
   return true
+})
+
+const showLuckyWheel = computed(() => {
+  const allowedRoutes = ['home', 'laptop', 'phu-kien', 'product-detail']
+  return route.name && allowedRoutes.includes(route.name)
 })
 
 onMounted(() => {
