@@ -320,7 +320,7 @@ onUnmounted(() => {
       <!-- HEADER -->
       <div class="modal-header">
         <div class="banner-badge">LUCKY WHEEL</div>
-        <h2 class="modal-title">VÒNG QUAY MAY MẮN PREDATOR</h2>
+        <h2 class="modal-title">VÒNG QUAY MAY MẮN NEXTGEN</h2>
         <p class="modal-subtitle">Xoay vòng quay nhận coupon và những phần quà Gaming hấp dẫn!</p>
       </div>
       

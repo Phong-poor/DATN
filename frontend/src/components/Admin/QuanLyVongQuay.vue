@@ -98,6 +98,31 @@ async function saveSlot() {
     return
   }
 
+  // Validate specific fields based on prize type
+  if (editForm.value.loai === 'voucher') {
+    if (!editForm.value.id_voucher) {
+      swal.warning('Thiếu dữ liệu', 'Vui lòng chọn Voucher giảm giá để liên kết.')
+      return
+    }
+  } else if (editForm.value.loai === 'coin') {
+    const val = Number(editForm.value.giatri)
+    if (!editForm.value.giatri || isNaN(val) || val <= 0) {
+      swal.warning('Dữ liệu không hợp lệ', 'Vui lòng nhập số xu Predator cộng thêm hợp lệ (lớn hơn 0).')
+      return
+    }
+  } else if (editForm.value.loai === 'ticket') {
+    const val = Number(editForm.value.giatri)
+    if (!editForm.value.giatri || isNaN(val) || val <= 0) {
+      swal.warning('Dữ liệu không hợp lệ', 'Vui lòng nhập số lượt quay cộng thêm hợp lệ (lớn hơn 0).')
+      return
+    }
+  } else if (editForm.value.loai === 'gift') {
+    if (!String(editForm.value.giatri || '').trim()) {
+      swal.warning('Thiếu dữ liệu', 'Vui lòng nhập tên/thông tin quà tặng hiện vật.')
+      return
+    }
+  }
+
   // Validate: total percentage cannot exceed 100%
   const newTiLe = parseFloat(editForm.value.ti_le) || 0
   const currentTotal = slots.value.reduce((sum, item) => {
