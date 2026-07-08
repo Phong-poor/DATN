@@ -38,23 +38,23 @@ let megaLeaveTimer = null
 
 const megaMenuData = reactive({
   laptop: {
-    label: 'Labtop',
+    label: 'Laptop',
     accent: '#2563eb',
     accentBg: 'rgba(37,99,235,0.08)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 10v4M6 12h4m6-2v4m0-2h2"/></svg>`,
     img: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80',
     sections: [
       {
-        title: 'Dong laptop', icon: '🎮',
+        title: 'Dòng laptop', icon: '🎮',
         items: [
           { label: 'Laptop Gaming RTX', badge: 'HOT', q: 'gaming rtx' },
           { label: 'MacBook Pro & Air', badge: 'NEW', q: 'macbook apple' },
-          { label: 'Laptop van phong', badge: '', q: 'laptop van phong' },
-          { label: 'Laptop hoc tap', badge: '', q: 'laptop sinh vien' },
+          { label: 'Laptop văn phòng', badge: '', q: 'laptop van phong' },
+          { label: 'Laptop học tập', badge: '', q: 'laptop sinh vien' },
         ]
       },
       {
-        title: 'Thuong hieu', icon: '🏷️',
+        title: 'Thương hiệu', icon: '🏷️',
         items: [
           { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
           { label: 'Apple MacBook', badge: 'PRO', q: 'MacBook' },
@@ -63,17 +63,17 @@ const megaMenuData = reactive({
         ]
       },
       {
-        title: 'Nhu cau', icon: '💰',
+        title: 'Nhu cầu', icon: '💰',
         items: [
-          { label: 'Workstation do hoa', badge: 'PRO', q: 'workstation' },
+          { label: 'Workstation đồ họa', badge: 'PRO', q: 'workstation' },
           { label: 'Laptop AI PC', badge: 'NEW', q: 'AI PC' },
-          { label: 'Phu kien laptop', badge: '', q: 'phu kien laptop' },
+          { label: 'Phụ kiện laptop', badge: '', q: 'phu kien laptop' },
           { label: 'Flagship Premium', badge: 'PRO', q: 'flagship premium' },
         ]
       },
     ],
-    featured: null,
-    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop van phong'],
+    featured: { name: 'Laptop Gaming + MacBook Premium', price: 'Từ 19.990.000đ', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&q=80' },
+    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop văn phòng'],
   },
   aipc: {
     label: 'AI PC',
@@ -1408,15 +1408,9 @@ const openLuckyWheelMobile = () => {
     0 8px 24px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 9999;
-  width: 860px;
+  width: min(760px, calc(100vw - 48px));
   overflow: hidden;
-  padding: 24px 28px;
-}
-.mega-dropdown.cols-3 {
-  width: 660px;
-}
-.mega-dropdown.cols-3 .mega-body {
-  grid-template-columns: 1fr 1fr 1.35fr;
+  padding: 14px 16px;
 }
 /* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
@@ -1432,13 +1426,14 @@ const openLuckyWheelMobile = () => {
 /* BODY LAYOUT - 4 COLUMNS WITH DIVIDERS */
 .mega-body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.35fr;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr 1fr 1.25fr;
+  gap: 0;
   background: transparent;
 }
 
 .mega-col {
-  padding: 0;
+  padding: 0 12px;
+  border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1463,11 +1458,12 @@ const openLuckyWheelMobile = () => {
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
   font-size: 11px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #94a3b8;
-  margin-bottom: 14px;
+  color: #ffffff;
+  margin-bottom: 9px;
   padding-left: 8px;
 }
 
@@ -1476,24 +1472,24 @@ const openLuckyWheelMobile = () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 .mega-link {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 7px 8px;
   background: transparent;
   border-radius: 8px;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mega-link-text {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #cbd5e1;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: color 0.15s ease;
 }
 .mega-link:hover {
   background: var(--accent-bg);
@@ -1507,10 +1503,11 @@ const openLuckyWheelMobile = () => {
 /* ITEM BADGES */
 .mega-item-badge {
   font-size: 9px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
   flex-shrink: 0;
   margin-left: 2px;
   text-transform: uppercase;
@@ -1521,7 +1518,7 @@ const openLuckyWheelMobile = () => {
 .mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
 
 .mega-featured-panel {
-  padding: 0;
+  padding: 0 0 0 12px;
   display: flex;
   flex-direction: column;
 }
@@ -1530,15 +1527,15 @@ const openLuckyWheelMobile = () => {
 }
 
 .mfp-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .mfp-card:hover {
   transform: translateY(-4px);
@@ -1549,9 +1546,9 @@ const openLuckyWheelMobile = () => {
 
 .mfp-img-box {
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  height: 100px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1571,9 +1568,9 @@ const openLuckyWheelMobile = () => {
 
 .mfp-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 8.5px;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
   font-weight: 800;
   color: white;
   padding: 2.5px 7px;
@@ -1590,7 +1587,7 @@ const openLuckyWheelMobile = () => {
 }
 
 .mfp-name {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
   line-height: 1.4;
@@ -1602,7 +1599,7 @@ const openLuckyWheelMobile = () => {
 
 .mfp-price {
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -1612,11 +1609,12 @@ const openLuckyWheelMobile = () => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px;
   border: none;
   border-radius: 8px;
   color: white;
   font-family: 'Outfit', sans-serif;
+  font-size: 11px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;

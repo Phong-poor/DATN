@@ -674,21 +674,40 @@ onMounted(() => {
     <!-- Stats Cards -->
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">📦</span>
+        <span class="stat-icon blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+            <path d="M3.3 7 12 12l8.7-5" />
+            <path d="M12 22V12" />
+          </svg>
+        </span>
         <div>
           <p>Tổng số Combo</p>
           <b>{{ totalCombos }}</b>
         </div>
       </div>
       <div class="stat-card stat-teal">
-        <span class="stat-icon green">🎁</span>
+        <span class="stat-icon green" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 12 20 22 4 22 4 12" />
+            <rect x="2" y="7" width="20" height="5" />
+            <line x1="12" y1="22" x2="12" y2="7" />
+            <path d="M12 7H7.5a2.5 2.5 0 1 1 2.15-3.78L12 7Z" />
+            <path d="M12 7h4.5a2.5 2.5 0 1 0-2.15-3.78L12 7Z" />
+          </svg>
+        </span>
         <div>
           <p>Ưu đãi đang chạy</p>
           <b>{{ activeOffers }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange">
-        <span class="stat-icon orange">💰</span>
+        <span class="stat-icon orange" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="2" x2="12" y2="22" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        </span>
         <div>
           <p>Giá trị TB Combo</p>
           <b>{{ avgPrice.toLocaleString('vi-VN') }}đ</b>
@@ -1574,33 +1593,35 @@ onMounted(() => {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
 }
 
 .stat-card {
   background: white;
-  border-radius: 12px;
-  padding: 18px 20px;
+  min-height: 136px;
+  border-radius: 16px;
+  padding: 26px 28px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
 }
 
 .stat-card::after {
   content: '';
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  right: -24px;
-  top: -24px;
-  background: rgba(255, 255, 255, 0.12);
+  right: -28px;
+  top: -54px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 
 .stat-card.stat-blue {
@@ -1620,26 +1641,36 @@ onMounted(() => {
 
 .stat-card p {
   font-size: 12px;
+  line-height: 1.2;
   color: rgba(255, 255, 255, 0.88);
-  margin: 0 0 4px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
 }
 
 .stat-card b {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
   color: #fff;
 }
 
 .stat-icon {
-  font-size: 22px;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #fff;
   background: rgba(255, 255, 255, 0.18);
+}
+
+.stat-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .filter-bar {

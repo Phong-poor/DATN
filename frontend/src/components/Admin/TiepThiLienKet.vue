@@ -391,7 +391,7 @@ onMounted(loadData)
           <small>{{ stats.activeProfiles }} đang hoạt động · {{ stats.pendingProfiles }} chờ duyệt</small>
         </div>
       </article>
-      <article class="metric-card amber">
+      <article class="metric-card blue">
         <div class="metric-icon"><Clock3 :size="24" /></div>
         <div>
           <span>Hoa hồng chờ duyệt</span>

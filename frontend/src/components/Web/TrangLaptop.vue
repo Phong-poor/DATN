@@ -20,7 +20,7 @@ import {
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
-import { productImageUrl } from '@/services/urls'
+import { handleImageFallback, productImageUrl } from '@/services/urls'
 
 const router = useRouter()
 const route = useRoute()
@@ -535,7 +535,7 @@ onMounted(() => {
       </div>
       <div class="flagship-row">
         <article v-for="product in flagshipProducts" :key="product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" />
+          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="specs">
             <span v-for="spec in product.specs.slice(0, 3)" :key="spec">{{ spec }}</span>
@@ -630,7 +630,7 @@ onMounted(() => {
           <div v-else class="product-grid">
             <article v-for="product in paginatedProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
               <span class="discount">-13%</span>
-              <img :src="product.image" :alt="product.tenSP" />
+              <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
               <h3>{{ product.tenSP }}</h3>
               <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }} đánh giá)</span></div>
               <div class="specs">
@@ -673,7 +673,7 @@ onMounted(() => {
       </div>
       <div class="accessory-strip">
         <article v-for="product in accessoryProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" />
+          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
           <strong class="product-price">{{ formatPrice(product.gia) }}</strong>

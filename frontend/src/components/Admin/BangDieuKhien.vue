@@ -1,5 +1,6 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { BarChart3, DollarSign, Package, PackageCheck, UserPlus, Users } from 'lucide-vue-next'
 import api from '@/services/api'
 import echo from '@/services/echo'
 
@@ -174,7 +175,7 @@ const stats = computed(() => {
         {
             label: 'Doanh thu tổng',
             value: data.value.doanh_thu ?? '0đ',
-            icon: '💰',
+            icon: DollarSign,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
             borderColor: 'transparent',
@@ -183,7 +184,7 @@ const stats = computed(() => {
         {
             label: 'Khách hàng',
             value: data.value.khach_hang ?? 0,
-            icon: '👥',
+            icon: Users,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #c2410c 0%, #f97316 100%)',
             borderColor: 'transparent',
@@ -192,7 +193,7 @@ const stats = computed(() => {
         {
             label: 'Sản phẩm kho',
             value: data.value.bien_the ?? 0,
-            icon: '🗃️',
+            icon: Package,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
             borderColor: 'transparent',
@@ -475,7 +476,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
             <div class="stats-grid">
                 <div class="stat-card" v-for="s in stats" :key="s.label" :style="{ background: s.cardBg, borderColor: s.borderColor }">
                     <div class="stat-top">
-                        <div class="stat-icon-wrap" :style="{ background: s.iconBg }">{{ s.icon }}</div>
+                        <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
+                            <component :is="s.icon" aria-hidden="true" />
+                        </div>
                     </div>
                     <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                     <b class="stat-value">{{ s.value }}</b>
@@ -490,13 +493,16 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="chart-header">
                         <div class="chart-tabs-nav">
                             <button :class="['chart-nav-btn', { active: chartTab === 'sales' }]" @click="chartTab = 'sales'">
-                                📊 Doanh thu & Đơn hàng
+                                <BarChart3 aria-hidden="true" />
+                                Doanh thu & Đơn hàng
                             </button>
                             <button :class="['chart-nav-btn', { active: chartTab === 'customers' }]" @click="chartTab = 'customers'">
-                                👥 Khách hàng mới
+                                <UserPlus aria-hidden="true" />
+                                Khách hàng mới
                             </button>
                             <button :class="['chart-nav-btn', { active: chartTab === 'products' }]" @click="chartTab = 'products'">
-                                📦 Lượng sản phẩm bán
+                                <PackageCheck aria-hidden="true" />
+                                Lượng sản phẩm bán
                             </button>
                         </div>
                         <div class="custom-dropdown chart-period-dropdown">
@@ -1005,66 +1011,70 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 /* STATS */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    padding: 0 28px 16px;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 20px;
+    padding: 0 32px 20px;
 }
 
 .stat-card {
-    border-radius: 14px;
+    min-height: 136px;
+    border-radius: 16px;
     border: 1px solid transparent;
-    padding: 16px 18px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 26px 28px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
     color: #fff;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .stat-card::after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
-    right: -26px;
-    top: -26px;
+    width: 150px;
+    height: 150px;
+    right: -28px;
+    top: -54px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
+    background: rgba(255, 255, 255, 0.13);
 }
 
 .stat-top {
     display: flex;
     justify-content: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
 }
 
 .stat-icon-wrap {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
     color: #fff;
     backdrop-filter: blur(6px);
 }
 
+.stat-icon-wrap svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2.2;
+}
+
 .stat-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    margin: 0 0 4px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    margin: 0 0 18px;
     text-transform: uppercase;
 }
 
 .stat-value {
-    font-size: 22px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: #fff;
 }
@@ -1579,6 +1589,9 @@ tbody td {
 }
 
 .chart-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 5px 12px;
     border-radius: 6px;
     border: none;
@@ -1589,6 +1602,12 @@ tbody td {
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
+}
+
+.chart-nav-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.2;
 }
 
 .chart-nav-btn:hover {
@@ -1734,4 +1753,5 @@ tbody td {
     transform: translateY(-8px);
 }
 </style>
+
 
