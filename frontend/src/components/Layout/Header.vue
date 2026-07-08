@@ -38,23 +38,23 @@ let megaLeaveTimer = null
 
 const megaMenuData = reactive({
   laptop: {
-    label: 'Labtop',
+    label: 'Laptop',
     accent: '#2563eb',
     accentBg: 'rgba(37,99,235,0.08)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 10v4M6 12h4m6-2v4m0-2h2"/></svg>`,
     img: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80',
     sections: [
       {
-        title: 'Dong laptop', icon: '🎮',
+        title: 'Dòng laptop', icon: '🎮',
         items: [
           { label: 'Laptop Gaming RTX', badge: 'HOT', q: 'gaming rtx' },
           { label: 'MacBook Pro & Air', badge: 'NEW', q: 'macbook apple' },
-          { label: 'Laptop van phong', badge: '', q: 'laptop van phong' },
-          { label: 'Laptop hoc tap', badge: '', q: 'laptop sinh vien' },
+          { label: 'Laptop văn phòng', badge: '', q: 'laptop van phong' },
+          { label: 'Laptop học tập', badge: '', q: 'laptop sinh vien' },
         ]
       },
       {
-        title: 'Thuong hieu', icon: '🏷️',
+        title: 'Thương hiệu', icon: '🏷️',
         items: [
           { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
           { label: 'Apple MacBook', badge: 'PRO', q: 'MacBook' },
@@ -63,17 +63,17 @@ const megaMenuData = reactive({
         ]
       },
       {
-        title: 'Nhu cau', icon: '💰',
+        title: 'Nhu cầu', icon: '💰',
         items: [
-          { label: 'Workstation do hoa', badge: 'PRO', q: 'workstation' },
+          { label: 'Workstation đồ họa', badge: 'PRO', q: 'workstation' },
           { label: 'Laptop AI PC', badge: 'NEW', q: 'AI PC' },
-          { label: 'Phu kien laptop', badge: '', q: 'phu kien laptop' },
+          { label: 'Phụ kiện laptop', badge: '', q: 'phu kien laptop' },
           { label: 'Flagship Premium', badge: 'PRO', q: 'flagship premium' },
         ]
       },
     ],
-    featured: null,
-    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop van phong'],
+    featured: { name: 'Laptop Gaming + MacBook Premium', price: 'Từ 19.990.000đ', oldPrice: '', tag: 'NEW', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&q=80' },
+    quickLinks: ['Laptop Gaming', 'MacBook Pro', 'Laptop văn phòng'],
   },
   aipc: {
     label: 'AI PC',
@@ -180,44 +180,7 @@ const megaMenuData = reactive({
     featured: null,
     quickLinks: ['Bàn phím cơ giá rẻ', 'Chuột gaming Logitech', 'Phụ kiện Ugreen'],
   },
-  workstation: {
-    label: 'Workstation',
-    accent: '#8b5cf6',
-    accentBg: 'rgba(139,92,246,0.07)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>`,
-    img: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=400&q=80',
-    sections: [
-      {
-        title: 'Brands', icon: '🏷️',
-        items: [
-          { label: 'ThinkPad', badge: 'HOT', q: 'ThinkPad' },
-          { label: 'Dell', badge: '', q: 'Dell Precision' },
-          { label: 'HP ZBook', badge: '', q: 'HP ZBook' },
-          { label: 'ASUS ProArt', badge: 'NEW', q: 'ASUS ProArt' },
-        ]
-      },
-      {
-        title: 'Use Cases', icon: '🎯',
-        items: [
-          { label: 'CAD', badge: '', q: 'CAD workstation' },
-          { label: 'AI Training', badge: 'PRO', q: 'AI workstation' },
-          { label: 'Rendering', badge: 'HOT', q: 'rendering workstation' },
-          { label: 'SolidWorks', badge: '', q: 'SolidWorks' },
-        ]
-      },
-      {
-        title: 'Specifications', icon: '⚙️',
-        items: [
-          { label: 'RTX 5000 Ada', badge: 'PRO', q: 'RTX 5000 Ada' },
-          { label: 'RTX 4000 Ada', badge: '', q: 'RTX 4000 Ada' },
-          { label: '64GB RAM', badge: '', q: 'workstation 64GB' },
-          { label: '128GB RAM', badge: 'PRO', q: 'workstation 128GB' },
-        ]
-      },
-    ],
-    featured: null,
-    quickLinks: ['Workstation cho render 3D', 'So sánh Workstation', 'Trả góp Workstation'],
-  },
+
   sale: {
     label: 'Khuyến mãi',
     accent: '#f59e0b',
@@ -277,7 +240,6 @@ const menuCategoryMap = {
   gaming: 'Laptop Gaming',
   macbook: 'MacBook',
   'phu-kien': 'Phụ kiện',
-  workstation: 'Workstation',
 }
 
 const navToCategory = (key) => {
@@ -292,8 +254,6 @@ const navToCategory = (key) => {
     router.push({ path: '/laptop', query: { line: 'gaming' } })
   } else if (key === 'macbook') {
     router.push('/macbook')
-  } else if (key === 'workstation') {
-    router.push('/workstation')
   } else {
     router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key } })
   }
@@ -858,6 +818,15 @@ const warmProductsPageNow = () => {
   import('../Web/TrangLaptop.vue')
   prefetchProductsPage().catch(() => {})
 }
+
+const openLuckyWheel = () => {
+  window.dispatchEvent(new Event('open-lucky-wheel'))
+}
+
+const openLuckyWheelMobile = () => {
+  isMobileMenuOpen.value = false
+  openLuckyWheel()
+}
 </script>
 
 <template>
@@ -914,13 +883,27 @@ const warmProductsPageNow = () => {
             <div
               v-if="activeMegaMenu === key"
               class="mega-dropdown"
-              :class="{ 'cols-3': menu.sections.length === 2 }"
-              :style="{ '--accent': menu.accent, '--accent-bg': menu.accentBg }"
+              :style="{
+                '--accent': menu.accent,
+                '--accent-bg': menu.accentBg,
+                width: (menu.sections.length + (menu.featured ? 1 : 0)) === 2
+                  ? '440px'
+                  : (menu.sections.length + (menu.featured ? 1 : 0)) === 3
+                    ? '660px'
+                    : '860px'
+              }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
             >
               <!-- BODY -->
-              <div class="mega-body">
+              <div
+                class="mega-body"
+                :style="{
+                  gridTemplateColumns: menu.featured
+                    ? `repeat(${menu.sections.length}, 1fr) 1.35fr`
+                    : `repeat(${menu.sections.length}, 1fr)`
+                }"
+              >
                 <!-- SECTIONS (Columns 1, 2, 3) -->
                 <div v-for="(section, sIdx) in menu.sections" :key="section.title" class="mega-col" :class="`col-${sIdx + 1}`">
                   <div class="mega-col-title">
@@ -969,6 +952,7 @@ const warmProductsPageNow = () => {
         <!-- Extra links -->
         <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
         <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
+
       </nav>
 
       <!-- SEARCH BAR -->
@@ -1201,6 +1185,7 @@ const warmProductsPageNow = () => {
         <div class="mob-nav-label">Thêm</div>
         <router-link to="/news" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
         <router-link to="/contact" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+        <a href="#" @click.prevent="openLuckyWheelMobile" class="mob-link">Vòng quay may mắn</a>
       </nav>
 
       <div class="mob-footer">
@@ -1397,16 +1382,11 @@ const warmProductsPageNow = () => {
     0 8px 24px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 9999;
-  width: 860px;
+  width: min(760px, calc(100vw - 48px));
   overflow: hidden;
   padding: 24px 28px;
 }
-.mega-dropdown.cols-3 {
-  width: 660px;
-}
-.mega-dropdown.cols-3 .mega-body {
-  grid-template-columns: 1fr 1fr 1.35fr;
-}
+
 /* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
 .mega-dropdown::before {
   content: '';
@@ -1421,13 +1401,14 @@ const warmProductsPageNow = () => {
 /* BODY LAYOUT - 4 COLUMNS WITH DIVIDERS */
 .mega-body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.35fr;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr 1fr 1.25fr;
+  gap: 0;
   background: transparent;
 }
 
 .mega-col {
-  padding: 0;
+  padding: 0 12px;
+  border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1452,11 +1433,12 @@ const warmProductsPageNow = () => {
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
   font-size: 11px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #94a3b8;
-  margin-bottom: 14px;
+  color: #ffffff;
+  margin-bottom: 9px;
   padding-left: 8px;
 }
 
@@ -1465,24 +1447,24 @@ const warmProductsPageNow = () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 .mega-link {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 7px 8px;
   background: transparent;
   border-radius: 8px;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mega-link-text {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #cbd5e1;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: color 0.15s ease;
 }
 .mega-link:hover {
   background: var(--accent-bg);
@@ -1496,10 +1478,11 @@ const warmProductsPageNow = () => {
 /* ITEM BADGES */
 .mega-item-badge {
   font-size: 9px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
   flex-shrink: 0;
   margin-left: 2px;
   text-transform: uppercase;
@@ -1510,7 +1493,7 @@ const warmProductsPageNow = () => {
 .mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
 
 .mega-featured-panel {
-  padding: 0;
+  padding: 0 0 0 12px;
   display: flex;
   flex-direction: column;
 }
@@ -1519,15 +1502,15 @@ const warmProductsPageNow = () => {
 }
 
 .mfp-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .mfp-card:hover {
   transform: translateY(-4px);
@@ -1538,9 +1521,9 @@ const warmProductsPageNow = () => {
 
 .mfp-img-box {
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  height: 100px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1560,9 +1543,9 @@ const warmProductsPageNow = () => {
 
 .mfp-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 8.5px;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
   font-weight: 800;
   color: white;
   padding: 2.5px 7px;
@@ -1579,7 +1562,7 @@ const warmProductsPageNow = () => {
 }
 
 .mfp-name {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
   line-height: 1.4;
@@ -1591,7 +1574,7 @@ const warmProductsPageNow = () => {
 
 .mfp-price {
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -1601,11 +1584,12 @@ const warmProductsPageNow = () => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px;
   border: none;
   border-radius: 8px;
   color: white;
   font-family: 'Outfit', sans-serif;
+  font-size: 11px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;

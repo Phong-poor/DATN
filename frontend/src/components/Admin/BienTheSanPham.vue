@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getUser } from '@/services/auth'
 import api from '@/services/api'
@@ -39,6 +39,61 @@ const getTypeStyle = (name) => {
   return typePalette[index]
 }
 
+const namedColorMap = {
+  black: '#111827',
+  den: '#111827',
+  'mau den': '#111827',
+  white: '#ffffff',
+  trang: '#ffffff',
+  'mau trang': '#ffffff',
+  silver: '#c0c0c0',
+  bac: '#c0c0c0',
+  gray: '#6b7280',
+  grey: '#6b7280',
+  xam: '#6b7280',
+  blue: '#2563eb',
+  xanh: '#2563eb',
+  red: '#dc2626',
+  do: '#dc2626',
+  green: '#16a34a',
+  'xanh la': '#16a34a',
+  yellow: '#facc15',
+  vang: '#facc15',
+  pink: '#ec4899',
+  hong: '#ec4899',
+  purple: '#7c3aed',
+  tim: '#7c3aed',
+  orange: '#f97316',
+  cam: '#f97316',
+  gold: '#d97706',
+}
+
+const stripVietnamese = (value = '') =>
+  String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim()
+
+const normalizeHex = (value, fallbackName = '') => {
+  const raw = String(value || '').trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toUpperCase()
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw}`.toUpperCase()
+  const key = stripVietnamese(fallbackName)
+  return namedColorMap[key] || '#E5E7EB'
+}
+
+const normalizeColor = (color = {}) => {
+  const name = color.name || color.ten || color.ten_mau || color.tenMau || color.label || 'Chưa đặt tên'
+  return {
+    id: color.id || color.id_mau || color.id_mau_sac,
+    name,
+    hex: normalizeHex(color.hex || color.hex_code || color.mamau || color.ma_mau || color.color_code, name),
+    stock: color.stock || color.trangthai || 'Khả dụng',
+  }
+}
 // ── Data ──
 const variants = ref([])
 const groups = ref([])
@@ -297,7 +352,8 @@ const fetchAll = async () => {
 const fetchColors = async () => {
   try {
     const res = await api.get('/colors')
-    colors.value = res.data.map(c => ({ id: c.id, name: c.name, hex: c.hex || c.hex_code }))
+    const list = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    colors.value = list.map(normalizeColor)
     if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
     colorPagination.goToPage(1)
   } catch (error) {
@@ -403,10 +459,16 @@ const submitColor = async () => {
     return
   }
   try {
+    const payload = {
+      name: colorForm.value.name,
+      hex_code: colorForm.value.hex,
+      ten: colorForm.value.name,
+      mamau: normalizeHex(colorForm.value.hex),
+    }
     if (modalType.value === 'editColor') {
-      await api.put(`/admin/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.put(`/admin/colors/${editingId}`, payload)
     } else {
-      await api.post('/admin/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.post('/admin/colors', payload)
     }
     await fetchColors()
     closeModal()
@@ -2994,3 +3056,4 @@ tbody td {
   .form-row { grid-template-columns: 1fr; }
 }
 </style>
+

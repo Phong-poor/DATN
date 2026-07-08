@@ -36,6 +36,7 @@ use App\Http\Controllers\BirthdayCodeController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
 use App\Http\Controllers\VaiTroController;
+use App\Http\Controllers\VongQuayController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -70,6 +71,7 @@ Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
+Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
 
 // Ảnh chat phục vụ qua API, không phụ thuộc symlink storage/public.
 Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachment'])
@@ -178,6 +180,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
     Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
     Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
+
+    // ===== VÒNG QUAY MAY MẮN =====
+    Route::get('/vong-quay/lich-su', [VongQuayController::class, 'lichSu']);
+    Route::post('/vong-quay/quay', [VongQuayController::class, 'quay']);
+    Route::post('/vong-quay/nhan-luot', [VongQuayController::class, 'nhanLuotHangNgay']);
 });
 
 
@@ -409,5 +416,12 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== ADMIN COIN SETTINGS =====
         Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getAdminSettings']);
         Route::put('/xu/settings', [App\Http\Controllers\XuController::class, 'updateAdminSettings']);
+
+        // ===== ADMIN LUCKY WHEEL =====
+        Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);
+        Route::post('/vong-quay', [VongQuayController::class, 'adminStore']);
+        Route::put('/vong-quay/{id}', [VongQuayController::class, 'adminUpdate']);
+        Route::delete('/vong-quay/{id}', [VongQuayController::class, 'adminDestroy']);
+        Route::get('/vong-quay/lich-su', [VongQuayController::class, 'adminHistory']);
 
 });

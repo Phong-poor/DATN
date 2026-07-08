@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="page">
         <div class="container">
 
@@ -8,7 +8,9 @@
                     <h1 class="page-title">Quản lý Bình luận<br />&amp; Đánh giá</h1>
                     <p class="page-sub">Theo dõi và phản hồi các đánh giá từ khách hàng của VinaTech</p>
                 </div>
-                <div class="stats-row">
+            </div>
+
+            <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-label">TỔNG CỘNG</div>
                         <div class="stat-value">{{ statsData.total }}</div>
@@ -21,7 +23,6 @@
                         <div class="stat-label">ĐÁNH GIÁ TB</div>
                         <div class="stat-value">{{ statsData.avg }} <span class="star">★</span></div>
                     </div>
-                </div>
             </div>
 
             <!-- ── Table Card ── -->
@@ -489,36 +490,59 @@ onMounted(() => {
 
 /* ── Stat Cards ── */
 .stats-row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 20px;
 }
 
 .stat-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 14px 22px;
-    text-align: center;
-    min-width: 110px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+    min-height: 136px;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border-radius: 16px;
+    padding: 26px 28px;
+    text-align: left;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .12);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 999px;
+    right: -28px;
+    top: -54px;
+    background: rgba(255, 255, 255, .13);
+    pointer-events: none;
 }
 
 .stat-card.highlight {
-    background: #1e293b;
+    background: linear-gradient(135deg, #0f2747 0%, #1e3a5f 55%, #0f172a 100%);
+}
+
+.stat-card.gold {
+    background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
 }
 
 .stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    color: #94a3b8;
-    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    color: rgba(255, 255, 255, .88);
+    margin-bottom: 20px;
+    text-transform: uppercase;
 }
 
 .stat-value {
-    font-size: 26px;
+    font-size: 34px;
     font-weight: 800;
-    color: #0f172a;
+    color: #fff;
     line-height: 1;
 }
 
@@ -527,7 +551,7 @@ onMounted(() => {
 }
 
 .stat-card.gold .stat-value {
-    color: #f59e0b;
+    color: #fff;
 }
 
 .star {
@@ -1038,3 +1062,4 @@ td {
     transform: translateY(30px);
 }
 </style>
+

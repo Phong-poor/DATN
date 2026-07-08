@@ -119,7 +119,7 @@
             <div class="topbar-popover" ref="notifyMenuRef">
               <button class="topbar-icon-button" type="button" aria-label="Thông báo" @click="toggleNotifyMenu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                <span class="icon-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
+                <span class="icon-badge notify-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
               </button>
               <div v-if="notifyMenuOpen" class="topbar-dropdown notify-menu">
                 <div class="notify-head">
@@ -281,6 +281,7 @@ const menuConfig = [
       { path: '/admin/birthday-codes', label: 'Gửi mã sinh nhật', badge: 'MARKETING' },
       { path: '/admin/combos', label: 'Quản lý Combo', badge: 'MARKETING' },
       { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'MARKETING' },
+      { path: '/admin/vong-quay', label: 'Vòng quay may mắn', badge: 'MARKETING' },
     ]
   },
   {
@@ -340,6 +341,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/birthday-codes': 'marketing_quan_ly',
     '/admin/combos': 'marketing_quan_ly',
     '/admin/flash-sale': 'marketing_quan_ly',
+    '/admin/vong-quay': 'marketing_quan_ly',
     
     '/admin/affiliates': 'affiliate_quan_ly',
     
@@ -911,14 +913,19 @@ a { text-decoration: none; }
 }
 .admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; }
 .admin-topbar-title p { margin: 4px 0 0; color: #64748b; font-size: 12.5px; }
-.admin-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.admin-topbar-actions {
+    --topbar-control-size: 46px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 .topbar-home-link { 
     display: inline-flex; 
     align-items: center; 
     gap: 6px; 
-    height: 38px; 
-    padding: 0 16px; 
-    border-radius: 20px; 
+    height: var(--topbar-control-size);
+    padding: 0 18px; 
+    border-radius: 999px; 
     border: 1px solid rgba(37, 99, 235, 0.2); 
     background: rgba(37, 99, 235, 0.04); 
     color: #2563eb; 
@@ -927,15 +934,15 @@ a { text-decoration: none; }
     font-weight: 600; 
     transition: all 0.2s ease;
 }
-.topbar-home-link svg { width: 14px; height: 14px; }
+.topbar-home-link svg { width: 16px; height: 16px; }
 .topbar-home-link:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); }
 .topbar-icon-group { display: flex; align-items: center; gap: 10px; }
 .topbar-popover { position: relative; }
 .topbar-icon-button { 
-    width: 38px; 
-    height: 38px; 
+    width: var(--topbar-control-size);
+    height: var(--topbar-control-size);
     border-radius: 50%; 
-    border: 1px solid rgba(15,23,42,.08); 
+    border: 1px solid rgba(15,23,42,.10); 
     background: #ffffff; 
     color: #475569; 
     display: grid; 
@@ -944,9 +951,49 @@ a { text-decoration: none; }
     position: relative; 
     transition: all 0.2s ease;
 }
-.topbar-icon-button svg { width: 18px; height: 18px; }
-.icon-flag { font-size: 11px; font-weight: 700; letter-spacing: .5px; }
-.icon-badge { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 9px; display: grid; place-items: center; padding: 0 4px; }
+.topbar-icon-button:hover,
+.topbar-icon-button.active {
+    background: #eef2ff;
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+.topbar-icon-button svg { width: 20px; height: 20px; }
+.icon-flag { font-size: 12px; font-weight: 800; letter-spacing: .4px; }
+.icon-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 19px;
+    height: 19px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    padding: 0 5px;
+    border: 2px solid #fff;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25);
+}
+.notify-badge {
+    animation: notifyBadgePulse 1.8s ease-out infinite;
+}
+@keyframes notifyBadgePulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.46), 0 8px 16px rgba(239, 68, 68, 0.25);
+    }
+    55% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 10px 20px rgba(239, 68, 68, 0.22);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 8px 16px rgba(239, 68, 68, 0.25);
+    }
+}
 .topbar-dropdown { 
     position: absolute; 
     top: calc(100% + 8px); 
@@ -969,13 +1016,14 @@ a { text-decoration: none; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
 .notify-title { font-size: 13px; color: #0f172a; font-weight: 600; }
 .notify-time { font-size: 11px; color: #64748b; }
-.topbar-divider { width: 1px; height: 24px; background: rgba(15,23,42,.08); }
+.topbar-divider { width: 1px; height: 32px; background: rgba(15,23,42,.08); }
 .topbar-user { position: relative; }
 .topbar-user-btn { 
     display: inline-flex; 
     align-items: center; 
     gap: 10px; 
-    padding: 5px 12px 5px 5px; 
+    min-height: var(--topbar-control-size);
+    padding: 5px 13px 5px 6px; 
     border-radius: 999px; 
     border: 1px solid rgba(15,23,42,.08); 
     background: #ffffff; 
@@ -1067,6 +1115,154 @@ a { text-decoration: none; }
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
   }
+}
+
+/* Admin stat cards: one shared blue system for every admin page. */
+.main :deep(.stats),
+.main :deep(.stats-grid),
+.main :deep(.stats-row),
+.main :deep(.metrics-grid) {
+    --admin-stat-blue-start: #2148bf;
+    --admin-stat-blue-mid: #2f66df;
+    --admin-stat-blue-end: #3b82f6;
+    --admin-stat-circle: rgba(255, 255, 255, 0.14);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    align-items: stretch;
+}
+
+.main :deep(.stat-card),
+.main :deep(.stat-card.stat-blue),
+.main :deep(.stat-card.stat-teal),
+.main :deep(.stat-card.stat-orange),
+.main :deep(.stat-card.stat-green),
+.main :deep(.stat-card.stat-purple),
+.main :deep(.stat-card.stat-amber),
+.main :deep(.stat-card.stat-active),
+.main :deep(.stat-card.stat-budget),
+.main :deep(.stat-card.stat-card-gradient),
+.main :deep(.stat-card.dark-stat),
+.main :deep(.stat-card.highlight),
+.main :deep(.stat-card.gold),
+.main :deep(.stat-card.blue),
+.main :deep(.stat-card.violet),
+.main :deep(.stat-card.green),
+.main :deep(.metric-card),
+.main :deep(.metric-card.blue),
+.main :deep(.metric-card.amber),
+.main :deep(.metric-card.teal),
+.main :deep(.metric-card.violet) {
+    height: 160px !important;
+    min-height: 160px !important;
+    border-radius: 8px;
+    border: 1px solid rgba(37, 99, 235, 0.08);
+    padding: 26px 28px;
+    background: linear-gradient(135deg, var(--admin-stat-blue-start) 0%, var(--admin-stat-blue-mid) 58%, var(--admin-stat-blue-end) 100%) !important;
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+.main :deep(.stat-card::after),
+.main :deep(.metric-card::after) {
+    content: '';
+    position: absolute;
+    width: 188px;
+    height: 188px;
+    border-radius: 999px;
+    top: -68px;
+    right: -36px;
+    background: var(--admin-stat-circle);
+    pointer-events: none;
+}
+
+.main :deep(.stat-card p),
+.main :deep(.stat-label),
+.main :deep(.stat-card-tag),
+.main :deep(.stat-card span:first-child),
+.main :deep(.metric-card span),
+.main :deep(.metric-card small) {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 12px !important;
+    line-height: 1.25;
+    font-weight: 800 !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase;
+}
+
+.main :deep(.stat-card b),
+.main :deep(.stat-value),
+.main :deep(.stat-number),
+.main :deep(.big-growth),
+.main :deep(.metric-card strong) {
+    color: #fff !important;
+    font-size: 34px !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+}
+
+.main :deep(.stat-icon:not(svg)),
+.main :deep(.stat-icon-wrap),
+.main :deep(.stat-icon-wrapper),
+.main :deep(.metric-icon) {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #fff !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.main :deep(.stat-icon svg),
+.main :deep(svg.stat-icon),
+.main :deep(.stat-icon-wrap svg),
+.main :deep(.stat-icon-wrapper svg),
+.main :deep(.metric-icon svg) {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: currentColor;
+    background: transparent !important;
+    border-radius: 0 !important;
+    min-width: 0;
+}
+
+.main :deep(.stat-card:has(.stat-icon-wrapper) .stat-data) {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.main :deep(.stat-card:has(.stat-icon-wrapper) .stat-label) {
+    margin: 0 !important;
+}
+
+.main :deep(.stat-card:has(.stat-icon-wrapper) .stat-number-row) {
+    align-items: center;
+    gap: 14px;
+}
+
+.main :deep(.badge-up),
+.main :deep(.badge-down),
+.main :deep(.badge-neutral),
+.main :deep(.stat-trend),
+.main :deep(.stat-sub),
+.main :deep(.stat-card-btn) {
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: #1d4ed8 !important;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.main :deep(.stat-card:hover),
+.main :deep(.metric-card:hover) {
+    transform: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
