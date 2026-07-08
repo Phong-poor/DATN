@@ -733,37 +733,39 @@ onMounted(async () => {
 .btn-new:hover { opacity: 0.9; transform: translateY(-1px); }
 
 /* STATS */
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; padding: 0 32px 20px; }
+.stats { display: grid; grid-template-columns: repeat(4,minmax(220px,1fr)); gap: 20px; padding: 0 32px 20px; }
 .stat-card {
-    border-radius: 14px;
+    min-height: 136px;
+    border-radius: 16px;
     border: none;
-    padding: 20px;
+    padding: 26px 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
     color: #fff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
 }
 .stat-card::after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     border-radius: 999px;
     right: -28px;
-    top: -28px;
-    background: rgba(255, 255, 255, 0.12);
+    top: -54px;
+    background: rgba(255, 255, 255, 0.13);
+    pointer-events: none;
 }
 .stat-card.stat-blue { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-purple { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-amber { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
-.stat-card p { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.82); letter-spacing: 0.08em; margin: 0 0 6px; }
-.stat-card b { font-size: 24px; font-weight: 800; color: #fff; }
-.stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stat-icon svg { width: 20px; height: 20px; }
+.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card b { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
+.stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon svg { width: 24px; height: 24px; }
 .stat-icon.blue,
 .stat-icon.green,
 .stat-icon.purple,
@@ -897,12 +899,13 @@ table { width: 100%; border-collapse: collapse; }
 .btn-new, .btn-submit { background: linear-gradient(135deg,#2563eb,#2563eb); border: 0; border-radius: 10px; color: white; cursor: pointer; font-size: 13px; font-weight: 600; padding: 11px 20px; }
 .btn-new { align-items: center; display: flex; gap: 7px; }
 .btn-new svg { height: 14px; width: 14px; }
-.stats { display: grid; gap: 16px; grid-template-columns: repeat(4,1fr); padding: 0 32px 20px; }
-.stat-card { align-items: center; background: white; border: 1px solid #f1f5f9; border-radius: 14px; display: flex; justify-content: space-between; padding: 20px; }
-.stat-card p { color: #94a3b8; font-size: 10px; font-weight: 700; letter-spacing: .08em; margin: 0 0 6px; }
-.stat-card b { color: #0f172a; font-size: 24px; font-weight: 800; }
-.stat-icon { align-items: center; border-radius: 12px; display: flex; height: 44px; justify-content: center; width: 44px; }
-.stat-icon svg { height: 20px; width: 20px; }
+.stats { display: grid; gap: 20px; grid-template-columns: repeat(4,minmax(220px,1fr)); padding: 0 32px 20px; }
+.stat-card { align-items: center; border: 1px solid transparent; border-radius: 16px; display: flex; justify-content: space-between; min-height: 136px; overflow: hidden; padding: 26px 28px; position: relative; box-shadow: 0 12px 26px rgba(15,23,42,.12); color: #fff; }
+.stat-card::after { content: ''; position: absolute; width: 150px; height: 150px; border-radius: 999px; right: -28px; top: -54px; background: rgba(255,255,255,.13); pointer-events: none; }
+.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card b { color: #fff; font-size: 34px; line-height: 1; font-weight: 800; }
+.stat-icon { align-items: center; border-radius: 14px; display: flex; height: 48px; justify-content: center; width: 48px; }
+.stat-icon svg { height: 24px; width: 24px; }
 .blue { background: #dbeafe; color: #2563eb; }
 .green { background: #dcfce7; color: #2563eb; }
 .purple { background: #ede9fe; color: #2563eb; }
