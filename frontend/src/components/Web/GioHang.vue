@@ -713,12 +713,16 @@ onMounted(() => {
                 </div>
               </div>
               <div class="combo-group-footer">
-                <div class="qty-section">
-                  <span>Số lượng:</span>
-                  <div class="qty">
-                    <button @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">-</button>
-                    <span>{{ entry.soluong }}</span>
-                    <button @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">+</button>
+                <div class="qty-selector">
+                  <span class="qty-label">Số lượng:</span>
+                  <div class="qty-controls">
+                    <button class="qty-btn" @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <span class="qty-num">{{ entry.soluong }}</span>
+                    <button class="qty-btn" @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
                   </div>
                 </div>
                 <div class="total-section">

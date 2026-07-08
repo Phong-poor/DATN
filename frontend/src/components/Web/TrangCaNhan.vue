@@ -2016,22 +2016,22 @@ const promoStatusMap = {
                   </td>
                 </tr>
                 <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
-                  <td><span style="font-weight:600; color: #e2e8f0;">{{ item.promotion?.name }}</span></td>
+                  <td><span style="font-weight:600; color: #e2e8f0;">{{ item.promotion?.ten }}</span></td>
                   <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
                   <td style="color: #64748b; font-size:13px;">
-                    {{ item.promotion?.type === 'percent' ? 'Phần trăm' : 'Cố định' }}
+                    {{ item.promotion?.loai === 'percent' ? 'Phần trăm' : (item.promotion?.loai === 'maxprice' ? 'Tối đa' : 'Cố định') }}
                   </td>
                   <td style="font-weight:700; color:#2563eb;">
-                    {{ item.promotion?.type === 'percent'
-                      ? item.promotion?.value + '%'
-                      : new Intl.NumberFormat('vi-VN').format(item.promotion?.value) + 'đ' }}
+                    {{ item.promotion?.loai === 'percent'
+                      ? item.promotion?.giatri + '%'
+                      : new Intl.NumberFormat('vi-VN').format(item.promotion?.giatri || 0) + 'đ' }}
                   </td>
                   <td style="font-size:13px; color: #64748b;">
-                    <span v-if="item.promotion?.end_date">{{ new Date(item.promotion?.end_date).toLocaleDateString('vi-VN') }}</span>
+                    <span v-if="item.promotion?.ngayketthuc">{{ new Date(item.promotion?.ngayketthuc).toLocaleDateString('vi-VN') }}</span>
                     <span v-else>Không giới hạn</span>
                   </td>
                   <td>
-                    <span v-if="item.promotion?.end_date && new Date(item.promotion?.end_date) < new Date()" :style="{
+                    <span v-if="item.promotion?.ngayketthuc && new Date(item.promotion?.ngayketthuc) < new Date()" :style="{
                       color: promoStatusMap.expired.color,
                       background: promoStatusMap.expired.bg,
                       padding: '4px 12px',
