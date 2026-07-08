@@ -32,6 +32,7 @@ class User extends Authenticatable
         'hoat_dong_cuoi_luc',
         'last_active_at',
         'xu',
+        'luot_quay',
     ];
 
     protected $hidden = [

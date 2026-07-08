@@ -858,6 +858,15 @@ const warmProductsPageNow = () => {
   import('../Web/TrangLaptop.vue')
   prefetchProductsPage().catch(() => {})
 }
+
+const openLuckyWheel = () => {
+  window.dispatchEvent(new Event('open-lucky-wheel'))
+}
+
+const openLuckyWheelMobile = () => {
+  isMobileMenuOpen.value = false
+  openLuckyWheel()
+}
 </script>
 
 <template>
@@ -969,6 +978,7 @@ const warmProductsPageNow = () => {
         <!-- Extra links -->
         <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
         <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
+        <a href="#" @click.prevent="openLuckyWheel" class="nav-plain-link">Vòng quay</a>
       </nav>
 
       <!-- SEARCH BAR -->
@@ -1201,6 +1211,7 @@ const warmProductsPageNow = () => {
         <div class="mob-nav-label">Thêm</div>
         <router-link to="/news" @click="isMobileMenuOpen = false" class="mob-link">Tin tức</router-link>
         <router-link to="/contact" @click="isMobileMenuOpen = false" class="mob-link">Liên hệ</router-link>
+        <a href="#" @click.prevent="openLuckyWheelMobile" class="mob-link">Vòng quay may mắn</a>
       </nav>
 
       <div class="mob-footer">
