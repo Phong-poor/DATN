@@ -2174,13 +2174,16 @@ onMounted(() => {
 }
 
 .lp-showroom {
+  width: min(1380px, calc(100% - clamp(28px, 5vw, 96px) * 2));
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1fr);
   gap: clamp(28px, 4vw, 56px);
   align-items: center;
-  margin-top: clamp(28px, 4vw, 54px);
-  padding-top: clamp(34px, 4.5vw, 58px);
-  padding-bottom: clamp(34px, 4.5vw, 58px);
+  margin: clamp(28px, 4vw, 54px) auto 0;
+  padding-left: clamp(28px, 5vw, 72px);
+  padding-right: clamp(28px, 5vw, 72px);
+  padding-top: clamp(24px, 3.2vw, 40px);
+  padding-bottom: clamp(24px, 3.2vw, 40px);
   border-radius: 22px;
   background:
     radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.18), transparent 36%),
@@ -2197,29 +2200,29 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .lp-showroom-copy h2 {
   max-width: 720px;
-  margin: 0 0 16px;
-  font-size: clamp(28px, 3vw, 42px);
+  margin: 0 0 12px;
+  font-size: clamp(26px, 2.7vw, 38px);
   line-height: 1.08;
   color: #ffffff;
 }
 
 .lp-showroom-copy > p {
   max-width: 680px;
-  margin: 0 0 28px;
+  margin: 0 0 20px;
   color: #cbd5e1;
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.58;
 }
 
 .lp-showroom-list {
   display: grid;
-  gap: 18px;
-  margin-bottom: 30px;
+  gap: 13px;
+  margin-bottom: 22px;
 }
 
 .lp-showroom-item {
@@ -2256,12 +2259,12 @@ onMounted(() => {
   margin: 0;
   color: #94a3b8;
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .lp-showroom-btn {
-  min-height: 48px;
-  padding: 0 26px;
+  min-height: 42px;
+  padding: 0 24px;
   border: 0;
   border-radius: 10px;
   background: #2563eb;
@@ -2281,7 +2284,7 @@ onMounted(() => {
 
 .lp-showroom-visual {
   position: relative;
-  min-height: 320px;
+  min-height: 260px;
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
@@ -2301,7 +2304,7 @@ onMounted(() => {
 .lp-showroom-visual img {
   width: 100%;
   height: 100%;
-  min-height: 320px;
+  min-height: 260px;
   object-fit: cover;
   display: block;
 }
@@ -3569,7 +3572,7 @@ onMounted(() => {
 
   .lp-showroom-visual,
   .lp-showroom-visual img {
-    min-height: 230px;
+    min-height: 190px;
   }
 }
 

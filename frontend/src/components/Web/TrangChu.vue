@@ -226,6 +226,15 @@ const newsImageUrl = (path) => {
     return normalizeImageUrl(path, newsPlaceholderImage)
 }
 
+const normalizeMediaType = (value, url = '') => {
+    const type = String(value || '').toLowerCase()
+    if (type.includes('video')) return 'video'
+    if (/\.(mp4|webm|mov|avi)(\?|#|$)/i.test(String(url || ''))) return 'video'
+    return 'image'
+}
+
+const isVideoSlide = (slide = {}) => normalizeMediaType(slide.mediaType, slide.img) === 'video'
+
 const mapNewsPost = (post = {}) => ({
     ...post,
     id: post.id,
@@ -245,8 +254,8 @@ const mapBannerToSlide = (banner = {}) => ({
     desc: banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.loaimedia || 'image',
-    mobileMediaType: banner.loai_media_mobile || banner.loaimedia || 'image',
+    mediaType: normalizeMediaType(banner.loaimedia, banner.hinhanh),
+    mobileMediaType: normalizeMediaType(banner.loai_media_mobile || banner.loaimedia, banner.hinhanh_mobile || banner.hinhanh),
     link: banner.duongdan || '',
     productId: banner.id_sanpham ? String(banner.id_sanpham) : '',
     primary: banner.nhanchinh || 'Mua ngay',
@@ -263,8 +272,8 @@ const mapApiBannerToSlide = (banner = {}) => ({
     desc: banner.description || banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.media_type || banner.loaimedia || 'image',
-    mobileMediaType: banner.mobile_media_type || banner.loai_media_mobile || banner.media_type || banner.loaimedia || 'image',
+    mediaType: normalizeMediaType(banner.media_type || banner.loaimedia, banner.image || banner.hinhanh),
+    mobileMediaType: normalizeMediaType(banner.mobile_media_type || banner.loai_media_mobile || banner.media_type || banner.loaimedia, banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh),
     link: banner.link_url || banner.duongdan || '',
     productId: banner.product_id || banner.id_sanpham ? String(banner.product_id || banner.id_sanpham) : '',
     primary: banner.primary_label || banner.nhanchinh || 'Mua ngay',
@@ -613,7 +622,17 @@ onUnmounted(() => {
         <div class="hero-viewport" @mouseenter="stop" @mouseleave="start">
             <transition name="ambient-fade" mode="out-in">
                 <div class="hero-bg-wrapper" :key="current">
-                    <img :src="activeSlide.img" alt="" class="hero-bg-img" @error="handleImgError($event, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=1200')" />
+                    <video
+                        v-if="isVideoSlide(activeSlide)"
+                        :src="activeSlide.img"
+                        class="hero-bg-img hero-bg-video"
+                        muted
+                        autoplay
+                        loop
+                        playsinline
+                        preload="metadata"
+                    ></video>
+                    <img v-else :src="activeSlide.img" alt="" class="hero-bg-img" @error="handleImgError($event, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=1200')" />
                     <div class="hero-overlay-curtain"></div>
                 </div>
             </transition>
@@ -1614,6 +1633,7 @@ onUnmounted(() => {
     z-index: 0;
 }
 .hero-bg-img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1621,6 +1641,9 @@ onUnmounted(() => {
     transition: all 1s ease-in-out;
     animation: hero-bg-pan 6s ease-in-out both;
     transform-origin: center;
+}
+.hero-bg-video {
+    pointer-events: none;
 }
 .hero-overlay-curtain {
     position: absolute;

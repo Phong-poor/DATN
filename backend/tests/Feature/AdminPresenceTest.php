@@ -25,7 +25,7 @@ class AdminPresenceTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'success' => true,
-                'online_window_seconds' => 90,
+                'online_window_seconds' => 300,
             ]);
 
         $this->assertTrue($user->fresh()->last_active_at->greaterThan(now()->subSeconds(5)));
@@ -43,7 +43,7 @@ class AdminPresenceTest extends TestCase
         ]);
         $offlineAdmin = User::factory()->create([
             'role' => 'admin',
-            'last_active_at' => now()->subSeconds(120),
+            'last_active_at' => now()->subSeconds(360),
         ]);
         $token = $viewer->createToken('session_token')->plainTextToken;
 
@@ -55,7 +55,7 @@ class AdminPresenceTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'success' => true,
-                'online_window_seconds' => 90,
+                'online_window_seconds' => 300,
             ]);
 
         $admins = collect($response->json('data'))->keyBy('id');

@@ -252,7 +252,7 @@ class AdminAccountController extends Controller
     // API: Xem các Admin đang hoạt động
     public function activeAdmins()
     {
-        $onlineWindowSeconds = 90;
+        $onlineWindowSeconds = 300;
         $onlineSince = now()->subSeconds($onlineWindowSeconds);
 
         $admins = User::where('vaitro', '!=', 'user')

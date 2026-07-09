@@ -110,7 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->json([
             'success' => true,
-            'online_window_seconds' => 90,
+            'online_window_seconds' => 300,
         ]);
     });
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
