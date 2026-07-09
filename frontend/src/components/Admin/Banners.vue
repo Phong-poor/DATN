@@ -224,8 +224,21 @@
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
-                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+                    <div v-if="desktopMediaPreview" class="upload-preview">
+                      <video
+                        v-if="desktopMediaPreview.type === 'video'"
+                        :src="desktopMediaPreview.url"
+                        muted
+                        autoplay
+                        loop
+                        playsinline
+                      ></video>
+                      <img v-else :src="desktopMediaPreview.url" alt="Desktop banner preview" />
+                    </div>
+                    <template v-else>
+                      <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+                      <small>PNG, JPG, WEBP, MP4, WEBM, MOV — tối đa 50MB</small>
+                    </template>
                     <p v-if="form.hinhanh && form.hinhanh.name" style="margin-top: 10px; font-weight: 600; color: #2563eb; font-size: 13px;">✓ {{ form.hinhanh.name }}</p>
                   </div>
                 </div>
@@ -239,8 +252,21 @@
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
-                    <small>PNG, JPG, WEBP, MP4 — tối đa 5MB</small>
+                    <div v-if="mobileMediaPreview" class="upload-preview mobile-preview">
+                      <video
+                        v-if="mobileMediaPreview.type === 'video'"
+                        :src="mobileMediaPreview.url"
+                        muted
+                        autoplay
+                        loop
+                        playsinline
+                      ></video>
+                      <img v-else :src="mobileMediaPreview.url" alt="Mobile banner preview" />
+                    </div>
+                    <template v-else>
+                      <p>Kéo thả hoặc <span>bấm để chọn media</span></p>
+                      <small>PNG, JPG, WEBP, MP4, WEBM, MOV — tối đa 50MB</small>
+                    </template>
                     <p v-if="form.hinhanh_mobile && form.hinhanh_mobile.name" style="margin-top: 10px; font-weight: 600; color: #2563eb; font-size: 13px;">✓ {{ form.hinhanh_mobile.name }}</p>
                   </div>
                 </div>
@@ -263,6 +289,17 @@
                 </div>
 
                 <div class="banner-preview">
+                  <div v-if="desktopMediaPreview" class="preview-media-bg">
+                    <video
+                      v-if="desktopMediaPreview.type === 'video'"
+                      :src="desktopMediaPreview.url"
+                      muted
+                      autoplay
+                      loop
+                      playsinline
+                    ></video>
+                    <img v-else :src="desktopMediaPreview.url" alt="Banner media preview" />
+                  </div>
                   <div class="preview-copy">
                     <span>{{ form.chudenho || 'PREMIUM LAPTOP STORE 2026' }}</span>
                     <h4>{{ form.tieude || 'Sức Mạnh Hội Tụ' }}</h4>
@@ -296,7 +333,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch } from "vue";
+import { onMounted, onUnmounted, ref, computed, watch } from "vue";
 import api from "@/services/api";
 import { productImageUrl, storageUrl } from "@/services/urls";
 import swal from "@/services/swal";
@@ -312,6 +349,8 @@ const mobileMediaRef = ref(null);
 const banners = ref([]);
 const products = ref([]);
 const searchQuery = ref("");
+const desktopSelectedPreview = ref(null);
+const mobileSelectedPreview = ref(null);
 
 // ─── PAGINATION ──────────────────────
 const currentPage = ref(1);
@@ -335,11 +374,52 @@ const defaultForm = () => ({
   ketthucluc: "",
   hinhanh: null,
   hinhanh_mobile: null,
+  currentHinhanh: "",
+  currentHinhanhMobile: "",
+  currentLoaimedia: "image",
+  currentLoaimediaMobile: "",
 });
 
 const form = ref(defaultForm());
 
 const mediaSrc = (path) => storageUrl(path);
+
+const detectMediaType = (file) => file?.type?.startsWith("video/") ? "video" : "image";
+
+const clearSelectedPreview = (target) => {
+  if (target.value?.blob) {
+    URL.revokeObjectURL(target.value.url);
+  }
+  target.value = null;
+};
+
+const setSelectedPreview = (target, file) => {
+  clearSelectedPreview(target);
+  if (!file) return;
+  target.value = {
+    url: URL.createObjectURL(file),
+    type: detectMediaType(file),
+    blob: true,
+  };
+};
+
+const desktopMediaPreview = computed(() => {
+  if (desktopSelectedPreview.value) return desktopSelectedPreview.value;
+  if (!form.value.currentHinhanh) return null;
+  return {
+    url: mediaSrc(form.value.currentHinhanh),
+    type: form.value.currentLoaimedia || "image",
+  };
+});
+
+const mobileMediaPreview = computed(() => {
+  if (mobileSelectedPreview.value) return mobileSelectedPreview.value;
+  if (!form.value.currentHinhanhMobile) return null;
+  return {
+    url: mediaSrc(form.value.currentHinhanhMobile),
+    type: form.value.currentLoaimediaMobile || form.value.currentLoaimedia || "image",
+  };
+});
 
 const productOptions = computed(() => {
   return products.value.map((p) => {
@@ -464,12 +544,16 @@ const {
 
 const openCreate = () => {
   editingId.value = null;
+  clearSelectedPreview(desktopSelectedPreview);
+  clearSelectedPreview(mobileSelectedPreview);
   form.value = defaultForm();
   showForm.value = true;
 };
 
 const openEdit = (item) => {
   editingId.value = item.id;
+  clearSelectedPreview(desktopSelectedPreview);
+  clearSelectedPreview(mobileSelectedPreview);
   form.value = {
     ...defaultForm(),
     tieude: item.tieude || "",
@@ -487,12 +571,18 @@ const openEdit = (item) => {
     trangthai: Boolean(item.trangthai),
     batdauluc: item.batdauluc ? item.batdauluc.slice(0, 16) : "",
     ketthucluc: item.ketthucluc ? item.ketthucluc.slice(0, 16) : "",
+    currentHinhanh: item.hinhanh || "",
+    currentHinhanhMobile: item.hinhanh_mobile || "",
+    currentLoaimedia: item.loaimedia || "image",
+    currentLoaimediaMobile: item.loai_media_mobile || "",
   };
   showForm.value = true;
 };
 
 const closeForm = () => {
   showForm.value = false;
+  clearSelectedPreview(desktopSelectedPreview);
+  clearSelectedPreview(mobileSelectedPreview);
 };
 
 const onFileChange = (event, key) => {
@@ -506,6 +596,7 @@ const onFileChange = (event, key) => {
     }
   }
   form.value[key] = file;
+  setSelectedPreview(key === "hinhanh" ? desktopSelectedPreview : mobileSelectedPreview, file);
 };
 
 const toFormData = () => {
@@ -577,6 +668,11 @@ const remove = async (id) => {
 onMounted(() => {
   fetchData();
   fetchProducts();
+});
+
+onUnmounted(() => {
+  clearSelectedPreview(desktopSelectedPreview);
+  clearSelectedPreview(mobileSelectedPreview);
 });
 </script>
 
@@ -1143,6 +1239,7 @@ td {
 }
 
 .banner-preview {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1.05fr;
   gap: 16px;
@@ -1155,6 +1252,33 @@ td {
   color: #fff;
   min-height: 210px;
   overflow: hidden;
+}
+
+.preview-media-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.preview-media-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(2, 6, 23, 0.82), rgba(15, 23, 42, 0.58));
+}
+
+.preview-media-bg img,
+.preview-media-bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-copy,
+.preview-product {
+  position: relative;
+  z-index: 1;
 }
 
 .preview-copy span {
@@ -1236,6 +1360,30 @@ td {
   color: #fff;
   height: 34px;
   font-weight: 800;
+}
+
+.upload-preview {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 16 / 7;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.upload-preview.mobile-preview {
+  max-width: 220px;
+  aspect-ratio: 9 / 16;
+}
+
+.upload-preview img,
+.upload-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .modal-footer {
