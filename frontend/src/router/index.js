@@ -108,6 +108,7 @@ const adminChildren = [
   { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quản lý combo' } },
   { path: 'xu', name: 'admin-xu', component: () => import('../components/Admin/AdminXu.vue'), meta: { title: 'Cấu hình hệ thống Xu' } },
   { path: 'vong-quay', name: 'admin-vongquay', component: () => import('../components/Admin/QuanLyVongQuay.vue'), meta: { title: 'Quản lý Vòng quay' } },
+  { path: 'diem-danh', name: 'admin-diemdanh', component: () => import('../components/Admin/QuanLyDiemDanh.vue'), meta: { title: 'Quản lý Điểm danh' } },
   { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quản lý vai trò' } },
 ]
 
