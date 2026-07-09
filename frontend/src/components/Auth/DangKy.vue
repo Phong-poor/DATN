@@ -54,7 +54,7 @@ const referralCode = ref('')
 
 const normalizedPhone = computed(() => normalizePhone(phone.value))
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`
-const facebookLoginEnabled = import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === 'true'
+const facebookLoginEnabled = true
 
 const isTouched = { name: ref(false), email: ref(false), phone: ref(false), password: ref(false), confirm: ref(false) }
 

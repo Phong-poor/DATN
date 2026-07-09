@@ -667,14 +667,18 @@ const saveProfile = async () => {
       '/user/profile',
       {
         name: profileForm.value.name,
+        ten: profileForm.value.name,
         email: profileForm.value.email,
         phone: profileForm.value.phone,
+        sodienthoai: profileForm.value.phone,
         date_of_birth: profileForm.value.birthday,
+        ngaysinh: profileForm.value.birthday,
         gender: profileForm.value.gender,
+        gioitinh: profileForm.value.gender,
       }
     )
 
-    updateUserData(res.data.user)
+    updateUserData(res.data.user || res.data)
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
@@ -1185,6 +1189,7 @@ const pwCaptcha = ref({ question: '', answer: '' })
 const loadingPwCaptcha = ref(false)
 const captchaVerified = ref(false)
 const verifyingCaptcha = ref(false)
+const showPwCaptcha = ref(false)
 
 const solveCaptchaQuestion = (question) => {
   const expression = String(question || '').match(/(-?\d+)\s*([+\-xX*])\s*(-?\d+)/)
@@ -1288,6 +1293,15 @@ const savePw = async () => {
     pwErrors.value.confirm = 'Mật khẩu không khớp'
   }
 
+  if (Object.keys(pwErrors.value).length) return
+
+  if (!showPwCaptcha.value) {
+    showPwCaptcha.value = true
+    await loadPwCaptcha()
+    pwErrors.value.captcha = 'Vui lòng xác minh trước khi cập nhật mật khẩu'
+    return
+  }
+
   if (!pwCaptcha.value.answer) {
     pwErrors.value.captcha = 'Vui lòng nhập captcha'
   }
@@ -1304,8 +1318,10 @@ const savePw = async () => {
     })
 
     pwForm.value = { current: '', newPass: '', confirm: '' }
-    await loadPwCaptcha()
-    showToast(res.data?.message || 'Đổi mật khẩu thành công!')
+    pwCaptcha.value = { question: '', answer: '' }
+    captchaVerified.value = false
+    showPwCaptcha.value = false
+    await swal.success('Thành công', res.data?.message || 'Đổi mật khẩu thành công!')
   } catch (error) {
     const data = error.response?.data || {}
 
@@ -2124,7 +2140,7 @@ const promoStatusMap = {
                   </td>
                 </tr>
                 <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
-                  <td><span style="font-weight:600; color: #e2e8f0;">{{ item.promotion?.ten }}</span></td>
+                  <td><span style="font-weight:600; color: #1e293b;">{{ item.promotion?.ten }}</span></td>
                   <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
                   <td style="color: #64748b; font-size:13px;">
                     {{ item.promotion?.loai === 'percent' ? 'Phần trăm' : (item.promotion?.loai === 'maxprice' ? 'Tối đa' : 'Cố định') }}
@@ -2230,7 +2246,7 @@ const promoStatusMap = {
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
-                <div class="form-group" :class="{ error: pwErrors.captcha }">
+                <div v-if="showPwCaptcha" class="form-group" :class="{ error: pwErrors.captcha }">
                   <label>Xác minh</label>
                   <div class="turnstile-box" :class="{ checked: captchaVerified, loading: loadingPwCaptcha || verifyingCaptcha }">
                     <button
@@ -2259,7 +2275,7 @@ const promoStatusMap = {
                 </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
                   <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  {{ savingPw ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}
+                  {{ savingPw ? 'Đang cập nhật...' : (showPwCaptcha ? 'Cập nhật mật khẩu' : 'Tiếp tục') }}
                 </button>
               </form>
             </div>
@@ -4251,9 +4267,9 @@ const promoStatusMap = {
 .req-card,
 .tip-card,
 .table-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 54%);
+  border: 1px solid #38bdf8;
+  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.18);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -4268,12 +4284,12 @@ const promoStatusMap = {
 .form-actions,
 .modal-footer,
 .pagination-footer {
-  border-color: #e2e8f0;
+  border-color: #bae6fd;
 }
 
 .avatar-circle {
-  border-color: #0ea5e9;
-  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.18);
+  border-color: #0284c7;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.28);
 }
 
 .sidebar-name,
@@ -4289,9 +4305,9 @@ const promoStatusMap = {
 }
 
 .sidebar-badge {
-  color: #0369a1;
-  background: #e0f2fe;
-  border-color: #bae6fd;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
 }
 
 .sidebar-join,
@@ -4315,15 +4331,15 @@ const promoStatusMap = {
 .modal-item,
 .review-product-info,
 .captcha-question {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #e0f2fe 0%, #f8fbff 100%);
+  border: 1px solid #7dd3fc;
 }
 
 .stat-card:hover,
 .info-row:hover {
-  background: #f1f5f9;
-  border-color: #bfdbfe;
-  box-shadow: none;
+  background: #d0ecff;
+  border-color: #0284c7;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.18);
 }
 
 .stat-val {
@@ -4344,19 +4360,24 @@ const promoStatusMap = {
 }
 
 .side-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #d0ecff;
+  color: #0369a1;
 }
 
 .side-btn.active {
-  background: #e0f2fe;
-  border-color: #bae6fd;
-  color: #0369a1;
-  box-shadow: none;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.26);
+}
+
+.side-btn.active svg:not(.arrow),
+.side-btn.active .arrow {
+  stroke: #ffffff;
 }
 
 .side-btn .arrow,
-.side-btn.active .arrow {
+.side-btn:hover .arrow {
   stroke: #0284c7;
 }
 
@@ -4366,7 +4387,7 @@ const promoStatusMap = {
 }
 
 .btn-edit {
-  background: #ffffff;
+  background: #f0f9ff;
   border-color: #0ea5e9;
   color: #0284c7;
 }
@@ -4396,8 +4417,8 @@ const promoStatusMap = {
 .p-arrow,
 .p-num,
 .close-btn {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #f0f9ff;
+  border-color: #bae6fd;
   color: #475569;
 }
 
@@ -4405,9 +4426,9 @@ const promoStatusMap = {
 .p-arrow:hover:not(:disabled),
 .p-num:hover,
 .close-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #075985;
 }
 
 .form-group input,
@@ -4416,8 +4437,8 @@ const promoStatusMap = {
 .input-wrap input,
 .address-modal-form input,
 .address-modal-form select {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #f8fbff;
+  border-color: #bfdbfe;
   color: #0f172a !important;
 }
 
@@ -4435,7 +4456,7 @@ const promoStatusMap = {
 .form-group input:disabled,
 .form-group select:disabled {
   color: #94a3b8 !important;
-  background: #f8fafc;
+  background: #eaf6ff;
 }
 
 .form-group select option {
@@ -4478,8 +4499,25 @@ const promoStatusMap = {
 }
 
 .order-tab:hover {
-  background: #ffffff;
-  color: #0f172a;
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.order-tab.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.order-tab.active:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.order-tab:hover .otab-count,
+.order-tab.active:hover .otab-count {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
 }
 
 .order-data-table th {

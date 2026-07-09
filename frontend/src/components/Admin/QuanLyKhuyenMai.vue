@@ -145,54 +145,43 @@
                     <p class="promo-code">{{ p.code }}</p>
                   </div>
                 </div>
-              </td>
-              <td>
-                <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount ||
-                  discountLabel(p) }}</span>
-              </td>
-              <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngaybatdau || '—') }}</td>
-              <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngayketthuc || '—') }}</td>
-              <td>
-                <span :class="['status-badge', p.congkhai == 1 ? 'status-running' : 'status-open']">
-                  {{ p.congkhai == 1 ? 'Công khai' : 'Có điều kiện' }}
-                </span>
-              </td>
-              <td>
-                <span :class="['status-badge', statusClass(p.trangthai)]">
-                  {{ statusLabel(p.trangthai) }}
-                </span>
-              </td>
-              <td>
-                <div class="actions">
-                  <button class="action-btn" @click="openEdit(p)" title="Sửa">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <button class="action-btn action-delete" @click="deletePromo(p.id)" title="Xóa">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                      <path d="M9 6V4h6v2" />
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </td>
+            <td>
+              <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
+            </td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngaybatdau || '—') }}</td>
+            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngayketthuc || '—') }}</td>
+            <td>
+              <span :class="['status-badge', p.congkhai == 1 ? 'status-running' : 'status-open']">
+                {{ p.congkhai == 1 ? 'Công khai' : 'Có điều kiện' }}
+              </span>
+            </td>
+            <td>
+              <span :class="['status-badge', statusClass(p.actual_trangthai)]">
+                {{ statusLabel(p.actual_trangthai) }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button class="action-btn" @click="openEdit(p)" title="Sửa">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="action-btn action-delete" @click="deletePromo(p.id)" title="Xóa">
+                  <svg viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div class="pagination-row">
-          <span class="page-info">Hiển thị 1-{{ filteredPromos.length }} trên <strong>{{ promos.length }}</strong>
-            khuyến mãi</span>
-          <div class="pagination">
-            <button class="page-btn">‹</button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn">›</button>
-          </div>
+      <div class="pagination-row">
+        <span class="page-info">Hiển thị 1-{{ filteredPromos.length }} trên <strong>{{ promos.length }}</strong> khuyến mãi</span>
+        <div class="pagination">
+          <button class="page-btn">‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">›</button>
         </div>
       </div>
 
@@ -498,16 +487,28 @@ const fetchPromos = async () => {
   loading.value = true
   try {
     const res = await api.get('/admin/promotions')
-    promos.value = res.data.map(p => ({
-      ...p,
-      ngaybatdau: formatDate(p.ngaybatdau),
-      ngayketthuc: formatDate(p.ngayketthuc),
-      discount: discountLabel(p),
-      ...tagColors(p.loai),
-      icon: 'SALE',
-      iconBg: '#fef3c7',
-      roi: 20
-    }))
+    const now = new Date()
+    promos.value = res.data.map(p => {
+      let actualStatus = p.trangthai
+      if (actualStatus === 'running' && p.ngayketthuc) {
+        const endDate = new Date(p.ngayketthuc)
+        endDate.setHours(23, 59, 59, 999)
+        if (endDate < now) {
+          actualStatus = 'expired'
+        }
+      }
+      return {
+        ...p,
+        actual_trangthai: actualStatus,
+        ngaybatdau: formatDate(p.ngaybatdau),
+        ngayketthuc: formatDate(p.ngayketthuc),
+        discount: discountLabel(p),
+        ...tagColors(p.loai),
+        icon: '🏮',
+        iconBg: '#fef3c7',
+        roi: 20
+      }
+    })
   } catch (err) {
     swal.error('Lỗi', 'Lỗi tải danh sách khuyến mãi!')
     console.error(err)
@@ -547,7 +548,7 @@ const {
 })
 
 const activeCount = computed(() =>
-  promos.value.filter(p => p.trangthai === 'running' || p.trangthai === 'open').length
+  promos.value.filter(p => p.actual_trangthai === 'running' || p.actual_trangthai === 'open').length
 )
 
 const topPromos = computed(() =>
