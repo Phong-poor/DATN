@@ -282,6 +282,7 @@ const menuConfig = [
       { path: '/admin/combos', label: 'Quản lý Combo', badge: 'MARKETING' },
       { path: '/admin/flash-sale', label: 'Flash Sale', badge: 'MARKETING' },
       { path: '/admin/vong-quay', label: 'Vòng quay may mắn', badge: 'MARKETING' },
+      { path: '/admin/diem-danh', label: 'Quản lý Điểm danh', badge: 'MARKETING' },
     ]
   },
   {
@@ -342,6 +343,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/combos': 'marketing_quan_ly',
     '/admin/flash-sale': 'marketing_quan_ly',
     '/admin/vong-quay': 'marketing_quan_ly',
+    '/admin/diem-danh': 'marketing_quan_ly',
     
     '/admin/affiliates': 'affiliate_quan_ly',
     

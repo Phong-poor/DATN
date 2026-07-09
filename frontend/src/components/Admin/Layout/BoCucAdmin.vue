@@ -292,6 +292,7 @@ const menuConfig = [
       { path: '/admin/gui-ma-sinh-nhat', label: 'Gửi mã sinh nhật', badge: 'SALES' },
       { path: '/admin/quan-ly-combo', label: 'Quản lý Combo', badge: 'SALES' },
       { path: '/admin/quan-ly-tiep-thi', label: 'Affiliate', badge: 'MARKETING' },
+      { path: '/admin/diem-danh', label: 'Quản lý Điểm danh', badge: 'SALES' },
     ]
   },
   {
@@ -337,6 +338,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
     '/admin/quan-ly-combo': 'marketing_quan_ly',
     '/admin/quan-ly-tiep-thi': 'affiliate_quan_ly',
+    '/admin/diem-danh': 'marketing_quan_ly',
     
     '/admin/quan-ly-tin-tuc': 'tin_tuc_quan_ly',
     '/admin/quan-ly-binh-luan': 'binh_luan_quan_ly',

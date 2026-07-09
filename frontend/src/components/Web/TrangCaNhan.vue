@@ -505,6 +505,8 @@ onMounted(() => {
   fetchWishlistCount()
   fetchPromotions()
   fetchAddresses()
+  loadPwCaptcha()
+  fetchAttendanceStatus()
 
   const userData = getUser()
   if (getToken() && userData && (userData.id || userData.id_user)) {
@@ -548,6 +550,60 @@ onUnmounted(() => {
     echo.leave(`user.${userId}`)
   }
 })
+
+// ── DAILY CHECK-IN ───────────────────────────────────────
+const attendanceData = ref({
+  checked_today: false,
+  current_streak: 0,
+  days_progress: []
+})
+const checkingIn = ref(false)
+
+const fetchAttendanceStatus = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const res = await api.get('/diem-danh/status')
+    if (res.data.success) {
+      attendanceData.value = res.data
+    }
+  } catch (error) {
+    console.error('Lỗi tải trạng thái điểm danh:', error)
+  }
+}
+
+const handleCheckIn = async () => {
+  if (attendanceData.value.checked_today || checkingIn.value) return
+  
+  checkingIn.value = true
+  try {
+    const res = await api.post('/diem-danh')
+    if (res.data.success) {
+      swal.success('Thành công!', res.data.message || 'Bạn đã điểm danh thành công!')
+      
+      // Cập nhật số xu của user hiển thị trên giao diện
+      if (res.data.total_xu !== undefined) {
+        user.value.xu = res.data.total_xu
+        // Đồng bộ lưu local
+        const currentUser = getUser()
+        if (currentUser) {
+          currentUser.xu = res.data.total_xu
+          updateUser(currentUser)
+        }
+        window.dispatchEvent(new Event('user-updated'))
+      }
+      
+      // Load lại trạng thái điểm danh mới
+      await fetchAttendanceStatus()
+    }
+  } catch (error) {
+    console.error('Lỗi điểm danh:', error)
+    const errorMsg = error.response?.data?.message || 'Điểm danh thất bại, vui lòng thử lại sau.'
+    showToast(errorMsg)
+  } finally {
+    checkingIn.value = false
+  }
+}
 
 const showXuHistoryModal = ref(false)
 const xuHistoryList = ref([])
@@ -1792,79 +1848,139 @@ const promoStatusMap = {
       <main class="main">
 
         <!-- ════ TAB: PROFILE ════ -->
-        <div v-if="activeTab === 'profile'" class="card">
-          <div class="card-header">
-            <div>
-              <h1 class="card-title">Thông tin cá nhân</h1>
-              <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
-            </div>
-            <button v-if="!editing" class="btn-edit" @click="startEdit">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Chỉnh sửa
-            </button>
-          </div>
-          <div v-if="!editing" class="info-grid">
-            <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row">
-              <span class="info-lbl">🪙 Xu tích lũy</span>
-              <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
-                <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
-                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
-                  <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Lịch sử
-                </button>
-              </span>
-            </div>
-            <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row">
-              <span class="info-lbl">Giới tính</span>
-              <span class="info-val" :class="{ 'not-set': !user.gender }">
-                {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác') : 'Chưa cập nhật' }}
-              </span>
-            </div>
-          </div>
-          <form v-else class="edit-form" @submit.prevent="saveProfile">
-            <div class="form-avatar-section">
-              <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
-                <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
-                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
-                  <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
-                    <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                  </div>
-                  <div v-else class="form-avatar-plus-overlay">
-                    <i class="fas fa-plus"></i>
-                  </div>
-                </div>
+        <!-- ════ TAB: PROFILE ════ -->
+        <div v-if="activeTab === 'profile'" style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Thông tin cá nhân -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h1 class="card-title">Thông tin cá nhân</h1>
+                <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
               </div>
-              <p class="form-avatar-upload-text">Tải ảnh lên</p>
-            </div>
-
-            <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
-            <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
-            <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
-            <div class="form-row">
-              <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
-              <div class="form-group">
-                <label>Giới tính</label>
-                <select v-model="profileForm.gender">
-                  <option value="male">Nam</option>
-                  <option value="female">Nữ</option>
-                  <option value="other">Khác</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn-cancel" @click="cancelEdit">Hủy</button>
-              <button type="submit" class="btn-save" :disabled="savingProfile">
-                <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              <button v-if="!editing" class="btn-edit" @click="startEdit">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Chỉnh sửa
               </button>
             </div>
-          </form>
+            <div v-if="!editing" class="info-grid">
+              <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">🪙 Xu tích lũy</span>
+                <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
+                  <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+                  <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                    <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Lịch sử
+                  </button>
+                </span>
+              </div>
+              <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">Giới tính</span>
+                <span class="info-val" :class="{ 'not-set': !user.gender }">
+                  {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác') : 'Chưa cập nhật' }}
+                </span>
+              </div>
+            </div>
+            <form v-else class="edit-form" @submit.prevent="saveProfile">
+              <div class="form-avatar-section">
+                <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+                  <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
+                    <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                    <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                      <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div v-else class="form-avatar-plus-overlay">
+                      <i class="fas fa-plus"></i>
+                    </div>
+                  </div>
+                </div>
+                <p class="form-avatar-upload-text">Tải ảnh lên</p>
+              </div>
+
+              <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
+              <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
+              <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
+              <div class="form-row">
+                <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
+                <div class="form-group">
+                  <label>Giới tính</label>
+                  <select v-model="profileForm.gender">
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" @click="cancelEdit">Hủy</button>
+                <button type="submit" class="btn-save" :disabled="savingProfile">
+                  <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Điểm danh hàng ngày -->
+          <div class="card attendance-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  📅 Điểm danh nhận Xu hàng ngày
+                </h2>
+                <p class="card-sub">Điểm danh hàng ngày từ Thứ Hai đến Chủ Nhật để tích lũy thêm Xu mua sắm!</p>
+              </div>
+            </div>
+
+            <div class="attendance-days-grid">
+              <div v-for="d in attendanceData.days_progress" :key="d.day" class="attendance-day-box" :class="d.status">
+                <div class="day-num">{{ d.label }}</div>
+                <div class="day-xu">
+                  <span class="coin-icon">🪙</span>
+                  <span class="xu-val">+{{ d.xu }}</span>
+                </div>
+                <div class="day-status-icon">
+                  <svg v-if="d.status === 'checked'" class="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <svg v-else-if="d.status === 'current'" class="icon-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                  </svg>
+                  <svg v-else class="icon-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="attendance-footer">
+              <div class="attendance-streak-info">
+                <span>Chuỗi điểm danh hiện tại: <strong>{{ attendanceData.current_streak }} ngày</strong> liên tục</span>
+              </div>
+              <button 
+                class="btn-checkin" 
+                :disabled="attendanceData.checked_today || checkingIn"
+                @click="handleCheckIn"
+              >
+                <svg v-if="checkingIn" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 18px; height: 18px; margin-right: 6px; animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <svg v-else-if="attendanceData.checked_today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <span>{{ attendanceData.checked_today ? 'Hôm nay đã điểm danh' : 'Điểm danh ngay' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- ════ TAB: ORDERS ════ -->
@@ -4513,6 +4629,200 @@ const promoStatusMap = {
 
   .modal-item-right {
     border-top-color: #e2e8f0;
+  }
+}
+
+/* ── DAILY CHECK-IN CARD ── */
+.attendance-card {
+  margin-top: 10px;
+}
+.attendance-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.attendance-day-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px 8px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.attendance-day-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Checked Day */
+.attendance-day-box.checked {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.attendance-day-box.checked .day-num {
+  color: #10b981;
+  font-weight: 700;
+}
+.attendance-day-box.checked .xu-val {
+  color: #a7f3d0;
+}
+
+/* Current Day */
+.attendance-day-box.current {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.2);
+  transform: translateY(-4px);
+  animation: pulse-border 2s infinite;
+}
+.attendance-day-box.current .day-num {
+  color: #facc15;
+  font-weight: 700;
+}
+.attendance-day-box.current .xu-val {
+  color: #fef08a;
+  font-weight: bold;
+}
+
+/* Locked Day */
+.attendance-day-box.locked {
+  opacity: 0.6;
+}
+
+.day-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+.day-xu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.coin-icon {
+  font-size: 16px;
+}
+.xu-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.day-status-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.icon-success {
+  stroke: #10b981;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-current {
+  stroke: #eab308;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-locked {
+  stroke: #64748b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Footer layout */
+.attendance-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 20px;
+}
+.attendance-streak-info {
+  font-size: 14px;
+  color: #94a3b8;
+}
+.attendance-streak-info strong {
+  color: #2563eb;
+  font-size: 16px;
+}
+
+/* Button Checkin */
+.btn-checkin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+.btn-checkin:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+.btn-checkin:disabled {
+  background: rgba(148, 163, 184, 0.15);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #64748b;
+  cursor: not-allowed;
+}
+.btn-checkin:disabled svg {
+  stroke: #64748b;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .attendance-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    text-align: center;
   }
 }
 </style>

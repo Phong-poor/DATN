@@ -167,6 +167,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/xu/history', [App\Http\Controllers\XuController::class, 'getHistory']);
     Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getPublicSettings']);
 
+    // ===== ĐIỂM DANH HÀNG NGÀY =====
+    Route::get('/diem-danh/status', [App\Http\Controllers\DiemDanhController::class, 'getStatus']);
+    Route::post('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'checkIn']);
+
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
     Route::post('/affiliate/activate', [AffiliateController::class, 'activate']);
@@ -416,6 +420,11 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== ADMIN COIN SETTINGS =====
         Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getAdminSettings']);
         Route::put('/xu/settings', [App\Http\Controllers\XuController::class, 'updateAdminSettings']);
+
+        // ===== ADMIN DAILY CHECK-IN =====
+        Route::get('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'adminIndex']);
+        Route::get('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminGetSettings']);
+        Route::put('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminUpdateSettings']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);
