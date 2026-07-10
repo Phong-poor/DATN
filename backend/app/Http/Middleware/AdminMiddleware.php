@@ -153,6 +153,21 @@ class AdminMiddleware
             $requiredPermission = 'nhat_ky_quan_ly';
         }
 
+        // 16. CẤU HÌNH HỆ THỐNG XU
+        elseif ($path === '/api/admin/xu/settings' || str_starts_with($path, '/api/admin/xu/settings/')) {
+            $requiredPermission = 'xu_quan_ly';
+        }
+
+        // 17. QUẢN LÝ VÒNG QUAY MAY MẮN
+        elseif ($path === '/api/admin/vong-quay' || str_starts_with($path, '/api/admin/vong-quay/')) {
+            $requiredPermission = 'vong_quay_quan_ly';
+        }
+
+        // 18. QUẢN LÝ ĐIỂM DANH HÀNG NGÀY
+        elseif ($path === '/api/admin/diem-danh' || str_starts_with($path, '/api/admin/diem-danh/')) {
+            $requiredPermission = 'diem_danh_quan_ly';
+        }
+
         // Nếu xác định được quyền yêu cầu nhưng user không có quyền đó -> chặn
         if ($requiredPermission && !in_array($requiredPermission, $userPerms)) {
             return response()->json([

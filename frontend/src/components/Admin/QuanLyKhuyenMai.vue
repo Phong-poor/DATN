@@ -145,8 +145,7 @@
                     <p class="promo-code">{{ p.code }}</p>
                   </div>
                 </div>
-              </div>
-            </td>
+              </td>
             <td>
               <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
             </td>
@@ -175,6 +174,7 @@
           </tr>
         </tbody>
       </table>
+    </div>
 
       <div class="pagination-row">
         <span class="page-info">Hiển thị 1-{{ filteredPromos.length }} trên <strong>{{ promos.length }}</strong> khuyến mãi</span>
