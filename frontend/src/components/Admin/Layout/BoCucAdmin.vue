@@ -57,7 +57,7 @@
                 <div :class="['submenu-item', isActive && 'active']">
                   <span class="bullet-dot"></span>
                   <span>{{ sub.label }}</span>
-                  <span v-if="sub.badge" :class="['submenu-badge', `badge-${sub.badge.toLowerCase()}`]">
+                  <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
                     {{ sub.badge }}
                   </span>
                 </div>
@@ -236,6 +236,7 @@ import {
   Activity,
   Gift,
   ChevronDown,
+  Coins,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -272,49 +273,80 @@ const appearance = ref({
 const menuConfig = [
   { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   {
-    label: 'Sản phẩm',
+    label: 'Thủ kho',
     icon: Package,
     isDropdown: true,
     children: [
-      { path: '/admin/quan-ly-san-pham', label: 'Sản phẩm', badge: 'CORE' },
-      { path: '/admin/quan-ly-danh-muc', label: 'Danh mục', badge: 'CONFIG' },
-      { path: '/admin/quan-ly-thuong-hieu', label: 'Thương hiệu', badge: 'CONFIG' },
-      { path: '/admin/bien-the-san-pham', label: 'Màu & biến thể', badge: 'CONFIG' },
+      { path: '/admin/quan-ly-san-pham', label: 'Sản phẩm', badge: 'THỦ KHO' },
+      { path: '/admin/quan-ly-danh-muc', label: 'Danh mục', badge: 'THỦ KHO' },
+      { path: '/admin/quan-ly-thuong-hieu', label: 'Thương hiệu', badge: 'THỦ KHO' },
+      { path: '/admin/bien-the-san-pham', label: 'Màu & biến thể', badge: 'THỦ KHO' },
     ]
   },
   {
-    label: 'Bán hàng',
+    label: 'Đơn hàng',
     icon: ShoppingCart,
     isDropdown: true,
     children: [
-      { path: '/admin/quan-ly-don-hang', label: 'Đơn hàng', badge: 'CORE' },
-      { path: '/admin/quan-ly-khuyen-mai', label: 'Khuyến mãi', badge: 'SALES' },
-      { path: '/admin/gui-ma-sinh-nhat', label: 'Gửi mã sinh nhật', badge: 'SALES' },
-      { path: '/admin/quan-ly-combo', label: 'Quản lý Combo', badge: 'SALES' },
-      { path: '/admin/quan-ly-tiep-thi', label: 'Affiliate', badge: 'MARKETING' },
-      { path: '/admin/diem-danh', label: 'Quản lý Điểm danh', badge: 'SALES' },
+      { path: '/admin/quan-ly-don-hang', label: 'Đơn hàng', badge: 'ĐƠN HÀNG' }
     ]
   },
   {
-    label: 'Nội dung',
+    label: 'Marketing',
+    icon: TicketPercent,
+    isDropdown: true,
+    children: [
+      { path: '/admin/quan-ly-khuyen-mai', label: 'Khuyến mãi', badge: 'MARKETING' },
+      { path: '/admin/gui-ma-sinh-nhat', label: 'Gửi mã sinh nhật', badge: 'MARKETING' },
+      { path: '/admin/quan-ly-combo', label: 'Quản lý Combo', badge: 'MARKETING' },
+      { path: '/admin/flash-sales', label: 'Flash Sale', badge: 'MARKETING' },
+    ]
+  },
+  {
+    label: 'Xu & Minigame',
+    icon: Coins,
+    isDropdown: true,
+    children: [
+      { path: '/admin/xu', label: 'Cấu hình Xu', badge: 'MINIGAME' },
+      { path: '/admin/vong-quay', label: 'Vòng quay may mắn', badge: 'MINIGAME' },
+      { path: '/admin/diem-danh', label: 'Quản lý Điểm danh', badge: 'MINIGAME' },
+    ]
+  },
+  {
+    label: 'Tiếp thị',
+    icon: Handshake,
+    isDropdown: true,
+    children: [
+      { path: '/admin/quan-ly-tiep-thi', label: 'Affiliate', badge: 'TIẾP THỊ' },
+    ]
+  },
+  {
+    label: 'Biên tập viên',
     icon: Newspaper,
     isDropdown: true,
     children: [
-      { path: '/admin/quan-ly-tin-tuc', label: 'Bài viết', badge: 'CONTENT' },
-      { path: '/admin/quan-ly-binh-luan', label: 'Bình luận', badge: 'CONTENT' },
+      { path: '/admin/quan-ly-tin-tuc', label: 'Bài viết', badge: 'BIÊN TẬP' },
+      { path: '/admin/quan-ly-binh-luan', label: 'Bình luận', badge: 'BIÊN TẬP' },
+      { path: '/admin/quan-ly-banner', label: 'Banner', badge: 'BIÊN TẬP' },
     ]
   },
   {
-    label: 'Người dùng',
+    label: 'Tư vấn viên',
+    icon: Mail,
+    isDropdown: true,
+    children: [
+      { path: '/admin/quan-ly-lien-he', label: 'Liên hệ', badge: 'TƯ VẤN' },
+    ]
+  },
+  {
+    label: 'Tài khoản',
     icon: Users,
     isDropdown: true,
     children: [
-      { path: '/admin/quan-ly-nguoi-dung', label: 'User', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-nguoi-dung', label: 'Người dùng', badge: 'ADMIN' },
       { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
-      { path: '/admin/quan-ly-lien-he', label: 'Liên hệ', badge: 'SUPPORT' },
     ]
   },
-  { path: '/admin/quan-ly-banner', label: 'Banner', icon: Image },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
@@ -329,29 +361,34 @@ const filteredMenuConfig = computed(() => {
     '/admin/quan-ly-danh-muc': 'danh_muc_xem',
     '/admin/quan-ly-thuong-hieu': 'thuong_hieu_xem',
     '/admin/bien-the-san-pham': 'bien_the_xem',
-    '/admin/bien-the': 'bien_the_xem',
     
     '/admin/quan-ly-don-hang': 'don_hang_xem',
-    '/admin/hoa-don': 'hoa_don_xem',
     
     '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
     '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
     '/admin/quan-ly-combo': 'marketing_quan_ly',
+    '/admin/flash-sales': 'marketing_quan_ly',
+    '/admin/flash-sale': 'marketing_quan_ly',
+    '/admin/vong-quay': 'vong_quay_quan_ly',
+    '/admin/diem-danh': 'diem_danh_quan_ly',
+    
     '/admin/quan-ly-tiep-thi': 'affiliate_quan_ly',
-    '/admin/diem-danh': 'marketing_quan_ly',
     
     '/admin/quan-ly-tin-tuc': 'tin_tuc_quan_ly',
     '/admin/quan-ly-binh-luan': 'binh_luan_quan_ly',
+    '/admin/quan-ly-banner': 'banner_quan_ly',
+    
+    '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
     
     '/admin/quan-ly-nguoi-dung': 'tai_khoan_quan_ly',
     '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
-    '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
     
-    '/admin/quan-ly-banner': 'banner_quan_ly',
     '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
+    '/admin/xu': 'xu_quan_ly',
   }
 
   return menuConfig.map(item => {
+    if (item.path === '/admin' && !isAdmin) return null
     if (!item.isDropdown) {
       const required = pathPermissionMap[item.path]
       if (required && !hasPerm(required)) return null
@@ -374,10 +411,14 @@ const filteredMenuConfig = computed(() => {
 })
 
 const dropdownStates = ref({
-  'Sản phẩm': false,
-  'Bán hàng': false,
-  'Nội dung': false,
-  'Người dùng': false,
+  'Thủ kho': false,
+  'Đơn hàng': false,
+  'Marketing': false,
+  'Xu & Minigame': false,
+  'Tiếp thị': false,
+  'Biên tập viên': false,
+  'Tư vấn viên': false,
+  'Tài khoản': false,
 })
 
 function toggleDropdown(label) {
@@ -436,7 +477,22 @@ const adminVars = computed(() => {
   }
 })
 
-const userName = computed(() => 'NextGen Group')
+const userName = computed(() => user.value?.ten || user.value?.name || 'Predator Staff')
+const userRoleName = computed(() => {
+  const role = user.value?.vaitro || 'admin'
+  const mapping = {
+    admin: 'Admin',
+    user: 'Khách hàng',
+    inventory: 'Thủ kho',
+    order_manager: 'Xử lý đơn hàng',
+    marketing: 'Marketing',
+    affiliate_manager: 'Quản lý Affiliate',
+    editor: 'Biên tập viên',
+    support: 'Tư vấn viên',
+    accountant: 'Kế toán'
+  }
+  return mapping[role.toLowerCase()] || 'Nhân viên'
+})
 const userEmail = computed(() => user.value?.email || user.value?.username || '')
 const userInitials = computed(() =>
   userName.value
@@ -825,33 +881,37 @@ a { text-decoration: none; }
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.badge-core {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-}
-.badge-sales {
-  background: rgba(37, 99, 235, 0.1);
-  color: #4ade80;
-}
-.badge-config {
-  background: rgba(59, 130, 246, 0.1);
+.badge-thủ-kho {
+  background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
 }
-.badge-content {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
-}
-.badge-admin {
-  background: rgba(234, 179, 8, 0.1);
-  color: #facc15;
-}
-.badge-support {
-  background: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
+.badge-đơn-hàng {
+  background: rgba(34, 211, 238, 0.15);
+  color: #3b82f6;
 }
 .badge-marketing {
-  background: rgba(236, 72, 153, 0.1);
+  background: rgba(37, 99, 235, 0.15);
+  color: #4ade80;
+}
+.badge-tiếp-thị {
+  background: rgba(236, 72, 153, 0.15);
   color: #f472b6;
+}
+.badge-biên-tập {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+.badge-tư-vấn {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+.badge-admin {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+.badge-minigame {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 .sidebar-user { 
     margin-top: auto; 

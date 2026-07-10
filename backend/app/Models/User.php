@@ -115,7 +115,8 @@ class User extends Authenticatable
                 'don_hang_xem', 'don_hang_sua', 'hoa_don_xem', 
                 'marketing_quan_ly', 'affiliate_quan_ly', 
                 'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
-                'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly'
+                'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
+                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly'
             ];
         }
 

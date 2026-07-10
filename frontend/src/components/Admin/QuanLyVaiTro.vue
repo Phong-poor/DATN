@@ -66,6 +66,14 @@ const permissionGroups = [
     ]
   },
   {
+    title: 'Xu & Minigame',
+    permissions: [
+      { code: 'xu_quan_ly', name: 'Quản lý cấu hình Xu', desc: 'Thiết lập tỷ lệ quy đổi và các cấu hình hệ thống tích lũy xu.' },
+      { code: 'vong_quay_quan_ly', name: 'Quản lý Vòng quay may mắn', desc: 'Cấu hình các phần quà, tỷ lệ trúng thưởng và xem lịch sử quay thưởng.' },
+      { code: 'diem_danh_quan_ly', name: 'Quản lý Điểm danh', desc: 'Thiết lập và cấu hình số xu thưởng điểm danh hàng ngày.' }
+    ]
+  },
+  {
     title: 'Nội dung & Bình luận',
     permissions: [
       { code: 'tin_tuc_quan_ly', name: 'Quản lý bài viết tin tức', desc: 'Viết bài mới, biên tập bài viết công nghệ và tin tức.' },

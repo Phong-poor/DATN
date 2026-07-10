@@ -188,6 +188,7 @@ async function fetchPromotionsData() {
 
       products.value = filtered.map(p => {
         const giaSP = parseFloat(p.giaKM) > 0 ? parseFloat(p.giaKM) : parseFloat(p.giaSP)
+        const baseVariant = (p.bien_thes && p.bien_thes.length > 0) ? p.bien_thes[0] : null
         
         // Extract specs attributes
         const generalSpecs = []
@@ -875,7 +876,7 @@ const initScrollReveal = () => {
     <!-- 5. VOUCHER CENTER -->
     <section class="section voucher-center-section">
       <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <Tag class="pill-icon" />
             Voucher Center
@@ -1205,6 +1206,9 @@ const initScrollReveal = () => {
 }
 
 .section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   margin-bottom: 48px;
   max-width: 700px;
