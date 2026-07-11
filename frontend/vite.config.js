@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 const root = fileURLToPath(new URL('.', import.meta.url))
-const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost/DATN/backend/public'
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
 
 export default defineConfig({
     root,
