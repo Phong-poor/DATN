@@ -275,11 +275,11 @@ class UserController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'current_password' => 'required',
+            'email' => 'required|email',
         ]);
 
-        if (!Hash::check($request->current_password, $user->matkhau)) {
-            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        if ($request->email !== $user->email) {
+            return response()->json(['message' => 'Email không khớp với tài khoản của bạn'], 422);
         }
 
         $otp = rand(100000, 999999);

@@ -635,7 +635,7 @@ const fetchXuHistory = async (page) => {
 const startEdit = () => {
   profileForm.value = { 
     ...user.value,
-    currentPass: '',
+    currentEmail: '',
     newPass: '',
     confirmPass: ''
   }
@@ -678,7 +678,7 @@ const resendProfileOtp = async () => {
   sendingProfileOtp.value = true
   try {
     await api.post('/user/change-password/request-otp', {
-      current_password: profileForm.value.currentPass
+      email: profileForm.value.currentEmail
     })
     showToast('Đã gửi lại mã OTP!')
     profileOtpResendCooldown.value = 60
@@ -736,14 +736,14 @@ const handleProfileOtpKeydown = (index, event) => {
 
 const requestOtpForPassword = async () => {
   profilePwErrors.value = {}
-  if (!profileForm.value.currentPass) {
-    profilePwErrors.value.currentPass = 'Vui lòng nhập mật khẩu hiện tại'
+  if (!profileForm.value.currentEmail) {
+    profilePwErrors.value.currentEmail = 'Vui lòng nhập email hiện tại'
     return
   }
   sendingProfileOtp.value = true
   try {
     await api.post('/user/change-password/request-otp', {
-      current_password: profileForm.value.currentPass
+      email: profileForm.value.currentEmail
     })
     showProfileOtpModal.value = true
     profileOtpCode.value = ['', '', '', '', '', '']
@@ -751,7 +751,7 @@ const requestOtpForPassword = async () => {
     showToast('Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     if (error.response?.status === 422) {
-       profilePwErrors.value.currentPass = error.response.data.message || error.response.data.errors?.current_password?.[0]
+       profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
     } else {
        showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
     }
@@ -832,7 +832,7 @@ const saveProfile = async () => {
             new_password: profileForm.value.newPass
           })
           otpVerifiedForPassword.value = false
-          profileForm.value.currentPass = ''
+          profileForm.value.currentEmail = ''
           profileForm.value.newPass = ''
           profileForm.value.confirmPass = ''
         } catch (err) {
@@ -2137,14 +2137,14 @@ const promoStatusMap = {
               <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
               
               <div v-if="!otpVerifiedForPassword" class="form-group">
-                <label>Mật khẩu hiện tại</label>
+                <label>Email hiện tại</label>
                 <div style="display: flex; gap: 10px;">
-                  <input v-model="profileForm.currentPass" type="password" placeholder="Nhập mật khẩu hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
-                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentPass" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentPass || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+                  <input v-model="profileForm.currentEmail" type="email" placeholder="Nhập email hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
+                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentEmail" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentEmail || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
                     {{ sendingProfileOtp ? 'Đang gửi...' : 'Gửi mã OTP' }}
                   </button>
                 </div>
-                <span v-if="profilePwErrors.currentPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentPass }}</span>
+                <span v-if="profilePwErrors.currentEmail" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentEmail }}</span>
               </div>
               
               <div v-if="otpVerifiedForPassword" class="form-row">
