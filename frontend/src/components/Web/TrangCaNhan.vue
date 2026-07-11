@@ -636,20 +636,24 @@ const startEdit = () => {
   profileForm.value = { 
     ...user.value,
     currentPass: '',
-    newPass: ''
+    newPass: '',
+    confirmPass: ''
   }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
   editing.value = true
+  otpVerifiedForPassword.value = false
 }
 
 const cancelEdit = () => {
   editing.value = false
   profileForm.value = {}
   profilePwErrors.value = {}
+  otpVerifiedForPassword.value = false
 }
 
+const otpVerifiedForPassword = ref(false)
 const profilePwErrors = ref({})
 const showProfileOtpModal = ref(false)
 const profileOtpCode = ref(['', '', '', '', '', ''])
@@ -674,8 +678,7 @@ const resendProfileOtp = async () => {
   sendingProfileOtp.value = true
   try {
     await api.post('/user/change-password/request-otp', {
-      current_password: profileForm.value.currentPass,
-      new_password: profileForm.value.newPass
+      current_password: profileForm.value.currentPass
     })
     showToast('Đã gửi lại mã OTP!')
     profileOtpResendCooldown.value = 60
@@ -731,7 +734,33 @@ const handleProfileOtpKeydown = (index, event) => {
   }
 }
 
-const verifyProfileOtpAndSavePassword = async () => {
+const requestOtpForPassword = async () => {
+  profilePwErrors.value = {}
+  if (!profileForm.value.currentPass) {
+    profilePwErrors.value.currentPass = 'Vui lòng nhập mật khẩu hiện tại'
+    return
+  }
+  sendingProfileOtp.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      current_password: profileForm.value.currentPass
+    })
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
+  } catch (error) {
+    if (error.response?.status === 422) {
+       profilePwErrors.value.currentPass = error.response.data.message || error.response.data.errors?.current_password?.[0]
+    } else {
+       showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
+    }
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const verifyProfileOtp = async () => {
   const code = profileOtpCode.value.join('')
   if (code.length < 6) {
     profilePwErrors.value.otp = 'Vui lòng nhập đủ 6 số'
@@ -740,15 +769,12 @@ const verifyProfileOtpAndSavePassword = async () => {
   verifyingProfileOtp.value = true
   profilePwErrors.value.otp = ''
   try {
-    const res = await api.post('/user/change-password/verify-otp', {
-      otp: code,
-      new_password: profileForm.value.newPass
+    await api.post('/user/change-password/check-otp', {
+      otp: code
     })
     showProfileOtpModal.value = false
-    editing.value = false
-    showToast(res.data?.message || 'Cập nhật mật khẩu thành công!')
-    profileForm.value.currentPass = ''
-    profileForm.value.newPass = ''
+    otpVerifiedForPassword.value = true
+    showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
   } catch (error) {
     profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
   } finally {
@@ -793,32 +819,24 @@ const saveProfile = async () => {
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
-    // Handle password change if user entered password
-    if (profileForm.value.newPass || profileForm.value.currentPass) {
+    // Handle password change if user successfully verified OTP and entered new password
+    if (otpVerifiedForPassword.value && profileForm.value.newPass) {
       profilePwErrors.value = {}
-      if (!profileForm.value.currentPass) profilePwErrors.value.currentPass = 'Vui lòng nhập mật khẩu hiện tại'
       if (!profileForm.value.newPass) profilePwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
+      if (profileForm.value.newPass !== profileForm.value.confirmPass) profilePwErrors.value.confirmPass = 'Mật khẩu xác nhận không khớp'
 
       if (Object.keys(profilePwErrors.value).length === 0) {
         try {
-          await api.post('/user/change-password/request-otp', {
-            current_password: profileForm.value.currentPass,
+          await api.post('/user/change-password/verify-otp', {
+            otp: profileOtpCode.value.join(''),
             new_password: profileForm.value.newPass
           })
-          showProfileOtpModal.value = true
-          profileOtpCode.value = ['', '', '', '', '', '']
-          startProfileOtpTimer()
-          savingProfile.value = false
-          return // Stop here to wait for OTP input
+          otpVerifiedForPassword.value = false
+          profileForm.value.currentPass = ''
+          profileForm.value.newPass = ''
+          profileForm.value.confirmPass = ''
         } catch (err) {
-          if (err.response?.status === 422) {
-             const errData = err.response.data.errors || {}
-             if (errData.current_password) profilePwErrors.value.currentPass = errData.current_password[0]
-             if (errData.new_password) profilePwErrors.value.newPass = errData.new_password[0]
-             if (err.response?.data?.message) profilePwErrors.value.currentPass = err.response.data.message
-          } else {
-             showToast(err.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
-          }
+          showToast(err.response?.data?.message || 'Lỗi đổi mật khẩu')
           savingProfile.value = false
           return // Don't close edit form
         }
@@ -1783,8 +1801,8 @@ const promoStatusMap = {
             Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{ Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
           </div>
 
-          <button @click="verifyProfileOtpAndSavePassword" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6" style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
-            {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Xác nhận' }}
+          <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6" style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+            {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
           </button>
 
           <div style="text-align: center; font-size: 13.5px;">
@@ -2118,17 +2136,27 @@ const promoStatusMap = {
               <h3 style="font-size: 15px; color: #f8fafc; margin-bottom: 16px;">Đổi mật khẩu (Không bắt buộc)</h3>
               <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
               
-              <div class="form-group">
+              <div v-if="!otpVerifiedForPassword" class="form-group">
                 <label>Mật khẩu hiện tại</label>
-                <input v-model="profileForm.currentPass" type="password" placeholder="Nhập mật khẩu hiện tại" autocomplete="off" />
+                <div style="display: flex; gap: 10px;">
+                  <input v-model="profileForm.currentPass" type="password" placeholder="Nhập mật khẩu hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
+                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentPass" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentPass || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+                    {{ sendingProfileOtp ? 'Đang gửi...' : 'Gửi mã OTP' }}
+                  </button>
+                </div>
                 <span v-if="profilePwErrors.currentPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentPass }}</span>
               </div>
               
-              <div class="form-row">
-                <div class="form-group" style="width: 100%;">
+              <div v-if="otpVerifiedForPassword" class="form-row">
+                <div class="form-group">
                   <label>Mật khẩu mới</label>
                   <input v-model="profileForm.newPass" type="password" placeholder="Nhập mật khẩu mới" autocomplete="off" />
                   <span v-if="profilePwErrors.newPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.newPass }}</span>
+                </div>
+                <div class="form-group">
+                  <label>Xác nhận mật khẩu</label>
+                  <input v-model="profileForm.confirmPass" type="password" placeholder="Xác nhận mật khẩu mới" autocomplete="off" />
+                  <span v-if="profilePwErrors.confirmPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.confirmPass }}</span>
                 </div>
               </div>
 
