@@ -117,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     Route::get('/user/change-password/captcha', [UserController::class, 'passwordCaptcha']);
     Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
+    Route::post('/user/change-password/check-otp', [UserController::class, 'checkOTP']);
     Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
     Route::get('/user/dia-chi', [DiaChiController::class, 'index']);
     Route::post('/user/dia-chi', [DiaChiController::class, 'store']);

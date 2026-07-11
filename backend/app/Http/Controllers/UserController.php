@@ -275,14 +275,11 @@ class UserController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:8|confirmed',
-        ], [
-            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+            'email' => 'required|email',
         ]);
 
-        if (!Hash::check($request->current_password, $user->matkhau)) {
-            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        if ($request->email !== $user->email) {
+            return response()->json(['message' => 'Email không khớp với tài khoản của bạn'], 422);
         }
 
         $otp = rand(100000, 999999);
@@ -301,6 +298,27 @@ class UserController extends Controller
                 'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * POST /api/user/change-password/check-otp
+     * Just verify OTP is correct
+     */
+    public function checkOTP(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'otp' => 'required',
+        ]);
+
+        if ((int)$user->otp_khoiphuc !== (int)$request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
+            return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
+        }
+
+        return response()->json([
+            'message' => 'Mã OTP hợp lệ',
+        ]);
     }
 
     /**

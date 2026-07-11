@@ -44,7 +44,7 @@ const routePreloads = {
   '/dang-ky': () => import('@/components/Auth/DangKy.vue'),
   '/register': () => routePreloads['/dang-ky'](),
   '/admin': () => Promise.all([
-    import('@/components/Admin/Layout/AdminLayout.vue'),
+    import('@/components/Admin/Layout/BoCucAdmin.vue'),
     import('@/components/Admin/BangDieuKhien.vue'),
   ]),
   '/admin/quan-ly-san-pham': () => import('@/components/Admin/QuanLySanPham.vue'),

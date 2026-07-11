@@ -633,16 +633,153 @@ const fetchXuHistory = async (page) => {
 }
 
 const startEdit = () => {
-  profileForm.value = { ...user.value }
+  profileForm.value = { 
+    ...user.value,
+    currentEmail: '',
+    newPass: '',
+    confirmPass: ''
+  }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
   editing.value = true
+  otpVerifiedForPassword.value = false
 }
 
 const cancelEdit = () => {
   editing.value = false
   profileForm.value = {}
+  profilePwErrors.value = {}
+  otpVerifiedForPassword.value = false
+}
+
+const otpVerifiedForPassword = ref(false)
+const profilePwErrors = ref({})
+const showProfileOtpModal = ref(false)
+const profileOtpCode = ref(['', '', '', '', '', ''])
+const profileOtpInputRefs = ref([])
+const profileOtpCountdown = ref(600) // 10 mins
+const profileOtpResendCooldown = ref(0)
+const verifyingProfileOtp = ref(false)
+const sendingProfileOtp = ref(false)
+let profileOtpTimer = null
+
+const startProfileOtpTimer = () => {
+  if (profileOtpTimer) clearInterval(profileOtpTimer)
+  profileOtpCountdown.value = 600
+  profileOtpTimer = setInterval(() => {
+    if (profileOtpCountdown.value > 0) profileOtpCountdown.value--
+    else clearInterval(profileOtpTimer)
+  }, 1000)
+}
+
+const resendProfileOtp = async () => {
+  if (profileOtpResendCooldown.value > 0) return
+  sendingProfileOtp.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      email: profileForm.value.currentEmail
+    })
+    showToast('Đã gửi lại mã OTP!')
+    profileOtpResendCooldown.value = 60
+    const cooldownTimer = setInterval(() => {
+      if (profileOtpResendCooldown.value > 0) profileOtpResendCooldown.value--
+      else clearInterval(cooldownTimer)
+    }, 1000)
+    startProfileOtpTimer()
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Lỗi gửi lại mã OTP!')
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const handleProfileOtpInput = (index, event) => {
+  const value = event.target.value
+  if (value && value.length > 1) {
+    const chars = value.split('').filter(c => /[0-9]/.test(c))
+    chars.forEach((char, i) => {
+      if (index + i < 6) {
+        profileOtpCode.value[index + i] = char
+      }
+    })
+    const nextEmptyIndex = profileOtpCode.value.findIndex(val => !val)
+    if (nextEmptyIndex !== -1 && profileOtpInputRefs.value[nextEmptyIndex]) {
+      profileOtpInputRefs.value[nextEmptyIndex].focus()
+    } else if (profileOtpInputRefs.value[5]) {
+      profileOtpInputRefs.value[5].focus()
+    }
+  } else if (value && /[0-9]/.test(value)) {
+    profileOtpCode.value[index] = value
+    if (index < 5 && profileOtpInputRefs.value[index + 1]) {
+      profileOtpInputRefs.value[index + 1].focus()
+    }
+  } else {
+    profileOtpCode.value[index] = ''
+  }
+}
+
+const handleProfileOtpKeydown = (index, event) => {
+  if (event.key === 'Backspace') {
+    if (!profileOtpCode.value[index] && index > 0 && profileOtpInputRefs.value[index - 1]) {
+      profileOtpInputRefs.value[index - 1].focus()
+      profileOtpCode.value[index - 1] = ''
+    } else {
+      profileOtpCode.value[index] = ''
+    }
+  } else if (event.key === 'ArrowLeft' && index > 0 && profileOtpInputRefs.value[index - 1]) {
+    profileOtpInputRefs.value[index - 1].focus()
+  } else if (event.key === 'ArrowRight' && index < 5 && profileOtpInputRefs.value[index + 1]) {
+    profileOtpInputRefs.value[index + 1].focus()
+  }
+}
+
+const requestOtpForPassword = async () => {
+  profilePwErrors.value = {}
+  if (!profileForm.value.currentEmail) {
+    profilePwErrors.value.currentEmail = 'Vui lòng nhập email hiện tại'
+    return
+  }
+  sendingProfileOtp.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      email: profileForm.value.currentEmail
+    })
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
+  } catch (error) {
+    if (error.response?.status === 422) {
+       profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
+    } else {
+       showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
+    }
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const verifyProfileOtp = async () => {
+  const code = profileOtpCode.value.join('')
+  if (code.length < 6) {
+    profilePwErrors.value.otp = 'Vui lòng nhập đủ 6 số'
+    return
+  }
+  verifyingProfileOtp.value = true
+  profilePwErrors.value.otp = ''
+  try {
+    await api.post('/user/change-password/check-otp', {
+      otp: code
+    })
+    showProfileOtpModal.value = false
+    otpVerifiedForPassword.value = true
+    showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+  } catch (error) {
+    profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
+  } finally {
+    verifyingProfileOtp.value = false
+  }
 }
 
 const saveProfile = async () => {
@@ -681,6 +818,33 @@ const saveProfile = async () => {
     updateUserData(res.data.user || res.data)
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
+
+    // Handle password change if user successfully verified OTP and entered new password
+    if (otpVerifiedForPassword.value && profileForm.value.newPass) {
+      profilePwErrors.value = {}
+      if (!profileForm.value.newPass) profilePwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
+      if (profileForm.value.newPass !== profileForm.value.confirmPass) profilePwErrors.value.confirmPass = 'Mật khẩu xác nhận không khớp'
+
+      if (Object.keys(profilePwErrors.value).length === 0) {
+        try {
+          await api.post('/user/change-password/verify-otp', {
+            otp: profileOtpCode.value.join(''),
+            new_password: profileForm.value.newPass
+          })
+          otpVerifiedForPassword.value = false
+          profileForm.value.currentEmail = ''
+          profileForm.value.newPass = ''
+          profileForm.value.confirmPass = ''
+        } catch (err) {
+          showToast(err.response?.data?.message || 'Lỗi đổi mật khẩu')
+          savingProfile.value = false
+          return // Don't close edit form
+        }
+      } else {
+         savingProfile.value = false
+         return // Show errors, don't close form
+      }
+    }
 
     editing.value = false
     showToast('Cập nhật thành công!')
@@ -1600,6 +1764,57 @@ const promoStatusMap = {
       </div>
     </transition>
 
+    <!-- Profile OTP Modal -->
+    <transition name="fade">
+      <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false" style="z-index: 9020;">
+        <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="width: 56px; height: 56px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+              <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <input 
+              v-for="(val, idx) in 6" :key="idx"
+              type="text" 
+              maxlength="1"
+              :ref="el => profileOtpInputRefs[idx] = el"
+              v-model="profileOtpCode[idx]"
+              @input="handleProfileOtpInput(idx, $event)"
+              @keydown="handleProfileOtpKeydown(idx, $event)"
+              @paste.prevent="handleProfileOtpInput(idx, { target: { value: $event.clipboardData.getData('text') } })"
+              style="width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: 700; border: 2px solid #e2e8f0; border-radius: 10px; transition: border-color 0.2s;"
+              onfocus="this.style.borderColor='#2563eb'"
+              onblur="this.style.borderColor='#e2e8f0'"
+            />
+          </div>
+
+          <div v-if="profilePwErrors.otp" style="color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; font-weight: 500;">
+            {{ profilePwErrors.otp }}
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px;">
+            <svg style="width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{ Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
+          </div>
+
+          <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6" style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+            {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
+          </button>
+
+          <div style="text-align: center; font-size: 13.5px;">
+            <span style="color: #64748b;">Chưa nhận được mã?</span>
+            <button @click="resendProfileOtp" :disabled="profileOtpResendCooldown > 0 || sendingProfileOtp" style="background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; margin-left: 6px; transition: opacity 0.2s;" :style="profileOtpResendCooldown > 0 || sendingProfileOtp ? 'color: #94a3b8; cursor: not-allowed;' : ''" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+              {{ sendingProfileOtp ? 'Đang gửi...' : (profileOtpResendCooldown > 0 ? `Gửi lại (${profileOtpResendCooldown}s)` : 'Gửi lại mã') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Refund Modal -->
     <transition name="fade">
       <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
@@ -1916,6 +2131,34 @@ const promoStatusMap = {
                   </select>
                 </div>
               </div>
+
+              
+              <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
+              
+              <div v-if="!otpVerifiedForPassword" class="form-group">
+                <label>Nhập email hiện tại để đổi mật khẩu mới</label>
+                <div style="display: flex; gap: 10px;">
+                  <input v-model="profileForm.currentEmail" type="email" placeholder="Nhập email hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
+                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentEmail" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentEmail || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+                    {{ sendingProfileOtp ? 'Đang gửi...' : 'Gửi mã OTP' }}
+                  </button>
+                </div>
+                <span v-if="profilePwErrors.currentEmail" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentEmail }}</span>
+              </div>
+              
+              <div v-if="otpVerifiedForPassword" class="form-row">
+                <div class="form-group">
+                  <label>Mật khẩu mới</label>
+                  <input v-model="profileForm.newPass" type="password" placeholder="Nhập mật khẩu mới" autocomplete="off" />
+                  <span v-if="profilePwErrors.newPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.newPass }}</span>
+                </div>
+                <div class="form-group">
+                  <label>Xác nhận mật khẩu</label>
+                  <input v-model="profileForm.confirmPass" type="password" placeholder="Xác nhận mật khẩu mới" autocomplete="off" />
+                  <span v-if="profilePwErrors.confirmPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.confirmPass }}</span>
+                </div>
+              </div>
+
               <div class="form-actions">
                 <button type="button" class="btn-cancel" @click="cancelEdit">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingProfile">
