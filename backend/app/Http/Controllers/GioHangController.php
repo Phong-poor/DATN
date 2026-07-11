@@ -27,10 +27,25 @@ class GioHangController extends Controller
 
         // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
         $cartVariantIds = $items->pluck('id_bienthe')->toArray();
+        $cartVariants = \App\Models\BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
+
         $freeComboOffers = DB::table('bienthe_combo_offers')
-            ->whereIn('id_bienthe', $cartVariantIds)
-            ->where('trangthai', 1)
+            ->join('bienthe', 'bienthe_combo_offers.id_bienthe', '=', 'bienthe.id_bienthe')
+            ->select('bienthe_combo_offers.*', 'bienthe.ten_bienthe', 'bienthe.id_sanpham')
+            ->where('bienthe_combo_offers.trangthai', 1)
             ->get()
+            ->filter(function ($offer) use ($cartVariants) {
+                $offerConfig = \App\Http\Controllers\ComboController::getConfigName($offer->ten_bienthe);
+                foreach ($cartVariants as $cartVar) {
+                    if ($cartVar->id_sanpham == $offer->id_sanpham) {
+                        $cartConfig = \App\Http\Controllers\ComboController::getConfigName($cartVar->ten_bienthe);
+                        if ($cartConfig === $offerConfig) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            })
             ->filter(function ($offer) {
                 return \App\Http\Controllers\ComboController::isOfferValid($offer);
             })

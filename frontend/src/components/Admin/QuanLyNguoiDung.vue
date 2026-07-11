@@ -710,7 +710,7 @@ const submitEdit = async () => {
 
         <!-- ─── MODAL TẠO MỚI ─── -->
         <Teleport to="body">
-            <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+            <div v-if="showModal" class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
                         <h3>Thêm người dùng mới</h3>
@@ -818,7 +818,7 @@ const submitEdit = async () => {
 
         <!-- ─── MODAL CHỈNH SỬA ─── -->
         <Teleport to="body">
-            <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+            <div v-if="showEditModal" class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
                         <div class="modal-title-wrap">

@@ -342,7 +342,7 @@ const deleteRole = async (role) => {
 
     <!-- Edit/Add Modal -->
     <Transition name="fade-scale">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div v-if="showModal" class="modal-overlay">
         <div class="modal-container">
           <div class="modal-header">
             <h3>{{ isEditMode ? 'Cấu hình quyền hạn vai trò' : 'Tạo vai trò quản trị mới' }}</h3>

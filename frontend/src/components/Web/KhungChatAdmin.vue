@@ -73,9 +73,9 @@
             </template>
             <template #body="{ msg: rowMsg }">
               <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
-                <span v-html="formatMessage(rowMsg.message || '', searchMessageQuery)"></span>
-                <template v-if="rowMsg.message" #caption>
-                  <span v-html="formatMessage(rowMsg.message, searchMessageQuery)"></span>
+                <span v-html="formatMessage(rowMsg.noidung || '', searchMessageQuery)"></span>
+                <template v-if="rowMsg.noidung" #caption>
+                  <span v-html="formatMessage(rowMsg.noidung, searchMessageQuery)"></span>
                 </template>
               </ChatMessageBody>
             </template>
@@ -141,7 +141,7 @@ const searchMatches = computed(() => {
   const query = searchMessageQuery.value.trim().toLowerCase();
   return messages.value
     .map((msg, index) => ({ msg, index }))
-    .filter(item => item.msg.message && item.msg.message.toLowerCase().includes(query));
+    .filter(item => item.msg.noidung && item.msg.noidung.toLowerCase().includes(query));
 });
 
 const matchesCount = computed(() => searchMatches.value.length);

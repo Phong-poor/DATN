@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import swal from '@/services/swal'
 import { getUser, getToken } from '../services/auth'
+import { isFormDirty } from '../services/unsavedChanges'
 
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual'
@@ -195,7 +196,7 @@ router.beforeEach((to, from, next) => {
   const shouldShowRouteLoader =
     to.fullPath !== from.fullPath && !to.path.startsWith('/products/') && !to.path.startsWith('/san-pham/')
 
-  if (shouldShowRouteLoader) {
+  if (shouldShowRouteLoader && !isFormDirty.value) {
     showRouteLoader()
   }
 

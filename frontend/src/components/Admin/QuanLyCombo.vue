@@ -82,6 +82,38 @@ const selectedOfferProduct = ref(null) // ID sản phẩm chính đang chọn
 const availableOfferVariants = ref([]) // Biến thể tương ứng của sản phẩm chính
 const isVariantCollapsed = ref(false) // Trạng thái đóng/mở danh sách biến thể
 
+const getConfigName = (name) => {
+  if (!name) return ''
+  const parts = name.split(' - ')
+  if (parts.length > 1) {
+    return parts.slice(0, -1).join(' - ')
+  }
+  return name
+}
+
+const groupedOfferVariants = computed(() => {
+  const map = {}
+  availableOfferVariants.value.forEach(v => {
+    const configName = getConfigName(v.ten_bienthe)
+    if (!map[configName]) {
+      map[configName] = {
+        configName: configName,
+        id_bienthe: v.id_bienthe,
+        gia: v.gia,
+        ten_bienthe: v.ten_bienthe,
+        allVariants: []
+      }
+    }
+    map[configName].allVariants.push(v)
+  })
+  return Object.values(map)
+})
+
+const isVariantSelected = (groupedVar) => {
+  if (!offerForm.value.id_bienthe) return false
+  return groupedVar.allVariants.some(child => Number(child.id_bienthe) === Number(offerForm.value.id_bienthe))
+}
+
 // --- Stats ---
 const totalCombos = computed(() => combos.value.length)
 const activeCombos = computed(() => combos.value.filter(c => c.trangthai === 1).length)
@@ -481,7 +513,7 @@ const getSelectedOfferProductName = (id) => {
 
 const getSelectedVariantName = (id) => {
   const v = availableOfferVariants.value.find(varItem => varItem.id_bienthe === Number(id))
-  return v ? v.ten_bienthe : 'Cấu hình #' + id
+  return v ? getConfigName(v.ten_bienthe) : 'Cấu hình #' + id
 }
 
 const getSelectedVariantPrice = (id) => {
@@ -489,8 +521,9 @@ const getSelectedVariantPrice = (id) => {
   return v ? Number(v.gia).toLocaleString('vi-VN') + 'đ' : ''
 }
 
-const selectVariantAction = (v) => {
-  offerForm.value.id_bienthe = v.id_bienthe
+const selectVariantAction = (groupedVar) => {
+  if (isOfferEditMode.value) return
+  offerForm.value.id_bienthe = groupedVar.id_bienthe
   isVariantCollapsed.value = true
 }
 
@@ -909,7 +942,7 @@ onMounted(() => {
                 <div class="product-target">
                   <span class="product-name">{{ offer.sanpham_ten }}</span>
                   <span class="variant-spec-badge" style="margin-top: 6px;">
-                    💻 {{ offer.ten_bienthe }}
+                    💻 {{ getConfigName(offer.ten_bienthe) }}
                   </span>
                 </div>
               </td>
@@ -1229,14 +1262,14 @@ onMounted(() => {
 
               <!-- Available variant grid to select from -->
               <div v-else>
-                <div v-if="availableOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
+                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
                   <div 
-                    v-for="v in availableOfferVariants" 
-                    :key="v.id_bienthe"
+                    v-for="v in groupedOfferVariants" 
+                    :key="v.configName"
                     class="variant-offer-card"
                     :class="{ 
-                      selected: Number(offerForm.id_bienthe) === Number(v.id_bienthe),
-                      disabled: isOfferEditMode && Number(offerForm.id_bienthe) !== Number(v.id_bienthe)
+                      selected: isVariantSelected(v),
+                      disabled: isOfferEditMode && !isVariantSelected(v)
                     }"
                     @click="selectVariantAction(v)"
                     style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; text-align: left; background: white;"
@@ -1245,13 +1278,13 @@ onMounted(() => {
                     <div 
                       class="variant-select-chk" 
                       style="position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; background: white; font-weight: bold; transition: all 0.2s;"
-                      :style="Number(offerForm.id_bienthe) === Number(v.id_bienthe) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
+                      :style="isVariantSelected(v) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
                     >
-                      <span v-if="Number(offerForm.id_bienthe) === Number(v.id_bienthe)">✓</span>
+                      <span v-if="isVariantSelected(v)">✓</span>
                     </div>
                     
                     <div style="font-weight: 700; font-size: 12px; color: #1e293b; padding-right: 20px; line-height: 1.4; transition: color 0.2s;">
-                      {{ v.ten_bienthe }}
+                      {{ v.configName }}
                     </div>
                     
                     <div style="font-size: 11px; font-weight: 800; color: #2563eb; margin-top: 8px;">
@@ -1380,7 +1413,7 @@ onMounted(() => {
                   <span class="detail-info-label">Phiên bản / Cấu hình</span>
                   <span class="detail-info-value">
                     <span class="variant-spec-badge" style="margin: 0; font-size: 11px; padding: 4px 8px;">
-                      💻 {{ selectedOfferDetail.ten_bienthe }}
+                      💻 {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
                     </span>
                   </span>
                 </div>

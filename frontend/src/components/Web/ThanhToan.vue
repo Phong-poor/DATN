@@ -8,6 +8,7 @@ import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
 import { normalizeImageUrl } from '@/services/urls'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
+import { isFormDirty } from '@/services/unsavedChanges'
 
 const isUserLoggedIn = computed(() => Boolean(getToken()))
 
@@ -346,6 +347,47 @@ const openEditAddressModal = async (addr) => {
     }
 }
 
+const isAddressFormDirty = () => {
+    if (editingAddressId.value === null) {
+        // Add mode
+        return (
+            selectedProvinceCode.value !== '' ||
+            selectedWardCode.value !== '' ||
+            addressForm.value.diachi_cuthe.trim() !== '' ||
+            addressForm.value.loai_diachi !== 'home' ||
+            addressForm.value.mac_dinh !== false
+        )
+    } else {
+        // Edit mode
+        const original = addresses.value.find(a => a.id_diachi === editingAddressId.value)
+        if (!original) return false
+        return (
+            addressForm.value.tinh_thanhpho !== (original.tinh_thanhpho || '') ||
+            addressForm.value.quan_huyen !== (original.quan_huyen || '') ||
+            addressForm.value.phuong_xa !== (original.phuong_xa || '') ||
+            addressForm.value.diachi_cuthe.trim() !== (original.diachi_cuthe || '').trim() ||
+            addressForm.value.loai_diachi !== (original.loai_diachi || 'home') ||
+            addressForm.value.mac_dinh !== Boolean(original.mac_dinh) ||
+            addressForm.value.latitude !== original.latitude ||
+            addressForm.value.longitude !== original.longitude
+        )
+    }
+}
+
+const closeAddAddressModal = async () => {
+    if (isAddressFormDirty()) {
+        const confirmed = await swal.confirm(
+            'Xác nhận đóng',
+            'Bạn đang điền thông tin địa chỉ. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+            'Có, đóng lại',
+            'Không, ở lại'
+        )
+        if (!confirmed) return
+    }
+    showAddAddressModal.value = false
+    isFormDirty.value = false
+}
+
 const saveNewAddress = async () => {
     savingAddress.value = true
     try {
@@ -366,6 +408,7 @@ const saveNewAddress = async () => {
         await fetchAddresses(res.data.data?.id_diachi)
         showAddAddressModal.value = false
         editingAddressId.value = null
+        isFormDirty.value = false
         swal.success('Thành công', isEditing ? 'Đã cập nhật địa chỉ.' : 'Đã thêm địa chỉ mới.')
     } catch (error) {
         const msg = error.response?.data?.message
@@ -1021,6 +1064,7 @@ const confirmOrder = async () => {
     </div>
   </div>
 
+  <Teleport to="body">
   <div v-if="showAddressModal" class="overlay" @click.self="showAddressModal = false" style="z-index: 9015;">
     <div class="modal address-modal">
       <div class="modal-head">
@@ -1051,12 +1095,14 @@ const confirmOrder = async () => {
       </div>
     </div>
   </div>
+  </Teleport>
 
-  <div v-if="showAddAddressModal" class="overlay" @click.self="showAddAddressModal = false" style="z-index: 9015;">
+  <Teleport to="body">
+  <div v-if="showAddAddressModal" class="overlay" @click.self="closeAddAddressModal" style="z-index: 9015;">
     <div class="modal address-modal">
       <div class="modal-head">
         <h2 class="modal-title">{{ editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-        <button type="button" class="close-btn" @click="showAddAddressModal = false">
+        <button type="button" class="close-btn" no-guard @click="closeAddAddressModal">
           <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
@@ -1106,7 +1152,7 @@ const confirmOrder = async () => {
             </label>
           </div>
           <div class="form-actions form-full address-modal-actions">
-            <button type="button" class="btn-cancel" @click="showAddAddressModal = false">Hủy</button>
+            <button type="button" class="btn-cancel" no-guard @click="closeAddAddressModal">Hủy</button>
             <button type="submit" class="btn-save" :disabled="savingAddress">
               <svg v-if="savingAddress" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
               {{ savingAddress ? 'Đang lưu...' : 'Lưu địa chỉ' }}
@@ -1116,6 +1162,7 @@ const confirmOrder = async () => {
       </div>
     </div>
   </div>
+  </Teleport>
 
   <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
 

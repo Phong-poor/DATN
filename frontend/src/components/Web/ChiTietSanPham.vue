@@ -2539,9 +2539,10 @@ const handleSelectVariantById = (idBienThe) => {
         </div>
 
         <!-- POPUP SO SÁNH MODAL (High-tech full responsive design) -->
-        <div class="compare-modal-wrapper">
-            <transition name="fade">
-                <div class="compare-modal-overlay" v-if="showCompareModal">
+        <Teleport to="body">
+            <div class="compare-modal-wrapper">
+                <transition name="fade">
+                    <div class="compare-modal-overlay" v-if="showCompareModal">
                     <div class="compare-modal-card">
                         <div class="modal-glow-boundary"></div>
 
@@ -2652,6 +2653,7 @@ const handleSelectVariantById = (idBienThe) => {
                 </div>
             </transition>
         </div>
+    </Teleport>
     </div>
 
     <!-- MAIN LOADING SCREEN -->
@@ -4690,11 +4692,12 @@ const handleSelectVariantById = (idBienThe) => {
     font-family: var(--font-heading);
     font-size: 16px;
     font-weight: 700;
+    color: #ffffff;
     margin: 0 0 8px 0;
 }
 .empty-reviews-state p {
     font-size: 13px;
-    color: var(--text-secondary);
+    color: #94a3b8;
     line-height: 1.5;
     margin: 0;
 }
@@ -4958,7 +4961,7 @@ const handleSelectVariantById = (idBienThe) => {
     height: 100vh;
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(8px);
-    z-index: 1000;
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;

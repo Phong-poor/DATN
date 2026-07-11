@@ -8,6 +8,7 @@ import { installPerformanceWarmup } from './services/performanceWarmup'
 import { installOnlinePresence } from './services/onlinePresence'
 import { installScrollEffects } from './services/scrollEffects'
 import { installI18n } from './services/i18n'
+import { initUnsavedChangesGuard } from './services/unsavedChanges'
 
 initGoogleAnalytics()
 
@@ -69,6 +70,8 @@ window.addEventListener('pageshow', (event) => {
 createApp(App)
   .use(router)
   .mount('#app')
+
+initUnsavedChangesGuard(router)
 
 installPerformanceWarmup()
 installOnlinePresence()

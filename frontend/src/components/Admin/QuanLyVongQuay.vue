@@ -345,7 +345,7 @@ onMounted(async () => {
 
     <!-- EDIT MODAL OVERLAY -->
     <transition name="modal-fade">
-      <div class="modal-overlay" v-if="isEditModalOpen" @click.self="isEditModalOpen = false">
+      <div class="modal-overlay" v-if="isEditModalOpen">
         <div class="modal-card">
           <div class="modal-header">
             <h3>{{ isAddMode ? 'Thêm Ô Vòng Quay Mới' : `Chỉnh Sửa Ô Vòng Quay #${editForm.id}` }}</h3>
