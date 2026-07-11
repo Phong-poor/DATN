@@ -2132,12 +2132,11 @@ const promoStatusMap = {
                 </div>
               </div>
 
-              <div class="divider" style="margin: 24px 0; border-top: 1px dashed rgba(255,255,255,0.1);"></div>
-              <h3 style="font-size: 15px; color: #f8fafc; margin-bottom: 16px;">Đổi mật khẩu (Không bắt buộc)</h3>
+              
               <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
               
               <div v-if="!otpVerifiedForPassword" class="form-group">
-                <label>Email hiện tại</label>
+                <label>Nhập email hiện tại để đổi mật khẩu mới</label>
                 <div style="display: flex; gap: 10px;">
                   <input v-model="profileForm.currentEmail" type="email" placeholder="Nhập email hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
                   <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentEmail" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentEmail || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
