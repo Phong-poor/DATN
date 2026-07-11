@@ -591,7 +591,7 @@ onMounted(async () => {
     <div class="page-footer">© 2026 VINATECH ECOSYSTEM • QUẢN LÝ NỘI DUNG</div>
 
     <Teleport to="body">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div v-if="showModal" class="modal-overlay">
         <div class="modal">
           <div class="modal-header">
             <h3>{{ editingPost ? 'Sửa bài viết' : 'Viết bài mới' }}</h3>

@@ -558,6 +558,22 @@ class ComboController extends Controller
         return true;
     }
 
+    /**
+     * Helper: Get variant configuration name by removing the color part
+     */
+    public static function getConfigName($ten_bienthe)
+    {
+        if (!$ten_bienthe) {
+            return '';
+        }
+        $parts = explode(' - ', $ten_bienthe);
+        if (count($parts) > 1) {
+            array_pop($parts); // Remove color
+            return implode(' - ', $parts);
+        }
+        return $ten_bienthe;
+    }
+
     private function clearComboCaches()
     {
         Cache::forget('combos_storefront_active');

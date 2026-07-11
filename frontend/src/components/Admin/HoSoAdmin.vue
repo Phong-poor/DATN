@@ -79,6 +79,17 @@ async function saveProfile() {
   }
 }
 
+function cancelEdit() {
+  form.value = {
+    name: localUser.value.name || '',
+    email: localUser.value.email || '',
+    phone: localUser.value.phone || '',
+    gender: localUser.value.gender || '',
+    date_of_birth: localUser.value.date_of_birth || '',
+  }
+  editing.value = false
+}
+
 function pickAvatar() {
   if (!editing.value) return
   avatarFileRef.value?.click()
@@ -143,7 +154,7 @@ onMounted(fetchProfile)
           </div>
           <button v-if="!editing" class="edit-btn" @click="editing = true">Chỉnh sửa</button>
           <div v-else class="actions">
-            <button class="ghost-btn" @click="editing = false">Hủy</button>
+            <button class="ghost-btn" @click="cancelEdit">Hủy</button>
             <button class="save-btn" :disabled="saving" @click="saveProfile">{{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
           </div>
         </div>

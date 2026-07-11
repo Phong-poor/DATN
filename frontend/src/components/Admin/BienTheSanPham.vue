@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getUser } from '@/services/auth'
 import api from '@/services/api'
@@ -1367,7 +1367,7 @@ async function handleImportFile(e) {
     <!-- MODAL -->
     <Teleport to="body">
       <transition name="fade">
-        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+        <div v-if="showModal" class="modal-overlay">
           <transition name="slide-up">
             <div class="modal" v-if="showModal">
               <div class="modal-header">

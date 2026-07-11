@@ -4,6 +4,7 @@ import axios from 'axios'
 import api from '@/services/api'
 import echo from '@/services/echo'
 import { getToken, getUser } from '@/services/auth'
+import { isFormDirty } from '@/services/unsavedChanges'
 import { onUnmounted } from 'vue'
 import swal from '@/services/swal'
 import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
@@ -112,6 +113,20 @@ const confirmCancel = async () => {
     }
 }
 
+const closeCancelModal = async () => {
+    if (cancelReason.value.trim()) {
+        const confirmed = await swal.confirm(
+            'Xác nhận đóng',
+            'Bạn đã nhập lý do hủy đơn. Nếu đóng, nội dung này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+            'Có, đóng lại',
+            'Không, ở lại'
+        )
+        if (!confirmed) return
+    }
+    showCancelModal.value = false
+    cancelReason.value = ''
+}
+
 // Refund state
 const showRefundModal = ref(false)
 const orderToRefund = ref(null)
@@ -183,6 +198,26 @@ const confirmRefund = async () => {
     } finally {
         isSubmitting.value = false
     }
+}
+
+const closeRefundModal = async () => {
+    if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+        const confirmed = await swal.confirm(
+            'Xác nhận đóng',
+            'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+            'Có, đóng lại',
+            'Không, ở lại'
+        )
+        if (!confirmed) return
+    }
+    showRefundModal.value = false
+    refundReason.value = ''
+    refundProof.value = null
+    if (refundProofUrl.value) {
+        URL.revokeObjectURL(refundProofUrl.value)
+        refundProofUrl.value = null
+    }
+    refundSelectedItems.value = []
 }
 
 const isRefundable = (order) => {
@@ -299,17 +334,18 @@ onUnmounted(() => {
 <template>
     <div class="page">
         <!-- Cancellation Modal -->
-        <transition name="fade">
-            <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false">
+        <Teleport to="body">
+            <transition name="fade">
+            <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal">
                 <div class="modal mini-modal">
                     <div class="modal-head">
                         <h2 class="modal-title">Lý do hủy đơn</h2>
-                        <button class="close-btn" @click="showCancelModal = false">×</button>
+                        <button class="close-btn" no-guard @click="closeCancelModal">×</button>
                     </div>
                     <div class="modal-body">
-                        <textarea v-model="cancelReason" class="form-control mb-3" rows="3" placeholder="Nhập lý do hủy đơn hàng..."></textarea>
+                        <textarea v-model="cancelReason" class="cancel-textarea mb-3" rows="3" placeholder="Nhập lý do hủy đơn hàng..."></textarea>
                         <div class="d-flex gap-2 justify-content-end mt-3">
-                            <button class="btn btn-secondary" @click="showCancelModal = false">Đóng</button>
+                            <button class="btn btn-secondary" no-guard @click="closeCancelModal">Đóng</button>
                             <button class="btn btn-danger" @click="confirmCancel" :disabled="isSubmitting">
                                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
                             </button>
@@ -318,14 +354,16 @@ onUnmounted(() => {
                 </div>
             </div>
         </transition>
+        </Teleport>
 
         <!-- Refund Modal -->
-        <transition name="fade">
-            <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false">
+        <Teleport to="body">
+            <transition name="fade">
+            <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal">
                 <div class="modal mini-modal">
                     <div class="modal-head">
                         <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-                        <button class="close-btn" @click="showRefundModal = false">×</button>
+                        <button class="close-btn" no-guard @click="closeRefundModal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
@@ -344,7 +382,7 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <textarea v-model="refundReason" class="form-control mb-3" rows="3" placeholder="Nhập lý do hoàn trả..."></textarea>
+                        <textarea v-model="refundReason" class="cancel-textarea mb-3" rows="3" placeholder="Nhập lý do hoàn trả..."></textarea>
                         
                         <div class="mb-3">
                             <label class="form-label" style="font-size: 13px; font-weight: 600;">Hình ảnh / Video bằng chứng</label>
@@ -358,7 +396,7 @@ onUnmounted(() => {
                         </div>
 
                         <div class="d-flex gap-2 justify-content-end mt-3">
-                            <button class="btn btn-secondary" @click="showRefundModal = false">Đóng</button>
+                            <button class="btn btn-secondary" no-guard @click="closeRefundModal">Đóng</button>
                             <button class="btn btn-warning" style="color: white; font-weight: bold;" @click="confirmRefund" :disabled="isSubmitting">
                                 {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
                             </button>
@@ -367,9 +405,11 @@ onUnmounted(() => {
                 </div>
             </div>
         </transition>
+        </Teleport>
 
         <!-- Detail Modal -->
-        <transition name="fade">
+        <Teleport to="body">
+            <transition name="fade">
             <div class="overlay" v-if="selectedOrder" @click.self="closeDetail">
                 <div class="modal">
                     <div class="modal-head">
@@ -475,6 +515,7 @@ onUnmounted(() => {
                 </div>
             </div>
         </transition>
+        </Teleport>
 
         <div class="container">
             <div class="page-header">
@@ -1149,4 +1190,22 @@ onUnmounted(() => {
 .refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
 .refund-dot { border-color: #fdba74; }
 .refund-label { color: #c2410c; }
+
+/* MODAL TEXTAREA */
+.cancel-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: none;
+}
+.cancel-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
 </style>

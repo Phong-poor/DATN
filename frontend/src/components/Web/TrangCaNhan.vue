@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
+import { isFormDirty } from '@/services/unsavedChanges'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
@@ -342,6 +343,20 @@ const confirmCancel = async () => {
   }
 }
 
+const closeCancelModal = async () => {
+  if (cancelReason.value.trim()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đã nhập lý do hủy đơn. Nếu đóng, nội dung này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showCancelModal.value = false
+  cancelReason.value = ''
+}
+
 // Refund state
 const showRefundModal = ref(false)
 const orderToRefund = ref(null)
@@ -412,6 +427,26 @@ const confirmRefund = async () => {
     } finally {
         isSubmitting.value = false
     }
+}
+
+const closeRefundModal = async () => {
+  if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showRefundModal.value = false
+  refundReason.value = ''
+  refundProof.value = null
+  if (refundProofUrl.value) {
+    URL.revokeObjectURL(refundProofUrl.value)
+    refundProofUrl.value = null
+  }
+  refundSelectedItems.value = []
 }
 
 const isRefundable = (order) => {
@@ -646,11 +681,61 @@ const startEdit = () => {
   otpVerifiedForPassword.value = false
 }
 
-const cancelEdit = () => {
+const isProfileFormDirty = () => {
+  if (!editing.value) return false
+  return (
+    profileForm.value.name !== user.value.name ||
+    profileForm.value.phone !== user.value.phone ||
+    profileForm.value.birthday !== user.value.birthday ||
+    (profileForm.value.gender === 'male' ? 'Nam' : profileForm.value.gender === 'female' ? 'Nữ' : profileForm.value.gender) !== user.value.gender ||
+    profileForm.value.avatar !== user.value.avatar ||
+    profileForm.value.currentEmail !== '' ||
+    profileForm.value.newPass !== '' ||
+    profileForm.value.confirmPass !== ''
+  )
+}
+
+const cancelEdit = async (force = false) => {
+  if (!force && isProfileFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận hủy',
+      'Bạn đang có thay đổi chưa được lưu. Nếu hủy, các dữ liệu đã nhập sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, hủy',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
   editing.value = false
   profileForm.value = {}
   profilePwErrors.value = {}
   otpVerifiedForPassword.value = false
+  isFormDirty.value = false
+}
+
+const changeTab = async (tabKey) => {
+  if (activeTab.value === tabKey) return
+
+  if (isFormDirty.value) {
+    const confirmed = await swal.confirm(
+      'Xác nhận rời đi',
+      'Bạn có thay đổi chưa được lưu. Nếu rời đi, các thay đổi này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, rời đi',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+    isFormDirty.value = false
+  }
+
+  // Clear inputs when leaving tabs to prevent stale data
+  if (activeTab.value === 'profile') {
+    await cancelEdit(true)
+  } else if (activeTab.value === 'password') {
+    pwForm.value = { current: '', newPass: '', confirm: '' }
+    pwErrors.value = {}
+    showPwCaptcha.value = false
+  }
+
+  activeTab.value = tabKey
 }
 
 const otpVerifiedForPassword = ref(false)
@@ -847,6 +932,7 @@ const saveProfile = async () => {
     }
 
     editing.value = false
+    isFormDirty.value = false
     showToast('Cập nhật thành công!')
 
   } catch (error) {
@@ -1287,11 +1373,48 @@ const openEditAddr = async (i) => {
   }
 }
 
-const cancelAddr = () => {
+const isAddrFormDirty = () => {
+  if (editingAddrIdx.value === null) {
+    // Add mode
+    return (
+      selectedProvinceCode.value !== '' ||
+      selectedWardCode.value !== '' ||
+      addrForm.value.detail.trim() !== '' ||
+      addrForm.value.type !== 'home' ||
+      addrForm.value.isDefault !== false
+    );
+  } else {
+    // Edit mode
+    const original = addresses.value[editingAddrIdx.value];
+    if (!original) return false;
+    return (
+      addrForm.value.province !== original.province ||
+      addrForm.value.district !== original.district ||
+      addrForm.value.ward !== original.ward ||
+      addrForm.value.detail.trim() !== (original.detail || '').trim() ||
+      addrForm.value.type !== original.type ||
+      addrForm.value.isDefault !== original.isDefault ||
+      addrForm.value.latitude !== original.latitude ||
+      addrForm.value.longitude !== original.longitude
+    );
+  }
+}
+
+const cancelAddr = async () => {
+  if (isAddrFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin địa chỉ. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
   showAddrForm.value = false
   addressSuggestions.value = []
   showSuggestions.value = false
   detailWarning.value = ''
+  isFormDirty.value = false
 }
 
 const saveAddr = async () => {
@@ -1306,6 +1429,7 @@ const saveAddr = async () => {
 
     await fetchAddresses()
     showAddrForm.value = false
+    isFormDirty.value = false
     showToast('Địa chỉ đã được cập nhật!')
   } catch (error) {
     const message = error.response?.data?.message
@@ -1573,7 +1697,8 @@ const promoStatusMap = {
     </transition>
 
     <!-- Order detail modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="selectedOrder" @click.self="selectedOrder = null">
         <div class="modal">
           <div class="modal-head">
@@ -1674,33 +1799,37 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Cancellation Modal -->
-    <transition name="fade">
-      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 9005;">
+    <Teleport to="body">
+      <transition name="fade">
+      <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal" style="z-index: 9005;">
         <div class="modal mini-modal">
           <div class="modal-head">
             <h2 class="modal-title">Lý do hủy đơn</h2>
-            <button class="close-btn" @click="showCancelModal = false">
+            <button class="close-btn" no-guard @click="closeCancelModal">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="modal-body">
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
+            <textarea v-model="cancelReason" class="cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
             <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
               <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
               </button>
-              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+              <button class="btn-cancel" no-guard @click="closeCancelModal">Quay lại</button>
             </div>
           </div>
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Xu History Modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
         <div class="modal" style="max-width: 550px;">
           <div class="modal-head">
@@ -1763,9 +1892,11 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Profile OTP Modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false" style="z-index: 9020;">
         <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
           <div style="text-align: center; margin-bottom: 24px;">
@@ -1814,14 +1945,16 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Refund Modal -->
-    <transition name="fade">
-      <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
+    <Teleport to="body">
+      <transition name="fade">
+      <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal" style="z-index: 9005;">
         <div class="modal mini-modal">
           <div class="modal-head">
             <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-            <button class="close-btn" @click="showRefundModal = false">
+            <button class="close-btn" no-guard @click="closeRefundModal">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -1844,7 +1977,7 @@ const promoStatusMap = {
                 </div>
             </div>
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
-            <textarea v-model="refundReason" class="form-control cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
+            <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
             
             <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng chứng</label>
@@ -1861,15 +1994,17 @@ const promoStatusMap = {
               <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting" style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                 {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
               </button>
-              <button class="btn-cancel" @click="showRefundModal = false">Quay lại</button>
+              <button class="btn-cancel" no-guard @click="closeRefundModal">Quay lại</button>
             </div>
           </div>
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Review Modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
         <div class="modal review-modal">
           <div class="modal-head">
@@ -1925,13 +2060,15 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
-    <transition name="fade">
-      <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
         <div class="modal address-modal">
           <div class="modal-head">
             <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-            <button class="close-btn" @click="cancelAddr">
+            <button class="close-btn" no-guard @click="cancelAddr">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -1981,7 +2118,7 @@ const promoStatusMap = {
                 <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa chỉ mặc định</span></label>
               </div>
               <div class="form-actions form-full address-modal-actions">
-                <button type="button" class="btn-cancel" @click="cancelAddr">Hủy</button>
+                <button type="button" class="btn-cancel" no-guard @click="cancelAddr">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingAddr">
                   <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
@@ -1992,6 +2129,7 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
 
@@ -2041,7 +2179,7 @@ const promoStatusMap = {
             v-for="tab in tabs" :key="tab.key"
             class="side-btn"
             :class="{ active: activeTab === tab.key }"
-            @click="activeTab = tab.key"
+            @click="changeTab(tab.key)"
           >
             <!-- person -->
             <svg v-if="tab.icon==='person'" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -2160,7 +2298,7 @@ const promoStatusMap = {
               </div>
 
               <div class="form-actions">
-                <button type="button" class="btn-cancel" @click="cancelEdit">Hủy</button>
+                <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingProfile">
                   <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
@@ -2889,6 +3027,64 @@ const promoStatusMap = {
   flex-direction: column;
   gap: 16px;
 }
+
+/* FORM AVATAR PICKER */
+.form-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.form-avatar-dashed-border {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 2px dashed rgba(56, 189, 248, 0.4);
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-avatar-dashed-border:hover {
+  border-color: #38bdf8;
+  transform: scale(1.02);
+}
+.form-avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  background: rgba(13, 27, 46, 0.4);
+}
+.form-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.form-avatar-plus-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.form-avatar-circle:hover .form-avatar-plus-overlay {
+  opacity: 1;
+}
+.form-avatar-upload-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0;
+}
 .form-row, .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3421,7 +3617,7 @@ const promoStatusMap = {
 .addr-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: #1e293b;
 }
 .default-badge {
   font-size: 11px;
@@ -3451,9 +3647,9 @@ const promoStatusMap = {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(13, 27, 46, 0.4);
-  color: #cbd5e1;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -3463,23 +3659,33 @@ const promoStatusMap = {
   width: 13px;
   height: 13px;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.2;
   fill: none;
 }
 .addr-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+.addr-btn-default {
+  border-color: #dbeafe;
+  color: #2563eb;
+  background: #eff6ff;
 }
 .addr-btn-default:hover {
-  background: rgba(34, 211, 238, 0.1);
-  color: #3b82f6;
-  border-color: rgba(34, 211, 238, 0.25);
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.addr-btn-delete {
+  border-color: #fee2e2;
+  color: #ef4444;
+  background: #fff5f5;
 }
 .addr-btn-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
 /* PASSWORD */
@@ -5067,5 +5273,61 @@ const promoStatusMap = {
     align-items: stretch;
     text-align: center;
   }
+}
+
+/* MODAL TEXTAREA & CONFIRM BUTTONS */
+.cancel-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: none;
+}
+.cancel-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+.btn-danger-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger-confirm:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+.btn-danger-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-warning-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #f97316;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-warning-confirm:hover {
+  background: #ea580c;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+.btn-warning-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

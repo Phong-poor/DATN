@@ -206,7 +206,7 @@
 
     <!-- DETAIL MODAL -->
     <transition name="fade">
-      <div v-if="showDetail" class="overlay" @click.self="showDetail = false">
+      <div v-if="showDetail" class="overlay">
         <div class="modal modal-detail">
           <div class="modal-header">
             <div class="modal-header-left">
@@ -251,7 +251,7 @@
 
     <!-- EMAIL MODAL -->
     <transition name="fade">
-      <div class="overlay" v-if="showEmail" @click.self="showEmail = false">
+      <div class="overlay" v-if="showEmail">
         <transition name="slide-up">
           <div class="modal modal-email" v-if="showEmail">
             <div class="modal-header">
