@@ -276,9 +276,7 @@ class UserController extends Controller
 
         $request->validate([
             'current_password' => 'required',
-            'new_password' => 'required|min:8|confirmed',
-        ], [
-            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+            'new_password' => 'required|min:8',
         ]);
 
         if (!Hash::check($request->current_password, $user->matkhau)) {

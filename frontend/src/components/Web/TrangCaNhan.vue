@@ -636,8 +636,7 @@ const startEdit = () => {
   profileForm.value = { 
     ...user.value,
     currentPass: '',
-    newPass: '',
-    confirmPass: ''
+    newPass: ''
   }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
@@ -676,8 +675,7 @@ const resendProfileOtp = async () => {
   try {
     await api.post('/user/change-password/request-otp', {
       current_password: profileForm.value.currentPass,
-      new_password: profileForm.value.newPass,
-      new_password_confirmation: profileForm.value.confirmPass
+      new_password: profileForm.value.newPass
     })
     showToast('Đã gửi lại mã OTP!')
     profileOtpResendCooldown.value = 60
@@ -743,14 +741,14 @@ const verifyProfileOtpAndSavePassword = async () => {
   profilePwErrors.value.otp = ''
   try {
     const res = await api.post('/user/change-password/verify-otp', {
-      otp: code
+      otp: code,
+      new_password: profileForm.value.newPass
     })
     showProfileOtpModal.value = false
     editing.value = false
     showToast(res.data?.message || 'Cập nhật mật khẩu thành công!')
     profileForm.value.currentPass = ''
     profileForm.value.newPass = ''
-    profileForm.value.confirmPass = ''
   } catch (error) {
     profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
   } finally {
@@ -800,14 +798,12 @@ const saveProfile = async () => {
       profilePwErrors.value = {}
       if (!profileForm.value.currentPass) profilePwErrors.value.currentPass = 'Vui lòng nhập mật khẩu hiện tại'
       if (!profileForm.value.newPass) profilePwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
-      if (profileForm.value.newPass !== profileForm.value.confirmPass) profilePwErrors.value.confirmPass = 'Mật khẩu xác nhận không khớp'
 
       if (Object.keys(profilePwErrors.value).length === 0) {
         try {
           await api.post('/user/change-password/request-otp', {
             current_password: profileForm.value.currentPass,
-            new_password: profileForm.value.newPass,
-            new_password_confirmation: profileForm.value.confirmPass
+            new_password: profileForm.value.newPass
           })
           showProfileOtpModal.value = true
           profileOtpCode.value = ['', '', '', '', '', '']
@@ -2129,15 +2125,10 @@ const promoStatusMap = {
               </div>
               
               <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="width: 100%;">
                   <label>Mật khẩu mới</label>
                   <input v-model="profileForm.newPass" type="password" placeholder="Nhập mật khẩu mới" autocomplete="off" />
                   <span v-if="profilePwErrors.newPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.newPass }}</span>
-                </div>
-                <div class="form-group">
-                  <label>Xác nhận mật khẩu</label>
-                  <input v-model="profileForm.confirmPass" type="password" placeholder="Xác nhận mật khẩu mới" autocomplete="off" />
-                  <span v-if="profilePwErrors.confirmPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.confirmPass }}</span>
                 </div>
               </div>
 
