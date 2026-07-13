@@ -28,6 +28,7 @@ class User extends Authenticatable
         'matkhau',
         'vaitro',
         'id_facebook',
+        'id_google',
         'trangthai',
         'hoat_dong_cuoi_luc',
         'last_active_at',
