@@ -68,7 +68,7 @@ function openAdd() {
     id: null,
     ten: '',
     ti_le: 0,
-    loai: 'retry',
+    loai: 'coin',
     giatri: '',
     id_voucher: null,
     mau_sac: '#2563eb',
