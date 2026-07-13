@@ -22,11 +22,13 @@ import {
   TrendingUp,
   UserCheck,
   Users,
+  Video,
   WalletCards,
   XCircle,
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 const loading = ref(true)
 const actionLoading = ref('')
@@ -36,7 +38,76 @@ const statusFilter = ref('all')
 const selectedProfile = ref(null)
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
-const payload = ref({ profiles: [], commissions: [], withdraw_requests: [] })
+const hoveredAdminVideoId = ref(null)
+const payload = ref({ profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [] })
+
+const playInlineVideo = (event, row = {}) => {
+  hoveredAdminVideoId.value = row.id || null
+  const video = event.currentTarget?.querySelector?.('video')
+  if (!video) return
+  video.play().catch(() => {})
+}
+
+const pauseInlineVideo = (event) => {
+  hoveredAdminVideoId.value = null
+  const video = event.currentTarget?.querySelector?.('video')
+  if (!video) return
+  video.pause()
+}
+
+const isPlayableVideoSrc = (src) => {
+  const value = String(src || '').trim()
+  return Boolean(value) && (
+    value.startsWith('/storage/')
+    || value.startsWith('blob:')
+    || /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/i.test(value)
+  )
+}
+
+const getYoutubeId = (url = '') => {
+  const value = String(url || '').trim()
+  if (!value) return ''
+
+  const patterns = [
+    /youtube\.com\/watch\?v=([^&]+)/i,
+    /youtube\.com\/shorts\/([^?&/]+)/i,
+    /youtu\.be\/([^?&/]+)/i,
+    /youtube\.com\/embed\/([^?&/]+)/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern)
+    if (match?.[1]) return match[1]
+  }
+
+  return ''
+}
+
+const adminVideoRawUrl = (row = {}) => row.video_url || row.video_src || row.video_path || ''
+
+const adminVideoEmbedSrc = (row = {}, autoplay = false) => {
+  const id = getYoutubeId(adminVideoRawUrl(row))
+  if (!id) return ''
+
+  const params = new URLSearchParams({
+    rel: '0',
+    modestbranding: '1',
+    playsinline: '1',
+  })
+
+  if (autoplay) {
+    params.set('autoplay', '1')
+    params.set('mute', '1')
+  }
+
+  return `https://www.youtube.com/embed/${id}?${params.toString()}`
+}
+
+const openAdminVideoSource = (row = {}) => {
+  const url = adminVideoRawUrl(row)
+  if (!url) return
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 const profileStatuses = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -62,6 +133,14 @@ const withdrawStatuses = [
   { value: 'rejected', label: 'Từ chối' },
 ]
 
+const videoStatuses = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'pending', label: 'Chờ duyệt' },
+  { value: 'approved', label: 'Đã duyệt' },
+  { value: 'rejected', label: 'Từ chối' },
+  { value: 'hidden', label: 'Đã ẩn' },
+]
+
 const statusLabelMap = {
   pending: 'Chờ duyệt',
   active: 'Đang hoạt động',
@@ -72,10 +151,15 @@ const statusLabelMap = {
   cancelled: 'Đã hủy',
 }
 
+statusLabelMap.hidden = 'Đã ẩn'
+
+const affiliateVideos = computed(() => payload.value.affiliate_videos || [])
+
 const tabItems = computed(() => [
   { key: 'publishers', label: 'Publisher', count: profiles.value.length, icon: Users },
   { key: 'commissions', label: 'Hoa hồng', count: commissions.value.length, icon: HandCoins },
   { key: 'withdraws', label: 'Rút tiền', count: withdraws.value.length, icon: WalletCards },
+  { key: 'videos', label: 'Video', count: affiliateVideos.value.length, icon: Video },
 ])
 
 const profiles = computed(() => payload.value.profiles || [])
@@ -85,6 +169,7 @@ const withdraws = computed(() => payload.value.withdraw_requests || [])
 const currentStatuses = computed(() => {
   if (activeTab.value === 'commissions') return commissionStatuses
   if (activeTab.value === 'withdraws') return withdrawStatuses
+  if (activeTab.value === 'videos') return videoStatuses
   return profileStatuses
 })
 
@@ -114,11 +199,15 @@ const normalize = (value) => String(value || '').toLowerCase().trim()
 const loadData = async () => {
   loading.value = true
   try {
-    const { data } = await api.get('/admin/affiliates', { cache: false })
+    const [{ data }, videoRes] = await Promise.all([
+      api.get('/admin/affiliates', { cache: false }),
+      api.get('/admin/affiliate-videos', { cache: false }),
+    ])
     payload.value = {
       profiles: data.profiles || [],
       commissions: data.commissions || [],
       withdraw_requests: data.withdraw_requests || [],
+      affiliate_videos: videoRes.data || [],
     }
 
     if (!selectedProfile.value && payload.value.profiles.length) {
@@ -204,9 +293,28 @@ const filteredWithdraws = computed(() => {
   })
 })
 
+const filteredVideos = computed(() => {
+  const q = normalize(searchQuery.value)
+  return affiliateVideos.value.filter((row) => {
+    const haystack = normalize([
+      row.title,
+      row.tieu_de,
+      row.description,
+      row.affiliate_user?.name,
+      row.affiliate_user?.email,
+      row.product?.tenSP,
+      row.status,
+    ].join(' '))
+    const matchSearch = !q || haystack.includes(q)
+    const matchStatus = statusFilter.value === 'all' || row.status === statusFilter.value
+    return matchSearch && matchStatus
+  })
+})
+
 const activeRows = computed(() => {
   if (activeTab.value === 'commissions') return filteredCommissions.value
   if (activeTab.value === 'withdraws') return filteredWithdraws.value
+  if (activeTab.value === 'videos') return filteredVideos.value
   return filteredProfiles.value
 })
 
@@ -225,6 +333,11 @@ const paginatedCommissions = computed(() => {
 const paginatedWithdraws = computed(() => {
   const start = (currentPage.value - 1) * Number(itemsPerPage.value || 5)
   return filteredWithdraws.value.slice(start, start + Number(itemsPerPage.value || 5))
+})
+
+const paginatedVideos = computed(() => {
+  const start = (currentPage.value - 1) * Number(itemsPerPage.value || 5)
+  return filteredVideos.value.slice(start, start + Number(itemsPerPage.value || 5))
 })
 
 const pageStart = computed(() => {
@@ -304,6 +417,23 @@ const updateWithdrawStatus = async (row, status) => {
     await loadData()
   } catch (err) {
     swal.error('Không cập nhật được rút tiền', err?.response?.data?.message || 'Vui lòng thử lại.')
+  } finally {
+    actionLoading.value = ''
+  }
+}
+
+const updateVideoStatus = async (row, status, featured = row.featured) => {
+  actionLoading.value = `video-${row.id}`
+  try {
+    await api.put(`/admin/affiliate-videos/${row.id}/status`, {
+      status,
+      featured: status === 'approved' ? !!featured : false,
+      reject_reason: status === 'rejected' ? (row.reject_reason || 'Nội dung chưa phù hợp để hiển thị.') : null,
+    })
+    swal.success('Đã cập nhật video', `Video #${row.id} đã chuyển sang ${statusLabelMap[status] || status}.`)
+    await loadData()
+  } catch (err) {
+    swal.error('Không cập nhật được video', err?.response?.data?.message || 'Vui lòng thử lại.')
   } finally {
     actionLoading.value = ''
   }
@@ -658,6 +788,100 @@ onMounted(loadData)
         <div v-if="filteredCommissions.length > 0" class="pagination-bar">
           <div class="pagination-info">
             Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredCommissions.length }} giao dịch
+          </div>
+          <div class="pagination-actions">
+            <label class="page-size">
+              <span>Dòng/trang</span>
+              <select v-model.number="itemsPerPage">
+                <option :value="5">5</option>
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+              </select>
+            </label>
+            <button type="button" class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">Trước</button>
+            <span class="page-btn number active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
+            <button type="button" class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">Sau</button>
+          </div>
+        </div>
+      </section>
+
+      <section v-else-if="activeTab === 'videos'" class="data-card">
+        <div class="card-title-row">
+          <div>
+            <h2>Duyệt video affiliate</h2>
+            <p>{{ filteredVideos.length }} video trong hàng đợi nội dung creator</p>
+          </div>
+          <Video :size="20" />
+        </div>
+
+        <div class="affiliate-video-admin-grid">
+          <article
+            v-for="row in paginatedVideos"
+            :key="row.id"
+            class="affiliate-video-admin-card"
+            @mouseenter="playInlineVideo($event, row)"
+            @mouseleave="pauseInlineVideo"
+          >
+            <div class="video-admin-preview">
+              <video v-if="isPlayableVideoSrc(row.video_src)" :src="storageUrl(row.video_src)" controls muted playsinline loop preload="metadata"></video>
+              <iframe
+                v-else-if="adminVideoEmbedSrc(row) && hoveredAdminVideoId === row.id"
+                class="video-admin-embed"
+                :src="adminVideoEmbedSrc(row, true)"
+                :title="row.title || row.tieu_de"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+              <img v-else-if="row.thumbnail_src" :src="storageUrl(row.thumbnail_src)" alt="" />
+              <Video v-else :size="42" />
+              <span class="status-pill video-status" :class="row.status">{{ statusLabelMap[row.status] || row.status }}</span>
+            </div>
+            <div class="video-admin-body">
+              <div class="video-admin-title">
+                <h3>{{ row.title || row.tieu_de }}</h3>
+                <label class="featured-toggle">
+                  <input type="checkbox" :checked="row.featured" :disabled="row.status !== 'approved'" @change="updateVideoStatus(row, 'approved', $event.target.checked)" />
+                  <span>Nổi bật</span>
+                </label>
+              </div>
+              <p>{{ row.description || row.mo_ta || 'Chưa có mô tả.' }}</p>
+              <div class="video-admin-meta">
+                <span>Publisher: <strong>{{ row.affiliate_user?.name || '-' }}</strong></span>
+                <span>Sản phẩm: <strong>{{ row.product?.tenSP || 'Chưa gắn' }}</strong></span>
+                <span>{{ row.views || 0 }} lượt xem · {{ row.clicks || 0 }} click</span>
+              </div>
+              <textarea v-model="row.reject_reason" class="reject-input" placeholder="Lý do từ chối nếu cần..."></textarea>
+              <div class="row-actions video-actions">
+                <button type="button" class="mini neutral" @click="openAdminVideoSource(row)">
+                  <Video :size="16" />
+                  Xem video
+                </button>
+                <button type="button" class="mini approve" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'approved', row.featured)">
+                  <CheckCircle2 :size="16" />
+                  Duyệt
+                </button>
+                <button type="button" class="mini paid" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'hidden', false)">
+                  <ShieldCheck :size="16" />
+                  Ẩn
+                </button>
+                <button type="button" class="mini danger" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'rejected', false)">
+                  <XCircle :size="16" />
+                  Từ chối
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <div v-if="filteredVideos.length === 0" class="empty-state table-empty">
+            <Video :size="42" />
+            <strong>Chưa có video phù hợp</strong>
+            <span>Video affiliate do publisher gửi sẽ xuất hiện ở đây để admin duyệt.</span>
+          </div>
+        </div>
+
+        <div v-if="filteredVideos.length > 0" class="pagination-bar">
+          <div class="pagination-info">
+            Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredVideos.length }} video
           </div>
           <div class="pagination-actions">
             <label class="page-size">
@@ -1351,6 +1575,12 @@ onMounted(loadData)
   border-color: #bfdbfe;
 }
 
+.mini.neutral {
+  color: #1d4ed8;
+  background: #f8fbff;
+  border-color: #bfdbfe;
+}
+
 .action.warn {
   color: #b45309;
   background: #fffbeb;
@@ -1411,6 +1641,121 @@ td {
   border-radius: 8px;
   display: grid;
   place-items: center;
+}
+
+.affiliate-video-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px;
+}
+
+.affiliate-video-admin-card {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.video-admin-preview {
+  position: relative;
+  min-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  display: grid;
+  place-items: center;
+  color: #93c5fd;
+}
+
+.video-admin-preview video,
+.video-admin-preview img,
+.video-admin-embed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+
+.video-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.video-admin-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-admin-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.video-admin-title h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  color: #0f172a;
+}
+
+.featured-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2563eb;
+  white-space: nowrap;
+}
+
+.video-admin-body p {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.video-admin-meta {
+  display: grid;
+  gap: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.reject-input {
+  width: 100%;
+  min-height: 62px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.video-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.video-actions .mini {
+  width: auto;
+  min-width: 92px;
+  padding: 0 10px;
+  display: inline-flex;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .withdraw-grid {
@@ -1604,7 +1949,8 @@ button:disabled {
   }
 
   .content-grid,
-  .withdraw-grid {
+  .withdraw-grid,
+  .affiliate-video-admin-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1643,6 +1989,14 @@ button:disabled {
   .publisher-row .status-pill,
   .publisher-row > svg {
     display: none;
+  }
+
+  .affiliate-video-admin-card {
+    grid-template-columns: 1fr;
+  }
+
+  .video-admin-preview {
+    min-height: 220px;
   }
 
   .pagination-bar {

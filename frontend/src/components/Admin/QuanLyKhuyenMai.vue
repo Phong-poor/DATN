@@ -985,14 +985,29 @@ async function deletePromo(id) {
 
 .stat-card.stat-active .stat-label {
   color: rgba(255, 255, 255, 0.88);
+  position: relative;
+  z-index: 1;
 }
 
 .stat-card.stat-active .stat-value {
   color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-card.stat-active .stat-sub.green {
-  color: #ecfeff;
+  align-self: flex-start;
+  background: transparent !important;
+  border-radius: 0 !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  padding: 0 !important;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  white-space: normal;
+  z-index: 1;
 }
 
 .stat-card.stat-budget {

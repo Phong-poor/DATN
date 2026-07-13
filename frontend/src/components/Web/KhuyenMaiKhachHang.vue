@@ -508,8 +508,13 @@ const addToCart = async (product) => {
     return
   }
   try {
+    const variantId = product.id_bienthe
+    if (!variantId) {
+      swal.error('Thất bại', 'Sản phẩm này chưa có biến thể để thêm vào giỏ hàng.')
+      return
+    }
     await api.post('/gio-hang/them', {
-      id_sanpham: product.id,
+      id_bienthe: variantId,
       soluong: 1
     })
     swal.success('Đã thêm vào giỏ', `${product.tenSP} đã nằm trong giỏ hàng của bạn!`)

@@ -36,6 +36,18 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (!$request->filled('ten') && $request->filled('name')) {
+            $request->merge([
+                'ten' => $request->input('name'),
+            ]);
+        }
+
+        if (!$request->filled('sodienthoai') && $request->filled('phone')) {
+            $request->merge([
+                'sodienthoai' => $request->input('phone'),
+            ]);
+        }
+
         if (!$request->filled('matkhau') && $request->filled('password')) {
             $request->merge([
                 'matkhau' => $request->input('password'),

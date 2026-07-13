@@ -219,6 +219,60 @@ const loadUser = async () => {
   }
 }
 
+const orderFlow = ['pending', 'confirmed', 'shipping', 'done']
+const refundFlow = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+
+const formatTimelineDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const interpolateDate = (startValue, endValue, ratio) => {
+  const start = new Date(startValue).getTime()
+  const end = new Date(endValue).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return endValue || startValue
+  return new Date(start + (end - start) * ratio).toISOString()
+}
+
+const timelineDateFor = (order, key, statusKey, flow, ratio = 1) => {
+  const history = order.du_lieu_thanh_toan?.status_history || {}
+  if (history[key]) return formatTimelineDate(history[key])
+
+  const currentIndex = flow.indexOf(statusKey)
+  const targetIndex = flow.indexOf(key)
+  if (targetIndex === -1 || currentIndex === -1 || targetIndex > currentIndex) return null
+
+  if (key === 'pending') return formatTimelineDate(order.created_at)
+  if (key === statusKey) return formatTimelineDate(order.updated_at || order.created_at)
+
+  return formatTimelineDate(interpolateDate(order.created_at, order.updated_at, ratio))
+}
+
+const buildOrderSteps = (order, statusKey) => [
+  { label: 'Đặt hàng', date: timelineDateFor(order, 'pending', statusKey, orderFlow, 0), done: true },
+  { label: 'Xác nhận', date: timelineDateFor(order, 'confirmed', statusKey, orderFlow, 0.35), done: statusKey !== 'pending' },
+  { label: 'Đang giao', date: timelineDateFor(order, 'shipping', statusKey, orderFlow, 0.68), done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+  { label: 'Hoàn thành', date: timelineDateFor(order, 'done', statusKey, orderFlow, 1), done: statusKey === 'done' || statusKey.startsWith('refund') },
+]
+
+const buildRefundSteps = (order, statusKey) => statusKey.startsWith('refund') ? [
+  { label: 'Yêu cầu hoàn trả', date: timelineDateFor(order, 'refund_pending', statusKey, refundFlow, 0.2), done: refundFlow.indexOf(statusKey) >= 0 },
+  { label: 'Chờ lấy hàng hoàn', date: timelineDateFor(order, 'refund_pickup', statusKey, refundFlow, 0.4), done: refundFlow.indexOf(statusKey) >= 1 },
+  { label: 'Đang giao hoàn', date: timelineDateFor(order, 'refund_delivering', statusKey, refundFlow, 0.6), done: refundFlow.indexOf(statusKey) >= 2 },
+  { label: 'Đã nhận hoàn', date: timelineDateFor(order, 'refund_received', statusKey, refundFlow, 0.8), done: refundFlow.indexOf(statusKey) >= 3 },
+  { label: 'Đã hoàn tiền', date: timelineDateFor(order, 'refunded', statusKey, refundFlow, 1), done: refundFlow.indexOf(statusKey) >= 4 },
+] : null
+
 const fetchOrders = async () => {
   try {
     const res = await api.get('/orders')
@@ -241,9 +295,11 @@ const fetchOrders = async () => {
           id_dathang: order.id_dathang,
           id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
+          created_at: order.created_at,
           status: statusKey,
           trangthai: order.trangthai,
           updated_at: order.updated_at,
+          du_lieu_thanh_toan: order.du_lieu_thanh_toan || {},
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           giam_gia: order.giam_gia || 0,
@@ -289,19 +345,8 @@ const fetchOrders = async () => {
               img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://placehold.co/200')
             }
           }),
-          steps: [
-            { label: 'Đặt hàng', date: new Date(order.created_at).toLocaleString('vi-VN'), done: true },
-            { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
-            { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
-            { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
-          ],
-          refundSteps: statusKey.startsWith('refund') ? [
-            { label: 'Yêu cầu hoàn trả', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 0 },
-            { label: 'Chờ lấy hàng hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 1 },
-            { label: 'Đang giao hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 2 },
-            { label: 'Đã nhận hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 3 },
-            { label: 'Đã hoàn tiền', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 4 },
-          ] : null
+          steps: buildOrderSteps(order, statusKey),
+          refundSteps: buildRefundSteps(order, statusKey)
         }
       })
     }
@@ -565,10 +610,24 @@ onMounted(() => {
           if (e.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
           if (e.trangthai === 'cancelled') statusKey = 'cancelled'
           orders.value[index].status = statusKey
+          orders.value[index].updated_at = e.updated_at || new Date().toISOString()
+          orders.value[index].du_lieu_thanh_toan = {
+            ...(orders.value[index].du_lieu_thanh_toan || {}),
+            status_history: e.status_history || {
+              ...orders.value[index].du_lieu_thanh_toan?.status_history,
+              [e.trangthai]: orders.value[index].updated_at,
+            },
+          }
+          orders.value[index].steps = buildOrderSteps(orders.value[index], statusKey)
+          orders.value[index].refundSteps = buildRefundSteps(orders.value[index], statusKey)
 
           if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
             selectedOrder.value.trangthai = e.trangthai
             selectedOrder.value.status = statusKey
+            selectedOrder.value.updated_at = orders.value[index].updated_at
+            selectedOrder.value.du_lieu_thanh_toan = orders.value[index].du_lieu_thanh_toan
+            selectedOrder.value.steps = orders.value[index].steps
+            selectedOrder.value.refundSteps = orders.value[index].refundSteps
           }
         }
       })
@@ -1961,17 +2020,19 @@ const promoStatusMap = {
           <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
-                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
-                            <div class="d-flex align-items-center gap-2">
-                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
-                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
-                                </div>
+                <div class="refund-items-list">
+                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card" :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                        <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
+                            <img :src="item.img" class="refund-product-img" :alt="item.name">
+                            <div class="refund-product-info">
+                                <div class="refund-product-name">{{ item.name }}</div>
+                                <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
                             </div>
-                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
+                            <div class="refund-product-side">
+                                <div class="refund-product-price">{{ item.price }}</div>
+                                <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' : 'Chọn' }}</span>
+                            </div>
+                            <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems">
                         </label>
                     </div>
                 </div>
@@ -4334,6 +4395,117 @@ const promoStatusMap = {
 .review-modal {
   max-width: 480px !important;
 }
+
+.refund-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 14px;
+}
+
+.refund-product-card {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.refund-product-card:hover,
+.refund-product-card.selected {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.14);
+}
+
+.refund-product-card.selected {
+  background: #eff6ff;
+}
+
+.refund-product-label {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.refund-product-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.refund-product-info {
+  min-width: 0;
+}
+
+.refund-product-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refund-product-qty {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.refund-product-side {
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.refund-product-price {
+  color: #0284c7;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.refund-check-pill {
+  min-width: 76px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.refund-product-card.selected .refund-check-pill {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.refund-product-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .review-product-info {
   background: rgba(13, 27, 46, 0.5);
   padding: 14px;
@@ -5039,6 +5211,336 @@ const promoStatusMap = {
   color: #64748b;
 }
 
+.modal .tl-dot {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.modal .tl-item.done .tl-dot {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.modal .tl-line {
+  width: 2px;
+  background: #dbeafe;
+  margin: 3px 0;
+}
+
+.modal .tl-line.done {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.modal .tl-label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .tl-date {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal .tl-item:not(.done) .tl-label {
+  color: #334155;
+}
+
+.modal .section-title {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+}
+
+.modal .modal-item {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+}
+
+.modal .modal-item img {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.modal .modal-item-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .modal-item-qty {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.modal .modal-footer {
+  border-top-color: #dbeafe;
+  align-items: center;
+  gap: 18px;
+}
+
+.modal .modal-btns {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal .btn-modal-huy,
+.modal .btn-modal-hoantra,
+.modal .btn-modal-mua,
+.modal .btn-review-small {
+  min-height: 42px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.modal .btn-modal-huy {
+  background: #ffffff;
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+  padding: 9px 18px;
+}
+
+.modal .btn-modal-huy:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
+}
+
+.modal .btn-modal-hoantra {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.modal .btn-modal-hoantra:hover {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+}
+
+.modal .btn-modal-mua {
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  border: 0;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.20);
+}
+
+.modal .btn-modal-mua:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+}
+
+.modal .btn-review-small {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  padding: 7px 12px;
+}
+
+.modal .btn-review-small:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.modal .modal-total-wrap {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.modal .modal-total-wrap > div:last-child {
+  border-top-color: #dbeafe !important;
+}
+
+.modal .total-label {
+  color: #475569;
+  font-size: 12px;
+}
+
+.modal .total-value {
+  color: #2563eb !important;
+  text-shadow: none;
+  font-size: 22px !important;
+}
+
+.overlay:has(.timeline) {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.modal:has(.timeline) {
+  max-width: 560px;
+  max-height: none;
+  overflow: visible;
+  border-radius: 18px;
+}
+
+.modal:has(.timeline) .modal-head {
+  padding: 18px 24px 0;
+}
+
+.modal:has(.timeline) .modal-title {
+  font-size: 17px;
+}
+
+.modal:has(.timeline) .modal-id {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.timeline) .modal-body {
+  padding: 14px 24px 22px;
+}
+
+.modal:has(.timeline) .modal-status {
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.timeline) .timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 2px 0 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.modal:has(.timeline) .tl-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-col {
+  width: 28px;
+}
+
+.modal:has(.timeline) .tl-dot {
+  width: 26px;
+  height: 26px;
+}
+
+.modal:has(.timeline) .tl-line {
+  display: none;
+}
+
+.modal:has(.timeline) .tl-content {
+  padding-bottom: 0;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-label {
+  font-size: 12.5px;
+  line-height: 1.25;
+  margin: 1px 0 3px;
+  white-space: nowrap;
+}
+
+.modal:has(.timeline) .tl-date {
+  font-size: 10.5px;
+  line-height: 1.25;
+  margin: 0;
+  color: #64748b;
+}
+
+.modal:has(.timeline) .section-title {
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.timeline) .modal-item-name {
+  font-size: 13px;
+}
+
+.modal:has(.timeline) .modal-item-qty,
+.modal:has(.timeline) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.timeline) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.timeline) .btn-modal-huy,
+.modal:has(.timeline) .btn-modal-hoantra,
+.modal:has(.timeline) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.timeline) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.timeline) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.timeline) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
 .timeline-dot {
   background: #ffffff;
   border-color: #cbd5e1;
@@ -5068,6 +5570,43 @@ const promoStatusMap = {
 }
 
 @media (max-width: 576px) {
+  .refund-product-label {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .refund-product-img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .refund-product-side {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .overlay:has(.timeline) {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .modal:has(.timeline) {
+    width: calc(100% - 12px);
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .modal:has(.timeline) .timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal:has(.timeline) .modal-footer {
+    grid-template-columns: 1fr;
+  }
+
   .page {
     padding: 20px 14px 48px;
   }
