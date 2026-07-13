@@ -15,10 +15,42 @@ use Illuminate\Support\Carbon;
 class VongQuayController extends Controller
 {
     /**
+     * Synchronize the 'retry' slot: ensure exactly one exists and its rate is (100 - sum(others)).
+     */
+    private function syncRetrySlot()
+    {
+        $retrySlots = VongQuay::where('loai', 'retry')->orderBy('id', 'asc')->get();
+        if ($retrySlots->isEmpty()) {
+            $retrySlot = VongQuay::create([
+                'ten' => 'Chúc bạn may mắn lần sau',
+                'ti_le' => 100,
+                'loai' => 'retry',
+                'mau_sac' => '#000000',
+                'mau_chu' => '#ffffff',
+            ]);
+        } else {
+            $retrySlot = $retrySlots->first();
+            if ($retrySlots->count() > 1) {
+                VongQuay::where('loai', 'retry')->where('id', '!=', $retrySlot->id)->delete();
+            }
+        }
+
+        $sumNonRetry = VongQuay::where('id', '!=', $retrySlot->id)
+            ->where('loai', '!=', 'retry')
+            ->sum('ti_le');
+
+        $retrySlot->ti_le = max(0, 100 - $sumNonRetry);
+        $retrySlot->save();
+
+        return $retrySlot;
+    }
+
+    /**
      * Get list of wheel prizes for public/user view.
      */
     public function prizes()
     {
+        $this->syncRetrySlot();
         $prizes = VongQuay::orderBy('id', 'asc')->get();
         return response()->json([
             'success' => true,
@@ -64,6 +96,9 @@ class VongQuayController extends Controller
                 ], 400);
             }
         }
+
+        // Sync retry slot rate before running spin
+        $this->syncRetrySlot();
 
         // 2. Fetch all prizes - require at least 2 slots
         $prizes = VongQuay::all();
@@ -252,6 +287,7 @@ class VongQuayController extends Controller
      */
     public function adminIndex()
     {
+        $this->syncRetrySlot();
         $slots = VongQuay::with('voucher')->orderBy('id', 'asc')->get();
         // Also load all promotions/vouchers so the admin can link them
         $vouchers = Promotion::orderBy('id', 'desc')->get();
@@ -278,17 +314,25 @@ class VongQuayController extends Controller
             'mau_chu' => 'nullable|string|max:20',
         ]);
 
-        // Validate: total percentage cannot exceed 100%
-        $currentTotal = VongQuay::sum('ti_le');
-        if ($currentTotal + $validated['ti_le'] > 100) {
-            $remaining = 100 - $currentTotal;
+        if ($validated['loai'] === 'retry') {
             return response()->json([
                 'success' => false,
-                'message' => "Tổng tỷ lệ hiện tại là {$currentTotal}%. Bạn chỉ có thể thêm tối đa {$remaining}% nữa.",
+                'message' => 'Chỉ được phép có một ô "Chúc may mắn lần sau".',
+            ], 422);
+        }
+
+        // Validate: sum of all non-retry slots + new ti_le cannot exceed 100%
+        $currentNonRetryTotal = VongQuay::where('loai', '!=', 'retry')->sum('ti_le');
+        if ($currentNonRetryTotal + $validated['ti_le'] > 100) {
+            $remaining = 100 - $currentNonRetryTotal;
+            return response()->json([
+                'success' => false,
+                'message' => "Tổng tỷ lệ của các ô khác là {$currentNonRetryTotal}%. Bạn chỉ có thể thêm tối đa {$remaining}% nữa.",
             ], 422);
         }
 
         $slot = VongQuay::create($validated);
+        $this->syncRetrySlot();
 
         return response()->json([
             'success' => true,
@@ -314,17 +358,33 @@ class VongQuayController extends Controller
             'mau_chu' => 'nullable|string|max:20',
         ]);
 
-        // Validate: total percentage cannot exceed 100% (exclude current slot)
-        $currentTotal = VongQuay::where('id', '!=', $id)->sum('ti_le');
-        if ($currentTotal + $validated['ti_le'] > 100) {
-            $remaining = 100 - $currentTotal;
-            return response()->json([
-                'success' => false,
-                'message' => "Tổng tỷ lệ các ô khác là {$currentTotal}%. Bạn chỉ có thể đặt tối đa {$remaining}% cho ô này.",
-            ], 422);
+        if ($slot->loai === 'retry') {
+            // Keep type retry and do not update rate from request
+            $validated['loai'] = 'retry';
+            $validated['ti_le'] = $slot->ti_le;
+        } else {
+            if ($validated['loai'] === 'retry') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể đổi loại quà tặng thành "Chúc may mắn lần sau".',
+                ], 422);
+            }
+
+            // Validate: total percentage cannot exceed 100% (exclude current slot and retry slot)
+            $currentNonRetryTotal = VongQuay::where('id', '!=', $id)
+                ->where('loai', '!=', 'retry')
+                ->sum('ti_le');
+            if ($currentNonRetryTotal + $validated['ti_le'] > 100) {
+                $remaining = 100 - $currentNonRetryTotal;
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tổng tỷ lệ các ô khác là {$currentNonRetryTotal}%. Bạn chỉ có thể đặt tối đa {$remaining}% cho ô này.",
+                ], 422);
+            }
         }
 
         $slot->update($validated);
+        $this->syncRetrySlot();
 
         return response()->json([
             'success' => true,
@@ -339,7 +399,14 @@ class VongQuayController extends Controller
     public function adminDestroy($id)
     {
         $slot = VongQuay::findOrFail($id);
+        if ($slot->loai === 'retry') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa phần quà "Chúc may mắn lần sau".',
+            ], 400);
+        }
         $slot->delete();
+        $this->syncRetrySlot();
 
         return response()->json([
             'success' => true,
