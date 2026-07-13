@@ -37,6 +37,21 @@ class DatHangController extends Controller
         ], 403);
     }
 
+    private function paymentDataWithStatusTime(DatHang $order, string $status, $time = null): array
+    {
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $history = $paymentData['status_history'] ?? [];
+
+        if (! isset($history['pending']) && $order->created_at) {
+            $history['pending'] = $order->created_at->toDateTimeString();
+        }
+
+        $history[$status] = ($time ?: now())->toDateTimeString();
+        $paymentData['status_history'] = $history;
+
+        return $paymentData;
+    }
+
     public function cancelOrder(Request $request, $id)
     {
         $userId = Auth::id();
@@ -58,6 +73,7 @@ class DatHangController extends Controller
             $order->update([
                 'trangthai' => 'cancelled',
                 'lydo' => $request->lydo ?? 'Người dùng hủy đơn',
+                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, 'cancelled'),
             ]);
 
             foreach ($order->chi_tiets as $chiTiet) {
@@ -520,6 +536,9 @@ class DatHangController extends Controller
                         'selected_cart_items' => $selectedCartItems->all(),
                         'selected_variants' => $selectedVariants->all(),
                     ],
+                    'status_history' => [
+                        'pending' => now()->toDateTimeString(),
+                    ],
                 ];
             }
 
@@ -712,6 +731,86 @@ class DatHangController extends Controller
         }
     }
 
+    public function notifyManualPayment(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'amount' => 'nullable|numeric|min:0',
+            'memo' => 'nullable|string|max:255',
+            'method' => 'nullable|string|max:50',
+        ]);
+
+        try {
+            $order = DatHang::with(['chi_tiets.bienThe.sanPham', 'user'])->findOrFail($id);
+
+            if ((int) $order->id_khachhang !== (int) Auth::id()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $paymentData = array_merge($order->du_lieu_thanh_toan ?? [], [
+                'manual_notice_at' => now()->toDateTimeString(),
+                'manual_notice_amount' => $validated['amount'] ?? null,
+                'manual_notice_memo' => $validated['memo'] ?? null,
+                'manual_notice_method' => $validated['method'] ?? 'momo_personal_qr',
+            ]);
+
+            $order->update([
+                'trang_thai_thanh_toan' => 'pending',
+                'nha_cung_cap_thanh_toan' => $validated['method'] ?? 'momo_personal_qr',
+                'thong_bao_thanh_toan' => 'Khách đã bấm xác nhận đã chuyển khoản qua QR cá nhân. Cần kiểm tra giao dịch thực tế.',
+                'du_lieu_thanh_toan' => $paymentData,
+            ]);
+
+            $notifyEmail = $this->paymentNotifyEmail();
+            if ($notifyEmail) {
+                $freshOrder = $order->fresh(['chi_tiets.bienThe.sanPham', 'user']);
+                Mail::to($notifyEmail)->send(new OrderSuccessMail($freshOrder, $freshOrder->user));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã gửi thông báo thanh toán cho cửa hàng. Đơn hàng đang chờ xác minh.',
+                'order' => $order->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Lỗi gửi thông báo thanh toán thủ công: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function paymentNotifyEmail(): ?string
+    {
+        return env('PAYMENT_NOTIFY_EMAIL')
+            ?: config('mail.mailers.smtp.username')
+            ?: config('mail.from.address');
+    }
+
+    private function buildManualPaymentNoticeBody(DatHang $order, array $payment): string
+    {
+        $items = $order->chi_tiets->map(function ($item) {
+            $name = $item->bienThe?->sanPham?->tenSP ?? $item->bienThe?->ten_bienthe ?? 'Sản phẩm';
+
+            return '- '.$name.' x'.$item->soluong.' | '.number_format((float) $item->gia, 0, ',', '.').'đ';
+        })->implode("\n");
+
+        return implode("\n", [
+            'Khách hàng vừa bấm xác nhận đã chuyển khoản qua QR cá nhân.',
+            '',
+            'Mã đơn: '.($order->ma_dathang ?? $order->id_dathang),
+            'Khách hàng: '.($order->user?->ten ?? 'N/A'),
+            'Email khách: '.($order->user?->email ?? 'N/A'),
+            'Số tiền khách báo chuyển: '.number_format((float) ($payment['amount'] ?? 0), 0, ',', '.').'đ',
+            'Nội dung chuyển khoản: '.($payment['memo'] ?? 'N/A'),
+            'Phương thức: '.($payment['method'] ?? 'momo_personal_qr'),
+            'Tổng đơn: '.number_format((float) $order->tongtien, 0, ',', '.').'đ',
+            '',
+            'Sản phẩm:',
+            $items ?: '- Không có dữ liệu sản phẩm',
+            '',
+            'Lưu ý: Đây là thông báo khách đã bấm xác nhận. Vui lòng kiểm tra MoMo/ngân hàng thực tế trước khi chuyển trạng thái đơn sang đã thanh toán.',
+        ]);
+    }
+
     public function orders()
     {
         $userId = Auth::id();
@@ -770,6 +869,7 @@ class DatHangController extends Controller
                 'trangthai' => 'refund_pending',
                 'lydo' => $request->lydo,
                 'refund_proof' => $proofPath,
+                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, 'refund_pending'),
             ]);
 
             // Cập nhật các sản phẩm được chọn hoàn trả
@@ -867,7 +967,10 @@ class DatHangController extends Controller
                 }
             }
 
-            $updateData = ['trangthai' => $newStatus];
+            $updateData = [
+                'trangthai' => $newStatus,
+                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
+            ];
             if ($newStatus === 'cancelled' && $request->has('lydo')) {
                 $updateData['lydo'] = $request->lydo;
             }
@@ -910,6 +1013,29 @@ class DatHangController extends Controller
                 'message' => 'Có lỗi xảy ra: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function updatePaymentStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'trang_thai_thanh_toan' => 'required|string|in:unpaid,pending,paid,failed,refunded',
+        ]);
+
+        $order = DatHang::findOrFail($id);
+        $newStatus = $validated['trang_thai_thanh_toan'];
+
+        $updateData = ['trang_thai_thanh_toan' => $newStatus];
+        if ($newStatus === 'paid') {
+            $updateData['thanh_toan_luc'] = now();
+        }
+
+        $order->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái thanh toán thành công.',
+            'order' => $order->fresh(),
+        ]);
     }
 
     public function destroyAdmin($id)

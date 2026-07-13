@@ -65,6 +65,7 @@ const data = ref(readDashboardCache(period.value) || createDashboardShell(period
 const errorMessage = ref('')
 const searchQuery = ref('')
 const hoveredStatus = ref(null) // Để quản lý trạng thái đang hover
+const hoveredChartPoint = ref(null)
 const chartTab = ref('sales')   // sales | customers | products
 
 const today = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -175,6 +176,8 @@ const stats = computed(() => {
         {
             label: 'Doanh thu tổng',
             value: data.value.doanh_thu ?? '0đ',
+            to: '/admin/quan-ly-don-hang',
+            hint: 'Xem đơn hàng',
             icon: DollarSign,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
@@ -184,6 +187,8 @@ const stats = computed(() => {
         {
             label: 'Khách hàng',
             value: data.value.khach_hang ?? 0,
+            to: '/admin/quan-ly-nguoi-dung',
+            hint: 'Xem người dùng',
             icon: Users,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #c2410c 0%, #f97316 100%)',
@@ -193,6 +198,8 @@ const stats = computed(() => {
         {
             label: 'Sản phẩm kho',
             value: data.value.bien_the ?? 0,
+            to: '/admin/quan-ly-san-pham',
+            hint: 'Xem sản phẩm',
             icon: Package,
             iconBg: 'rgba(255,255,255,.16)',
             cardBg: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
@@ -273,6 +280,50 @@ const refundCenterStat = computed(() => {
 })
 
 // Bar chart helpers
+const formatChartAxisLabel = (rawLabel) => {
+    const label = String(rawLabel ?? '').trim()
+    if (!label) return ''
+
+    const dateMatch = label.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?/)
+    if (dateMatch) {
+        const [, year, month, day] = dateMatch
+        if (day) return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}`
+        return `T${Number(month)}/${String(year).slice(-2)}`
+    }
+
+    return label.length > 10 ? `${label.slice(0, 10)}...` : label
+}
+
+const shouldShowChartAxisLabel = (index, total) => {
+    return false
+}
+
+const withChartAxisLabel = (item, index, total) => ({
+    ...item,
+    axisLabel: formatChartAxisLabel(item.label),
+    showAxisLabel: shouldShowChartAxisLabel(index, total),
+})
+
+const setChartHover = (chart, point) => {
+    hoveredChartPoint.value = { chart, ...point }
+}
+
+const clearChartHover = () => {
+    hoveredChartPoint.value = null
+}
+
+const activeChartPoint = (chart) => hoveredChartPoint.value?.chart === chart ? hoveredChartPoint.value : null
+
+const chartTooltipX = (chart, point) => {
+    if (!chart || !point) return 0
+    return Math.min(Math.max(point.x, chart.left + 72), chart.width - 72)
+}
+
+const chartTooltipY = (chart, point, key) => {
+    if (!chart || !point) return 0
+    return Math.max(chart.top + 22, (point[key] ?? chart.top) - 28)
+}
+
 const barChartData = computed(() => {
     if (!data.value?.bieu_do?.length) return []
     const maxVal = Math.max(...data.value.bieu_do.map(d => d.total), 1)
@@ -322,7 +373,7 @@ const revenueChart = computed(() => {
             : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
         const yRevenue = top + innerH - (item.revenue / maxRevenue) * innerH
         const yOrders = top + innerH - (orders[idx] / maxOrders) * innerH
-        return { ...item, orders: orders[idx], x, yRevenue, yOrders }
+        return withChartAxisLabel({ ...item, orders: orders[idx], x, yRevenue, yOrders }, idx, itemCount)
     })
 
     const line = points.map((p) => `${p.x},${p.yOrders}`).join(' ')
@@ -362,7 +413,7 @@ const customerChart = computed(() => {
             ? left + innerW / 2
             : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
         const y = top + innerH - (item.total / maxVal) * innerH
-        return { ...item, x, y }
+        return withChartAxisLabel({ ...item, x, y }, idx, itemCount)
     })
 
     const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
@@ -407,7 +458,7 @@ const productChart = computed(() => {
             ? left + innerW / 2
             : left + paddingX + ((plotW * idx) / Math.max(itemCount - 1, 1))
         const y = top + innerH - (item.total / maxVal) * innerH
-        return { ...item, x, y }
+        return withChartAxisLabel({ ...item, x, y }, idx, itemCount)
     })
 
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
@@ -474,7 +525,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
             <!-- STAT CARDS -->
             <div class="stats-grid">
-                <div class="stat-card" v-for="s in stats" :key="s.label" :style="{ background: s.cardBg, borderColor: s.borderColor }">
+                <router-link class="stat-card stat-card-link" v-for="s in stats" :key="s.label" :to="s.to"
+                    :style="{ background: s.cardBg, borderColor: s.borderColor }"
+                    :aria-label="`${s.label}: ${s.value}. ${s.hint}`">
                     <div class="stat-top">
                         <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
                             <component :is="s.icon" aria-hidden="true" />
@@ -482,7 +535,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                     <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                     <b class="stat-value">{{ s.value }}</b>
-                </div>
+                    <span class="stat-card-action">{{ s.hint }}</span>
+                </router-link>
             </div>
 
             <!-- CHARTS ROW -->
@@ -560,7 +614,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                     :y="p.yRevenue"
                                     :width="revenueChart.colWidth"
                                     :height="revenueChart.top + revenueChart.innerH - p.yRevenue"
-                                    class="revenue-bar">
+                                    class="revenue-bar"
+                                    @mouseenter="setChartHover('sales', p)"
+                                    @mouseleave="clearChartHover">
                                     <title>Doanh thu {{ p.label }}: {{ new Intl.NumberFormat('vi-VN').format(p.revenue) }}đ</title>
                                 </rect>
 
@@ -568,9 +624,20 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <polyline :points="revenueChart.line" class="orders-line" />
                                 <circle v-for="p in revenueChart.points" :key="`pt-${p.label}`" 
                                     :cx="p.x" :cy="p.yOrders" r="5" 
-                                    class="orders-point">
+                                    class="orders-point"
+                                    @mouseenter="setChartHover('sales', p)"
+                                    @mouseleave="clearChartHover">
                                     <title>Đơn hàng {{ p.label }}: {{ p.orders }} đơn</title>
                                 </circle>
+
+                                <g v-if="activeChartPoint('sales')" class="chart-hover-tooltip"
+                                    :transform="`translate(${chartTooltipX(revenueChart, activeChartPoint('sales')) - 58} ${chartTooltipY(revenueChart, activeChartPoint('sales'), 'yRevenue') - 34})`">
+                                    <rect width="116" height="48" rx="8" />
+                                    <text x="58" y="18" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('sales').axisLabel }}</text>
+                                    <text x="58" y="35" text-anchor="middle" class="tooltip-value">
+                                        {{ new Intl.NumberFormat('vi-VN').format(activeChartPoint('sales').revenue) }}đ
+                                    </text>
+                                </g>
 
                                 <!-- Left Y-Axis: Revenue (formatted in Million 'M' or Thousand 'k') -->
                                 <text v-for="tick in revenueChart.yTicks" :key="`left-${tick.y}`" :x="revenueChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
@@ -583,8 +650,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </text>
 
                                 <!-- X-Axis Labels: Aligned perfectly inside SVG -->
-                                <text v-for="p in revenueChart.points" :key="`x-lbl-${p.label}`" :x="p.x" :y="revenueChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
-                                    {{ p.label }}
+                                <text v-for="p in revenueChart.points" v-show="p.showAxisLabel" :key="`x-lbl-${p.label}`"
+                                    :x="p.x" :y="revenueChart.height - 26" text-anchor="end"
+                                    :transform="`rotate(-58 ${p.x} ${revenueChart.height - 26})`"
+                                    class="axis-label x-axis-label">
+                                    <title>{{ p.label }}</title>
+                                    {{ p.axisLabel }}
                                 </text>
                             </svg>
                         </div>
@@ -614,9 +685,20 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 
                                 <!-- Customer points -->
                                 <circle v-for="p in customerChart.points" :key="`pt-cust-${p.label}`" 
-                                    :cx="p.x" :cy="p.y" r="5" class="customer-point">
+                                    :cx="p.x" :cy="p.y" r="5" class="customer-point"
+                                    @mouseenter="setChartHover('customers', p)"
+                                    @mouseleave="clearChartHover">
                                     <title>Khách hàng mới {{ p.label }}: {{ p.total }} người</title>
                                 </circle>
+
+                                <g v-if="activeChartPoint('customers')" class="chart-hover-tooltip"
+                                    :transform="`translate(${chartTooltipX(customerChart, activeChartPoint('customers')) - 58} ${chartTooltipY(customerChart, activeChartPoint('customers'), 'y') - 34})`">
+                                    <rect width="116" height="48" rx="8" />
+                                    <text x="58" y="18" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('customers').axisLabel }}</text>
+                                    <text x="58" y="35" text-anchor="middle" class="tooltip-value">
+                                        {{ activeChartPoint('customers').total }} người
+                                    </text>
+                                </g>
 
                                 <!-- Left Axis: Customer Count -->
                                 <text v-for="tick in customerChart.yTicks" :key="`left-cust-${tick.y}`" :x="customerChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
@@ -624,8 +706,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </text>
 
                                 <!-- X-Axis Labels -->
-                                <text v-for="p in customerChart.points" :key="`x-lbl-cust-${p.label}`" :x="p.x" :y="customerChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
-                                    {{ p.label }}
+                                <text v-for="p in customerChart.points" v-show="p.showAxisLabel" :key="`x-lbl-cust-${p.label}`"
+                                    :x="p.x" :y="customerChart.height - 26" text-anchor="end"
+                                    :transform="`rotate(-58 ${p.x} ${customerChart.height - 26})`"
+                                    class="axis-label x-axis-label">
+                                    <title>{{ p.label }}</title>
+                                    {{ p.axisLabel }}
                                 </text>
                             </svg>
                         </div>
@@ -649,9 +735,20 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <rect v-for="p in productChart.points" :key="`bar-prod-${p.label}`"
                                     :x="p.x - productChart.colWidth / 2" :y="p.y"
                                     :width="productChart.colWidth" :height="productChart.top + productChart.innerH - p.y"
-                                    class="product-bar">
+                                    class="product-bar"
+                                    @mouseenter="setChartHover('products', p)"
+                                    @mouseleave="clearChartHover">
                                     <title>Sản phẩm bán {{ p.label }}: {{ p.total }} cái</title>
                                 </rect>
+
+                                <g v-if="activeChartPoint('products')" class="chart-hover-tooltip"
+                                    :transform="`translate(${chartTooltipX(productChart, activeChartPoint('products')) - 58} ${chartTooltipY(productChart, activeChartPoint('products'), 'y') - 34})`">
+                                    <rect width="116" height="48" rx="8" />
+                                    <text x="58" y="18" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('products').axisLabel }}</text>
+                                    <text x="58" y="35" text-anchor="middle" class="tooltip-value">
+                                        {{ activeChartPoint('products').total }} cái
+                                    </text>
+                                </g>
 
                                 <!-- Left Axis: Product Count -->
                                 <text v-for="tick in productChart.yTicks" :key="`left-prod-${tick.y}`" :x="productChart.left - 12" :y="tick.y + 4" text-anchor="end" class="axis-label">
@@ -659,8 +756,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </text>
 
                                 <!-- X-Axis Labels -->
-                                <text v-for="p in productChart.points" :key="`x-lbl-prod-${p.label}`" :x="p.x" :y="productChart.height - 12" text-anchor="middle" class="axis-label x-axis-label">
-                                    {{ p.label }}
+                                <text v-for="p in productChart.points" v-show="p.showAxisLabel" :key="`x-lbl-prod-${p.label}`"
+                                    :x="p.x" :y="productChart.height - 26" text-anchor="end"
+                                    :transform="`rotate(-58 ${p.x} ${productChart.height - 26})`"
+                                    class="axis-label x-axis-label">
+                                    <title>{{ p.label }}</title>
+                                    {{ p.axisLabel }}
                                 </text>
                             </svg>
                         </div>
@@ -1030,6 +1131,23 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     justify-content: center;
 }
 
+.stat-card-link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.stat-card-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
+    filter: saturate(1.05);
+}
+
+.stat-card-link:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.28);
+    outline-offset: 3px;
+}
+
 .stat-card::after {
     content: '';
     position: absolute;
@@ -1079,12 +1197,32 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     color: #fff;
 }
 
+.stat-card-action {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    font-weight: 800;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 1;
+}
+
+.stat-card-link:hover .stat-card-action,
+.stat-card-link:focus-visible .stat-card-action {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 /* CHARTS ROW */
 .charts-row {
     display: grid;
     grid-template-columns: 1fr 300px;
     gap: 12px;
     padding: 0 28px 16px;
+    align-items: stretch;
 }
 
 .right-col {
@@ -1099,6 +1237,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     border-radius: 14px;
     border: 1px solid #f1f5f9;
     padding: 18px 20px;
+}
+
+.chart-card {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
 }
 
 /* BAR CHART */
@@ -1125,7 +1269,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .bar-chart {
-    min-height: 220px;
+    flex: 1;
+    min-height: 420px;
     display: flex;
     align-items: stretch;
     padding: 8px 2px 0;
@@ -1201,13 +1346,17 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .revenue-chart-wrap {
     display: flex;
     flex-direction: column;
+    flex: 1;
     gap: 10px;
     width: 100%;
+    min-height: 0;
 }
 
 .revenue-svg {
     width: 100%;
-    height: 360px;
+    flex: 1;
+    height: 100%;
+    min-height: 360px;
 }
 
 .revenue-grid {
@@ -1291,6 +1440,27 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .x-axis-label {
     fill: #475569;
+    font-weight: 700;
+}
+
+.chart-hover-tooltip {
+    pointer-events: none;
+    filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.18));
+}
+
+.chart-hover-tooltip rect {
+    fill: #0f172a;
+}
+
+.chart-hover-tooltip .tooltip-date {
+    fill: #dbeafe;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.chart-hover-tooltip .tooltip-value {
+    fill: #ffffff;
+    font-size: 10px;
     font-weight: 700;
 }
 

@@ -19,12 +19,23 @@ const showUser = ref(false)
 const isMobileMenuOpen = ref(false)
 
 // ===================== ANNOUNCEMENT BAR =====================
+const announcementIcons = {
+  delivery: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
+  payment: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>',
+  sale: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12l-8 8-8-8V4h8z"/><path d="M9 9h.01"/></svg>',
+  warranty: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>',
+}
+
 const announcements = [
   { icon: '🚚', text: 'Giao hàng nhanh trong <strong>2 giờ</strong> nội thành TP.HCM & Hà Nội' },
   { icon: '💳', text: 'Trả góp <strong>0%</strong> lãi suất — Duyệt trong 5 phút' },
   { icon: '🎁', text: 'Giảm đến <strong>20 triệu</strong> cho Gaming Laptop RTX 5090' },
   { icon: '🛡️', text: '<strong>Bảo hành chính hãng</strong> toàn quốc · Đổi trả 7 ngày miễn phí' },
 ]
+announcements[0].icon = announcementIcons.delivery
+announcements[1].icon = announcementIcons.payment
+announcements[2].icon = announcementIcons.sale
+announcements[3].icon = announcementIcons.warranty
 const annIdx = ref(0)
 let annTimer = null
 
@@ -1231,6 +1242,17 @@ const openLuckyWheelMobile = () => {
   color: #94a3b8;
   letter-spacing: 0.1px;
 }
+.ann-text :deep(.ann-code-icon) {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  color: #38bdf8;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -2px;
+}
 .ann-text :deep(strong) { color: #e2e8f0; font-weight: 600; }
 .ann-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ann-link {
@@ -1239,6 +1261,26 @@ const openLuckyWheelMobile = () => {
   transition: color 0.2s; font-family: 'Inter', sans-serif;
 }
 .ann-link svg { width: 12px; height: 12px; }
+.ann-right > .ann-link:last-child {
+  gap: 6px;
+  font-size: 0;
+}
+.ann-right > .ann-link:last-child::before {
+  content: "VND";
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ann-right > .ann-link:last-child::after {
+  content: "VND";
+  font-size: 12px;
+}
 .ann-link:hover { color: #e2e8f0; }
 .ann-sep { color: #cbd5e1; font-size: 12px; }
 

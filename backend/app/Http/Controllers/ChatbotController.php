@@ -25,36 +25,50 @@ class ChatbotController extends Controller
             $now = now()->toDateString();
             $promotions = Promotion::whereIn('trangthai', ['running', 'open', 'active'])
                 ->where('congkhai', 1)
+                ->where('giatri', '>', 0)
+                ->where(function ($query) {
+                    $query->whereNull('danhmuc')->orWhere('danhmuc', '!=', 'birthday');
+                })
+                ->where('code', 'not like', '%BIRTHDAY%')
+                ->where('code', 'not like', '%HAPPYBDAY%')
+                ->where(function ($query) {
+                    $query->whereNull('ten')
+                        ->orWhere(function ($sub) {
+                            $sub->where('ten', 'not like', '%sinh nhật%')
+                                ->where('ten', 'not like', '%sinh nhat%');
+                        });
+                })
+                ->where(function ($query) {
+                    $query->whereNull('mota')
+                        ->orWhere(function ($sub) {
+                            $sub->where('mota', 'not like', '%sinh nhật%')
+                                ->where('mota', 'not like', '%sinh nhat%');
+                        });
+                })
                 ->where(function ($query) use ($now) {
                     $query->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', $now);
                 })
                 ->where(function ($query) use ($now) {
                     $query->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', $now);
                 })
+                ->orderBy('giatri', 'asc')
+                ->limit(3)
                 ->get();
 
             if ($promotions->isNotEmpty()) {
                 $promoList = '';
                 foreach ($promotions as $promo) {
-                    $valText = $promo->type === 'percentage' ? $promo->value.'%' : number_format($promo->value, 0, ',', '.').'₫';
-                    $promoList .= "🎁 **{$promo->name}**\n";
-                    $promoList .= "   - Mã: `{$promo->code}` (Giảm {$valText})\n";
-                    if ($promo->mota) {
-                        $promoList .= "   - Chi tiết: {$promo->mota}\n";
-                    }
-                    if ($promo->dieu_kien_tang) {
-                        $promoList .= '   - Điều kiện: Đơn hàng từ '.number_format($promo->dieu_kien_tang, 0, ',', '.')."₫\n";
-                    }
-                    $promoList .= "\n";
+                    $promoList .= $this->buildPromotionChatLine($promo);
                 }
 
                 return response()->json([
-                    'reply' => "Dạ hiện tại VinaTech đang áp dụng các chương trình ưu đãi và mã giảm giá đặc biệt dưới đây ạ. Anh/chị có thể nhập mã này khi chốt đơn trực tuyến nha:\n\n".trim($promoList),
+                    'reply' => "Dạ hiện tại VinaTech có một vài mã giảm giá nhỏ đang áp dụng công khai. Anh/chị có thể nhập mã khi chốt đơn trực tuyến nha:\n\n".trim($promoList),
                     'products' => [],
                 ]);
+
             } else {
                 return response()->json([
-                    'reply' => 'Dạ hiện tại hệ thống chưa có chương trình khuyến mãi công khai mới nhất. Tuy nhiên, anh/chị khi đăng ký tài khoản mới sẽ được nhận ngay quà chào mừng thành viên hoặc có thể liên hệ trực tiếp nhân viên để nhận quà tặng riêng nhé! 🎁',
+                    'reply' => 'Dạ hiện tại hệ thống chưa có mã giảm giá công khai phù hợp. Anh/chị có thể nhắn thêm sản phẩm muốn mua để Mia kiểm tra ưu đãi tốt nhất cho mình nhé.',
                     'products' => [],
                 ]);
             }
@@ -125,11 +139,16 @@ class ChatbotController extends Controller
         }
 
         // So khớp danh mục động từ DB
+        $isAccessoryRequest = $this->isAccessoryIntent($userMessage);
         $categories = DanhMuc::pluck('ten_danhmuc')->toArray();
         $matchedCategory = null;
         foreach ($categories as $cat) {
             $catLower = mb_strtolower($cat);
             if (str_contains($userMessage, $catLower)) {
+                if ($isAccessoryRequest && ! $this->isAccessoryCategoryName($cat)) {
+                    continue;
+                }
+
                 $matchedCategory = $cat;
                 break;
             }
@@ -145,6 +164,33 @@ class ChatbotController extends Controller
         }
 
         // Lọc theo nhu cầu/keyword nhu cầu gốc
+        $isLaptopRequest = ! $isAccessoryRequest && (
+            $this->isLaptopIntent($userMessage)
+            || (! $matchedCategory && $this->containsAnyNormalized($userMessage, [
+                'gia re',
+                're nhat',
+                'may re',
+                'cau hinh',
+                'tu van',
+                'ban chay',
+                'hot',
+            ]))
+        );
+
+        if ($isLaptopRequest) {
+            $this->applyLaptopOnlyFilter($variantsQuery);
+
+            if (! in_array('laptop', $specContexts, true) && ! $matchedCategory) {
+                $specContexts[] = 'laptop';
+            }
+        } elseif ($isAccessoryRequest) {
+            $this->applyAccessoryOnlyFilter($variantsQuery);
+
+            if (! in_array('phụ kiện', $specContexts, true) && ! $matchedCategory) {
+                $specContexts[] = 'phụ kiện';
+            }
+        }
+
         $intent = 'general';
         if ($this->containsAny($userMessage, ['gaming', 'chơi game', 'game', 'pubg', 'valorant', 'lol', 'fifa'])) {
             $intent = 'gaming';
@@ -415,7 +461,12 @@ class ChatbotController extends Controller
         $specDesc = ! empty($specContexts) ? implode(', ', $specContexts) : '';
 
         if ($variants->isNotEmpty()) {
-            if ($priceContext && $specDesc) {
+            if ($isAccessoryRequest) {
+                $accessoryDesc = $specDesc && $specDesc !== 'phụ kiện' ? " **{$specDesc}**" : '';
+                $reply = $priceContext
+                    ? "Dạ em tìm được một vài phụ kiện{$accessoryDesc} thuộc **{$priceContext}** phù hợp cho mình đây ạ:"
+                    : "Dạ em gửi anh/chị một vài phụ kiện{$accessoryDesc} bên em đang có sẵn ạ. Anh/chị nhắn thêm loại phụ kiện hoặc tầm giá mong muốn để Mia lọc sát hơn nha!";
+            } elseif ($priceContext && $specDesc) {
                 $reply = "Dạ em tìm được vài cấu hình laptop **{$specDesc}** thuộc **{$priceContext}** cực tốt cho mình đây ạ:";
             } elseif ($priceContext) {
                 $reply = "Dạ với **{$priceContext}**, đây là những lựa chọn phù hợp và sịn sò nhất gửi khách yêu tham khảo ạ:";
@@ -430,7 +481,9 @@ class ChatbotController extends Controller
             }
         } else {
             // Không tìm thấy sản phẩm khớp
-            if ($priceContext && $specDesc) {
+            if ($isAccessoryRequest) {
+                $reply = 'Dạ hiện tại Mia chưa tìm thấy phụ kiện phù hợp với yêu cầu này. Anh/chị có thể nhắn rõ hơn như chuột, bàn phím, tai nghe, sạc hoặc tầm giá để em lọc lại ngay nhé.';
+            } elseif ($priceContext && $specDesc) {
                 $reply = "Dạ hiện tại bên em chưa có cấu hình laptop **{$specDesc}** nào trong **{$priceContext}** phù hợp hoàn toàn ạ. Anh/chị có thể điều chỉnh nhẹ ngân sách hoặc đổi sang nhu cầu/hãng khác để em tìm bản gần nhất nha.";
             } elseif ($priceContext) {
                 $reply = "Dạ hiện tại bên em chưa có cấu hình phù hợp trong **{$priceContext}** rồi ạ. Anh/chị có thể tham khảo tầm giá khác một chút hoặc nhắn dòng máy yêu thích để em tìm cấu hình gần nhất nhé.";
@@ -454,6 +507,230 @@ class ChatbotController extends Controller
         }
 
         return false;
+    }
+
+    private function buildPromotionChatLine(Promotion $promo): string
+    {
+        $promoName = $promo->ten ?: 'Mã giảm giá';
+        $line = "🎁 **{$promoName}**\n";
+        $line .= "   - Mã: `{$promo->code}` ({$this->formatPromotionDiscount($promo)})\n";
+
+        if ($promo->mota) {
+            $line .= "   - Chi tiết: {$promo->mota}\n";
+        }
+
+        if ($promo->dieu_kien_tang) {
+            $line .= '   - Điều kiện: Đơn hàng từ '.number_format($promo->dieu_kien_tang, 0, ',', '.')."đ\n";
+        }
+
+        return $line."\n";
+    }
+
+    private function formatPromotionDiscount(Promotion $promo): string
+    {
+        $value = (float) $promo->giatri;
+
+        if ($promo->loai === 'percent') {
+            return 'Giảm '.rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',').'%';
+        }
+
+        if ($promo->loai === 'maxprice') {
+            return 'Giảm tối đa '.number_format($value, 0, ',', '.').'đ';
+        }
+
+        return 'Giảm '.number_format($value, 0, ',', '.').'đ';
+    }
+
+    private function containsAnyNormalized(string $text, array $keywords): bool
+    {
+        $normalizedText = $this->normalizeSearchText($text);
+
+        foreach ($keywords as $keyword) {
+            if (str_contains($normalizedText, $this->normalizeSearchText($keyword))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeSearchText(string $text): string
+    {
+        $text = mb_strtolower($text);
+
+        return strtr($text, [
+            'à' => 'a', 'á' => 'a', 'ạ' => 'a', 'ả' => 'a', 'ã' => 'a',
+            'â' => 'a', 'ầ' => 'a', 'ấ' => 'a', 'ậ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a',
+            'ă' => 'a', 'ằ' => 'a', 'ắ' => 'a', 'ặ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a',
+            'è' => 'e', 'é' => 'e', 'ẹ' => 'e', 'ẻ' => 'e', 'ẽ' => 'e',
+            'ê' => 'e', 'ề' => 'e', 'ế' => 'e', 'ệ' => 'e', 'ể' => 'e', 'ễ' => 'e',
+            'ì' => 'i', 'í' => 'i', 'ị' => 'i', 'ỉ' => 'i', 'ĩ' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ọ' => 'o', 'ỏ' => 'o', 'õ' => 'o',
+            'ô' => 'o', 'ồ' => 'o', 'ố' => 'o', 'ộ' => 'o', 'ổ' => 'o', 'ỗ' => 'o',
+            'ơ' => 'o', 'ờ' => 'o', 'ớ' => 'o', 'ợ' => 'o', 'ở' => 'o', 'ỡ' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'ụ' => 'u', 'ủ' => 'u', 'ũ' => 'u',
+            'ư' => 'u', 'ừ' => 'u', 'ứ' => 'u', 'ự' => 'u', 'ử' => 'u', 'ữ' => 'u',
+            'ỳ' => 'y', 'ý' => 'y', 'ỵ' => 'y', 'ỷ' => 'y', 'ỹ' => 'y',
+            'đ' => 'd',
+        ]);
+    }
+
+    private function isAccessoryIntent(string $text): bool
+    {
+        return $this->containsAnyNormalized($text, [
+            'phu kien',
+            'chuot',
+            'mouse',
+            'ban phim',
+            'keyboard',
+            'tai nghe',
+            'headphone',
+            'headset',
+            'balo',
+            'sac',
+            'adapter',
+            'usb',
+            'hub',
+            'lot chuot',
+        ]);
+    }
+
+    private function isAccessoryCategoryName(string $text): bool
+    {
+        return $this->containsAnyNormalized($text, [
+            'phu kien',
+            'chuot',
+            'mouse',
+            'ban phim',
+            'keyboard',
+            'tai nghe',
+            'headphone',
+            'headset',
+            'balo',
+            'sac',
+            'adapter',
+            'usb',
+            'hub',
+            'lot chuot',
+        ]);
+    }
+
+    private function isLaptopIntent(string $text): bool
+    {
+        return $this->containsAnyNormalized($text, [
+            'laptop',
+            'may tinh',
+            'may xach tay',
+            'macbook',
+            'gaming',
+            'van phong',
+            'hoc tap',
+            'sinh vien',
+            'do hoa',
+            'lap',
+        ]);
+    }
+
+    private function applyLaptopOnlyFilter($query): void
+    {
+        $laptopTerms = ['laptop', 'macbook', 'may tinh', 'notebook'];
+        $accessoryTerms = [
+            'phu kien',
+            'chuot',
+            'mouse',
+            'ban phim',
+            'keyboard',
+            'tai nghe',
+            'headphone',
+            'headset',
+            'balo',
+            'sac',
+            'adapter',
+            'usb',
+            'hub',
+            'lot chuot',
+        ];
+
+        $query->whereHas('sanPham', function ($product) use ($laptopTerms, $accessoryTerms) {
+            $product->where(function ($productScope) use ($laptopTerms) {
+                foreach ($laptopTerms as $term) {
+                    $productScope->orWhere('tenSP', 'like', "%{$term}%")
+                        ->orWhereHas('danhMuc', function ($category) use ($term) {
+                            $category->where('ten_danhmuc', 'like', "%{$term}%")
+                                ->orWhereHas('danhMucCha', function ($parent) use ($term) {
+                                    $parent->where('ten_danhmuc', 'like', "%{$term}%");
+                                });
+                        });
+                }
+            });
+
+            $product->where(function ($productScope) use ($accessoryTerms) {
+                foreach ($accessoryTerms as $term) {
+                    $productScope->where('tenSP', 'not like', "%{$term}%");
+                }
+            });
+
+            $product->whereDoesntHave('danhMuc', function ($category) use ($accessoryTerms) {
+                $category->where(function ($categoryScope) use ($accessoryTerms) {
+                    foreach ($accessoryTerms as $term) {
+                        $categoryScope->orWhere('ten_danhmuc', 'like', "%{$term}%")
+                            ->orWhereHas('danhMucCha', function ($parent) use ($term) {
+                                $parent->where('ten_danhmuc', 'like', "%{$term}%");
+                            });
+                    }
+                });
+            });
+        });
+    }
+
+    private function applyAccessoryOnlyFilter($query): void
+    {
+        $accessoryTerms = [
+            'phụ kiện',
+            'phu kien',
+            'chuột',
+            'chuot',
+            'mouse',
+            'bàn phím',
+            'ban phim',
+            'keyboard',
+            'tai nghe',
+            'headphone',
+            'headset',
+            'balo',
+            'sạc',
+            'sac',
+            'adapter',
+            'usb',
+            'hub',
+            'lót chuột',
+            'lot chuot',
+        ];
+
+        $query->whereHas('sanPham', function ($product) use ($accessoryTerms) {
+            $product->where(function ($productScope) use ($accessoryTerms) {
+                foreach ($accessoryTerms as $term) {
+                    $productScope->orWhere('tenSP', 'like', "%{$term}%")
+                        ->orWhereHas('danhMuc', function ($category) use ($term) {
+                            $category->where('ten_danhmuc', 'like', "%{$term}%")
+                                ->orWhereHas('danhMucCha', function ($parent) use ($term) {
+                                    $parent->where('ten_danhmuc', 'like', "%{$term}%");
+                                });
+                        });
+                }
+            });
+
+            $product->where('tenSP', 'not like', '%laptop%')
+                ->where('tenSP', 'not like', '%macbook%')
+                ->whereDoesntHave('danhMuc', function ($category) {
+                    $category->where('ten_danhmuc', 'like', '%laptop%')
+                        ->orWhere('ten_danhmuc', 'like', '%macbook%')
+                        ->orWhereHas('danhMucCha', function ($parent) {
+                            $parent->where('ten_danhmuc', 'like', '%laptop%')
+                                ->orWhere('ten_danhmuc', 'like', '%macbook%');
+                        });
+                });
+        });
     }
 
     private function extractPrices(string $text): array

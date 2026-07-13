@@ -159,8 +159,18 @@ class NewsController extends Controller
 
     public function destroy($id)
     {
-        $news = News::findOrFail($id);
+        $news = News::find($id);
+        if (! $news) {
+            $this->clearNewsCaches();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bài viết đã được xóa trước đó.',
+                'already_deleted' => true,
+            ]);
+        }
         $news->delete();
+        $this->clearNewsCaches();
 
         return response()->json([
             'success' => true,
@@ -217,6 +227,11 @@ class NewsController extends Controller
             'draft' => News::where('trangthai', 'draft')->count(),
             'views' => (int) News::sum('luotxem'),
         ]);
+    }
+
+    private function clearNewsCaches(): void
+    {
+        Cache::put('news_cache_bust', (string) microtime(true));
     }
 
     private function smartImageAlt(?string $alt, string $title = '', ?string $category = null, string $type = 'thumbnail'): string

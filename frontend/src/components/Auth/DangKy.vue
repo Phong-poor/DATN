@@ -116,11 +116,11 @@ const handleRegister = async () => {
 
   try {
     const res = await api.post('/register', {
-      name: name.value.trim(),
+      ten: name.value.trim(),
       email: normalizeEmail(email.value),
-      phone: normalizedPhone.value,
-      password: password.value,
-      password_confirmation: confirm.value,
+      sodienthoai: normalizedPhone.value,
+      matkhau: password.value,
+      matkhau_confirmation: confirm.value,
       referral_code: referralCode.value.trim().toUpperCase() || null,
     })
     const rewardPromotion = res.data?.referral_reward?.promotion

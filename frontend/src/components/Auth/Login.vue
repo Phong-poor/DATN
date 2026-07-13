@@ -156,7 +156,7 @@ const writeDashboardCache = (selectedPeriod, payload) => {
 const preloadAdminRoute = () => {
   if (!adminPreloadPromise) {
     adminPreloadPromise = Promise.allSettled([
-      import('../Admin/Layout/AdminLayout.vue'),
+      import('../Admin/Layout/BoCucAdmin.vue'),
       import('../Admin/Dashboard.vue')
     ])
   }
