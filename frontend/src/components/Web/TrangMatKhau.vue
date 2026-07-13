@@ -2,30 +2,33 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { getUser, updateUser } from '@/services/auth'
 
-const form = ref({ current: '', newPass: '', confirm: '' })
+const form = ref({ current: '', email: '', otp: '', newPass: '', confirm: '' })
+const account = ref(getUser())
+const otpSent = ref(false)
+const otpTargetEmail = ref('')
 const showCurrent = ref(false)
 const showNew = ref(false)
 const showConfirm = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const errors = ref({})
-const captcha = ref({ question: '', answer: '' })
-const loadingCaptcha = ref(false)
 
-const loadCaptcha = async () => {
-    loadingCaptcha.value = true
+const isGoogleAccount = computed(() => Boolean(account.value?.is_google_account || account.value?.id_google))
+
+const loadProfile = async () => {
     try {
-        const res = await api.get('/user/change-password/captcha')
-        captcha.value = {
-            question: res.data?.question || '',
-            answer: '',
+        const res = await api.get('/user/profile', { cache: false })
+        if (res.data) {
+            account.value = res.data
+            updateUser(res.data)
+            if (res.data.email) {
+                form.value.email = res.data.email
+            }
         }
     } catch (err) {
-        console.error('Lỗi tải captcha:', err)
-        captcha.value = { question: '', answer: '' }
-    } finally {
-        loadingCaptcha.value = false
+        console.error('Lỗi tải hồ sơ người dùng:', err)
     }
 }
 
@@ -51,61 +54,100 @@ const requirements = computed(() => [
 ])
 
 onMounted(() => {
-    loadCaptcha()
+    loadProfile()
 })
 
-const validate = () => {
+const validateRequest = () => {
     errors.value = {}
-    if (!form.value.current) errors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
+    if (isGoogleAccount.value) {
+        if (!form.value.email) errors.value.email = 'Vui lòng nhập email'
+    } else if (!form.value.current) {
+        errors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
+    }
     if (!form.value.newPass) errors.value.newPass = 'Vui lòng nhập mật khẩu mới'
     else if (strength.value < 2) errors.value.newPass = 'Mật khẩu quá yếu'
+    if (!form.value.confirm) errors.value.confirm = 'Vui lòng xác nhận mật khẩu mới'
     if (form.value.newPass !== form.value.confirm) errors.value.confirm = 'Mật khẩu không khớp'
-    if (!captcha.value.answer) errors.value.captcha = 'Vui lòng nhập captcha'
     return Object.keys(errors.value).length === 0
 }
 
-const save = async () => {
-    if (!validate()) return
+const sendOtp = async () => {
+    if (!validateRequest()) return
     saving.value = true
     errors.value = {}
+
     try {
-        const res = await api.put('/user/change-password', {
-            current_password: form.value.current,
-            new_password: form.value.newPass,
-            new_password_confirmation: form.value.confirm,
-            captcha_answer: captcha.value.answer,
-        })
-        saved.value = true
-        form.value = { current: '', newPass: '', confirm: '' }
-        await loadCaptcha()
-        setTimeout(() => saved.value = false, 3000)
-        swal.success('Thành công', 'Đổi mật khẩu thành công!')
+        const payload = isGoogleAccount.value
+            ? { email: form.value.email }
+            : { current_password: form.value.current }
+
+        const res = await api.post('/user/change-password/verify-current', payload)
+        otpSent.value = true
+        otpTargetEmail.value = res.data?.email || form.value.email || account.value?.email || ''
+        swal.success('Đã gửi OTP', res.data?.message || 'Mã OTP đã được gửi đến email của bạn.')
     } catch (err) {
-        console.error('Lỗi đổi mật khẩu:', err)
+        console.error('Lỗi gửi OTP đổi mật khẩu:', err)
         if (err.response?.status === 422) {
             const data = err.response.data
             if (data.errors) {
                 if (data.errors.current_password) {
                     errors.value.current = data.errors.current_password[0]
-                    await loadCaptcha()
                 }
-                if (data.errors.new_password) {
-                    errors.value.newPass = data.errors.new_password[0]
-                }
-                if (data.errors.captcha_answer) {
-                    errors.value.captcha = data.errors.captcha_answer[0]
-                    await loadCaptcha()
+                if (data.errors.email) {
+                    errors.value.email = data.errors.email[0]
                 }
             } else if (data.message) {
-                if (data.message.toLowerCase().includes('captcha')) {
-                    errors.value.captcha = data.message
-                    await loadCaptcha()
+                if (isGoogleAccount.value && data.message.toLowerCase().includes('email')) {
+                    errors.value.email = data.message
                 } else if (data.message.includes('hiện tại') || data.message.includes('current')) {
                     errors.value.current = data.message
-                    await loadCaptcha()
                 } else {
                     swal.error('Thất bại', data.message)
                 }
+            }
+        } else {
+            const msg = err.response?.data?.message || 'Không thể gửi OTP đổi mật khẩu!'
+            swal.error('Lỗi', msg)
+        }
+    } finally {
+        saving.value = false
+    }
+}
+
+const submitOtp = async () => {
+    errors.value = {}
+
+    if (!form.value.otp) errors.value.otp = 'Vui lòng nhập mã OTP'
+    if (!form.value.newPass) errors.value.newPass = 'Vui lòng nhập mật khẩu mới'
+    if (!form.value.confirm) errors.value.confirm = 'Vui lòng xác nhận mật khẩu mới'
+    if (form.value.newPass !== form.value.confirm) errors.value.confirm = 'Mật khẩu không khớp'
+    if (Object.keys(errors.value).length > 0) return
+
+    saving.value = true
+    try {
+        await api.post('/user/change-password/verify-otp', {
+            otp: form.value.otp,
+            new_password: form.value.newPass,
+        })
+
+        saved.value = true
+        otpSent.value = false
+        otpTargetEmail.value = ''
+        form.value = { current: '', email: account.value?.email || '', otp: '', newPass: '', confirm: '' }
+        setTimeout(() => { saved.value = false }, 3000)
+        swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } catch (err) {
+        console.error('Lỗi xác thực OTP đổi mật khẩu:', err)
+        if (err.response?.status === 422) {
+            const data = err.response.data
+            if (data.errors?.otp) {
+                errors.value.otp = data.errors.otp[0]
+            } else if (data.errors?.new_password) {
+                errors.value.newPass = data.errors.new_password[0]
+            } else if (data.message && data.message.toLowerCase().includes('otp')) {
+                errors.value.otp = data.message
+            } else {
+                swal.error('Thất bại', data.message || 'Không thể đổi mật khẩu')
             }
         } else {
             const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu!'
@@ -114,6 +156,15 @@ const save = async () => {
     } finally {
         saving.value = false
     }
+}
+
+const save = async () => {
+    if (otpSent.value) {
+        await submitOtp()
+        return
+    }
+
+    await sendOtp()
 }
 </script>
 
@@ -139,8 +190,23 @@ const save = async () => {
                 <!-- Form -->
                 <div class="card">
                     <form @submit.prevent="save" class="form">
-                        <!-- Current password -->
-                        <div class="form-group" :class="{ error: errors.current }">
+                        <div v-if="otpSent" class="otp-notice">
+                            Mã OTP đã được gửi tới <strong>{{ otpTargetEmail }}</strong>. Nhập mã để hoàn tất đổi mật khẩu.
+                        </div>
+
+                        <div v-if="isGoogleAccount" class="form-group" :class="{ error: errors.email }">
+                            <label>Email xác minh</label>
+                            <div class="input-wrap">
+                                <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 6h16v12H4z" />
+                                    <path d="m4 7 8 6 8-6" />
+                                </svg>
+                                <input type="email" v-model="form.email" placeholder="name@example.com" :disabled="otpSent" />
+                            </div>
+                            <span class="err-msg" v-if="errors.email">{{ errors.email }}</span>
+                        </div>
+
+                        <div v-else class="form-group" :class="{ error: errors.current }">
                             <label>Mật khẩu hiện tại</label>
                             <div class="input-wrap">
                                 <svg class="input-icon" viewBox="0 0 24 24" fill="none">
@@ -223,30 +289,24 @@ const save = async () => {
                             <span class="err-msg" v-if="errors.confirm">{{ errors.confirm }}</span>
                         </div>
 
-                        <div class="form-group" :class="{ error: errors.captcha }">
-                            <label>Captcha</label>
-                            <div class="captcha-row">
-                                <div class="captcha-question">
-                                    {{ loadingCaptcha ? 'Đang tải...' : (captcha.question || 'Không tải được captcha') }}
-                                </div>
-                                <button type="button" class="captcha-refresh" @click="loadCaptcha" :disabled="loadingCaptcha">
-                                    <svg viewBox="0 0 24 24" fill="none">
-                                        <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6" />
-                                        <path d="M3 12a9 9 0 0 1 15.49-6" />
-                                        <path d="M21 3v6h-6" />
-                                        <path d="M3 21v-6h6" />
-                                    </svg>
-                                </button>
+                        <div v-if="otpSent" class="form-group" :class="{ error: errors.otp }">
+                            <label>Mã OTP</label>
+                            <div class="input-wrap">
+                                <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <input v-model="form.otp" inputmode="numeric" autocomplete="one-time-code"
+                                    placeholder="Nhập mã OTP 6 số" />
                             </div>
-                            <input class="captcha-input" v-model="captcha.answer" inputmode="numeric" autocomplete="off" placeholder="Nhập kết quả" />
-                            <span class="err-msg" v-if="errors.captcha">{{ errors.captcha }}</span>
+                            <span class="err-msg" v-if="errors.otp">{{ errors.otp }}</span>
                         </div>
 
                         <button type="submit" class="btn-save" :disabled="saving">
                             <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none">
                                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                             </svg>
-                            {{ saving ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}
+                            {{ saving ? 'Đang xử lý...' : (otpSent ? 'Xác nhận đổi mật khẩu' : 'Tiếp tục nhận OTP') }}
                         </button>
                     </form>
                 </div>
@@ -343,6 +403,16 @@ const save = async () => {
     gap: 20px;
 }
 
+.otp-notice {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -382,6 +452,11 @@ const save = async () => {
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
+}
+
+.input-wrap input:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 .input-wrap input:focus {

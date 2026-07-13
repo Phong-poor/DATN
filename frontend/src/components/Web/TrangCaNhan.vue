@@ -98,8 +98,16 @@ const updateUserData = (apiUser) => {
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
       : user.value.joinDate,
+    is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
+    id_google: apiUser.id_google || null,
+  }
+
+  if (apiUser.email) {
+    pwForm.value.email = apiUser.email
   }
 }
+
+const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
@@ -729,15 +737,11 @@ const fetchXuHistory = async (page) => {
 const startEdit = () => {
   profileForm.value = { 
     ...user.value,
-    currentEmail: '',
-    newPass: '',
-    confirmPass: ''
   }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
   editing.value = true
-  otpVerifiedForPassword.value = false
 }
 
 const isProfileFormDirty = () => {
@@ -747,10 +751,7 @@ const isProfileFormDirty = () => {
     profileForm.value.phone !== user.value.phone ||
     profileForm.value.birthday !== user.value.birthday ||
     (profileForm.value.gender === 'male' ? 'Nam' : profileForm.value.gender === 'female' ? 'Nữ' : profileForm.value.gender) !== user.value.gender ||
-    profileForm.value.avatar !== user.value.avatar ||
-    profileForm.value.currentEmail !== '' ||
-    profileForm.value.newPass !== '' ||
-    profileForm.value.confirmPass !== ''
+    profileForm.value.avatar !== user.value.avatar
   )
 }
 
@@ -789,15 +790,16 @@ const changeTab = async (tabKey) => {
   if (activeTab.value === 'profile') {
     await cancelEdit(true)
   } else if (activeTab.value === 'password') {
-    pwForm.value = { current: '', newPass: '', confirm: '' }
+    pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
     pwErrors.value = {}
-    showPwCaptcha.value = false
+    passwordTabOtpPending.value = false
   }
 
   activeTab.value = tabKey
 }
 
 const otpVerifiedForPassword = ref(false)
+const passwordTabOtpPending = ref(false)
 const profilePwErrors = ref({})
 const showProfileOtpModal = ref(false)
 const profileOtpCode = ref(['', '', '', '', '', ''])
@@ -821,9 +823,15 @@ const resendProfileOtp = async () => {
   if (profileOtpResendCooldown.value > 0) return
   sendingProfileOtp.value = true
   try {
-    await api.post('/user/change-password/request-otp', {
-      email: profileForm.value.currentEmail
-    })
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/request-otp', {
+        email: pwForm.value.email || user.value.email,
+      })
+    } else {
+      await api.post('/user/change-password/request-otp', {
+        email: profileForm.value.currentEmail
+      })
+    }
     showToast('Đã gửi lại mã OTP!')
     profileOtpResendCooldown.value = 60
     const cooldownTimer = setInterval(() => {
@@ -913,12 +921,24 @@ const verifyProfileOtp = async () => {
   verifyingProfileOtp.value = true
   profilePwErrors.value.otp = ''
   try {
-    await api.post('/user/change-password/check-otp', {
-      otp: code
-    })
-    showProfileOtpModal.value = false
-    otpVerifiedForPassword.value = true
-    showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/verify-otp', {
+        otp: code,
+        new_password: pwForm.value.newPass,
+      })
+      showProfileOtpModal.value = false
+      passwordTabOtpPending.value = false
+      pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+      pwErrors.value = {}
+      await swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } else {
+      await api.post('/user/change-password/check-otp', {
+        otp: code
+      })
+      showProfileOtpModal.value = false
+      otpVerifiedForPassword.value = true
+      showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    }
   } catch (error) {
     profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
   } finally {
@@ -962,33 +982,6 @@ const saveProfile = async () => {
     updateUserData(res.data.user || res.data)
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
-
-    // Handle password change if user successfully verified OTP and entered new password
-    if (otpVerifiedForPassword.value && profileForm.value.newPass) {
-      profilePwErrors.value = {}
-      if (!profileForm.value.newPass) profilePwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
-      if (profileForm.value.newPass !== profileForm.value.confirmPass) profilePwErrors.value.confirmPass = 'Mật khẩu xác nhận không khớp'
-
-      if (Object.keys(profilePwErrors.value).length === 0) {
-        try {
-          await api.post('/user/change-password/verify-otp', {
-            otp: profileOtpCode.value.join(''),
-            new_password: profileForm.value.newPass
-          })
-          otpVerifiedForPassword.value = false
-          profileForm.value.currentEmail = ''
-          profileForm.value.newPass = ''
-          profileForm.value.confirmPass = ''
-        } catch (err) {
-          showToast(err.response?.data?.message || 'Lỗi đổi mật khẩu')
-          savingProfile.value = false
-          return // Don't close edit form
-        }
-      } else {
-         savingProfile.value = false
-         return // Show errors, don't close form
-      }
-    }
 
     editing.value = false
     isFormDirty.value = false
@@ -1528,7 +1521,7 @@ const removeAddr = (i) => {
 // ════════════════════════════════════════════════
 //  TAB 4 — PASSWORD
 // ════════════════════════════════════════════════
-const pwForm = ref({ current: '', newPass: '', confirm: '' })
+const pwForm = ref({ current: '', email: '', newPass: '', confirm: '' })
 const showPw = ref({ current: false, newPass: false, confirm: false })
 const savingPw = ref(false)
 const pwErrors = ref({})
@@ -1626,8 +1619,8 @@ const pwRequirements = computed(() => [
 const savePw = async () => {
   pwErrors.value = {}
 
-  if (!pwForm.value.current) {
-    pwErrors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
+  if (!pwForm.value.email) {
+    pwErrors.value.email = 'Vui lòng nhập email xác minh'
   }
 
   if (!pwForm.value.newPass) {
@@ -1642,67 +1635,31 @@ const savePw = async () => {
 
   if (Object.keys(pwErrors.value).length) return
 
-  if (!showPwCaptcha.value) {
-    showPwCaptcha.value = true
-    await loadPwCaptcha()
-    pwErrors.value.captcha = 'Vui lòng xác minh trước khi cập nhật mật khẩu'
-    return
-  }
-
-  if (!pwCaptcha.value.answer) {
-    pwErrors.value.captcha = 'Vui lòng nhập captcha'
-  }
-
-  if (Object.keys(pwErrors.value).length) return
-
   savingPw.value = true
   try {
-    const res = await api.put('/user/change-password', {
-      current_password: pwForm.value.current,
-      new_password: pwForm.value.newPass,
-      new_password_confirmation: pwForm.value.confirm,
-      captcha_answer: pwCaptcha.value.answer,
+    await api.post('/user/change-password/request-otp', {
+      email: pwForm.value.email,
     })
 
-    pwForm.value = { current: '', newPass: '', confirm: '' }
-    pwCaptcha.value = { question: '', answer: '' }
-    captchaVerified.value = false
-    showPwCaptcha.value = false
-    await swal.success('Thành công', res.data?.message || 'Đổi mật khẩu thành công!')
+    passwordTabOtpPending.value = true
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    profilePwErrors.value = {}
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     const data = error.response?.data || {}
 
     if (error.response?.status === 422) {
-      if (data.errors?.current_password?.[0]) {
-        pwErrors.value.current = data.errors.current_password[0]
-        await loadPwCaptcha()
-      }
-
-      if (data.errors?.new_password?.[0]) {
-        pwErrors.value.newPass = data.errors.new_password[0]
-      }
-
-      if (data.errors?.captcha_answer?.[0]) {
-        pwErrors.value.captcha = data.errors.captcha_answer[0]
-        await loadPwCaptcha()
-      }
-
-      if (!Object.keys(pwErrors.value).length && data.message) {
-        const message = data.message
-        if (message.toLowerCase().includes('captcha')) {
-          pwErrors.value.captcha = message
-          await loadPwCaptcha()
-        } else if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
-          pwErrors.value.current = message
-          await loadPwCaptcha()
-        } else {
-          pwErrors.value.newPass = message
-        }
+      if (data.errors?.email?.[0]) {
+        pwErrors.value.email = data.errors.email[0]
+      } else if (data.message) {
+        pwErrors.value.email = data.message
       }
       return
     }
 
-    showToast(data.message || 'Có lỗi xảy ra khi đổi mật khẩu!')
+    showToast(data.message || 'Có lỗi xảy ra khi gửi mã OTP!')
   } finally {
     savingPw.value = false
   }
@@ -1963,7 +1920,7 @@ const promoStatusMap = {
               <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
             <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
-            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
           </div>
 
           <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
@@ -2331,33 +2288,6 @@ const promoStatusMap = {
                 </div>
               </div>
 
-              
-              <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
-              
-              <div v-if="!otpVerifiedForPassword" class="form-group">
-                <label>Nhập email hiện tại để đổi mật khẩu mới</label>
-                <div style="display: flex; gap: 10px;">
-                  <input v-model="profileForm.currentEmail" type="email" placeholder="Nhập email hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
-                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentEmail" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentEmail || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
-                    {{ sendingProfileOtp ? 'Đang gửi...' : 'Gửi mã OTP' }}
-                  </button>
-                </div>
-                <span v-if="profilePwErrors.currentEmail" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentEmail }}</span>
-              </div>
-              
-              <div v-if="otpVerifiedForPassword" class="form-row">
-                <div class="form-group">
-                  <label>Mật khẩu mới</label>
-                  <input v-model="profileForm.newPass" type="password" placeholder="Nhập mật khẩu mới" autocomplete="off" />
-                  <span v-if="profilePwErrors.newPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.newPass }}</span>
-                </div>
-                <div class="form-group">
-                  <label>Xác nhận mật khẩu</label>
-                  <input v-model="profileForm.confirmPass" type="password" placeholder="Xác nhận mật khẩu mới" autocomplete="off" />
-                  <span v-if="profilePwErrors.confirmPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.confirmPass }}</span>
-                </div>
-              </div>
-
               <div class="form-actions">
                 <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingProfile">
@@ -2651,16 +2581,14 @@ const promoStatusMap = {
           <div class="pw-layout">
             <div class="card">
               <form @submit.prevent="savePw" class="form">
-                <div class="form-group" :class="{ error: pwErrors.current }">
-                  <label>Mật khẩu hiện tại</label>
+                <div class="form-group" :class="{ error: pwErrors.email }">
+                  <label>Email xác minh</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <input :type="showPw.current ? 'text' : 'password'" v-model="pwForm.current" placeholder="••••••••" />
-                    <button type="button" class="eye-btn" @click="showPw.current = !showPw.current">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                    <input type="email" v-model="pwForm.email" placeholder="name@example.com" />
                   </div>
-                  <span class="err-msg" v-if="pwErrors.current">{{ pwErrors.current }}</span>
+                  <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
+                  <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
                 </div>
                 <div class="form-group" :class="{ error: pwErrors.newPass }">
                   <label>Mật khẩu mới</label>
@@ -2688,36 +2616,9 @@ const promoStatusMap = {
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
-                <div v-if="showPwCaptcha" class="form-group" :class="{ error: pwErrors.captcha }">
-                  <label>Xác minh</label>
-                  <div class="turnstile-box" :class="{ checked: captchaVerified, loading: loadingPwCaptcha || verifyingCaptcha }">
-                    <button
-                      type="button"
-                      class="turnstile-check"
-                      :aria-pressed="captchaVerified"
-                      :disabled="loadingPwCaptcha || verifyingCaptcha"
-                      @click="toggleHumanCaptcha"
-                    >
-                      <svg v-if="captchaVerified" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span v-else-if="loadingPwCaptcha || verifyingCaptcha" class="turnstile-spinner"></span>
-                    </button>
-                    <span class="turnstile-text">Xác minh bạn là con người</span>
-                    <div class="turnstile-brand">
-                      <div class="cloudflare-mark">
-                        <span></span>
-                      </div>
-                      <strong>CLOUDFLARE</strong>
-                      <small>Quyền riêng tư · Điều khoản</small>
-                      <button type="button" class="turnstile-refresh" title="Tải lại xác minh" @click="loadPwCaptcha">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <span class="err-msg" v-if="pwErrors.captcha">{{ pwErrors.captcha }}</span>
-                </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
                   <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  {{ savingPw ? 'Đang cập nhật...' : (showPwCaptcha ? 'Cập nhật mật khẩu' : 'Tiếp tục') }}
+                  {{ savingPw ? 'Đang gửi OTP...' : 'Tiếp tục' }}
                 </button>
               </form>
             </div>
@@ -3275,6 +3176,13 @@ const promoStatusMap = {
   color: #ef4444;
   font-weight: 600;
   margin-top: 2px;
+}
+
+.pw-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* ── CATEGORY TABS ── */

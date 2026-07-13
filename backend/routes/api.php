@@ -92,7 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->json([
             'authenticated' => true,
-            'user' => $user,
+            'user' => $user ? array_merge($user->toArray(), [
+                'is_google_account' => !empty($user->id_google),
+            ]) : null,
         ]);
     });
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -119,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/change-password/captcha', [UserController::class, 'passwordCaptcha']);
     Route::put('/user/change-password', [UserController::class, 'changePasswordDirect']);
     Route::post('/user/change-password/request-otp', [UserController::class, 'requestPasswordOTP']);
+    Route::post('/user/change-password/verify-current', [UserController::class, 'verifyCurrentPassword']);
     Route::post('/user/change-password/check-otp', [UserController::class, 'checkOTP']);
     Route::post('/user/change-password/verify-otp', [UserController::class, 'changePasswordWithOTP']);
     Route::get('/user/dia-chi', [DiaChiController::class, 'index']);
