@@ -123,15 +123,15 @@ async function saveSlot() {
     }
   }
 
-  // Validate: total percentage cannot exceed 100%
-  const newTiLe = parseFloat(editForm.value.ti_le) || 0
-  const currentTotal = slots.value.reduce((sum, item) => {
-    // When editing, exclude the current slot being edited
+  // Validate: total percentage of non-retry slots cannot exceed 100%
+  const newTiLe = editForm.value.loai === 'retry' ? 0 : (parseFloat(editForm.value.ti_le) || 0)
+  const currentTotalNonRetry = slots.value.reduce((sum, item) => {
+    if (item.loai === 'retry') return sum
     if (!isAddMode.value && item.id === editForm.value.id) return sum
     return sum + parseFloat(item.ti_le || 0)
   }, 0)
-  if (currentTotal + newTiLe > 100) {
-    swal.error('Tỷ lệ vượt giới hạn', `Tổng tỷ lệ hiện tại là ${currentTotal.toFixed(2)}%. Bạn chỉ có thể thêm tối đa ${(100 - currentTotal).toFixed(2)}% nữa.`)
+  if (currentTotalNonRetry + newTiLe > 100) {
+    swal.error('Tỷ lệ vượt giới hạn', `Tổng tỷ lệ các quà khác là ${currentTotalNonRetry.toFixed(2)}%. Bạn chỉ có thể đặt tối đa ${(100 - currentTotalNonRetry).toFixed(2)}% cho ô này.`)
     return
   }
 
@@ -198,7 +198,7 @@ onMounted(async () => {
     <!-- STATS & VALIDATION BANNER -->
     <div class="info-row">
       <div class="stat-card" :class="{ 'warning-border': Math.abs(totalWeight - 100) > 0.01 }">
-        <span class="label">TỔNG TỶ LỆ CÁC Ô TRÚNG</span>
+        <span class="stat-label">TỔNG TỶ LỆ CÁC Ô TRÚNG</span>
         <h3 class="value" :class="{ 'error-color': Math.abs(totalWeight - 100) > 0.01 }">
           {{ totalWeight.toFixed(2) }}%
         </h3>
@@ -266,7 +266,7 @@ onMounted(async () => {
                   <button class="action-btn" @click="openEdit(s)" title="Sửa">
                     <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button class="action-btn action-delete" @click="deleteSlot(s.id)" title="Xóa">
+                  <button v-if="s.loai !== 'retry'" class="action-btn action-delete" @click="deleteSlot(s.id)" title="Xóa">
                     <svg viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                   </button>
                 </div>
@@ -361,17 +361,28 @@ onMounted(async () => {
             <div class="form-row">
               <div class="form-group">
                 <label>Tỷ lệ trúng thưởng (%):</label>
-                <input type="number" step="0.01" min="0" max="100" v-model.number="editForm.ti_le" class="form-control" />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  max="100" 
+                  v-model.number="editForm.ti_le" 
+                  class="form-control" 
+                  :disabled="editForm.loai === 'retry'"
+                />
+                <p v-if="editForm.loai === 'retry'" class="field-hint" style="color: #64748b; margin-top: 4px;">
+                  Tỷ lệ này tự động tính toán từ các ô quà khác.
+                </p>
               </div>
 
               <div class="form-group">
                 <label>Loại giải thưởng:</label>
-                <select v-model="editForm.loai" class="form-control">
+                <select v-model="editForm.loai" class="form-control" :disabled="editForm.loai === 'retry'">
                   <option value="voucher">🎫 Voucher / Mã giảm giá</option>
                   <option value="gift">🎁 Hiện vật (Balo/Chuột...)</option>
                   <option value="coin">🪙 Xu Predator</option>
                   <option value="ticket">⚡ Cộng thêm lượt quay</option>
-                  <option value="retry">☘️ Chúc may mắn lần sau</option>
+                  <option value="retry" v-if="editForm.loai === 'retry'">☘️ Chúc may mắn lần sau</option>
                 </select>
               </div>
             </div>
@@ -483,17 +494,17 @@ onMounted(async () => {
   background: #fffaf0;
 }
 
-.stat-card .label {
+.stat-card .stat-label {
   font-size: 10.5px;
   font-weight: 800;
-  color: #64748b;
+  color: #0f172a;
   letter-spacing: 1px;
 }
 
 .stat-card .value {
   font-size: 28px;
   font-weight: 800;
-  color: #10b981;
+  color: #0f172a;
   margin: 6px 0;
 }
 
