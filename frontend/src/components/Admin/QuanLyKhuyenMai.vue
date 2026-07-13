@@ -51,8 +51,13 @@
       </div>
       <div class="stat-card stat-card-gradient">
         <p class="stat-card-tag">Chiến dịch tiếp theo</p>
-        <p class="stat-card-desc">Tết Nguyên Đán 2026 sẽ bắt đầu sau <strong>14 ngày nữa</strong>.</p>
-        <button class="stat-card-btn">Xem chi tiết</button>
+        <p class="stat-card-desc" v-if="nextHoliday">
+          <strong>{{ nextHoliday.name }}</strong> sẽ bắt đầu sau <strong>{{ nextHoliday.daysLeft }} ngày nữa</strong>.
+        </p>
+        <p class="stat-card-desc" v-else>
+          Không có sự kiện nào sắp diễn ra.
+        </p>
+        <button class="stat-card-btn" @click="showHolidayModal = true">Xem chi tiết</button>
       </div>
     </div>
 
@@ -168,7 +173,7 @@
 
     <!-- BOTTOM CARDS -->
     <div class="bottom-row">
-      <div class="bottom-card">
+      <div class="bottom-card bottom-card-full">
         <div class="bottom-card-header">
           <h3>Chiến dịch hiệu quả nhất</h3>
           <button class="icon-btn-sm"><svg viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
@@ -184,26 +189,44 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="bottom-card bottom-card-gradient">
-        <button class="dist-add-btn">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <p class="dist-label">HỆ THỐNG PHÂN PHỐI</p>
-        <h2 class="dist-title">Phủ sóng 100% các kênh bán lẻ</h2>
-        <div class="dist-stats">
-          <div class="dist-stat">
-            <p class="dist-num">85%</p>
-            <p class="dist-sub">TRỰC TUYẾN</p>
+    <!-- HOLIDAY MODAL -->
+    <transition name="modal">
+      <div class="modal-backdrop" v-if="showHolidayModal" @click.self="showHolidayModal = false">
+        <div class="holiday-modal">
+          <div class="holiday-header">
+            <h3>Lịch sự kiện & Ngày lễ sắp tới</h3>
+            <button class="close-btn" @click="showHolidayModal = false">×</button>
           </div>
-          <div class="dist-divider"></div>
-          <div class="dist-stat">
-            <p class="dist-num">15%</p>
-            <p class="dist-sub">CỬA HÀNG</p>
+          <div class="holiday-body">
+            <div class="holiday-list">
+              <div class="holiday-item" v-for="(h, idx) in upcomingHolidays" :key="idx" :class="{'next-holiday': idx === 0}">
+                <div class="holiday-date-box" :class="{'multi-day': h.endDate}">
+                  <template v-if="h.endDate">
+                    <span class="holiday-day-range">{{ h.date.getDate() }}/{{ h.date.getMonth() + 1 }}</span>
+                    <span class="holiday-range-sep">—</span>
+                    <span class="holiday-day-range">{{ h.endDate.getDate() }}/{{ h.endDate.getMonth() + 1 }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="holiday-day">{{ h.date.getDate() }}</span>
+                    <span class="holiday-month">Tháng {{ h.date.getMonth() + 1 }}</span>
+                  </template>
+                </div>
+                <div class="holiday-info">
+                  <p class="holiday-name">{{ h.name }}</p>
+                  <p class="holiday-full-date">{{ h.formattedDate }}</p>
+                </div>
+                <div class="holiday-countdown">
+                  <span v-if="h.daysLeft === 0">Hôm nay</span>
+                  <span v-else>Còn {{ h.daysLeft }} ngày</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
 
     </template><!-- end list view -->
     
@@ -252,7 +275,6 @@
             <select class="form-input" v-model="form.loai" :disabled="form.danhmuc === 'birthday'">
               <option value="percent">Giảm %</option>
               <option value="fixed">Giảm theo giá tiền</option>
-              <option value="maxprice">Giảm % tối đa</option>
             </select>
           </div>
           <div class="form-group">
@@ -260,10 +282,10 @@
             <div class="input-suffix-wrap">
               <input class="form-input" :class="{ err: errors.giatri }" 
                 type="text" 
-                :value="form.loai === 'percent' || form.loai === 'maxprice' ? form.giatri : formatVND(form.giatri)"
-                @input="form.giatri = (form.loai === 'percent' || form.loai === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
+                :value="form.loai === 'percent' ? form.giatri : formatVND(form.giatri)"
+                @input="form.giatri = form.loai === 'percent' ? $event.target.value : parseVND($event.target.value)"
                 placeholder="50" />
-              <span class="input-suffix">{{ form.loai === 'percent' || form.loai === 'maxprice' ? '%' : 'VNĐ' }}</span>
+              <span class="input-suffix">{{ form.loai === 'percent' ? '%' : 'VNĐ' }}</span>
             </div>
             <p class="err-msg" v-if="errors.giatri">{{ errors.giatri }}</p>
           </div>
@@ -414,6 +436,81 @@ const isEdit = ref(false)
 const editId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+
+const showHolidayModal = ref(false)
+
+const upcomingHolidays = computed(() => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const currentYear = today.getFullYear()
+  const nextYear = currentYear + 1
+  
+  // endDate = ngày cuối nếu sự kiện kéo dài nhiều ngày
+  const allHolidays = [
+    { name: 'Tết Dương Lịch', month: 1, day: 1, type: 'solar' },
+    { name: 'Quốc tế Phụ nữ', month: 3, day: 8, type: 'solar' },
+    // 30/4 và 1/5 gộp thành 1 kỳ nghỉ 2 ngày
+    { name: 'Giải phóng miền Nam & Quốc tế Lao động', month: 4, day: 30, endMonth: 5, endDay: 1, type: 'solar' },
+    { name: 'Quốc tế Thiếu nhi', month: 6, day: 1, type: 'solar' },
+    { name: 'Quốc khánh', month: 9, day: 2, type: 'solar' },
+    { name: 'Phụ nữ Việt Nam', month: 10, day: 20, type: 'solar' },
+    { name: 'Nhà giáo Việt Nam', month: 11, day: 20, type: 'solar' },
+    { name: 'Lễ Giáng Sinh', month: 12, day: 25, type: 'solar' },
+    // Tết Nguyên Đán kéo dài nhiều ngày (nghỉ chính thức ~5 ngày)
+    { name: 'Tết Nguyên Đán', date: '2026-02-17', endDate: '2026-02-21', type: 'fixed' },
+    { name: 'Giỗ Tổ Hùng Vương', date: '2026-04-26', type: 'fixed' },
+    { name: 'Tết Trung Thu', date: '2026-09-25', type: 'fixed' },
+    { name: 'Tết Nguyên Đán', date: '2027-02-06', endDate: '2027-02-10', type: 'fixed' },
+    { name: 'Giỗ Tổ Hùng Vương', date: '2027-04-16', type: 'fixed' },
+    { name: 'Tết Trung Thu', date: '2027-09-15', type: 'fixed' },
+  ]
+
+  const fmtDate = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return { dd, mm, yyyy, str: `${dd}/${mm}/${yyyy}` }
+  }
+
+  let upcoming = []
+  
+  allHolidays.forEach(h => {
+    if (h.type === 'solar') {
+      for (const yr of [currentYear, nextYear]) {
+        const d = new Date(yr, h.month - 1, h.day)
+        if (d < today && yr === currentYear) continue
+        const endD = h.endMonth ? new Date(yr, h.endMonth - 1, h.endDay) : null
+        upcoming.push({ name: `${h.name} ${yr}`, date: d, endDate: endD })
+      }
+    } else {
+      const d = new Date(h.date)
+      if (d >= today) {
+        const endD = h.endDate ? new Date(h.endDate) : null
+        upcoming.push({ name: `${h.name} ${d.getFullYear()}`, date: d, endDate: endD })
+      }
+    }
+  })
+
+  upcoming.sort((a, b) => a.date - b.date)
+  
+  return upcoming.slice(0, 12).map(u => {
+    const diffTime = u.date - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    const start = fmtDate(u.date)
+    const formattedDate = u.endDate
+      ? `${start.str} — ${fmtDate(u.endDate).str}`
+      : start.str
+
+    return { 
+      ...u, 
+      daysLeft: diffDays,
+      formattedDate
+    }
+  })
+})
+
+const nextHoliday = computed(() => upcomingHolidays.value.length > 0 ? upcomingHolidays.value[0] : null)
 
 // ── Toast ──────────────────────────────────────
 const toast = ref({ show: false, msg: '', type: 'success' })
@@ -576,7 +673,6 @@ function onCategoryChange() {
 function discountLabel(f) {
   if (f.loai === 'percent') return `Giảm ${f.giatri}%`
   if (f.loai === 'fixed') return `Cố định ${f.giatri}đ`
-  if (f.loai === 'maxprice') return `giảm theo giá tiền  ${f.giatri}%`
   if (f.loai === 'freeship') return `Freeship ${f.giatri}đ`
   return ''
 }
@@ -585,7 +681,6 @@ function tagColors(type) {
   return {
     percent:  { tagBg: '#fef3c7', tagColor: '#92400e' },
     fixed:    { tagBg: '#dbeafe', tagColor: '#1e40af' },
-    maxprice: { tagBg: '#fef9c3', tagColor: '#854d0e' },
     freeship: { tagBg: '#dcfce7', tagColor: '#166534' },
   }[type] || {}
 }
@@ -862,18 +957,18 @@ td { padding: 14px 18px; vertical-align: middle; }
 .page-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
 
 /* BOTTOM */
-.bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.bottom-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.bottom-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.bottom-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.bottom-card { background: #fff; border-radius: 16px; padding: 20px 24px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.bottom-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .bottom-card-header h3 { font-size: 14px; font-weight: 700; color: #1e293b; }
 .icon-btn-sm { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .icon-btn-sm svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 2; fill: none; }
-.rank-list { display: flex; flex-direction: column; gap: 12px; }
-.rank-item { display: flex; align-items: center; gap: 10px; }
-.rank-num { font-size: 12px; font-weight: 800; color: #2563eb; width: 24px; flex-shrink: 0; }
+.rank-list { display: flex; flex-direction: column; gap: 14px; }
+.rank-item { display: flex; align-items: center; gap: 14px; }
+.rank-num { font-size: 13px; font-weight: 800; color: #2563eb; width: 28px; flex-shrink: 0; }
 .rank-bar-wrap { flex: 1; }
-.rank-name { font-size: 12.5px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
-.rank-bar { height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+.rank-name { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
+.rank-bar { height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
 .rank-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
 .rank-roi { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .bottom-card-gradient { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 60%, #93c5fd 100%); border: none; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
@@ -1100,4 +1195,35 @@ select.form-input { cursor: pointer; }
   border-top: 1px solid #e2e8f0;
   margin-top: 8px;
 }
+
+/* HOLIDAY MODAL */
+.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.holiday-modal { background: #fff; width: 440px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; max-height: 80vh; }
+.holiday-header { padding: 18px 22px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+.holiday-header h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+.close-btn { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; transition: color 0.2s; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+.close-btn:hover { color: #ef4444; }
+.holiday-body { padding: 0; overflow-y: auto; flex: 1; }
+.holiday-list { display: flex; flex-direction: column; }
+.holiday-item { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
+.holiday-item:hover { background: #f8fafc; }
+.holiday-item:last-child { border-bottom: none; }
+.next-holiday { background: #f0fdf4; }
+.next-holiday:hover { background: #dcfce7; }
+.holiday-date-box { background: #e2e8f0; border-radius: 10px; min-width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #475569; }
+.holiday-date-box.multi-day { min-width: 80px; padding: 0 6px; }
+.next-holiday .holiday-date-box { background: #22c55e; color: #fff; }
+.holiday-day { font-size: 20px; font-weight: 800; line-height: 1; margin-bottom: 2px; }
+.holiday-month { font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.holiday-day-range { font-size: 12px; font-weight: 800; line-height: 1.2; }
+.holiday-range-sep { font-size: 10px; opacity: 0.7; line-height: 1; }
+.holiday-info { flex: 1; }
+.holiday-name { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0; }
+.holiday-full-date { font-size: 12px; color: #64748b; margin: 0; }
+.holiday-countdown { font-size: 12px; font-weight: 600; color: #3b82f6; background: #eff6ff; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.next-holiday .holiday-countdown { background: #16a34a; color: #fff; }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active .holiday-modal { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUp { from { transform: translateY(20px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 </style>
