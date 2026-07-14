@@ -190,10 +190,10 @@ const startSpin = async () => {
     return
   }
 
-  // if (tickets.value <= 0) {
-  //   swal.warning('Hết lượt quay', 'Hãy nhận thêm lượt quay miễn phí để tiếp tục chơi nhé!')
-  //   return
-  // }
+  if (tickets.value <= 0) {
+    swal.warning('Hết lượt quay', 'Hãy nhận thêm lượt quay miễn phí để tiếp tục chơi nhé!')
+    return
+  }
   
   try {
     const res = await api.post('/vong-quay/quay')
@@ -354,9 +354,16 @@ onUnmounted(() => {
             </div>
           </div>
           
-          <div class="tickets-hud">
-            <span class="ticket-icon">⚡</span>
-            <span>Mỗi ngày <strong>1</strong> lượt quay miễn phí</span>
+          <div class="hud-container">
+            <div class="tickets-hud">
+              <span class="ticket-icon">⚡</span>
+              <span>Mỗi ngày <strong>1</strong> lượt quay miễn phí</span>
+            </div>
+            
+            <div class="tickets-hud">
+              <span class="ticket-icon">🎟️</span>
+              <span>Lượt của bạn: <strong>{{ tickets }}</strong></span>
+            </div>
           </div>
         </div>
         
@@ -623,7 +630,16 @@ onUnmounted(() => {
   color: #94a3b8;
 }
 
-/* Tickets HUD */
+/* Tickets HUD Container */
+.hud-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 .tickets-hud {
   background: rgba(30, 41, 59, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.06);

@@ -83,9 +83,17 @@ class VongQuayController extends Controller
     {
         $user = $request->user();
 
-        // 1. Kiểm tra giới hạn 1 lần quay/ngày cho User (Admin không bị giới hạn)
+        // 1. Kiểm tra số lượt quay và giới hạn 1 lần quay/ngày cho User (Admin không bị giới hạn)
         if ($user->vaitro !== 'admin') {
+            if ($user->luot_quay <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đã hết lượt quay. Hãy nhận thêm lượt quay để tiếp tục chơi nhé!',
+                ], 400);
+            }
+
             $hasSpunToday = LichSuQuay::where('id_khachhang', $user->id)
+                ->where('loai_qua', '!=', 'claim')
                 ->whereDate('created_at', Carbon::today())
                 ->exists();
 
@@ -145,9 +153,11 @@ class VongQuayController extends Controller
         // 4. Process the reward inside a database transaction to prevent race conditions
         DB::beginTransaction();
         try {
-            // Deduct ticket (Disabled for testing)
+            // Deduct ticket
             $currentUser = User::findOrFail($user->id);
-            // $currentUser->decrement('luot_quay');
+            if ($currentUser->vaitro !== 'admin') {
+                $currentUser->decrement('luot_quay');
+            }
 
             // Apply award based on prize type
             switch ($winningPrize->loai) {
@@ -251,7 +261,7 @@ class VongQuayController extends Controller
         DB::beginTransaction();
         try {
             $currentUser = User::findOrFail($user->id);
-            $currentUser->increment('luot_quay', 3);
+            $currentUser->increment('luot_quay', 1);
 
             // Log this claim
             LichSuQuay::create([
@@ -259,7 +269,7 @@ class VongQuayController extends Controller
                 'id_vongquay' => null,
                 'ten_qua' => 'Nhận lượt quay hàng ngày',
                 'loai_qua' => 'claim',
-                'gia_tri_qua' => '3',
+                'gia_tri_qua' => '1',
             ]);
 
             DB::commit();
@@ -273,7 +283,7 @@ class VongQuayController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Nhận 3 lượt quay miễn phí hàng ngày thành công!',
+            'message' => 'Nhận 1 lượt quay miễn phí hàng ngày thành công!',
             'tickets' => $currentUser->luot_quay,
         ]);
     }
