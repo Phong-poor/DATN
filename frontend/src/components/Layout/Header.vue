@@ -820,7 +820,48 @@ const handleLogout = async () => {
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
-  router.push('/login')
+  
+  const publicPages = [
+    '/',
+    '/laptop',
+    '/phu-kien',
+    '/gaming',
+    '/login',
+    '/dang-nhap',
+    '/register',
+    '/dang-ky',
+    '/forgot-password',
+    '/quen-mat-khau',
+    '/otp-verify',
+    '/xac-thuc-otp',
+    '/reset-password',
+    '/reset_password',
+    '/dat-lai-mat-khau',
+    '/login-success',
+    '/dang-nhap-thanh-cong',
+    '/news',
+    '/tin-tuc',
+    '/contact',
+    '/lien-he',
+    '/cart',
+    '/gio-hang',
+    '/thank-you',
+    '/cam-on',
+    '/payment-failed',
+    '/thanh-toan-that-bai',
+    '/khuyen-mai',
+  ]
+
+  const isPublic =
+    publicPages.includes(route.path) ||
+    route.path.startsWith('/products/') ||
+    route.path.startsWith('/san-pham/') ||
+    route.path.startsWith('/news/') ||
+    route.path.startsWith('/tin-tuc/')
+
+  if (!isPublic) {
+    router.push('/')
+  }
 }
 
 const warmProductsPageNow = () => {
@@ -867,7 +908,7 @@ const openLuckyWheelMobile = () => {
     <div class="header-inner">
 
       <!-- LOGO -->
-      <router-link to="/" class="logo-wrap" aria-label="Predator Group">
+      <router-link to="/" class="logo-wrap" aria-label="NextGen Laptop">
         <img src="/nextgen_logo_header.png" alt="NextGen Laptop" class="logo-img" />
       </router-link>
 
