@@ -157,6 +157,11 @@ const toDateInput = (value) => {
   return date.toISOString().slice(0, 10)
 }
 const formatNumber = (value) => new Intl.NumberFormat('vi-VN').format(value || 0)
+const applyNewsStatFilter = (status) => {
+  searchQuery.value = ''
+  selectedCategory.value = 'all'
+  selectedStatus.value = status
+}
 const initials = (name = 'Admin') => name.trim().split(' ').map((word) => word[0]).slice(-2).join('').toUpperCase()
 const getAvatarStyle = (name = 'Admin') => {
   const i = name.charCodeAt(0) % avatarColors.length
@@ -373,8 +378,8 @@ const removePost = async (post) => {
   if (!confirmed) return
 
   try {
-    await api.delete(`/admin/news/${post.id}`)
-    swal.success('Thành công', 'Đã xóa bài viết.')
+    const { data } = await api.delete(`/admin/news/${post.id}`)
+    swal.success('Thành công', data?.message || 'Đã xóa bài viết.')
     await reload(posts.value.length === 1 && currentPage.value > 1 ? currentPage.value - 1 : currentPage.value)
   } catch (error) {
     console.error('Lỗi xóa bài viết:', error)
@@ -426,7 +431,7 @@ onMounted(async () => {
 
         <!-- STATS -->
         <div class="stats">
-            <div class="stat-card stat-blue">
+            <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: selectedStatus === 'all' }" @click="applyNewsStatFilter('all')">
                 <div>
                     <p>TỔNG BÀI VIẾT</p>
                     <b>{{ formatNumber(stats.total) }}</b>
@@ -439,8 +444,8 @@ onMounted(async () => {
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-green">
+            </button>
+            <button type="button" class="stat-card stat-green stat-card-btn" :class="{ active: selectedStatus === 'published' }" @click="applyNewsStatFilter('published')">
                 <div>
                     <p>ĐÃ XUẤT BẢN</p>
                     <b>{{ formatNumber(stats.published) }}</b>
@@ -450,8 +455,8 @@ onMounted(async () => {
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-purple">
+            </button>
+            <button type="button" class="stat-card stat-purple stat-card-btn" @click="applyNewsStatFilter('all')">
                 <div>
                     <p>LƯỢT XEM</p>
                     <b>{{ formatNumber(stats.views) }}</b>
@@ -461,8 +466,8 @@ onMounted(async () => {
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-amber">
+            </button>
+            <button type="button" class="stat-card stat-amber stat-card-btn" :class="{ active: selectedStatus === 'draft' }" @click="applyNewsStatFilter('draft')">
                 <div>
                     <p>BẢN NHÁP</p>
                     <b>{{ formatNumber(stats.draft) }}</b>
@@ -472,7 +477,7 @@ onMounted(async () => {
                         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                     </svg>
                 </div>
-            </div>
+            </button>
         </div>
 
         <!-- FILTER BAR -->
@@ -591,7 +596,7 @@ onMounted(async () => {
     <div class="page-footer">© 2026 VINATECH ECOSYSTEM • QUẢN LÝ NỘI DUNG</div>
 
     <Teleport to="body">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div v-if="showModal" class="modal-overlay">
         <div class="modal">
           <div class="modal-header">
             <h3>{{ editingPost ? 'Sửa bài viết' : 'Viết bài mới' }}</h3>
@@ -734,37 +739,58 @@ onMounted(async () => {
 .btn-new:hover { opacity: 0.9; transform: translateY(-1px); }
 
 /* STATS */
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; padding: 0 32px 20px; }
+.stats { display: grid; grid-template-columns: repeat(4,minmax(220px,1fr)); gap: 20px; padding: 0 32px 20px; }
 .stat-card {
-    border-radius: 14px;
+    min-height: 136px;
+    border-radius: 16px;
     border: none;
-    padding: 20px;
+    padding: 26px 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
     color: #fff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+}
+.stat-card-btn {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.stat-card-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, .2);
+    filter: saturate(1.05);
+}
+.stat-card-btn:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .28);
+    outline-offset: 3px;
+}
+.stat-card-btn.active {
+    box-shadow: 0 18px 34px rgba(37, 99, 235, .28);
 }
 .stat-card::after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     border-radius: 999px;
     right: -28px;
-    top: -28px;
-    background: rgba(255, 255, 255, 0.12);
+    top: -54px;
+    background: rgba(255, 255, 255, 0.13);
+    pointer-events: none;
 }
 .stat-card.stat-blue { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-purple { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-amber { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
-.stat-card p { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.82); letter-spacing: 0.08em; margin: 0 0 6px; }
-.stat-card b { font-size: 24px; font-weight: 800; color: #fff; }
-.stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stat-icon svg { width: 20px; height: 20px; }
+.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card b { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
+.stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon svg { width: 24px; height: 24px; }
 .stat-icon.blue,
 .stat-icon.green,
 .stat-icon.purple,
@@ -898,12 +924,13 @@ table { width: 100%; border-collapse: collapse; }
 .btn-new, .btn-submit { background: linear-gradient(135deg,#2563eb,#2563eb); border: 0; border-radius: 10px; color: white; cursor: pointer; font-size: 13px; font-weight: 600; padding: 11px 20px; }
 .btn-new { align-items: center; display: flex; gap: 7px; }
 .btn-new svg { height: 14px; width: 14px; }
-.stats { display: grid; gap: 16px; grid-template-columns: repeat(4,1fr); padding: 0 32px 20px; }
-.stat-card { align-items: center; background: white; border: 1px solid #f1f5f9; border-radius: 14px; display: flex; justify-content: space-between; padding: 20px; }
-.stat-card p { color: #94a3b8; font-size: 10px; font-weight: 700; letter-spacing: .08em; margin: 0 0 6px; }
-.stat-card b { color: #0f172a; font-size: 24px; font-weight: 800; }
-.stat-icon { align-items: center; border-radius: 12px; display: flex; height: 44px; justify-content: center; width: 44px; }
-.stat-icon svg { height: 20px; width: 20px; }
+.stats { display: grid; gap: 20px; grid-template-columns: repeat(4,minmax(220px,1fr)); padding: 0 32px 20px; }
+.stat-card { align-items: center; border: 1px solid transparent; border-radius: 16px; display: flex; justify-content: space-between; min-height: 136px; overflow: hidden; padding: 26px 28px; position: relative; box-shadow: 0 12px 26px rgba(15,23,42,.12); color: #fff; }
+.stat-card::after { content: ''; position: absolute; width: 150px; height: 150px; border-radius: 999px; right: -28px; top: -54px; background: rgba(255,255,255,.13); pointer-events: none; }
+.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card b { color: #fff; font-size: 34px; line-height: 1; font-weight: 800; }
+.stat-icon { align-items: center; border-radius: 14px; display: flex; height: 48px; justify-content: center; width: 48px; }
+.stat-icon svg { height: 24px; width: 24px; }
 .blue { background: #dbeafe; color: #2563eb; }
 .green { background: #dcfce7; color: #2563eb; }
 .purple { background: #ede9fe; color: #2563eb; }

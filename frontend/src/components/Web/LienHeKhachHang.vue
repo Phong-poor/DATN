@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
+import { isFormDirty } from '@/services/unsavedChanges'
 
 // Form State
 const name = ref('')
@@ -155,6 +156,7 @@ async function sendContactRequest() {
       subject.value = 'Tư vấn mua hàng'
       currentFormStep.value = 1
       resetCaptcha()
+      isFormDirty.value = false
       setTimeout(() => { success.value = false }, 6000)
     } else {
       error.value = data.message || 'Gửi yêu cầu thất bại, vui lòng thử lại'
@@ -228,7 +230,7 @@ const experts = [
   },
   {
     name: 'Minh Thư',
-    role: 'Workstation Consultant',
+    role: 'Đồ Họa & Render Consultant',
     experience: '6 năm kinh nghiệm',
     specialty: 'Hệ thống Render 3D, Blender, dựng phim & RTX Enterprise.',
     avatar: 'MT'
@@ -329,7 +331,7 @@ const toggleFaq = (index) => {
           NEXTGEN GLOBAL SUPPORT
         </span>
         <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
-        <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Workstation dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
+        <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Máy tính dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
         <div class="hero-actions">
           <a href="#guidedContactForm" class="btn-glow-primary">Đặt Lịch Tư Vấn</a>

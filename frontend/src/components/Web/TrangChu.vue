@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getToken } from '@/services/auth'
 
@@ -9,6 +9,13 @@ import { handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageU
 import { prefetchProductsPage } from '@/services/productsPrefetch'
 
 const router = useRouter()
+
+const tickerIcons = [
+    '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
+    '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>',
+    '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M18 7l-3 3"/><path d="M17 17H6l3 3"/><path d="M6 17l3-3"/></svg>',
+    '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>',
+]
 
 const tickerItems = [
     '🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K',
@@ -67,7 +74,6 @@ const defaultSlides = [
 const defaultCategories = [
     { id_danhmuc: 'gaming', ten_danhmuc: 'Laptop Gaming', mota: 'Cau hinh RTX, tan nhiet tot va man hinh tan so quet cao cho game thu.' },
     { id_danhmuc: 'macbook', ten_danhmuc: 'MacBook', mota: 'Thiet ke mong nhe, pin lau va hieu nang on dinh cho cong viec hang ngay.' },
-    { id_danhmuc: 'workstation', ten_danhmuc: 'Workstation', mota: 'May tram cho do hoa, render, lap trinh va cac tac vu nang.' },
     { id_danhmuc: 'office', ten_danhmuc: 'Laptop Van Phong', mota: 'Lua chon gon nhe, ben bi va toi uu chi phi cho hoc tap, lam viec.' }
 ]
 
@@ -114,7 +120,6 @@ const getCategoryTarget = (category) => {
     const name = String(category?.ten_danhmuc || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     if (id === 'gaming' || name.includes('gaming')) return '/gaming'
     if (id === 'macbook' || name.includes('macbook')) return '/macbook'
-    if (id === 'workstation' || name.includes('workstation')) return '/workstation'
     if (id === 'office' || name.includes('van phong')) return '/san-pham?category=Laptop+van+phong'
     return `/san-pham?cat=${category.id_danhmuc}`
 }
@@ -221,11 +226,158 @@ const featuredAccessories = ref([])
 const allHomeProducts = ref([])
 const bannerSlides = ref([])
 const latestNews = ref([])
+const affiliateVideos = ref([])
+const hoveredAffiliateVideoId = ref(null)
+const affiliateVideoSlider = ref(null)
+const affiliateVideoSliderPrimed = ref(false)
+const affiliateVideoDrag = {
+    active: false,
+    startX: 0,
+    scrollLeft: 0,
+    moved: false,
+}
 const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800'
 
 const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
     return normalizeImageUrl(path, newsPlaceholderImage)
+}
+
+const normalizeMediaType = (value, url = '') => {
+    const type = String(value || '').toLowerCase()
+    if (type.includes('video')) return 'video'
+    if (/\.(mp4|webm|mov|avi)(\?|#|$)/i.test(String(url || ''))) return 'video'
+    return 'image'
+}
+
+const isVideoSlide = (slide = {}) => normalizeMediaType(slide.mediaType, slide.img) === 'video'
+const isPlayableVideoSrc = (src = '') => {
+    const value = String(src || '').trim()
+    return Boolean(value) && (
+        value.startsWith('/storage/')
+        || value.startsWith('blob:')
+        || /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/i.test(value)
+    )
+}
+
+const affiliateVideoSrc = (video = {}) => storageUrl(video.video_src || video.video_url || video.video_path)
+const affiliateThumbnailSrc = (video = {}) => storageUrl(video.thumbnail_src || video.thumbnail_path || video.product?.hinhanh || '')
+const viewedAffiliateVideoIds = new Set()
+
+const getYoutubeId = (url = '') => {
+    const value = String(url || '').trim()
+    if (!value) return ''
+
+    const patterns = [
+        /youtube\.com\/watch\?v=([^&]+)/i,
+        /youtube\.com\/shorts\/([^?&/]+)/i,
+        /youtu\.be\/([^?&/]+)/i,
+        /youtube\.com\/embed\/([^?&/]+)/i,
+    ]
+
+    for (const pattern of patterns) {
+        const match = value.match(pattern)
+        if (match?.[1]) return match[1]
+    }
+
+    return ''
+}
+
+const externalVideoUrl = (video = {}) => video.video_url || video.video_src || video.video_path || ''
+
+const affiliateVideoEmbedSrc = (video = {}, autoplay = false) => {
+    const id = getYoutubeId(externalVideoUrl(video))
+    if (!id) return ''
+
+    const params = new URLSearchParams({
+        controls: '1',
+        fs: '1',
+        rel: '0',
+        modestbranding: '1',
+        playsinline: '1',
+    })
+
+    if (autoplay) {
+        params.set('autoplay', '1')
+        params.set('mute', '1')
+    }
+
+    return `https://www.youtube.com/embed/${id}?${params.toString()}`
+}
+
+const playAffiliateVideoPreview = (event, video = {}) => {
+    hoveredAffiliateVideoId.value = video.id || null
+    const media = event.currentTarget?.querySelector?.('video')
+    if (media) media.play().catch(() => {})
+
+    if (video.id && !viewedAffiliateVideoIds.has(video.id)) {
+        viewedAffiliateVideoIds.add(video.id)
+        api.post(`/affiliate-videos/${video.id}/track`, { type: 'view' }).catch(() => {})
+    }
+}
+
+const pauseAffiliateVideoPreview = (event) => {
+    hoveredAffiliateVideoId.value = null
+    const media = event.currentTarget?.querySelector?.('video')
+    if (!media) return
+    media.pause()
+}
+
+const scrollAffiliateVideos = (direction = 1) => {
+    const slider = affiliateVideoSlider.value
+    if (!slider) return
+    const firstCard = slider.querySelector('.affiliate-video-card')
+    const amount = firstCard ? firstCard.offsetWidth + 24 : Math.max(380, slider.clientWidth * 0.42)
+    slider.scrollBy({ left: amount * direction, behavior: 'smooth' })
+}
+
+const primeAffiliateVideoSlider = async () => {
+    if (affiliateVideoSliderPrimed.value || affiliateVideos.value.length < 4) return
+    await nextTick()
+    requestAnimationFrame(() => {
+        const slider = affiliateVideoSlider.value
+        if (!slider) return
+        slider.scrollLeft = 0
+        affiliateVideoSliderPrimed.value = true
+    })
+}
+
+const startAffiliateVideoDrag = (event) => {
+    const slider = affiliateVideoSlider.value
+    if (!slider || event.button > 0 || event.target?.closest?.('button, iframe, video')) return
+    affiliateVideoDrag.active = true
+    affiliateVideoDrag.startX = event.clientX
+    affiliateVideoDrag.scrollLeft = slider.scrollLeft
+    affiliateVideoDrag.moved = false
+    slider.classList.add('is-dragging')
+    slider.setPointerCapture?.(event.pointerId)
+}
+
+const moveAffiliateVideoDrag = (event) => {
+    const slider = affiliateVideoSlider.value
+    if (!slider || !affiliateVideoDrag.active) return
+    const distance = event.clientX - affiliateVideoDrag.startX
+    if (Math.abs(distance) > 4) affiliateVideoDrag.moved = true
+    slider.scrollLeft = affiliateVideoDrag.scrollLeft - distance
+}
+
+const stopAffiliateVideoDrag = (event) => {
+    const slider = affiliateVideoSlider.value
+    if (!slider || !affiliateVideoDrag.active) return
+    affiliateVideoDrag.active = false
+    slider.classList.remove('is-dragging')
+    slider.releasePointerCapture?.(event.pointerId)
+}
+
+const openAffiliateVideoProduct = (video = {}) => {
+    if (video.id) {
+        api.post(`/affiliate-videos/${video.id}/track`, { type: 'click' }).catch(() => {})
+    }
+    if (video.product?.id_sanpham || video.product_id) {
+        router.push(`/products/${video.product?.id_sanpham || video.product_id}`)
+    } else {
+        router.push('/san-pham')
+    }
 }
 
 const mapNewsPost = (post = {}) => ({
@@ -247,8 +399,8 @@ const mapBannerToSlide = (banner = {}) => ({
     desc: banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.loaimedia || 'image',
-    mobileMediaType: banner.loai_media_mobile || banner.loaimedia || 'image',
+    mediaType: normalizeMediaType(banner.loaimedia, banner.hinhanh),
+    mobileMediaType: normalizeMediaType(banner.loai_media_mobile || banner.loaimedia, banner.hinhanh_mobile || banner.hinhanh),
     link: banner.duongdan || '',
     productId: banner.id_sanpham ? String(banner.id_sanpham) : '',
     primary: banner.nhanchinh || 'Mua ngay',
@@ -265,8 +417,8 @@ const mapApiBannerToSlide = (banner = {}) => ({
     desc: banner.description || banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
-    mediaType: banner.media_type || banner.loaimedia || 'image',
-    mobileMediaType: banner.mobile_media_type || banner.loai_media_mobile || banner.media_type || banner.loaimedia || 'image',
+    mediaType: normalizeMediaType(banner.media_type || banner.loaimedia, banner.image || banner.hinhanh),
+    mobileMediaType: normalizeMediaType(banner.mobile_media_type || banner.loai_media_mobile || banner.media_type || banner.loaimedia, banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh),
     link: banner.link_url || banner.duongdan || '',
     productId: banner.product_id || banner.id_sanpham ? String(banner.product_id || banner.id_sanpham) : '',
     primary: banner.primary_label || banner.nhanchinh || 'Mua ngay',
@@ -285,6 +437,10 @@ const loadCache = () => {
             if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
             if (parsed.latestNews) latestNews.value = parsed.latestNews
             if (parsed.bannerSlides) bannerSlides.value = parsed.bannerSlides
+            if (parsed.affiliateVideos) {
+                affiliateVideos.value = parsed.affiliateVideos
+                primeAffiliateVideoSlider()
+            }
         }
     } catch (e) {
         console.error('Lỗi tải cache trang chủ:', e)
@@ -298,7 +454,8 @@ const saveCache = () => {
             featuredAccessories: featuredAccessories.value,
             categories: categories.value,
             latestNews: latestNews.value,
-            bannerSlides: bannerSlides.value
+            bannerSlides: bannerSlides.value,
+            affiliateVideos: affiliateVideos.value
         }))
     } catch (e) {
         console.error('Lỗi lưu cache trang chủ:', e)
@@ -329,10 +486,11 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, productsBundle, bannersRes] = await Promise.all([
+        const [newsRes, productsBundle, bannersRes, affiliateVideoRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 4 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
             prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
-            api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; })
+            api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; }),
+            api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; })
         ])
 
         latestNews.value = (newsRes.data?.data || []).map(mapNewsPost)
@@ -358,6 +516,8 @@ onMounted(async () => {
 
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
         bannerSlides.value = apiBanners.map(mapApiBannerToSlide)
+        affiliateVideos.value = Array.isArray(affiliateVideoRes.data) ? affiliateVideoRes.data : (affiliateVideoRes.data?.data || [])
+        primeAffiliateVideoSlider()
         saveCache()
         setTimeout(initScrollReveal, 200)
     } catch (error) {
@@ -603,8 +763,9 @@ onUnmounted(() => {
         <div class="ticker-bar">
             <div class="ticker-track">
                 <template v-for="loop in 2" :key="loop">
-                    <span v-for="item in tickerItems" :key="`${loop}-${item}`" class="ticker-item">
-                        {{ item }}
+                    <span v-for="(item, itemIndex) in tickerItems" :key="`${loop}-${itemIndex}`" class="ticker-item">
+                        <span class="ticker-icon-wrap" v-html="tickerIcons[itemIndex % tickerIcons.length]"></span>
+                        <span class="ticker-label">{{ item.replace(/^\S+\s*/, '') }}</span>
                         <span class="ticker-dot">•</span>
                     </span>
                 </template>
@@ -615,7 +776,17 @@ onUnmounted(() => {
         <div class="hero-viewport" @mouseenter="stop" @mouseleave="start">
             <transition name="ambient-fade" mode="out-in">
                 <div class="hero-bg-wrapper" :key="current">
-                    <img :src="activeSlide.img" alt="" class="hero-bg-img" @error="handleImgError($event, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=1200')" />
+                    <video
+                        v-if="isVideoSlide(activeSlide)"
+                        :src="activeSlide.img"
+                        class="hero-bg-img hero-bg-video"
+                        muted
+                        autoplay
+                        loop
+                        playsinline
+                        preload="metadata"
+                    ></video>
+                    <img v-else :src="activeSlide.img" alt="" class="hero-bg-img" @error="handleImgError($event, 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=1200')" />
                     <div class="hero-overlay-curtain"></div>
                 </div>
             </transition>
@@ -818,13 +989,73 @@ onUnmounted(() => {
             <div class="grid-container">
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
-                        <span class="ambient-label">DANH MỤC</span>
-                        <h2>Phân Khúc Laptop Chuyên Biệt</h2>
-                        <p>Cấu hình mạnh mẽ, tối ưu hóa theo từng nhu cầu sử dụng thực tế của bạn.</p>
+                        <span class="ambient-label">AFFILIATE VIDEO</span>
+                        <h2>Video Review Từ Cộng Tác Viên</h2>
+                        <p>Khám phá trải nghiệm thực tế, mẹo chọn máy và góc nhìn sử dụng từ cộng đồng NextGen.</p>
                     </div>
                 </div>
 
-                <div class="category-cards-grid scroll-reveal reveal-stagger">
+                <div v-if="affiliateVideos.length" class="affiliate-video-slider-shell scroll-reveal reveal-stagger">
+                    <button class="affiliate-slider-nav prev" type="button" aria-label="Video trước" @click="scrollAffiliateVideos(-1)">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div
+                        ref="affiliateVideoSlider"
+                        class="affiliate-video-showcase-grid"
+                        @pointerdown="startAffiliateVideoDrag"
+                        @pointermove="moveAffiliateVideoDrag"
+                        @pointerup="stopAffiliateVideoDrag"
+                        @pointercancel="stopAffiliateVideoDrag"
+                        @pointerleave="stopAffiliateVideoDrag"
+                    >
+                        <article
+                            v-for="video in affiliateVideos"
+                            :key="video.id"
+                            class="affiliate-video-card"
+                            :class="{ 'is-playing-embed': affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id }"
+                            @mouseenter="playAffiliateVideoPreview($event, video)"
+                            @mouseleave="pauseAffiliateVideoPreview"
+                        >
+                            <video
+                                v-if="isPlayableVideoSrc(affiliateVideoSrc(video))"
+                                :src="affiliateVideoSrc(video)"
+                                :poster="affiliateThumbnailSrc(video)"
+                                muted
+                                playsinline
+                                loop
+                                preload="metadata"
+                            ></video>
+                            <iframe
+                                v-else-if="affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id"
+                                class="affiliate-video-embed"
+                                :src="affiliateVideoEmbedSrc(video, true)"
+                                :title="video.title || video.tieu_de"
+                                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                                allowfullscreen
+                            ></iframe>
+                            <img v-else :src="affiliateThumbnailSrc(video) || getCategoryFallbackImage(video.product?.tenSP)" :alt="video.title" />
+                            <div class="affiliate-video-scrim"></div>
+                            <div class="affiliate-play-mark">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                            <div class="affiliate-video-content">
+                                <span class="affiliate-video-badge">Affiliate Video</span>
+                                <h3>{{ video.title || video.tieu_de }}</h3>
+                                <p>{{ video.product?.tenSP || 'Video review từ cộng tác viên NextGen' }}</p>
+                                <div class="affiliate-creator-row">
+                                    <span>{{ video.affiliate_user?.ten || video.affiliate_user?.name || 'NextGen Creator' }}</span>
+                                    <button type="button" @click.stop="openAffiliateVideoProduct(video)">Xem sản phẩm</button>
+                                </div>
+                            </div>
+                            <button class="affiliate-floating-product-btn" type="button" @click.stop="openAffiliateVideoProduct(video)">Xem sản phẩm</button>
+                        </article>
+                    </div>
+                    <button class="affiliate-slider-nav next" type="button" aria-label="Video tiếp theo" @click="scrollAffiliateVideos(1)">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+
+                <div v-else class="category-cards-grid scroll-reveal reveal-stagger">
                     <div class="category-premium-card" v-for="c in categories" :key="c.id_danhmuc"
                         @click="router.push(getCategoryTarget(c))">
                         <div class="card-bg-image" :style="{ backgroundImage: 'url(' + getCategoryFallbackImage(c.ten_danhmuc) + ')' }"></div>
@@ -1552,7 +1783,8 @@ onUnmounted(() => {
 .ticker-bar {
     background: var(--tn-surface);
     border-bottom: 1px solid #e2e8f0;
-    padding: 6px 0;
+    height: 26px;
+    padding: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -1561,22 +1793,58 @@ onUnmounted(() => {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    font-size: 10px;
+    font-size: 10.5px;
+    line-height: 1;
     font-weight: 800;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     color: #334155;
     min-width: max-content;
+    height: 26px;
     will-change: transform;
     animation: run-ticker 34s linear infinite;
 }
 .ticker-item {
     display: inline-flex;
     align-items: center;
-    gap: 32px;
+    height: 26px;
+    gap: 10px;
     padding-right: 32px;
+}
+.ticker-item > span {
+    display: inline-flex;
+    align-items: center;
+}
+.ticker-label {
+    height: 26px;
+    line-height: 1;
+    align-items: center;
+    padding-top: 1px;
+}
+.ticker-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tn-primary);
+    flex: 0 0 auto;
+    width: 14px;
+    height: 26px;
+}
+.ticker-icon-wrap :deep(.ticker-code-icon) {
+    width: 13px;
+    height: 13px;
+    display: block;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 .ticker-dot {
     color: var(--tn-primary);
+    margin-left: 22px;
+    height: 26px;
+    line-height: 1;
+    align-items: center;
+    padding-top: 1px;
 }
 @keyframes run-ticker {
     from { transform: translateX(0); }
@@ -1612,6 +1880,7 @@ onUnmounted(() => {
     z-index: 0;
 }
 .hero-bg-img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1619,6 +1888,9 @@ onUnmounted(() => {
     transition: all 1s ease-in-out;
     animation: hero-bg-pan 6s ease-in-out both;
     transform-origin: center;
+}
+.hero-bg-video {
+    pointer-events: none;
 }
 .hero-overlay-curtain {
     position: absolute;
@@ -2161,6 +2433,225 @@ onUnmounted(() => {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
+}
+.affiliate-video-slider-shell {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+.affiliate-video-showcase-grid {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0 24px;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+    touch-action: pan-x;
+    scroll-padding-left: 0;
+}
+.affiliate-video-showcase-grid::-webkit-scrollbar {
+    display: none;
+}
+.affiliate-video-showcase-grid.is-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    scroll-behavior: auto;
+}
+.affiliate-slider-nav {
+    position: absolute;
+    top: 50%;
+    z-index: 8;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(191,219,254,0.95);
+    background: rgba(255,255,255,0.94);
+    color: #2563eb;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 14px 34px rgba(15,23,42,0.16);
+    transform: translateY(-50%);
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.affiliate-slider-nav:hover {
+    background: #ffffff;
+    box-shadow: 0 18px 42px rgba(37,99,235,0.24);
+}
+.affiliate-slider-nav.prev {
+    left: 0;
+}
+.affiliate-slider-nav.next {
+    right: 0;
+}
+.affiliate-slider-nav svg {
+    width: 22px;
+    height: 22px;
+}
+.affiliate-video-card {
+    flex: 0 0 calc((100% - 72px) / 4);
+    height: clamp(360px, 27vw, 430px);
+    border-radius: 22px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(37,99,235,0.14);
+    background: #0f172a;
+    box-shadow: 0 18px 45px rgba(15,23,42,0.12);
+    cursor: default;
+    scroll-snap-align: start;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+}
+.affiliate-video-card:hover {
+    transform: none;
+    border-color: rgba(37,99,235,0.42);
+    box-shadow: 0 24px 60px rgba(37,99,235,0.18);
+}
+.affiliate-video-card video,
+.affiliate-video-card img,
+.affiliate-video-embed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border: 0;
+}
+.affiliate-video-embed {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: auto;
+}
+.affiliate-video-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(2,6,23,0.9) 0%, rgba(2,6,23,0.15) 58%, rgba(37,99,235,0.1) 100%);
+    z-index: 1;
+    transition: opacity .2s ease;
+}
+.affiliate-play-mark {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    color: #2563eb;
+    display: grid;
+    place-items: center;
+    z-index: 2;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.22);
+    transition: opacity .2s ease, transform .2s ease;
+}
+.affiliate-play-mark svg {
+    width: 21px;
+    height: 21px;
+    transform: translateX(1px);
+}
+.affiliate-video-content {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 22px;
+    z-index: 3;
+    color: #ffffff;
+    transition: opacity .2s ease, transform .2s ease;
+}
+.affiliate-video-card.is-playing-embed .affiliate-video-scrim,
+.affiliate-video-card.is-playing-embed .affiliate-play-mark,
+.affiliate-video-card.is-playing-embed .affiliate-video-content {
+    opacity: 0;
+    pointer-events: none;
+}
+.affiliate-video-card.is-playing-embed .affiliate-play-mark,
+.affiliate-video-card.is-playing-embed .affiliate-video-content {
+    transform: translateY(6px);
+}
+.affiliate-floating-product-btn {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    z-index: 7;
+    border: 0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 9px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition: opacity .2s ease, transform .2s ease;
+}
+.affiliate-video-card.is-playing-embed .affiliate-floating-product-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.affiliate-video-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 99px;
+    background: rgba(37,99,235,0.92);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 12px;
+}
+.affiliate-video-content h3 {
+    font-size: 22px;
+    line-height: 1.18;
+    margin: 0 0 9px;
+    color: #ffffff;
+}
+.affiliate-video-content p {
+    color: rgba(226,232,240,0.86) !important;
+    font-size: 13px;
+    line-height: 1.45;
+    min-height: 38px;
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.affiliate-creator-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.affiliate-creator-row span {
+    min-width: 0;
+    color: #bfdbfe;
+    font-size: 12px;
+    font-weight: 800;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.affiliate-creator-row button {
+    border: 0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 9px 12px;
+    cursor: pointer;
+    white-space: nowrap;
 }
 .category-premium-card {
     height: 380px;
@@ -3216,6 +3707,10 @@ onUnmounted(() => {
     .reviews-editorial-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .affiliate-video-card {
+        flex-basis: calc((100% - 48px) / 3);
+        height: 390px;
+    }
     .values-section .values-cards-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
@@ -3330,6 +3825,14 @@ onUnmounted(() => {
     .reviews-editorial-grid,
     .trust-bar-section .grid-container {
         grid-template-columns: 1fr;
+    }
+    .affiliate-video-card {
+        flex-basis: min(78vw, 330px);
+        height: 400px;
+    }
+    .affiliate-slider-nav {
+        width: 42px;
+        height: 42px;
     }
     .values-section .values-cards-grid {
         grid-template-columns: 1fr !important;

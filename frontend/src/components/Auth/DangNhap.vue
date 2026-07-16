@@ -15,7 +15,7 @@ const loading = ref(false)
 const adminOpening = ref(false)
 const webOpening = ref(false)
 const socialOpening = ref(false)
-const facebookLoginEnabled = import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === 'true'
+const facebookLoginEnabled = true
 
 const failedAttempts = ref(Number(localStorage.getItem('login_failed_attempts') || 0))
 const lockUntil = ref(Number(localStorage.getItem('login_lock_until') || 0))

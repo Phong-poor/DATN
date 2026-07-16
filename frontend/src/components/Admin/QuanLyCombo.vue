@@ -82,6 +82,38 @@ const selectedOfferProduct = ref(null) // ID sản phẩm chính đang chọn
 const availableOfferVariants = ref([]) // Biến thể tương ứng của sản phẩm chính
 const isVariantCollapsed = ref(false) // Trạng thái đóng/mở danh sách biến thể
 
+const getConfigName = (name) => {
+  if (!name) return ''
+  const parts = name.split(' - ')
+  if (parts.length > 1) {
+    return parts.slice(0, -1).join(' - ')
+  }
+  return name
+}
+
+const groupedOfferVariants = computed(() => {
+  const map = {}
+  availableOfferVariants.value.forEach(v => {
+    const configName = getConfigName(v.ten_bienthe)
+    if (!map[configName]) {
+      map[configName] = {
+        configName: configName,
+        id_bienthe: v.id_bienthe,
+        gia: v.gia,
+        ten_bienthe: v.ten_bienthe,
+        allVariants: []
+      }
+    }
+    map[configName].allVariants.push(v)
+  })
+  return Object.values(map)
+})
+
+const isVariantSelected = (groupedVar) => {
+  if (!offerForm.value.id_bienthe) return false
+  return groupedVar.allVariants.some(child => Number(child.id_bienthe) === Number(offerForm.value.id_bienthe))
+}
+
 // --- Stats ---
 const totalCombos = computed(() => combos.value.length)
 const activeCombos = computed(() => combos.value.filter(c => c.trangthai === 1).length)
@@ -481,7 +513,7 @@ const getSelectedOfferProductName = (id) => {
 
 const getSelectedVariantName = (id) => {
   const v = availableOfferVariants.value.find(varItem => varItem.id_bienthe === Number(id))
-  return v ? v.ten_bienthe : 'Cấu hình #' + id
+  return v ? getConfigName(v.ten_bienthe) : 'Cấu hình #' + id
 }
 
 const getSelectedVariantPrice = (id) => {
@@ -489,8 +521,9 @@ const getSelectedVariantPrice = (id) => {
   return v ? Number(v.gia).toLocaleString('vi-VN') + 'đ' : ''
 }
 
-const selectVariantAction = (v) => {
-  offerForm.value.id_bienthe = v.id_bienthe
+const selectVariantAction = (groupedVar) => {
+  if (isOfferEditMode.value) return
+  offerForm.value.id_bienthe = groupedVar.id_bienthe
   isVariantCollapsed.value = true
 }
 
@@ -674,21 +707,40 @@ onMounted(() => {
     <!-- Stats Cards -->
     <div class="stats">
       <div class="stat-card stat-blue">
-        <span class="stat-icon blue">📦</span>
+        <span class="stat-icon blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+            <path d="M3.3 7 12 12l8.7-5" />
+            <path d="M12 22V12" />
+          </svg>
+        </span>
         <div>
           <p>Tổng số Combo</p>
           <b>{{ totalCombos }}</b>
         </div>
       </div>
       <div class="stat-card stat-teal">
-        <span class="stat-icon green">🎁</span>
+        <span class="stat-icon green" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 12 20 22 4 22 4 12" />
+            <rect x="2" y="7" width="20" height="5" />
+            <line x1="12" y1="22" x2="12" y2="7" />
+            <path d="M12 7H7.5a2.5 2.5 0 1 1 2.15-3.78L12 7Z" />
+            <path d="M12 7h4.5a2.5 2.5 0 1 0-2.15-3.78L12 7Z" />
+          </svg>
+        </span>
         <div>
           <p>Ưu đãi đang chạy</p>
           <b>{{ activeOffers }}</b>
         </div>
       </div>
       <div class="stat-card stat-orange">
-        <span class="stat-icon orange">💰</span>
+        <span class="stat-icon orange" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="2" x2="12" y2="22" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        </span>
         <div>
           <p>Giá trị TB Combo</p>
           <b>{{ avgPrice.toLocaleString('vi-VN') }}đ</b>
@@ -890,7 +942,7 @@ onMounted(() => {
                 <div class="product-target">
                   <span class="product-name">{{ offer.sanpham_ten }}</span>
                   <span class="variant-spec-badge" style="margin-top: 6px;">
-                    💻 {{ offer.ten_bienthe }}
+                    💻 {{ getConfigName(offer.ten_bienthe) }}
                   </span>
                 </div>
               </td>
@@ -1210,14 +1262,14 @@ onMounted(() => {
 
               <!-- Available variant grid to select from -->
               <div v-else>
-                <div v-if="availableOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
+                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
                   <div 
-                    v-for="v in availableOfferVariants" 
-                    :key="v.id_bienthe"
+                    v-for="v in groupedOfferVariants" 
+                    :key="v.configName"
                     class="variant-offer-card"
                     :class="{ 
-                      selected: Number(offerForm.id_bienthe) === Number(v.id_bienthe),
-                      disabled: isOfferEditMode && Number(offerForm.id_bienthe) !== Number(v.id_bienthe)
+                      selected: isVariantSelected(v),
+                      disabled: isOfferEditMode && !isVariantSelected(v)
                     }"
                     @click="selectVariantAction(v)"
                     style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; text-align: left; background: white;"
@@ -1226,13 +1278,13 @@ onMounted(() => {
                     <div 
                       class="variant-select-chk" 
                       style="position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; background: white; font-weight: bold; transition: all 0.2s;"
-                      :style="Number(offerForm.id_bienthe) === Number(v.id_bienthe) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
+                      :style="isVariantSelected(v) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
                     >
-                      <span v-if="Number(offerForm.id_bienthe) === Number(v.id_bienthe)">✓</span>
+                      <span v-if="isVariantSelected(v)">✓</span>
                     </div>
                     
                     <div style="font-weight: 700; font-size: 12px; color: #1e293b; padding-right: 20px; line-height: 1.4; transition: color 0.2s;">
-                      {{ v.ten_bienthe }}
+                      {{ v.configName }}
                     </div>
                     
                     <div style="font-size: 11px; font-weight: 800; color: #2563eb; margin-top: 8px;">
@@ -1361,7 +1413,7 @@ onMounted(() => {
                   <span class="detail-info-label">Phiên bản / Cấu hình</span>
                   <span class="detail-info-value">
                     <span class="variant-spec-badge" style="margin: 0; font-size: 11px; padding: 4px 8px;">
-                      💻 {{ selectedOfferDetail.ten_bienthe }}
+                      💻 {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
                     </span>
                   </span>
                 </div>
@@ -1574,33 +1626,35 @@ onMounted(() => {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
 }
 
 .stat-card {
   background: white;
-  border-radius: 12px;
-  padding: 18px 20px;
+  min-height: 136px;
+  border-radius: 16px;
+  padding: 26px 28px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
 }
 
 .stat-card::after {
   content: '';
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  right: -24px;
-  top: -24px;
-  background: rgba(255, 255, 255, 0.12);
+  right: -28px;
+  top: -54px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 
 .stat-card.stat-blue {
@@ -1620,26 +1674,36 @@ onMounted(() => {
 
 .stat-card p {
   font-size: 12px;
+  line-height: 1.2;
   color: rgba(255, 255, 255, 0.88);
-  margin: 0 0 4px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
 }
 
 .stat-card b {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
   color: #fff;
 }
 
 .stat-icon {
-  font-size: 22px;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #fff;
   background: rgba(255, 255, 255, 0.18);
+}
+
+.stat-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .filter-bar {

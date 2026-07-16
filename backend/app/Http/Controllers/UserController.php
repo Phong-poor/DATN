@@ -189,12 +189,19 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
+        $request->merge([
+            'ten' => $request->input('ten', $request->input('name')),
+            'sodienthoai' => $request->input('sodienthoai', $request->input('phone')),
+            'ngaysinh' => $request->input('ngaysinh', $request->input('date_of_birth')),
+            'gioitinh' => $request->input('gioitinh', $request->input('gender')),
+        ]);
+
         $validated = $request->validate([
             'ten' => 'required|string|max:255',
             'email' => 'required|email|unique:khachhang,email,' . $user->id,
             'sodienthoai' => 'nullable|string|max:20',
             'ngaysinh' => 'nullable|date',
-            'gioitinh' => 'nullable|in:male,female',
+            'gioitinh' => 'nullable|in:male,female,Nam,Nữ,Nu',
         ]);
 
         $date = (!empty($validated['ngaysinh']))
@@ -213,6 +220,7 @@ class UserController extends Controller
         $user->gioitinh = isset($validated['gioitinh']) ? $genderMap[$validated['gioitinh']] : null;
 
         $user->save();
+        $user->refresh();
 
         return response()->json([
             'message' => 'Cập nhật thành công',
@@ -222,7 +230,16 @@ class UserController extends Controller
 
     public function profile(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $user->toArray();
+        $data['is_google_account'] = !empty($user->id_google);
+
+        return response()->json($data);
     }
 
     public function passwordCaptcha(Request $request)
@@ -267,14 +284,11 @@ class UserController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:8|confirmed',
-        ], [
-            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+            'email' => 'required|email',
         ]);
 
-        if (!Hash::check($request->current_password, $user->matkhau)) {
-            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        if ($request->email !== $user->email) {
+            return response()->json(['message' => 'Email không khớp với tài khoản của bạn'], 422);
         }
 
         $otp = rand(100000, 999999);
@@ -287,12 +301,34 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Mã OTP đã được gửi đến email của bạn',
+                'is_google_account' => !empty($user->id_google),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * POST /api/user/change-password/check-otp
+     * Just verify OTP is correct
+     */
+    public function checkOTP(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'otp' => 'required',
+        ]);
+
+        if ((int)$user->otp_khoiphuc !== (int)$request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
+            return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
+        }
+
+        return response()->json([
+            'message' => 'Mã OTP hợp lệ',
+        ]);
     }
 
     /**
@@ -320,6 +356,68 @@ class UserController extends Controller
         return response()->json([
             'message' => 'Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất sau vài giây.',
         ]);
+    }
+
+    /**
+     * POST /api/user/change-password/verify-current
+     * Verify current password (or email for Google users) and send OTP
+     */
+    public function verifyCurrentPassword(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $isGoogleAccount = !empty($user->id_google);
+
+        if ($isGoogleAccount) {
+            $validated = $request->validate([
+                'email' => 'required|email',
+            ]);
+
+            if (strcasecmp($validated['email'], (string) $user->email) !== 0) {
+                return response()->json([
+                    'message' => 'Email không khớp với tài khoản Google của bạn',
+                    'errors' => [
+                        'email' => ['Email không khớp với tài khoản Google của bạn'],
+                    ],
+                ], 422);
+            }
+        } else {
+            $validated = $request->validate([
+                'current_password' => 'required',
+            ]);
+
+            if (!Hash::check($validated['current_password'], $user->matkhau)) {
+                return response()->json([
+                    'message' => 'Mật khẩu hiện tại không đúng',
+                    'errors' => [
+                        'current_password' => ['Mật khẩu hiện tại không đúng'],
+                    ],
+                ], 422);
+            }
+        }
+
+        $otp = rand(100000, 999999);
+        $user->otp_khoiphuc = $otp;
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(10);
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SendResetOtpMail($otp));
+
+            return response()->json([
+                'message' => 'Mã OTP đã được gửi đến email của bạn.',
+                'email' => $user->email,
+                'is_google_account' => $isGoogleAccount,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

@@ -99,19 +99,14 @@ class DanhGiaController extends Controller
         }
 
         // Phân tích bình luận qua bộ lọc AI thông minh
-        $aiResult = $this->analyzeCommentWithAI($request->binhluan ?? '', $request->danhgia);
-
-        $binhLuanFinal = $request->binhluan;
-        if ($aiResult['reply'] && ! empty($binhLuanFinal)) {
-            $binhLuanFinal = $request->binhluan."\n\n".$aiResult['reply'];
-        }
+        $aiResult = $this->analyzeCommentWithModerationTool($request->binhluan ?? '', (int) $request->danhgia);
 
         $danhGia = DanhGia::create([
             'id_dathang' => $request->id_dathang,
             'id_bienthe' => $request->id_bienthe,
             'user_id' => $userId,
             'danhgia' => $request->danhgia,
-            'binhluan' => $binhLuanFinal,
+            'binhluan' => $request->binhluan,
             'trangthai' => $aiResult['trangthai'],
         ]);
 
@@ -155,6 +150,28 @@ class DanhGiaController extends Controller
     /**
      * Admin/User: Xóa đánh giá
      */
+    public function bulkUpdateStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:danhgia,id_danhgia',
+            'trangthai' => 'required|in:pending,approved,spam',
+        ]);
+
+        $reviews = DanhGia::whereIn('id_danhgia', $validated['ids'])->get();
+
+        foreach ($reviews as $review) {
+            $review->update(['trangthai' => $validated['trangthai']]);
+            $this->clearProductCacheByReview($review);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái bình luận hàng loạt thành công!',
+            'updated' => $reviews->count(),
+        ]);
+    }
+
     public function destroy($id)
     {
         $review = DanhGia::findOrFail($id);
@@ -261,6 +278,128 @@ class DanhGiaController extends Controller
     /**
      * Admin: Lấy trạng thái kích hoạt của Trợ lý AI Smart Reply
      */
+    private function analyzeCommentWithModerationTool(string $text, int $rating): array
+    {
+        $normalized = $this->normalizeModerationText($text);
+        $compact = preg_replace('/[^a-z0-9]+/', '', $normalized);
+        $hasText = trim($normalized) !== '';
+
+        $profanityWords = [
+            'dm', 'dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'vl', 'cc', 'buoi',
+            'dit', 'deo', 'loz', 'cuc', 'cut', 'ngu', 'oc cho', 'occho',
+            'mat day', 'ham', 'khon nan', 'cho chet', 'me may', 'cha may',
+        ];
+
+        $attackPhrases = [
+            'shop lua dao', 'lua dao', 'shop rac', 'shop nhu cut', 'shop nhu lon',
+            'shop mat day', 'shop vo trach nhiem', 'shop lam an bo lao', 'shop bo lao',
+            'mua o shop khac', 'dung mua', 'khong nen mua', 'canh bao moi nguoi',
+            'tay chay', 'scam', 'fake', 'hang gia', 'hang dom', 'hang deu',
+        ];
+
+        $complaintPhrases = [
+            'qua te', 'rat te', 'te hai', 'kem chat luong', 'that vong', 'khong hai long',
+            'khong dung mo ta', 'sai mo ta', 'hang loi', 'bi loi', 'loi san pham',
+            'hong', 'bi hong', 'vo', 'be', 'mop', 'tray xuoc', 'khong dung duoc',
+            'giao cham', 'dong goi te', 'phuc vu te', 'tu van te', 'bao hanh te',
+            'khong bao hanh', 'khong ho tro', 'khong tra loi', 'khong chap nhan',
+        ];
+
+        $positivePhrases = [
+            'tot', 'ok', 'on', 'tam on', 'binh thuong', 'duoc', 'hai long', 'ung y',
+            'tuyet voi', 'rat tot', 'chat luong', 'xai tot', 'dung tot', 'muot',
+            'dep', 'nhanh', 'giao nhanh', 'dong goi ky', 'shop uy tin', 'se ung ho',
+            'dang tien', 'san pham tot', 'nhiet tinh', 'recommend',
+        ];
+
+        $spamSignals = [
+            'http', 'https', 'www', 'telegram', 'zalo me', 'casino', 'ca cuoc',
+            'vay tien', 'kiem tien', 'khuyen mai soc', 'inbox rieng',
+        ];
+
+        $profanityScore = $this->countPhraseHits($normalized, $profanityWords)
+            + $this->countCompactHits($compact, ['dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'loz']);
+        $attackScore = $this->countPhraseHits($normalized, $attackPhrases);
+        $complaintScore = $this->countPhraseHits($normalized, $complaintPhrases);
+        $positiveScore = $this->countPhraseHits($normalized, $positivePhrases);
+        $spamScore = $this->countPhraseHits($normalized, $spamSignals);
+        $repeatedChars = preg_match('/(.)\1{5,}/u', $text) ? 1 : 0;
+        $tooShortNegative = (! $hasText && $rating <= 2) ? 1 : 0;
+
+        if ($profanityScore > 0 || $attackScore > 0 || $spamScore > 0 || $repeatedChars > 0) {
+            return ['trangthai' => 'spam', 'reply' => null];
+        }
+
+        if ($rating <= 2 && ($complaintScore > 0 || $tooShortNegative)) {
+            return ['trangthai' => 'spam', 'reply' => null];
+        }
+
+        if ($rating === 3 && $complaintScore >= 2) {
+            return ['trangthai' => 'spam', 'reply' => null];
+        }
+
+        if ($rating >= 4 || $positiveScore > 0) {
+            return ['trangthai' => 'approved', 'reply' => null];
+        }
+
+        if ($rating === 3 && $complaintScore === 0) {
+            return ['trangthai' => 'approved', 'reply' => null];
+        }
+
+        if ($hasText && $complaintScore === 0) {
+            return ['trangthai' => 'approved', 'reply' => null];
+        }
+
+        return ['trangthai' => 'pending', 'reply' => null];
+    }
+
+    private function countPhraseHits(string $text, array $phrases): int
+    {
+        $hits = 0;
+        foreach ($phrases as $phrase) {
+            if ($phrase === '') {
+                continue;
+            }
+
+            $pattern = '/(^| )'.preg_quote($phrase, '/').'( |$)/u';
+            if (preg_match($pattern, $text)) {
+                $hits++;
+            }
+        }
+
+        return $hits;
+    }
+
+    private function countCompactHits(string $text, array $phrases): int
+    {
+        $hits = 0;
+        foreach ($phrases as $phrase) {
+            if ($phrase !== '' && str_contains($text, $phrase)) {
+                $hits++;
+            }
+        }
+
+        return $hits;
+    }
+
+    private function normalizeModerationText(string $text): string
+    {
+        $text = mb_strtolower($text, 'UTF-8');
+        $text = strtr($text, [
+            'à' => 'a', 'á' => 'a', 'ạ' => 'a', 'ả' => 'a', 'ã' => 'a', 'â' => 'a', 'ầ' => 'a', 'ấ' => 'a', 'ậ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ă' => 'a', 'ằ' => 'a', 'ắ' => 'a', 'ặ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a',
+            'è' => 'e', 'é' => 'e', 'ẹ' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ê' => 'e', 'ề' => 'e', 'ế' => 'e', 'ệ' => 'e', 'ể' => 'e', 'ễ' => 'e',
+            'ì' => 'i', 'í' => 'i', 'ị' => 'i', 'ỉ' => 'i', 'ĩ' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ọ' => 'o', 'ỏ' => 'o', 'õ' => 'o', 'ô' => 'o', 'ồ' => 'o', 'ố' => 'o', 'ộ' => 'o', 'ổ' => 'o', 'ỗ' => 'o', 'ơ' => 'o', 'ờ' => 'o', 'ớ' => 'o', 'ợ' => 'o', 'ở' => 'o', 'ỡ' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'ụ' => 'u', 'ủ' => 'u', 'ũ' => 'u', 'ư' => 'u', 'ừ' => 'u', 'ứ' => 'u', 'ự' => 'u', 'ử' => 'u', 'ữ' => 'u',
+            'ỳ' => 'y', 'ý' => 'y', 'ỵ' => 'y', 'ỷ' => 'y', 'ỹ' => 'y',
+            'đ' => 'd',
+        ]);
+        $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        return trim($text);
+    }
+
     public function getAiStatus()
     {
         $status = false;

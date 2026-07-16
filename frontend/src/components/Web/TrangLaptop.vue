@@ -20,12 +20,13 @@ import {
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
-import { productImageUrl } from '@/services/urls'
+import { handleImageFallback, productImageUrl } from '@/services/urls'
+import ComboSelectionModal from './HopThoaiChonCombo.vue'
 
 const router = useRouter()
 const route = useRoute()
 
-const products = ref([])
+const rawProductsList = ref([])
 const isLoading = ref(true)
 const activeLine = ref('all')
 const activeSort = ref('popular')
@@ -35,12 +36,45 @@ const selectedCpus = ref([])
 const maxPrice = ref(200000000)
 const currentPage = ref(1)
 const catalogResults = ref(null)
-const itemsPerPage = 16
+const itemsPerPage = 12
 
 const isAccessoryPage = computed(() => route.path.includes('phu-kien'))
 
+const combos = ref([])
+const showComboModal = ref(false)
+const selectedCombo = ref(null)
+
+const getOriginalPrice = (combo) => {
+  if (!combo.products) return 0
+  return combo.products.reduce((sum, p) => {
+    const firstVariantPrice = p.bien_thes?.[0]?.gia || 0
+    return sum + Number(firstVariantPrice)
+  }, 0)
+}
+
+const openCombo = (combo) => {
+  selectedCombo.value = combo
+  showComboModal.value = true
+}
+
+const products = computed(() => {
+  if (isAccessoryPage.value) {
+    return rawProductsList.value.filter(isProductAccessory).map(normalizeProduct)
+  } else {
+    const laptopRaw = rawProductsList.value.filter(isProductLaptop)
+    if (laptopRaw.length === 0) return []
+    const groups = expandAllVariants(laptopRaw)
+    return interleaveVariants(groups)
+  }
+})
+
 const isProductAccessory = (product) => {
-  const cat = String(product.category || '').toLowerCase()
+  const cat = String(
+    product.category || 
+    product.danh_muc?.ten_danhmuc || 
+    product.danhmuc?.tenDM || 
+    ''
+  ).toLowerCase()
   const name = String(product.tenSP || '').toLowerCase()
   const accessoryCats = ['chuột', 'bàn phím', 'tai nghe', 'lót chuột', 'ổ cứng ssd', 'ram', 'màn hình', 'hub chuyển đổi', 'webcam', 'balo laptop', 'router', 'microphone', 'phụ kiện', 'accessory']
   if (accessoryCats.some(c => cat.includes(c))) return true
@@ -59,7 +93,6 @@ const laptopLines = [
   { key: 'gaming', label: 'Laptop Gaming RTX', icon: Zap, q: 'gaming rtx' },
   { key: 'macbook', label: 'MacBook Pro & Air', icon: Monitor, q: 'macbook apple' },
   { key: 'office', label: 'Laptop văn phòng', icon: BadgeCheck, q: 'van phong' },
-  { key: 'workstation', label: 'Workstation đồ họa', icon: SlidersHorizontal, q: 'workstation' },
   { key: 'student', label: 'Laptop học tập', icon: ShieldCheck, q: 'hoc sinh sinh vien' },
   { key: 'accessory', label: 'Phụ kiện laptop', icon: Headphones, q: 'phu kien chuot ban phim tai nghe' },
 ]
@@ -74,7 +107,7 @@ const accessoryLines = [
 ]
 
 const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
-const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'workstation'))
+const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
 
 const tabs = [
   { key: 'popular', label: 'Bán chạy' },
@@ -119,7 +152,7 @@ const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAcces
 const showroomHighlights = [
   {
     text: 'Trải nghiệm trực quan',
-    desc: 'Đầy đủ laptop gaming, MacBook và workstation sẵn sàng dùng thử thực tế.',
+    desc: 'Đầy đủ laptop gaming và MacBook sẵn sàng dùng thử thực tế.',
     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
   },
   {
@@ -173,12 +206,7 @@ const fallbackProducts = [
   },
 ]
 
-const normalizeProduct = (p) => {
-  const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
-  const variant = variants.length
-    ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
-    : null
-
+const normalizeVariant = (p, variant) => {
   let specs = []
   try {
     const attrs = typeof variant?.thuoc_tinh_json === 'string'
@@ -198,6 +226,10 @@ const normalizeProduct = (p) => {
 
   const price = Number(variant?.gia || p.gia || 0) || 19990000
 
+  // Extract CPU and RAM for subtitle display
+  const cpuSpec = specs.find(s => /i[3579][-\s]|ryzen|core ultra|xeon|m[1-4]|celeron|pentium/i.test(s)) || ''
+  const ramSpec = specs.find(s => /\d+gb.*ram|ram.*\d+gb|\d+gb(?!.*ssd|.*nvme|.*storage)/i.test(s)) || ''
+
   return {
     id_sanpham: p.id_sanpham,
     id_bienthe: variant?.id_bienthe,
@@ -207,24 +239,110 @@ const normalizeProduct = (p) => {
     gia: price,
     oldPrice: Math.floor(price * 1.13),
     specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
+    cpu: cpuSpec,
+    ram: ramSpec,
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
     rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
     reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
   }
 }
 
+// Legacy single-variant fallback
+const normalizeProduct = (p) => {
+  const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+  const variant = variants.length
+    ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
+    : null
+  return normalizeVariant(p, variant)
+}
+
+/**
+ * Expand all variants: mỗi biến thể = 1 card riêng
+ */
+const expandAllVariants = (rawProducts) => {
+  const result = []
+  for (const p of rawProducts) {
+    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    if (variants.length === 0) {
+      result.push({ items: [normalizeProduct(p)], productId: p.id_sanpham })
+    } else {
+      result.push({
+        items: variants.map(v => normalizeVariant(p, v)),
+        productId: p.id_sanpham
+      })
+    }
+  }
+  return result
+}
+
+const interleaveVariants = (groups) => {
+  // Trộn các nhóm sản phẩm một cách nhất quán (deterministic shuffle) để tránh việc các sản phẩm
+  // ở đầu danh sách database chiếm giữ hết trang đầu tiên.
+  const shuffledGroups = [...groups].sort((a, b) => {
+    const hashA = (a.productId * 9301 + 49297) % 233280
+    const hashB = (b.productId * 9301 + 49297) % 233280
+    return hashA - hashB
+  })
+
+  // Tạo queue cho từng sản phẩm
+  const queues = shuffledGroups.map(g => [...g.items])
+  const result = []
+  const history = [] // Lưu lịch sử id_sanpham của các card vừa thêm
+
+  while (queues.some(q => q.length > 0)) {
+    let chosen = null
+
+    // Tìm kiếm sản phẩm phù hợp sao cho khoảng cách giữa các biến thể cùng loại là lớn nhất có thể (tối đa 4 card cách nhau).
+    // Nếu không tìm được sản phẩm nào thỏa mãn khoảng cách tối đa, ta giảm dần khoảng cách xuống cho đến khi tìm được.
+    for (let dist = 4; dist >= 0; dist--) {
+      const activeHistory = history.slice(-dist)
+      const eligible = queues
+        .map((q, i) => ({ q, i, productId: shuffledGroups[i].productId }))
+        .filter(({ q, productId }) => q.length > 0 && !activeHistory.includes(productId))
+
+      if (eligible.length > 0) {
+        // Ưu tiên hàng đợi còn nhiều biến thể nhất để giải phóng sớm các sản phẩm có nhiều cấu hình
+        eligible.sort((a, b) => b.q.length - a.q.length)
+        chosen = eligible[0]
+        break
+      }
+    }
+
+    if (chosen) {
+      result.push(chosen.q.shift())
+      history.push(chosen.productId)
+    } else {
+      break
+    }
+  }
+
+  return result
+}
+
 const loadProducts = async () => {
   isLoading.value = true
   try {
     const cache = await prefetchProductsPage()
-    products.value = cache?.productsRaw?.length
-      ? cache.productsRaw.map(normalizeProduct)
-      : [...fallbackProducts]
+    if (cache?.productsRaw?.length) {
+      rawProductsList.value = cache.productsRaw
+    } else {
+      rawProductsList.value = [...fallbackProducts]
+    }
   } catch (error) {
     console.error('Khong tai duoc danh sach laptop:', error)
-    products.value = [...fallbackProducts]
+    rawProductsList.value = [...fallbackProducts]
   } finally {
     isLoading.value = false
+  }
+
+  // Load combos
+  try {
+    const comboResponse = await api.get('/combos')
+    if (comboResponse.data && Array.isArray(comboResponse.data.data)) {
+      combos.value = comboResponse.data.data
+    }
+  } catch (comboErr) {
+    console.error('Loi tai combo:', comboErr)
   }
 }
 
@@ -246,7 +364,6 @@ const lineMatcher = (product, line = activeLine.value) => {
   if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion')
   if (line === 'macbook') return text.includes('macbook') || text.includes('apple')
   if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad')
-  if (line === 'workstation') return text.includes('workstation') || text.includes('precision') || text.includes('zbook') || text.includes('proart')
   if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin')
   if (line === 'accessory') return text.includes('chuot') || text.includes('ban phim') || text.includes('tai nghe') || text.includes('phu kien')
   return true
@@ -294,17 +411,27 @@ const filteredProducts = computed(() => {
 
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage)))
 const paginatedProducts = computed(() => {
+  console.log('Laptop itemsPerPage is:', itemsPerPage)
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredProducts.value.slice(start, start + itemsPerPage)
 })
 
+
 const compactPages = computed(() => {
   const total = pageCount.value
   const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+  if (total <= 4) return Array.from({ length: total }, (_, i) => i + 1)
   const pages = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
+  
+  let start = Math.max(2, current - 1)
+  let end = Math.min(total - 1, current + 1)
+
+  if (current <= 2) {
+    end = 3
+  } else if (current >= total - 1) {
+    start = total - 2
+  }
+
   if (start > 2) pages.push('...')
   for (let page = start; page <= end; page++) pages.push(page)
   if (end < total - 1) pages.push('...')
@@ -535,7 +662,7 @@ onMounted(() => {
       </div>
       <div class="flagship-row">
         <article v-for="product in flagshipProducts" :key="product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" />
+          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="specs">
             <span v-for="spec in product.specs.slice(0, 3)" :key="spec">{{ spec }}</span>
@@ -628,10 +755,15 @@ onMounted(() => {
             </article>
           </div>
           <div v-else class="product-grid">
-            <article v-for="product in paginatedProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
+            <article v-for="product in paginatedProducts" :key="product.id_bienthe ? 'v-' + product.id_bienthe : 'p-' + product.id_sanpham" class="product-card" @click="viewDetail(product)">
               <span class="discount">-13%</span>
-              <img :src="product.image" :alt="product.tenSP" />
-              <h3>{{ product.tenSP }}</h3>
+              <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
+              <h3>
+                {{ product.tenSP }}
+                <span v-if="product.cpu || product.ram" class="title-specs-suffix">
+                  ({{ [product.cpu, product.ram].filter(Boolean).join(' / ') }})
+                </span>
+              </h3>
               <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }} đánh giá)</span></div>
               <div class="specs">
                 <span v-for="spec in product.specs.slice(0, 4)" :key="spec">{{ spec }}</span>
@@ -654,12 +786,25 @@ onMounted(() => {
             </article>
           </div>
 
-          <div class="pagination" v-if="pageCount > 1">
-            <button class="page-nav" :disabled="currentPage === 1" @click="currentPage--">Trước</button>
-            <span class="page-indicator">{{ currentPage }}/{{ pageCount }}</span>
-            <button class="page-nav" :disabled="currentPage === pageCount" @click="currentPage++">Sau</button>
-          </div>
         </div>
+      </div>
+
+      <div class="pagination" v-if="pageCount > 1">
+        <button class="page-nav" :disabled="currentPage === 1" @click="currentPage--">Trước</button>
+        
+        <template v-for="(page, idx) in compactPages" :key="idx">
+          <span v-if="page === '...'" class="page-ellipsis">...</span>
+          <button 
+            v-else 
+            class="page-number" 
+            :class="{ active: page === currentPage }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+        </template>
+
+        <button class="page-nav" :disabled="currentPage === pageCount" @click="currentPage++">Sau</button>
       </div>
     </section>
 
@@ -673,7 +818,7 @@ onMounted(() => {
       </div>
       <div class="accessory-strip">
         <article v-for="product in accessoryProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" />
+          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
           <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
@@ -681,7 +826,60 @@ onMounted(() => {
       </div>
     </section>
 
-    <section id="showroom-section" class="lp-showroom">
+    <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
+      <div class="combos-header">
+        <span class="ambient-label">🎁 Combo Độc Quyền</span>
+        <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
+        <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
+      </div>
+
+      <div class="combos-bento-layout" v-if="combos && combos.length">
+        <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
+          <div class="combo-main-content">
+            <div class="combo-details">
+              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+              </span>
+              <h3>{{ combo.ten_combo }}</h3>
+              <p>{{ combo.mota }}</p>
+              
+              <div class="combo-pricing-group">
+                <div class="price-block">
+                  <span class="price-label">Giá Combo:</span>
+                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                </div>
+                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                  <span class="price-label">Tổng Giá gốc:</span>
+                  <span class="price-val-old">{{ formatPrice(getOriginalPrice(combo)) }}</span>
+                </div>
+              </div>
+
+              <button type="button" class="combo-action-btn" @click="openCombo(combo)">
+                Mua Trọn Bộ Combo
+                <ChevronRight class="btn-chevron" />
+              </button>
+            </div>
+
+            <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
+              <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
+                <div class="node-image-box">
+                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" />
+                </div>
+                <span class="node-title">{{ item.tenSP }}</span>
+                <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="combo-empty-state">
+        <div class="combo-empty-icon">🎁</div>
+        <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
+        <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng thêm combo trong trang quản trị.</p>
+      </div>
+    </section>
+
+    <section v-else id="showroom-section" class="lp-showroom">
       <div class="lp-showroom-copy">
         <small>NEXTGEN SHOWROOM</small>
         <h2>Trải nghiệm trực tiếp tại Showroom NextGen</h2>
@@ -706,6 +904,8 @@ onMounted(() => {
         <img src="/Gemini_Generated_Image_v5vppjv5vppjv5vp (2).png" alt="NextGen laptop showroom" />
       </div>
     </section>
+
+    <ComboSelectionModal v-if="selectedCombo" :combo="selectedCombo" :show="showComboModal" @close="showComboModal = false; selectedCombo = null" />
   </main>
 </template>
 
@@ -1129,6 +1329,13 @@ onMounted(() => {
   margin: 14px 0 8px;
 }
 
+.title-specs-suffix {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
 .specs {
   display: flex;
   flex-wrap: wrap;
@@ -1214,13 +1421,14 @@ onMounted(() => {
 
 .catalog-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
 
 .filter-card {
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px 14px;
   align-self: start;
   position: sticky;
   top: 124px;
@@ -1242,11 +1450,11 @@ onMounted(() => {
 
 .filter-group {
   border-top: 1px solid #edf2f7;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .filter-group h4 {
@@ -1966,13 +2174,16 @@ onMounted(() => {
 }
 
 .lp-showroom {
+  width: min(1380px, calc(100% - clamp(28px, 5vw, 96px) * 2));
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1fr);
   gap: clamp(28px, 4vw, 56px);
   align-items: center;
-  margin-top: clamp(28px, 4vw, 54px);
-  padding-top: clamp(34px, 4.5vw, 58px);
-  padding-bottom: clamp(34px, 4.5vw, 58px);
+  margin: clamp(28px, 4vw, 54px) auto 0;
+  padding-left: clamp(28px, 5vw, 72px);
+  padding-right: clamp(28px, 5vw, 72px);
+  padding-top: clamp(24px, 3.2vw, 40px);
+  padding-bottom: clamp(24px, 3.2vw, 40px);
   border-radius: 22px;
   background:
     radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.18), transparent 36%),
@@ -1989,29 +2200,29 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .lp-showroom-copy h2 {
   max-width: 720px;
-  margin: 0 0 16px;
-  font-size: clamp(28px, 3vw, 42px);
+  margin: 0 0 12px;
+  font-size: clamp(26px, 2.7vw, 38px);
   line-height: 1.08;
   color: #ffffff;
 }
 
 .lp-showroom-copy > p {
   max-width: 680px;
-  margin: 0 0 28px;
+  margin: 0 0 20px;
   color: #cbd5e1;
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.58;
 }
 
 .lp-showroom-list {
   display: grid;
-  gap: 18px;
-  margin-bottom: 30px;
+  gap: 13px;
+  margin-bottom: 22px;
 }
 
 .lp-showroom-item {
@@ -2048,12 +2259,12 @@ onMounted(() => {
   margin: 0;
   color: #94a3b8;
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .lp-showroom-btn {
-  min-height: 48px;
-  padding: 0 26px;
+  min-height: 42px;
+  padding: 0 24px;
   border: 0;
   border-radius: 10px;
   background: #2563eb;
@@ -2073,7 +2284,7 @@ onMounted(() => {
 
 .lp-showroom-visual {
   position: relative;
-  min-height: 320px;
+  min-height: 260px;
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
@@ -2093,7 +2304,7 @@ onMounted(() => {
 .lp-showroom-visual img {
   width: 100%;
   height: 100%;
-  min-height: 320px;
+  min-height: 260px;
   object-fit: cover;
   display: block;
 }
@@ -2522,10 +2733,10 @@ onMounted(() => {
 
 .apply-filter {
   width: 100%;
-  height: 42px;
-  margin-top: 18px;
+  height: 38px;
+  margin-top: 14px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #0f6be8, #004cc5);
   color: #fff;
   display: inline-flex;
@@ -2827,8 +3038,10 @@ onMounted(() => {
 }
 
 .lp-catalog .pagination {
+  display: flex;
+  justify-content: center;
   gap: 10px;
-  margin: 22px 0 6px;
+  margin: 36px 0 12px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -3203,60 +3416,7 @@ onMounted(() => {
   border-radius: 12px;
 }
 
-@media (min-width: 1101px) {
-  .lp-catalog .catalog-layout {
-    height: calc(100vh - var(--lp-catalog-sticky-top, 118px) - 24px);
-    min-height: 0;
-    overflow: hidden;
-    align-items: start;
-  }
 
-  .lp-catalog .filter-card {
-    position: sticky;
-    top: var(--lp-catalog-sticky-top, 118px);
-    height: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    padding-bottom: 28px;
-    scrollbar-width: thin;
-    transform: none;
-    will-change: auto;
-  }
-
-  .catalog-results {
-    height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 8px 0 0;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-    contain: none;
-    will-change: auto;
-  }
-
-  .catalog-results::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .catalog-results::-webkit-scrollbar-thumb {
-    background: rgba(37, 99, 235, 0.42);
-    border: 2px solid rgba(226, 232, 240, 0.72);
-    border-radius: 999px;
-  }
-
-  .catalog-results .product-grid,
-  .catalog-results .skeleton-grid {
-    padding-right: 0;
-  }
-}
 
 .laptop-page {
   -webkit-font-smoothing: antialiased;
@@ -3412,7 +3572,273 @@ onMounted(() => {
 
   .lp-showroom-visual,
   .lp-showroom-visual img {
-    min-height: 230px;
+    min-height: 190px;
   }
+}
+
+@media (min-width: 1101px) {
+  .lp-catalog .product-grid,
+  .lp-catalog .skeleton-grid {
+    max-height: 640px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar-thumb,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+  }
+
+  .lp-catalog .product-grid::-webkit-scrollbar-track,
+  .lp-catalog .skeleton-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ============================================================
+   COMBOS SECTION (for Accessories page)
+   ============================================================ */
+.lp-combos {
+  margin-top: 56px;
+  padding: 40px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.combos-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.combos-header h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: #0f172a;
+  margin: 12px 0 8px;
+  text-transform: uppercase;
+}
+
+.combos-header .section-sub {
+  font-size: 14.5px;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.combos-header .ambient-label {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.combos-bento-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.combo-bento-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  transition: all 0.25s ease;
+}
+
+.combo-bento-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.combo-main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .combo-main-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.combo-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.combo-discount-badge {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.combo-details h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: #0f172a;
+}
+
+.combo-details p {
+  font-size: 13.5px;
+  color: #64748b;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.combo-pricing-group {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  width: 100%;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.price-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.price-val-old {
+  font-size: 17px;
+  font-weight: 650;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.combo-action-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.combo-action-btn:hover {
+  opacity: 0.9;
+}
+
+.btn-chevron {
+  width: 14px;
+  height: 14px;
+}
+
+.combo-visual-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  border-radius: 14px;
+}
+
+.connector-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.node-image-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.node-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.node-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 8px;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 32px;
+  line-height: 1.4;
+}
+
+.node-plus-sign {
+  position: absolute;
+  right: -18px;
+  top: 24px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.combo-empty-state {
+  text-align: center;
+  padding: 30px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+
+.combo-empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
 }
 </style>

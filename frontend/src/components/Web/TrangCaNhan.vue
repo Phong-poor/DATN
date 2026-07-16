@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
+import { isFormDirty } from '@/services/unsavedChanges'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
@@ -97,8 +98,16 @@ const updateUserData = (apiUser) => {
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
       : user.value.joinDate,
+    is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
+    id_google: apiUser.id_google || null,
+  }
+
+  if (apiUser.email) {
+    pwForm.value.email = apiUser.email
   }
 }
+
+const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
@@ -218,6 +227,60 @@ const loadUser = async () => {
   }
 }
 
+const orderFlow = ['pending', 'confirmed', 'shipping', 'done']
+const refundFlow = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+
+const formatTimelineDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const interpolateDate = (startValue, endValue, ratio) => {
+  const start = new Date(startValue).getTime()
+  const end = new Date(endValue).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return endValue || startValue
+  return new Date(start + (end - start) * ratio).toISOString()
+}
+
+const timelineDateFor = (order, key, statusKey, flow, ratio = 1) => {
+  const history = order.du_lieu_thanh_toan?.status_history || {}
+  if (history[key]) return formatTimelineDate(history[key])
+
+  const currentIndex = flow.indexOf(statusKey)
+  const targetIndex = flow.indexOf(key)
+  if (targetIndex === -1 || currentIndex === -1 || targetIndex > currentIndex) return null
+
+  if (key === 'pending') return formatTimelineDate(order.created_at)
+  if (key === statusKey) return formatTimelineDate(order.updated_at || order.created_at)
+
+  return formatTimelineDate(interpolateDate(order.created_at, order.updated_at, ratio))
+}
+
+const buildOrderSteps = (order, statusKey) => [
+  { label: 'Đặt hàng', date: timelineDateFor(order, 'pending', statusKey, orderFlow, 0), done: true },
+  { label: 'Xác nhận', date: timelineDateFor(order, 'confirmed', statusKey, orderFlow, 0.35), done: statusKey !== 'pending' },
+  { label: 'Đang giao', date: timelineDateFor(order, 'shipping', statusKey, orderFlow, 0.68), done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+  { label: 'Hoàn thành', date: timelineDateFor(order, 'done', statusKey, orderFlow, 1), done: statusKey === 'done' || statusKey.startsWith('refund') },
+]
+
+const buildRefundSteps = (order, statusKey) => statusKey.startsWith('refund') ? [
+  { label: 'Yêu cầu hoàn trả', date: timelineDateFor(order, 'refund_pending', statusKey, refundFlow, 0.2), done: refundFlow.indexOf(statusKey) >= 0 },
+  { label: 'Chờ lấy hàng hoàn', date: timelineDateFor(order, 'refund_pickup', statusKey, refundFlow, 0.4), done: refundFlow.indexOf(statusKey) >= 1 },
+  { label: 'Đang giao hoàn', date: timelineDateFor(order, 'refund_delivering', statusKey, refundFlow, 0.6), done: refundFlow.indexOf(statusKey) >= 2 },
+  { label: 'Đã nhận hoàn', date: timelineDateFor(order, 'refund_received', statusKey, refundFlow, 0.8), done: refundFlow.indexOf(statusKey) >= 3 },
+  { label: 'Đã hoàn tiền', date: timelineDateFor(order, 'refunded', statusKey, refundFlow, 1), done: refundFlow.indexOf(statusKey) >= 4 },
+] : null
+
 const fetchOrders = async () => {
   try {
     const res = await api.get('/orders')
@@ -240,9 +303,11 @@ const fetchOrders = async () => {
           id_dathang: order.id_dathang,
           id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
+          created_at: order.created_at,
           status: statusKey,
           trangthai: order.trangthai,
           updated_at: order.updated_at,
+          du_lieu_thanh_toan: order.du_lieu_thanh_toan || {},
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           giam_gia: order.giam_gia || 0,
@@ -288,19 +353,8 @@ const fetchOrders = async () => {
               img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://placehold.co/200')
             }
           }),
-          steps: [
-            { label: 'Đặt hàng', date: new Date(order.created_at).toLocaleString('vi-VN'), done: true },
-            { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
-            { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
-            { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
-          ],
-          refundSteps: statusKey.startsWith('refund') ? [
-            { label: 'Yêu cầu hoàn trả', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 0 },
-            { label: 'Chờ lấy hàng hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 1 },
-            { label: 'Đang giao hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 2 },
-            { label: 'Đã nhận hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 3 },
-            { label: 'Đã hoàn tiền', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 4 },
-          ] : null
+          steps: buildOrderSteps(order, statusKey),
+          refundSteps: buildRefundSteps(order, statusKey)
         }
       })
     }
@@ -340,6 +394,20 @@ const confirmCancel = async () => {
   } finally {
     isSubmitting.value = false
   }
+}
+
+const closeCancelModal = async () => {
+  if (cancelReason.value.trim()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đã nhập lý do hủy đơn. Nếu đóng, nội dung này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showCancelModal.value = false
+  cancelReason.value = ''
 }
 
 // Refund state
@@ -412,6 +480,26 @@ const confirmRefund = async () => {
     } finally {
         isSubmitting.value = false
     }
+}
+
+const closeRefundModal = async () => {
+  if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showRefundModal.value = false
+  refundReason.value = ''
+  refundProof.value = null
+  if (refundProofUrl.value) {
+    URL.revokeObjectURL(refundProofUrl.value)
+    refundProofUrl.value = null
+  }
+  refundSelectedItems.value = []
 }
 
 const isRefundable = (order) => {
@@ -506,6 +594,7 @@ onMounted(() => {
   fetchPromotions()
   fetchAddresses()
   loadPwCaptcha()
+  fetchAttendanceStatus()
 
   const userData = getUser()
   if (getToken() && userData && (userData.id || userData.id_user)) {
@@ -529,10 +618,24 @@ onMounted(() => {
           if (e.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
           if (e.trangthai === 'cancelled') statusKey = 'cancelled'
           orders.value[index].status = statusKey
+          orders.value[index].updated_at = e.updated_at || new Date().toISOString()
+          orders.value[index].du_lieu_thanh_toan = {
+            ...(orders.value[index].du_lieu_thanh_toan || {}),
+            status_history: e.status_history || {
+              ...orders.value[index].du_lieu_thanh_toan?.status_history,
+              [e.trangthai]: orders.value[index].updated_at,
+            },
+          }
+          orders.value[index].steps = buildOrderSteps(orders.value[index], statusKey)
+          orders.value[index].refundSteps = buildRefundSteps(orders.value[index], statusKey)
 
           if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
             selectedOrder.value.trangthai = e.trangthai
             selectedOrder.value.status = statusKey
+            selectedOrder.value.updated_at = orders.value[index].updated_at
+            selectedOrder.value.du_lieu_thanh_toan = orders.value[index].du_lieu_thanh_toan
+            selectedOrder.value.steps = orders.value[index].steps
+            selectedOrder.value.refundSteps = orders.value[index].refundSteps
           }
         }
       })
@@ -549,6 +652,60 @@ onUnmounted(() => {
     echo.leave(`user.${userId}`)
   }
 })
+
+// ── DAILY CHECK-IN ───────────────────────────────────────
+const attendanceData = ref({
+  checked_today: false,
+  current_streak: 0,
+  days_progress: []
+})
+const checkingIn = ref(false)
+
+const fetchAttendanceStatus = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const res = await api.get('/diem-danh/status')
+    if (res.data.success) {
+      attendanceData.value = res.data
+    }
+  } catch (error) {
+    console.error('Lỗi tải trạng thái điểm danh:', error)
+  }
+}
+
+const handleCheckIn = async () => {
+  if (attendanceData.value.checked_today || checkingIn.value) return
+  
+  checkingIn.value = true
+  try {
+    const res = await api.post('/diem-danh')
+    if (res.data.success) {
+      swal.success('Thành công!', res.data.message || 'Bạn đã điểm danh thành công!')
+      
+      // Cập nhật số xu của user hiển thị trên giao diện
+      if (res.data.total_xu !== undefined) {
+        user.value.xu = res.data.total_xu
+        // Đồng bộ lưu local
+        const currentUser = getUser()
+        if (currentUser) {
+          currentUser.xu = res.data.total_xu
+          updateUser(currentUser)
+        }
+        window.dispatchEvent(new Event('user-updated'))
+      }
+      
+      // Load lại trạng thái điểm danh mới
+      await fetchAttendanceStatus()
+    }
+  } catch (error) {
+    console.error('Lỗi điểm danh:', error)
+    const errorMsg = error.response?.data?.message || 'Điểm danh thất bại, vui lòng thử lại sau.'
+    showToast(errorMsg)
+  } finally {
+    checkingIn.value = false
+  }
+}
 
 const showXuHistoryModal = ref(false)
 const xuHistoryList = ref([])
@@ -578,16 +735,215 @@ const fetchXuHistory = async (page) => {
 }
 
 const startEdit = () => {
-  profileForm.value = { ...user.value }
+  profileForm.value = { 
+    ...user.value,
+  }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
   editing.value = true
 }
 
-const cancelEdit = () => {
+const isProfileFormDirty = () => {
+  if (!editing.value) return false
+  return (
+    profileForm.value.name !== user.value.name ||
+    profileForm.value.phone !== user.value.phone ||
+    profileForm.value.birthday !== user.value.birthday ||
+    (profileForm.value.gender === 'male' ? 'Nam' : profileForm.value.gender === 'female' ? 'Nữ' : profileForm.value.gender) !== user.value.gender ||
+    profileForm.value.avatar !== user.value.avatar
+  )
+}
+
+const cancelEdit = async (force = false) => {
+  if (!force && isProfileFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận hủy',
+      'Bạn đang có thay đổi chưa được lưu. Nếu hủy, các dữ liệu đã nhập sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, hủy',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
   editing.value = false
   profileForm.value = {}
+  profilePwErrors.value = {}
+  otpVerifiedForPassword.value = false
+  isFormDirty.value = false
+}
+
+const changeTab = async (tabKey) => {
+  if (activeTab.value === tabKey) return
+
+  if (isFormDirty.value) {
+    const confirmed = await swal.confirm(
+      'Xác nhận rời đi',
+      'Bạn có thay đổi chưa được lưu. Nếu rời đi, các thay đổi này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, rời đi',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+    isFormDirty.value = false
+  }
+
+  // Clear inputs when leaving tabs to prevent stale data
+  if (activeTab.value === 'profile') {
+    await cancelEdit(true)
+  } else if (activeTab.value === 'password') {
+    pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+    pwErrors.value = {}
+    passwordTabOtpPending.value = false
+  }
+
+  activeTab.value = tabKey
+}
+
+const otpVerifiedForPassword = ref(false)
+const passwordTabOtpPending = ref(false)
+const profilePwErrors = ref({})
+const showProfileOtpModal = ref(false)
+const profileOtpCode = ref(['', '', '', '', '', ''])
+const profileOtpInputRefs = ref([])
+const profileOtpCountdown = ref(600) // 10 mins
+const profileOtpResendCooldown = ref(0)
+const verifyingProfileOtp = ref(false)
+const sendingProfileOtp = ref(false)
+let profileOtpTimer = null
+
+const startProfileOtpTimer = () => {
+  if (profileOtpTimer) clearInterval(profileOtpTimer)
+  profileOtpCountdown.value = 600
+  profileOtpTimer = setInterval(() => {
+    if (profileOtpCountdown.value > 0) profileOtpCountdown.value--
+    else clearInterval(profileOtpTimer)
+  }, 1000)
+}
+
+const resendProfileOtp = async () => {
+  if (profileOtpResendCooldown.value > 0) return
+  sendingProfileOtp.value = true
+  try {
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/request-otp', {
+        email: pwForm.value.email || user.value.email,
+      })
+    } else {
+      await api.post('/user/change-password/request-otp', {
+        email: profileForm.value.currentEmail
+      })
+    }
+    showToast('Đã gửi lại mã OTP!')
+    profileOtpResendCooldown.value = 60
+    const cooldownTimer = setInterval(() => {
+      if (profileOtpResendCooldown.value > 0) profileOtpResendCooldown.value--
+      else clearInterval(cooldownTimer)
+    }, 1000)
+    startProfileOtpTimer()
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Lỗi gửi lại mã OTP!')
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const handleProfileOtpInput = (index, event) => {
+  const value = event.target.value
+  if (value && value.length > 1) {
+    const chars = value.split('').filter(c => /[0-9]/.test(c))
+    chars.forEach((char, i) => {
+      if (index + i < 6) {
+        profileOtpCode.value[index + i] = char
+      }
+    })
+    const nextEmptyIndex = profileOtpCode.value.findIndex(val => !val)
+    if (nextEmptyIndex !== -1 && profileOtpInputRefs.value[nextEmptyIndex]) {
+      profileOtpInputRefs.value[nextEmptyIndex].focus()
+    } else if (profileOtpInputRefs.value[5]) {
+      profileOtpInputRefs.value[5].focus()
+    }
+  } else if (value && /[0-9]/.test(value)) {
+    profileOtpCode.value[index] = value
+    if (index < 5 && profileOtpInputRefs.value[index + 1]) {
+      profileOtpInputRefs.value[index + 1].focus()
+    }
+  } else {
+    profileOtpCode.value[index] = ''
+  }
+}
+
+const handleProfileOtpKeydown = (index, event) => {
+  if (event.key === 'Backspace') {
+    if (!profileOtpCode.value[index] && index > 0 && profileOtpInputRefs.value[index - 1]) {
+      profileOtpInputRefs.value[index - 1].focus()
+      profileOtpCode.value[index - 1] = ''
+    } else {
+      profileOtpCode.value[index] = ''
+    }
+  } else if (event.key === 'ArrowLeft' && index > 0 && profileOtpInputRefs.value[index - 1]) {
+    profileOtpInputRefs.value[index - 1].focus()
+  } else if (event.key === 'ArrowRight' && index < 5 && profileOtpInputRefs.value[index + 1]) {
+    profileOtpInputRefs.value[index + 1].focus()
+  }
+}
+
+const requestOtpForPassword = async () => {
+  profilePwErrors.value = {}
+  if (!profileForm.value.currentEmail) {
+    profilePwErrors.value.currentEmail = 'Vui lòng nhập email hiện tại'
+    return
+  }
+  sendingProfileOtp.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      email: profileForm.value.currentEmail
+    })
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
+  } catch (error) {
+    if (error.response?.status === 422) {
+       profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
+    } else {
+       showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
+    }
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const verifyProfileOtp = async () => {
+  const code = profileOtpCode.value.join('')
+  if (code.length < 6) {
+    profilePwErrors.value.otp = 'Vui lòng nhập đủ 6 số'
+    return
+  }
+  verifyingProfileOtp.value = true
+  profilePwErrors.value.otp = ''
+  try {
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/verify-otp', {
+        otp: code,
+        new_password: pwForm.value.newPass,
+      })
+      showProfileOtpModal.value = false
+      passwordTabOtpPending.value = false
+      pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+      pwErrors.value = {}
+      await swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } else {
+      await api.post('/user/change-password/check-otp', {
+        otp: code
+      })
+      showProfileOtpModal.value = false
+      otpVerifiedForPassword.value = true
+      showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    }
+  } catch (error) {
+    profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
+  } finally {
+    verifyingProfileOtp.value = false
+  }
 }
 
 const saveProfile = async () => {
@@ -612,18 +968,23 @@ const saveProfile = async () => {
       '/user/profile',
       {
         name: profileForm.value.name,
+        ten: profileForm.value.name,
         email: profileForm.value.email,
         phone: profileForm.value.phone,
+        sodienthoai: profileForm.value.phone,
         date_of_birth: profileForm.value.birthday,
+        ngaysinh: profileForm.value.birthday,
         gender: profileForm.value.gender,
+        gioitinh: profileForm.value.gender,
       }
     )
 
-    updateUserData(res.data.user)
+    updateUserData(res.data.user || res.data)
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
+    isFormDirty.value = false
     showToast('Cập nhật thành công!')
 
   } catch (error) {
@@ -635,20 +996,13 @@ const saveProfile = async () => {
 }
 
 const rewardPoints = computed(() => {
-  // Tính tổng tiền từ các đơn hàng hoàn thành (done hoặc completed)
-  const completedOrders = orders.value.filter(o => o.status === 'done' || o.trangthai === 'completed' || o.trangthai === 'done')
-  const totalSpent = completedOrders.reduce((sum, o) => sum + (o.tongtien || 0), 0)
-
-  // Quy đổi: 10.000đ = 1 điểm thưởng
-  const points = Math.floor(totalSpent / 10000)
-
-  return new Intl.NumberFormat('vi-VN').format(points)
+  return new Intl.NumberFormat('vi-VN').format(user.value.xu || 0)
 })
 
 const stats = computed(() => [
   { label: 'Đơn hàng', value: orders.value.length.toString(), icon: 'orders' },
   { label: 'Yêu thích', value: wishlistCount.value.toString(), icon: 'heart' },
-  { label: 'Điểm thưởng', value: rewardPoints.value, icon: 'star' },
+  { label: 'Xu', value: rewardPoints.value, icon: 'star' },
 ])
 
 // ════════════════════════════════════════════════
@@ -1071,11 +1425,48 @@ const openEditAddr = async (i) => {
   }
 }
 
-const cancelAddr = () => {
+const isAddrFormDirty = () => {
+  if (editingAddrIdx.value === null) {
+    // Add mode
+    return (
+      selectedProvinceCode.value !== '' ||
+      selectedWardCode.value !== '' ||
+      addrForm.value.detail.trim() !== '' ||
+      addrForm.value.type !== 'home' ||
+      addrForm.value.isDefault !== false
+    );
+  } else {
+    // Edit mode
+    const original = addresses.value[editingAddrIdx.value];
+    if (!original) return false;
+    return (
+      addrForm.value.province !== original.province ||
+      addrForm.value.district !== original.district ||
+      addrForm.value.ward !== original.ward ||
+      addrForm.value.detail.trim() !== (original.detail || '').trim() ||
+      addrForm.value.type !== original.type ||
+      addrForm.value.isDefault !== original.isDefault ||
+      addrForm.value.latitude !== original.latitude ||
+      addrForm.value.longitude !== original.longitude
+    );
+  }
+}
+
+const cancelAddr = async () => {
+  if (isAddrFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin địa chỉ. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
   showAddrForm.value = false
   addressSuggestions.value = []
   showSuggestions.value = false
   detailWarning.value = ''
+  isFormDirty.value = false
 }
 
 const saveAddr = async () => {
@@ -1090,6 +1481,7 @@ const saveAddr = async () => {
 
     await fetchAddresses()
     showAddrForm.value = false
+    isFormDirty.value = false
     showToast('Địa chỉ đã được cập nhật!')
   } catch (error) {
     const message = error.response?.data?.message
@@ -1129,7 +1521,7 @@ const removeAddr = (i) => {
 // ════════════════════════════════════════════════
 //  TAB 4 — PASSWORD
 // ════════════════════════════════════════════════
-const pwForm = ref({ current: '', newPass: '', confirm: '' })
+const pwForm = ref({ current: '', email: '', newPass: '', confirm: '' })
 const showPw = ref({ current: false, newPass: false, confirm: false })
 const savingPw = ref(false)
 const pwErrors = ref({})
@@ -1137,6 +1529,7 @@ const pwCaptcha = ref({ question: '', answer: '' })
 const loadingPwCaptcha = ref(false)
 const captchaVerified = ref(false)
 const verifyingCaptcha = ref(false)
+const showPwCaptcha = ref(false)
 
 const solveCaptchaQuestion = (question) => {
   const expression = String(question || '').match(/(-?\d+)\s*([+\-xX*])\s*(-?\d+)/)
@@ -1226,8 +1619,8 @@ const pwRequirements = computed(() => [
 const savePw = async () => {
   pwErrors.value = {}
 
-  if (!pwForm.value.current) {
-    pwErrors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
+  if (!pwForm.value.email) {
+    pwErrors.value.email = 'Vui lòng nhập email xác minh'
   }
 
   if (!pwForm.value.newPass) {
@@ -1240,58 +1633,33 @@ const savePw = async () => {
     pwErrors.value.confirm = 'Mật khẩu không khớp'
   }
 
-  if (!pwCaptcha.value.answer) {
-    pwErrors.value.captcha = 'Vui lòng nhập captcha'
-  }
-
   if (Object.keys(pwErrors.value).length) return
 
   savingPw.value = true
   try {
-    const res = await api.put('/user/change-password', {
-      current_password: pwForm.value.current,
-      new_password: pwForm.value.newPass,
-      new_password_confirmation: pwForm.value.confirm,
-      captcha_answer: pwCaptcha.value.answer,
+    await api.post('/user/change-password/request-otp', {
+      email: pwForm.value.email,
     })
 
-    pwForm.value = { current: '', newPass: '', confirm: '' }
-    await loadPwCaptcha()
-    showToast(res.data?.message || 'Đổi mật khẩu thành công!')
+    passwordTabOtpPending.value = true
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    profilePwErrors.value = {}
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     const data = error.response?.data || {}
 
     if (error.response?.status === 422) {
-      if (data.errors?.current_password?.[0]) {
-        pwErrors.value.current = data.errors.current_password[0]
-        await loadPwCaptcha()
-      }
-
-      if (data.errors?.new_password?.[0]) {
-        pwErrors.value.newPass = data.errors.new_password[0]
-      }
-
-      if (data.errors?.captcha_answer?.[0]) {
-        pwErrors.value.captcha = data.errors.captcha_answer[0]
-        await loadPwCaptcha()
-      }
-
-      if (!Object.keys(pwErrors.value).length && data.message) {
-        const message = data.message
-        if (message.toLowerCase().includes('captcha')) {
-          pwErrors.value.captcha = message
-          await loadPwCaptcha()
-        } else if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
-          pwErrors.value.current = message
-          await loadPwCaptcha()
-        } else {
-          pwErrors.value.newPass = message
-        }
+      if (data.errors?.email?.[0]) {
+        pwErrors.value.email = data.errors.email[0]
+      } else if (data.message) {
+        pwErrors.value.email = data.message
       }
       return
     }
 
-    showToast(data.message || 'Có lỗi xảy ra khi đổi mật khẩu!')
+    showToast(data.message || 'Có lỗi xảy ra khi gửi mã OTP!')
   } finally {
     savingPw.value = false
   }
@@ -1345,7 +1713,8 @@ const promoStatusMap = {
     </transition>
 
     <!-- Order detail modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="selectedOrder" @click.self="selectedOrder = null">
         <div class="modal">
           <div class="modal-head">
@@ -1446,33 +1815,37 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Cancellation Modal -->
-    <transition name="fade">
-      <div class="overlay" v-if="showCancelModal" @click.self="showCancelModal = false" style="z-index: 9005;">
+    <Teleport to="body">
+      <transition name="fade">
+      <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal" style="z-index: 9005;">
         <div class="modal mini-modal">
           <div class="modal-head">
             <h2 class="modal-title">Lý do hủy đơn</h2>
-            <button class="close-btn" @click="showCancelModal = false">
+            <button class="close-btn" no-guard @click="closeCancelModal">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="modal-body">
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            <textarea v-model="cancelReason" class="form-control cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
+            <textarea v-model="cancelReason" class="cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
             <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
               <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
               </button>
-              <button class="btn-cancel" @click="showCancelModal = false">Quay lại</button>
+              <button class="btn-cancel" no-guard @click="closeCancelModal">Quay lại</button>
             </div>
           </div>
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Xu History Modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
         <div class="modal" style="max-width: 550px;">
           <div class="modal-head">
@@ -1535,37 +1908,94 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
+
+    <!-- Profile OTP Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+      <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false" style="z-index: 9020;">
+        <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="width: 56px; height: 56px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+              <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <input 
+              v-for="(val, idx) in 6" :key="idx"
+              type="text" 
+              maxlength="1"
+              :ref="el => profileOtpInputRefs[idx] = el"
+              v-model="profileOtpCode[idx]"
+              @input="handleProfileOtpInput(idx, $event)"
+              @keydown="handleProfileOtpKeydown(idx, $event)"
+              @paste.prevent="handleProfileOtpInput(idx, { target: { value: $event.clipboardData.getData('text') } })"
+              style="width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: 700; border: 2px solid #e2e8f0; border-radius: 10px; transition: border-color 0.2s;"
+              onfocus="this.style.borderColor='#2563eb'"
+              onblur="this.style.borderColor='#e2e8f0'"
+            />
+          </div>
+
+          <div v-if="profilePwErrors.otp" style="color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; font-weight: 500;">
+            {{ profilePwErrors.otp }}
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px;">
+            <svg style="width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{ Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
+          </div>
+
+          <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6" style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+            {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
+          </button>
+
+          <div style="text-align: center; font-size: 13.5px;">
+            <span style="color: #64748b;">Chưa nhận được mã?</span>
+            <button @click="resendProfileOtp" :disabled="profileOtpResendCooldown > 0 || sendingProfileOtp" style="background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; margin-left: 6px; transition: opacity 0.2s;" :style="profileOtpResendCooldown > 0 || sendingProfileOtp ? 'color: #94a3b8; cursor: not-allowed;' : ''" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+              {{ sendingProfileOtp ? 'Đang gửi...' : (profileOtpResendCooldown > 0 ? `Gửi lại (${profileOtpResendCooldown}s)` : 'Gửi lại mã') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+    </Teleport>
 
     <!-- Refund Modal -->
-    <transition name="fade">
-      <div class="overlay" v-if="showRefundModal" @click.self="showRefundModal = false" style="z-index: 9005;">
+    <Teleport to="body">
+      <transition name="fade">
+      <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal" style="z-index: 9005;">
         <div class="modal mini-modal">
           <div class="modal-head">
             <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-            <button class="close-btn" @click="showRefundModal = false">
+            <button class="close-btn" no-guard @click="closeRefundModal">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
-                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
-                            <div class="d-flex align-items-center gap-2">
-                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
-                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
-                                </div>
+                <div class="refund-items-list">
+                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card" :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                        <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
+                            <img :src="item.img" class="refund-product-img" :alt="item.name">
+                            <div class="refund-product-info">
+                                <div class="refund-product-name">{{ item.name }}</div>
+                                <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
                             </div>
-                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
+                            <div class="refund-product-side">
+                                <div class="refund-product-price">{{ item.price }}</div>
+                                <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' : 'Chọn' }}</span>
+                            </div>
+                            <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems">
                         </label>
                     </div>
                 </div>
             </div>
             <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
-            <textarea v-model="refundReason" class="form-control cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
+            <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
             
             <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng chứng</label>
@@ -1582,15 +2012,17 @@ const promoStatusMap = {
               <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting" style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                 {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
               </button>
-              <button class="btn-cancel" @click="showRefundModal = false">Quay lại</button>
+              <button class="btn-cancel" no-guard @click="closeRefundModal">Quay lại</button>
             </div>
           </div>
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <!-- Review Modal -->
-    <transition name="fade">
+    <Teleport to="body">
+      <transition name="fade">
       <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
         <div class="modal review-modal">
           <div class="modal-head">
@@ -1646,13 +2078,15 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
-    <transition name="fade">
-      <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
         <div class="modal address-modal">
           <div class="modal-head">
             <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-            <button class="close-btn" @click="cancelAddr">
+            <button class="close-btn" no-guard @click="cancelAddr">
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -1702,7 +2136,7 @@ const promoStatusMap = {
                 <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa chỉ mặc định</span></label>
               </div>
               <div class="form-actions form-full address-modal-actions">
-                <button type="button" class="btn-cancel" @click="cancelAddr">Hủy</button>
+                <button type="button" class="btn-cancel" no-guard @click="cancelAddr">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingAddr">
                   <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
@@ -1713,6 +2147,7 @@ const promoStatusMap = {
         </div>
       </div>
     </transition>
+    </Teleport>
 
     <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
 
@@ -1762,7 +2197,7 @@ const promoStatusMap = {
             v-for="tab in tabs" :key="tab.key"
             class="side-btn"
             :class="{ active: activeTab === tab.key }"
-            @click="activeTab = tab.key"
+            @click="changeTab(tab.key)"
           >
             <!-- person -->
             <svg v-if="tab.icon==='person'" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1784,79 +2219,140 @@ const promoStatusMap = {
       <main class="main">
 
         <!-- ════ TAB: PROFILE ════ -->
-        <div v-if="activeTab === 'profile'" class="card">
-          <div class="card-header">
-            <div>
-              <h1 class="card-title">Thông tin cá nhân</h1>
-              <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
-            </div>
-            <button v-if="!editing" class="btn-edit" @click="startEdit">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Chỉnh sửa
-            </button>
-          </div>
-          <div v-if="!editing" class="info-grid">
-            <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row">
-              <span class="info-lbl">🪙 Xu tích lũy</span>
-              <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
-                <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
-                <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
-                  <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Lịch sử
-                </button>
-              </span>
-            </div>
-            <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
-            <div class="info-row">
-              <span class="info-lbl">Giới tính</span>
-              <span class="info-val" :class="{ 'not-set': !user.gender }">
-                {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác') : 'Chưa cập nhật' }}
-              </span>
-            </div>
-          </div>
-          <form v-else class="edit-form" @submit.prevent="saveProfile">
-            <div class="form-avatar-section">
-              <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
-                <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
-                  <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
-                  <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
-                    <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                  </div>
-                  <div v-else class="form-avatar-plus-overlay">
-                    <i class="fas fa-plus"></i>
-                  </div>
-                </div>
+        <!-- ════ TAB: PROFILE ════ -->
+        <div v-if="activeTab === 'profile'" style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Thông tin cá nhân -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h1 class="card-title">Thông tin cá nhân</h1>
+                <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
               </div>
-              <p class="form-avatar-upload-text">Tải ảnh lên</p>
-            </div>
-
-            <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
-            <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
-            <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
-            <div class="form-row">
-              <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
-              <div class="form-group">
-                <label>Giới tính</label>
-                <select v-model="profileForm.gender">
-                  <option value="male">Nam</option>
-                  <option value="female">Nữ</option>
-                  <option value="other">Khác</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn-cancel" @click="cancelEdit">Hủy</button>
-              <button type="submit" class="btn-save" :disabled="savingProfile">
-                <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              <button v-if="!editing" class="btn-edit" @click="startEdit">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Chỉnh sửa
               </button>
             </div>
-          </form>
+            <div v-if="!editing" class="info-grid">
+              <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">🪙 Xu tích lũy</span>
+                <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
+                  <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
+                  <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                    <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Lịch sử
+                  </button>
+                </span>
+              </div>
+              <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">Giới tính</span>
+                <span class="info-val" :class="{ 'not-set': !user.gender }">
+                  {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác') : 'Chưa cập nhật' }}
+                </span>
+              </div>
+            </div>
+            <form v-else class="edit-form" @submit.prevent="saveProfile">
+              <div class="form-avatar-section">
+                <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+                  <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
+                    <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                    <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                      <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </div>
+                    <div v-else class="form-avatar-plus-overlay">
+                      <i class="fas fa-plus"></i>
+                    </div>
+                  </div>
+                </div>
+                <p class="form-avatar-upload-text">Tải ảnh lên</p>
+              </div>
+
+              <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
+              <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
+              <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
+              <div class="form-row">
+                <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
+                <div class="form-group">
+                  <label>Giới tính</label>
+                  <select v-model="profileForm.gender">
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
+                <button type="submit" class="btn-save" :disabled="savingProfile">
+                  <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Điểm danh hàng ngày -->
+          <div class="card attendance-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  📅 Điểm danh nhận Xu hàng ngày
+                </h2>
+                <p class="card-sub">Điểm danh hàng ngày từ Thứ Hai đến Chủ Nhật để tích lũy thêm Xu mua sắm!</p>
+              </div>
+            </div>
+
+            <div class="attendance-days-grid">
+              <div v-for="d in attendanceData.days_progress" :key="d.day" class="attendance-day-box" :class="d.status">
+                <div class="day-num">{{ d.label }}</div>
+                <div class="day-xu">
+                  <span class="coin-icon">🪙</span>
+                  <span class="xu-val">+{{ d.xu }}</span>
+                </div>
+                <div class="day-status-icon">
+                  <svg v-if="d.status === 'checked'" class="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <svg v-else-if="d.status === 'current'" class="icon-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                  </svg>
+                  <svg v-else class="icon-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="attendance-footer">
+              <div class="attendance-streak-info">
+                <span>Chuỗi điểm danh hiện tại: <strong>{{ attendanceData.current_streak }} ngày</strong> liên tục</span>
+              </div>
+              <button 
+                class="btn-checkin" 
+                :disabled="attendanceData.checked_today || checkingIn"
+                @click="handleCheckIn"
+              >
+                <svg v-if="checkingIn" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 18px; height: 18px; margin-right: 6px; animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <svg v-else-if="attendanceData.checked_today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <span>{{ attendanceData.checked_today ? 'Hôm nay đã điểm danh' : 'Điểm danh ngay' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- ════ TAB: ORDERS ════ -->
@@ -2085,16 +2581,14 @@ const promoStatusMap = {
           <div class="pw-layout">
             <div class="card">
               <form @submit.prevent="savePw" class="form">
-                <div class="form-group" :class="{ error: pwErrors.current }">
-                  <label>Mật khẩu hiện tại</label>
+                <div class="form-group" :class="{ error: pwErrors.email }">
+                  <label>Email xác minh</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <input :type="showPw.current ? 'text' : 'password'" v-model="pwForm.current" placeholder="••••••••" />
-                    <button type="button" class="eye-btn" @click="showPw.current = !showPw.current">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                    <input type="email" v-model="pwForm.email" placeholder="name@example.com" />
                   </div>
-                  <span class="err-msg" v-if="pwErrors.current">{{ pwErrors.current }}</span>
+                  <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
+                  <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
                 </div>
                 <div class="form-group" :class="{ error: pwErrors.newPass }">
                   <label>Mật khẩu mới</label>
@@ -2122,36 +2616,9 @@ const promoStatusMap = {
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
-                <div class="form-group" :class="{ error: pwErrors.captcha }">
-                  <label>Xác minh</label>
-                  <div class="turnstile-box" :class="{ checked: captchaVerified, loading: loadingPwCaptcha || verifyingCaptcha }">
-                    <button
-                      type="button"
-                      class="turnstile-check"
-                      :aria-pressed="captchaVerified"
-                      :disabled="loadingPwCaptcha || verifyingCaptcha"
-                      @click="toggleHumanCaptcha"
-                    >
-                      <svg v-if="captchaVerified" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span v-else-if="loadingPwCaptcha || verifyingCaptcha" class="turnstile-spinner"></span>
-                    </button>
-                    <span class="turnstile-text">Xác minh bạn là con người</span>
-                    <div class="turnstile-brand">
-                      <div class="cloudflare-mark">
-                        <span></span>
-                      </div>
-                      <strong>CLOUDFLARE</strong>
-                      <small>Quyền riêng tư · Điều khoản</small>
-                      <button type="button" class="turnstile-refresh" title="Tải lại xác minh" @click="loadPwCaptcha">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <span class="err-msg" v-if="pwErrors.captcha">{{ pwErrors.captcha }}</span>
-                </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
                   <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  {{ savingPw ? 'Đang cập nhật...' : 'Cập nhật mật khẩu' }}
+                  {{ savingPw ? 'Đang gửi OTP...' : 'Tiếp tục' }}
                 </button>
               </form>
             </div>
@@ -2522,6 +2989,64 @@ const promoStatusMap = {
   flex-direction: column;
   gap: 16px;
 }
+
+/* FORM AVATAR PICKER */
+.form-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.form-avatar-dashed-border {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 2px dashed rgba(56, 189, 248, 0.4);
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-avatar-dashed-border:hover {
+  border-color: #38bdf8;
+  transform: scale(1.02);
+}
+.form-avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  background: rgba(13, 27, 46, 0.4);
+}
+.form-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.form-avatar-plus-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.form-avatar-circle:hover .form-avatar-plus-overlay {
+  opacity: 1;
+}
+.form-avatar-upload-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0;
+}
 .form-row, .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2651,6 +3176,13 @@ const promoStatusMap = {
   color: #ef4444;
   font-weight: 600;
   margin-top: 2px;
+}
+
+.pw-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* ── CATEGORY TABS ── */
@@ -3054,7 +3586,7 @@ const promoStatusMap = {
 .addr-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: #1e293b;
 }
 .default-badge {
   font-size: 11px;
@@ -3084,9 +3616,9 @@ const promoStatusMap = {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(13, 27, 46, 0.4);
-  color: #cbd5e1;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -3096,23 +3628,33 @@ const promoStatusMap = {
   width: 13px;
   height: 13px;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.2;
   fill: none;
 }
 .addr-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+.addr-btn-default {
+  border-color: #dbeafe;
+  color: #2563eb;
+  background: #eff6ff;
 }
 .addr-btn-default:hover {
-  background: rgba(34, 211, 238, 0.1);
-  color: #3b82f6;
-  border-color: rgba(34, 211, 238, 0.25);
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.addr-btn-delete {
+  border-color: #fee2e2;
+  color: #ef4444;
+  background: #fff5f5;
 }
 .addr-btn-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
 /* PASSWORD */
@@ -3761,6 +4303,117 @@ const promoStatusMap = {
 .review-modal {
   max-width: 480px !important;
 }
+
+.refund-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 14px;
+}
+
+.refund-product-card {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.refund-product-card:hover,
+.refund-product-card.selected {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.14);
+}
+
+.refund-product-card.selected {
+  background: #eff6ff;
+}
+
+.refund-product-label {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.refund-product-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.refund-product-info {
+  min-width: 0;
+}
+
+.refund-product-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refund-product-qty {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.refund-product-side {
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.refund-product-price {
+  color: #0284c7;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.refund-check-pill {
+  min-width: 76px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.refund-product-card.selected .refund-check-pill {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.refund-product-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .review-product-info {
   background: rgba(13, 27, 46, 0.5);
   padding: 14px;
@@ -4143,9 +4796,9 @@ const promoStatusMap = {
 .req-card,
 .tip-card,
 .table-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 54%);
+  border: 1px solid #38bdf8;
+  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.18);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -4160,12 +4813,12 @@ const promoStatusMap = {
 .form-actions,
 .modal-footer,
 .pagination-footer {
-  border-color: #e2e8f0;
+  border-color: #bae6fd;
 }
 
 .avatar-circle {
-  border-color: #0ea5e9;
-  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.18);
+  border-color: #0284c7;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.28);
 }
 
 .sidebar-name,
@@ -4181,9 +4834,9 @@ const promoStatusMap = {
 }
 
 .sidebar-badge {
-  color: #0369a1;
-  background: #e0f2fe;
-  border-color: #bae6fd;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
 }
 
 .sidebar-join,
@@ -4207,15 +4860,15 @@ const promoStatusMap = {
 .modal-item,
 .review-product-info,
 .captcha-question {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #e0f2fe 0%, #f8fbff 100%);
+  border: 1px solid #7dd3fc;
 }
 
 .stat-card:hover,
 .info-row:hover {
-  background: #f1f5f9;
-  border-color: #bfdbfe;
-  box-shadow: none;
+  background: #d0ecff;
+  border-color: #0284c7;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.18);
 }
 
 .stat-val {
@@ -4236,19 +4889,24 @@ const promoStatusMap = {
 }
 
 .side-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #d0ecff;
+  color: #0369a1;
 }
 
 .side-btn.active {
-  background: #e0f2fe;
-  border-color: #bae6fd;
-  color: #0369a1;
-  box-shadow: none;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.26);
+}
+
+.side-btn.active svg:not(.arrow),
+.side-btn.active .arrow {
+  stroke: #ffffff;
 }
 
 .side-btn .arrow,
-.side-btn.active .arrow {
+.side-btn:hover .arrow {
   stroke: #0284c7;
 }
 
@@ -4258,7 +4916,7 @@ const promoStatusMap = {
 }
 
 .btn-edit {
-  background: #ffffff;
+  background: #f0f9ff;
   border-color: #0ea5e9;
   color: #0284c7;
 }
@@ -4288,8 +4946,8 @@ const promoStatusMap = {
 .p-arrow,
 .p-num,
 .close-btn {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #f0f9ff;
+  border-color: #bae6fd;
   color: #475569;
 }
 
@@ -4297,9 +4955,9 @@ const promoStatusMap = {
 .p-arrow:hover:not(:disabled),
 .p-num:hover,
 .close-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #075985;
 }
 
 .form-group input,
@@ -4308,8 +4966,8 @@ const promoStatusMap = {
 .input-wrap input,
 .address-modal-form input,
 .address-modal-form select {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #f8fbff;
+  border-color: #bfdbfe;
   color: #0f172a !important;
 }
 
@@ -4327,7 +4985,7 @@ const promoStatusMap = {
 .form-group input:disabled,
 .form-group select:disabled {
   color: #94a3b8 !important;
-  background: #f8fafc;
+  background: #eaf6ff;
 }
 
 .form-group select option {
@@ -4370,8 +5028,25 @@ const promoStatusMap = {
 }
 
 .order-tab:hover {
-  background: #ffffff;
-  color: #0f172a;
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.order-tab.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.order-tab.active:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.order-tab:hover .otab-count,
+.order-tab.active:hover .otab-count {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
 }
 
 .order-data-table th {
@@ -4444,6 +5119,336 @@ const promoStatusMap = {
   color: #64748b;
 }
 
+.modal .tl-dot {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.modal .tl-item.done .tl-dot {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.modal .tl-line {
+  width: 2px;
+  background: #dbeafe;
+  margin: 3px 0;
+}
+
+.modal .tl-line.done {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.modal .tl-label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .tl-date {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal .tl-item:not(.done) .tl-label {
+  color: #334155;
+}
+
+.modal .section-title {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+}
+
+.modal .modal-item {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+}
+
+.modal .modal-item img {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.modal .modal-item-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .modal-item-qty {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.modal .modal-footer {
+  border-top-color: #dbeafe;
+  align-items: center;
+  gap: 18px;
+}
+
+.modal .modal-btns {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal .btn-modal-huy,
+.modal .btn-modal-hoantra,
+.modal .btn-modal-mua,
+.modal .btn-review-small {
+  min-height: 42px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.modal .btn-modal-huy {
+  background: #ffffff;
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+  padding: 9px 18px;
+}
+
+.modal .btn-modal-huy:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
+}
+
+.modal .btn-modal-hoantra {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.modal .btn-modal-hoantra:hover {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+}
+
+.modal .btn-modal-mua {
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  border: 0;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.20);
+}
+
+.modal .btn-modal-mua:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+}
+
+.modal .btn-review-small {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  padding: 7px 12px;
+}
+
+.modal .btn-review-small:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.modal .modal-total-wrap {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.modal .modal-total-wrap > div:last-child {
+  border-top-color: #dbeafe !important;
+}
+
+.modal .total-label {
+  color: #475569;
+  font-size: 12px;
+}
+
+.modal .total-value {
+  color: #2563eb !important;
+  text-shadow: none;
+  font-size: 22px !important;
+}
+
+.overlay:has(.timeline) {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.modal:has(.timeline) {
+  max-width: 560px;
+  max-height: none;
+  overflow: visible;
+  border-radius: 18px;
+}
+
+.modal:has(.timeline) .modal-head {
+  padding: 18px 24px 0;
+}
+
+.modal:has(.timeline) .modal-title {
+  font-size: 17px;
+}
+
+.modal:has(.timeline) .modal-id {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.timeline) .modal-body {
+  padding: 14px 24px 22px;
+}
+
+.modal:has(.timeline) .modal-status {
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.timeline) .timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 2px 0 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.modal:has(.timeline) .tl-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-col {
+  width: 28px;
+}
+
+.modal:has(.timeline) .tl-dot {
+  width: 26px;
+  height: 26px;
+}
+
+.modal:has(.timeline) .tl-line {
+  display: none;
+}
+
+.modal:has(.timeline) .tl-content {
+  padding-bottom: 0;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-label {
+  font-size: 12.5px;
+  line-height: 1.25;
+  margin: 1px 0 3px;
+  white-space: nowrap;
+}
+
+.modal:has(.timeline) .tl-date {
+  font-size: 10.5px;
+  line-height: 1.25;
+  margin: 0;
+  color: #64748b;
+}
+
+.modal:has(.timeline) .section-title {
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.timeline) .modal-item-name {
+  font-size: 13px;
+}
+
+.modal:has(.timeline) .modal-item-qty,
+.modal:has(.timeline) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.timeline) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.timeline) .btn-modal-huy,
+.modal:has(.timeline) .btn-modal-hoantra,
+.modal:has(.timeline) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.timeline) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.timeline) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.timeline) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
 .timeline-dot {
   background: #ffffff;
   border-color: #cbd5e1;
@@ -4473,6 +5478,43 @@ const promoStatusMap = {
 }
 
 @media (max-width: 576px) {
+  .refund-product-label {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .refund-product-img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .refund-product-side {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .overlay:has(.timeline) {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .modal:has(.timeline) {
+    width: calc(100% - 12px);
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .modal:has(.timeline) .timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal:has(.timeline) .modal-footer {
+    grid-template-columns: 1fr;
+  }
+
   .page {
     padding: 20px 14px 48px;
   }
@@ -4484,5 +5526,255 @@ const promoStatusMap = {
   .modal-item-right {
     border-top-color: #e2e8f0;
   }
+}
+
+/* ── DAILY CHECK-IN CARD ── */
+.attendance-card {
+  margin-top: 10px;
+}
+.attendance-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.attendance-day-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px 8px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.attendance-day-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Checked Day */
+.attendance-day-box.checked {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.attendance-day-box.checked .day-num {
+  color: #10b981;
+  font-weight: 700;
+}
+.attendance-day-box.checked .xu-val {
+  color: #a7f3d0;
+}
+
+/* Current Day */
+.attendance-day-box.current {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.2);
+  transform: translateY(-4px);
+  animation: pulse-border 2s infinite;
+}
+.attendance-day-box.current .day-num {
+  color: #facc15;
+  font-weight: 700;
+}
+.attendance-day-box.current .xu-val {
+  color: #fef08a;
+  font-weight: bold;
+}
+
+/* Locked Day */
+.attendance-day-box.locked {
+  opacity: 0.6;
+}
+
+.day-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+.day-xu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.coin-icon {
+  font-size: 16px;
+}
+.xu-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.day-status-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.icon-success {
+  stroke: #10b981;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-current {
+  stroke: #eab308;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-locked {
+  stroke: #64748b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Footer layout */
+.attendance-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 20px;
+}
+.attendance-streak-info {
+  font-size: 14px;
+  color: #94a3b8;
+}
+.attendance-streak-info strong {
+  color: #2563eb;
+  font-size: 16px;
+}
+
+/* Button Checkin */
+.btn-checkin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+.btn-checkin:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+.btn-checkin:disabled {
+  background: rgba(148, 163, 184, 0.15);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #64748b;
+  cursor: not-allowed;
+}
+.btn-checkin:disabled svg {
+  stroke: #64748b;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .attendance-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    text-align: center;
+  }
+}
+
+/* MODAL TEXTAREA & CONFIRM BUTTONS */
+.cancel-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: none;
+}
+.cancel-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+.btn-danger-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger-confirm:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+.btn-danger-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-warning-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #f97316;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-warning-confirm:hover {
+  background: #ea580c;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+.btn-warning-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

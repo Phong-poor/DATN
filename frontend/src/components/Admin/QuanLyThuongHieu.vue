@@ -89,7 +89,7 @@
     </div>
 
     <transition name="fade">
-      <div class="overlay" v-if="showModal" @click.self="closeModal">
+      <div class="overlay" v-if="showModal">
         <transition name="slide-up">
           <div class="modal" v-if="showModal">
             <div class="modal-header">

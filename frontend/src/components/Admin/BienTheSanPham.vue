@@ -39,6 +39,61 @@ const getTypeStyle = (name) => {
   return typePalette[index]
 }
 
+const namedColorMap = {
+  black: '#111827',
+  den: '#111827',
+  'mau den': '#111827',
+  white: '#ffffff',
+  trang: '#ffffff',
+  'mau trang': '#ffffff',
+  silver: '#c0c0c0',
+  bac: '#c0c0c0',
+  gray: '#6b7280',
+  grey: '#6b7280',
+  xam: '#6b7280',
+  blue: '#2563eb',
+  xanh: '#2563eb',
+  red: '#dc2626',
+  do: '#dc2626',
+  green: '#16a34a',
+  'xanh la': '#16a34a',
+  yellow: '#facc15',
+  vang: '#facc15',
+  pink: '#ec4899',
+  hong: '#ec4899',
+  purple: '#7c3aed',
+  tim: '#7c3aed',
+  orange: '#f97316',
+  cam: '#f97316',
+  gold: '#d97706',
+}
+
+const stripVietnamese = (value = '') =>
+  String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim()
+
+const normalizeHex = (value, fallbackName = '') => {
+  const raw = String(value || '').trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toUpperCase()
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw}`.toUpperCase()
+  const key = stripVietnamese(fallbackName)
+  return namedColorMap[key] || '#E5E7EB'
+}
+
+const normalizeColor = (color = {}) => {
+  const name = color.name || color.ten || color.ten_mau || color.tenMau || color.label || 'Chưa đặt tên'
+  return {
+    id: color.id || color.id_mau || color.id_mau_sac,
+    name,
+    hex: normalizeHex(color.hex || color.hex_code || color.mamau || color.ma_mau || color.color_code, name),
+    stock: color.stock || color.trangthai || 'Khả dụng',
+  }
+}
 // ── Data ──
 const variants = ref([])
 const groups = ref([])
@@ -297,7 +352,8 @@ const fetchAll = async () => {
 const fetchColors = async () => {
   try {
     const res = await api.get('/colors')
-    colors.value = res.data.map(c => ({ id: c.id, name: c.name, hex: c.hex || c.hex_code }))
+    const list = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    colors.value = list.map(normalizeColor)
     if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
     colorPagination.goToPage(1)
   } catch (error) {
@@ -403,10 +459,16 @@ const submitColor = async () => {
     return
   }
   try {
+    const payload = {
+      name: colorForm.value.name,
+      hex_code: colorForm.value.hex,
+      ten: colorForm.value.name,
+      mamau: normalizeHex(colorForm.value.hex),
+    }
     if (modalType.value === 'editColor') {
-      await api.put(`/admin/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.put(`/admin/colors/${editingId}`, payload)
     } else {
-      await api.post('/admin/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.post('/admin/colors', payload)
     }
     await fetchColors()
     closeModal()
@@ -686,16 +748,17 @@ async function handleImportFile(e) {
       try {
         if (isColorFile) {
           const name = String(obj['Tên màu'] || '').trim()
-          const hex = String(obj['Mã màu (HEX)'] || '#000000').trim()
+          const hex = normalizeHex(obj['Mã màu (HEX)'], name)
           if (!name) { skipCount++; continue }
 
           const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
+          const payload = { name, hex_code: hex, ten: name, mamau: hex }
           if (existingColor) {
             // Cập nhật màu hiện có
-            await api.put(`/admin/colors/${existingColor.id}`, { name, hex_code: hex })
+            await api.put(`/admin/colors/${existingColor.id}`, payload)
           } else {
             // Thêm màu mới
-            await api.post('/admin/colors', { name, hex_code: hex })
+            await api.post('/admin/colors', payload)
           }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
@@ -1142,9 +1205,9 @@ async function handleImportFile(e) {
             <tbody>
               <tr v-for="c in pagedColors" :key="c.id" @click="selectedColor = c" style="cursor:pointer">
                 <td>
-                  <div class="color-swatch-cell" :style="{ background: c.hex }"></div>
+                  <div class="color-swatch-cell" :style="{ background: c.hex || '#E5E7EB' }"></div>
                 </td>
-                <td class="variant-name">{{ c.name }}</td>
+                <td class="variant-name">{{ c.name || 'Chưa đặt tên' }}</td>
                 <td>
                   <div class="actions">
                     <button v-if="hasPermission('bien_the_sua')" class="act-btn" @click.stop="openModal('editColor', c)">
@@ -1201,8 +1264,8 @@ async function handleImportFile(e) {
           <div class="color-list">
             <div v-for="c in colors" :key="c.id" class="color-row-item"
               :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
-              <div class="color-dot" :style="{ background: c.hex }"></div>
-              <div class="color-info"><b>{{ c.name }}</b><span>{{ c.hex }}</span></div>
+              <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
+              <div class="color-info"><b>{{ c.name || 'Chưa đặt tên' }}</b><span>{{ c.hex || '#E5E7EB' }}</span></div>
               <div class="color-row-actions">
                 <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
                   {{ c.stock === 'Khả dụng' ? '●' : '○' }}
@@ -1304,7 +1367,7 @@ async function handleImportFile(e) {
     <!-- MODAL -->
     <Teleport to="body">
       <transition name="fade">
-        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+        <div v-if="showModal" class="modal-overlay">
           <transition name="slide-up">
             <div class="modal" v-if="showModal">
               <div class="modal-header">
@@ -2156,10 +2219,11 @@ tbody td {
 .status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, .08);
+  border: 2px solid rgba(15, 23, 42, .08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8);
 }
 
 .count-badge {
@@ -2344,39 +2408,46 @@ tbody td {
 .color-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .color-row-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: 9px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 9px 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all .15s;
-  border: 1px solid transparent;
+  border: 1px solid #edf2f7;
+  background: #fff;
 }
 
-.color-row-item:hover { background: #f8fafc; }
+.color-row-item:hover {
+  background: #f8fafc;
+  border-color: #bfdbfe;
+}
+
 .color-row-item.color-selected {
   background: #f0f6ff;
   border-color: #bfdbfe;
 }
 
 .color-dot {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid rgba(0, 0, 0, .08);
+  border: 2px solid rgba(15, 23, 42, .08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8);
 }
 
 .color-info { flex: 1; min-width: 0; }
 .color-info b {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
@@ -2384,8 +2455,11 @@ tbody td {
 }
 
 .color-info span {
-  font-size: 10px;
-  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 .color-row-actions {
@@ -2994,3 +3068,4 @@ tbody td {
   .form-row { grid-template-columns: 1fr; }
 }
 </style>
+

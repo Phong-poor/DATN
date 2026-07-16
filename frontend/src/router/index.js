@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import swal from '@/services/swal'
 import { getUser, getToken } from '../services/auth'
+import { isFormDirty } from '../services/unsavedChanges'
 
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual'
@@ -10,7 +11,6 @@ const MainLayout = () => import('../components/Layout/BoCucChinh.vue')
 
 const Home = () => import('../components/Web/TrangChu.vue')
 const LaptopPage = () => import('../components/Web/TrangLaptop.vue')
-const WorkstationPage = () => import('../components/Web/TrangWorkstation.vue')
 const News = () => import('../components/Web/TinTucKhachHang.vue')
 const NewsDetail = () => import('../components/Web/ChiTietTinTuc.vue')
 const Cart = () => import('../components/Web/GioHang.vue')
@@ -34,7 +34,7 @@ const ForgotPassword = () => import('../components/Auth/QuenMatKhau.vue')
 const OtpVerify = () => import('../components/Auth/XacThucOtp.vue')
 const ResetPassword = () => import('../components/Auth/DatLaiMatKhau.vue')
 
-const AdminLayout = () => import('../components/Admin/Layout/AdminLayout.vue')
+const AdminLayout = () => import('../components/Admin/Layout/BoCucAdmin.vue')
 
 const getUserRole = (user) => String(user?.vaitro || user?.role || '').toLowerCase()
 
@@ -59,7 +59,6 @@ const publicPages = [
   '/laptop',
   '/phu-kien',
   '/gaming',
-  '/workstation',
   '/login',
   '/dang-nhap',
   '/register',
@@ -88,28 +87,30 @@ const publicPages = [
 
 const adminChildren = [
   { path: '', redirect: () => getDefaultAdminPath() },
-  { path: 'bang-dieu-khien', alias: ['dashboard'], name: 'admin-dashboard', component: () => import('../components/Admin/BangDieuKhien.vue'), meta: { title: 'Bang dieu khien' } },
-  { path: 'quan-ly-san-pham', alias: ['products'], name: 'admin-products', component: () => import('../components/Admin/QuanLySanPham.vue'), meta: { title: 'Quan ly san pham' } },
-  { path: 'quan-ly-don-hang', alias: ['orders'], name: 'admin-orders', component: () => import('../components/Admin/QuanLyDonHang.vue'), meta: { title: 'Quan ly don hang' } },
-  { path: 'quan-ly-nguoi-dung', alias: ['users'], name: 'admin-users', component: () => import('../components/Admin/QuanLyNguoiDung.vue'), meta: { title: 'Quan ly nguoi dung' } },
-  { path: 'quan-ly-tin-tuc', alias: ['news'], name: 'admin-news', component: () => import('../components/Admin/QuanLyTinTuc.vue'), meta: { title: 'Quan ly bai viet' } },
-  { path: 'bien-the', alias: ['variants'], name: 'admin-variants', component: () => import('../components/Admin/BienTheSanPham.vue'), meta: { title: 'Quan ly bien the' } },
-  { path: 'quan-ly-danh-muc', alias: ['categories'], name: 'admin-categories', component: () => import('../components/Admin/QuanLyDanhMuc.vue'), meta: { title: 'Quan ly danh muc' } },
-  { path: 'quan-ly-khuyen-mai', alias: ['promotions'], name: 'admin-promotions', component: () => import('../components/Admin/QuanLyKhuyenMai.vue'), meta: { title: 'Quan ly khuyen mai' } },
-  { path: 'quan-ly-banner', alias: ['banners'], name: 'admin-banners', component: () => import('../components/Admin/QuanLyBanner.vue'), meta: { title: 'Quan ly banner' } },
-  { path: 'quan-ly-lien-he', alias: ['contacts'], name: 'admin-contacts', component: () => import('../components/Admin/QuanLyLienHe.vue'), meta: { title: 'Quan ly lien he' } },
-  { path: 'quan-ly-thuong-hieu', alias: ['brands'], name: 'admin-brands', component: () => import('../components/Admin/QuanLyThuongHieu.vue'), meta: { title: 'Quan ly thuong hieu' } },
-  { path: 'reviews', name: 'admin-reviews', component: () => import('../components/Admin/QuanLyBinhLuan.vue'), meta: { title: 'Quan ly binh luan' } },
-  { path: 'cai-dat-he-thong', alias: ['settings'], name: 'admin-settings', component: () => import('../components/Admin/CaiDatHeThong.vue'), meta: { title: 'Cai dat' } },
-  { path: 'ho-so-quan-tri', alias: ['profile'], name: 'admin-profile', component: () => import('../components/Admin/HoSoAdmin.vue'), meta: { title: 'Ho so admin' } },
-  { path: 'nhat-ky-hoat-dong', alias: ['activity-log'], name: 'admin-activity-log', component: () => import('../components/Admin/NhatKyHoatDongAdmin.vue'), meta: { title: 'Nhat ky hoat dong' } },
-  { path: 'quan-ly-tiep-thi', alias: ['affiliates'], name: 'admin-affiliates', component: () => import('../components/Admin/TiepThiLienKet.vue'), meta: { title: 'Tiep thi lien ket' } },
-  { path: 'hoa-don', alias: ['billing'], name: 'admin-billing', component: () => import('../components/Admin/HoaDonAdmin.vue'), meta: { title: 'Hoa don' } },
+  { path: 'bang-dieu-khien', alias: ['dashboard'], name: 'admin-dashboard', component: () => import('../components/Admin/BangDieuKhien.vue'), meta: { title: 'Bảng điều khiển' } },
+  { path: 'quan-ly-san-pham', alias: ['products'], name: 'admin-products', component: () => import('../components/Admin/QuanLySanPham.vue'), meta: { title: 'Quản lý sản phẩm' } },
+  { path: 'quan-ly-don-hang', alias: ['orders'], name: 'admin-orders', component: () => import('../components/Admin/QuanLyDonHang.vue'), meta: { title: 'Quản lý đơn hàng' } },
+  { path: 'quan-ly-nguoi-dung', alias: ['users'], name: 'admin-users', component: () => import('../components/Admin/QuanLyNguoiDung.vue'), meta: { title: 'Quản lý người dùng' } },
+  { path: 'quan-ly-tin-tuc', alias: ['news'], name: 'admin-news', component: () => import('../components/Admin/QuanLyTinTuc.vue'), meta: { title: 'Quản lý bài viết' } },
+  { path: 'bien-the', alias: ['variants', 'bien-the-san-pham'], name: 'admin-variants', component: () => import('../components/Admin/BienTheSanPham.vue'), meta: { title: 'Quản lý biến thể' } },
+  { path: 'quan-ly-danh-muc', alias: ['categories'], name: 'admin-categories', component: () => import('../components/Admin/QuanLyDanhMuc.vue'), meta: { title: 'Quản lý danh mục' } },
+  { path: 'quan-ly-khuyen-mai', alias: ['promotions'], name: 'admin-promotions', component: () => import('../components/Admin/QuanLyKhuyenMai.vue'), meta: { title: 'Quản lý khuyến mãi' } },
+  { path: 'quan-ly-banner', alias: ['banners'], name: 'admin-banners', component: () => import('../components/Admin/QuanLyBanner.vue'), meta: { title: 'Quản lý banner' } },
+  { path: 'quan-ly-lien-he', alias: ['contacts'], name: 'admin-contacts', component: () => import('../components/Admin/QuanLyLienHe.vue'), meta: { title: 'Quản lý liên hệ' } },
+  { path: 'quan-ly-thuong-hieu', alias: ['brands'], name: 'admin-brands', component: () => import('../components/Admin/QuanLyThuongHieu.vue'), meta: { title: 'Quản lý thương hiệu' } },
+  { path: 'reviews', alias: ['quan-ly-binh-luan'], name: 'admin-reviews', component: () => import('../components/Admin/QuanLyBinhLuan.vue'), meta: { title: 'Quản lý bình luận' } },
+  { path: 'cai-dat-he-thong', alias: ['settings'], name: 'admin-settings', component: () => import('../components/Admin/CaiDatHeThong.vue'), meta: { title: 'Cài đặt hệ thống' } },
+  { path: 'ho-so-quan-tri', alias: ['profile'], name: 'admin-profile', component: () => import('../components/Admin/HoSoAdmin.vue'), meta: { title: 'Hồ sơ quản trị' } },
+  { path: 'nhat-ky-hoat-dong', alias: ['activity-log'], name: 'admin-activity-log', component: () => import('../components/Admin/NhatKyHoatDongAdmin.vue'), meta: { title: 'Nhật ký hoạt động' } },
+  { path: 'quan-ly-tiep-thi', alias: ['affiliates'], name: 'admin-affiliates', component: () => import('../components/Admin/TiepThiLienKet.vue'), meta: { title: 'Quản lý tiếp thị liên kết' } },
+  { path: 'hoa-don', alias: ['billing'], name: 'admin-billing', component: () => import('../components/Admin/HoaDonAdmin.vue'), meta: { title: 'Hóa đơn' } },
   { path: 'flash-sales', alias: ['flash-sale'], name: 'admin-flash-sales', component: () => import('../components/Admin/FlashSaleManagement.vue'), meta: { title: 'Flash sale' } },
-  { path: 'gui-ma-sinh-nhat', alias: ['birthdays', 'birthday-codes'], name: 'admin-birthday-codes', component: () => import('../components/Admin/GuiMaSinhNhat.vue'), meta: { title: 'Ma sinh nhat' } },
-  { path: 'combos', name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quan ly combo' } },
+  { path: 'gui-ma-sinh-nhat', alias: ['birthdays', 'birthday-codes'], name: 'admin-birthday-codes', component: () => import('../components/Admin/GuiMaSinhNhat.vue'), meta: { title: 'Mã sinh nhật' } },
+  { path: 'combos', alias: ['quan-ly-combo'], name: 'admin-combos', component: () => import('../components/Admin/QuanLyCombo.vue'), meta: { title: 'Quản lý combo' } },
   { path: 'xu', name: 'admin-xu', component: () => import('../components/Admin/AdminXu.vue'), meta: { title: 'Cấu hình hệ thống Xu' } },
-  { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quan ly vai tro' } },
+  { path: 'vong-quay', name: 'admin-vongquay', component: () => import('../components/Admin/QuanLyVongQuay.vue'), meta: { title: 'Quản lý Vòng quay' } },
+  { path: 'diem-danh', name: 'admin-diemdanh', component: () => import('../components/Admin/QuanLyDiemDanh.vue'), meta: { title: 'Quản lý Điểm danh' } },
+  { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quản lý vai trò' } },
 ]
 
 const routes = [
@@ -123,7 +124,6 @@ const routes = [
       { path: 'phu-kien', name: 'phu-kien', component: LaptopPage },
       { path: 'gaming', name: 'gaming', redirect: '/laptop' },
       { path: 'macbook', name: 'macbook', redirect: '/laptop' },
-      { path: 'workstation', name: 'workstation', component: WorkstationPage },
       { path: 'san-pham/:id', alias: ['/products/:id'], name: 'product-detail', component: ProductDetail },
       { path: 'tin-tuc', alias: ['/news'], name: 'news', component: News },
       { path: 'tin-tuc/:id', alias: ['/news/:id'], name: 'news-detail', component: NewsDetail },
@@ -196,7 +196,7 @@ router.beforeEach((to, from, next) => {
   const shouldShowRouteLoader =
     to.fullPath !== from.fullPath && !to.path.startsWith('/products/') && !to.path.startsWith('/san-pham/')
 
-  if (shouldShowRouteLoader) {
+  if (shouldShowRouteLoader && !isFormDirty.value) {
     showRouteLoader()
   }
 
@@ -233,6 +233,7 @@ router.beforeEach((to, from, next) => {
         '/admin/brands': 'thuong_hieu_xem',
         '/admin/bien-the': 'bien_the_xem',
         '/admin/variants': 'bien_the_xem',
+        '/admin/bien-the-san-pham': 'bien_the_xem',
         '/admin/quan-ly-don-hang': 'don_hang_xem',
         '/admin/orders': 'don_hang_xem',
         '/admin/hoa-don': 'hoa_don_xem',
@@ -243,6 +244,7 @@ router.beforeEach((to, from, next) => {
         '/admin/birthdays': 'marketing_quan_ly',
         '/admin/birthday-codes': 'marketing_quan_ly',
         '/admin/combos': 'marketing_quan_ly',
+        '/admin/quan-ly-combo': 'marketing_quan_ly',
         '/admin/flash-sales': 'marketing_quan_ly',
         '/admin/flash-sale': 'marketing_quan_ly',
         '/admin/quan-ly-tiep-thi': 'affiliate_quan_ly',
@@ -250,6 +252,7 @@ router.beforeEach((to, from, next) => {
         '/admin/quan-ly-tin-tuc': 'tin_tuc_quan_ly',
         '/admin/news': 'tin_tuc_quan_ly',
         '/admin/reviews': 'binh_luan_quan_ly',
+        '/admin/quan-ly-binh-luan': 'binh_luan_quan_ly',
         '/admin/quan-ly-banner': 'banner_quan_ly',
         '/admin/banners': 'banner_quan_ly',
         '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
@@ -261,6 +264,9 @@ router.beforeEach((to, from, next) => {
         '/admin/vaitro': 'vai_tro_quan_ly',
         '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
         '/admin/activity-log': 'nhat_ky_quan_ly',
+        '/admin/xu': 'xu_quan_ly',
+        '/admin/vong-quay': 'vong_quay_quan_ly',
+        '/admin/diem-danh': 'diem_danh_quan_ly',
       }
 
       const basicPaths = [

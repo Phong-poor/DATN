@@ -188,6 +188,7 @@ async function fetchPromotionsData() {
 
       products.value = filtered.map(p => {
         const giaSP = parseFloat(p.giaKM) > 0 ? parseFloat(p.giaKM) : parseFloat(p.giaSP)
+        const baseVariant = (p.bien_thes && p.bien_thes.length > 0) ? p.bien_thes[0] : null
         
         // Extract specs attributes
         const generalSpecs = []
@@ -507,8 +508,13 @@ const addToCart = async (product) => {
     return
   }
   try {
+    const variantId = product.id_bienthe
+    if (!variantId) {
+      swal.error('Thất bại', 'Sản phẩm này chưa có biến thể để thêm vào giỏ hàng.')
+      return
+    }
     await api.post('/gio-hang/them', {
-      id_sanpham: product.id,
+      id_bienthe: variantId,
       soluong: 1
     })
     swal.success('Đã thêm vào giỏ', `${product.tenSP} đã nằm trong giỏ hàng của bạn!`)
@@ -875,7 +881,7 @@ const initScrollReveal = () => {
     <!-- 5. VOUCHER CENTER -->
     <section class="section voucher-center-section">
       <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <Tag class="pill-icon" />
             Voucher Center
@@ -1205,6 +1211,9 @@ const initScrollReveal = () => {
 }
 
 .section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   margin-bottom: 48px;
   max-width: 700px;

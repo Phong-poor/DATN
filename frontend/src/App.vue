@@ -8,6 +8,8 @@
   <GlobalLoader />
   <ZaloWidget v-if="showChatbot && widgetsReady" />
   <FloatingContactMenu v-if="showChatbot && widgetsReady" />
+  <VongQuayNoi v-if="showLuckyWheel && widgetsReady" />
+  <VongQuayPopup v-if="showWheelPopup" @close="showWheelPopup = false" />
 </template>
 
 <script setup>
@@ -18,18 +20,27 @@ const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/KhungC
 const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatAdmin.vue'))
 const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/KhungZalo.vue'))
 const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/TrinhMenuLienHeNoi.vue'))
+const VongQuayNoi = defineAsyncComponent(() => import('@/components/Web/VongQuayNoi.vue'))
+const VongQuayPopup = defineAsyncComponent(() => import('@/components/Web/VongQuayPopup.vue'))
 const route = useRoute()
 const widgetsReady = ref(false)
 const adminChatReady = ref(false)
+const showWheelPopup = ref(false)
 let pageShowHandler = null
 let openAdminChatHandler = null
 let toggleAdminChatHandler = null
+let openLuckyWheelHandler = null
 
 const showChatbot = computed(() => {
   const hiddenRouteNames = ['login', 'register', 'forgot-password', 'otp-verify', 'reset-password', 'login-success']
   if (route.name && hiddenRouteNames.includes(route.name)) return false
   if (route.path && route.path.startsWith('/admin')) return false
   return true
+})
+
+const showLuckyWheel = computed(() => {
+  const allowedRoutes = ['home', 'laptop', 'phu-kien', 'product-detail']
+  return route.name && allowedRoutes.includes(route.name)
 })
 
 onMounted(() => {
@@ -59,6 +70,11 @@ onMounted(() => {
   toggleAdminChatHandler = () => ensureAdminChat('toggle-admin-chat')
   window.addEventListener('open-admin-chat', openAdminChatHandler)
   window.addEventListener('toggle-admin-chat', toggleAdminChatHandler)
+
+  openLuckyWheelHandler = () => {
+    showWheelPopup.value = true
+  }
+  window.addEventListener('open-lucky-wheel', openLuckyWheelHandler)
 })
 
 onUnmounted(() => {
@@ -70,6 +86,9 @@ onUnmounted(() => {
   }
   if (toggleAdminChatHandler) {
     window.removeEventListener('toggle-admin-chat', toggleAdminChatHandler)
+  }
+  if (openLuckyWheelHandler) {
+    window.removeEventListener('open-lucky-wheel', openLuckyWheelHandler)
   }
 })
 </script>

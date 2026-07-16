@@ -27,6 +27,7 @@ const loading = ref(false)
 const router = useRouter()
 const pendingAffiliateRequests = ref(0)
 const hideAffiliateCard = ref(false)
+const activeStatFilter = ref('all')
 
 // ─── PAGINATION ──────────────────────
 const currentPage = ref(1)
@@ -89,7 +90,8 @@ const normalizeUser = (u) => ({
     joined: u.created_at
         ? new Date(u.created_at).toLocaleDateString('vi-VN')
         : '',
-    status: mapStatusLabel(u.trangthai || u.status)
+    status: mapStatusLabel(u.trangthai || u.status),
+    createdAt: u.created_at || null,
 })
 
 // ─── FETCH ───────────────────────────
@@ -164,6 +166,12 @@ const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
     const tab = String(activeTab.value || '').toLowerCase()
     const statusFilter = String(selectedStatus.value || '').toLowerCase()
+    const now = new Date()
+    const isCurrentMonth = (dateValue) => {
+        if (!dateValue) return false
+        const createdAt = new Date(dateValue)
+        return createdAt.getFullYear() === now.getFullYear() && createdAt.getMonth() === now.getMonth()
+    }
     const map = {
         'Admin': 'ADMIN',
         'Khách hàng': 'KHÁCH HÀNG'
@@ -181,19 +189,71 @@ const filtered = computed(() => {
             selectedStatus.value === 'Tất cả' ||
             statusFilter.includes('tất') ||
             u.status === selectedStatus.value
-        return matchSearch && matchTab && matchStatus
+        const matchStat =
+            activeStatFilter.value !== 'month' ||
+            isCurrentMonth(u.createdAt)
+        return matchSearch && matchTab && matchStatus && matchStat
     })
 })
 
+const activeUsersCount = computed(() => users.value.filter(u => u.status === 'Hoạt động').length)
+const lockedUsersCount = computed(() => users.value.filter(u => u.status === 'Bị khóa').length)
+const currentMonthUsersCount = computed(() => {
+    const now = new Date()
+    return users.value.filter(u => {
+        if (!u.createdAt) return false
+        const createdAt = new Date(u.createdAt)
+        return createdAt.getFullYear() === now.getFullYear() && createdAt.getMonth() === now.getMonth()
+    }).length
+})
+const previousMonthUsersCount = computed(() => {
+    const now = new Date()
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    return users.value.filter(u => {
+        if (!u.createdAt) return false
+        const createdAt = new Date(u.createdAt)
+        return createdAt.getFullYear() === previousMonth.getFullYear() && createdAt.getMonth() === previousMonth.getMonth()
+    }).length
+})
+const userGrowthPercent = computed(() => {
+    const previous = previousMonthUsersCount.value
+    const current = currentMonthUsersCount.value
+    if (previous === 0) return current > 0 ? '+100%' : '0%'
+    const percent = Math.round(((current - previous) / previous) * 100)
+    return `${percent >= 0 ? '+' : ''}${percent}%`
+})
+
+const applyStatFilter = (type) => {
+    activeStatFilter.value = type
+    searchQuery.value = ''
+    currentPage.value = 1
+
+    if (type === 'active') {
+        activeTab.value = 'Tất cả'
+        selectedStatus.value = 'Hoạt động'
+        return
+    }
+
+    if (type === 'locked') {
+        activeTab.value = 'Tất cả'
+        selectedStatus.value = 'Bị khóa'
+        return
+    }
+
+    activeTab.value = 'Tất cả'
+    selectedStatus.value = 'Tất cả'
+}
+
 // Reset về trang 1 khi search/tab thay đổi
 const onSearch = () => { currentPage.value = 1 }
-const onTabChange = (t) => { activeTab.value = t; currentPage.value = 1 }
-const onStatusChange = () => { currentPage.value = 1 }
+const onTabChange = (t) => { activeTab.value = t; activeStatFilter.value = 'custom'; currentPage.value = 1 }
+const onStatusChange = () => { activeStatFilter.value = 'custom'; currentPage.value = 1 }
 
 const resetAdvancedFilters = () => {
     searchQuery.value = ''
     activeTab.value = 'Tất cả'
     selectedStatus.value = 'Tất cả'
+    activeStatFilter.value = 'all'
     currentPage.value = 1
 }
 
@@ -440,43 +500,43 @@ const submitEdit = async () => {
 
         <!-- STATS -->
         <div class="stats">
-            <div class="stat-card stat-blue">
+            <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: activeStatFilter === 'all' }" @click="applyStatFilter('all')">
                 <div class="stat-info">
                     <p>TỔNG NGƯỜI DÙNG</p>
                     <div class="stat-val-row">
                         <b>{{ users.length }}</b>
-                        <span class="badge-up">+12%</span>
+                        <span class="badge-up">{{ userGrowthPercent }}</span>
                     </div>
                 </div>
-            </div>
-            <div class="stat-card stat-teal">
+            </button>
+            <button type="button" class="stat-card stat-teal stat-card-btn" :class="{ active: activeStatFilter === 'active' }" @click="applyStatFilter('active')">
                 <div class="stat-info">
                     <p>ĐANG HOẠT ĐỘNG</p>
                     <div class="stat-val-row">
-                        <b>{{users.filter(u => u.status === 'Hoạt động').length}}</b>
+                        <b>{{ activeUsersCount }}</b>
                         <span class="badge-neutral">Ổn định</span>
                     </div>
                 </div>
-            </div>
-            <div class="stat-card stat-orange">
+            </button>
+            <button type="button" class="stat-card stat-orange stat-card-btn" :class="{ active: activeStatFilter === 'locked' }" @click="applyStatFilter('locked')">
                 <div class="stat-info">
                     <p>BỊ KHÓA</p>
                     <div class="stat-val-row">
-                        <b>{{users.filter(u => u.status === 'Bị khóa').length}}</b>
-                        <span class="badge-down">-5%</span>
+                        <b>{{ lockedUsersCount }}</b>
+                        <span class="badge-down">{{ users.length ? Math.round((lockedUsersCount / users.length) * 100) : 0 }}%</span>
                     </div>
                 </div>
-            </div>
-            <div class="stat-card dark-stat">
+            </button>
+            <button type="button" class="stat-card dark-stat stat-card-btn" :class="{ active: activeStatFilter === 'month' }" @click="applyStatFilter('month')">
                 <div class="stat-info">
                     <p>TĂNG TRƯỞNG THÁNG</p>
-                    <b class="big-growth">2.4k</b>
+                    <b class="big-growth">{{ currentMonthUsersCount }}</b>
                 </div>
                 <svg class="trend-svg" viewBox="0 0 80 40" fill="none">
                     <polyline points="0,35 15,28 30,30 45,18 60,22 75,8" stroke="#60a5fa" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round" fill="none" />
                 </svg>
-            </div>
+            </button>
         </div>
 
         <!-- FILTER ROW -->
@@ -710,7 +770,7 @@ const submitEdit = async () => {
 
         <!-- ─── MODAL TẠO MỚI ─── -->
         <Teleport to="body">
-            <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+            <div v-if="showModal" class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
                         <h3>Thêm người dùng mới</h3>
@@ -818,7 +878,7 @@ const submitEdit = async () => {
 
         <!-- ─── MODAL CHỈNH SỬA ─── -->
         <Teleport to="body">
-            <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+            <div v-if="showEditModal" class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
                         <div class="modal-title-wrap">
@@ -951,30 +1011,57 @@ const submitEdit = async () => {
 /* STATS */
 .stats {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1.2fr;
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 20px;
     padding: 0 32px 20px;
 }
 
 .stat-card {
     background: white;
-    border-radius: 14px;
+    min-height: 136px;
+    border-radius: 16px;
     border: 1px solid transparent;
-    padding: 20px 22px;
+    padding: 26px 28px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
+}
+
+.stat-card-btn {
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.stat-card-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, .18);
+    filter: saturate(1.06);
+}
+
+.stat-card-btn:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .28);
+    outline-offset: 3px;
+}
+
+.stat-card-btn.active {
+    box-shadow: 0 18px 36px rgba(37, 99, 235, .28), inset 0 0 0 2px rgba(255, 255, 255, .72);
 }
 
 .stat-card::after {
     content: '';
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     border-radius: 999px;
-    right: -26px;
-    top: -26px;
-    background: rgba(255, 255, 255, 0.12);
+    right: -28px;
+    top: -54px;
+    background: rgba(255, 255, 255, 0.13);
+    pointer-events: none;
 }
 
 .stat-card.stat-blue {
@@ -993,15 +1080,18 @@ const submitEdit = async () => {
 }
 
 .stat-info p {
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.82);
-    letter-spacing: 0.08em;
-    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.03em;
+    margin: 0 0 20px;
+    text-transform: uppercase;
 }
 
 .stat-info b {
-    font-size: 26px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: #fff;
 }
@@ -1013,29 +1103,29 @@ const submitEdit = async () => {
 }
 
 .badge-up {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #2563eb;
     background: #dcfce7;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-down {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #dc2626;
     background: #fee2e2;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-neutral {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #2563eb;
     background: #dbeafe;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
@@ -1054,14 +1144,15 @@ const submitEdit = async () => {
 }
 
 .big-growth {
-    font-size: 30px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: white !important;
 }
 
 .trend-svg {
-    width: 80px;
-    height: 40px;
+    width: 96px;
+    height: 48px;
     opacity: 0.8;
 }
 

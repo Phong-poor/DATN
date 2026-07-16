@@ -343,7 +343,7 @@
         </div>
         <div class="form-group" v-if="form.category === 'birthday'">
           <div class="birthday-status-info">
-            <span class="birthday-icon">🎂</span>
+            <span class="birthday-icon">BD</span>
             <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
           </div>
         </div>
@@ -411,20 +411,20 @@ const statusOptions = [
 ]
 
 const iconOptions = [
-  { icon: '🏮', bg: '#fef3c7' },
-  { icon: '🛍️', bg: '#fce7f3' },
-  { icon: '🎓', bg: '#dbeafe' },
-  { icon: '⚡', bg: '#fef9c3' },
-  { icon: '🎁', bg: '#d1fae5' },
-  { icon: '🔥', bg: '#fee2e2' },
-  { icon: '💎', bg: '#ede9fe' },
-  { icon: '🚀', bg: '#e0f2fe' },
+  { icon: 'SALE', bg: '#fef3c7' },
+  { icon: 'BAG', bg: '#fce7f3' },
+  { icon: 'EDU', bg: '#dbeafe' },
+  { icon: 'FAST', bg: '#fef9c3' },
+  { icon: 'GIFT', bg: '#d1fae5' },
+  { icon: 'HOT', bg: '#fee2e2' },
+  { icon: 'VIP', bg: '#ede9fe' },
+  { icon: 'NEW', bg: '#e0f2fe' },
 ]
 
 const defaultForm = () => ({
   name: '', category: 'product', code: '', type: 'percent', value: '',
   startDate: '', endDate: '', status: 'running',
-  mota: '', icon: '🏮', iconBg: '#fef3c7',
+  mota: '', icon: 'SALE', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
   is_public: 1, dieu_kien_tang: '', so_luong_phat: ''
 })
@@ -445,7 +445,7 @@ const fetchPromos = async () => {
       endDate: formatDate(p.ngayketthuc),
       discount: discountLabel(p),
       ...tagColors(p.loai),
-      icon: '🏮',
+      icon: 'SALE',
       iconBg: '#fef3c7',
       roi: 20
     }))
@@ -744,26 +744,24 @@ async function deletePromo(id) {
 .toast-leave-to { opacity: 0; transform: translateY(-8px); }
 
 /* STATS */
-.stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
-.stat-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 6px; }
+.stats-row { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 20px; }
+.stat-card { min-height: 136px; background: #fff; border-radius: 16px; padding: 26px 28px; border: 1px solid transparent; box-shadow: 0 12px 26px rgba(15,23,42,0.12); display: flex; flex-direction: column; justify-content: center; gap: 10px; position: relative; overflow: hidden; }
 .stat-card.stat-active {
   background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
   border: none;
-  box-shadow: 0 10px 24px rgba(20, 184, 166, 0.28);
-  position: relative;
-  overflow: hidden;
 }
 .stat-card.stat-active::after,
 .stat-card.stat-budget::after,
 .stat-card-gradient::after {
   content: '';
   position: absolute;
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  top: -28px;
-  right: -26px;
-  background: rgba(255, 255, 255, 0.12);
+  top: -54px;
+  right: -28px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 .stat-card.stat-active .stat-label { color: rgba(255, 255, 255, 0.88); }
 .stat-card.stat-active .stat-value { color: #fff; }
@@ -772,24 +770,21 @@ async function deletePromo(id) {
 .stat-card.stat-budget {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
   border: none;
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.28);
-  position: relative;
-  overflow: hidden;
 }
 .stat-card.stat-budget .stat-label { color: rgba(255, 255, 255, 0.88); }
 .stat-card.stat-budget .stat-value { color: #fff; }
 .stat-card.stat-budget .stat-unit { color: #dbeafe; }
 .stat-card.stat-budget .stat-bar { background: rgba(255, 255, 255, 0.22); }
 .stat-card.stat-budget .stat-bar-fill { background: linear-gradient(90deg, #bfdbfe, #ffffff); }
-.stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: #94a3b8; }
-.stat-value { font-size: 30px; font-weight: 800; color: #0f172a; }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255, 255, 255, 0.88); text-transform: uppercase; }
+.stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #0f172a; }
 .stat-unit { font-size: 14px; font-weight: 600; color: #64748b; }
 .stat-sub { font-size: 12px; color: #64748b; }
 .stat-sub.green { color: #2563eb; font-weight: 600; }
 .stat-bar { height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
 .stat-bar-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 99px; }
-.stat-card-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%); border: none; justify-content: space-between; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28); position: relative; overflow: hidden; }
-.stat-card-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,0.7); }
+.stat-card-gradient { background: linear-gradient(135deg, #0f2747 0%, #1e3a5f 55%, #0f172a 100%); border: none; justify-content: center; }
+.stat-card-tag { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,0.7); text-transform: uppercase; }
 .stat-card-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.6; }
 .stat-card-desc strong { color: #fff; }
 .stat-card-btn { align-self: flex-start; padding: 7px 16px; border-radius: 20px; border: none; background: rgba(255,255,255,0.2); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); transition: background 0.2s; }
@@ -819,7 +814,7 @@ td { padding: 14px 18px; vertical-align: middle; }
 .select-col { width: 44px; text-align: center; }
 .select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
 .promo-name-cell { display: flex; align-items: center; gap: 12px; }
-.promo-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.promo-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; letter-spacing: .03em; flex-shrink: 0; }
 .promo-name { font-size: 13.5px; font-weight: 700; color: #1e293b; }
 .promo-code { font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 2px; }
 .discount-tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
@@ -915,9 +910,9 @@ select.form-input { cursor: pointer; }
 .toggle-btn { display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
 .icon-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-.icon-option { width: 40px; height: 40px; border-radius: 10px; border: 2px solid transparent; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
-.icon-option:hover { transform: scale(1.1); }
-.icon-option-active { border-color: #2563eb; transform: scale(1.1); }
+.icon-option { width: 48px; height: 40px; border-radius: 10px; border: 2px solid transparent; font-size: 10px; font-weight: 800; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.icon-option:hover { border-color: rgba(37,99,235,.35); }
+.icon-option-active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
 .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid #f1f5f9; background: #fafbff; }
 .btn-cancel { padding: 9px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fff; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; font-family: inherit; }
 .btn-save { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: transform 0.15s; font-family: inherit; }
@@ -932,7 +927,7 @@ select.form-input { cursor: pointer; }
 .slide-up-enter-from { opacity: 0; transform: translateY(28px) scale(0.97); }
 .slide-up-leave-to { opacity: 0; transform: translateY(8px) scale(0.98); }
 .birthday-status-info { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1.5px solid #f59e0b; border-radius: 12px; font-size: 13px; color: #92400e; }
-.birthday-icon { font-size: 22px; flex-shrink: 0; }
+.birthday-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(146,64,14,.12); font-size: 11px; font-weight: 800; flex-shrink: 0; }
 .birthday-status-info strong { color: #b45309; }
 
 /* ═══ INLINE FORM ═══ */

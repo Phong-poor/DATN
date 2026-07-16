@@ -8,6 +8,7 @@ import { installPerformanceWarmup } from './services/performanceWarmup'
 import { installOnlinePresence } from './services/onlinePresence'
 import { installScrollEffects } from './services/scrollEffects'
 import { installI18n } from './services/i18n'
+import { initUnsavedChangesGuard } from './services/unsavedChanges'
 
 initGoogleAnalytics()
 
@@ -70,6 +71,8 @@ createApp(App)
   .use(router)
   .mount('#app')
 
+initUnsavedChangesGuard(router)
+
 installPerformanceWarmup()
 installOnlinePresence()
 installScrollEffects(router)
@@ -85,10 +88,13 @@ window.addEventListener('storage', (event) => {
     
     window.dispatchEvent(new Event('user-updated'))
     
-    const isProtected = window.location.pathname.startsWith('/admin') ||
-                        ['/profile', '/trang-ca-nhan', '/checkout', '/thanh-toan', '/orderspage', '/don-hang', '/wishlistpage', '/danh-sach-yeu-thich', '/yeu-thich'].includes(window.location.pathname)
-    if (isProtected) {
+    const isAdmin = window.location.pathname.startsWith('/admin')
+    const isProtectedUserPage = ['/profile', '/trang-ca-nhan', '/checkout', '/thanh-toan', '/orderspage', '/don-hang', '/wishlistpage', '/danh-sach-yeu-thich', '/yeu-thich'].includes(window.location.pathname)
+    
+    if (isAdmin) {
       window.location.href = '/dang-nhap'
+    } else if (isProtectedUserPage) {
+      window.location.href = '/'
     }
   } else if (event.key === 'login-event' && event.newValue) {
     try {

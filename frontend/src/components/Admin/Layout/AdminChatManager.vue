@@ -598,23 +598,24 @@ onUnmounted(() => {
 }
 
 .topbar-icon-button {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  border: 1px solid rgba(15,23,42,.12);
+  border: 1px solid rgba(15,23,42,.10);
   background: #fff;
-  color: #1f2937;
+  color: #475569;
   display: grid;
   place-items: center;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .topbar-icon-button:hover, .topbar-icon-button.active {
   background: #eef2ff;
   color: #2563eb;
-  border-color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
 }
 
 .topbar-icon-button svg {
@@ -624,19 +625,21 @@ onUnmounted(() => {
 
 .icon-badge {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  top: -4px;
+  right: -4px;
+  min-width: 19px;
+  height: 19px;
+  border-radius: 999px;
   background: #ef4444;
   color: white;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 5px;
   border: 2px solid #fff;
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25);
 }
 
 .pulse {

@@ -1,4 +1,4 @@
-﻿import axios from 'axios'
+import axios from 'axios'
 import { clearAuth, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
 
@@ -98,8 +98,21 @@ api.interceptors.response.use(
       }
     } else if (error.response?.status === 401) {
       clearAuth()
-      if (window.location.pathname !== '/dang-nhap') {
-        window.location.href = '/dang-nhap'
+      const path = window.location.pathname
+      const isAdmin = path.startsWith('/admin')
+      const isAuthPage = ['/dang-nhap', '/login', '/dang-ky', '/register', '/quen-mat-khau', '/forgot-password', '/xac-thuc-otp', '/otp-verify', '/dat-lai-mat-khau', '/reset-password'].some(p => path.startsWith(p))
+      const isPublicPage = ['/', '/laptop', '/phu-kien', '/gaming', '/news', '/tin-tuc', '/contact', '/lien-he', '/cart', '/gio-hang', '/thank-you', '/cam-on', '/payment-failed', '/thanh-toan-that-bai', '/khuyen-mai'].includes(path) ||
+                           path.startsWith('/products/') ||
+                           path.startsWith('/san-pham/') ||
+                           path.startsWith('/news/') ||
+                           path.startsWith('/tin-tuc/')
+                           
+      if (isAdmin) {
+        if (path !== '/dang-nhap') {
+          window.location.href = '/dang-nhap'
+        }
+      } else if (!isPublicPage && !isAuthPage) {
+        window.location.href = '/'
       }
     }
     return Promise.reject(error)

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="page">
         <div class="container">
 
@@ -8,7 +8,9 @@
                     <h1 class="page-title">Quản lý Bình luận<br />&amp; Đánh giá</h1>
                     <p class="page-sub">Theo dõi và phản hồi các đánh giá từ khách hàng của VinaTech</p>
                 </div>
-                <div class="stats-row">
+            </div>
+
+            <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-label">TỔNG CỘNG</div>
                         <div class="stat-value">{{ statsData.total }}</div>
@@ -21,7 +23,6 @@
                         <div class="stat-label">ĐÁNH GIÁ TB</div>
                         <div class="stat-value">{{ statsData.avg }} <span class="star">★</span></div>
                     </div>
-                </div>
             </div>
 
             <!-- ── Table Card ── -->
@@ -154,17 +155,22 @@
                     <button class="banner-btn outline" @click="activeTab = 'spam'">KIỂM TRA BỘ LỌC AI</button>
                 </div>
 
-                <div class="banner-card smart-reply">
-                    <div class="banner-badge">✦ AI</div>
-                    <h4>Trợ lý AI<br />Smart Reply</h4>
-                    <p>Tự động soạn thảo câu trả lời dựa trên nội dung khách hàng bình luận.</p>
-                    <button 
-                        class="banner-btn" 
-                        :class="isAiActive ? 'active-btn' : 'primary'"
-                        @click="toggleAiStatus"
-                    >
-                        {{ isAiActive ? 'HỦY KÍCH HOẠT' : 'KÍCH HOẠT NGAY' }}
-                    </button>
+                <div class="banner-card moderation-tool">
+                    <div class="banner-badge">TOOL</div>
+                    <h4>Công cụ<br />duyệt bình luận</h4>
+                    <p>Tự duyệt đánh giá tốt hoặc bình thường. Bình luận tục tĩu, spam, công kích shop hoặc chê phá uy tín sẽ bị ẩn khỏi trang sản phẩm.</p>
+                    <div class="tool-summary">
+                        <span>Chờ duyệt toàn hệ thống</span>
+                        <strong>{{ statsData.pending }}</strong>
+                    </div>
+                    <div class="tool-actions">
+                        <button class="banner-btn primary" @click="openPendingQueue">
+                            XEM CHỜ DUYỆT
+                        </button>
+                        <button class="banner-btn success" :disabled="pendingOnPage.length === 0 || bulkLoading" @click="approvePendingOnPage">
+                            DUYỆT TRANG NÀY ({{ pendingOnPage.length }})
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -189,6 +195,7 @@ import swal from '@/services/swal'
 const activeTab = ref('all')
 const currentPage = ref(1)
 const isLoading = ref(false)
+const bulkLoading = ref(false)
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
@@ -219,6 +226,10 @@ const toast = ref({
 
 const filteredReviews = computed(() => {
     return reviews.value
+})
+
+const pendingOnPage = computed(() => {
+    return reviews.value.filter(review => review.trangthai === 'pending')
 })
 
 const compactPageNumbers = computed(() => {
@@ -387,37 +398,40 @@ const deleteReview = async (id) => {
     }
 }
 
-const isAiActive = ref(false)
-
-const fetchAiStatus = async () => {
-    try {
-        const res = await api.get('/admin/reviews/ai-status')
-        if (res.data.success) {
-            isAiActive.value = res.data.active
-        }
-    } catch (err) {
-        console.error('Lỗi khi tải trạng thái AI:', err)
-    }
+const openPendingQueue = () => {
+    activeTab.value = 'pending'
+    currentPage.value = 1
+    fetchReviews()
 }
 
-const toggleAiStatus = async () => {
-    const nextState = !isAiActive.value
-    const confirmTitle = nextState ? 'Kích hoạt Trợ lý AI' : 'Hủy kích hoạt Trợ lý AI'
-    const confirmMsg = nextState 
-        ? 'Bạn có chắc muốn kích hoạt Trợ lý AI Smart Reply để tự động phê duyệt và trả lời cảm ơn khách hàng đã mua sắm?' 
-        : 'Bạn có chắc muốn hủy kích hoạt Trợ lý AI Smart Reply? Các bình luận mới sẽ phải duyệt thủ công.'
-    
-    const isConfirmed = await swal.confirm(confirmTitle, confirmMsg)
+const approvePendingOnPage = async () => {
+    const ids = pendingOnPage.value.map(review => review.id_danhgia)
+    if (!ids.length) {
+        swal.info('Không có bình luận chờ duyệt', 'Trang hiện tại chưa có bình luận nào cần duyệt.')
+        return
+    }
+
+    const isConfirmed = await swal.confirm(
+        'Duyệt bình luận trên trang này',
+        `Bạn có chắc muốn duyệt ${ids.length} bình luận đang chờ trên trang hiện tại?`
+    )
     if (!isConfirmed) return
 
+    bulkLoading.value = true
     try {
-        const res = await api.post('/admin/reviews/ai-status', { active: nextState })
+        const res = await api.put('/admin/reviews/bulk-status', {
+            ids,
+            trangthai: 'approved',
+        })
+
         if (res.data.success) {
-            isAiActive.value = res.data.active
-            swal.success('Thành công', res.data.message)
+            swal.success('Thành công', `Đã duyệt ${res.data.updated || ids.length} bình luận.`)
+            await fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi thiết lập AI: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Lỗi duyệt hàng loạt: ' + (err.response?.data?.message || err.message))
+    } finally {
+        bulkLoading.value = false
     }
 }
 
@@ -432,7 +446,6 @@ watch(currentPage, () => {
 
 onMounted(() => {
     fetchReviews()
-    fetchAiStatus()
 })
 </script>
 
@@ -489,36 +502,59 @@ onMounted(() => {
 
 /* ── Stat Cards ── */
 .stats-row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 20px;
 }
 
 .stat-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 14px 22px;
-    text-align: center;
-    min-width: 110px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+    min-height: 136px;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border-radius: 16px;
+    padding: 26px 28px;
+    text-align: left;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .12);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 999px;
+    right: -28px;
+    top: -54px;
+    background: rgba(255, 255, 255, .13);
+    pointer-events: none;
 }
 
 .stat-card.highlight {
-    background: #1e293b;
+    background: linear-gradient(135deg, #0f2747 0%, #1e3a5f 55%, #0f172a 100%);
+}
+
+.stat-card.gold {
+    background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
 }
 
 .stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    color: #94a3b8;
-    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    color: rgba(255, 255, 255, .88);
+    margin-bottom: 20px;
+    text-transform: uppercase;
 }
 
 .stat-value {
-    font-size: 26px;
+    font-size: 34px;
     font-weight: 800;
-    color: #0f172a;
+    color: #fff;
     line-height: 1;
 }
 
@@ -527,7 +563,7 @@ onMounted(() => {
 }
 
 .stat-card.gold .stat-value {
-    color: #f59e0b;
+    color: #fff;
 }
 
 .star {
@@ -889,7 +925,7 @@ td {
     box-shadow: 0 2px 16px rgba(0, 0, 0, .06);
 }
 
-.banner-card.smart-reply {
+.banner-card.moderation-tool {
     background: #0f172a;
     color: #fff;
 }
@@ -927,7 +963,7 @@ td {
     line-height: 1.3;
 }
 
-.banner-card.smart-reply h4 {
+.banner-card.moderation-tool h4 {
     color: #fff;
 }
 
@@ -937,8 +973,40 @@ td {
     line-height: 1.6;
 }
 
-.banner-card.smart-reply p {
+.banner-card.moderation-tool p {
     color: #94a3b8;
+}
+
+.tool-summary {
+    width: 100%;
+    margin-top: 4px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tool-summary span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.tool-summary strong {
+    font-size: 24px;
+    line-height: 1;
+    color: #fff;
+}
+
+.tool-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 .banner-btn {
@@ -973,6 +1041,23 @@ td {
 .banner-btn.primary:hover {
     background: #2563eb;
     transform: scale(1.03);
+}
+
+.banner-btn.success {
+    border: none;
+    background: #22c55e;
+    color: #052e16;
+}
+
+.banner-btn.success:hover:not(:disabled) {
+    background: #86efac;
+    transform: scale(1.03);
+}
+
+.banner-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .banner-btn.active-btn {
@@ -1038,3 +1123,4 @@ td {
     transform: translateY(30px);
 }
 </style>
+

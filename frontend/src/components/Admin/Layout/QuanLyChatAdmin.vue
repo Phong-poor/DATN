@@ -164,9 +164,9 @@
               >
                 <template #body="{ msg: rowMsg }">
                   <ChatMessageBody :msg="rowMsg" :is-own="isOwnMessage(rowMsg)" @open-image="openImage">
-                    <span v-html="formatMessage(rowMsg.message || '', searchMessageQueryMap[conv.id])"></span>
-                    <template v-if="rowMsg.message" #caption>
-                      <span v-html="formatMessage(rowMsg.message, searchMessageQueryMap[conv.id])"></span>
+                    <span v-html="formatMessage(rowMsg.noidung || '', searchMessageQueryMap[conv.id])"></span>
+                    <template v-if="rowMsg.noidung" #caption>
+                      <span v-html="formatMessage(rowMsg.noidung, searchMessageQueryMap[conv.id])"></span>
                     </template>
                   </ChatMessageBody>
                 </template>
@@ -239,7 +239,7 @@ const getSearchMatches = (convId) => {
   const messages = messagesMap.value[convId] || [];
   return messages
     .map((msg, index) => ({ msg, index }))
-    .filter(item => item.msg.message && item.msg.message.toLowerCase().includes(query));
+    .filter(item => item.msg.noidung && item.msg.noidung.toLowerCase().includes(query));
 };
 
 const getMatchesCount = (convId) => {

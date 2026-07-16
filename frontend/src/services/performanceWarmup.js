@@ -23,7 +23,7 @@ const routePreloads = {
   '/san-pham': () => routePreloads['/laptop'](),
   '/products': () => routePreloads['/san-pham'](),
   '/laptop': () => import('@/components/Web/TrangLaptop.vue'),
-  '/workstation': () => import('@/components/Web/TrangWorkstation.vue'),
+
   '/san-pham/:id': () => import('@/components/Web/ChiTietSanPham.vue'),
   '/products/:id': () => routePreloads['/san-pham/:id'](),
   '/gio-hang': () => import('@/components/Web/GioHang.vue'),
@@ -44,7 +44,7 @@ const routePreloads = {
   '/dang-ky': () => import('@/components/Auth/DangKy.vue'),
   '/register': () => routePreloads['/dang-ky'](),
   '/admin': () => Promise.all([
-    import('@/components/Admin/Layout/AdminLayout.vue'),
+    import('@/components/Admin/Layout/BoCucAdmin.vue'),
     import('@/components/Admin/BangDieuKhien.vue'),
   ]),
   '/admin/quan-ly-san-pham': () => import('@/components/Admin/QuanLySanPham.vue'),
@@ -107,7 +107,7 @@ const getProductIdFromHref = (href) => {
 }
 
 const prefetchRouteData = (path, href) => {
-  if (['/', '/laptop', '/workstation'].includes(path)) {
+  if (['/', '/laptop'].includes(path)) {
     prefetchProductsPage({ forceRefresh: false }).catch(() => {})
     return
   }

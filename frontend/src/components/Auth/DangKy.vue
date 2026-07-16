@@ -54,7 +54,7 @@ const referralCode = ref('')
 
 const normalizedPhone = computed(() => normalizePhone(phone.value))
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`
-const facebookLoginEnabled = import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === 'true'
+const facebookLoginEnabled = true
 
 const isTouched = { name: ref(false), email: ref(false), phone: ref(false), password: ref(false), confirm: ref(false) }
 
@@ -116,11 +116,11 @@ const handleRegister = async () => {
 
   try {
     const res = await api.post('/register', {
-      name: name.value.trim(),
+      ten: name.value.trim(),
       email: normalizeEmail(email.value),
-      phone: normalizedPhone.value,
-      password: password.value,
-      password_confirmation: confirm.value,
+      sodienthoai: normalizedPhone.value,
+      matkhau: password.value,
+      matkhau_confirmation: confirm.value,
       referral_code: referralCode.value.trim().toUpperCase() || null,
     })
     const rewardPromotion = res.data?.referral_reward?.promotion

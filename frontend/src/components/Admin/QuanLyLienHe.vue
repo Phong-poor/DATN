@@ -26,7 +26,7 @@
 
     <!-- STAT CARDS -->
     <div class="stats-row">
-      <div class="stat-card stat-blue">
+      <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: !filterStatus && !filterCategory && !searchQuery }" @click="applyContactStatFilter('all')">
         <div class="stat-icon-wrap stat-icon-blue">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -35,7 +35,7 @@
         <p class="stat-label">TOTAL</p>
         <p class="stat-sub-label">Tổng liên hệ</p>
         <h2 class="stat-value">{{ contacts.length }}</h2>
-      </div>
+      </button>
      <!-- <div class="stat-card stat-card-gradient">
         <div class="stat-card-check">
           <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" /></svg>
@@ -44,7 +44,7 @@
         <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
         <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
       </div>-->
-      <div class="stat-card stat-orange">
+      <button type="button" class="stat-card stat-orange stat-card-btn" :class="{ active: filterStatus === 'processing' }" @click="applyContactStatFilter('processing')">
         <div class="stat-icon-wrap stat-icon-orange">
           <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" />
@@ -54,8 +54,8 @@
         <p class="stat-label">IN PROGRESS</p>
         <p class="stat-sub-label">Chờ sử lý </p>
         <h2 class="stat-value">{{ processingCount }}</h2>
-      </div>
-      <div class="stat-card stat-teal">
+      </button>
+      <button type="button" class="stat-card stat-teal stat-card-btn" :class="{ active: filterStatus === 'resolved' }" @click="applyContactStatFilter('resolved')">
         <div class="stat-icon-wrap stat-icon-green">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -65,7 +65,7 @@
         <p class="stat-label">RESOLVED</p>
         <p class="stat-sub-label">Đã phản hồi</p>
         <h2 class="stat-value">{{ resolvedCount }}</h2>
-      </div>
+      </button>
     </div>
 
     <!-- FILTERS -->
@@ -206,7 +206,7 @@
 
     <!-- DETAIL MODAL -->
     <transition name="fade">
-      <div v-if="showDetail" class="overlay" @click.self="showDetail = false">
+      <div v-if="showDetail" class="overlay">
         <div class="modal modal-detail">
           <div class="modal-header">
             <div class="modal-header-left">
@@ -251,7 +251,7 @@
 
     <!-- EMAIL MODAL -->
     <transition name="fade">
-      <div class="overlay" v-if="showEmail" @click.self="showEmail = false">
+      <div class="overlay" v-if="showEmail">
         <transition name="slide-up">
           <div class="modal modal-email" v-if="showEmail">
             <div class="modal-header">
@@ -523,6 +523,12 @@ function resetFilter() {
   searchQuery.value    = ''
 }
 
+function applyContactStatFilter(status) {
+  filterCategory.value = ''
+  searchQuery.value = ''
+  filterStatus.value = status === 'all' ? '' : status
+}
+
 function openDetail(c) {
   selected.value   = c
   showDetail.value = true
@@ -600,48 +606,70 @@ onMounted(fetchContacts)
 /* STATS */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 20px;
   width: 100%;
   align-items: stretch;
 }
 .stat-card {
   background: #fff;
-  border-radius: 14px;
-  padding: 18px;
+  min-height: 136px;
+  border-radius: 16px;
+  padding: 26px 28px;
   border: 1px solid transparent;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 10px;
   position: relative;
   overflow: hidden;
   color: #fff;
 }
+.stat-card-btn {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.stat-card-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
+  filter: saturate(1.05);
+}
+.stat-card-btn:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 3px;
+}
+.stat-card-btn.active {
+  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.28);
+}
 .stat-card::after {
   content: '';
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
-  right: -22px;
-  top: -22px;
-  background: rgba(255, 255, 255, 0.12);
+  right: -28px;
+  top: -54px;
+  background: rgba(255, 255, 255, 0.13);
+  pointer-events: none;
 }
 .stat-card.stat-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
 .stat-card.stat-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-teal { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
-.stat-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
-.stat-icon-wrap svg { width: 18px; height: 18px; stroke-width: 2; fill: none; }
+.stat-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.stat-icon-wrap svg { width: 24px; height: 24px; stroke-width: 2.2; fill: none; }
 .stat-icon-blue,
 .stat-icon-orange,
 .stat-icon-green { background: rgba(255,255,255,.18); }
 .stat-icon-blue svg,
 .stat-icon-orange svg,
 .stat-icon-green svg { stroke: #fff; }
-.stat-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; color: rgba(255,255,255,.82); }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: uppercase; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
-.stat-value { font-size: 28px; font-weight: 800; color: #fff; }
+.stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-card-gradient { background: linear-gradient(135deg, #93c5fd, #3b82f6, #2563eb); border: none; justify-content: flex-end; min-height: 120px; }
 .stat-card-gradient .stat-value { color: #fff; font-size: 36px; }
 .stat-card-check { width: 28px; height: 28px; background: rgba(255,255,255,.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: auto; }
