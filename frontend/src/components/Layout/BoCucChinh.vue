@@ -128,17 +128,17 @@ onUnmounted(() => {
 
 .scroll-top-btn {
   position: fixed;
-  right: 34px;
-  bottom: 34px;
-  width: 56px;
-  height: 56px;
+  right: var(--floating-widget-right, 24px);
+  bottom: 30px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: #1f2f55;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: white;
   border: 0;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -148,13 +148,14 @@ onUnmounted(() => {
 }
 
 .scroll-top-btn.has-chatbot {
-  bottom: 118px;
+  right: calc(var(--floating-widget-right, 24px) + 6px);
+  bottom: 102px;
 }
 
 .scroll-top-btn:hover {
   transform: translateY(-4px) scale(1.06);
   background: #263b6a;
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.26), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
 }
 
 .scroll-top-btn:active {
@@ -175,13 +176,13 @@ onUnmounted(() => {
 
 @media (max-width: 600px) {
   .scroll-top-btn {
-    right: 24px;
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
   }
 
   .scroll-top-btn.has-chatbot {
-    bottom: 108px;
+    right: calc(var(--floating-widget-right-mobile, 18px) + 7px);
+    bottom: 96px;
   }
 }
 </style>
