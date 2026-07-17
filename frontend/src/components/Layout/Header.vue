@@ -438,9 +438,19 @@ const updateFeaturedProducts = (productsList) => {
   }
 }
 
-const warm = getPrefetchedProductsData()
-if (warm && Array.isArray(warm.productsRaw)) {
-  updateFeaturedProducts(warm.productsRaw)
+try {
+  const warm = getPrefetchedProductsData()
+  if (warm && Array.isArray(warm.productsRaw)) {
+    updateFeaturedProducts(warm.productsRaw)
+  }
+} catch (error) {
+  console.error('Khong the nap cache san pham cho header:', error)
+  try {
+    localStorage.removeItem('nextgen_products_prefetch_cache')
+    localStorage.removeItem('premium_home_cache')
+  } catch {
+    // Ignore cache cleanup failures.
+  }
 }
 
 const navToMegaItem = (key, keyword) => {
@@ -705,8 +715,12 @@ onMounted(() => {
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
     import('../Web/TrangLaptop.vue')
     prefetchProductsPage().then(res => {
-      if (res && Array.isArray(res.productsRaw)) {
-        updateFeaturedProducts(res.productsRaw)
+      try {
+        if (res && Array.isArray(res.productsRaw)) {
+          updateFeaturedProducts(res.productsRaw)
+        }
+      } catch (error) {
+        console.error('Khong the cap nhat mega menu tu cache san pham:', error)
       }
     }).catch(() => {})
   }
