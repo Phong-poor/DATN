@@ -39,6 +39,12 @@ class DanhGiaController extends Controller
 
         $reviews = DanhGia::with(['user', 'bienThe.sanPham'])
             ->when($status && $status !== 'all', function ($q) use ($status) {
+                if ($status === 'pending') {
+                    $q->whereIn('trangthai', ['pending', 'spam']);
+
+                    return;
+                }
+
                 $q->where('trangthai', $status);
             })
             ->orderBy('created_at', 'desc')
@@ -55,7 +61,7 @@ class DanhGiaController extends Controller
             ],
             'stats' => [
                 'total' => DanhGia::count(),
-                'pending' => DanhGia::where('trangthai', 'pending')->count(),
+                'pending' => DanhGia::whereIn('trangthai', ['pending', 'spam'])->count(),
                 'avg' => round(DanhGia::avg('danhgia') ?: 0, 1),
             ],
         ]);
@@ -99,14 +105,18 @@ class DanhGiaController extends Controller
         }
 
         // Phân tích bình luận qua bộ lọc AI thông minh
-        $aiResult = $this->analyzeCommentWithModerationTool($request->binhluan ?? '', (int) $request->danhgia);
+        $aiResult = $this->analyzeCommentWithAI($request->binhluan ?? '', (int) $request->danhgia);
+        $comment = (string) ($request->binhluan ?? '');
+        if (! empty($aiResult['reply'])) {
+            $comment = trim($comment."\n\n".$aiResult['reply']);
+        }
 
         $danhGia = DanhGia::create([
             'id_dathang' => $request->id_dathang,
             'id_bienthe' => $request->id_bienthe,
             'user_id' => $userId,
             'danhgia' => $request->danhgia,
-            'binhluan' => $request->binhluan,
+            'binhluan' => $comment,
             'trangthai' => $aiResult['trangthai'],
         ]);
 
@@ -169,6 +179,48 @@ class DanhGiaController extends Controller
             'success' => true,
             'message' => 'Cập nhật trạng thái bình luận hàng loạt thành công!',
             'updated' => $reviews->count(),
+        ]);
+    }
+
+    public function autoModeratePending(Request $request)
+    {
+        $limit = (int) $request->input('limit', 100);
+        $limit = max(1, min($limit, 500));
+
+        $reviews = DanhGia::where('trangthai', 'pending')
+            ->orderBy('created_at', 'asc')
+            ->limit($limit)
+            ->get();
+
+        $summary = [
+            'scanned' => $reviews->count(),
+            'approved' => 0,
+            'spam' => 0,
+            'pending' => 0,
+        ];
+
+        foreach ($reviews as $review) {
+            $result = $this->analyzeCommentWithAI((string) $review->binhluan, (int) $review->danhgia);
+
+            if ($result['trangthai'] === 'pending') {
+                $summary['pending']++;
+                continue;
+            }
+
+            $updates = ['trangthai' => $result['trangthai']];
+            if (! empty($result['reply']) && ! str_contains((string) $review->binhluan, 'VinaTech')) {
+                $updates['binhluan'] = trim(((string) $review->binhluan)."\n\n".$result['reply']);
+            }
+
+            $review->update($updates);
+            $this->clearProductCacheByReview($review);
+            $summary[$result['trangthai']]++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Da chay tool tu duyet danh gia.',
+            'summary' => $summary,
         ]);
     }
 
@@ -253,10 +305,10 @@ class DanhGiaController extends Controller
             if ($isPositive) {
                 // Danh sách các câu trả lời tự động ngẫu nhiên của AI để tăng tính tự nhiên
                 $thankReplies = [
-                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn bạn rất nhiều vì đánh giá tích cực! VinaTech rất tự hào khi mang đến trải nghiệm hài lòng cho bạn. Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm! ✨',
-                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm của VinaTech! Sự hài lòng của bạn là động lực lớn nhất để chúng tôi không ngừng cải thiện chất lượng dịch vụ. Chúc bạn một ngày tốt lành! 🌸',
-                    '🤖 *Trợ lý AI VinaTech:* Tuyệt vời quá! Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn có thời gian làm việc và giải trí thật mượt mà và hiệu quả nhé! 💻🚀',
-                    '🤖 *Trợ lý AI VinaTech:* Cảm ơn phản hồi siêu chất lượng từ bạn! VinaTech cam kết luôn đồng hành và hỗ trợ bạn tốt nhất trong suốt quá trình sử dụng. Chúc bạn vạn sự như ý! 💎',
+                    'Cảm ơn bạn rất nhiều vì đánh giá tích cực! Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm.',
+                    'Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm. Sự hài lòng của bạn là động lực để chúng tôi tiếp tục cải thiện dịch vụ.',
+                    'Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn sử dụng sản phẩm thật hiệu quả và hài lòng.',
+                    'Cảm ơn phản hồi rất chất lượng từ bạn! Chúng tôi sẽ luôn cố gắng hỗ trợ bạn tốt nhất trong quá trình sử dụng.',
                 ];
 
                 $reply = $thankReplies[array_rand($thankReplies)];
@@ -418,16 +470,18 @@ class DanhGiaController extends Controller
      */
     public function toggleAiStatus(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'active' => 'required|boolean',
         ]);
 
-        Storage::put('admin/ai_status.json', $request->active ? 'true' : 'false');
+        $active = filter_var($validated['active'], FILTER_VALIDATE_BOOLEAN);
+
+        Storage::put('admin/ai_status.json', $active ? 'true' : 'false');
 
         return response()->json([
             'success' => true,
-            'active' => $request->active,
-            'message' => $request->active ? 'Đã kích hoạt Trợ lý AI Smart Reply thành công!' : 'Đã hủy kích hoạt Trợ lý AI Smart Reply!',
+            'active' => $active,
+            'message' => $active ? 'Đã kích hoạt Trợ lý AI Smart Reply thành công!' : 'Đã hủy kích hoạt Trợ lý AI Smart Reply!',
         ]);
     }
 

@@ -21,6 +21,7 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
 }
 
 body {
@@ -28,6 +29,49 @@ body {
   color: #f8fafc;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  width: 100%;
+  min-width: 320px;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.noise {
+  width: 100%;
+  overflow-x: clip;
+}
+
+.landing-section {
+  width: 100%;
+}
+
+.landing-container {
+  width: min(calc(100% - 48px), 1280px);
+  margin-inline: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.landing-container-narrow {
+  width: min(calc(100% - 48px), 1024px);
+  margin-inline: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.landing-header {
+  max-width: 768px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .landing-container,
+  .landing-container-narrow {
+    width: min(calc(100% - 32px), 1280px);
+  }
 }
 
 /* Custom scrollbar */

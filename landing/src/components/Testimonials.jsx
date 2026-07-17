@@ -3,42 +3,42 @@ import { Star, ShieldCheck, Quote } from 'lucide-react'
 export default function Testimonials() {
   const reviews = [
     {
-      name: 'Dr. Helena Vance',
-      role: 'AI Research Lead, Neural Labs',
-      quote: 'Running our custom deep learning model loops locally used to require spinning up expensive cloud servers. The Aether neural rig lets us iterate model architectures locally in under 3 minutes.',
-      metrics: 'Core Efficiency Approved'
+      name: 'TS. Helena Vance',
+      role: 'Trưởng nhóm nghiên cứu AI, Neural Labs',
+      quote: 'Trước đây chúng tôi phải thuê máy chủ cloud đắt đỏ để chạy mô hình. Aether giúp thử nghiệm mô hình ngay tại chỗ chỉ trong vài phút.',
+      metrics: 'Hiệu năng đã kiểm chứng'
     },
     {
       name: 'Marcus Kaelen',
-      role: 'Creative Director, Cyberpunk Cinema',
-      quote: 'Virtual volume production is highly sensitive to rendering delays. With the cryo-bus chassis cooling cycles running silent at CL12 memory speeds, our workspace stays zero-noise and latency-free.',
-      metrics: 'Unrestricted Workflows'
+      role: 'Giám đốc sáng tạo, Cyberpunk Cinema',
+      quote: 'Quy trình dựng hình rất nhạy với độ trễ. Cấu hình Aether giúp không gian làm việc yên tĩnh, ổn định và phản hồi nhanh hơn.',
+      metrics: 'Quy trình linh hoạt'
     },
     {
       name: 'Kenji Tanaka',
-      role: 'Chief Mechanical Designer, Apex Robotics',
-      quote: 'CAD assembly rendering speeds skyrocketed by a margin of 3.8x. The modular expansion docks made adding hot-swappable subsystem nodes a 5-second process without single toolkit additions.',
-      metrics: 'Hardware Integrity Validated'
+      role: 'Trưởng nhóm thiết kế cơ khí, Apex Robotics',
+      quote: 'Tốc độ dựng mô hình CAD tăng rõ rệt. Thiết kế module giúp nâng cấp linh kiện nhanh và gọn hơn rất nhiều.',
+      metrics: 'Phần cứng ổn định'
     }
   ]
 
   return (
-    <section className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
+    <section className="landing-section relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
       {/* Background visual accents */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-20 reveal-hidden reveal-visible">
+        <div className="landing-header mb-20 reveal-hidden reveal-visible">
           <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-            Verified Endorsements
+            Đánh giá đã xác thực
           </span>
           <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-6 tracking-tight">
-            Approved by <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">Industry Pioneers</span>
+            Được tin dùng bởi <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">người dùng chuyên nghiệp</span>
           </h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Discover why elite creative professionals and AI researchers rely on our high-contrast premium hardware structures.
+            Xem lý do các nhà sáng tạo, kỹ sư và nhóm nghiên cứu chọn Aether cho công việc hiệu năng cao.
           </p>
         </div>
 

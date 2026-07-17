@@ -23,6 +23,7 @@ const routePreloads = {
   '/san-pham': () => routePreloads['/laptop'](),
   '/products': () => routePreloads['/san-pham'](),
   '/laptop': () => import('@/components/Web/TrangLaptop.vue'),
+  '/phu-kien': () => routePreloads['/laptop'](),
 
   '/san-pham/:id': () => import('@/components/Web/ChiTietSanPham.vue'),
   '/products/:id': () => routePreloads['/san-pham/:id'](),
@@ -107,7 +108,7 @@ const getProductIdFromHref = (href) => {
 }
 
 const prefetchRouteData = (path, href) => {
-  if (['/', '/laptop'].includes(path)) {
+  if (['/', '/laptop', '/phu-kien'].includes(path)) {
     prefetchProductsPage({ forceRefresh: false }).catch(() => {})
     return
   }
@@ -139,7 +140,7 @@ const warmCoreRoutes = () => {
   const user = getUser()
   const role = String(user?.vaitro || user?.role || '').toLowerCase()
   const isStaff = Boolean(getToken() && role && role !== 'user')
-  const webQueue = ['/', '/laptop', '/tin-tuc']
+  const webQueue = ['/', '/laptop', '/phu-kien', '/tin-tuc']
   const adminQueue = isStaff
     ? ['/admin', '/admin/quan-ly-san-pham', '/admin/quan-ly-don-hang', '/admin/quan-ly-nguoi-dung', '/admin/bien-the', '/admin/quan-ly-banner']
     : []

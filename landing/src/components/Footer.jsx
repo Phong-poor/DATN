@@ -2,11 +2,11 @@ import { Cpu, MessageSquare } from 'lucide-react'
 
 export default function Footer() {
   return (
-    <footer className="relative bg-[#020817] border-t border-slate-900 pt-20 pb-10 overflow-hidden">
+    <footer className="landing-section relative bg-[#020817] border-t border-slate-900 pt-20 pb-10 overflow-hidden">
       {/* Decorative background glow */}
       <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Main Footer Links & Bio Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
@@ -23,7 +23,7 @@ export default function Footer() {
             </a>
             
             <p className="text-slate-400 text-sm font-light leading-relaxed max-w-sm">
-              Crafting premium high-performance quantum computing rigs to accelerate the creative and scientific breakthroughs of tomorrow.
+              Cung cấp các bộ máy hiệu năng cao dành cho học tập, làm việc, gaming, đồ họa và sáng tạo nội dung.
             </p>
 
             {/* Social Icons */}
@@ -48,34 +48,34 @@ export default function Footer() {
 
           {/* Column 1: Products */}
           <div>
-            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Products</h4>
+            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Sản phẩm</h4>
             <ul className="space-y-3.5 text-sm">
-              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">Aether Core CPU</a></li>
-              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">Cryo-Bus Chassis</a></li>
-              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">Flux Optical RAM</a></li>
-              <li><a href="#configurator" className="text-slate-400 hover:text-cyan-400 transition-colors">Custom Configurations</a></li>
+              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">CPU Aether Core</a></li>
+              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">Vỏ máy Cryo-Bus</a></li>
+              <li><a href="#showcase" className="text-slate-400 hover:text-cyan-400 transition-colors">RAM Flux tốc độ cao</a></li>
+              <li><a href="#configurator" className="text-slate-400 hover:text-cyan-400 transition-colors">Cấu hình tùy chỉnh</a></li>
             </ul>
           </div>
 
           {/* Column 2: Tech Innovations */}
           <div>
-            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Core Tech</h4>
+            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Công nghệ</h4>
             <ul className="space-y-3.5 text-sm">
-              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Topological Silicon</a></li>
-              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Cryo Liquid Systems</a></li>
-              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Laser Interconnects</a></li>
-              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Synergy Core OS</a></li>
+              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Nền tảng xử lý</a></li>
+              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Hệ thống tản nhiệt</a></li>
+              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Kết nối tốc độ cao</a></li>
+              <li><a href="#features" className="text-slate-400 hover:text-cyan-400 transition-colors">Điều phối thông minh</a></li>
             </ul>
           </div>
 
           {/* Column 3: Corporate Info */}
           <div>
-            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Company</h4>
+            <h4 className="font-['Space_Grotesk'] font-bold text-white text-sm uppercase tracking-wider mb-6">Công ty</h4>
             <ul className="space-y-3.5 text-sm">
-              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">About Engineering</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Stress Laboratories</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Freight Logistics</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Contact Technical</a></li>
+              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Về đội ngũ kỹ thuật</a></li>
+              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Phòng kiểm thử</a></li>
+              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Vận chuyển</a></li>
+              <li><a href="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Liên hệ hỗ trợ</a></li>
             </ul>
           </div>
 
@@ -87,7 +87,7 @@ export default function Footer() {
         {/* Bottom Technical Status & Copyright */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500 uppercase tracking-wider">
           <div>
-            © {new Date().getFullYear()} AETHERTECH Systems Inc. All Rights Reserved.
+            © {new Date().getFullYear()} AETHERTECH. Tất cả quyền được bảo lưu.
           </div>
           
           {/* Active Status Display Indicator */}
@@ -96,9 +96,9 @@ export default function Footer() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
             </span>
-            <span>All Cyro Systems: Operational</span>
+            <span>Toàn bộ hệ thống: Đang hoạt động</span>
             <span className="text-slate-700">|</span>
-            <span className="text-cyan-500 font-bold">API latency: 8ms</span>
+            <span className="text-cyan-500 font-bold">Độ trễ API: 8ms</span>
           </div>
         </div>
 

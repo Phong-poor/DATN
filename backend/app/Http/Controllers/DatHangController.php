@@ -477,6 +477,12 @@ class DatHangController extends Controller
         $paymentProvider = $this->resolvePaymentProvider($request->PTTT);
         $isMomoPayment = $paymentProvider === 'momo';
         $hasPaymentTracking = Schema::hasColumn('dathang', 'nha_cung_cap_thanh_toan');
+        $hasDiscountColumn = Schema::hasColumn('dathang', 'giam_gia');
+        $hasPromotionColumn = Schema::hasColumn('dathang', 'id_khuyenmai');
+        $hasUsedCoinsColumn = Schema::hasColumn('dathang', 'xu_dung');
+        $hasEarnedCoinsColumn = Schema::hasColumn('dathang', 'xu_nhan');
+        $hasOrderDetailComboColumn = Schema::hasColumn('dathang_chitiet', 'id_combo');
+        $hasOrderDetailComboGroupColumn = Schema::hasColumn('dathang_chitiet', 'id_nhom_combo');
         $freeshipPromotionId = isset($fpromo) && $fpromo ? $fpromo->id : null;
 
         if ($isMomoPayment) {
@@ -518,11 +524,20 @@ class DatHangController extends Controller
                 'trangthai' => 'pending',
                 'diachi' => $diaChiGiaoHang,
                 'PTTT' => $request->PTTT,
-                'giam_gia' => $giamGia + $giamGiaShip,       // lưu số tiền đã giảm
-                'id_khuyenmai' => $promoId,      // lưu id promotion đã dùng
-                'xu_dung'     => $xuDung,
-                'xu_nhan'     => $xuNhan,
             ];
+
+            if ($hasDiscountColumn) {
+                $orderData['giam_gia'] = $giamGia + $giamGiaShip;
+            }
+            if ($hasPromotionColumn) {
+                $orderData['id_khuyenmai'] = $promoId;
+            }
+            if ($hasUsedCoinsColumn) {
+                $orderData['xu_dung'] = $xuDung;
+            }
+            if ($hasEarnedCoinsColumn) {
+                $orderData['xu_nhan'] = $xuNhan;
+            }
 
             if ($hasPaymentTracking) {
                 $orderData['nha_cung_cap_thanh_toan'] = $paymentProvider;
@@ -563,14 +578,21 @@ class DatHangController extends Controller
                     ? $allocatedPrices[$item->id_giohang]
                     : ($item->bienThe?->gia ?? 0);
 
-                DatHangChiTiet::create([
+                $orderDetailData = [
                     'id_dathang' => $donHang->id_dathang,
                     'id_bienthe' => $item->id_bienthe,
                     'soluong' => $item->soluong,
                     'gia' => $unitPrice,
-                    'id_combo' => $item->id_combo,
-                    'id_nhom_combo' => $item->id_nhom_combo,
-                ]);
+                ];
+
+                if ($hasOrderDetailComboColumn) {
+                    $orderDetailData['id_combo'] = $item->id_combo;
+                }
+                if ($hasOrderDetailComboGroupColumn) {
+                    $orderDetailData['id_nhom_combo'] = $item->id_nhom_combo;
+                }
+
+                DatHangChiTiet::create($orderDetailData);
             }
 
             foreach ($stockNeeded as $idBienThe => $neededQty) {
@@ -621,7 +643,10 @@ class DatHangController extends Controller
             // ── Tặng voucher có điều kiện (is_public = 0) ────────────────
             // Chỉ tặng nếu thanh toán thành công (hoặc COD)
             // Tạm thời tặng luôn khi tạo đơn, tuỳ vào requirement
-            $conditionalPromos = Promotion::where('congkhai', 0)
+            $conditionalPromos = collect();
+
+            if (Schema::hasTable('vouchers') && Schema::hasTable('user_vouchers')) {
+                $conditionalPromos = Promotion::where('congkhai', 0)
                 ->where('danhmuc', '!=', 'birthday')
                 ->whereIn('trangthai', ['running', 'open'])
                 ->where(function ($q) {
@@ -632,6 +657,7 @@ class DatHangController extends Controller
                 })
                 ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
                 ->get();
+            }
 
             $grantedVouchers = [];
 

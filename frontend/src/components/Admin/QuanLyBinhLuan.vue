@@ -78,7 +78,7 @@
 
                                 <!-- Content -->
                                 <td>
-                                    <p class="review-text" :class="{ spam: review.trangthai === 'spam' }">
+                                    <p class="review-text">
                                         {{ review.binhluan || '(Không có nội dung)' }}
                                     </p>
                                 </td>
@@ -88,7 +88,7 @@
 
                                 <!-- Status -->
                                 <td>
-                                    <span class="status-badge" :class="review.trangthai">
+                                    <span class="status-badge" :class="statusClass(review.trangthai)">
                                         {{ statusLabel(review.trangthai) }}
                                     </span>
                                 </td>
@@ -96,7 +96,7 @@
                                 <!-- Actions -->
                                 <td>
                                     <div class="action-btns">
-                                        <button v-if="review.trangthai === 'pending'" class="action-btn approve"
+                                        <button v-if="isPendingLike(review)" class="action-btn approve"
                                             @click="approveReview(review)">DUYỆT<br />NGAY</button>
                                         
                                         <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu Spam" @click="markAsSpam(review)">
@@ -105,7 +105,7 @@
                                             </svg>
                                         </button>
 
-                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Khôi phục trạng thái" @click="undoReview(review)">
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
@@ -152,18 +152,45 @@
                     <h4>Tất cả đã sẵn sàng!</h4>
                     <p>Hiện không có bình luận nào cần kiểm duyệt gấp. Hệ thống AI đang tự động lọc các nội dung spam
                         thô tục.</p>
-                    <button class="banner-btn outline" @click="activeTab = 'spam'">KIỂM TRA BỘ LỌC AI</button>
                 </div>
 
                 <div class="banner-card moderation-tool">
-                    <div class="banner-badge">TOOL</div>
-                    <h4>Công cụ<br />duyệt bình luận</h4>
-                    <p>Tự duyệt đánh giá tốt hoặc bình thường. Bình luận tục tĩu, spam, công kích shop hoặc chê phá uy tín sẽ bị ẩn khỏi trang sản phẩm.</p>
+                    <div class="tool-card-head">
+                        <div>
+                            <div class="banner-badge">TOOL</div>
+                            <h4>Công cụ<br />duyệt bình luận</h4>
+                        </div>
+                        <button
+                            class="tool-switch"
+                            :class="{ active: toolIsOn }"
+                            :disabled="toolStatusLoading"
+                            type="button"
+                            @click="toggleTool"
+                        >
+                            <span class="tool-dot"></span>
+                            <strong v-if="toolStatusLoading">Đang cập nhật</strong>
+                            <strong v-else-if="toolIsOn">Đang bật</strong>
+                            <strong v-else>Đang tắt</strong>
+                        </button>
+                    </div>
+                    <p>
+                        {{ toolIsOn
+                            ? 'Tool đang kiểm soát đánh giá khách hàng. Đánh giá tốt sẽ được tự duyệt, nội dung tục tĩu/spam/công kích sẽ bị ẩn.'
+                            : 'Tool đang tắt. Đánh giá mới sẽ chờ admin kiểm duyệt thủ công khi bạn không có nhu cầu chạy kiểm soát tự động.' }}
+                    </p>
                     <div class="tool-summary">
                         <span>Chờ duyệt toàn hệ thống</span>
                         <strong>{{ statsData.pending }}</strong>
                     </div>
                     <div class="tool-actions">
+                        <button
+                            class="banner-btn warning"
+                            :class="{ active: toolIsOn }"
+                            :disabled="toolStatusLoading"
+                            @click="toggleTool"
+                        >
+                            {{ toolActionText }}
+                        </button>
                         <button class="banner-btn primary" @click="openPendingQueue">
                             XEM CHỜ DUYỆT
                         </button>
@@ -188,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
 
@@ -196,12 +223,21 @@ const activeTab = ref('all')
 const currentPage = ref(1)
 const isLoading = ref(false)
 const bulkLoading = ref(false)
+const autoModerationLoading = ref(false)
+const toolStatusLoading = ref(false)
+const toolEnabled = ref(false)
+let autoRefreshTimer = null
+
+const toolIsOn = computed(() => toolEnabled.value === true)
+const toolActionText = computed(() => {
+    if (toolStatusLoading.value) return 'ĐANG CẬP NHẬT...'
+    return toolIsOn.value ? 'TẮT TOOL' : 'BẬT TOOL'
+})
 
 const tabs = [
     { key: 'all', label: 'Tất cả' },
     { key: 'pending', label: 'Chờ duyệt' },
     { key: 'approved', label: 'Đã duyệt' },
-    { key: 'spam', label: 'Spam' },
 ]
 
 const reviews = ref([])
@@ -228,9 +264,17 @@ const filteredReviews = computed(() => {
     return reviews.value
 })
 
+const normalizeToolStatus = (value) => {
+    return value === true || value === 1 || value === '1' || value === 'true'
+}
+
 const pendingOnPage = computed(() => {
-    return reviews.value.filter(review => review.trangthai === 'pending')
+    return reviews.value.filter(review => isPendingLike(review))
 })
+
+const isPendingLike = (review) => {
+    return ['pending', 'spam'].includes(review?.trangthai)
+}
 
 const compactPageNumbers = computed(() => {
     const total = Number(pagination.value.last_page || 1)
@@ -273,6 +317,7 @@ const compactPageNumbers = computed(() => {
 })
 
 const fetchReviews = async () => {
+    if (isLoading.value) return
     isLoading.value = true
     try {
         const res = await api.get('/admin/reviews', {
@@ -292,8 +337,12 @@ const fetchReviews = async () => {
 }
 
 const statusLabel = (status) => {
-    const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'SPAM' }
+    const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'CHỜ DUYỆT' }
     return map[status] || status
+}
+
+const statusClass = (status) => {
+    return status === 'spam' ? 'pending' : status
 }
 
 /* eslint-disable no-unused-vars */
@@ -435,6 +484,61 @@ const approvePendingOnPage = async () => {
     }
 }
 
+const fetchToolStatus = async () => {
+    if (toolStatusLoading.value) return
+    try {
+        const res = await api.get('/admin/reviews/ai-status')
+        toolEnabled.value = normalizeToolStatus(res.data.active)
+    } catch (err) {
+        console.error('Lỗi khi tải trạng thái tool tự duyệt:', err)
+    }
+}
+
+const runAutoModeration = async () => {
+    if (!toolEnabled.value) {
+        swal.info('Tool đang tắt', 'Hãy bật tool tự duyệt trước khi chạy kiểm soát đánh giá.')
+        return
+    }
+
+    autoModerationLoading.value = true
+    try {
+        const res = await api.post('/admin/reviews/auto-moderate', { limit: 200 })
+        const summary = res.data.summary || {}
+        await swal.success(
+            'Tool tự duyệt đã chạy',
+            `Đã quét ${summary.scanned || 0} đánh giá. Duyệt: ${summary.approved || 0}, Spam: ${summary.spam || 0}, còn chờ: ${summary.pending || 0}.`
+        )
+        await fetchReviews()
+    } catch (err) {
+        swal.error('Lỗi', 'Không chạy được tool tự duyệt: ' + (err.response?.data?.message || err.message))
+    } finally {
+        autoModerationLoading.value = false
+    }
+}
+
+const toggleTool = async () => {
+    toolStatusLoading.value = true
+    const nextStatus = !toolEnabled.value
+    toolEnabled.value = nextStatus
+
+    try {
+        const res = await api.post('/admin/reviews/ai-status', { active: nextStatus })
+        toolEnabled.value = normalizeToolStatus(res.data.active)
+        swal.success(
+            toolEnabled.value ? 'Đã bật tool tự duyệt' : 'Đã tắt tool tự duyệt',
+            toolEnabled.value
+                ? 'Hệ thống sẽ tự kiểm soát đánh giá mới của khách hàng.'
+                : 'Đánh giá mới sẽ chuyển sang trạng thái chờ duyệt thủ công.'
+        )
+    } catch (err) {
+        toolEnabled.value = !nextStatus
+        swal.error('Lỗi', 'Không cập nhật được trạng thái tool: ' + (err.response?.data?.message || err.message))
+    } finally {
+        toolStatusLoading.value = false
+        await fetchToolStatus()
+    }
+}
+
 watch(activeTab, () => {
     currentPage.value = 1;
     fetchReviews();
@@ -446,6 +550,18 @@ watch(currentPage, () => {
 
 onMounted(() => {
     fetchReviews()
+    fetchToolStatus()
+    autoRefreshTimer = window.setInterval(() => {
+        fetchToolStatus()
+        fetchReviews()
+    }, 5000)
+})
+
+onUnmounted(() => {
+    if (autoRefreshTimer) {
+        window.clearInterval(autoRefreshTimer)
+        autoRefreshTimer = null
+    }
 })
 </script>
 
@@ -930,6 +1046,61 @@ td {
     color: #fff;
 }
 
+.tool-card-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.tool-switch {
+    min-width: 124px;
+    height: 36px;
+    padding: 0 12px 0 6px;
+    border: 1px solid rgba(148, 163, 184, .36);
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .12);
+    color: #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .18s;
+}
+
+.tool-switch .tool-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #94a3b8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+    flex: 0 0 auto;
+}
+
+.tool-switch.active {
+    border-color: rgba(34, 197, 94, .5);
+    background: rgba(34, 197, 94, .16);
+    color: #bbf7d0;
+}
+
+.tool-switch.active .tool-dot {
+    background: #22c55e;
+}
+
+.tool-switch strong {
+    font: inherit;
+}
+
+.tool-switch:disabled {
+    opacity: .62;
+    cursor: not-allowed;
+}
+
 .banner-icon {
     width: 44px;
     height: 44px;
@@ -1052,6 +1223,26 @@ td {
 .banner-btn.success:hover:not(:disabled) {
     background: #86efac;
     transform: scale(1.03);
+}
+
+.banner-btn.warning {
+    border: none;
+    background: #f59e0b;
+    color: #111827;
+}
+
+.banner-btn.warning:hover:not(:disabled) {
+    background: #fbbf24;
+    transform: scale(1.03);
+}
+
+.banner-btn.warning.active {
+    background: #ef4444;
+    color: #fff;
+}
+
+.banner-btn.warning.active:hover:not(:disabled) {
+    background: #dc2626;
 }
 
 .banner-btn:disabled {

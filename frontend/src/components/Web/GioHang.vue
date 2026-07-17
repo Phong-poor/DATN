@@ -513,7 +513,7 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">🎯 NextGen Laptop Store</div>
+              <div class="header-eyebrow">NextGen Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
                 <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
               </h1>
@@ -676,7 +676,7 @@ onMounted(() => {
             <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
               <!-- Banner qu t?ng VIP (ch? hi?n khi l uu di mi?n ph) -->
               <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
-                <span class="gift-offer-icon">🎁</span>
+                <span class="gift-offer-icon"></span>
                 <div class="gift-offer-text">
                   <strong>Quà Tặng Đặc Quyền VIP</strong>
                   <span>Miễn phí hoàn toàn - Kèm theo đơn hàng của bạn</span>

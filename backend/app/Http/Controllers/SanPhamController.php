@@ -91,21 +91,27 @@ class SanPhamController extends Controller
     // Gộp 4 API làm 1 để tăng tốc độ load trên môi trường Windows
     public function init(Request $request)
     {
-        if ($request->has('q')) {
-            $sanphams = $this->search($request)->getData(true);
-        } else {
-            $sanphams = $this->index($request)->getData(true);
-        }
-        $danhmucs = app(\App\Http\Controllers\DanhMucController::class)->index()->getData(true);
-        $thuonghieus = app(\App\Http\Controllers\ThuongHieuController::class)->index()->getData(true);
-        $attributes = $this->attributeOptions()->getData(true);
+        $cacheKey = 'sanpham_init_' . $this->sanPhamCacheVersion() . '_' . md5(json_encode($request->query()));
 
-        return response()->json([
-            'products' => $sanphams,
-            'categories' => $danhmucs['data'] ?? $danhmucs,
-            'brands' => $thuonghieus['data'] ?? $thuonghieus,
-            'attributes' => $attributes
-        ]);
+        $payload = Cache::remember($cacheKey, 600, function () use ($request) {
+            if ($request->has('q')) {
+                $sanphams = $this->search($request)->getData(true);
+            } else {
+                $sanphams = $this->index($request)->getData(true);
+            }
+            $danhmucs = app(\App\Http\Controllers\DanhMucController::class)->index()->getData(true);
+            $thuonghieus = app(\App\Http\Controllers\ThuongHieuController::class)->index()->getData(true);
+            $attributes = $this->attributeOptions()->getData(true);
+
+            return [
+                'products' => $sanphams,
+                'categories' => $danhmucs['data'] ?? $danhmucs,
+                'brands' => $thuonghieus['data'] ?? $thuonghieus,
+                'attributes' => $attributes
+            ];
+        });
+
+        return response()->json($payload);
     }
 
     // Trả về danh sách các giá trị thuộc tính có trong DB
