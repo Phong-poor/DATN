@@ -38,6 +38,8 @@ use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
 use App\Http\Controllers\VaiTroController;
 use App\Http\Controllers\VongQuayController;
+use App\Http\Controllers\Api\AffiliateWalletController;
+use App\Http\Controllers\Api\AffiliateWithdrawalController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -185,6 +187,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
+    Route::get('/affiliate/wallet', [AffiliateWalletController::class, 'show']);
+    Route::get('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'index']);
+    Route::post('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'store']);
     Route::get('/affiliate/videos', [AffiliateVideoController::class, 'myVideos']);
     Route::post('/affiliate/videos', [AffiliateVideoController::class, 'store']);
     Route::post('/affiliate/videos/{id}', [AffiliateVideoController::class, 'update']);
