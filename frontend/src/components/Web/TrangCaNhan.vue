@@ -100,6 +100,8 @@ const updateUserData = (apiUser) => {
       : user.value.joinDate,
     is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
     id_google: apiUser.id_google || null,
+    is_facebook_account: Boolean(apiUser.is_facebook_account || apiUser.id_facebook),
+    id_facebook: apiUser.id_facebook || null,
   }
 
   if (apiUser.email) {
@@ -108,6 +110,21 @@ const updateUserData = (apiUser) => {
 }
 
 const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
+const isSocialAccount = computed(() => Boolean(
+  user.value?.is_google_account || user.value?.id_google ||
+  user.value?.is_facebook_account || user.value?.id_facebook
+))
+const isTabAllowed = (key) => {
+  if (key === 'password' && isSocialAccount.value) return false
+  return true
+}
+const filteredTabs = computed(() => tabs.filter(tab => isTabAllowed(tab.key)))
+
+watch([activeTab, isSocialAccount], ([tab, social]) => {
+  if (tab === 'password' && social) {
+    activeTab.value = 'profile'
+  }
+})
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
@@ -773,6 +790,7 @@ const cancelEdit = async (force = false) => {
 }
 
 const changeTab = async (tabKey) => {
+  if (tabKey === 'password' && isSocialAccount.value) return
   if (activeTab.value === tabKey) return
 
   if (isFormDirty.value) {
@@ -2194,7 +2212,7 @@ const promoStatusMap = {
         <!-- NAV BUTTONS -->
         <nav class="side-nav">
           <button
-            v-for="tab in tabs" :key="tab.key"
+            v-for="tab in filteredTabs" :key="tab.key"
             class="side-btn"
             :class="{ active: activeTab === tab.key }"
             @click="changeTab(tab.key)"
@@ -5543,13 +5561,15 @@ const promoStatusMap = {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(253, 230, 138, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 16px;
   padding: 16px 8px;
+  min-height: 136px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  color: #1f2937;
 }
 .attendance-day-box::before {
   content: '';
@@ -5557,7 +5577,7 @@ const promoStatusMap = {
   inset: 0;
   border-radius: 16px;
   padding: 1.5px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  background: linear-gradient(135deg, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -5566,58 +5586,74 @@ const promoStatusMap = {
 
 /* Checked Day */
 .attendance-day-box.checked {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 .attendance-day-box.checked .day-num {
-  color: #10b981;
-  font-weight: 700;
+  color: #92400e;
+  font-weight: 800;
 }
 .attendance-day-box.checked .xu-val {
-  color: #a7f3d0;
+  color: #b45309;
 }
 
 /* Current Day */
 .attendance-day-box.current {
-  background: rgba(234, 179, 8, 0.15);
-  border-color: rgba(234, 179, 8, 0.6);
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.2);
+  background: rgba(253, 224, 71, 0.3);
+  border-color: rgba(234, 179, 8, 0.85);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.28);
   transform: translateY(-4px);
   animation: pulse-border 2s infinite;
 }
 .attendance-day-box.current .day-num {
-  color: #facc15;
-  font-weight: 700;
+  color: #92400e;
+  font-weight: 800;
 }
 .attendance-day-box.current .xu-val {
-  color: #fef08a;
-  font-weight: bold;
+  color: #92400e;
+  font-weight: 800;
 }
 
 /* Locked Day */
 .attendance-day-box.locked {
-  opacity: 0.6;
+  background: rgba(250, 204, 21, 0.12);
+  opacity: 1;
+}
+.attendance-day-box.locked .day-num,
+.attendance-day-box.locked .xu-val {
+  color: #4b5563;
 }
 
 .day-num {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
-  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 .day-xu {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 12px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 10px 14px;
+  width: fit-content;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(249, 115, 22, 0.08);
 }
 .coin-icon {
   font-size: 16px;
 }
 .xu-val {
-  font-size: 14px;
-  font-weight: 700;
-  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 900;
+  color: #92400e;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
 }
 .day-status-icon svg {
   width: 24px;

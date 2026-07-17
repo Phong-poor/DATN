@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mỹ Phẩm Premium - Beauty Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #d946ef;
+            --primary-light: #ec4899;
+            --secondary: #06b6d4;
+            --dark: #1a1a2e;
+            --dark-light: #2d2d44;
+            --light: #f8f8f8;
+            --white: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #efefef;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light);
+            color: var(--text);
+        }
+
+        /* ===== HEADER STYLES ===== */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--white) 0%, rgba(255, 255, 255, 0.98) 100%);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(217, 70, 239, 0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 40px;
+            background: linear-gradient(90deg, rgba(217, 70, 239, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .top-left, .top-right {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .top-item {
+            color: var(--text-light);
+            transition: color 0.3s ease;
+        }
+
+        .top-item:hover {
+            color: var(--primary);
+        }
+
+        .top-item i {
+            margin-right: 6px;
+        }
+
+        /* ===== MAIN HEADER ===== */
+        .header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            gap: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .logo-tagline {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== SEARCH BAR ===== */
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 2px solid var(--border);
+            border-radius: 25px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            background-color: rgba(248, 248, 248, 0.5);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: var(--white);
+            box-shadow: 0 0 20px rgba(217, 70, 239, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-light);
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        .search-input:focus ~ .search-icon {
+            color: var(--primary);
+        }
+
+        /* ===== NAVIGATION ===== */
+        .nav-menu {
+            display: flex;
+            gap: 35px;
+            align-items: center;
+            list-style: none;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .dropdown-icon {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        /* ===== ICONS ===== */
+        .header-icons {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .icon-link {
+            position: relative;
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .icon-link:hover {
+            color: var(--primary);
+            background-color: rgba(217, 70, 239, 0.1);
+            transform: scale(1.1);
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(217, 70, 239, 0.4);
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, rgba(217, 70, 239, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+            border: 1px solid rgba(217, 70, 239, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .user-menu-toggle:hover {
+            background: linear-gradient(135deg, rgba(217, 70, 239, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+            border-color: var(--primary);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            min-width: 200px;
+            margin-top: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .user-menu.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(217, 70, 239, 0.05);
+            color: var(--primary);
+            padding-left: 20px;
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        /* ===== MOBILE MENU ===== */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle:hover {
+            background-color: rgba(217, 70, 239, 0.1);
+        }
+
+        .menu-line {
+            width: 24px;
+            height: 2.5px;
+            background-color: var(--text);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle.active .menu-line:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+
+        .mobile-menu-toggle.active .menu-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active .menu-line:nth-child(3) {
+            transform: rotate(-45deg) translate(8px, -8px);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .header-main {
+                padding: 15px 30px;
+                gap: 20px;
+            }
+
+            .search-container {
+                max-width: 300px;
+            }
+
+            .nav-menu {
+                gap: 20px;
+            }
+
+            .header-icons {
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-top {
+                display: none;
+            }
+
+            .header-main {
+                gap: 15px;
+            }
+
+            .search-container {
+                display: none;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .logo-brand {
+                font-size: 18px;
+            }
+
+            .header-icons {
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-top {
+                display: none;
+            }
+
+            .header-main {
+                padding: 12px 16px;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+
+            .logo-brand {
+                font-size: 16px;
+            }
+
+            .logo-tagline {
+                display: none;
+            }
+
+            .header-icons {
+                gap: 10px;
+            }
+
+            .icon-link {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            animation: slideDown 0.6s ease-out;
+        }
+
+        /* Demo content */
+        .demo-section {
+            padding: 40px;
+            background: linear-gradient(135deg, #f8f8f8 0%, #f0f0f0 100%);
+        }
+
+        .demo-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .demo-content h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            background: linear-gradient(135deg, #d946ef 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .demo-content p {
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <!-- Header Top -->
+        <div class="header-top">
+            <div class="top-left">
+                <span class="top-item"><i class="fas fa-phone"></i>Hotline: 0123 456 789</span>
+                <span class="top-item"><i class="fas fa-envelope"></i>contact@beautystore.vn</span>
+            </div>
+            <div class="top-right">
+                <span class="top-item"><i class="fas fa-shipping-fast"></i>Miễn phí vận chuyển từ 500K</span>
+                <span class="top-item"><i class="fas fa-undo"></i>Đổi trả 30 ngày</span>
+            </div>
+        </div>
+
+        <!-- Main Header -->
+        <div class="header-main">
+            <!-- Logo -->
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-spa"></i>
+                </div>
+                <div class="logo-text">
+                    <div class="logo-brand">LUXE</div>
+                    <div class="logo-tagline">BEAUTY</div>
+                </div>
+            </a>
+
+            <!-- Search Bar -->
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Tìm kiếm sản phẩm...">
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        Trang chủ
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        Sản phẩm <i class="fas fa-chevron-down dropdown-icon"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        Bộ sưu tập
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        Về chúng tôi
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        Blog
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Icons -->
+            <div class="header-icons">
+                <a href="#" class="icon-link" id="wishlist-btn">
+                    <i class="far fa-heart"></i>
+                    <span class="badge">3</span>
+                </a>
+
+                <a href="#" class="icon-link" id="cart-btn">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span class="badge">2</span>
+                </a>
+
+                <div class="user-menu" id="user-menu">
+                    <button class="user-menu-toggle" id="user-toggle">
+                        <div class="user-avatar">NK</div>
+                        <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            Tài khoản của tôi
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-list"></i>
+                            Đơn hàng
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-heart"></i>
+                            Yêu thích
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            Cài đặt
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Đăng xuất
+                        </a>
+                    </div>
+                </div>
+
+                <button class="mobile-menu-toggle" id="mobile-toggle">
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Demo Content -->
+    <section class="demo-section">
+        <div class="demo-content">
+            <h1>Chào mừng đến với Luxe Beauty</h1>
+            <p>Header này được thiết kế để bán mỹ phẩm với giao diện hiện đại, premium và responsive.</p>
+        </div>
+    </section>
+
+    <script>
+        // User menu toggle
+        const userToggle = document.getElementById('user-toggle');
+        const userMenu = document.getElementById('user-menu');
+
+        userToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            userMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!userMenu.contains(e.target)) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        // Mobile menu toggle
+        const mobileToggle = document.getElementById('mobile-toggle');
+        mobileToggle.addEventListener('click', () => {
+            mobileToggle.classList.toggle('active');
+        });
+
+        // Search input animation
+        const searchInput = document.querySelector('.search-input');
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                console.log('Tìm kiếm:', searchInput.value);
+                // Thêm logic tìm kiếm tại đây
+            }
+        });
+
+        // Wishlist click event
+        document.getElementById('wishlist-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Mở danh sách yêu thích');
+        });
+
+        // Cart click event
+        document.getElementById('cart-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Mở giỏ hàng');
+        });
+
+        // Navigation link click (smooth scroll placeholder)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                // Thêm logic điều hướng tại đây
+                console.log('Navigate:', link.textContent.trim());
+            });
+        });
+    </script>
+</body>
+</html>

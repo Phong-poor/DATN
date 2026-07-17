@@ -263,6 +263,7 @@ const isPlayableVideoSrc = (src = '') => {
 const affiliateVideoSrc = (video = {}) => storageUrl(video.video_src || video.video_url || video.video_path)
 const affiliateThumbnailSrc = (video = {}) => storageUrl(video.thumbnail_src || video.thumbnail_path || video.product?.hinhanh || '')
 const viewedAffiliateVideoIds = new Set()
+const audibleAffiliateVideoIds = ref(new Set())
 
 const getYoutubeId = (url = '') => {
     const value = String(url || '').trim()
@@ -285,12 +286,12 @@ const getYoutubeId = (url = '') => {
 
 const externalVideoUrl = (video = {}) => video.video_url || video.video_src || video.video_path || ''
 
-const affiliateVideoEmbedSrc = (video = {}, autoplay = false) => {
+const affiliateVideoEmbedSrc = (video = {}, autoplay = false, audible = false) => {
     const id = getYoutubeId(externalVideoUrl(video))
     if (!id) return ''
 
     const params = new URLSearchParams({
-        controls: '1',
+        controls: '0',
         fs: '1',
         rel: '0',
         modestbranding: '1',
@@ -299,7 +300,7 @@ const affiliateVideoEmbedSrc = (video = {}, autoplay = false) => {
 
     if (autoplay) {
         params.set('autoplay', '1')
-        params.set('mute', '1')
+        params.set('mute', audible ? '0' : '1')
     }
 
     return `https://www.youtube.com/embed/${id}?${params.toString()}`
@@ -321,6 +322,20 @@ const pauseAffiliateVideoPreview = (event) => {
     const media = event.currentTarget?.querySelector?.('video')
     if (!media) return
     media.pause()
+}
+
+const enableAffiliateVideoSound = (event, video = {}) => {
+    if (video.id) {
+        const next = new Set(audibleAffiliateVideoIds.value)
+        next.add(video.id)
+        audibleAffiliateVideoIds.value = next
+    }
+
+    const media = event.currentTarget?.querySelector?.('video')
+    if (!media) return
+    media.muted = false
+    media.volume = 1
+    media.play().catch(() => {})
 }
 
 const scrollAffiliateVideos = (direction = 1) => {
@@ -1015,6 +1030,7 @@ onUnmounted(() => {
                             :class="{ 'is-playing-embed': affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id }"
                             @mouseenter="playAffiliateVideoPreview($event, video)"
                             @mouseleave="pauseAffiliateVideoPreview"
+                            @click="enableAffiliateVideoSound($event, video)"
                         >
                             <video
                                 v-if="isPlayableVideoSrc(affiliateVideoSrc(video))"
@@ -1028,16 +1044,21 @@ onUnmounted(() => {
                             <iframe
                                 v-else-if="affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id"
                                 class="affiliate-video-embed"
-                                :src="affiliateVideoEmbedSrc(video, true)"
+                                :src="affiliateVideoEmbedSrc(video, true, audibleAffiliateVideoIds.has(video.id))"
                                 :title="video.title || video.tieu_de"
                                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                                 allowfullscreen
                             ></iframe>
                             <img v-else :src="affiliateThumbnailSrc(video) || getCategoryFallbackImage(video.product?.tenSP)" :alt="video.title" />
+                            <button
+                                v-if="hoveredAffiliateVideoId === video.id && !audibleAffiliateVideoIds.has(video.id)"
+                                class="affiliate-sound-toggle"
+                                type="button"
+                                @click.stop="enableAffiliateVideoSound($event, video)"
+                            >
+                                Bật tiếng
+                            </button>
                             <div class="affiliate-video-scrim"></div>
-                            <div class="affiliate-play-mark">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
                             <div class="affiliate-video-content">
                                 <span class="affiliate-video-badge">Affiliate Video</span>
                                 <h3>{{ video.title || video.tieu_de }}</h3>
@@ -1908,7 +1929,7 @@ onUnmounted(() => {
 .hero-container {
     position: relative;
     z-index: 2;
-    width: min(1280px, calc(100% - 32px));
+    width: min(var(--site-frame-max, 1688px), calc(100% - var(--site-frame-outer, 152px)));
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -1916,12 +1937,14 @@ onUnmounted(() => {
 }
 .hero-content {
     display: grid;
-    grid-template-columns: 1.08fr 0.92fr;
-    gap: 42px;
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+    gap: clamp(48px, 6vw, 104px);
     align-items: center;
+    width: 100%;
 }
 .hero-text-block {
-    max-width: 640px;
+    max-width: 720px;
+    justify-self: start;
 }
 .hero-badge {
     display: inline-flex;
@@ -2000,8 +2023,10 @@ onUnmounted(() => {
 .hero-device-wrapper {
     position: relative;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
+    justify-self: end;
+    width: 100%;
 }
 .glow-orb {
     position: absolute;
@@ -2023,7 +2048,7 @@ onUnmounted(() => {
     background: rgba(11, 19, 32, 0.82);
     backdrop-filter: blur(16px);
     animation: slow-floating 8s ease-in-out infinite;
-    width: min(100%, 410px);
+    width: min(100%, 510px);
 }
 
 .hero-product-card {
@@ -2525,6 +2550,29 @@ onUnmounted(() => {
     inset: 0;
     z-index: 5;
     pointer-events: auto;
+}
+.affiliate-sound-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 9;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(15, 23, 42, 0.78);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.26);
+    transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.affiliate-sound-toggle:hover {
+    background: #2563eb;
+    border-color: #60a5fa;
+    transform: translateY(-1px);
 }
 .affiliate-video-scrim {
     position: absolute;
@@ -3702,6 +3750,16 @@ onUnmounted(() => {
 /* ─── RESPONSIVE OVERRIDES ─── */
 @media (max-width: 1200px) {
     .hero-title { font-size: 42px; }
+    .hero-container {
+        width: min(1120px, calc(100% - 40px));
+    }
+    .hero-content {
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.84fr);
+        gap: 40px;
+    }
+    .device-showcase-card {
+        width: min(100%, 430px);
+    }
     .category-cards-grid,
     .premium-products-grid,
     .reviews-editorial-grid {
@@ -3747,6 +3805,10 @@ onUnmounted(() => {
     }
     .hero-text-block { max-width: 100%; text-align: center; }
     .hero-badge, .hero-buttons, .hero-trust-indicators { justify-content: center; }
+    .hero-device-wrapper {
+        justify-content: center;
+        justify-self: center;
+    }
     .device-showcase-card {
         width: min(100%, 380px);
     }

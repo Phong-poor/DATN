@@ -1169,66 +1169,93 @@ onMounted(loadData)
 .loading-card {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, .05);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, .08);
 }
 
 .control-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px;
-  margin-bottom: 18px;
+  gap: 18px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  background: #f8fbff;
+  border-color: #e2ecf8;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .tab-btn {
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 800;
+  gap: 10px;
+  font-weight: 700;
+  color: #334155;
+  border: 1px solid transparent;
+  background: #f8fafc;
+  transition: all .2s ease;
+}
+
+.tab-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
 }
 
 .tab-btn span {
-  min-width: 24px;
-  height: 24px;
-  padding: 0 7px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 999px;
   display: inline-grid;
   place-items: center;
-  background: #eef2ff;
-  color: #2563eb;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .tab-btn.active {
   color: #fff;
-  background: #2563eb;
-  border-color: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border-color: transparent;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, .18);
 }
 
 .tab-btn.active span {
-  color: #1d4ed8;
+  color: #2563eb;
   background: #fff;
 }
 
 .search-box,
 .select-box {
-  height: 44px;
+  min-width: 200px;
+  height: 46px;
   border: 1px solid #dbe4f0;
-  border-radius: 8px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
+  padding: 0 14px;
   background: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06);
 }
 
 .search-box {
-  width: min(460px, 42vw);
+  width: min(520px, 55vw);
+}
+
+.search-box input,
+.select-box select {
+  width: 100%;
 }
 
 .search-box input,

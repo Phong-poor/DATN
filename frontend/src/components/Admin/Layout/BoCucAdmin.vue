@@ -112,22 +112,6 @@
               </div>
             </div>
 
-            <div class="topbar-popover" ref="appsMenuRef">
-              <button class="topbar-icon-button" type="button" aria-label="Ứng dụng" @click="toggleAppsMenu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></svg>
-              </button>
-              <div v-if="appsMenuOpen" class="topbar-dropdown apps-dropdown">
-                <button
-                  v-for="app in quickApps"
-                  :key="app.path"
-                  class="dropdown-item compact"
-                  type="button"
-                  @click="openQuickApp(app.path)"
-                >
-                  {{ app.label }}
-                </button>
-              </div>
-            </div>
 
             <AdminChatManager />
 
@@ -246,14 +230,12 @@ const pageTitle = computed(() => route.meta.title || 'Bảng quản trị')
 const user = ref(getUser() || {})
 const userMenuOpen = ref(false)
 const langMenuOpen = ref(false)
-const appsMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
 const adminIntroActive = ref(false)
 let adminIntroTimer = null
 
 const userMenuRef = ref(null)
 const langMenuRef = ref(null)
-const appsMenuRef = ref(null)
 const notifyMenuRef = ref(null)
 
 const currentLocale = ref(getLocale())
@@ -449,15 +431,6 @@ watch(
   { immediate: true }
 )
 
-const quickApps = [
-  { label: 'Tổng quan', path: '/admin' },
-  { label: 'Sản phẩm', path: '/admin/quan-ly-san-pham' },
-  { label: 'Đơn hàng', path: '/admin/quan-ly-don-hang' },
-  { label: 'Khuyến mãi', path: '/admin/quan-ly-khuyen-mai' },
-  { label: 'Banner', path: '/admin/quan-ly-banner' },
-  { label: 'User', path: '/admin/quan-ly-nguoi-dung' },
-  { label: 'Settings', path: '/admin/cai-dat-he-thong' },
-]
 
 const notifications = ref([])
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
@@ -514,7 +487,6 @@ function refreshUser() {
 
 function closeTopMenus() {
   langMenuOpen.value = false
-  appsMenuOpen.value = false
   notifyMenuOpen.value = false
 }
 
@@ -526,12 +498,6 @@ function toggleLangMenu() {
   const next = !langMenuOpen.value
   closeTopMenus()
   langMenuOpen.value = next
-}
-
-function toggleAppsMenu() {
-  const next = !appsMenuOpen.value
-  closeTopMenus()
-  appsMenuOpen.value = next
 }
 
 function toggleNotifyMenu() {
@@ -546,10 +512,6 @@ function setLocale(locale) {
   langMenuOpen.value = false
 }
 
-function openQuickApp(path) {
-  appsMenuOpen.value = false
-  router.push(path)
-}
 
 function markAllNotificationsRead() {
   notifications.value = notifications.value.map((n) => ({ ...n, read: true }))
@@ -668,7 +630,6 @@ function handleClickOutside(event) {
   const target = event.target
   if (userMenuOpen.value && !isInside(userMenuRef, target)) userMenuOpen.value = false
   if (langMenuOpen.value && !isInside(langMenuRef, target)) langMenuOpen.value = false
-  if (appsMenuOpen.value && !isInside(appsMenuRef, target)) appsMenuOpen.value = false
   if (notifyMenuOpen.value && !isInside(notifyMenuRef, target)) notifyMenuOpen.value = false
 }
 
