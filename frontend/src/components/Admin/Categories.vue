@@ -414,6 +414,20 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
 .action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
+.actions .edit-btn {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+.actions .edit-btn:hover {
+  background: #f8fafc !important;
+  color: #2563eb !important;
+  border-color: #cbd5e1 !important;
+}
+.actions .edit-btn svg {
+  stroke: currentColor !important;
+}
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
