@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl, storageUrl } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 
 const router = useRouter()
@@ -288,7 +288,7 @@ const navToFeaturedItem = async (key, featured) => {
     const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
     if (items.length > 0) {
       const product = items[0]
-      const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+      const variants = productVariants(product)
       const variant = variants.length ? variants[0] : null
       router.push({
         path: `/san-pham/${product.id_sanpham}`,
@@ -314,23 +314,19 @@ const isAccessory = (p) => {
   return false
 }
 
+const productVariants = (product) => {
+  if (Array.isArray(product?.bien_thes)) return product.bien_thes
+  if (Array.isArray(product?.bienThes)) return product.bienThes
+  if (Array.isArray(product?.bienthes)) return product.bienthes
+  return []
+}
+
 const variantImage = (product, variant) => {
-  const gallery = product.hinh_anhs || product.hinhAnhs || []
-  const firstGallery = Array.isArray(gallery)
-    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
-    : null
-  const firstGalleryImage = firstGallery?.duongdan
-    || firstGallery?.duong_dan
-    || firstGallery?.url
-    || firstGallery?.path
-    || firstGallery?.image
-    || ''
-  const imgPath = variant?.hinhanh || variant?.image || product.hinhanh || firstGalleryImage
-  return imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+  return productImageUrl(product || {}, variant || null, 'https://placehold.co/150')
 }
 
 const resolveProductPrice = (product) => {
-  const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+  const variants = productVariants(product)
   if (variants.length > 0) {
     const sorted = variants.slice().sort((a, b) => Number(a.gia || 0) - Number(b.gia || 0))
     return Number(sorted[0].gia || 0)
@@ -340,16 +336,18 @@ const resolveProductPrice = (product) => {
 
 const updateFeaturedProducts = (productsList) => {
   if (!Array.isArray(productsList) || !productsList.length) return
+  const safeProducts = productsList.filter((product) => product && typeof product === 'object')
+  if (!safeProducts.length) return
   const formatVnd = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(num || 0))
 
   // 1. MacBook
-  const macbooks = productsList.filter(p => {
+  const macbooks = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('macbook')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (macbooks.length > 0) {
     const p = macbooks[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.macbook.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -360,14 +358,14 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 2. Workstation
-  const workstations = productsList.filter(p => {
+  const workstations = safeProducts.filter(p => {
     const nameText = String(p.tenSP || '').toLowerCase()
     const catText = String(p.category || p.danh_muc?.ten_danhmuc || '').toLowerCase()
     return nameText.includes('workstation') || catText.includes('workstation') || nameText.includes('precision') || nameText.includes('zbook')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (workstations.length > 0) {
     const p = workstations[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.workstation.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -378,10 +376,10 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 3. Phụ kiện
-  const accessories = productsList.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  const accessories = safeProducts.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (accessories.length > 0) {
     const p = accessories[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData['phu-kien'].featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -392,13 +390,13 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 4. AI PC
-  const aipcs = productsList.filter(p => {
+  const aipcs = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('ultra') || text.includes('ai') || text.includes('npu')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (aipcs.length > 0) {
     const p = aipcs[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.aipc.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -409,10 +407,10 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 5. Sale
-  const saleItems = productsList.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
+  const saleItems = safeProducts.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
   if (saleItems.length > 0) {
     const p = saleItems[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.sale.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -423,13 +421,13 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 6. Gaming
-  const gamingLaptops = productsList.filter(p => {
+  const gamingLaptops = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('gaming') || text.includes('rtx') || text.includes('rog')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (gamingLaptops.length > 0) {
     const p = gamingLaptops[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.gaming.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -440,9 +438,19 @@ const updateFeaturedProducts = (productsList) => {
   }
 }
 
-const warm = getPrefetchedProductsData()
-if (warm && Array.isArray(warm.productsRaw)) {
-  updateFeaturedProducts(warm.productsRaw)
+try {
+  const warm = getPrefetchedProductsData()
+  if (warm && Array.isArray(warm.productsRaw)) {
+    updateFeaturedProducts(warm.productsRaw)
+  }
+} catch (error) {
+  console.error('Khong the nap cache san pham cho header:', error)
+  try {
+    localStorage.removeItem('nextgen_products_prefetch_cache')
+    localStorage.removeItem('premium_home_cache')
+  } catch {
+    // Ignore cache cleanup failures.
+  }
 }
 
 const navToMegaItem = (key, keyword) => {
@@ -521,25 +529,13 @@ const fetchSearchSuggestions = async () => {
     })
     const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
     searchSuggestions.value = items.slice(0, 3).map(p => {
-      const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+      const variants = productVariants(p)
       const variant = variants.length
         ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
         : null
       const price = Number(variant?.gia || p.gia || 0)
       
-      const gallery = p.hinh_anhs || p.hinhAnhs || []
-      const firstGallery = Array.isArray(gallery)
-        ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
-        : null
-      const firstGalleryImage = firstGallery?.duongdan
-        || firstGallery?.duong_dan
-        || firstGallery?.url
-        || firstGallery?.path
-        || firstGallery?.image
-        || ''
-      
-      const imgPath = variant?.hinhanh || variant?.image || p.hinhanh || firstGalleryImage
-      const image = imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+      const image = variantImage(p, variant)
       return {
         id_sanpham: p.id_sanpham,
         id_bienthe: variant?.id_bienthe || null,
@@ -719,8 +715,12 @@ onMounted(() => {
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
     import('../Web/TrangLaptop.vue')
     prefetchProductsPage().then(res => {
-      if (res && Array.isArray(res.productsRaw)) {
-        updateFeaturedProducts(res.productsRaw)
+      try {
+        if (res && Array.isArray(res.productsRaw)) {
+          updateFeaturedProducts(res.productsRaw)
+        }
+      } catch (error) {
+        console.error('Khong the cap nhat mega menu tu cache san pham:', error)
       }
     }).catch(() => {})
   }

@@ -124,9 +124,14 @@ const getCategoryTarget = (category) => {
     return `/san-pham?cat=${category.id_danhmuc}`
 }
 
-const mapProducts = (rawProducts) => {
-    const productVariants = rawProducts.map(p => {
-        if (!p.bien_thes || p.bien_thes.length === 0) {
+const mapProducts = (rawProducts = []) => {
+    const list = Array.isArray(rawProducts) ? rawProducts : []
+    const productVariants = list.map(p => {
+        const variants = Array.isArray(p?.bien_thes)
+            ? p.bien_thes
+            : (Array.isArray(p?.bienThes) ? p.bienThes : [])
+
+        if (variants.length === 0) {
             return [{
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
@@ -148,7 +153,7 @@ const mapProducts = (rawProducts) => {
             }];
         }
 
-        return p.bien_thes.map(bt => {
+        return variants.map(bt => {
             let ram = '', cpu = '', gpu = '', screen = '', color = '';
             let attributes = [];
             try { 
@@ -442,18 +447,27 @@ const mapApiBannerToSlide = (banner = {}) => ({
     productFeature: banner.product_feature || banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
+const cachedArray = (value) => Array.isArray(value) ? value : null
+
 const loadCache = () => {
     try {
         const cached = localStorage.getItem('premium_home_cache')
         if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
-            if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
-            if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
-            if (parsed.latestNews) latestNews.value = parsed.latestNews
-            if (parsed.bannerSlides) bannerSlides.value = parsed.bannerSlides
-            if (parsed.affiliateVideos) {
-                affiliateVideos.value = parsed.affiliateVideos
+            const cachedProducts = cachedArray(parsed.featuredProducts)
+            const cachedAccessories = cachedArray(parsed.featuredAccessories)
+            const cachedCategories = cachedArray(parsed.categories)
+            const cachedNews = cachedArray(parsed.latestNews)
+            const cachedBanners = cachedArray(parsed.bannerSlides)
+            const cachedVideos = cachedArray(parsed.affiliateVideos)
+
+            if (cachedProducts) featuredProducts.value = cachedProducts
+            if (cachedAccessories) featuredAccessories.value = cachedAccessories
+            if (cachedCategories?.length) categories.value = cachedCategories
+            if (cachedNews) latestNews.value = cachedNews
+            if (cachedBanners) bannerSlides.value = cachedBanners
+            if (cachedVideos) {
+                affiliateVideos.value = cachedVideos
                 primeAffiliateVideoSlider()
             }
         }
@@ -543,10 +557,10 @@ onMounted(async () => {
 // Tab sliders and tabs logic
 const activeCategoryTab = ref('all')
 const filteredFeaturedProducts = computed(() => {
-    if (!featuredProducts.value) return []
-    if (activeCategoryTab.value === 'all') return featuredProducts.value
+    const products = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
+    if (activeCategoryTab.value === 'all') return products
     
-    return featuredProducts.value.filter(p => {
+    return products.filter(p => {
         const name = (p.fullName || p.name || '').toLowerCase();
         const brand = (p.brandName || '').toLowerCase();
         const cat = (p.category || '').toLowerCase();
@@ -704,17 +718,22 @@ const startCountdown = () => {
 }
 
 const flashSaleProducts = computed(() => {
-    if (!featuredProducts.value) return []
+    const products = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
     // Lọc các sản phẩm có giảm giá (oldPriceNum > priceNum) làm sản phẩm Flash Sale
-    return featuredProducts.value.filter(p => p.oldPriceNum > p.priceNum).slice(0, 4)
+    return products.filter(p => p.oldPriceNum > p.priceNum).slice(0, 4)
 })
 
 const current = ref(0)
-const slides = computed(() => bannerSlides.value.length ? bannerSlides.value : defaultSlides)
+const slides = computed(() => {
+    const list = Array.isArray(bannerSlides.value) ? bannerSlides.value : []
+    return list.length ? list : defaultSlides
+})
 const activeSlide = computed(() => slides.value[current.value] || slides.value[0] || {})
 const heroProductFallbackImage = '/hero_3d_laptop.png'
 const activeHeroProduct = computed(() => {
-    const products = allHomeProducts.value.length ? allHomeProducts.value : (featuredProducts.value || [])
+    const allProducts = Array.isArray(allHomeProducts.value) ? allHomeProducts.value : []
+    const featured = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
+    const products = allProducts.length ? allProducts : featured
     if (!products.length) return null
     const slideProductId = activeSlide.value?.productId
     if (slideProductId) {

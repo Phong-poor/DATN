@@ -1218,8 +1218,8 @@ onUnmounted(() => {
 }
 
 .chat-close-btn:hover {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 @media (max-width: 640px) {
@@ -1251,11 +1251,11 @@ onUnmounted(() => {
 
 /* ===== HEADER ===== */
 .chat-header {
-  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+  background: #2563eb;
   padding: 15px 20px;
-  color: #0f172a;
+  color: #ffffff;
   position: relative;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  border-bottom: 1px solid #2563eb;
 }
 
 .mode-toggle-btn {
@@ -1313,13 +1313,13 @@ onUnmounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .title-wrap .subtitle {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.82);
   opacity: 1;
   font-weight: 600;
 }

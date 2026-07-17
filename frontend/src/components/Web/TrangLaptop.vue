@@ -19,7 +19,7 @@ import {
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { getPrefetchedProductsData, prefetchProductDetail, prefetchProductsPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
 import { handleImageFallback, productImageUrl } from '@/services/urls'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
 
@@ -320,7 +320,14 @@ const interleaveVariants = (groups) => {
 }
 
 const loadProducts = async () => {
-  isLoading.value = true
+  const warmCache = getPrefetchedProductsData()
+  if (warmCache?.productsRaw?.length) {
+    rawProductsList.value = warmCache.productsRaw
+    isLoading.value = false
+  } else {
+    isLoading.value = true
+  }
+
   try {
     const cache = await prefetchProductsPage()
     if (cache?.productsRaw?.length) {
@@ -337,7 +344,7 @@ const loadProducts = async () => {
 
   // Load combos
   try {
-    const comboResponse = await api.get('/combos')
+    const comboResponse = await api.get('/combos', { skipGlobalLoader: true })
     if (comboResponse.data && Array.isArray(comboResponse.data.data)) {
       combos.value = comboResponse.data.data
     }
@@ -411,7 +418,6 @@ const filteredProducts = computed(() => {
 
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / itemsPerPage)))
 const paginatedProducts = computed(() => {
-  console.log('Laptop itemsPerPage is:', itemsPerPage)
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredProducts.value.slice(start, start + itemsPerPage)
 })
@@ -481,7 +487,15 @@ const clearFilters = () => {
 }
 
 const formatPrice = (value) => new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + 'd'
-const viewDetail = (product) => router.push({ path: `/san-pham/${product.id_sanpham}`, query: product.id_bienthe ? { variant: product.id_bienthe } : {} })
+const warmDetail = (product) => {
+  primeProductDetailFromCard(product)
+  prefetchProductDetail(product.id_sanpham).catch(() => {})
+}
+
+const viewDetail = (product) => {
+  warmDetail(product)
+  router.push({ path: `/san-pham/${product.id_sanpham}`, query: product.id_bienthe ? { variant: product.id_bienthe } : {} })
+}
 
 const getSwal = async () => (await import('@/services/swal')).default
 
@@ -662,7 +676,7 @@ onMounted(() => {
       </div>
       <div class="flagship-row">
         <article v-for="product in flagshipProducts" :key="product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
+          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="specs">
             <span v-for="spec in product.specs.slice(0, 3)" :key="spec">{{ spec }}</span>
@@ -755,9 +769,16 @@ onMounted(() => {
             </article>
           </div>
           <div v-else class="product-grid">
-            <article v-for="product in paginatedProducts" :key="product.id_bienthe ? 'v-' + product.id_bienthe : 'p-' + product.id_sanpham" class="product-card" @click="viewDetail(product)">
+            <article
+              v-for="product in paginatedProducts"
+              :key="product.id_bienthe ? 'v-' + product.id_bienthe : 'p-' + product.id_sanpham"
+              class="product-card"
+              @click="viewDetail(product)"
+              @pointerenter="warmDetail(product)"
+              @focusin="warmDetail(product)"
+            >
               <span class="discount">-13%</span>
-              <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
+              <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
               <h3>
                 {{ product.tenSP }}
                 <span v-if="product.cpu || product.ram" class="title-specs-suffix">
@@ -817,8 +838,15 @@ onMounted(() => {
         </div>
       </div>
       <div class="accessory-strip">
-        <article v-for="product in accessoryProducts" :key="product.id_sanpham" class="product-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
+        <article
+          v-for="product in accessoryProducts"
+          :key="product.id_sanpham"
+          class="product-card"
+          @click="viewDetail(product)"
+          @pointerenter="warmDetail(product)"
+          @focusin="warmDetail(product)"
+        >
+          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
           <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
@@ -863,7 +891,7 @@ onMounted(() => {
             <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
               <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
                 <div class="node-image-box">
-                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" />
+                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" loading="lazy" decoding="async" />
                 </div>
                 <span class="node-title">{{ item.tenSP }}</span>
                 <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
@@ -901,7 +929,7 @@ onMounted(() => {
       </div>
 
       <div class="lp-showroom-visual">
-        <img src="/Gemini_Generated_Image_v5vppjv5vppjv5vp (2).png" alt="NextGen laptop showroom" />
+        <img src="/Gemini_Generated_Image_v5vppjv5vppjv5vp (2).png" alt="NextGen laptop showroom" loading="lazy" decoding="async" />
       </div>
     </section>
 

@@ -5,6 +5,7 @@ import { productImageUrl } from '@/services/urls'
 const TTL_MS = 30 * 60 * 1000
 const STALE_TTL_MS = 24 * 60 * 60 * 1000
 const STORAGE_KEY = 'nextgen_products_prefetch_cache'
+const DETAIL_CACHE_VERSION = 'detail-complete-v5'
 
 let cache = null
 let inFlight = null
@@ -95,7 +96,6 @@ export const warmProductImages = (products = [], limit = 28) => {
 }
 
 export const getPrefetchedProductsData = () => {
-  if (import.meta.env.DEV) return null
   if (!cache) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -207,6 +207,7 @@ export const prefetchProductDetail = async (productId, { forceRefresh = false } 
 
       try {
         localStorage.setItem(cacheKey, JSON.stringify({
+          cacheVersion: DETAIL_CACHE_VERSION,
           product,
           reviews: [],
           recentlyViewedProducts: [],
@@ -265,6 +266,7 @@ export const primeProductDetailFromCard = (product) => {
 
   try {
     localStorage.setItem(getProductDetailCacheKey(id), JSON.stringify({
+      cacheVersion: DETAIL_CACHE_VERSION,
       product: instantProduct,
       reviews: [],
       recentlyViewedProducts: [],

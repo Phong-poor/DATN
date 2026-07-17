@@ -123,12 +123,12 @@ const newMessage = ref('');
 const chatBody = ref(null);
 const messages = ref([]);
 const conversationId = ref(null);
-const CHAT_SEND_ENDPOINT = '/tro-chuyen/send';
+const CHAT_SEND_ENDPOINT = '/chat/send';
 const router = useRouter();
 
 const currentUser = ref(getUser());
 const authUserId = computed(() => currentUser.value?.id);
-const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+const isOwnMessage = (msg) => Number(msg?.id_nguoigui) === Number(authUserId.value);
 
 // Message search logic
 const showMessageSearch = ref(false);

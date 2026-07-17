@@ -401,6 +401,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/reviews/ai-status', [DanhGiaController::class, 'getAiStatus']);
         Route::post('/reviews/ai-status', [DanhGiaController::class, 'toggleAiStatus']);
         Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+        Route::post('/reviews/auto-moderate', [DanhGiaController::class, 'autoModeratePending']);
         Route::put('/reviews/bulk-status', [DanhGiaController::class, 'bulkUpdateStatus']);
         Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);

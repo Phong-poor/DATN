@@ -12,7 +12,7 @@ import ComboSelectionModal from './HopThoaiChonCombo.vue'
 const route = useRoute()
 const isLoading = ref(false)
 const router = useRouter()
-const DETAIL_CACHE_VERSION = 'detail-complete-v4'
+const DETAIL_CACHE_VERSION = 'detail-complete-v5'
 
 // ===================== STATE COMBO =====================
 const combos = ref([])
@@ -114,6 +114,20 @@ const formatDate = (dateStr) => {
 
 
 // ===================== HELPERS BIẾN THỂ =====================
+const reviewDisplay = (review) => {
+    const fallbackComment = 'Sản phẩm hoạt động cực tốt, cấu hình cực mạnh, màn hình siêu nét đúng như mô tả của website.'
+    const raw = String(review?.binhluan || '').trim()
+    const parts = raw ? raw.split(/\n{2,}/).map(part => part.trim()).filter(Boolean) : []
+    const comment = parts[0] || fallbackComment
+    let reply = parts.slice(1).join('\n\n').trim()
+
+    if (!reply && review?.trangthai === 'approved' && Number(review?.danhgia || 0) >= 4) {
+        reply = 'Cảm ơn bạn đã tin tưởng và đánh giá tích cực. Chúng tôi rất vui khi sản phẩm mang lại trải nghiệm tốt cho bạn.'
+    }
+
+    return { comment, reply }
+}
+
 const getVariantAttributes = (variant) => {
     let attr = variant?.thuoc_tinh || variant?.attributes;
     if (!attr && variant?.thuoc_tinh_json) {
@@ -2406,7 +2420,11 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
                         <div class="card-body-text">
-                            <p class="comment-p">"{{ review.binhluan || 'Sản phẩm hoạt động cực tốt, cấu hình cực mạnh, màn hình siêu nét đúng như mô tả của website.' }}"</p>
+                            <p class="comment-p">"{{ reviewDisplay(review).comment }}"</p>
+                            <div v-if="reviewDisplay(review).reply" class="shop-reply-box">
+                                <div class="shop-reply-label">Phản hồi</div>
+                                <p>{{ reviewDisplay(review).reply }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4522,10 +4540,14 @@ const handleSelectVariantById = (idBienThe) => {
     margin: 12px 0;
 }
 .overall-stars {
-    color: var(--accent);
+    color: #fbbf24;
     font-size: 18px;
     letter-spacing: 2px;
     margin-bottom: 12px;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.42);
+}
+.dashboard-star {
+    color: #fbbf24;
 }
 .overall-total-count {
     font-size: 12.5px;
@@ -4559,7 +4581,8 @@ const handleSelectVariantById = (idBienThe) => {
 .stars-label {
     font-size: 12px;
     font-weight: 700;
-    color: #cbd5e1;
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
 }
 .meter-track {
     height: 6px;
@@ -4659,8 +4682,9 @@ const handleSelectVariantById = (idBienThe) => {
     margin-top: 2px;
 }
 .review-badge-stars {
-    color: var(--accent);
+    color: #fbbf24;
     letter-spacing: 1px;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.38);
 }
 .comment-p {
     font-size: 14px;
@@ -4668,6 +4692,33 @@ const handleSelectVariantById = (idBienThe) => {
     color: #dbe6f5;
     margin: 0;
     font-style: italic;
+}
+
+.shop-reply-box {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(147, 197, 253, 0.62);
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+}
+
+.shop-reply-label {
+    margin-bottom: 6px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.shop-reply-box p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #f8fafc;
+    font-weight: 600;
 }
 
 .empty-reviews-state {

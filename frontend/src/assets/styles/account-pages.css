@@ -178,11 +178,22 @@
   border-radius: var(--ds-radius-md) !important;
 }
 
-.page:has(.sidebar) .side-btn.active,
-.page:has(.sidebar) .side-btn:hover,
 .page:has(.sidebar) .cat-tab.active,
 .page:has(.sidebar) .cat-tab:hover {
   color: var(--ds-primary) !important;
+}
+
+.page:has(.sidebar) .side-btn:hover:not(.active) {
+  color: var(--ds-primary) !important;
+}
+
+.page:has(.sidebar) .side-btn.active,
+.page:has(.sidebar) .side-btn.active span {
+  color: var(--ds-text-inverse) !important;
+}
+
+.page:has(.sidebar) .side-btn.active svg {
+  stroke: var(--ds-text-inverse) !important;
 }
 
 .page:has(.sidebar) input,
