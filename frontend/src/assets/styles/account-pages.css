@@ -1,0 +1,353 @@
+/* ============================================================
+   Account and auth page polish
+   Harmonizes authentication, profile, order, password, and wishlist pages.
+   ============================================================ */
+
+/* Auth screens */
+.page:has(.login-box),
+.page:has(> .box .form-container),
+.page:has(.otp-row) {
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.06), transparent 34%),
+    var(--ds-bg) !important;
+  color: var(--ds-text);
+}
+
+.page:has(.login-box) .login-box,
+.page:has(> .box .form-container) > .box {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-xl) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-lg) !important;
+  overflow: hidden;
+}
+
+.page:has(.login-box) .left-col,
+.page:has(> .box .form-container) .left-col,
+.page:has(.otp-row) .right-col {
+  background:
+    linear-gradient(135deg, rgba(8, 17, 31, 0.92), rgba(15, 29, 51, 0.82)),
+    var(--ds-bg-soft) !important;
+}
+
+.page:has(.login-box) .right-col,
+.page:has(> .box .form-container) .right-col,
+.page:has(.otp-row) .left-col {
+  background: var(--ds-surface) !important;
+}
+
+.page:has(.login-box) .brand-title,
+.page:has(> .box .form-container) .brand-title,
+.page:has(.otp-row) .mockup-title {
+  color: var(--ds-text-inverse) !important;
+  letter-spacing: 0 !important;
+}
+
+.page:has(.login-box) .welcome-title,
+.page:has(> .box .form-container) .welcome-title,
+.page:has(.otp-row) .card-title {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.page:has(.login-box) .welcome-desc,
+.page:has(> .box .form-container) .welcome-desc,
+.page:has(.otp-row) .card-desc,
+.page:has(.otp-row) .resend-label {
+  color: var(--ds-text-muted) !important;
+}
+
+.page:has(.login-box) .tab-btn.active,
+.page:has(> .box .form-container) .tab-btn.active,
+.page:has(.login-box) .register-link,
+.page:has(> .box .form-container) .register-link,
+.page:has(.otp-row) .back-to-login,
+.page:has(.otp-row) .resend-btn {
+  color: var(--ds-primary) !important;
+}
+
+.page:has(.login-box) .input-wrapper,
+.page:has(> .box .form-container) .input-wrapper,
+.page:has(.otp-row) .otp-input,
+.page:has(.otp-row) .captcha-resend-box {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: none !important;
+}
+
+.page:has(.login-box) .input-wrapper:focus-within,
+.page:has(> .box .form-container) .input-wrapper:focus-within,
+.page:has(.otp-row) .otp-input:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.page:has(.login-box) .input-label,
+.page:has(> .box .form-container) .input-label {
+  color: var(--ds-text-soft) !important;
+}
+
+.page:has(.login-box) .submit-btn,
+.page:has(> .box .form-container) .submit-btn,
+.page:has(.otp-row) .btn-verify,
+.page:has(.otp-row) .captcha-refresh {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24) !important;
+}
+
+.page:has(.login-box) .submit-btn:hover,
+.page:has(> .box .form-container) .submit-btn:hover,
+.page:has(.otp-row) .btn-verify:hover {
+  background: var(--ds-primary-hover) !important;
+}
+
+.page:has(.login-box) .pill,
+.page:has(> .box .form-container) .pill {
+  border: 1px solid rgba(226, 232, 240, 0.18) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.page:has(.login-box) .social-btn-google,
+.page:has(.login-box) .social-btn-facebook,
+.page:has(> .box .form-container) .social-btn-google,
+.page:has(> .box .form-container) .social-btn-facebook {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+}
+
+/* Profile and order center */
+.page:has(.sidebar) {
+  background: var(--ds-bg) !important;
+  color: var(--ds-text) !important;
+}
+
+.page:has(.sidebar) .sidebar,
+.page:has(.sidebar) .card,
+.page:has(.sidebar) .modal,
+.page:has(.sidebar) .req-card,
+.page:has(.sidebar) .tip-card,
+.page:has(.sidebar) .table-card,
+.page:has(.sidebar) .addr-card,
+.page:has(.sidebar) .attendance-card,
+.page:has(.sidebar) .refund-product-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.page:has(.sidebar) .sidebar {
+  position: sticky;
+  top: 96px;
+}
+
+.page:has(.sidebar) .card-title,
+.page:has(.sidebar) .sidebar-name,
+.page:has(.sidebar) .modal-title,
+.page:has(.sidebar) .req-title,
+.page:has(.sidebar) .tip-title,
+.page:has(.sidebar) .section-title {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.page:has(.sidebar) .card-sub,
+.page:has(.sidebar) .sidebar-join,
+.page:has(.sidebar) .info-lbl,
+.page:has(.sidebar) .modal-id,
+.page:has(.sidebar) .tl-date {
+  color: var(--ds-text-muted) !important;
+}
+
+.page:has(.sidebar) .sidebar-badge,
+.page:has(.sidebar) .order-tab.active,
+.page:has(.sidebar) .btn-xem,
+.page:has(.sidebar) .btn-edit,
+.page:has(.sidebar) .btn-save,
+.page:has(.sidebar) .btn-add,
+.page:has(.sidebar) .btn-modal-mua {
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  border-color: var(--ds-primary) !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.page:has(.sidebar) .side-btn.active,
+.page:has(.sidebar) .side-btn:hover,
+.page:has(.sidebar) .cat-tab.active,
+.page:has(.sidebar) .cat-tab:hover {
+  color: var(--ds-primary) !important;
+}
+
+.page:has(.sidebar) input,
+.page:has(.sidebar) select,
+.page:has(.sidebar) textarea,
+.page:has(.sidebar) .form-control,
+.page:has(.sidebar) .cancel-textarea {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+}
+
+.page:has(.sidebar) input:focus,
+.page:has(.sidebar) select:focus,
+.page:has(.sidebar) textarea:focus,
+.page:has(.sidebar) .form-control:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.page:has(.sidebar) .order-tabs,
+.page:has(.sidebar) .category-tabs {
+  border-color: var(--ds-border) !important;
+}
+
+.page:has(.sidebar) .order-tab {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.page:has(.sidebar) .order-data-table th {
+  background: var(--ds-bg-soft) !important;
+  color: var(--ds-text-soft) !important;
+}
+
+.page:has(.sidebar) .order-data-table td {
+  color: var(--ds-text) !important;
+  border-bottom-color: var(--ds-border) !important;
+}
+
+/* Standalone order page */
+.orders-page,
+.page:has(.orders-list) {
+  background: var(--ds-bg) !important;
+}
+
+.page:has(.orders-list) .container,
+.page:has(.orders-list) .order-card,
+.page:has(.orders-list) .empty,
+.page:has(.orders-list) .modal {
+  border-color: var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.page:has(.orders-list) .tab.active,
+.page:has(.orders-list) .btn-detail,
+.page:has(.orders-list) .btn-reorder {
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  border-color: var(--ds-primary) !important;
+}
+
+/* Wishlist */
+.wishlist-page {
+  background: var(--ds-bg) !important;
+  color: var(--ds-text);
+}
+
+.wishlist-page .page-header,
+.wishlist-page .stat-card,
+.wishlist-page .product-card,
+.wishlist-page .empty-state,
+.wishlist-page .skeleton-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.wishlist-page .product-card {
+  transition:
+    border-color var(--ds-duration) var(--ds-ease),
+    box-shadow var(--ds-duration) var(--ds-ease),
+    transform var(--ds-duration) var(--ds-ease) !important;
+}
+
+.wishlist-page .product-card:hover {
+  border-color: var(--ds-border-strong) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  transform: translateY(-3px) !important;
+}
+
+.wishlist-page .page-title,
+.wishlist-page .empty-title,
+.wishlist-page .product-name,
+.wishlist-page .stat-val {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.wishlist-page .header-label,
+.wishlist-page .brand-label,
+.wishlist-page .price-current {
+  color: var(--ds-primary) !important;
+}
+
+.wishlist-page .btn-primary,
+.wishlist-page .btn-add-cart {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+}
+
+.wishlist-page .btn-primary:hover,
+.wishlist-page .btn-add-cart:hover {
+  background: var(--ds-primary-hover) !important;
+}
+
+.wishlist-page .btn-secondary,
+.wishlist-page .btn-remove,
+.wishlist-page .qty-stepper {
+  border-color: var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+/* Change password page */
+.page:has(.two-col) {
+  background: var(--ds-bg) !important;
+}
+
+.page:has(.two-col) .card,
+.page:has(.two-col) .req-card,
+.page:has(.two-col) .tip-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.page:has(.two-col) .page-title,
+.page:has(.two-col) .req-title,
+.page:has(.two-col) .tip-title {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.page:has(.two-col) .page-sub {
+  color: var(--ds-text-muted) !important;
+}
+
+.page:has(.two-col) .input-wrap {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+}
+
+.page:has(.two-col) .input-wrap:focus-within {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.page:has(.two-col) .btn-save {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+}

@@ -1,0 +1,326 @@
+/* ============================================================
+   Admin design system polish
+   Scoped to .admin-layout so storefront pages are untouched.
+   ============================================================ */
+
+.admin-layout {
+  --admin-bg: #f6f8fb;
+  --admin-surface: #ffffff;
+  --admin-surface-soft: #f1f5f9;
+  --admin-border: #e2e8f0;
+  --admin-border-strong: #cbd5e1;
+  --admin-text: #0f172a;
+  --admin-text-soft: #334155;
+  --admin-muted: #64748b;
+  --admin-primary: var(--ds-primary);
+  --admin-primary-hover: var(--ds-primary-hover);
+  --admin-radius: var(--ds-radius-lg);
+  --admin-radius-sm: var(--ds-radius-md);
+  --admin-shadow: var(--ds-shadow-sm);
+  --admin-shadow-raised: var(--ds-shadow-md);
+
+  background: var(--admin-bg) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout .main {
+  background: var(--admin-bg) !important;
+}
+
+.admin-layout .sidebar {
+  background: #0b1220 !important;
+  border-right: 1px solid rgba(226, 232, 240, 0.10) !important;
+  box-shadow: 18px 0 44px rgba(15, 23, 42, 0.12) !important;
+}
+
+.admin-layout .sidebar-logo,
+.admin-layout .sidebar-user {
+  border-color: rgba(226, 232, 240, 0.10) !important;
+}
+
+.admin-layout .item,
+.admin-layout .submenu-item,
+.admin-layout .topbar-home-link,
+.admin-layout .topbar-icon-button,
+.admin-layout .topbar-user-btn,
+.admin-layout .dropdown-item,
+.admin-layout .sidebar-logout-btn {
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+.admin-layout .item.active,
+.admin-layout .item.parent-active,
+.admin-layout .submenu-item.active {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout .item:hover,
+.admin-layout .submenu-item:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24) !important;
+}
+
+.admin-layout .submenu-item:hover .bullet-dot,
+.admin-layout .submenu-item.active .bullet-dot {
+  background-color: #7dd3fc !important;
+  box-shadow: 0 0 8px rgba(125, 211, 252, 0.9) !important;
+}
+
+.admin-layout .submenu-item:hover .submenu-badge,
+.admin-layout .submenu-item.active .submenu-badge {
+  background: rgba(15, 23, 42, 0.22) !important;
+  color: #dbeafe !important;
+}
+
+.admin-layout .admin-topbar,
+.admin-layout .topbar-dropdown,
+.admin-layout .user-dropdown {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: var(--admin-shadow) !important;
+  backdrop-filter: blur(14px);
+}
+
+.admin-layout .admin-topbar-title h2,
+.admin-layout h1,
+.admin-layout h2,
+.admin-layout h3,
+.admin-layout h4,
+.admin-layout .card-title,
+.admin-layout .section-title,
+.admin-layout .modal-title,
+.admin-layout .page-title,
+.admin-layout .title,
+.admin-layout .stat-value,
+.admin-layout .stat-val,
+.admin-layout .big-growth {
+  color: var(--admin-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-layout .admin-topbar-title p,
+.admin-layout p,
+.admin-layout .text-muted,
+.admin-layout .card-subtitle,
+.admin-layout .card-sub,
+.admin-layout .section-subtitle,
+.admin-layout .stat-label,
+.admin-layout .stat-lbl,
+.admin-layout .date-cell,
+.admin-layout .showing,
+.admin-layout .pagination-info {
+  color: var(--admin-muted) !important;
+}
+
+.admin-layout .section-card,
+.admin-layout .data-card,
+.admin-layout .card,
+.admin-layout .stats-card,
+.admin-layout .stat-card,
+.admin-layout .bottom-card,
+.admin-layout .table-wrap,
+.admin-layout .table-container,
+.admin-layout .chart-card,
+.admin-layout .panel,
+.admin-layout .profile-page .left,
+.admin-layout .profile-page .right,
+.admin-layout .xu-pane,
+.admin-layout .modal,
+.admin-layout .confirm-box,
+.admin-layout .withdraw-card,
+.admin-layout .affiliate-video-admin-card,
+.admin-layout .filter-row,
+.admin-layout .filters-bar,
+.admin-layout .toolbar,
+.admin-layout .page-card {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius) !important;
+  background: var(--admin-surface) !important;
+  box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout .section-card:hover,
+.admin-layout .data-card:hover,
+.admin-layout .stat-card:hover,
+.admin-layout .bottom-card:hover,
+.admin-layout .withdraw-card:hover,
+.admin-layout .affiliate-video-admin-card:hover {
+  border-color: var(--admin-border-strong) !important;
+  box-shadow: var(--admin-shadow-raised) !important;
+}
+
+.admin-layout table,
+.admin-layout .audit-table,
+.admin-layout .modern-table,
+.admin-layout .order-data-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout th {
+  background: var(--admin-surface-soft) !important;
+  color: var(--admin-text-soft) !important;
+  font-weight: 800 !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-layout td {
+  color: var(--admin-text) !important;
+  border-bottom-color: var(--admin-border) !important;
+}
+
+.admin-layout tr:hover td {
+  background: rgba(37, 99, 235, 0.035) !important;
+}
+
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea,
+.admin-layout .input-field,
+.admin-layout .search-input,
+.admin-layout .select-field,
+.admin-layout .form-control,
+.admin-layout .link-input,
+.admin-layout .reject-input,
+.admin-layout .generator-input,
+.admin-layout .generator-select,
+.admin-layout .dropdown-trigger {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  box-shadow: none !important;
+}
+
+.admin-layout input:focus,
+.admin-layout select:focus,
+.admin-layout textarea:focus,
+.admin-layout .input-field:focus,
+.admin-layout .form-control:focus,
+.admin-layout .dropdown-trigger:focus {
+  border-color: var(--admin-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+  outline: none !important;
+}
+
+.admin-layout label,
+.admin-layout .form-group label,
+.admin-layout .generator-label,
+.admin-layout .input-group label {
+  color: var(--admin-text-soft) !important;
+  font-weight: 800 !important;
+}
+
+.admin-layout .btn,
+.admin-layout button,
+.admin-layout .act-btn,
+.admin-layout .action,
+.admin-layout .mini,
+.admin-layout .page-btn,
+.admin-layout .btn-page,
+.admin-layout .tab,
+.admin-layout .tab-btn,
+.admin-layout .edit-btn,
+.admin-layout .save-btn,
+.admin-layout .ghost-btn,
+.admin-layout .btn-submit,
+.admin-layout .btn-cancel,
+.admin-layout .btn-filter,
+.admin-layout .btn-export,
+.admin-layout .btn-new-user,
+.admin-layout .btn-primary-sm,
+.admin-layout .btn-ghost-sm {
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+.admin-layout .btn-primary,
+.admin-layout .btn-submit,
+.admin-layout .save-btn,
+.admin-layout .edit-btn,
+.admin-layout .btn-new-user,
+.admin-layout .btn-primary-sm,
+.admin-layout .page-btn.active,
+.admin-layout .btn-page.active,
+.admin-layout .pagination .active,
+.admin-layout .tab.active,
+.admin-layout .tab-btn.active,
+.admin-layout .action.approve,
+.admin-layout .mini.approve,
+.admin-layout .confirm-ok,
+.admin-layout .btn-copy {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--admin-primary) !important;
+}
+
+.admin-layout .btn-primary:hover,
+.admin-layout .btn-submit:hover,
+.admin-layout .save-btn:hover,
+.admin-layout .edit-btn:hover,
+.admin-layout .btn-new-user:hover,
+.admin-layout .btn-primary-sm:hover {
+  background: var(--admin-primary-hover) !important;
+  border-color: var(--admin-primary-hover) !important;
+}
+
+.admin-layout .btn-secondary,
+.admin-layout .ghost-btn,
+.admin-layout .btn-cancel,
+.admin-layout .btn-ghost-sm,
+.admin-layout .page-btn,
+.admin-layout .btn-page {
+  background: var(--admin-surface) !important;
+  color: var(--admin-text-soft) !important;
+  border: 1px solid var(--admin-border) !important;
+}
+
+.admin-layout .status-pill,
+.admin-layout .role-badge,
+.admin-layout .badge-status,
+.admin-layout .action-tag,
+.admin-layout .model-badge,
+.admin-layout .submenu-badge,
+.admin-layout .badge-up,
+.admin-layout .badge-neutral,
+.admin-layout .badge-down {
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+}
+
+.admin-layout .modal-overlay,
+.admin-layout .confirm-overlay {
+  background: rgba(15, 23, 42, 0.46) !important;
+  backdrop-filter: blur(8px);
+}
+
+.admin-layout .pagination,
+.admin-layout .pagination-bar,
+.admin-layout .table-footer {
+  border-color: var(--admin-border) !important;
+}
+
+.admin-layout .empty,
+.admin-layout .empty-state,
+.admin-layout .table-empty,
+.admin-layout .state,
+.admin-layout .state-placeholder,
+.admin-layout .loading-row {
+  color: var(--admin-muted) !important;
+  background: var(--admin-surface-soft) !important;
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+@media (max-width: 980px) {
+  .admin-layout .admin-topbar {
+    align-items: flex-start !important;
+    gap: var(--ds-space-4) !important;
+  }
+
+  .admin-layout .admin-topbar-actions {
+    flex-wrap: wrap !important;
+  }
+}

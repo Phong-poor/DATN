@@ -41,6 +41,99 @@
   --bg-color: #F8FAFC;
 }
 
+  /* ====== PROJECT-SPACER / DESIGN TOKENS (standardized set for whole site) ====== */
+  :root {
+    --container-max-width: 1280px;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+
+    --section-padding-desktop: 80px;
+    --section-padding-tablet: 64px;
+    --section-padding-mobile: 48px;
+
+    --container-padding-desktop: 24px;
+    --container-padding-mobile: 16px;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.10);
+
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+  }
+
+  /* ====== Utilities: container and section (global, non-scoped) ====== */
+  .site-container,
+  .container,
+  .wishlist-container {
+    width: 100%;
+    max-width: var(--container-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--container-padding-desktop);
+    padding-right: var(--container-padding-desktop);
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 768px) {
+    .site-container,
+    .container,
+    .wishlist-container {
+      padding-left: var(--container-padding-mobile);
+      padding-right: var(--container-padding-mobile);
+    }
+  }
+
+  .site-section {
+    padding-block-start: var(--section-padding-desktop);
+    padding-block-end: var(--section-padding-desktop);
+  }
+
+  @media (max-width: 1024px) {
+    .site-section { padding-block-start: var(--section-padding-tablet); padding-block-end: var(--section-padding-tablet); }
+  }
+  @media (max-width: 768px) {
+    .site-section { padding-block-start: var(--section-padding-mobile); padding-block-end: var(--section-padding-mobile); }
+  }
+
+  /* Reusable component baseline styles */
+  .site-card {
+    background: var(--tn-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--tn-border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .site-btn {
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+  }
+
+  .site-input,
+  .site-textarea {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--tn-border);
+    padding: 10px 12px;
+    background: var(--tn-surface);
+  }
+
+
 *,
 *::before,
 *::after {
