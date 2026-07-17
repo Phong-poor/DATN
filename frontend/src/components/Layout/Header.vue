@@ -1959,10 +1959,10 @@ const openLuckyWheelMobile = () => {
 .cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
 .cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
-.user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
+.user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; }
 .user-action:hover { transform: none; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; }
+.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 10px; object-fit: cover; object-position: center; display: block; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;

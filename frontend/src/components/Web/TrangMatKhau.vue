@@ -356,12 +356,14 @@ const save = async () => {
 .page {
     min-height: 100vh;
     background: #0d1b2e;
-    padding: 32px 30px;
+    padding-block-start: var(--section-padding-mobile);
+    padding-block-end: var(--section-padding-mobile);
+    padding-inline: var(--container-padding-desktop);
     font-family: system-ui, sans-serif;
 }
 
-.container {
-    max-width: 900px;
+.site-container {
+    max-width: var(--container-max-width);
     margin: auto;
 }
 
@@ -391,7 +393,7 @@ const save = async () => {
 
 .card {
     background: #111f35;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(255,255,255,0.07);
     padding: 28px 32px;
 }
@@ -405,7 +407,7 @@ const save = async () => {
 
 .otp-notice {
     padding: 12px 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: #eff6ff;
     border: 1px solid #bfdbfe;
     color: #1d4ed8;
@@ -446,7 +448,7 @@ const save = async () => {
     width: 100%;
     padding: 11px 44px 11px 40px;
     border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     color: #e2e8f0;
     outline: none;
