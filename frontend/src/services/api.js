@@ -149,9 +149,29 @@ api.get = (url, config = {}) => {
 const SESSION_CHECK_INTERVAL_MS = 10000
 let sessionCheckTimer = null
 
+const authPages = ['/dang-nhap', '/login', '/login-success', '/dang-nhap-thanh-cong']
+const protectedPages = [
+  '/admin',
+  '/profile',
+  '/trang-ca-nhan',
+  '/checkout',
+  '/thanh-toan',
+  '/orderspage',
+  '/don-hang',
+  '/wishlistpage',
+  '/danh-sach-yeu-thich',
+  '/yeu-thich',
+]
+
 const isAuthPage = () => {
   if (typeof window === 'undefined') return true
-  return ['/dang-nhap', '/login', '/login-success', '/dang-nhap-thanh-cong'].some((path) => window.location.pathname.startsWith(path))
+  return authPages.some((path) => window.location.pathname.startsWith(path))
+}
+
+const isProtectedPage = () => {
+  if (typeof window === 'undefined') return false
+  const currentPath = window.location.pathname
+  return protectedPages.some((path) => currentPath === path || currentPath.startsWith(path + '/'))
 }
 
 export const startSessionGuard = () => {

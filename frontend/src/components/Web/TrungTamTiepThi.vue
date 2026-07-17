@@ -1063,7 +1063,7 @@ onMounted(loadAll)
 .heading-avatar {
   width: clamp(128px, 13vw, 180px);
   height: clamp(128px, 13vw, 180px);
-  border-radius: 50%;
+  border-radius: 26px;
   background: #eff6ff;
   border: 2px solid #bfdbfe;
   box-shadow: 0 18px 38px rgba(37, 99, 235, 0.14);
@@ -1080,6 +1080,8 @@ onMounted(loadAll)
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  border-radius: 22px;
   display: block;
 }
 .heading-content {
@@ -2075,6 +2077,7 @@ onMounted(loadAll)
   .heading-avatar {
     width: 82px;
     height: 82px;
+    border-radius: 18px;
     font-size: 34px;
   }
   .heading-content h1 {
