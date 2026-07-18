@@ -468,203 +468,33 @@ const prevThumbs = () => {
     }
 }
 
-// ===================== AUTO SLIDER =====================
-let autoSlideInterval = null
+// ===================== MANUAL GALLERY =====================
+const syncThumbWindow = (image) => {
+    const index = allImages.value.indexOf(image)
+    if (index === -1) return
 
-const startAutoSlide = () => {
-    stopAutoSlide()
-    autoSlideInterval = setInterval(() => {
-        if (allImages.value.length > 1) {
-            const currentIndex = allImages.value.indexOf(selectedImage.value)
-            const nextIndex = (currentIndex + 1) % allImages.value.length
-            selectedImage.value = allImages.value[nextIndex]
-
-            // Sync thumb slider
-            if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
-                thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
-            }
-        }
-    }, 2000)
-}
-
-const stopAutoSlide = () => {
-    if (autoSlideInterval) {
-        clearInterval(autoSlideInterval)
-        autoSlideInterval = null
+    if (index >= thumbIndex.value + thumbLimit || index < thumbIndex.value) {
+        thumbIndex.value = Math.min(index, Math.max(0, allImages.value.length - thumbLimit))
     }
 }
 
-// ===================== 3D PRODUCT VIEWER LOGIC =====================
-const active3DIndex = ref(0)
-const target3DIndex = ref(0)
-const isHovering3D = ref(false)
-const tiltX = ref(0)
-const tiltY = ref(0)
-const targetTiltX = ref(0)
-const targetTiltY = ref(0)
-const current3DRatio = ref(0)
-const target3DRatio = ref(0)
-
-const tiltStyle = computed(() => {
-    if (tiltX.value === 0 && tiltY.value === 0) {
-        return {
-            transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-            transition: 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)'
-        }
-    }
-    return {
-        transform: `perspective(1200px) rotateX(${tiltY.value}deg) rotateY(${tiltX.value}deg) scale3d(1.03, 1.03, 1.03)`,
-        transition: 'transform 0.18s ease-out'
-    }
-})
-
-const activeShowcaseImage = computed(() => {
-    if (isHovering3D.value && allImages.value.length > 0) {
-        return allImages.value[active3DIndex.value] || selectedImage.value
-    }
-    return selectedImage.value
-})
-
-let rotationAnimationFrame = null
-let tiltAnimationFrame = null
-
-const startTiltSmoothing = () => {
-    if (tiltAnimationFrame) return
-
-    const animate = () => {
-        const smoothness = 0.07
-        tiltX.value += (targetTiltX.value - tiltX.value) * smoothness
-        tiltY.value += (targetTiltY.value - tiltY.value) * smoothness
-
-        if (
-            Math.abs(targetTiltX.value - tiltX.value) < 0.02 &&
-            Math.abs(targetTiltY.value - tiltY.value) < 0.02
-        ) {
-            tiltX.value = targetTiltX.value
-            tiltY.value = targetTiltY.value
-        }
-
-        if (isHovering3D.value || tiltX.value !== 0 || tiltY.value !== 0) {
-            tiltAnimationFrame = requestAnimationFrame(animate)
-        } else {
-            tiltAnimationFrame = null
-        }
-    }
-
-    tiltAnimationFrame = requestAnimationFrame(animate)
+const selectGalleryImage = (image) => {
+    selectedImage.value = image
+    syncThumbWindow(image)
 }
 
-const stopTiltSmoothing = () => {
-    if (tiltAnimationFrame) {
-        cancelAnimationFrame(tiltAnimationFrame)
-        tiltAnimationFrame = null
-    }
+const showPrevImage = () => {
+    if (allImages.value.length <= 1) return
+    const currentIndex = allImages.value.indexOf(selectedImage.value)
+    const nextIndex = (currentIndex - 1 + allImages.value.length) % allImages.value.length
+    selectGalleryImage(allImages.value[nextIndex])
 }
 
-const startRotationLoop = () => {
-    if (rotationAnimationFrame) return
-
-    const animate = () => {
-        const total = allImages.value.length
-        if (total <= 1) {
-            rotationAnimationFrame = null
-            return
-        }
-
-        const ratioDiff = target3DRatio.value - current3DRatio.value
-        if (Math.abs(ratioDiff) > 0.001) {
-            current3DRatio.value += ratioDiff * 0.018
-        } else {
-            current3DRatio.value = target3DRatio.value
-        }
-
-        const frameIndex = Math.round(current3DRatio.value * (total - 1))
-        active3DIndex.value = Math.max(0, Math.min(frameIndex, total - 1))
-
-        if (isHovering3D.value || current3DRatio.value !== target3DRatio.value) {
-            rotationAnimationFrame = requestAnimationFrame(animate)
-        } else {
-            rotationAnimationFrame = null
-        }
-    }
-
-    rotationAnimationFrame = requestAnimationFrame(animate)
-}
-
-const stopRotationLoop = () => {
-    if (rotationAnimationFrame) {
-        cancelAnimationFrame(rotationAnimationFrame)
-        rotationAnimationFrame = null
-    }
-}
-
-const handleMouseMove = (e) => {
-    const el = e.currentTarget
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    
-    stopAutoSlide()
-    isHovering3D.value = true
-    
-    const ratioX = (e.clientX - rect.left) / rect.width
-    const ratioY = (e.clientY - rect.top) / rect.height
-    
-    if (allImages.value.length > 0) {
-        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
-    }
-    
-    startRotationLoop()
-    
-    const maxTiltX = 5
-    const maxTiltY = 4
-    
-    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
-    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
-    startTiltSmoothing()
-}
-
-const handleTouchMove = (e) => {
-    const touch = e.touches[0]
-    const el = e.currentTarget
-    if (!el || !touch) return
-    const rect = el.getBoundingClientRect()
-    
-    stopAutoSlide()
-    isHovering3D.value = true
-    
-    const ratioX = (touch.clientX - rect.left) / rect.width
-    const ratioY = (touch.clientY - rect.top) / rect.height
-    
-    if (allImages.value.length > 0) {
-        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
-    }
-    
-    startRotationLoop()
-    
-    const maxTiltX = 5
-    const maxTiltY = 4
-    
-    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
-    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
-    startTiltSmoothing()
-}
-
-const resetTilt = () => {
-    isHovering3D.value = false
-    stopRotationLoop()
-    targetTiltX.value = 0
-    targetTiltY.value = 0
-    startTiltSmoothing()
-    
-    const idx = allImages.value.indexOf(selectedImage.value)
-    const targetIdx = idx !== -1 ? idx : 0
-    const targetRatio = allImages.value.length > 1 ? targetIdx / (allImages.value.length - 1) : 0
-    target3DIndex.value = targetIdx
-    active3DIndex.value = targetIdx
-    current3DRatio.value = targetRatio
-    target3DRatio.value = targetRatio
-    
-    startAutoSlide()
+const showNextImage = () => {
+    if (allImages.value.length <= 1) return
+    const currentIndex = allImages.value.indexOf(selectedImage.value)
+    const nextIndex = (currentIndex + 1) % allImages.value.length
+    selectGalleryImage(allImages.value[nextIndex])
 }
 
 // ===================== FETCH SẢN PHẨM =====================
@@ -972,15 +802,11 @@ onMounted(() => {
     showStickyBar.value = false
     window.scrollTo(0, 0)
     loadPageData()
-    startAutoSlide()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
     document.addEventListener('click', closeAllDropdowns)
 })
 
 onUnmounted(() => {
-    stopAutoSlide()
-    stopRotationLoop()
-    stopTiltSmoothing()
     window.removeEventListener('scroll', handleScrollSticky)
     document.removeEventListener('click', closeAllDropdowns)
 })
@@ -1566,12 +1392,7 @@ const handleSelectVariantById = (idBienThe) => {
                 <div class="detail-hero-grid">
                     <!-- GALLERY COLUMN (Left) -->
                     <div class="gallery-column">
-                        <div class="main-image-viewport"
-                             :class="{ 'is-3d-active': isHovering3D }"
-                             @mousemove="handleMouseMove"
-                             @mouseleave="resetTilt"
-                             @touchmove="handleTouchMove"
-                             @touchend="resetTilt">
+                        <div class="main-image-viewport">
                             <div class="neon-glow-backdrop"></div>
 
                             <!-- Badges Overlay -->
@@ -1581,29 +1402,29 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
 
 
-                            <img :src="activeShowcaseImage" :alt="product.tenSP" class="main-showcase-image" :style="tiltStyle" />
+                            <img :src="selectedImage" :alt="product.tenSP" class="main-showcase-image" />
 
                             <div v-if="selectedVariant && selectedVariant.soluong === 0" class="premium-out-of-stock-badge">
                                 HẾT HÀNG
                             </div>
 
                             <!-- Navigation Arrows -->
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
+                            <button v-if="allImages.length > 1" @click="showPrevImage" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
+                            <button v-if="allImages.length > 1" @click="showNextImage" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
 
                             <!-- Slide Indicator Dots -->
-                            <div class="slide-dots" v-if="!isHovering3D">
+                            <div class="slide-dots" v-if="allImages.length > 1">
                                 <span v-for="(img, idx) in allImages" :key="idx"
                                       :class="['dot', { active: selectedImage === img }]"
-                                      @click="selectedImage = img"></span>
+                                      @click="selectGalleryImage(img)"></span>
                             </div>
 
                         </div>
@@ -1619,7 +1440,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="premium-thumbs-scroll">
                                 <div v-for="(img, i) in visibleThumbs" :key="i"
                                      :class="['thumb-card', { active: selectedImage === img }]"
-                                     @click="selectedImage = img; startAutoSlide ? startAutoSlide() : null">
+                                     @click="selectGalleryImage(img)">
                                     <img :src="img" alt="Thumbnail" />
                                 </div>
 
@@ -5974,25 +5795,21 @@ const handleSelectVariantById = (idBienThe) => {
 
 }
 
-/* ==================== PREMIUM 3D VIEW PORT STYLE ==================== */
+/* ==================== MANUAL IMAGE VIEW PORT STYLE ==================== */
 .main-image-viewport {
     position: relative;
-    transform-style: preserve-3d;
-    perspective: 1200px;
-    transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
     border: 2px solid transparent;
 }
 
-.main-image-viewport.is-3d-active {
+.main-image-viewport:hover {
     border-color: rgba(37, 99, 235, 0.4);
     box-shadow: 0 15px 35px rgba(37, 99, 235, 0.15), inset 0 0 20px rgba(37, 99, 235, 0.05);
 }
 
-/* 3D Showcase Image transitions */
+/* Product image zooms only on hover. Image changes stay manual via arrows, dots, and thumbnails. */
 .main-showcase-image {
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    transition: transform 1.4s cubic-bezier(0.1, 0.8, 0.2, 1);
+    transition: transform 0.35s ease;
 }
 
 /* 3D Indicator Badge */

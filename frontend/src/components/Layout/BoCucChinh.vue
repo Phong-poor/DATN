@@ -3,7 +3,6 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import Header from './Header.vue'
-import Breadcrumbs from './DuongDanDieuHuong.vue'
 import Footer from './Footer.vue'
 
 
@@ -61,7 +60,6 @@ onUnmounted(() => {
     <div class="web-intro-header">
       <Header />
     </div>
-    <Breadcrumbs v-if="route.path !== '/'" />
     <main class="web-intro-main">
       <router-view v-slot="{ Component }">
         <transition name="page-fade">
@@ -107,6 +105,7 @@ onUnmounted(() => {
 .web-intro-main {
   position: relative;
   min-height: calc(100vh - 116px);
+  padding-top: 40px;
   isolation: isolate;
 }
 
@@ -123,6 +122,10 @@ onUnmounted(() => {
 @media (max-width: 600px) {
   .web-layout {
     padding-top: 64px;
+  }
+
+  .web-intro-main {
+    padding-top: 24px;
   }
 }
 

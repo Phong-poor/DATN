@@ -363,7 +363,7 @@ const updateFeaturedProducts = (productsList) => {
     const catText = String(p.category || p.danh_muc?.ten_danhmuc || '').toLowerCase()
     return nameText.includes('workstation') || catText.includes('workstation') || nameText.includes('precision') || nameText.includes('zbook')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
-  if (workstations.length > 0) {
+  if (megaMenuData.workstation && workstations.length > 0) {
     const p = workstations[0]
     const variants = productVariants(p)
     megaMenuData.workstation.featured = {
@@ -425,7 +425,7 @@ const updateFeaturedProducts = (productsList) => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('gaming') || text.includes('rtx') || text.includes('rog')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
-  if (gamingLaptops.length > 0) {
+  if (megaMenuData.gaming && gamingLaptops.length > 0) {
     const p = gamingLaptops[0]
     const variants = productVariants(p)
     megaMenuData.gaming.featured = {
@@ -484,7 +484,7 @@ const mobileMenuTarget = (key) => {
   if (key === 'phu-kien') return '/phu-kien'
   if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
-  if (key === 'workstation') return '/workstation'
+  if (key === 'workstation') return { path: '/laptop', query: { category: 'workstation' } }
   return { path: '/laptop', query: { category: menuCategoryMap[key] || key } }
 }
 
@@ -492,10 +492,7 @@ const isMenuCurrent = (key) => {
   if (key === 'sale') return route.path === '/khuyen-mai'
   if (key === 'laptop') return ['/laptop', '/labtop', '/gaming', '/macbook'].includes(route.path)
   if (key === 'phu-kien') return route.path === '/phu-kien'
-  if (key === 'workstation') {
-    return route.path === '/workstation' ||
-      (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation')
-  }
+  if (key === 'workstation') return route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation'
 
   if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
