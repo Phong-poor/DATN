@@ -3,15 +3,26 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import Header from './Header.vue'
-import Breadcrumbs from './DuongDanDieuHuong.vue'
 import Footer from './Footer.vue'
 
 
 const route = useRoute()
 
-const showChatbot = computed(() =>
-  ['/', '/san-pham', '/tin-tuc', '/lien-he', '/phong-thi-nghiem-tuong-tac'].includes(route.path)
-)
+const showChatbot = computed(() => {
+  const path = route.path || '/'
+  return path === '/'
+    || path === '/laptop'
+    || path === '/phu-kien'
+    || path === '/khuyen-mai'
+    || path === '/tin-tuc'
+    || path === '/news'
+    || path === '/lien-he'
+    || path === '/contact'
+    || path.startsWith('/san-pham/')
+    || path.startsWith('/products/')
+    || path.startsWith('/tin-tuc/')
+    || path.startsWith('/news/')
+})
 
 const showScrollTop = ref(false)
 let scrollTicking = false
@@ -49,7 +60,6 @@ onUnmounted(() => {
     <div class="web-intro-header">
       <Header />
     </div>
-    <Breadcrumbs v-if="route.path !== '/'" />
     <main class="web-intro-main">
       <router-view v-slot="{ Component }">
         <transition name="page-fade">
@@ -95,6 +105,7 @@ onUnmounted(() => {
 .web-intro-main {
   position: relative;
   min-height: calc(100vh - 116px);
+  padding-top: 40px;
   isolation: isolate;
 }
 
@@ -112,21 +123,25 @@ onUnmounted(() => {
   .web-layout {
     padding-top: 64px;
   }
+
+  .web-intro-main {
+    padding-top: 24px;
+  }
 }
 
 .scroll-top-btn {
   position: fixed;
-  right: 37.5px; /* (30px chatbot padding + (60px chatbot width - 45px button width) / 2) to center align perfectly */
+  right: var(--floating-widget-right, 24px);
   bottom: 30px;
-  width: 45px;
-  height: 45px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.85);
+  background: #1f2f55;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: white;
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2), 0 0 12px rgba(37, 99, 235, 0.1);
+  border: 0;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -136,14 +151,14 @@ onUnmounted(() => {
 }
 
 .scroll-top-btn.has-chatbot {
-  bottom: 96px; /* Positioned perfectly above the 56px chatbot bubble with clean spacing */
+  right: calc(var(--floating-widget-right, 24px) + 6px);
+  bottom: 102px;
 }
 
 .scroll-top-btn:hover {
   transform: translateY(-4px) scale(1.06);
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4), 0 0 18px rgba(37, 99, 235, 0.25);
-  border-color: rgba(255, 255, 255, 0.45);
+  background: #263b6a;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.26), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
 }
 
 .scroll-top-btn:active {
@@ -160,5 +175,17 @@ onUnmounted(() => {
 .fade-scale-leave-to {
   opacity: 0;
   transform: scale(0.6) translateY(10px);
+}
+
+@media (max-width: 600px) {
+  .scroll-top-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scroll-top-btn.has-chatbot {
+    right: calc(var(--floating-widget-right-mobile, 18px) + 7px);
+    bottom: 96px;
+  }
 }
 </style>

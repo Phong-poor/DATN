@@ -3,6 +3,11 @@
    Header, footer, breadcrumbs, combo modal, chat, quick contact.
    ============================================================ */
 
+:root {
+  --floating-widget-right: 24px;
+  --floating-widget-right-mobile: 18px;
+}
+
 .web-layout {
   background:
     linear-gradient(180deg, rgba(37, 99, 235, 0.035) 0%, rgba(248, 250, 252, 0) 260px),
@@ -14,14 +19,14 @@
 }
 
 .web-layout .scroll-top-btn {
-  background: var(--ds-text);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: var(--ds-shadow-lg);
+  background: #1f2f55;
+  border: 0;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
 }
 
 .web-layout .scroll-top-btn:hover {
-  background: var(--ds-primary);
-  box-shadow: 0 18px 42px rgba(37, 99, 235, 0.28);
+  background: #263b6a;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.26), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
 }
 
 .ann-bar {
