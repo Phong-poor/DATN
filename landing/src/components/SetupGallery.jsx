@@ -1,95 +1,104 @@
-import { Monitor, Cpu, Sparkles } from 'lucide-react'
-import setupImg from '../assets/setup_gallery.png'
-
 export default function SetupGallery() {
+  const setups = [
+    {
+      id: 1,
+      title: 'Gaming Console Room',
+      desc: 'RGB lighting & góc gaming đỉnh cao',
+      image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&q=80',
+      tags: ['Gaming', 'RGB']
+    },
+    {
+      id: 2,
+      title: 'Creative Studio Pod',
+      desc: 'Tối ưu cho nhạc sĩ & video editor',
+      image: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&q=80',
+      tags: ['Creative', 'Studio']
+    },
+    {
+      id: 3,
+      title: 'Minimalist Workdesk',
+      desc: 'Phong cách tối giản tinh tế',
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80',
+      tags: ['Minimal', 'Clean']
+    }
+  ]
+
   return (
-    <section id="gallery" className="relative py-28 bg-[#071120]/40 overflow-hidden border-t border-slate-900">
-      {/* Glow Effects in Background */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
+    <section id="gallery" className="relative py-28 bg-gradient-to-b from-[#020817] via-[#0a1628] to-[#020817] overflow-hidden border-t border-slate-900">
+      {/* Background effects */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
       <div className="w-[92%] max-w-7xl mx-auto relative z-10">
         
-        {/* Section Header */}
+        {/* Header */}
         <div className="max-w-3xl mb-16 reveal-hidden reveal-visible">
-          <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-            Premium Workspaces
+          <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest bg-indigo-950/40 border border-indigo-500/20 px-4 py-2 rounded-full inline-block">
+            Cảm hứng thiết kế
           </span>
-          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-6 tracking-tight">
-            The Digital Sanctum of <br/>
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-white bg-clip-text text-transparent">Elite Creators</span>
+          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-6 mb-6 tracking-tight">
+            Kiến Tạo Góc Setup <br/>
+            <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Trong Mơ</span>
           </h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            See how top-tier neural developers, virtual production studios, and mechanical engineers deploy the Aether neural rig to optimize their workflows.
+            Khám phá những ý tưởng bố trí bàn làm việc hiện đại, tối ưu không gian sáng tạo của bạn.
           </p>
         </div>
 
-        {/* Dynamic Interactive Showroom Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          
-          {/* Main Visual Display Block (Left/Center) */}
-          <div className="lg:col-span-8 gallery-item rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group min-h-[380px] sm:min-h-[480px]">
-            {/* Holographic scan line */}
-            <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/5 to-transparent h-1/2 pointer-events-none rounded-3xl z-10 animate-scan-line"></div>
-            
-            <img 
-              src={setupImg} 
-              alt="Elite Creative Setup" 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-            
-            {/* Custom Overlay */}
-            <div className="gallery-overlay absolute inset-0 z-20 flex flex-col justify-end p-6 sm:p-10">
-              <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-6 backdrop-blur-md max-w-lg transition-transform duration-300 group-hover:translate-y-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Featured Workspace #42</span>
+        {/* Gallery Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {setups.map((setup) => (
+            <div 
+              key={setup.id}
+              className="gallery-item group relative rounded-3xl border border-white/5 shadow-2xl overflow-hidden min-h-[320px] cursor-pointer"
+            >
+              {/* Image */}
+              <img 
+                src={setup.image} 
+                alt={setup.title} 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              />
+              
+              {/* Overlay */}
+              <div className="gallery-overlay absolute inset-0 z-20 flex flex-col justify-end p-6">
+                <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className="flex gap-2 mb-3">
+                    {setup.tags.map((tag, i) => (
+                      <span key={i} className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider bg-indigo-950/60 border border-indigo-500/20 px-2 py-1 rounded backdrop-blur-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <h3 className="font-['Space_Grotesk'] text-xl font-bold text-white mb-2">
+                    {setup.title}
+                  </h3>
+                  <p className="text-slate-300 text-sm font-light leading-relaxed">
+                    {setup.desc}
+                  </p>
                 </div>
-                <h3 className="font-['Space_Grotesk'] text-xl sm:text-2xl font-bold text-white mb-2">
-                  VFX & Neural Simulation Deck
-                </h3>
-                <p className="text-slate-300 text-xs sm:text-sm font-light leading-relaxed">
-                  Deployed at Synthetix Labs, this custom Aether workstation integrates 4x Neural Cores and cryo-liquid thermal cycles to run real-time fluid solvers without frame dropping.
-                </p>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Configuration Stats Panel (Right) */}
-          <div className="lg:col-span-4 flex flex-col justify-between gap-6">
-            
-            {/* Card 1 */}
-            <div className="bg-[#0a1628]/60 border border-white/5 p-6 rounded-3xl backdrop-blur-md flex-1 flex flex-col justify-between hover:border-cyan-500/20 transition-all duration-300">
-              <div>
-                <div className="w-10 h-10 bg-cyan-950/50 border border-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 mb-4">
-                  <Monitor className="w-5 h-5" />
-                </div>
-                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Dual Ultra-Link Interface</h4>
-                <p className="text-slate-400 text-xs sm:text-sm font-light leading-relaxed">
-                  Support up to three 8K optical-link display terminals running at a synchronized 144Hz latency-free pipeline rate.
-                </p>
-              </div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Optical Interconnect Ready</div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="bg-[#0a1628]/60 border border-white/5 p-6 rounded-3xl backdrop-blur-md flex-1 flex flex-col justify-between hover:border-cyan-500/20 transition-all duration-300">
-              <div>
-                <div className="w-10 h-10 bg-blue-950/50 border border-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-4">
-                  <Cpu className="w-5 h-5" />
-                </div>
-                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Cryogenic Thermal Grid</h4>
-                <p className="text-slate-400 text-xs sm:text-sm font-light leading-relaxed">
-                  Fully integrated custom loop structures run through modular deck ports, cooling high-speed chips in silent equilibrium.
-                </p>
-              </div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Fluorochemical Cycle Integration</div>
-            </div>
-
-          </div>
-
+        {/* Bottom CTA */}
+        <div className="text-center mt-12">
+          <p className="text-slate-400 text-sm mb-4">
+            Khám phá thêm nhiều ý tưởng setup tuyệt vời
+          </p>
+          <a 
+            href="#products"
+            className="inline-flex items-center gap-2 text-indigo-400 hover:text-white font-semibold transition-colors group"
+          >
+            Xem bộ sưu tập đầy đủ
+            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
         </div>
 
       </div>
     </section>
   )
 }
+

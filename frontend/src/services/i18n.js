@@ -765,6 +765,18 @@ export const applyTranslations = (root = document.body) => {
   const locale = getLocale()
   document.documentElement.lang = locale
 
+  // If the root is a text node, translate it directly and return
+  if (root.nodeType === Node.TEXT_NODE) {
+    if (!shouldSkip(root) && compact(root.nodeValue)) {
+      const original = originalTextNodes.get(root) || root.nodeValue
+      if (!originalTextNodes.has(root)) originalTextNodes.set(root, original)
+      const translated = translate(original, locale)
+      setTextPreserveSpace(root, original, translated)
+    }
+    return
+  }
+
+  // Walk text nodes of the root
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (shouldSkip(node)) return NodeFilter.FILTER_REJECT
@@ -783,7 +795,8 @@ export const applyTranslations = (root = document.body) => {
     setTextPreserveSpace(node, original, translated)
   })
 
-  root.querySelectorAll?.('[placeholder], [title], [aria-label], [alt], input[value], button[value]').forEach((el) => {
+  // Check attributes of root elements
+  const checkAttributes = (el) => {
     if (shouldSkip(el)) return
     const stored = originalAttrs.get(el) || {}
     const attrs = { ...stored }
@@ -795,19 +808,62 @@ export const applyTranslations = (root = document.body) => {
       if (el.getAttribute(attr) !== nextValue) el.setAttribute(attr, nextValue)
     })
     originalAttrs.set(el, attrs)
-  })
+  }
+
+  if (root.nodeType === Node.ELEMENT_NODE) {
+    checkAttributes(root)
+  }
+
+  if (root.querySelectorAll) {
+    root.querySelectorAll('[placeholder], [title], [aria-label], [alt], input[value], button[value]').forEach(checkAttributes)
+  }
 }
 
 export const installI18n = (router) => {
   document.documentElement.lang = getLocale()
 
   let pending = false
-  const schedule = () => {
+  const queuedNodes = new Set()
+  let translateAll = false
+
+  const schedule = (mutationsList) => {
+    if (mutationsList && Array.isArray(mutationsList)) {
+      mutationsList.forEach(mutation => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+              queuedNodes.add(node)
+            }
+          })
+        } else if (mutation.type === 'attributes') {
+          queuedNodes.add(mutation.target)
+        }
+      })
+    } else {
+      translateAll = true
+    }
+
     if (pending) return
     pending = true
+
     requestAnimationFrame(() => {
       pending = false
-      applyTranslations()
+      const toTranslate = translateAll
+      const nodes = Array.from(queuedNodes)
+      
+      // Reset state
+      translateAll = false
+      queuedNodes.clear()
+
+      if (toTranslate || nodes.length > 30) {
+        // Fallback to full body translation
+        applyTranslations(document.body)
+      } else {
+        // Translate only the specific added/changed nodes
+        nodes.forEach(node => {
+          applyTranslations(node)
+        })
+      }
     })
   }
 
@@ -820,8 +876,15 @@ export const installI18n = (router) => {
 
   const appRoot = document.body || document.getElementById('app')
   if (appRoot) {
-    const observer = new MutationObserver(schedule)
-    observer.observe(appRoot, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label', 'alt', 'value'] })
+    const observer = new MutationObserver((mutationsList) => {
+      schedule(mutationsList)
+    })
+    observer.observe(appRoot, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true, 
+      attributeFilter: ['placeholder', 'title', 'aria-label', 'alt', 'value'] 
+    })
   }
 
   schedule()

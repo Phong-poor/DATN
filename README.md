@@ -15,7 +15,8 @@ Dự án fullstack sử dụng **Laravel** (Backend API) + **Vue 3** (Frontend).
 ```
 php3/
 ├── backend/     # Laravel API
-└── frontend/    # Vue 3 + Vite
+├── frontend/    # Vue 3 + Vite
+└── mobile/      # React Native (Expo) Mobile App
 ```
 
 ## 🚀 Cài đặt
@@ -37,10 +38,18 @@ npm install
 npm run dev
 ```
 
+### Mobile (React Native - Expo)
+```bash
+cd mobile
+npm install
+npm run web
+```
+
 ## 🌐 URL
 
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000/api
+- Mobile Web: http://localhost:8081
 
 ## 📡 API Endpoints
 

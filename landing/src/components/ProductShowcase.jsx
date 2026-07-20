@@ -1,200 +1,145 @@
-import { useState } from 'react'
-import { Cpu, Wind, HardDrive, ChevronRight } from 'lucide-react'
-import quantumCoreImg from '../assets/quantum_core.png'
-import pcChassisImg from '../assets/pc_chassis.png'
-import neuralRamImg from '../assets/neural_ram.png'
-
 export default function ProductShowcase() {
-  const [activeTab, setActiveTab] = useState('cpu')
-
-  const products = {
-    cpu: {
-      name: 'Aether Synapse Core',
-      tag: 'SUPERCONDUCTING NEURAL CPU',
-      desc: 'The architectural peak of quantum silicon. Built on a proprietary 1.2nm topological insulator lithography, this neural processing unit reaches speeds standard processors cannot duplicate.',
-      image: quantumCoreImg,
+  const categories = [
+    {
+      id: 1,
+      name: 'Gaming Laptop',
+      title: 'Gaming Powerhouse',
+      desc: 'RTX 4060+ & màn hình 165Hz',
+      image: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=600&q=80',
       specs: [
-        { label: 'AI Compute Power', value: '420 TFLOPS FP16' },
-        { label: 'Lithography', value: '1.2nm Quantum Topological' },
-        { label: 'L3 Cache Architecture', value: '512 MB Superconducting' },
-        { label: 'TDP Dynamic Range', value: '35W - 145W Ultra-efficient' },
-      ],
-      metrics: [
-        { name: 'Neural Processing Speed', percentage: 95 },
-        { name: 'Thermal Efficiency', percentage: 92 },
+        'RTX 4060/4070/4090',
+        'CPU Intel i7/i9 Gen 13+',
+        'RAM 16-32GB DDR5',
+        'Màn hình 144-240Hz'
       ]
     },
-    chassis: {
-      name: 'Cryo-Bus Chassis',
-      tag: 'LIQUID-COOLED ENCLOSURE',
-      desc: 'An aerodynamic marvel engineered for complete thermal neutralization. Uses a proprietary non-conductive dielectric fluid cycle running at near-zero friction flow rates.',
-      image: pcChassisImg,
+    {
+      id: 2,
+      name: 'Creative Workstation',
+      title: 'Workstation Sáng Tạo',
+      desc: 'Màn hình 4K OLED & GPU chuyên nghiệp',
+      image: 'https://images.unsplash.com/photo-1593642532400-2682810df593?w=600&q=80',
       specs: [
-        { label: 'Flow Rate Cycle', value: '4.2 Liters / Min' },
-        { label: 'Thermal Capacity', value: 'Up to 950W Neutralization' },
-        { label: 'Noise Signature', value: 'Under 12 dBA at full load' },
-        { label: 'Material Composition', value: 'Aviation-grade Titanium & Carbon' },
-      ],
-      metrics: [
-        { name: 'Acoustic Suppression', percentage: 98 },
-        { name: 'Thermal Dissipation', percentage: 88 },
+        'NVIDIA RTX A-series',
+        'Intel Xeon / AMD Ryzen',
+        'RAM 32-64GB ECC',
+        'Màn 4K 100% DCI-P3'
       ]
     },
-    ram: {
-      name: 'Neural Flux Memory',
-      tag: 'OPTICAL TENSOR STORAGE',
-      desc: 'Infinite bandwidth realized. Utilizing carbon fiber heat spreaders and holographic optical laser interconnects to bypass traditional silicon latency caps completely.',
-      image: neuralRamImg,
+    {
+      id: 3,
+      name: 'Business Ultrabook',
+      title: 'Ultrabook Cao Cấp',
+      desc: 'Siêu mỏng nhẹ & pin cả ngày',
+      image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=600&q=80',
       specs: [
-        { label: 'Bus Bandwidth', value: '1,280 GB/s Optical Transfer' },
-        { label: 'CAS Latency', value: 'CL 12 Nanosecond response' },
-        { label: 'Memory Density', value: 'Up to 256GB Dual Channel stick' },
-        { label: 'Error-Correction', value: 'Super-ECC Quantum Parity' },
-      ],
-      metrics: [
-        { name: 'Optical Bus Bandwidth', percentage: 97 },
-        { name: 'Data Pipeline Integrity', percentage: 99 },
+        'Trọng lượng < 1.3kg',
+        'Pin 12-16 giờ',
+        'Bảo mật vân tay/Face ID',
+        'Thunderbolt 4'
+      ]
+    },
+    {
+      id: 4,
+      name: 'MacBook Series',
+      title: 'MacBook Pro/Air',
+      desc: 'Apple Silicon M3/M4 chips',
+      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&q=80',
+      specs: [
+        'Chip M3/M4 Pro/Max',
+        'Màn Liquid Retina XDR',
+        'RAM 16-96GB unified',
+        'Pin 18-22 giờ'
       ]
     }
-  }
-
-  const activeProduct = products[activeTab]
+  ]
 
   return (
-    <section id="showcase" className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
-      {/* Background visual accents */}
-      <div className="absolute top-1/2 right-10 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+    <section id="categories" className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
+      {/* Background accents */}
+      <div className="absolute top-1/2 right-10 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-10 left-10 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none z-0"></div>
 
       <div className="w-[92%] max-w-7xl mx-auto relative z-10">
         
-        {/* Header Block */}
+        {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-hidden reveal-visible">
-          <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-            Premium Hardware Components
+          <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest bg-indigo-950/40 border border-indigo-500/20 px-4 py-2 rounded-full inline-block">
+            Phân khúc laptop chuyên biệt
           </span>
-          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-6 tracking-tight">
-            Designed for <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">Extreme Performance</span>
+          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-6 mb-6 tracking-tight">
+            Tuyển chọn máy tính <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">tối ưu hóa cấu hình</span>
           </h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Every component is fine-tuned to deliver seamless acceleration. Alternate the tabs below to explore the internal cybernetics.
+            Mỗi dòng laptop được thiết kế riêng biệt cho từng nhu cầu sử dụng. Từ gaming mạnh mẽ đến workstation chuyên nghiệp.
           </p>
         </div>
 
-        {/* Custom Premium Tabs Control */}
-        <div className="flex flex-wrap justify-center gap-4 mb-16 max-w-2xl mx-auto px-4">
-          <button 
-            onClick={() => setActiveTab('cpu')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold text-sm transition-all duration-300 border ${
-              activeTab === 'cpu' 
-                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/25 border-cyan-400 text-white glow-cyan' 
-                : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Cpu className={`w-4 h-4 ${activeTab === 'cpu' ? 'text-cyan-400' : ''}`} />
-            Synapse Core
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('chassis')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold text-sm transition-all duration-300 border ${
-              activeTab === 'chassis' 
-                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/25 border-cyan-400 text-white glow-cyan' 
-                : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Wind className={`w-4 h-4 ${activeTab === 'chassis' ? 'text-cyan-400' : ''}`} />
-            Cryo-Bus Chassis
-          </button>
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {categories.map((category) => (
+            <div 
+              key={category.id}
+              className="group relative bg-[#0a1628]/40 border border-white/5 rounded-3xl overflow-hidden hover:border-indigo-500/30 transition-all duration-500 cursor-pointer"
+            >
+              {/* Image Section */}
+              <div className="relative h-64 overflow-hidden">
+                <img 
+                  src={category.image} 
+                  alt={category.title}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-[#0a1628]/60 to-transparent"></div>
+                
+                {/* Overlay badge */}
+                <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full">
+                  <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">{category.name}</span>
+                </div>
+              </div>
 
-          <button 
-            onClick={() => setActiveTab('ram')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold text-sm transition-all duration-300 border ${
-              activeTab === 'ram' 
-                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/25 border-cyan-400 text-white glow-cyan' 
-                : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <HardDrive className={`w-4 h-4 ${activeTab === 'ram' ? 'text-cyan-400' : ''}`} />
-            Flux Memory
-          </button>
+              {/* Content Section */}
+              <div className="p-6 sm:p-8">
+                <h3 className="font-['Space_Grotesk'] text-2xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors">
+                  {category.title}
+                </h3>
+                <p className="text-slate-400 text-base mb-6">
+                  {category.desc}
+                </p>
+
+                {/* Specs Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {category.specs.map((spec, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
+                      <span className="text-slate-300 font-medium">{spec}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <button className="mt-6 w-full py-3 bg-slate-900/60 hover:bg-indigo-600/20 border border-slate-700/60 hover:border-indigo-500/50 rounded-xl font-semibold text-slate-300 hover:text-white transition-all duration-300 text-sm">
+                  Xem chi tiết →
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Interactive Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center bg-[#0a1628]/40 border border-white/5 rounded-3xl p-6 md:p-12 backdrop-blur-md">
-          
-          {/* Visual Column */}
-          <div className="lg:col-span-5 flex justify-center relative bg-slate-950/60 border border-white/5 rounded-2xl p-8 h-[340px] md:h-[420px] items-center overflow-hidden">
-            {/* Ambient glows behind asset */}
-            <div className="absolute w-44 h-44 bg-cyan-400/10 rounded-full blur-2xl animate-pulse"></div>
-            
-            <img 
-              key={activeTab}
-              src={activeProduct.image} 
-              alt={activeProduct.name} 
-              className="w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-[0_0_25px_rgba(34,211,238,0.2)] animate-float duration-1000"
-            />
-
-            {/* Futuristic floating stat */}
-            <div className="absolute bottom-4 left-4 glass-dark px-3 py-1.5 border border-white/5 rounded-lg flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-              <span className="text-[10px] font-mono tracking-wider text-slate-300 uppercase">{activeProduct.tag}</span>
-            </div>
-          </div>
-
-          {/* Details Column */}
-          <div className="lg:col-span-7 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-mono font-semibold tracking-wider text-cyan-400 uppercase">{activeProduct.tag}</span>
-              <h3 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-white mt-2 mb-4">
-                {activeProduct.name}
-              </h3>
-              <p className="text-slate-300 font-light text-base leading-relaxed mb-6">
-                {activeProduct.desc}
-              </p>
-            </div>
-
-            {/* Technical Specifications */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {activeProduct.specs.map((spec, i) => (
-                <div key={i} className="bg-slate-900/60 border border-white/5 p-4 rounded-xl hover:border-cyan-500/20 transition-colors duration-200">
-                  <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">{spec.label}</div>
-                  <div className="text-sm font-semibold text-white mt-1">{spec.value}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Graphical Performance Bars */}
-            <div className="space-y-4 mb-6">
-              {activeProduct.metrics.map((metric, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">{metric.name}</span>
-                    <span className="text-cyan-400 font-mono">{metric.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/5">
-                    <div 
-                      className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${metric.percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Call to config redirect */}
-            <a 
-              href="#configurator" 
-              className="flex items-center gap-2 text-cyan-400 font-semibold text-sm hover:text-white transition-colors group mt-4 w-fit"
-            >
-              Add to custom build config
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
-          </div>
-
+        {/* Bottom CTA */}
+        <div className="text-center mt-16">
+          <a 
+            href="#products"
+            className="inline-flex items-center gap-2 text-indigo-400 hover:text-white font-semibold transition-colors group"
+          >
+            Xem tất cả danh mục
+            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
         </div>
 
       </div>
     </section>
   )
 }
+

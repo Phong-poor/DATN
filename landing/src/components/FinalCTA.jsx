@@ -1,63 +1,55 @@
-import { ChevronRight, ShieldCheck, Sparkles, Truck } from 'lucide-react'
-import { useMagneticButton } from '../hooks/useAnimations'
+import { Mail, Send } from 'lucide-react'
 
 export default function FinalCTA() {
-  const ctaRef = useMagneticButton()
-
   return (
-    <section className="relative py-28 bg-gradient-to-b from-[#020817] via-[#071120] to-[#020817] overflow-hidden border-t border-slate-900">
-      {/* Background glow vector lights */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none z-0"></div>
+    <section className="relative py-28 bg-gradient-to-b from-[#020817] via-[#0a1628] to-[#020817] overflow-hidden border-t border-slate-900">
+      {/* Background effects */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-5xl mx-auto relative z-10">
+      <div className="w-[92%] max-w-4xl mx-auto relative z-10">
         
-        {/* Main High-Contrast Panel Card */}
-        <div className="bg-slate-950/80 border border-cyan-500/25 rounded-3xl p-8 sm:p-16 text-center backdrop-blur-md glow-cyan relative overflow-hidden">
-          {/* Neon corner decorative lights */}
-          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
-          <div className="absolute inset-0 bg-radial-[circle_at_center,_transparent_40%,_#020817_90%] z-0 pointer-events-none"></div>
-
+        {/* Newsletter Card */}
+        <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-indigo-950/40 border border-indigo-500/20 rounded-3xl p-8 sm:p-16 text-center backdrop-blur-md relative overflow-hidden">
+          {/* Top accent line */}
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent"></div>
+          
           <div className="relative z-10">
-            {/* Cyber Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border border-cyan-400/20 rounded-full w-fit mb-6 animate-pulse">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-xs font-mono font-semibold text-cyan-400 uppercase tracking-widest">
-                Immediate Allocation Slots Open
-              </span>
+            {/* Icon */}
+            <div className="w-16 h-16 bg-indigo-950/50 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400 mx-auto mb-6">
+              <Mail className="w-8 h-8" />
             </div>
 
             {/* Headline */}
-            <h2 className="font-['Space_Grotesk'] text-4xl sm:text-6xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
-              Build Your <br/>
-              <span className="gradient-text bg-gradient-to-r from-cyan-400 via-blue-400 to-white">Cognitive Masterpiece</span>
+            <h2 className="font-['Space_Grotesk'] text-3xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight leading-tight">
+              Đăng Ký Nhận Tin <br/>
+              <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Khuyến Mãi Mới Nhất</span>
             </h2>
 
             {/* Description */}
             <p className="text-slate-300 text-base sm:text-lg font-light leading-relaxed max-w-xl mx-auto mb-10">
-              Each unit is assembled by expert hardware technicians under cryogenic insulation clean rooms. Secure your place in the future of AI computation.
+              Nhận thông tin về sản phẩm mới, ưu đãi đặc biệt và các mẹo công nghệ hữu ích được gửi trực tiếp đến hộp thư của bạn.
             </p>
 
-            {/* Magnetic Giant Primary Button */}
-            <a 
-              ref={ctaRef}
-              href="#configurator" 
-              className="magnetic-btn inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl font-bold text-white shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] transition-all duration-300 border border-cyan-400/20 group text-lg"
-            >
-              Enter Configurator Now
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </a>
+            {/* Email Form */}
+            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-8">
+              <input 
+                type="email"
+                placeholder="Nhập email của bạn..."
+                className="flex-1 px-6 py-4 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              />
+              <button 
+                type="submit"
+                className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl font-bold text-white shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] transition-all duration-300 border border-indigo-400/20 flex items-center justify-center gap-2 group"
+              >
+                Đăng ký
+                <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </form>
 
-            {/* Footer Trust Markers */}
-            <div className="flex flex-wrap items-center justify-center gap-8 mt-12 pt-10 border-t border-slate-900 text-xs text-slate-500 font-mono uppercase tracking-wider">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-cyan-400" />
-                Worldwide Priority Freight Shipping
-              </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                3-Year Cryo-Insulation Warranty
-              </div>
-            </div>
+            {/* Privacy note */}
+            <p className="text-xs text-slate-500">
+              Chúng tôi tôn trọng quyền riêng tư của bạn. Không spam, có thể hủy đăng ký bất cứ lúc nào.
+            </p>
 
           </div>
 
@@ -67,3 +59,4 @@ export default function FinalCTA() {
     </section>
   )
 }
+

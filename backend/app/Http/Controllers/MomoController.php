@@ -301,6 +301,47 @@ class MomoController extends Controller
                 return;
             }
 
+            $freshOrderLoad = DatHang::with('chi_tiets')->find($freshOrder->id_dathang);
+            if ($freshOrderLoad) {
+                // Restore cart items
+                foreach ($freshOrderLoad->chi_tiets as $detail) {
+                    $cartItem = GioHang::where('id_khachhang', $freshOrderLoad->id_khachhang)
+                        ->where('id_bienthe', $detail->id_bienthe)
+                        ->first();
+                    if ($cartItem) {
+                        $cartItem->increment('soluong', $detail->soluong);
+                    } else {
+                        GioHang::create([
+                            'id_khachhang' => $freshOrderLoad->id_khachhang,
+                            'id_bienthe' => $detail->id_bienthe,
+                            'soluong' => $detail->soluong,
+                        ]);
+                    }
+                }
+
+                // Restore stock
+                foreach ($freshOrderLoad->chi_tiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                    }
+                }
+            }
+
+            // Restore coins
+            if ($freshOrder->xu_dung > 0) {
+                $user = $freshOrder->user;
+                if ($user) {
+                    $user->increment('xu', $freshOrder->xu_dung);
+                    \App\Models\XuHistory::create([
+                        'id_khachhang' => $freshOrder->id_khachhang,
+                        'so_xu' => $freshOrder->xu_dung,
+                        'loai_giao_dich' => 'hoan_tra',
+                        'id_dathang' => $freshOrder->id_dathang,
+                        'mo_ta' => 'Hoàn xu do thanh toán MoMo thất bại đơn hàng #' . $freshOrder->id_dathang,
+                    ]);
+                }
+            }
+
             $updateData = [
                 'trangthai' => 'cancelled',
                 'lydo' => 'Thanh toán MoMo thất bại: ' . ($payload['message'] ?? 'Không rõ lý do'),
