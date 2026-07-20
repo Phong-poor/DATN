@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 /* ============================================================
    TECHNOVА COLOR SYSTEM — Global Design Tokens
    ============================================================ */
 :root {
-  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-heading: 'Outfit', 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-sans);
   --font-body: var(--font-sans);
-  --font-display: var(--font-heading);
-  --font-alt: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  --font-display: var(--font-sans);
+  --font-alt: var(--font-sans);
+  --font-mono: var(--font-sans);
 
   /* --- TechNova Core Palette (Premium Soft Light) --- */
   --tn-bg:           #F8FAFC;        /* Soft Slate */
@@ -138,6 +138,139 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+:where(body) :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .btn,
+  .nav-link,
+  .menu-link,
+  .dropdown-item,
+  .sidebar-link,
+  .sidebar-title,
+  .ambient-label,
+  .section-label,
+  .section-title,
+  .main-title,
+  .page-title,
+  .card-title,
+  .modal-title,
+  .box-title,
+  .header-title,
+  .empty-title,
+  .summary-title,
+  .benefits-title,
+  .filter-title,
+  .detail-label,
+  .stat-label,
+  .stat-card-tag,
+  .badge,
+  .badge-tag,
+  .status-badge,
+  .pill,
+  .tab-pill,
+  .role-name-badge,
+  .voucher-section-title,
+  .interactive-anchor,
+  th,
+  label > span
+) {
+  text-transform: lowercase !important;
+}
+
+:where(body) :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .btn,
+  .nav-link,
+  .menu-link,
+  .dropdown-item,
+  .sidebar-link,
+  .sidebar-title,
+  .ambient-label,
+  .section-label,
+  .section-title,
+  .main-title,
+  .page-title,
+  .card-title,
+  .modal-title,
+  .box-title,
+  .header-title,
+  .empty-title,
+  .summary-title,
+  .benefits-title,
+  .filter-title,
+  .detail-label,
+  .stat-label,
+  .stat-card-tag,
+  .badge,
+  .badge-tag,
+  .status-badge,
+  .pill,
+  .tab-pill,
+  .role-name-badge,
+  .voucher-section-title,
+  .interactive-anchor,
+  th,
+  label > span
+)::first-letter {
+  text-transform: uppercase !important;
+}
+
+:where(body) :where(
+  input,
+  textarea,
+  select,
+  option,
+  code,
+  pre,
+  .logo,
+  .sidebar-logo,
+  .product-item-title,
+  .flash-product-name,
+  .product-name,
+  .product-title,
+  .premium-product-title,
+  .product-card-title,
+  .item-name,
+  .item-brand,
+  .brand-sub,
+  .brand-label,
+  .brand-pill,
+  .hero-product-title,
+  .hero-product-brand,
+  .spec-p-badge,
+  .spec-lbl,
+  .spec-val,
+  .spec-tag,
+  .sku,
+  .code,
+  .promo-code,
+  .voucher-code,
+  .coupon-select,
+  .order-code,
+  .price-current,
+  .current-price,
+  .price,
+  .strike-price,
+  .old-price,
+  .admin-name,
+  .user-name,
+  .sidebar-name,
+  .reviewer-name
+) {
+  text-transform: none !important;
 }
 
 html,
@@ -624,7 +757,7 @@ body {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.05em;
 }
 
@@ -656,7 +789,7 @@ body {
 .premium-section-header .section-label {
   font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.1em;
   color: #2563EB;
   margin-bottom: 8px;
@@ -741,10 +874,32 @@ body {
   font-size: 12px;
   font-weight: 800;
   color: var(--tn-primary);
-  text-transform: uppercase;
+  text-transform: lowercase;
   letter-spacing: 2px;
   margin-bottom: 8px;
   display: inline-block;
+}
+
+.premium-section-header .section-label,
+.section-header :is(h1, h2, h3),
+.premium-section-header :is(h1, h2, h3),
+.ambient-label,
+.tab-pill,
+.interactive-anchor,
+.btn-premium-glow,
+.btn-premium-glass {
+  text-transform: lowercase !important;
+}
+
+.premium-section-header .section-label::first-letter,
+.section-header :is(h1, h2, h3)::first-letter,
+.premium-section-header :is(h1, h2, h3)::first-letter,
+.ambient-label::first-letter,
+.tab-pill::first-letter,
+.interactive-anchor::first-letter,
+.btn-premium-glow::first-letter,
+.btn-premium-glass::first-letter {
+  text-transform: uppercase !important;
 }
 
 /* Generic Premium Cards */
@@ -761,4 +916,19 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
   border-color: var(--tn-border-hover);
+}
+
+/* One-site typography lock */
+html body,
+html body #app,
+html body #app *,
+html body #app *::before,
+html body #app *::after,
+.swal2-container,
+.swal2-container *,
+[class*="modal"],
+[class*="modal"] *,
+[class*="toast"],
+[class*="toast"] * {
+  font-family: var(--font-sans) !important;
 }

@@ -1594,7 +1594,7 @@ onUnmounted(() => {
     font-size: 11px;
     font-weight: 600;
     color: var(--tn-text-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.8px;
     margin: 0;
 }
@@ -1806,7 +1806,7 @@ onUnmounted(() => {
     font-weight: 800;
     color: #ffffff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
 }
 .flash-sale-tag {
@@ -2131,7 +2131,7 @@ onUnmounted(() => {
     color: #3b82f6 !important;
     font-size: 10px;
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: .08em;
     display: block;
     -webkit-text-fill-color: currentColor;
@@ -2272,7 +2272,7 @@ onUnmounted(() => {
     font-size: 8px;
     color: #f97316;
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     line-height: 1.2;
 }
@@ -2315,7 +2315,7 @@ onUnmounted(() => {
 .hero-product-bottom-row .float-bottom .badge-text span {
     font-size: 8px;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     line-height: 1.2;
     display: block;
@@ -2407,7 +2407,7 @@ onUnmounted(() => {
     color: #cbd5e1;
     font-weight: 700;
     margin: 0;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
 }
 
@@ -2461,6 +2461,24 @@ onUnmounted(() => {
     line-height: 1.7;
     color: var(--col-muted);
     margin: 0;
+}
+
+.section-header :is(h1, h2, h3),
+.ambient-label,
+.tab-pill,
+.interactive-anchor,
+.btn-premium-glow,
+.btn-premium-glass {
+    text-transform: lowercase !important;
+}
+
+.section-header :is(h1, h2, h3)::first-letter,
+.ambient-label::first-letter,
+.tab-pill::first-letter,
+.interactive-anchor::first-letter,
+.btn-premium-glow::first-letter,
+.btn-premium-glass::first-letter {
+    text-transform: uppercase !important;
 }
 
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
@@ -2673,7 +2691,7 @@ onUnmounted(() => {
     background: rgba(37,99,235,0.92);
     font-size: 10px;
     font-weight: 900;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: .08em;
     margin-bottom: 12px;
 }
@@ -3002,7 +3020,7 @@ onUnmounted(() => {
     font-size: 11px;
     font-weight: 800;
     color: var(--col-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.1em;
     margin-bottom: 6px;
 }
@@ -3188,7 +3206,7 @@ onUnmounted(() => {
     color: #60a5fa;
     font-weight: 700;
     font-size: 13px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     transition: all 0.3s;
 }
@@ -4219,7 +4237,7 @@ onUnmounted(() => {
     font-size: 9px;
     font-weight: 600;
     color: var(--tn-text-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 

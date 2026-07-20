@@ -51,6 +51,7 @@ class UserController extends Controller
             // 5. Cập nhật DB
             $user->anhdaidien = $filePath;
             $user->save();
+            $user->refresh();
 
             return response()->json([
                 'message' => 'Cập nhật ảnh đại diện thành công',

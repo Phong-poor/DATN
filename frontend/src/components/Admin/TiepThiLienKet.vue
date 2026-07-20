@@ -1012,7 +1012,7 @@ onMounted(loadData)
   font-size: 13px;
   font-weight: 800;
   margin-bottom: 10px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .affiliate-hero h1 {
@@ -1149,7 +1149,7 @@ onMounted(loadData)
 
 .metric-card span {
   font-size: 12px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .metric-card strong {
@@ -1636,7 +1636,7 @@ th {
   text-align: left;
   padding: 15px 18px;
   font-size: 12px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 td {

@@ -13,6 +13,7 @@ use App\Models\DiaChi;
 use App\Models\GioHang;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
+use App\Services\DemoShipmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -50,6 +51,227 @@ class DatHangController extends Controller
         $paymentData['status_history'] = $history;
 
         return $paymentData;
+    }
+
+    private function shipmentStatusLabels(): array
+    {
+        return [
+            'created' => 'Đã tạo vận đơn',
+            'waiting_pickup' => 'Chờ lấy hàng',
+            'picked_up' => 'Đã lấy hàng',
+            'delivering' => 'Đang giao hàng',
+            'delivered' => 'Giao thành công',
+            'delivery_failed' => 'Giao thất bại',
+            'returning' => 'Đang hoàn về',
+            'returned' => 'Đã hoàn về kho',
+        ];
+    }
+
+    private function appendShipmentTimeline(array $shipment, string $status, ?string $note = null, $time = null): array
+    {
+        $labels = $this->shipmentStatusLabels();
+        $timeline = $shipment['timeline'] ?? [];
+
+        if (! $time && ! empty($shipment['created_at']) && $status === 'created') {
+            $time = $shipment['created_at'];
+        }
+
+        if (! $time && ! empty($shipment['last_sync_at'])) {
+            $plan = $shipment['auto_plan'] ?? [];
+            $offsets = [
+                'waiting_pickup' => random_int(300, 1200),
+                'picked_up' => $plan['pickup_after_seconds'] ?? 10800,
+                'delivering' => $plan['dispatch_after_seconds'] ?? 7200,
+                'delivered' => $plan['delivery_after_seconds'] ?? 86400,
+            ];
+
+            if (isset($offsets[$status])) {
+                $time = \Illuminate\Support\Carbon::parse($shipment['last_sync_at'])->addSeconds($offsets[$status]);
+            }
+        }
+
+        $eventTime = $time ? \Illuminate\Support\Carbon::parse($time) : now();
+
+        $timeline[] = [
+            'status' => $status,
+            'label' => $labels[$status] ?? $status,
+            'note' => $note,
+            'time' => $eventTime->toDateTimeString(),
+        ];
+
+        $shipment['status'] = $status;
+        $shipment['status_label'] = $labels[$status] ?? $status;
+        $shipment['last_sync_at'] = $eventTime->toDateTimeString();
+        $shipment['timeline'] = $timeline;
+
+        return $shipment;
+    }
+
+    private function demoShipmentStartTime(DatHang $order): \Illuminate\Support\Carbon
+    {
+        $start = $order->created_at
+            ? $order->created_at->copy()->addMinutes(15)
+            : now();
+
+        return $start->greaterThan(now()) ? now() : $start;
+    }
+
+    private function buildDemoShipment(DatHang $order): array
+    {
+        $trackingCode = 'NGX'.now()->format('Ymd').str_pad((string) $order->id_dathang, 5, '0', STR_PAD_LEFT);
+        $paymentMethod = strtoupper((string) ($order->PTTT ?? ''));
+        $isCod = str_contains($paymentMethod, 'COD') || str_contains($paymentMethod, 'TIEN MAT') || str_contains($paymentMethod, 'TIEN_MAT');
+        $plan = $this->demoShipmentPlan($order);
+        $createdAt = $this->demoShipmentStartTime($order);
+
+        $shipment = [
+            'provider' => 'NextGen Express',
+            'tracking_code' => $trackingCode,
+            'fee' => 30000,
+            'cod_amount' => $isCod ? (int) $order->tongtien : 0,
+            'service_area' => $plan['service_area'],
+            'service_level' => $plan['service_level'],
+            'expected_delivery_date' => $createdAt->copy()->addSeconds($plan['pickup_after_seconds'] + $plan['dispatch_after_seconds'] + $plan['delivery_after_seconds'])->toDateString(),
+            'auto_plan' => $plan,
+            'created_at' => $createdAt->toDateTimeString(),
+            'last_sync_at' => $createdAt->toDateTimeString(),
+            'timeline' => [],
+        ];
+
+        $shipment = $this->appendShipmentTimeline($shipment, 'created', 'Admin tạo vận đơn demo trên hệ thống NextGen.');
+
+        return $this->appendShipmentTimeline($shipment, 'waiting_pickup', 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.');
+    }
+
+    private function buildDemoShipmentForOrderStatus(DatHang $order, ?string $status = null): array
+    {
+        $status = $status ?: (string) $order->trangthai;
+        $shipment = $this->buildDemoShipment($order);
+
+        if (in_array($status, ['shipping', 'done', 'completed'], true)) {
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'picked_up',
+                'Đơn vị vận chuyển đã lấy hàng tại kho.'
+            );
+
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivering',
+                'Shipper đang giao hàng đến địa chỉ của khách.'
+            );
+        }
+
+        if (in_array($status, ['done', 'completed'], true)) {
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivered',
+                'Khách hàng đã nhận hàng thành công.'
+            );
+        }
+
+        return $shipment;
+    }
+
+    private function saveShipment(DatHang $order, array $shipment, string $orderStatus): DatHang
+    {
+        $paymentData = $this->paymentDataWithStatusTime($order, $orderStatus);
+        $paymentData['shipping_demo'] = $shipment;
+
+        $order->update([
+            'trangthai' => $orderStatus,
+            'du_lieu_thanh_toan' => $paymentData,
+        ]);
+
+        return $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+    }
+
+    private function demoShipmentPlan(DatHang $order): array
+    {
+        $address = mb_strtolower((string) ($order->diachi ?? ''), 'UTF-8');
+        $isMetro = str_contains($address, 'hcm')
+            || str_contains($address, 'ho chi minh')
+            || str_contains($address, 'hồ chí minh')
+            || str_contains($address, 'sai gon')
+            || str_contains($address, 'sài gòn')
+            || str_contains($address, 'ha noi')
+            || str_contains($address, 'hà nội');
+
+        $isNearProvince = str_contains($address, 'binh duong')
+            || str_contains($address, 'bình dương')
+            || str_contains($address, 'dong nai')
+            || str_contains($address, 'đồng nai')
+            || str_contains($address, 'long an')
+            || str_contains($address, 'ba ria')
+            || str_contains($address, 'bà rịa')
+            || str_contains($address, 'tay ninh')
+            || str_contains($address, 'tây ninh')
+            || str_contains($address, 'bac ninh')
+            || str_contains($address, 'bắc ninh')
+            || str_contains($address, 'hung yen')
+            || str_contains($address, 'hưng yên')
+            || str_contains($address, 'hai phong')
+            || str_contains($address, 'hải phòng');
+
+        if ($isMetro) {
+            return [
+                'service_area' => 'Nội thành',
+                'service_level' => 'Giao nhanh trong ngày',
+                'pickup_after_seconds' => random_int(7200, 10800),
+                'dispatch_after_seconds' => random_int(1800, 3600),
+                'delivery_after_seconds' => random_int(7200, 14400),
+            ];
+        }
+
+        if ($isNearProvince) {
+            return [
+                'service_area' => 'Tỉnh gần',
+                'service_level' => 'Giao liên tỉnh nhanh',
+                'pickup_after_seconds' => random_int(7200, 10800),
+                'dispatch_after_seconds' => random_int(3600, 7200),
+                'delivery_after_seconds' => random_int(43200, 86400),
+            ];
+        }
+
+        return [
+            'service_area' => 'Tỉnh xa',
+            'service_level' => 'Giao tiêu chuẩn',
+            'pickup_after_seconds' => random_int(7200, 10800),
+            'dispatch_after_seconds' => random_int(7200, 14400),
+            'delivery_after_seconds' => random_int(172800, 345600),
+        ];
+    }
+
+    private function autoShipmentSteps(): array
+    {
+        return [
+            'waiting_pickup' => [
+                'next_shipment_status' => 'picked_up',
+                'next_order_status' => 'shipping',
+                'plan_key' => 'pickup_after_seconds',
+                'after_seconds' => 10800,
+                'note' => 'Đơn vị vận chuyển đã tự động xác nhận lấy hàng tại kho.',
+            ],
+            'picked_up' => [
+                'next_shipment_status' => 'delivering',
+                'next_order_status' => 'shipping',
+                'plan_key' => 'dispatch_after_seconds',
+                'after_seconds' => 3600,
+                'note' => 'Đơn hàng đang được shipper giao đến khách.',
+            ],
+            'delivering' => [
+                'next_shipment_status' => 'delivered',
+                'next_order_status' => 'done',
+                'plan_key' => 'delivery_after_seconds',
+                'after_seconds' => 86400,
+                'note' => 'Hệ thống ghi nhận khách đã nhận hàng thành công.',
+            ],
+        ];
+    }
+
+    private function syncDueDemoShipments(): void
+    {
+        app(DemoShipmentService::class)->syncDueShipments();
     }
 
     public function cancelOrder(Request $request, $id)
@@ -839,6 +1061,8 @@ class DatHangController extends Controller
 
     public function orders()
     {
+        $this->syncDueDemoShipments();
+
         $userId = Auth::id();
         $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
             ->where('id_khachhang', $userId)
@@ -927,6 +1151,8 @@ class DatHangController extends Controller
 
     public function allOrders()
     {
+        $this->syncDueDemoShipments();
+
         $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -934,6 +1160,16 @@ class DatHangController extends Controller
         return response()->json([
             'success' => true,
             'orders' => $orders,
+        ]);
+    }
+
+    public function syncDemoShipments()
+    {
+        $this->syncDueDemoShipments();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Da dong bo trang thai van chuyen demo.',
         ]);
     }
 
@@ -1037,6 +1273,148 @@ class DatHangController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function createDemoShipment($id)
+    {
+        $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
+
+        if (in_array($order->trangthai, ['cancelled', 'done', 'refunded', 'refund_rejected']) || str_starts_with((string) $order->trangthai, 'refund')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể tạo vận đơn cho đơn hàng ở trạng thái này.',
+            ], 422);
+        }
+
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        if (! empty($paymentData['shipping_demo']['tracking_code'])) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đơn hàng đã có vận đơn.',
+                'order' => $order,
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $shipment = $this->buildDemoShipment($order);
+            $order = $this->saveShipment($order, $shipment, 'confirmed');
+
+            DB::commit();
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã tạo vận đơn demo thành công.',
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi khi tạo vận đơn: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function advanceDemoShipment($id)
+    {
+        $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $shipment = $paymentData['shipping_demo'] ?? null;
+
+        if (empty($shipment['tracking_code'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng chưa có vận đơn demo.',
+            ], 422);
+        }
+
+        $current = $shipment['status'] ?? 'waiting_pickup';
+        $nextMap = [
+            'created' => ['waiting_pickup', 'confirmed', 'Đơn hàng đang chờ lấy hàng.'],
+            'waiting_pickup' => ['picked_up', 'shipping', 'Đơn vị vận chuyển đã lấy hàng tại kho.'],
+            'picked_up' => ['delivering', 'shipping', 'Shipper đang giao hàng cho khách.'],
+            'delivering' => ['delivered', 'done', 'Khách đã nhận hàng thành công.'],
+        ];
+
+        if (! isset($nextMap[$current])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vận đơn không thể chuyển tiếp từ trạng thái hiện tại.',
+            ], 422);
+        }
+
+        [$nextShipmentStatus, $nextOrderStatus, $note] = $nextMap[$current];
+
+        try {
+            DB::beginTransaction();
+
+            $shipment = $this->appendShipmentTimeline($shipment, $nextShipmentStatus, $note);
+            $order = $this->saveShipment($order, $shipment, $nextOrderStatus);
+
+            DB::commit();
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã cập nhật trạng thái vận chuyển.',
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi khi cập nhật vận chuyển: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function markDemoShipmentFailed($id)
+    {
+        $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $shipment = $paymentData['shipping_demo'] ?? null;
+
+        if (empty($shipment['tracking_code'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng chưa có vận đơn demo.',
+            ], 422);
+        }
+
+        if (! in_array($shipment['status'] ?? null, ['picked_up', 'delivering'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể đánh dấu thất bại khi đơn đang trên đường giao.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $shipment = $this->appendShipmentTimeline($shipment, 'delivery_failed', 'Shipper giao không thành công, cần liên hệ lại khách hoặc hẹn giao lại.');
+            $order = $this->saveShipment($order, $shipment, 'shipping');
+
+            DB::commit();
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã ghi nhận giao hàng thất bại.',
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi khi cập nhật vận chuyển: '.$e->getMessage(),
             ], 500);
         }
     }

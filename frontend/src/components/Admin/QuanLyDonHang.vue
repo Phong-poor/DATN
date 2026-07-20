@@ -50,7 +50,7 @@ const orderSteps = computed(() => {
     if (!o) return null
     const statusKey = o.status
     return [
-        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
+        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '-', done: true },
         { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
         { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
         { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
@@ -72,26 +72,118 @@ const refundSteps = computed(() => {
     ]
 })
 
+const shippingTimeline = computed(() => {
+    const shipment = getShipment(viewOrder.value)
+    if (!shipment?.timeline?.length) return []
+
+    return shipment.timeline.map(step => ({
+        label: getShipmentStatusLabel(step.status, step.label),
+        note: getShipmentNote(step.status, step.note),
+        date: step.time ? new Date(step.time).toLocaleString('vi-VN') : '-',
+    }))
+})
+
+const formatMoney = (value) => new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + 'đ'
+
 const tabs_mua = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
 const tabs_hoantra = ['Tất cả', 'Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
 const currentTabs = computed(() => pageMode.value === 'orders' ? tabs_mua : tabs_hoantra)
 
 const statusMap = {
-    'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
-    'confirmed': { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
-    'shipping':  { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
-    'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#2563eb' },
-    'refund_pending': { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
-    'refund_pickup': { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
-    'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
-    'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
-    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#3b82f6' },
-    'refund_rejected': { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
-    'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
+    pending: { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
+    confirmed: { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
+    shipping: { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
+    done: { label: 'Hoàn thành', bg: '#dcfce7', color: '#15803d' },
+    refund_pending: { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
+    refund_pickup: { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
+    refund_delivering: { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
+    refund_received: { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
+    refunded: { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#3b82f6' },
+    refund_rejected: { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
+    cancelled: { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
 
 const getStatusLabel = (s) => statusMap[s]?.label || s
 const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
+
+const shipmentStyleMap = {
+    created: { bg: '#eef2ff', color: '#4f46e5' },
+    waiting_pickup: { bg: '#fef3c7', color: '#b45309' },
+    picked_up: { bg: '#e0f2fe', color: '#0369a1' },
+    delivering: { bg: '#dbeafe', color: '#2563eb' },
+    delivered: { bg: '#dcfce7', color: '#15803d' },
+    delivery_failed: { bg: '#fee2e2', color: '#dc2626' },
+    returning: { bg: '#ffedd5', color: '#ea580c' },
+    returned: { bg: '#ede9fe', color: '#7c3aed' },
+}
+
+const shipmentLabelMap = {
+    created: 'Đã tạo vận đơn',
+    waiting_pickup: 'Chờ lấy hàng',
+    picked_up: 'Đã lấy hàng',
+    delivering: 'Đang giao hàng',
+    delivered: 'Giao thành công',
+    delivery_failed: 'Giao thất bại',
+    returning: 'Đang hoàn về',
+    returned: 'Đã hoàn về kho',
+}
+
+const shipmentNoteMap = {
+    created: 'Cửa hàng đã tạo vận đơn trên hệ thống NextGen Express.',
+    waiting_pickup: 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.',
+    picked_up: 'Đơn vị vận chuyển đã lấy hàng tại kho.',
+    delivering: 'Shipper đang giao hàng đến địa chỉ của khách.',
+    delivered: 'Khách hàng đã nhận hàng thành công.',
+    delivery_failed: 'Shipper giao không thành công, cần liên hệ lại khách hoặc hẹn giao lại.',
+    returning: 'Đơn hàng đang được hoàn về kho.',
+    returned: 'Đơn hàng đã hoàn về kho.',
+}
+
+const getShipmentStatusLabel = (status, fallback = '') => shipmentLabelMap[status] || fallback || status || 'Đang cập nhật'
+const getShipmentNote = (status, fallback = '') => shipmentNoteMap[status] || fallback || 'Đã cập nhật trạng thái vận chuyển.'
+
+const getShipment = (order) => order?.raw?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
+const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const getShipmentStatusStyle = (order) => {
+    const status = getShipment(order)?.status
+    return shipmentStyleMap[status] || getStatusStyle(order.status)
+}
+
+const getDisplayStatusLabel = (order) => {
+    const shipment = getShipment(order)
+    if (shipment?.status && ['confirmed', 'shipping', 'done'].includes(order.status)) {
+        return getShipmentStatusLabel(shipment.status)
+    }
+    return getStatusLabel(order.status)
+}
+
+const mapOrder = (o) => ({
+    id_backend: o.id_dathang,
+    id: `#VT-2026-${String(o.id_dathang).padStart(3, '0')}`,
+    name: o.user?.name || 'Ẩn danh',
+    email: o.user?.email || '',
+    avatar: (o.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+    date: new Date(o.created_at).toLocaleDateString('vi-VN'),
+    total: formatMoney(o.tongtien),
+    status: o.trangthai,
+    phone: o.user?.phone || '',
+    address: o.diachi || '',
+    shipping: o.du_lieu_thanh_toan?.shipping_demo || null,
+    raw: o,
+    note: '',
+})
+
+const syncOrderFromApi = (backendOrder) => {
+    if (!backendOrder) return
+    const mapped = mapOrder(backendOrder)
+    const idx = orders.value.findIndex(o => o.id_backend === mapped.id_backend)
+    if (idx !== -1) {
+        orders.value[idx] = mapped
+        if (viewOrder.value?.id_backend === mapped.id_backend) viewOrder.value = mapped
+    } else {
+        orders.value.unshift(mapped)
+    }
+}
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
 const terminalStatuses = ['done', 'cancelled', 'refunded', 'refund_rejected']
@@ -118,45 +210,92 @@ const getNextStatus = (current) => {
 
 const orders = ref([])
 const isLoading = ref(false)
+let autoRefreshTimer = null
 
 const fetchOrders = async () => {
     try {
         isLoading.value = true
         const res = await api.get('/admin/orders')
         if (res.data.success) {
-            orders.value = res.data.orders.map(o => ({
-                id_backend: o.id_dathang,
-                id: `#VT-2026-${String(o.id_dathang).padStart(3, '0')}`,
-                name: o.user?.name || 'Ẩn danh',
-                email: o.user?.email || '',
-                avatar: (o.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
-                date: new Date(o.created_at).toLocaleDateString('vi-VN'),
-                total: new Intl.NumberFormat('vi-VN').format(o.tongtien) + 'đ',
-                status: o.trangthai,
-                phone: o.user?.phone || '',
-                address: o.diachi || '',
-                raw: o,
-                note: '', // Có thể thêm cột này sau
-            }))
+            orders.value = res.data.orders.map(mapOrder)
         }
     } catch (error) {
-        console.error('Lỗi tải đơn hàng:', error)
+        console.error('Loi tai don hang:', error)
     } finally {
         isLoading.value = false
     }
 }
-
 const updateOrderStatus = async (orderId, newStatus) => {
     try {
         const res = await api.put(`/admin/orders/${orderId}/status`, { trangthai: newStatus })
         if (res.data.success) {
-            const idx = orders.value.findIndex(o => o.id_backend === orderId)
-            if (idx !== -1) orders.value[idx].status = newStatus
+            if (res.data.order) {
+                syncOrderFromApi(res.data.order)
+            } else {
+                const idx = orders.value.findIndex(o => o.id_backend === orderId)
+                if (idx !== -1) orders.value[idx].status = newStatus
+            }
             swal.success('Thành công', 'Cập nhật trạng thái đơn hàng thành công!')
         }
     } catch (error) {
         swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái')
     }
+}
+
+const createShipment = async (order) => {
+    const ok = await swal.confirm('Tạo vận đơn demo', `Tạo vận đơn NextGen Express cho ${order.id}?`)
+    if (!ok) return
+
+    try {
+        const res = await api.post(`/admin/orders/${order.id_backend}/shipment`)
+        if (res.data.success) {
+            syncOrderFromApi(res.data.order)
+            swal.success('Thành công', res.data.message || 'Đã tạo vận đơn.')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể tạo vận đơn')
+    }
+}
+
+const advanceShipment = async (order) => {
+    try {
+        const res = await api.post(`/admin/orders/${order.id_backend}/shipment/advance`)
+        if (res.data.success) {
+            syncOrderFromApi(res.data.order)
+            swal.success('Thành công', res.data.message || 'Đã cập nhật vận chuyển.')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật vận chuyển')
+    }
+}
+
+const failShipment = async (order) => {
+    const ok = await swal.confirm('Ghi nhận giao thất bại', `Đánh dấu ${order.id} giao không thành công?`)
+    if (!ok) return
+
+    try {
+        const res = await api.post(`/admin/orders/${order.id_backend}/shipment/fail`)
+        if (res.data.success) {
+            syncOrderFromApi(res.data.order)
+            swal.success('Đã ghi nhận', res.data.message || 'Đã cập nhật vận chuyển.')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể ghi nhận giao thất bại')
+    }
+}
+
+const canCreateShipment = (order) => !hasShipment(order)
+    && ['pending', 'confirmed'].includes(order.status)
+    && !String(order.status).startsWith('refund')
+
+const canAdvanceShipment = (order) => {
+    const status = getShipment(order)?.status
+    return hasShipment(order) && ['created', 'waiting_pickup', 'picked_up', 'delivering'].includes(status)
+}
+
+const canFailShipment = (order) => {
+    const status = getShipment(order)?.status
+    return hasShipment(order) && ['picked_up', 'delivering'].includes(status)
 }
 
 const confirmUpdateStatus = async (id, currentStatus) => {
@@ -169,21 +308,21 @@ const confirmUpdateStatus = async (id, currentStatus) => {
 }
 
 const confirmCancelOrder = async (id) => {
-    const isConfirmed = await swal.confirm('Xác nhận HỦY', 'Bạn có chắc chắn muốn HỦY đơn hàng này?')
+    const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
     if (isConfirmed) {
         updateOrderStatus(id, 'cancelled')
     }
 }
 
 const confirmApproveRefund = async (id) => {
-    const isConfirmed = await swal.confirm('Xác nhận hoàn trả', 'Bạn có chắc chắn chấp nhận yêu cầu hoàn trả này (Đơn sẽ chuyển sang Chờ lấy hàng hoàn)?')
+    const isConfirmed = await swal.confirm('Xác nhận hoàn trả', 'Bạn có chắc chắn chấp nhận yêu cầu hoàn trả này? Đơn sẽ chuyển sang chờ lấy hàng hoàn.')
     if (isConfirmed) {
         updateOrderStatus(id, 'refund_pickup')
     }
 }
 
 const confirmRejectRefund = async (id) => {
-    const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái Hoàn thành?')
+    const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái hoàn thành?')
     if (isConfirmed) {
         updateOrderStatus(id, 'refund_rejected')
     }
@@ -205,32 +344,19 @@ const deleteOrder = async (id) => {
 
 onMounted(() => {
     fetchOrders()
+    autoRefreshTimer = window.setInterval(() => {
+        fetchOrders()
+    }, 20000)
     document.addEventListener('click', closeDateDropdown)
 
     echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
-            const newOrder = {
-                id_backend: e.order.id_dathang,
-                id: `#VT-2026-${String(e.order.id_dathang).padStart(3, '0')}`,
-                name: e.order.user?.name || 'Ẩn danh',
-                email: e.order.user?.email || '',
-                avatar: (e.order.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
-                date: new Date(e.order.created_at).toLocaleDateString('vi-VN'),
-                total: new Intl.NumberFormat('vi-VN').format(e.order.tongtien) + 'đ',
-                status: e.order.trangthai,
-                phone: e.order.user?.phone || '',
-                address: e.order.diachi || '',
-                raw: e.order,
-                note: '',
-            }
+            const newOrder = mapOrder(e.order)
 
-            // Th�m v�o đầu danh s�ch
             orders.value.unshift(newOrder)
 
-            // Th�ng b�o
-            swal.toast(`�� C� đơn h�ng mới từ ${newOrder.name}!`, 'info')
+            swal.toast(`Có đơn hàng mới từ ${newOrder.name}!`, 'info')
             
-            // Nếu tr�nh duyệt hỗ trợ �m thanh, c� thể th�m ting ting ở đ�y
             try {
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3')
                 audio.play()
@@ -241,6 +367,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    if (autoRefreshTimer) {
+        window.clearInterval(autoRefreshTimer)
+        autoRefreshTimer = null
+    }
     echo.leaveChannel('admin-orders')
     document.removeEventListener('click', closeDateDropdown)
 })
@@ -319,7 +449,7 @@ const {
     pageItems: paginatedOrders,
     getId: item => item.id_backend,
     endpoint: id => `/admin/orders/${id}`,
-    entityLabel: 'don hang',
+    entityLabel: 'đơn hàng',
     fetchItems: fetchOrders,
 })
 
@@ -362,15 +492,14 @@ const getAvatarStyle = (name) => {
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
 }
 
-// ── XUẤT EXCEL ──────────────────────────────────────────────
 async function exportExcel() {
     const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
     const tabLabel = activeTab.value
 
-    const titleRow = [`B�O C�O ĐƠN H�NG � ${tabLabel.toUpperCase()} (xuất ng�y ${today})`]
+    const titleRow = [`Báo cáo đơn hàng - ${tabLabel} (xuất ngày ${today})`]
     const blankRow = []
-    const header = ['M� đơn h�ng', 'Kh�ch h�ng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ng�y đặt h�ng', 'Tổng tiền', 'Trạng th�i', 'Ghi ch�']
+    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
 
     const dataRows = filteredOrders.value.map(o => [
         o.id,
@@ -380,7 +509,7 @@ async function exportExcel() {
         o.address,
         o.date,
         o.total,
-        o.status,
+        getDisplayStatusLabel(o),
         o.note,
     ])
 
@@ -406,12 +535,12 @@ async function exportExcel() {
         <div class="breadcrumb">
             <span>Admin</span>
             <span class="sep">›</span>
-            <span class="active-crumb">Orders Management</span>
+            <span class="active-crumb">Quản lý đơn hàng</span>
         </div>
 
         <!-- TOP -->
         <div class="top">
-            <h1>QUẢN LÝ ĐƠN HÀNG</h1>
+            <h1>Quản lý đơn hàng</h1>
             <div class="top-actions">
                 <button class="btn-export" @click="exportExcel">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -443,7 +572,7 @@ async function exportExcel() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                     </svg>
-                    <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng (#VT-2026..." />
+                    <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng, khách hàng..." />
                 </div>
 
                 <div class="tabs">
@@ -485,7 +614,7 @@ async function exportExcel() {
         <BulkDeleteToolbar
             :selected-count="selectedIds.length"
             :total-count="filteredOrders.length"
-            label="don hang"
+            label="đơn hàng"
             :loading="isBulkDeleting"
             @clear="clearSelection"
             @delete-selected="removeSelected"
@@ -504,12 +633,12 @@ async function exportExcel() {
                                 @change="toggleCurrentPageSelection"
                             />
                         </th>
-                        <th>MÃ ĐƠN HÀNG</th>
-                        <th>KHÁCH HÀNG</th>
-                        <th>NGÀY ĐẶT HÀNG</th>
-                        <th>TỔNG TIỀN</th>
-                        <th>TRẠNG THÁI</th>
-                        <th>THAO TÁC</th>
+                        <th>Mã đơn hàng</th>
+                        <th>Khách hàng</th>
+                        <th>Ngày đặt hàng</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -545,9 +674,14 @@ async function exportExcel() {
                         <td><b class="total">{{ o.total }}</b></td>
 
                         <td>
-                            <span class="status-pill" :style="getStatusStyle(o.status)">
-                                {{ getStatusLabel(o.status) }}
-                            </span>
+                            <div class="status-stack">
+                                <span class="status-pill" :style="hasShipment(o) ? getShipmentStatusStyle(o) : getStatusStyle(o.status)">
+                                    {{ getDisplayStatusLabel(o) }}
+                                </span>
+                                <span v-if="hasShipment(o)" class="tracking-code">
+                                    {{ getShipment(o).provider }} - {{ getShipment(o).tracking_code }}
+                                </span>
+                            </div>
                         </td>
 
                         <td>
@@ -558,7 +692,39 @@ async function exportExcel() {
                                     </svg>
                                 </button>
                                 
-                                <button v-if="!terminalStatuses.includes(o.status) && o.status !== 'refund_pending'" 
+                                <button v-if="canCreateShipment(o)"
+                                        class="act-btn logistics"
+                                        @click="createShipment(o)"
+                                        title="Tạo vận đơn demo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 7h11v9H3z"/>
+                                        <path d="M14 10h4l3 3v3h-7z"/>
+                                        <circle cx="7" cy="18" r="2"/>
+                                        <circle cx="18" cy="18" r="2"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="canAdvanceShipment(o)"
+                                        class="act-btn logistics"
+                                        @click="advanceShipment(o)"
+                                        title="Cập nhật bước vận chuyển tiếp theo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="canFailShipment(o)"
+                                        class="act-btn danger"
+                                        @click="failShipment(o)"
+                                        title="Ghi nhận giao thất bại">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M12 9v4"/>
+                                        <path d="M12 17h.01"/>
+                                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="!hasShipment(o) && !terminalStatuses.includes(o.status) && o.status !== 'refund_pending'"
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
@@ -604,7 +770,7 @@ async function exportExcel() {
         <!-- FOOTER -->
         <div class="table-footer">
             <span class="showing" v-if="filteredOrders.length > 0">
-                Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng
+                Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng
             </span>
             <span class="showing" v-else>Không có dữ liệu hiển thị</span>
 
@@ -624,13 +790,13 @@ async function exportExcel() {
                     <polyline points="17 6 23 6 23 12"/>
                 </svg>
                 <div>
-                    <span>TỔNG DOANH THU</span>
+                    <span>Tổng doanh thu</span>
                     <b>{{ formatRevenue(totalRevenue) }}</b>
                 </div>
             </div>
         </div>
 
-        <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
+        <!-- Modal xem chi tiết đơn hàng -->
         <Teleport to="body">
             <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
                 <div v-if="viewOrder" class="modal detail-modal">
@@ -647,33 +813,91 @@ async function exportExcel() {
                             <div class="section-title">Thông tin giao hàng</div>
                             <div class="info-grid">
                                 <div class="info-item">
-                                    <span class="info-label">👤 Khách hàng</span>
+                                    <span class="info-label">Khách hàng</span>
                                     <span class="info-value">{{ viewOrder.name }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">📞 Số điện thoại</span>
+                                    <span class="info-label">Số điện thoại</span>
                                     <span class="info-value">{{ viewOrder.phone }}</span>
                                 </div>
                                 <div class="info-item" style="grid-column: span 2;">
-                                    <span class="info-label">📍 Địa chỉ giao hàng</span>
+                                    <span class="info-label">Địa chỉ giao hàng</span>
                                     <span class="info-value">{{ viewOrder.address }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">📅 Ngày đặt hàng</span>
+                                    <span class="info-label">Ngày đặt hàng</span>
                                     <span class="info-value">{{ viewOrder.date }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">💳 Thanh toán</span>
+                                    <span class="info-label">Thanh toán</span>
                                     <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- LÝ DO HỦY ĐƠN HOẶC HOÀN TRẢ -->
+                        <div class="detail-section">
+                            <div class="section-title">Vận chuyển demo</div>
+                            <div v-if="hasShipment(viewOrder)" class="shipment-card">
+                                <div class="shipment-head">
+                                    <div>
+                                        <span class="shipment-provider">{{ getShipment(viewOrder).provider }}</span>
+                                        <strong>{{ getShipment(viewOrder).tracking_code }}</strong>
+                                    </div>
+                                    <span class="status-pill" :style="getShipmentStatusStyle(viewOrder)">
+                                        {{ getShipmentStatusLabel(getShipment(viewOrder).status, getShipment(viewOrder).status_label) }}
+                                    </span>
+                                </div>
+                                <div class="shipment-grid">
+                                    <div>
+                                        <span>Phí giao hàng</span>
+                                        <b>{{ formatMoney(getShipment(viewOrder).fee) }}</b>
+                                    </div>
+                                    <div>
+                                        <span>Thu hộ COD</span>
+                                        <b>{{ formatMoney(getShipment(viewOrder).cod_amount) }}</b>
+                                    </div>
+                                    <div>
+                                        <span>Dự kiến giao</span>
+                                        <b>{{ getShipment(viewOrder).expected_delivery_date || '-' }}</b>
+                                    </div>
+                                    <div>
+                                        <span>Khu vực giao</span>
+                                        <b>{{ getShipment(viewOrder).service_area || 'Tiêu chuẩn' }}</b>
+                                    </div>
+                                    <div>
+                                        <span>Gói vận chuyển</span>
+                                        <b>{{ getShipment(viewOrder).service_level || 'Giao tiêu chuẩn' }}</b>
+                                    </div>
+                                    <div>
+                                        <span>Đồng bộ cuối</span>
+                                        <b>{{ getShipment(viewOrder).last_sync_at ? new Date(getShipment(viewOrder).last_sync_at).toLocaleString('vi-VN') : '-' }}</b>
+                                    </div>
+                                </div>
+                                <div class="shipment-events">
+                                    <div v-for="(event, idx) in shippingTimeline" :key="idx" class="shipment-event">
+                                        <span class="event-dot"></span>
+                                        <div>
+                                            <b>{{ event.label }}</b>
+                                            <p>{{ event.note || 'Đã cập nhật trạng thái vận chuyển.' }}</p>
+                                            <small>{{ event.date }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="shipment-empty">
+                                <b>Chưa tạo vận đơn</b>
+                                <p>Hệ thống sẽ tạo mã tracking demo và mô phỏng các bước lấy hàng, giao hàng, hoàn tất.</p>
+                                <button v-if="canCreateShipment(viewOrder)" class="btn-export" @click="createShipment(viewOrder)">
+                                    Tạo vận đơn ngay
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lý do hủy đơn hoặc hoàn trả -->
                         <div v-if="['cancelled', 'refund_pending', 'refunded'].includes(viewOrder.status)" class="detail-section">
                             <div class="section-title" :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}</div>
                             <div class="cancel-reason-box" style="margin-bottom: 10px;">
-                                ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                                {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
                             <div v-if="viewOrder.raw.refund_proof" class="cancel-reason-box" style="margin-top: 10px;">
                                 <strong>Bằng chứng hoàn trả:</strong>
@@ -702,7 +926,7 @@ async function exportExcel() {
                   </div>
                   <div class="tl-content">
                     <p class="tl-label">{{ step.label }}</p>
-                    <p class="tl-date">{{ step.date || '—' }}</p>
+                    <p class="tl-date">{{ step.date || '-' }}</p>
                   </div>
                 </div>
               </div>
@@ -717,7 +941,7 @@ async function exportExcel() {
                     </div>
                     <div class="tl-content">
                       <p class="tl-label refund-label">{{ step.label }}</p>
-                      <p class="tl-date">{{ step.date || '—' }}</p>
+                      <p class="tl-date">{{ step.date || '-' }}</p>
                     </div>
                   </div>
                 </div>
@@ -736,7 +960,7 @@ async function exportExcel() {
                                         <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
                                     <div class="item-price-qty">
-                                        <span class="iq-price">{{ new Intl.NumberFormat('vi-VN').format(item.gia) }}đ</span>
+                                        <span class="iq-price">{{ formatMoney(item.gia) }}</span>
                                         <span class="iq-qty">x{{ item.soluong }}</span>
                                     </div>
                                 </div>
@@ -870,7 +1094,7 @@ async function exportExcel() {
     color: white;
 }
 
-/* ── Custom Premium Dropdown ── */
+/* â”€â”€ Custom Premium Dropdown â”€â”€ */
 .custom-dropdown {
     position: relative;
     display: inline-block;
@@ -1023,6 +1247,23 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
     border: none; outline: none; cursor: pointer;
 }
+
+.status-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.tracking-code {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    max-width: 190px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .status-select {
     appearance: none;
     padding-right: 24px;
@@ -1040,6 +1281,8 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 }
 .act-btn svg { width: 14px; height: 14px; }
 .act-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #2563eb; }
+.act-btn.logistics { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+.act-btn.logistics:hover { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; }
 .act-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #ef4444; }
 
 /* FOOTER */
@@ -1104,7 +1347,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 .section-title {
     font-size: 11px; font-weight: 700; color: #94a3b8;
-    letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 4px;
+    letter-spacing: 0.1em; text-transform: capitalize; padding-bottom: 4px;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -1188,7 +1431,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     font-size: 11px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     display: flex;
     align-items: center;
@@ -1207,6 +1450,118 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     display: flex;
     align-items: center;
 }
+
+.shipment-card,
+.shipment-empty {
+    background: #f8fafc;
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    padding: 18px;
+}
+
+.shipment-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.shipment-head strong {
+    display: block;
+    color: #0f172a;
+    font-size: 15px;
+    margin-top: 4px;
+}
+
+.shipment-provider,
+.shipment-grid span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.shipment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.shipment-grid > div {
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.shipment-grid b {
+    display: block;
+    color: #0f172a;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.shipment-events {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shipment-event {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 10px;
+    position: relative;
+}
+
+.shipment-event:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 16px;
+    bottom: -12px;
+    width: 2px;
+    background: #bfdbfe;
+}
+
+.event-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 3px solid #dbeafe;
+    margin-top: 3px;
+    z-index: 1;
+}
+
+.shipment-event b {
+    color: #0f172a;
+    font-size: 13px;
+}
+
+.shipment-event p {
+    margin: 3px 0;
+    color: #475569;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.shipment-event small {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.shipment-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.shipment-empty b { color: #0f172a; }
+.shipment-empty p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.5; }
 
 .items-list { display: flex; flex-direction: column; gap: 12px; }
 .order-item {

@@ -649,7 +649,7 @@ const save = async () => {
     font-size: 13px;
     font-weight: 700;
     color: #cbd5e1;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     margin: 0 0 14px;
 }

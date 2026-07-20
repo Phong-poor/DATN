@@ -682,7 +682,7 @@ onMounted(fetchContacts)
 .stat-icon-blue svg,
 .stat-icon-orange svg,
 .stat-icon-green svg { stroke: #fff; }
-.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: uppercase; }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: capitalize; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
 .stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-card-gradient { background: linear-gradient(135deg, #93c5fd, #3b82f6, #2563eb); border: none; justify-content: flex-end; min-height: 120px; }
@@ -788,7 +788,7 @@ td { padding: 13px 16px; vertical-align: middle; }
 .meta-item { display: flex; align-items: center; gap: 10px; }
 .meta-key { font-size: 12px; font-weight: 600; color: #94a3b8; width: 90px; flex-shrink: 0; }
 .meta-val { font-size: 13px; color: #1e293b; }
-.detail-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: capitalize; letter-spacing: 0.5px; }
 .detail-body { font-size: 13.5px; color: #334155; line-height: 1.7; background: #f8faff; border-radius: 10px; padding: 14px; border: 1px solid #e8edf5; }
 .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .15s; font-family: inherit; }

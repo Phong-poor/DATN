@@ -167,7 +167,7 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1.2;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .ds-title {
@@ -303,7 +303,7 @@ body {
   letter-spacing: 0.04em;
   line-height: 1;
   padding: 6px 8px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .ds-badge--success {

@@ -931,7 +931,7 @@ onMounted(async () => {
 }
 
 .text-upper {
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .preview-box-modal {

@@ -492,7 +492,7 @@ input[type=range]{padding:0}
 input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
 .preview-card{margin:0 20px 20px;border:1px solid #e2e8f0;border-radius:16px;display:grid;grid-template-columns:260px 1fr;overflow:hidden}
 .preview-main{padding:22px;color:#fff;display:flex;flex-direction:column;justify-content:center;min-height:120px}
-.preview-main span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;opacity:.82}
+.preview-main span{font-size:12px;text-transform: capitalize;letter-spacing:.08em;opacity:.82}
 .preview-main b{font-size:26px;margin-top:8px}
 .preview-side{padding:22px;background:#f8fafc}
 .preview-side strong{font-size:16px;color:#0f172a}
@@ -501,7 +501,7 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .toolbar input{width:100%}
 .log-list{padding:16px 20px 20px;display:grid;gap:10px}
 .log-row{display:flex;gap:12px;padding:13px;border:1px solid #edf2f7;border-radius:13px;background:#fbfdff}
-.log-type{height:fit-content;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase}
+.log-type{height:fit-content;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;text-transform:capitalize}
 .log-type.order{background:#e0e7ff;color:#1d4ed8}
 .log-type.user{background:#dcfce7;color:#166534}
 .log-row b{font-size:14px;color:#0f172a}
@@ -511,7 +511,7 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .stats{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:20px;padding:20px 20px 8px}
 .stat-card{border-radius:16px;padding:26px 28px;color:#fff;min-height:136px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;box-shadow:0 12px 26px rgba(15,23,42,.12)}
 .stat-card::after{content:'';position:absolute;width:150px;height:150px;border-radius:999px;right:-28px;top:-54px;background:rgba(255,255,255,.13);pointer-events:none}
-.stat-card span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;opacity:.88}
+.stat-card span{font-size:12px;font-weight:800;text-transform: capitalize;letter-spacing:.03em;opacity:.88}
 .stat-card b{font-size:34px;line-height:1;font-weight:800;margin-top:20px}
 .stat-card.blue{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
 .stat-card.violet{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}

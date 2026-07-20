@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import { productImageUrl, storageUrl } from '@/services/urls'
+import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 
 const router = useRouter()
@@ -798,8 +798,8 @@ const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ th
 
 const avatarUrl = computed(() => {
   if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
-  if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return storageUrl(user.value.avatar)
+  const rawAvatar = user.value.avatar.startsWith('http') ? user.value.avatar : storageUrl(user.value.avatar)
+  return withImageVersion(rawAvatar, user.value.updated_at || user.value.updatedAt)
 })
 
 const fetchUser = () => {
@@ -1337,13 +1337,13 @@ const openLuckyWheelMobile = () => {
   background: rgba(13, 27, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .header.scrolled {
   background: rgba(13, 27, 46, 0.99);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
-  border-bottom-color: rgba(37, 99, 235, 0.2);
+  border-bottom-color: transparent;
 }
 
 .header-inner {
@@ -1537,7 +1537,7 @@ const openLuckyWheelMobile = () => {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: #ffffff;
   margin-bottom: 9px;
   padding-left: 8px;
@@ -1586,7 +1586,7 @@ const openLuckyWheelMobile = () => {
   letter-spacing: 0.2px;
   flex-shrink: 0;
   margin-left: 2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 .mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
 .mega-item-badge.new  { background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
@@ -1651,7 +1651,7 @@ const openLuckyWheelMobile = () => {
   color: white;
   padding: 2.5px 7px;
   border-radius: 6px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
@@ -2121,7 +2121,7 @@ const openLuckyWheelMobile = () => {
 .user-card-avatar { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(96,165,250,0.75); flex-shrink: 0; box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35); }
 .uc-name { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 900; color: #ffffff; margin-bottom: 2px; text-shadow: 0 1px 8px rgba(0,0,0,0.35); }
 .uc-email { font-size: 11.5px; font-weight: 650; color: #cbd5e1; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-.uc-badge { font-size: 8.5px; font-weight: 900; letter-spacing: 0.8px; color: #dbeafe; background: rgba(37,99,235,0.38); border: 1px solid rgba(96,165,250,0.55); padding: 2px 7px; border-radius: 20px; text-transform: uppercase; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+.uc-badge { font-size: 8.5px; font-weight: 900; letter-spacing: 0.8px; color: #dbeafe; background: rgba(37,99,235,0.38); border: 1px solid rgba(96,165,250,0.55); padding: 2px 7px; border-radius: 20px; text-transform: capitalize; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
 
 /* USER MENU */
 .user-menu { padding: 8px; display: flex; flex-direction: column; gap: 3px; }
@@ -2219,7 +2219,7 @@ const openLuckyWheelMobile = () => {
 .mob-nav { padding: 0 12px; flex: 1; }
 .mob-nav-label {
   font-size: 9.5px; font-weight: 800; letter-spacing: 1.2px;
-  text-transform: uppercase; color: #94a3b8;
+  text-transform: capitalize; color: #94a3b8;
   padding: 12px 8px 6px;
 }
 .mob-link {

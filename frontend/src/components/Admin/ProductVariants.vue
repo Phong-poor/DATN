@@ -1993,7 +1993,7 @@ async function handleImportFile(e) {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: .05em;
   background: #f8fafc;
   border-radius: 6px;

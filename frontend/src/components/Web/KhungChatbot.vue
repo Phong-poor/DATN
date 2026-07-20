@@ -1251,11 +1251,11 @@ onUnmounted(() => {
 
 /* ===== HEADER ===== */
 .chat-header {
-  background: #2563eb;
+  background: #0d1b2e;
   padding: 15px 20px;
   color: #ffffff;
   position: relative;
-  border-bottom: 1px solid #2563eb;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
 }
 
 .mode-toggle-btn {
@@ -1769,7 +1769,7 @@ onUnmounted(() => {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.35px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 0 0 5px 2px;
 }
 
@@ -1855,7 +1855,7 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -1924,7 +1924,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 800;
   color: #38bdf8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -2039,7 +2039,7 @@ onUnmounted(() => {
   font-weight: 800;
   color: #fff;
   margin-bottom: 12px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -2767,7 +2767,7 @@ onUnmounted(() => {
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.45px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .shipping-form input,
@@ -2811,7 +2811,7 @@ onUnmounted(() => {
   color: #102018;
   font-size: 10px;
   font-weight: 900;
-  text-transform: uppercase;
+  text-transform: capitalize;
   cursor: pointer;
 }
 
@@ -2833,24 +2833,25 @@ onUnmounted(() => {
 
 /* Checkout form should feel like the product cards inside the chatbot */
 .chatbot-window .checkout-chat-header {
-  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  background: #0d1b2e;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
   padding: 15px 20px;
 }
 
 .chatbot-window .checkout-chat-header .title-wrap .title {
-  color: #0f172a;
+  color: #ffffff;
   font-size: 16px;
 }
 
 .chatbot-window .checkout-chat-header .title-wrap .subtitle {
-  color: #64748b;
+  color: #7ee787;
   font-size: 12px;
 }
 
 .chatbot-window .checkout-chat-header .chat-back-navigation-btn,
 .chatbot-window .checkout-chat-header .chat-close-btn {
-  color: #475569;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .chatbot-window .form-view {

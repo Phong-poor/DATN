@@ -1160,7 +1160,7 @@ onMounted(async () => {
   color: rgba(255, 255, 255, 0.88);
   letter-spacing: 0.03em;
   margin: 0 0 20px 0;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .stat-number-row {
@@ -1593,7 +1593,7 @@ onMounted(async () => {
   font-weight: 700;
   color: #94a3b8;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .admin-data-table tbody tr {

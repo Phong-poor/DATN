@@ -106,8 +106,8 @@ const accessoryLines = [
   { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen' },
 ]
 
-const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
-const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines)
+const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'accessory'))
+const visibleLines = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'accessory'))
 
 const tabs = [
   { key: 'popular', label: 'Bán chạy' },
@@ -1059,7 +1059,7 @@ onMounted(() => {
 .hero-kicker {
   display: inline-flex;
   color: #93c5fd;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.12em;
   font-size: 11px;
   font-weight: 900;
@@ -1225,7 +1225,7 @@ onMounted(() => {
 .section-copy small {
   margin: 0 0 6px;
   color: #7aa2ff;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.15em;
   font-size: 11px;
   font-weight: 900;
@@ -1333,7 +1333,7 @@ onMounted(() => {
   padding: 7px 10px;
   font-size: 11px;
   font-weight: 900;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .badge-row small {
@@ -1488,7 +1488,7 @@ onMounted(() => {
 .filter-group h4 {
   margin: 0 0 4px;
   font-size: 12px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: #0f172a;
 }
 
@@ -3655,7 +3655,7 @@ onMounted(() => {
   font-weight: 800;
   color: #0f172a;
   margin: 12px 0 8px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .combos-header .section-sub {
@@ -3757,7 +3757,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 600;
   color: #64748b;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .price-val {

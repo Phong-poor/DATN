@@ -993,7 +993,7 @@ const submitEdit = async () => {
     color: rgba(255, 255, 255, 0.88);
     letter-spacing: 0.03em;
     margin: 0 0 20px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .stat-info b {

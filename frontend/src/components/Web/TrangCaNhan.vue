@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -8,11 +8,11 @@ import { isFormDirty } from '@/services/unsavedChanges'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
-import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
-// ── Active tab ────────────────────────────────────────────
+// â”€â”€ Active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const route = useRoute()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
 
@@ -30,7 +30,7 @@ const tabs = [
   { key: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
 ]
 
-// ── Toast ─────────────────────────────────────────────────
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const toast = ref({ show: false, msg: '' })
 const showToast = (msg) => {
   toast.value = { show: true, msg }
@@ -39,13 +39,13 @@ const showToast = (msg) => {
   }, 2500)
 }
 
-// ── Cancellation state ────────────────────────────────────
+// â”€â”€ Cancellation state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const showCancelModal = ref(false)
 const orderToCancel = ref(null)
 const cancelReason = ref('')
 const isSubmitting = ref(false)
 
-// ── Review state ──────────────────────────────────────────
+// â”€â”€ Review state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const showReviewModal = ref(false)
 const reviewForm = ref({
   id_dathang: null,
@@ -57,9 +57,9 @@ const reviewForm = ref({
 const hoverRating = ref(0)
 const isSubmittingReview = ref(false)
 
-// ════════════════════════════════════════════════
-//  TAB 1 — PROFILE
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 1 â€” PROFILE
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const user = ref({
   name: '',
   email: '',
@@ -77,7 +77,7 @@ const tempAvatarUrl = ref('')
 const sidebarAvatarUrl = computed(() => {
   if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
   if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return normalizeImageUrl(user.value.avatar, '')
+  return withImageVersion(normalizeImageUrl(user.value.avatar, ''), user.value.updated_at || user.value.updatedAt)
 })
 
 const formAvatarUrl = computed(() => {
@@ -92,7 +92,8 @@ const updateUserData = (apiUser) => {
     phone: apiUser.phone || '',
     birthday: apiUser.date_of_birth || '',
     gender: apiUser.gender || '',
-    avatar: apiUser.avatar || user.value.avatar,
+    avatar: apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || user.value.avatar,
+    updated_at: apiUser.updated_at || user.value.updated_at,
     xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
     memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
     joinDate: apiUser.created_at
@@ -131,7 +132,7 @@ const selectedAvatarFile = ref(null)
 const isUploadingAvatar = ref(false)
 
 const triggerAvatarUpload = () => {
-  fileInput.value.click()
+  fileInput.value?.click()
 }
 
 const handleAvatarUpload = async (event) => {
@@ -171,7 +172,10 @@ const handleAvatarUpload = async (event) => {
     })
     
     if (avatarRes.data.user) {
-      updateUserData(avatarRes.data.user)
+      updateUserData({
+        ...avatarRes.data.user,
+        updated_at: avatarRes.data.user.updated_at || Date.now()
+      })
       updateUser(user.value)
       window.dispatchEvent(new Event('user-updated'))
       showToast('Cập nhật ảnh đại diện thành công!')
@@ -180,7 +184,7 @@ const handleAvatarUpload = async (event) => {
   } catch (error) {
     console.error('Lỗi upload avatar:', error)
     showToast('Lỗi cập nhật ảnh đại diện!')
-    // Nếu lỗi thì thu hồi và reset ảnh xem trước
+    // Náº¿u lá»—i thì thu hồi và reset ảnh xem trước
     if (tempAvatarUrl.value) {
       URL.revokeObjectURL(tempAvatarUrl.value)
       tempAvatarUrl.value = ''
@@ -224,7 +228,7 @@ const loadUser = async () => {
 
     updateUser(user.value)
   } catch (error) {
-    console.error('Load user lỗi:', error)
+    console.error('Lỗi tải người dùng:', error)
 
     const parsed = getUser()
     if (parsed) {
@@ -260,6 +264,40 @@ const formatTimelineDate = (value) => {
     month: '2-digit',
     year: 'numeric',
   })
+}
+
+const parseTimelineTime = (value) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const shouldSpreadDemoTimeline = (timeline) => {
+  const times = timeline
+    .map((step) => parseTimelineTime(step.time)?.getTime())
+    .filter(Boolean)
+
+  if (times.length < 3) return false
+
+  return Math.max(...times) - Math.min(...times) < 30 * 60 * 1000
+}
+
+const realisticShipmentTime = (order, step, index, baseDate) => {
+  const base = baseDate || new Date()
+  const offsets = {
+    created: 0,
+    waiting_pickup: 15 * 60 * 1000,
+    picked_up: 3 * 60 * 60 * 1000,
+    delivering: 5 * 60 * 60 * 1000,
+  }
+
+  if (step.status === 'delivered') {
+    const expectedDate = getShippingInfo(order)?.expected_delivery_date
+    const expected = expectedDate ? new Date(`${expectedDate}T10:30:00`) : null
+    if (expected && !Number.isNaN(expected.getTime()) && expected > base) return expected
+    return new Date(base.getTime() + 26 * 60 * 60 * 1000)
+  }
+
+  return new Date(base.getTime() + (offsets[step.status] ?? index * 2 * 60 * 60 * 1000))
 }
 
 const interpolateDate = (startValue, endValue, ratio) => {
@@ -325,6 +363,7 @@ const fetchOrders = async () => {
           trangthai: order.trangthai,
           updated_at: order.updated_at,
           du_lieu_thanh_toan: order.du_lieu_thanh_toan || {},
+          shipping: order.du_lieu_thanh_toan?.shipping_demo || null,
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           giam_gia: order.giam_gia || 0,
@@ -374,6 +413,10 @@ const fetchOrders = async () => {
           refundSteps: buildRefundSteps(order, statusKey)
         }
       })
+      if (selectedOrder.value) {
+        const freshSelected = orders.value.find(order => order.id_dathang === selectedOrder.value.id_dathang)
+        if (freshSelected) selectedOrder.value = freshSelected
+      }
     }
   } catch (error) {
     console.error('Lỗi tải đơn hàng:', error)
@@ -381,6 +424,11 @@ const fetchOrders = async () => {
 }
 
 const openCancelModal = (order) => {
+  if (!canCancelOrder(order)) {
+    showToast('Đơn hàng đã vào luồng vận chuyển nên không thể hủy.')
+    return
+  }
+
   orderToCancel.value = order
   cancelReason.value = ''
   showCancelModal.value = true
@@ -579,7 +627,7 @@ const submitReview = async () => {
         if (item) item.is_reviewed = true
       }
       
-      // Tải lại toàn bộ đơn hàng để cập nhật danh sách chính
+      // Táº£i láº¡i toÃ n bá»™ đơn hàng để cập nhật danh sách chính
       await fetchOrders()
     }
   } catch (err) {
@@ -607,6 +655,9 @@ const fetchWishlistCount = async () => {
 onMounted(() => {
   loadUser()
   fetchOrders()
+  orderRefreshTimer = window.setInterval(() => {
+    if (activeTab.value === 'orders') fetchOrders()
+  }, 20000)
   fetchWishlistCount()
   fetchPromotions()
   fetchAddresses()
@@ -660,6 +711,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (orderRefreshTimer) {
+    window.clearInterval(orderRefreshTimer)
+    orderRefreshTimer = null
+  }
   if (tempAvatarUrl.value) {
     URL.revokeObjectURL(tempAvatarUrl.value)
   }
@@ -670,7 +725,7 @@ onUnmounted(() => {
   }
 })
 
-// ── DAILY CHECK-IN ───────────────────────────────────────
+// â”€â”€ DAILY CHECK-IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const attendanceData = ref({
   checked_today: false,
   current_streak: 0,
@@ -978,7 +1033,10 @@ const saveProfile = async () => {
         }
       })
       if (avatarRes.data.user) {
-        updateUserData(avatarRes.data.user)
+        updateUserData({
+          ...avatarRes.data.user,
+          updated_at: avatarRes.data.user.updated_at || Date.now()
+        })
       }
     }
 
@@ -1006,7 +1064,7 @@ const saveProfile = async () => {
     showToast('Cập nhật thành công!')
 
   } catch (error) {
-    console.error('LỖI API:', error.response?.data)
+    console.error('Lỗi API:', error.response?.data)
     showToast(error.response?.data?.message || 'Lỗi cập nhật!')
   } finally {
     savingProfile.value = false
@@ -1023,9 +1081,9 @@ const stats = computed(() => [
   { label: 'Xu', value: rewardPoints.value, icon: 'star' },
 ])
 
-// ════════════════════════════════════════════════
-//  TAB 2 — ORDERS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 2 â€” ORDERS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const orderTab = ref('all')
 const selectedOrder = ref(null)
 
@@ -1060,7 +1118,171 @@ const statusMap = {
   cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
+const shipmentStyleMap = {
+  created: { color: '#6366f1', bg: '#eef2ff' },
+  waiting_pickup: { color: '#b45309', bg: '#fef3c7' },
+  picked_up: { color: '#0369a1', bg: '#e0f2fe' },
+  delivering: { color: '#2563eb', bg: '#dbeafe' },
+  delivered: { color: '#15803d', bg: '#dcfce7' },
+  delivery_failed: { color: '#dc2626', bg: '#fee2e2' },
+  returning: { color: '#ea580c', bg: '#ffedd5' },
+  returned: { color: '#7c3aed', bg: '#ede9fe' },
+}
+
+const shipmentLabelMap = {
+  created: 'Đã tạo vận đơn',
+  waiting_pickup: 'Chờ lấy hàng',
+  picked_up: 'Đã lấy hàng',
+  delivering: 'Đang giao hàng',
+  delivered: 'Giao thành công',
+  delivery_failed: 'Giao thất bại',
+  returning: 'Đang hoàn về',
+  returned: 'Đã hoàn về kho',
+}
+
+const shipmentNoteMap = {
+  created: 'Cửa hàng đã tạo vận đơn trên hệ thống NextGen Express.',
+  waiting_pickup: 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.',
+  picked_up: 'Đơn vị vận chuyển đã lấy hàng tại kho.',
+  delivering: 'Shipper đang giao hàng đến địa chỉ của bạn.',
+  delivered: 'Khách hàng đã nhận hàng thành công.',
+  delivery_failed: 'Giao hàng chưa thành công, cửa hàng sẽ liên hệ để hỗ trợ.',
+  returning: 'Đơn hàng đang được chuyển hoàn về kho.',
+  returned: 'Đơn hàng đã hoàn về kho NextGen.',
+}
+
+const getShipment = (order) => order?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
+const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const canCancelOrder = (order) => {
+  if (!['pending', 'confirmed'].includes(order?.status)) return false
+
+  const shipmentStatus = getShipment(order)?.status
+  const lockedShipmentStatuses = [
+    'waiting_pickup',
+    'picked_up',
+    'delivering',
+    'delivered',
+    'delivery_failed',
+    'returning',
+    'returned',
+  ]
+
+  return !lockedShipmentStatuses.includes(shipmentStatus)
+}
+const canShowShippingPanel = (order) => {
+  const status = String(order?.status || '')
+  return Boolean(order) && !status.startsWith('refund') && !['cancelled'].includes(status)
+}
+const getShippingInfo = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) return shipment
+
+  const status = order?.status || 'pending'
+  const fallbackByStatus = {
+    pending: {
+      tracking_code: 'Chờ cửa hàng xác nhận',
+      service_area: 'Chưa xác định',
+      service_level: 'Chưa tạo vận đơn',
+      expected_delivery_date: '-',
+      timeline_status: 'created',
+      timeline_label: 'Chờ xác nhận đơn',
+      timeline_note: 'Đơn hàng đang chờ cửa hàng xác nhận trước khi tạo vận đơn.',
+    },
+    confirmed: {
+      tracking_code: 'Đang đồng bộ vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Chờ lấy hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'waiting_pickup',
+      timeline_label: 'Chờ lấy hàng',
+      timeline_note: 'Đơn đã xác nhận, hệ thống đang đồng bộ vận đơn với NextGen Express.',
+    },
+    shipping: {
+      tracking_code: 'Đang cập nhật mã vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Đang giao hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'delivering',
+      timeline_label: 'Đang giao hàng',
+      timeline_note: 'Đơn hàng đang được vận chuyển, thông tin chi tiết sẽ được cập nhật sau.',
+    },
+    done: {
+      tracking_code: 'Đã hoàn tất',
+      service_area: 'Hoàn thành',
+      service_level: 'Giao thành công',
+      expected_delivery_date: order?.date || '-',
+      timeline_status: 'delivered',
+      timeline_label: 'Giao thành công',
+      timeline_note: 'Đơn hàng đã hoàn thành.',
+    },
+  }
+
+  const fallback = fallbackByStatus[status] || fallbackByStatus.pending
+
+  return {
+    provider: 'NextGen Express',
+    tracking_code: fallback.tracking_code,
+    expected_delivery_date: fallback.expected_delivery_date,
+    service_area: fallback.service_area,
+    service_level: fallback.service_level,
+    cod_amount: 0,
+    status,
+    fallback_timeline: [{
+      status: fallback.timeline_status,
+      label: fallback.timeline_label,
+      note: fallback.timeline_note,
+      time: order?.rawDate || order?.date || null,
+    }],
+  }
+}
+const getDisplayStatus = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && ['confirmed', 'shipping', 'done'].includes(order.status)) {
+    return shipmentLabelMap[shipment.status] || shipment.status_label || statusMap[order.status]?.label || order.status
+  }
+  return statusMap[order.status]?.label || order.status
+}
+const getDisplayStatusStyle = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && shipmentStyleMap[shipment.status]) return shipmentStyleMap[shipment.status]
+  return statusMap[order.status] || statusMap.pending
+}
+const getOrderStatusSubtext = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) {
+    return `${shipment.tracking_code} · Dự kiến ${shipment.expected_delivery_date || '-'}`
+  }
+
+  const fallback = {
+    pending: 'Đơn đang chờ cửa hàng xác nhận, chưa tạo vận đơn.',
+    confirmed: 'Đơn đã xác nhận, vận đơn đang được đồng bộ.',
+    shipping: 'Đơn đang được vận chuyển, đang cập nhật mã vận đơn.',
+    done: 'Đơn đã hoàn thành.',
+    cancelled: 'Đơn đã hủy, không tạo vận đơn.',
+    refund_pending: 'Yêu cầu hoàn trả đang chờ xử lý.',
+    refund_pickup: 'Đang chờ lấy hàng hoàn.',
+    refund_delivering: 'Hàng hoàn đang được vận chuyển.',
+    refund_received: 'Cửa hàng đã nhận hàng hoàn.',
+    refunded: 'Đã hoàn tiền cho đơn hàng.',
+    refund_rejected: 'Yêu cầu hoàn trả đã bị từ chối.',
+  }
+
+  return fallback[order?.status] || 'Trạng thái đơn hàng đang được cập nhật.'
+}
+const shippingTimelineFor = (order) => {
+  const timeline = getShippingInfo(order)?.timeline || getShippingInfo(order)?.fallback_timeline || []
+  const shouldSpread = shouldSpreadDemoTimeline(timeline)
+  const baseDate = parseTimelineTime(timeline[0]?.time) || parseTimelineTime(order?.created_at) || new Date()
+
+  return timeline.map((step, index) => ({
+    label: shipmentLabelMap[step.status] || step.label || step.status,
+    note: shipmentNoteMap[step.status] || step.note || 'Trạng thái vận chuyển đã được cập nhật.',
+    date: formatTimelineDate(shouldSpread ? realisticShipmentTime(order, step, index, baseDate) : step.time) || '-',
+  }))
+}
+
 const orders = ref([])
+let orderRefreshTimer = null
 
 const orderMode = ref('mua')
 
@@ -1089,9 +1311,9 @@ watch(orderTab, () => {
   currentPage.value = 1
 })
 
-// ════════════════════════════════════════════════
-//  TAB 3 — ADDRESS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 3 â€” ADDRESS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const showAddrForm = ref(false)
 const editingAddrIdx = ref(null)
 const savingAddr = ref(false)
@@ -1536,9 +1758,9 @@ const removeAddr = (i) => {
     })
 }
 
-// ════════════════════════════════════════════════
-//  TAB 4 — PASSWORD
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 4 â€” PASSWORD
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const pwForm = ref({ current: '', email: '', newPass: '', confirm: '' })
 const showPw = ref({ current: false, newPass: false, confirm: false })
 const savingPw = ref(false)
@@ -1683,9 +1905,9 @@ const savePw = async () => {
   }
 }
 
-// ════════════════════════════════════════════════
-//  TAB 5 — PROMOTIONS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 5 â€” PROMOTIONS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const promotions = ref([])
 const promoPage = ref(1)
 const promoPerPage = 5
@@ -1745,8 +1967,65 @@ const promoStatusMap = {
             </button>
           </div>
           <div class="modal-body">
-            <div class="modal-status" :style="{ color: statusMap[selectedOrder.status].color, background: statusMap[selectedOrder.status].bg }">
-              {{ statusMap[selectedOrder.status].label }}
+            <div class="modal-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+              {{ getDisplayStatus(selectedOrder) }}
+            </div>
+
+            <div v-if="canShowShippingPanel(selectedOrder)" class="customer-shipping-card">
+              <div class="shipping-card-head">
+                <div class="shipping-title-row">
+                  <div class="shipping-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M3 7h11v9H3z"/>
+                      <path d="M14 10h4l3 3v3h-7z"/>
+                      <circle cx="7" cy="18" r="2"/>
+                      <circle cx="18" cy="18" r="2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="shipping-kicker">Theo dõi vận chuyển</p>
+                    <h3>{{ getShippingInfo(selectedOrder).provider || 'NextGen Express' }}</h3>
+                    <span>{{ getShippingInfo(selectedOrder).tracking_code }}</span>
+                  </div>
+                </div>
+                <span class="shipping-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                  {{ getDisplayStatus(selectedOrder) }}
+                </span>
+              </div>
+              <div class="shipping-info-grid">
+                <div>
+                  <span>Dự kiến giao</span>
+                  <b>{{ getShippingInfo(selectedOrder).expected_delivery_date || '-' }}</b>
+                </div>
+                <div>
+                  <span>Khu vực</span>
+                  <b>{{ getShippingInfo(selectedOrder).service_area || 'Tiêu chuẩn' }}</b>
+                </div>
+                <div>
+                  <span>Gói giao</span>
+                  <b>{{ getShippingInfo(selectedOrder).service_level || 'Giao tiêu chuẩn' }}</b>
+                </div>
+                <div>
+                  <span>Thu hộ COD</span>
+                  <b>{{ new Intl.NumberFormat('vi-VN').format(getShippingInfo(selectedOrder).cod_amount || 0) }}đ</b>
+                </div>
+              </div>
+              <div class="shipping-events">
+                <div class="shipping-events-head">
+                  <span>Lịch trình đơn hàng</span>
+                  <b>{{ shippingTimelineFor(selectedOrder).length }} cập nhật</b>
+                </div>
+                <div class="shipping-events-rail">
+                  <div v-for="(event, idx) in shippingTimelineFor(selectedOrder)" :key="idx" class="shipping-event">
+                    <span></span>
+                    <div>
+                      <b>{{ event.label }}</b>
+                      <p>{{ event.note }}</p>
+                      <small>{{ event.date }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="(selectedOrder.status === 'cancelled' || selectedOrder.status === 'refund_pending' || selectedOrder.status === 'refunded') && selectedOrder.lydo" class="alert mb-4" :class="{'alert-danger': selectedOrder.status === 'cancelled', 'alert-warning': selectedOrder.status !== 'cancelled'}" style="font-size: 13px; padding: 12px; border-radius: 10px;">
@@ -1756,7 +2035,7 @@ const promoStatusMap = {
               </div>
             </div>
 
-            <div class="timeline" v-if="selectedOrder.steps && !selectedOrder.status.startsWith('refund')">
+            <div class="timeline" v-if="selectedOrder.steps && !canShowShippingPanel(selectedOrder) && !selectedOrder.status.startsWith('refund')">
               <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                 <div class="tl-col">
                   <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -1805,7 +2084,10 @@ const promoStatusMap = {
             <div class="modal-footer">
               <div class="modal-btns">
                 <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)"
-                  class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
+                  class="btn-modal-huy"
+                  :class="{ 'is-hidden': !canCancelOrder(selectedOrder) }"
+                  :disabled="!canCancelOrder(selectedOrder)"
+                  @click="openCancelModal(selectedOrder)">Hủy đơn</button>
                 <button v-if="isRefundable(selectedOrder)"
                   class="btn-modal-hoantra" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
                 <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
@@ -2171,7 +2453,7 @@ const promoStatusMap = {
 
     <div class="container">
 
-      <!-- ── SIDEBAR ── -->
+      <!-- â”€â”€ SIDEBAR â”€â”€ -->
       <aside class="sidebar">
         <!-- Input ẩn cho avatar upload -->
         <input 
@@ -2233,11 +2515,11 @@ const promoStatusMap = {
         </nav>
       </aside>
 
-      <!-- ── MAIN CONTENT ── -->
+      <!-- â”€â”€ MAIN CONTENT â”€â”€ -->
       <main class="main">
 
-        <!-- ════ TAB: PROFILE ════ -->
-        <!-- ════ TAB: PROFILE ════ -->
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
         <div v-if="activeTab === 'profile'" style="display: flex; flex-direction: column; gap: 24px;">
           <!-- Thông tin cá nhân -->
           <div class="card">
@@ -2254,7 +2536,7 @@ const promoStatusMap = {
             <div v-if="!editing" class="info-grid">
               <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
               <div class="info-row">
-                <span class="info-lbl">🪙 Xu tích lũy</span>
+                <span class="info-lbl">Xu tích lũy</span>
                 <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
                   <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
                   <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
@@ -2276,8 +2558,8 @@ const promoStatusMap = {
               </div>
             </div>
             <form v-else class="edit-form" @submit.prevent="saveProfile">
-              <div class="form-avatar-section">
-                <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+              <div class="form-avatar-section" @click="triggerAvatarUpload" role="button" tabindex="0" @keydown.enter.prevent="triggerAvatarUpload" @keydown.space.prevent="triggerAvatarUpload">
+                <div class="form-avatar-dashed-border">
                   <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
                     <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
                     <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
@@ -2331,7 +2613,7 @@ const promoStatusMap = {
               <div v-for="d in attendanceData.days_progress" :key="d.day" class="attendance-day-box" :class="d.status">
                 <div class="day-num">{{ d.label }}</div>
                 <div class="day-xu">
-                  <span class="coin-icon">🪙</span>
+                  <span class="coin-icon">Xu</span>
                   <span class="xu-val">+{{ d.xu }}</span>
                 </div>
                 <div class="day-status-icon">
@@ -2373,7 +2655,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: ORDERS ════ -->
+        <!-- â•â•â•â• TAB: ORDERS â•â•â•â• -->
         <div v-else-if="activeTab === 'orders'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
@@ -2432,20 +2714,31 @@ const promoStatusMap = {
                   <td>
                     <div style="font-weight: 600;">{{ order.total }}</div>
                     <div v-if="order.xu_dung > 0" style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
-                      🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
+                      Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
                     </div>
                   </td>
                   <td>
-                    <span class="status-cell" :style="{ color: statusMap[order.status].color }">
-                      {{ statusMap[order.status].label }}
-                    </span>
+                    <div class="customer-shipment-state">
+                      <span class="status-cell" :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
+                        {{ getDisplayStatus(order) }}
+                      </span>
+                      <span class="customer-tracking" :class="{ muted: !hasShipment(order) }">
+                        {{ getOrderStatusSubtext(order) }}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <div class="btn-group">
-                      <button class="btn-xem" @click="selectedOrder = order">Xem</button>
-                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
-                      <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
-                      <button v-if="isRefundable(order)" class="btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
+                      <button class="order-action-btn btn-xem" @click="selectedOrder = order">Xem</button>
+                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="order-action-btn btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button
+                        v-if="['pending', 'confirmed'].includes(order.status)"
+                        class="order-action-btn btn-huy-don"
+                        :class="{ 'is-hidden': !canCancelOrder(order) }"
+                        :disabled="!canCancelOrder(order)"
+                        @click="openCancelModal(order)"
+                      >Hủy đơn</button>
+                      <button v-if="isRefundable(order)" class="order-action-btn btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
                     </div>
                     
                   </td>
@@ -2466,7 +2759,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: ADDRESS ════ -->
+        <!-- â•â•â•â• TAB: ADDRESS â•â•â•â• -->
         <div v-else-if="activeTab === 'address'">
           <div class="page-header-inline" style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div><h1 class="card-title">Địa chỉ của tôi</h1><p class="card-sub">Quản lý địa chỉ giao hàng</p></div>
@@ -2498,7 +2791,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: PROMOTIONS ════ -->
+        <!-- â•â•â•â• TAB: PROMOTIONS â•â•â•â• -->
         <div v-else-if="activeTab === 'promotions'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
@@ -2593,7 +2886,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: PASSWORD ════ -->
+        <!-- â•â•â•â• TAB: PASSWORD â•â•â•â• -->
         <div v-else-if="activeTab === 'password'">
           <div class="page-header-inline"><h1 class="card-title">Đổi mật khẩu</h1><p class="card-sub">Cập nhật mật khẩu để bảo mật tài khoản</p></div>
           <div class="pw-layout">
@@ -2673,7 +2966,7 @@ const promoStatusMap = {
 
 <style scoped>
 
-/* ── BASE ── */
+/* â”€â”€ BASE â”€â”€ */
 .page {
   min-height: 100vh;
   background: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
@@ -2689,7 +2982,7 @@ const promoStatusMap = {
   align-items: start;
 }
 
-/* ── SIDEBAR ── */
+/* â”€â”€ SIDEBAR â”€â”€ */
 .sidebar {
   background: rgba(17, 31, 53, 0.6);
   backdrop-filter: blur(16px);
@@ -2761,7 +3054,7 @@ const promoStatusMap = {
   border: 1px solid rgba(37, 99, 235, 0.3);
   padding: 3px 12px;
   border-radius: 20px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .sidebar-join {
@@ -2770,7 +3063,7 @@ const promoStatusMap = {
   margin: 8px 0 0;
 }
 
-/* ── STAT GRID ── */
+/* â”€â”€ STAT GRID â”€â”€ */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2819,11 +3112,11 @@ const promoStatusMap = {
 .stat-lbl {
   font-size: 10px;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
-/* ── SIDEBAR NAV BUTTONS ── */
+/* â”€â”€ SIDEBAR NAV BUTTONS â”€â”€ */
 .side-nav {
   padding: 10px 12px 16px;
   display: flex;
@@ -2897,7 +3190,7 @@ const promoStatusMap = {
   transform: translateX(0);
 }
 
-/* ── MAIN ── */
+/* â”€â”€ MAIN â”€â”€ */
 .main {
   min-width: 0;
 }
@@ -2987,7 +3280,7 @@ const promoStatusMap = {
   font-size: 10px;
   color: #64748b;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
 }
 .info-val {
@@ -3203,7 +3496,7 @@ const promoStatusMap = {
   margin: 0;
 }
 
-/* ── CATEGORY TABS ── */
+/* â”€â”€ CATEGORY TABS â”€â”€ */
 .category-tabs {
   display: flex;
   gap: 8px;
@@ -3246,7 +3539,7 @@ const promoStatusMap = {
   margin-left: 6px;
 }
 
-/* ── ORDER TABS (Segmented Control) ── */
+/* â”€â”€ ORDER TABS (Segmented Control) â”€â”€ */
 .order-tabs {
   display: flex;
   gap: 4px;
@@ -3293,7 +3586,7 @@ const promoStatusMap = {
   color: #ffffff;
 }
 
-/* ── TABLES ── */
+/* â”€â”€ TABLES â”€â”€ */
 .table-card {
   background: transparent;
   border-radius: 18px;
@@ -3312,7 +3605,7 @@ const promoStatusMap = {
   padding: 16px 20px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   font-size: 11px;
   letter-spacing: 0.8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -3344,78 +3637,314 @@ const promoStatusMap = {
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid currentColor;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
+}
+.customer-shipment-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.customer-tracking {
+  max-width: 230px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.customer-tracking.muted {
+  color: #64748b;
+  font-weight: 500;
+}
+.customer-shipping-card {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    #f8fafc;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+.shipping-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.shipping-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.shipping-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  flex-shrink: 0;
+}
+.shipping-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shipping-kicker {
+  margin: 0 0 3px;
+  color: #0284c7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.shipping-card-head h3 {
+  margin: 0 0 2px;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.shipping-card-head span:not(.shipping-status) {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.shipping-status {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+.shipping-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.shipping-info-grid > div {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  min-height: 52px;
+  min-width: 0;
+}
+.shipping-info-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.shipping-info-grid b {
+  color: #0f172a;
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shipping-events {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.shipping-events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.shipping-events-head span {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+.shipping-events-head b {
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 900;
+}
+.shipping-events-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 220px;
+  padding: 1px 4px 1px 1px;
+  scrollbar-width: thin;
+  scrollbar-color: #93c5fd #eff6ff;
+}
+.shipping-events-rail::-webkit-scrollbar {
+  width: 6px;
+}
+.shipping-events-rail::-webkit-scrollbar-track {
+  background: #eff6ff;
+  border-radius: 999px;
+}
+.shipping-events-rail::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 999px;
+}
+.shipping-event {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  min-height: 82px;
+}
+.shipping-event:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 40px;
+  bottom: -12px;
+  width: 2px;
+  background: #bae6fd;
+}
+.shipping-event > span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  border: 5px solid #e0f2fe;
+  margin-top: 0;
+  z-index: 1;
+  box-shadow: 0 6px 14px rgba(14, 165, 233, 0.22);
+}
+.shipping-event b {
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 4px;
+}
+.shipping-event p {
+  margin: 3px 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.shipping-event small {
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .shipping-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .shipping-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Buttons inside tables */
 .btn-group {
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 240px;
+}
+.order-action-btn {
+  min-width: 66px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.05;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.order-action-btn:hover {
+  transform: translateY(-1px);
+}
+.order-action-btn.is-hidden,
+.btn-modal-huy.is-hidden {
+  opacity: 0.45;
+  filter: grayscale(0.45);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.order-action-btn.is-hidden:hover,
+.btn-modal-huy.is-hidden:hover {
+  transform: none;
+  cursor: not-allowed;
 }
 .btn-xem {
-  background: #0284c7;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
   color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  border-color: transparent;
 }
 .btn-xem:hover {
-  background: #0369a1;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.24);
 }
 .btn-hoan-tra {
-  background: transparent;
-  color: #f97316;
-  border: 1.5px solid rgba(249, 115, 22, 0.5);
-  padding: 5px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fed7aa;
 }
 .btn-hoan-tra:hover {
   background: #f97316;
   color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+  border-color: #f97316;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
 }
 .btn-mua-lai {
-  background: #1D4ED8;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
   color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  border-color: transparent;
 }
 .btn-mua-lai:hover {
-  background: #1E40AF;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.24);
 }
 .btn-huy-don {
-  background: transparent;
-  color: #ef4444;
-  border: 1.5px solid rgba(239, 68, 68, 0.5);
-  padding: 5px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  background: #fff7f7;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 .btn-huy-don:hover {
   background: #ef4444;
   color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  border-color: #ef4444;
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
 }
 
 /* Pagination */
@@ -3840,7 +4369,7 @@ const promoStatusMap = {
   font-size: 12px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
   margin: 0 0 14px;
 }
@@ -3913,7 +4442,7 @@ const promoStatusMap = {
   font-weight: 500;
 }
 .tip-list li::before {
-  content: '•';
+  content: 'â€¢';
   position: absolute;
   left: 0;
   color: #38bdf8;
@@ -4025,7 +4554,7 @@ const promoStatusMap = {
   padding: 5px 14px;
   border-radius: 99px;
   margin-bottom: 20px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   border: 1px solid currentColor;
   background: rgba(255, 255, 255, 0.03);
@@ -4170,7 +4699,7 @@ const promoStatusMap = {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
   margin: 0 0 12px;
 }
@@ -4253,7 +4782,7 @@ const promoStatusMap = {
   font-size: 12px;
   color: #64748b;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .total-value {
@@ -4942,7 +5471,7 @@ const promoStatusMap = {
 .btn-edit:hover,
 .btn-save,
 .order-tab.active,
-.btn-xem,
+.btn-xem:not(.order-action-btn),
 .p-num.active,
 .btn-add,
 .btn-modal-mua {
@@ -4953,7 +5482,7 @@ const promoStatusMap = {
 }
 
 .btn-save:hover,
-.btn-xem:hover,
+.btn-xem:not(.order-action-btn):hover,
 .btn-add:hover,
 .btn-modal-mua:hover {
   background: #0369a1;
@@ -5467,6 +5996,125 @@ const promoStatusMap = {
   line-height: 1;
 }
 
+.overlay:has(.customer-shipping-card) {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.modal:has(.customer-shipping-card) {
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.modal:has(.customer-shipping-card) .modal-head {
+  padding: 16px 22px 0;
+}
+
+.modal:has(.customer-shipping-card) .modal-title {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.modal:has(.customer-shipping-card) .modal-id {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.customer-shipping-card) .modal-body {
+  padding: 12px 22px 20px;
+}
+
+.modal:has(.customer-shipping-card) .modal-status {
+  margin-bottom: 10px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.customer-shipping-card) .section-title {
+  margin: 12px 0 8px;
+  color: #64748b;
+}
+
+.modal:has(.customer-shipping-card) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+  border-color: #dbeafe;
+  background: #f8fbff;
+}
+
+.modal:has(.customer-shipping-card) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-name {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-qty,
+.modal:has(.customer-shipping-card) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.customer-shipping-card) .btn-modal-huy,
+.modal:has(.customer-shipping-card) .btn-modal-hoantra,
+.modal:has(.customer-shipping-card) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.customer-shipping-card) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.customer-shipping-card) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.customer-shipping-card) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
 .timeline-dot {
   background: #ffffff;
   border-color: #cbd5e1;
@@ -5546,7 +6194,7 @@ const promoStatusMap = {
   }
 }
 
-/* ── DAILY CHECK-IN CARD ── */
+/* â”€â”€ DAILY CHECK-IN CARD â”€â”€ */
 .attendance-card {
   margin-top: 10px;
 }

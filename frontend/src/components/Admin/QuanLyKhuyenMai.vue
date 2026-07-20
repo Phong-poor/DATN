@@ -1040,7 +1040,7 @@ async function deletePromo(id) {
   font-weight: 800;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.88);
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .stat-value {
@@ -1091,7 +1091,7 @@ async function deletePromo(id) {
   font-weight: 800;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .stat-card-desc {
@@ -2107,7 +2107,7 @@ select.form-input {
   font-weight: 700;
   color: #6b7280;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .inline-form-body .form-input {

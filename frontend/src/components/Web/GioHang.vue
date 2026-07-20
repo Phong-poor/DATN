@@ -988,7 +988,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 6px;
 }
@@ -1251,7 +1251,7 @@ onMounted(() => {
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 1.4px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 4px;
 }
@@ -1424,7 +1424,7 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: 6px;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-left: 4px;
 }
 .freeship-label {
@@ -1760,7 +1760,7 @@ onMounted(() => {
     font-weight: 800;
     padding: 4px 10px;
     border-radius: 20px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 
