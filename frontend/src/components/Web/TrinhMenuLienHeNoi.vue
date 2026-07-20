@@ -74,7 +74,7 @@ const triggerAction = (type) => {
 /* ========== FLOATING MENU CONTAINER ========== */
 .floating-menu-container {
   position: fixed;
-  right: 24px;
+  right: var(--floating-widget-right, 24px);
   bottom: 28px;
   z-index: 9999;
   display: flex;
@@ -335,7 +335,7 @@ const triggerAction = (type) => {
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {
   .floating-menu-container {
-    right: 18px;
+    right: var(--floating-widget-right-mobile, 18px);
     bottom: 20px;
     gap: 10px;
   }

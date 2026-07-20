@@ -513,7 +513,7 @@ td { padding: 16px 20px; vertical-align: middle; }
   font-size: 16px;
   font-weight: 700;
   color: #3b82f6;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 /* Logo Upload Section in Modal */

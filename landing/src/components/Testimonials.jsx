@@ -30,7 +30,7 @@ export default function Testimonials() {
       {/* Background effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-20 reveal-hidden reveal-visible">

@@ -54,37 +54,6 @@ const getDefaultAdminPath = (user = getUser()) => {
   return defaults[role] || '/admin/bang-dieu-khien'
 }
 
-const publicPages = [
-  '/',
-  '/laptop',
-  '/phu-kien',
-  '/gaming',
-  '/login',
-  '/dang-nhap',
-  '/register',
-  '/dang-ky',
-  '/forgot-password',
-  '/quen-mat-khau',
-  '/otp-verify',
-  '/xac-thuc-otp',
-  '/reset-password',
-  '/reset_password',
-  '/dat-lai-mat-khau',
-  '/login-success',
-  '/dang-nhap-thanh-cong',
-  '/news',
-  '/tin-tuc',
-  '/contact',
-  '/lien-he',
-  '/cart',
-  '/gio-hang',
-  '/thank-you',
-  '/cam-on',
-  '/payment-failed',
-  '/thanh-toan-that-bai',
-  '/khuyen-mai',
-]
-
 const adminChildren = [
   { path: '', redirect: () => getDefaultAdminPath() },
   { path: 'bang-dieu-khien', alias: ['dashboard'], name: 'admin-dashboard', component: () => import('../components/Admin/BangDieuKhien.vue'), meta: { title: 'Bảng điều khiển' } },
@@ -129,12 +98,12 @@ const routes = [
       { path: 'tin-tuc/:id', alias: ['/news/:id'], name: 'news-detail', component: NewsDetail },
       { path: 'lien-he', alias: ['/contact'], name: 'contact', component: Contact },
       { path: 'gio-hang', alias: ['/cart'], name: 'cart', component: Cart },
-      { path: 'thanh-toan', alias: ['/checkout'], name: 'checkout', component: Checkout },
-      { path: 'trang-ca-nhan', alias: ['/profile'], name: 'profile', component: Profile },
+      { path: 'thanh-toan', alias: ['/checkout'], name: 'checkout', component: Checkout, meta: { requiresAuth: true } },
+      { path: 'trang-ca-nhan', alias: ['/profile'], name: 'profile', component: Profile, meta: { requiresAuth: true } },
       { path: 'chat', name: 'chat', component: ChatbotWidget },
-      { path: 'don-hang', alias: ['/orderspage'], name: 'orderspage', component: Orderspage },
+      { path: 'don-hang', alias: ['/orderspage'], name: 'orderspage', component: Orderspage, meta: { requiresAuth: true } },
       { path: 'doi-mat-khau', alias: ['/passwordpage'], name: 'passwordpage', component: Passwordpage },
-      { path: 'danh-sach-yeu-thich', alias: ['/wishlistpage', '/yeu-thich'], name: 'wishlistpage', component: WishlistPage },
+      { path: 'danh-sach-yeu-thich', alias: ['/wishlistpage', '/yeu-thich'], name: 'wishlistpage', component: WishlistPage, meta: { requiresAuth: true } },
       { path: 'cam-on', alias: ['/thank-you'], name: 'thank-you', component: ThankYou },
       { path: 'thanh-toan-that-bai', alias: ['/payment-failed'], name: 'payment-failed', component: PaymentFailed },
       { path: 'khuyen-mai', name: 'promotions', component: Promotions },
@@ -204,14 +173,9 @@ router.beforeEach((to, from, next) => {
 
   const user = getUser()
   const token = getToken()
-  const isPublic =
-    publicPages.includes(to.path) ||
-    to.path.startsWith('/products/') ||
-    to.path.startsWith('/san-pham/') ||
-    to.path.startsWith('/news/') ||
-    to.path.startsWith('/tin-tuc/')
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
 
-  if (!isPublic && !token) {
+  if (requiresAuth && !token) {
     return next({ path: '/dang-nhap', query: { redirect: to.fullPath } })
   }
 

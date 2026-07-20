@@ -444,11 +444,9 @@ const submitGroup = async () => {
       danh_muc_ids: groupForm.value.danh_muc_ids
     }
     if (modalType.value === 'editGroup') {
-      await api.put(`/admin/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
-      await api.put(`/nhomthuoctinh/${editingId}`, payload)
+      await api.put(`/admin/nhomthuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/admin/nhomthuoctinh', { ten_nhom: groupForm.value.name })
-      await api.post('/nhomthuoctinh', payload)
+      await api.post('/admin/nhomthuoctinh', payload)
     }
     await fetchAll()
     groupPagination.goToPage(1)
@@ -1995,7 +1993,7 @@ async function handleImportFile(e) {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: .05em;
   background: #f8fafc;
   border-radius: 6px;

@@ -56,6 +56,8 @@ class OrderStatusUpdated implements ShouldBroadcast
             'id_dathang' => $this->order->id_dathang,
             'trangthai' => $this->order->trangthai,
             'trang_thai_thanh_toan' => $this->order->trang_thai_thanh_toan,
+            'updated_at' => $this->order->updated_at?->toDateTimeString(),
+            'status_history' => $this->order->du_lieu_thanh_toan['status_history'] ?? [],
             'message' => 'Trạng thái đơn hàng #' . $this->order->id_dathang . ' đã thay đổi thành ' . $this->order->trangthai
         ];
     }

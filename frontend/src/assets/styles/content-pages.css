@@ -1,0 +1,375 @@
+/* ============================================================
+   Content, promotion, contact, and affiliate page polish
+   ============================================================ */
+
+/* News listing */
+.news-page,
+.detail-page,
+.promotions-shell,
+.contact-page,
+.affiliate-page {
+  background: var(--ds-bg) !important;
+  color: var(--ds-text);
+}
+
+.news-page .news-header,
+.news-page .editorial-hero-showcase,
+.news-page .radar-card,
+.news-page .magazine-card,
+.news-page .sidebar-magazine-widget,
+.news-page .premium-subscribe-block,
+.news-page .empty-state-card,
+.detail-page .article-wrap,
+.detail-page .state-box,
+.detail-page .related-card,
+.detail-page .seo-summary {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.news-page .magazine-card,
+.news-page .radar-card,
+.detail-page .related-card {
+  transition:
+    border-color var(--ds-duration) var(--ds-ease),
+    box-shadow var(--ds-duration) var(--ds-ease),
+    transform var(--ds-duration) var(--ds-ease) !important;
+}
+
+.news-page .magazine-card:hover,
+.news-page .radar-card:hover,
+.detail-page .related-card:hover {
+  border-color: var(--ds-border-strong) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  transform: translateY(-3px) !important;
+}
+
+.news-page .news-header h1,
+.news-page .hero-headline,
+.news-page .card-headline,
+.news-page .widget-magazine-title,
+.detail-page .article-head h1,
+.detail-page .related h2,
+.detail-page .seo-summary h2 {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.news-page .header-description,
+.news-page .hero-abstract,
+.news-page .card-excerpt,
+.detail-page .meta,
+.detail-page .lead,
+.detail-page .article-body,
+.detail-page .seo-summary p {
+  color: var(--ds-text-muted) !important;
+}
+
+.news-page .header-badge,
+.news-page .hero-category-tag,
+.news-page .card-category-badge,
+.news-page .card-read-more-link,
+.news-page .radar-link,
+.detail-page .category,
+.detail-page .back-link {
+  color: var(--ds-primary) !important;
+}
+
+.news-page .tabs button,
+.news-page .cyber-tag,
+.news-page .trend-item,
+.news-page .pagination-arrow-btn,
+.detail-page .back-link {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.news-page .tabs button.active,
+.news-page .cyber-tag.active,
+.news-page .pagination-arrow-btn:hover {
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  border-color: var(--ds-primary) !important;
+}
+
+.news-page .newsletter-cyber-input {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+}
+
+.news-page .newsletter-cyber-input:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.news-page .newsletter-cyber-btn {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+}
+
+/* Promotions */
+.promotions-shell {
+  --promo-primary: var(--ds-primary);
+  --promo-primary-hover: var(--ds-primary-hover);
+}
+
+.promotions-shell .stats-banner-wrapper,
+.promotions-shell .device-showcase-card,
+.promotions-shell .stat-box-card,
+.promotions-shell .voucher-card,
+.promotions-shell .product-card,
+.promotions-shell .combo-card,
+.promotions-shell .newsletter-panel,
+.promotions-shell .filter-panel,
+.promotions-shell .article-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.promotions-shell .voucher-card,
+.promotions-shell .product-card,
+.promotions-shell .combo-card,
+.promotions-shell .article-card {
+  transition:
+    transform var(--ds-duration) var(--ds-ease),
+    box-shadow var(--ds-duration) var(--ds-ease),
+    border-color var(--ds-duration) var(--ds-ease) !important;
+}
+
+.promotions-shell .voucher-card:hover,
+.promotions-shell .product-card:hover,
+.promotions-shell .combo-card:hover,
+.promotions-shell .article-card:hover {
+  border-color: var(--ds-border-strong) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  transform: translateY(-3px) !important;
+}
+
+.promotions-shell h1,
+.promotions-shell h2,
+.promotions-shell h3,
+.promotions-shell .section-title {
+  letter-spacing: 0 !important;
+}
+
+.promotions-shell .ambient-label,
+.promotions-shell .gradient-text,
+.promotions-shell .price-current,
+.promotions-shell .voucher-code {
+  color: var(--ds-primary) !important;
+}
+
+.promotions-shell .btn,
+.promotions-shell .claim-btn,
+.promotions-shell .copy-btn,
+.promotions-shell .combo-action-btn {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.promotions-shell .btn-primary-glass,
+.promotions-shell .claim-btn,
+.promotions-shell .copy-btn {
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  border-color: var(--ds-primary) !important;
+}
+
+.promotions-shell input,
+.promotions-shell select {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.promotions-shell input:focus,
+.promotions-shell select:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+/* Contact */
+.contact-page,
+.contact-root,
+.contact-section,
+.contact-wrapper {
+  background: var(--ds-bg) !important;
+}
+
+.contact-page .contact-card,
+.contact-page .info-card,
+.contact-page .showroom-card,
+.contact-page .form-card,
+.contact-page .map-card,
+.contact-page .step-card,
+.contact-page .category-option,
+.contact-page .contact-cta-box,
+.contact-page .faq-card,
+.contact-root .contact-card,
+.contact-root .info-card,
+.contact-root .showroom-card,
+.contact-root .form-card,
+.contact-root .map-card,
+.contact-root .step-card,
+.contact-root .category-option,
+.contact-root .contact-cta-box,
+.contact-root .faq-card,
+.contact-section .contact-card,
+.contact-section .info-card,
+.contact-section .showroom-card,
+.contact-section .form-card,
+.contact-section .map-card,
+.contact-section .step-card,
+.contact-section .category-option,
+.contact-section .contact-cta-box,
+.contact-section .faq-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.contact-page h1,
+.contact-page h2,
+.contact-page h3,
+.contact-root h1,
+.contact-root h2,
+.contact-root h3,
+.contact-section h1,
+.contact-section h2,
+.contact-section h3 {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.contact-page p,
+.contact-root p,
+.contact-section p {
+  color: var(--ds-text-muted) !important;
+}
+
+.contact-page input,
+.contact-page select,
+.contact-page textarea,
+.contact-root input,
+.contact-root select,
+.contact-root textarea,
+.contact-section input,
+.contact-section select,
+.contact-section textarea {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+}
+
+.contact-page input:focus,
+.contact-page select:focus,
+.contact-page textarea:focus,
+.contact-root input:focus,
+.contact-root select:focus,
+.contact-root textarea:focus,
+.contact-section input:focus,
+.contact-section select:focus,
+.contact-section textarea:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.contact-page button,
+.contact-page .cta-phone-btn,
+.contact-page .cta-form-btn,
+.contact-root button,
+.contact-root .cta-phone-btn,
+.contact-root .cta-form-btn,
+.contact-section button,
+.contact-section .cta-phone-btn,
+.contact-section .cta-form-btn {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+/* Affiliate */
+.affiliate-page {
+  background: var(--ds-bg) !important;
+}
+
+.affiliate-page .heading-banner,
+.affiliate-page .card,
+.affiliate-page .tab-content-panel,
+.affiliate-page .link-sharing-card,
+.affiliate-page .stat-card,
+.affiliate-page .notice-info-card,
+.affiliate-page .table-container,
+.affiliate-page .video-submit-card,
+.affiliate-page .video-list-card,
+.affiliate-page .withdraw-form-card,
+.affiliate-page .withdraw-history-box,
+.affiliate-page .withdraw-balance-box,
+.affiliate-page .affiliate-video-row {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.affiliate-page .heading-banner {
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(255, 255, 255, 0.92)),
+    var(--ds-surface) !important;
+}
+
+.affiliate-page h1,
+.affiliate-page h2,
+.affiliate-page h3,
+.affiliate-page .section-header h3,
+.affiliate-page .stat-value,
+.affiliate-page .balance-val {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.affiliate-page p,
+.affiliate-page .text-muted,
+.affiliate-page .stat-label,
+.affiliate-page .info-badge-label {
+  color: var(--ds-text-muted) !important;
+}
+
+.affiliate-page .badge-tag,
+.affiliate-page .tab-btn.active,
+.affiliate-page .btn-primary,
+.affiliate-page .btn-copy {
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  border-color: var(--ds-primary) !important;
+}
+
+.affiliate-page .dashboard-tabs,
+.affiliate-page .tab-btn,
+.affiliate-page .btn,
+.affiliate-page .video-action-btn {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.affiliate-page input,
+.affiliate-page select,
+.affiliate-page textarea,
+.affiliate-page .link-input,
+.affiliate-page .generator-input,
+.affiliate-page .generator-select {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+}
+
+.affiliate-page input:focus,
+.affiliate-page select:focus,
+.affiliate-page textarea:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}

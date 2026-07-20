@@ -99,6 +99,7 @@
     </div>
 
     <!-- Floating Conversation Views -->
+    <Teleport to="body">
     <div class="active-conversations-container">
       <transition-group name="slide-in-right">
         <div 
@@ -189,6 +190,7 @@
         </div>
       </transition-group>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -319,7 +321,9 @@ const formatMessage = (text, query = '') => {
   return formatted;
 };
 
-const isOwnMessage = (msg) => Number(msg?.sender_id) === Number(authUserId.value);
+const messageSenderId = (msg) => msg?.id_nguoigui ?? msg?.sender_id;
+const messageConversationId = (msg) => msg?.id_cuoc_tro_chuyen ?? msg?.conversation_id;
+const isOwnMessage = (msg) => Number(messageSenderId(msg)) === Number(authUserId.value);
 
 const unreadCount = computed(() => {
   return conversations.value.filter(c => c.unread_count > 0).length;
@@ -428,7 +432,8 @@ const closeConversation = (conv) => {
 };
 
 const bumpConversation = (msg) => {
-  const idx = conversations.value.findIndex((c) => c.id === msg.conversation_id);
+  const convId = messageConversationId(msg);
+  const idx = conversations.value.findIndex((c) => Number(c.id) === Number(convId));
   if (idx === -1) {
     loadConversations();
     startChatTitleNotice();
@@ -437,7 +442,7 @@ const bumpConversation = (msg) => {
   conversations.value[idx].last_message = conversationPreviewFromMessage(msg);
   conversations.value[idx].updated_at = msg.created_at;
   
-  if (Number(msg.sender_id) === Number(conversations.value[idx].user.id)) {
+  if (Number(messageSenderId(msg)) === Number(conversations.value[idx].user.id)) {
     conversations.value[idx].user.online = true;
     conversations.value[idx].user.last_active_at = msg.created_at;
   }
@@ -445,15 +450,15 @@ const bumpConversation = (msg) => {
   const conv = conversations.value.splice(idx, 1)[0];
   conversations.value.unshift(conv);
 
-  if (activeConversations.value.find(c => c.id === msg.conversation_id)) {
-    const active = activeConversations.value.find(c => c.id === msg.conversation_id);
-    if (Number(msg.sender_id) === Number(active.user.id)) {
+  if (activeConversations.value.find(c => Number(c.id) === Number(convId))) {
+    const active = activeConversations.value.find(c => Number(c.id) === Number(convId));
+    if (Number(messageSenderId(msg)) === Number(active.user.id)) {
       active.user.online = true;
       active.user.last_active_at = msg.created_at;
     }
   }
 
-  if (!activeConversations.value.find(c => c.id === msg.conversation_id)) {
+  if (!activeConversations.value.find(c => Number(c.id) === Number(convId))) {
     conv.unread_count = (conv.unread_count || 0) + 1;
     startChatTitleNotice();
   }
@@ -476,7 +481,7 @@ const subscribeToConversation = (id) => {
   bindChatChannel(echo, `chat.${id}`, messagesRef, authUserId.value, (msg) => {
     scrollToBottom(id);
     const active = activeConversations.value.find(c => c.id === id);
-    if (active && Number(msg.sender_id) === Number(active.user.id)) {
+    if (active && Number(messageSenderId(msg)) === Number(active.user.id)) {
       active.user.online = true;
       active.user.last_active_at = msg.created_at;
     }
@@ -971,7 +976,7 @@ onUnmounted(() => {
   left: 0;
   height: 0;
   pointer-events: none;
-  z-index: 2000;
+  z-index: 10050;
   display: flex;
   flex-direction: row-reverse;
 }
@@ -983,17 +988,19 @@ onUnmounted(() => {
   height: 480px;
   pointer-events: auto;
   transition: right 0.3s ease;
-  z-index: 2000;
+  z-index: 10051;
 }
 
 .conversation-window {
   width: 100%;
   height: 100%;
+  min-height: 0;
   background: #fff;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 8px 10px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .conv-header {
@@ -1002,6 +1009,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
 }
 
 .conv-header-left {
@@ -1062,6 +1070,7 @@ onUnmounted(() => {
 
 .conv-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px;
   display: flex;
@@ -1103,8 +1112,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: #fff;
   border-top: 1px solid #ebedef;
   flex-shrink: 0;
+}
+
+.conv-footer :deep(.chat-composer) {
+  width: 100%;
 }
 
 .slide-up-enter-active, .slide-up-leave-active { transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1); }

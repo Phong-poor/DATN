@@ -14,7 +14,9 @@ class AffiliateController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        $profile = AffiliateProfile::where('id_khachhang', $user->id)->first();
+        $profile = AffiliateProfile::with('user:id,ten,email,anhdaidien')
+            ->where('id_khachhang', $user->id)
+            ->first();
 
         if (!$profile) {
             return response()->json([

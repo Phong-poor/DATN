@@ -37,65 +37,65 @@ export default function FeatureSection() {
   const features = [
     {
       icon: Cpu,
-      tag: 'Superconducting Matrix',
-      title: 'Topological Quantum Silicon',
-      desc: 'Superconducting circuits bypass electron scattering, enabling zero-resistance signal routes for instantaneous operations.'
+      tag: 'Ma trận xử lý',
+      title: 'Nền tảng silicon tối ưu',
+      desc: 'Luồng tín hiệu được tối ưu để giảm nghẽn, giúp hệ thống phản hồi nhanh hơn khi xử lý tác vụ nặng.'
     },
     {
       icon: Server,
-      tag: 'Zero-Thermal Enclosure',
-      desc: 'Liquid bus chambers filled with low-viscosity fluorochemicals maintain absolute stability under heavy processing cycles.',
-      title: 'Cryogenic Cycle Loop'
+      tag: 'Khung máy mát và êm',
+      desc: 'Khoang làm mát và luồng khí ổn định giúp máy duy trì hiệu năng khi render, gaming hoặc chạy AI liên tục.',
+      title: 'Vòng làm mát Cryogenic'
     },
     {
       icon: Zap,
-      tag: 'Laser Interconnect',
-      title: 'Optical Neural Storage',
-      desc: 'Holographic pipelines transport storage parameters at the speed of light, resolving latency caps seen in regular architectures.'
+      tag: 'Kết nối tốc độ cao',
+      title: 'Bộ nhớ truyền tải nhanh',
+      desc: 'Hệ thống truyền dữ liệu băng thông lớn giúp giảm độ trễ trong quá trình dựng hình và xử lý dữ liệu.'
     },
     {
       icon: Activity,
-      tag: 'Self-Calibrating Engine',
-      title: 'Cognitive Synergy OS',
-      desc: 'Underlying hardware metrics are optimized in real-time by an intelligent, embedded neural calibrator.'
+      tag: 'Tự động tối ưu',
+      title: 'Hệ điều phối thông minh',
+      desc: 'Các thông số phần cứng được theo dõi và cân bằng để máy hoạt động ổn định trong nhiều tình huống.'
     },
     {
       icon: Shield,
-      tag: 'Military-Grade Isolation',
-      title: 'Quantum Parity Shields',
-      desc: 'Isolated core pipelines feature electrostatic defense shells, preserving structural memory integrity against ambient decay.'
+      tag: 'Bảo vệ dữ liệu',
+      title: 'Lớp bảo vệ bộ nhớ',
+      desc: 'Cơ chế kiểm soát lỗi giúp bảo toàn dữ liệu trong quá trình xử lý tác vụ dài và phức tạp.'
     },
     {
       icon: RefreshCw,
-      tag: 'Unrestricted Upgrades',
-      title: 'Modular Expansion Node',
-      desc: 'Designed with tool-less magnetic interconnect rails, making hot-swappable subsystem upgrades simple and effortless.'
+      tag: 'Dễ nâng cấp',
+      title: 'Thiết kế module mở rộng',
+      desc: 'Cấu trúc linh hoạt giúp nâng cấp linh kiện nhanh, gọn và phù hợp với nhu cầu sử dụng lâu dài.'
     }
   ]
 
   return (
-    <section id="features" className="relative py-28 bg-gradient-to-b from-[#020817] via-[#071120] to-[#020817] overflow-hidden border-t border-slate-900">
+    <section id="features" className="landing-section relative py-28 bg-gradient-to-b from-[#020817] via-[#071120] to-[#020817] overflow-hidden border-t border-slate-900">
       {/* Background vector accents */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-20">
         <div className="absolute w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] top-1/4 -left-20"></div>
         <div className="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] bottom-1/4 -right-20"></div>
       </div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Section Title */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 reveal-hidden reveal-visible">
           <div className="max-w-2xl">
             <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-              System Core Innovations
+              Công nghệ lõi nổi bật
             </span>
             <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-4 tracking-tight">
-              Built to Empower <br/>
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-white bg-clip-text text-transparent">Next-Gen Creators</span>
+              Tối ưu cho <br/>
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-white bg-clip-text text-transparent">người dùng thế hệ mới</span>
             </h2>
           </div>
           <p className="text-slate-400 font-light text-base max-w-sm mt-4 md:mt-0 md:text-right">
-            Our engineering team designed each system around extreme workloads, ensuring fluid stability under continuous pressure.
+            Mỗi hệ thống được thiết kế để xử lý công việc nặng, giữ hiệu năng ổn định trong thời gian dài.
           </p>
         </div>
 

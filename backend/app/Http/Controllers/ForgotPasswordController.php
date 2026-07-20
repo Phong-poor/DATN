@@ -109,6 +109,13 @@ class ForgotPasswordController extends Controller
 
     public function resetPassword(Request $request)
     {
+        if (!$request->filled('matkhau') && $request->filled('password')) {
+            $request->merge([
+                'matkhau' => $request->input('password'),
+                'matkhau_confirmation' => $request->input('password_confirmation'),
+            ]);
+        }
+
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],

@@ -3,53 +3,53 @@ import { ShieldAlert, Award, FileSpreadsheet, Eye } from 'lucide-react'
 export default function VisualStory() {
   const steps = [
     {
-      phase: 'Phase 01',
-      title: 'Topological Silicon Layout',
-      desc: 'Our physicists formulated a superconductor pathway matrix to avoid electron collision. By printing circuits on specialized topological insulators, latency decreased to near-zero levels.',
-      status: 'Validated',
+      phase: 'Giai đoạn 01',
+      title: 'Thiết kế nền tảng xử lý',
+      desc: 'Đội ngũ kỹ thuật tối ưu đường truyền tín hiệu và kiến trúc xử lý để giảm độ trễ trong các tác vụ nặng.',
+      status: 'Đã kiểm chứng',
       icon: Award
     },
     {
-      phase: 'Phase 02',
-      title: 'Liquid Cryo-Bus Chassis',
-      desc: 'Standard fans could not sustain thermal demands. We built an aerodynamic titanium shell, housing a sealed fluorochemical pump to run continuous -180°C cooling cycles.',
-      status: 'Perfected',
+      phase: 'Giai đoạn 02',
+      title: 'Khung máy Cryo-Bus làm mát',
+      desc: 'Hệ thống tản nhiệt được thiết kế để giữ máy ổn định khi render, chơi game hoặc xử lý dữ liệu trong thời gian dài.',
+      status: 'Hoàn thiện',
       icon: Eye
     },
     {
-      phase: 'Phase 03',
-      title: 'Cognitive Synergy Integration',
-      desc: 'A physical rig requires customized software core synergy. We developed Cognitive Synergy OS—an interface system optimized to balance thread metrics dynamically.',
-      status: 'Live Beta',
+      phase: 'Giai đoạn 03',
+      title: 'Tích hợp điều phối thông minh',
+      desc: 'Phần mềm điều phối giúp cân bằng tài nguyên, theo dõi tải hệ thống và tối ưu hiệu năng theo thời gian thực.',
+      status: 'Đang thử nghiệm',
       icon: FileSpreadsheet
     },
     {
-      phase: 'Phase 04',
-      title: 'Cryo-Thermal Stress Calibration',
-      desc: 'Before delivery, each rig spends 48 hours undergoing artificial neural stress testing. The unit undergoes custom benchmark loops until performance metrics stabilize.',
-      status: 'Production Ready',
+      phase: 'Giai đoạn 04',
+      title: 'Kiểm thử tải và nhiệt độ',
+      desc: 'Trước khi bàn giao, mỗi bộ máy được kiểm thử hiệu năng và nhiệt độ để đảm bảo vận hành ổn định.',
+      status: 'Sẵn sàng',
       icon: ShieldAlert
     }
   ]
 
   return (
-    <section id="story" className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
+    <section id="story" className="landing-section relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
       {/* Decorative glows in background */}
       <div className="absolute top-1/3 left-10 w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-1/3 right-10 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-20 reveal-hidden reveal-visible">
+        <div className="landing-header mb-20 reveal-hidden reveal-visible">
           <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-            Engineering Timeline
+            Quy trình phát triển
           </span>
           <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-6 tracking-tight">
-            How We Crafted <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Aether Neural Rig</span>
+            Cách chúng tôi xây dựng <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Aether Neural Rig</span>
           </h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            Our timeline represents thousands of engineering hours dedicated to creating the physical peak of creator hardware.
+            Mỗi giai đoạn đều tập trung vào độ ổn định, hiệu năng và trải nghiệm sử dụng thực tế.
           </p>
         </div>
 

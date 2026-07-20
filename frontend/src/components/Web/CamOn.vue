@@ -90,14 +90,6 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: linear-gradient(90deg, #0ea5e9, #2563eb, #22c55e);
-}
-
 .icon-box {
   width: 88px;
   height: 88px;

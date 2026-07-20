@@ -30,7 +30,7 @@ export default function WhyChooseUs() {
       <div className="absolute top-1/2 left-10 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-hidden reveal-visible">

@@ -36,6 +36,18 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (!$request->filled('ten') && $request->filled('name')) {
+            $request->merge([
+                'ten' => $request->input('name'),
+            ]);
+        }
+
+        if (!$request->filled('sodienthoai') && $request->filled('phone')) {
+            $request->merge([
+                'sodienthoai' => $request->input('phone'),
+            ]);
+        }
+
         if (!$request->filled('matkhau') && $request->filled('password')) {
             $request->merge([
                 'matkhau' => $request->input('password'),
@@ -243,15 +255,22 @@ class AuthController extends Controller
             return redirect($this->frontendUrl('/login', ['social_error' => 'google_callback_failed']));
         }
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        $googleId = $googleUser->getId();
+        $googleEmail = $googleUser->getEmail();
+
+        $user = User::where('id_google', $googleId)->first();
+        if (!$user && $googleEmail) {
+            $user = User::where('email', $googleEmail)->first();
+        }
 
         DB::beginTransaction();
         try {
             if (!$user) {
                 $user = User::create([
                     'ten' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
+                    'email' => $googleEmail,
                     'matkhau' => Str::random(16),
+                    'id_google' => $googleId,
                     'vaitro' => 'user'
                 ]);
 
@@ -273,6 +292,11 @@ class AuthController extends Controller
                             ]
                         );
                     }
+                }
+            } else {
+                if (!$user->id_google) {
+                    $user->id_google = $googleId;
+                    $user->save();
                 }
             }
             DB::commit();

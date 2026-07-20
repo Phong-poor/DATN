@@ -440,7 +440,7 @@ th {
   color: #64748b;
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   padding: 14px 16px;
   text-align: left;

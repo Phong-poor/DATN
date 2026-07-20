@@ -513,7 +513,7 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">🎯 NextGen Laptop Store</div>
+              <div class="header-eyebrow">NextGen Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
                 <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
               </h1>
@@ -676,7 +676,7 @@ onMounted(() => {
             <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
               <!-- Banner qu t?ng VIP (ch? hi?n khi l uu di mi?n ph) -->
               <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
-                <span class="gift-offer-icon">🎁</span>
+                <span class="gift-offer-icon"></span>
                 <div class="gift-offer-text">
                   <strong>Quà Tặng Đặc Quyền VIP</strong>
                   <span>Miễn phí hoàn toàn - Kèm theo đơn hàng của bạn</span>
@@ -988,7 +988,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 6px;
 }
@@ -1251,7 +1251,7 @@ onMounted(() => {
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 1.4px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 4px;
 }
@@ -1424,7 +1424,7 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: 6px;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-left: 4px;
 }
 .freeship-label {
@@ -1760,7 +1760,7 @@ onMounted(() => {
     font-weight: 800;
     padding: 4px 10px;
     border-radius: 20px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 

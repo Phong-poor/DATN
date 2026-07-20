@@ -7,7 +7,7 @@ export default function Navbar() {
   const magneticCtaRef = useMagneticButton()
 
   return (
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl z-50 glass-dark rounded-2xl px-6 py-4 transition-all duration-300 hover:border-cyan-500/20">
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 landing-container z-50 glass-dark rounded-2xl px-6 py-4 transition-all duration-300 hover:border-cyan-500/20">
       <div className="flex items-center justify-between">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2 group">
@@ -22,23 +22,23 @@ export default function Navbar() {
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-8 font-medium text-sm text-slate-300">
           <a href="#showcase" className="hover:text-cyan-400 transition-colors duration-200 relative group py-1">
-            Specs
+            Cấu hình
             <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-cyan-400 transition-all duration-300 group-hover:w-full"></span>
           </a>
           <a href="#features" className="hover:text-cyan-400 transition-colors duration-200 relative group py-1">
-            Core Tech
+            Công nghệ lõi
             <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-cyan-400 transition-all duration-300 group-hover:w-full"></span>
           </a>
           <a href="#story" className="hover:text-cyan-400 transition-colors duration-200 relative group py-1">
-            Engineering
+            Kỹ thuật
             <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-cyan-400 transition-all duration-300 group-hover:w-full"></span>
           </a>
           <a href="#gallery" className="hover:text-cyan-400 transition-colors duration-200 relative group py-1">
-            Setups
+            Góc máy
             <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-cyan-400 transition-all duration-300 group-hover:w-full"></span>
           </a>
           <a href="#configurator" className="hover:text-cyan-400 transition-colors duration-200 relative group py-1 text-cyan-400">
-            Configure
+            Tùy chỉnh
             <span className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-400/50 scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
           </a>
         </div>
@@ -55,7 +55,7 @@ export default function Navbar() {
             href="#configurator" 
             className="magnetic-btn px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-semibold text-sm text-white shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:scale-[1.02] transition-all duration-300 border border-cyan-400/20"
           >
-            Configure Rig
+            Tùy chỉnh máy
           </a>
         </div>
 
@@ -81,42 +81,42 @@ export default function Navbar() {
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-300 hover:text-cyan-400 transition-colors"
           >
-            Specs
+            Cấu hình
           </a>
           <a 
             href="#features" 
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-300 hover:text-cyan-400 transition-colors"
           >
-            Core Tech
+            Công nghệ lõi
           </a>
           <a 
             href="#story" 
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-300 hover:text-cyan-400 transition-colors"
           >
-            Engineering
+            Kỹ thuật
           </a>
           <a 
             href="#gallery" 
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 hover:bg-cyan-500/10 rounded-lg text-slate-300 hover:text-cyan-400 transition-colors"
           >
-            Setups
+            Góc máy
           </a>
           <a 
             href="#configurator" 
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 bg-cyan-500/10 rounded-lg text-cyan-400 font-medium transition-colors"
           >
-            Configure Now
+            Tùy chỉnh ngay
           </a>
           <a 
             href="#configurator" 
             onClick={() => setIsOpen(false)}
             className="mx-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-semibold text-center text-white shadow-lg"
           >
-            Configure Rig
+            Tùy chỉnh máy
           </a>
         </div>
       )}

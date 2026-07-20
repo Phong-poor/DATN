@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 @import "tailwindcss";
 
@@ -21,13 +21,64 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
 }
 
 body {
   background-color: #020817;
   color: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow-x: hidden;
+  width: 100%;
+  min-width: 320px;
+}
+
+body,
+body *,
+body *::before,
+body *::after {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.noise {
+  width: 100%;
+  overflow-x: clip;
+}
+
+.landing-section {
+  width: 100%;
+}
+
+.landing-container {
+  width: min(calc(100% - 48px), 1280px);
+  margin-inline: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.landing-container-narrow {
+  width: min(calc(100% - 48px), 1024px);
+  margin-inline: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.landing-header {
+  max-width: 768px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .landing-container,
+  .landing-container-narrow {
+    width: min(calc(100% - 32px), 1280px);
+  }
 }
 
 /* Custom scrollbar */

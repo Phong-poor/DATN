@@ -1,5 +1,13 @@
 import { createApp } from 'vue'
 import './style.css'
+import './assets/styles/design-system.css'
+import './assets/styles/customer-pages.css'
+import './assets/styles/account-pages.css'
+import './assets/styles/content-pages.css'
+import './assets/styles/admin-pages.css'
+import './assets/styles/widgets-layout.css'
+import './assets/styles/status-pages.css'
+import './assets/styles/text-contrast-fixes.css'
 import './assets/styles/swal-theme.css'
 import App from './App.vue'
 import router from './router/index.js'
@@ -88,10 +96,13 @@ window.addEventListener('storage', (event) => {
     
     window.dispatchEvent(new Event('user-updated'))
     
-    const isProtected = window.location.pathname.startsWith('/admin') ||
-                        ['/profile', '/trang-ca-nhan', '/checkout', '/thanh-toan', '/orderspage', '/don-hang', '/wishlistpage', '/danh-sach-yeu-thich', '/yeu-thich'].includes(window.location.pathname)
-    if (isProtected) {
+    const isAdmin = window.location.pathname.startsWith('/admin')
+    const isProtectedUserPage = ['/profile', '/trang-ca-nhan', '/checkout', '/thanh-toan', '/orderspage', '/don-hang', '/wishlistpage', '/danh-sach-yeu-thich', '/yeu-thich'].includes(window.location.pathname)
+    
+    if (isAdmin) {
       window.location.href = '/dang-nhap'
+    } else if (isProtectedUserPage) {
+      window.location.href = '/'
     }
   } else if (event.key === 'login-event' && event.newValue) {
     try {

@@ -26,7 +26,7 @@
 
     <!-- STAT CARDS -->
     <div class="stats-row">
-      <div class="stat-card stat-blue">
+      <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: !filterStatus && !filterCategory && !searchQuery }" @click="applyContactStatFilter('all')">
         <div class="stat-icon-wrap stat-icon-blue">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -35,7 +35,7 @@
         <p class="stat-label">TOTAL</p>
         <p class="stat-sub-label">Tổng liên hệ</p>
         <h2 class="stat-value">{{ contacts.length }}</h2>
-      </div>
+      </button>
      <!-- <div class="stat-card stat-card-gradient">
         <div class="stat-card-check">
           <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" /></svg>
@@ -44,7 +44,7 @@
         <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
         <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
       </div>-->
-      <div class="stat-card stat-orange">
+      <button type="button" class="stat-card stat-orange stat-card-btn" :class="{ active: filterStatus === 'processing' }" @click="applyContactStatFilter('processing')">
         <div class="stat-icon-wrap stat-icon-orange">
           <svg viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" />
@@ -54,8 +54,8 @@
         <p class="stat-label">IN PROGRESS</p>
         <p class="stat-sub-label">Chờ sử lý </p>
         <h2 class="stat-value">{{ processingCount }}</h2>
-      </div>
-      <div class="stat-card stat-teal">
+      </button>
+      <button type="button" class="stat-card stat-teal stat-card-btn" :class="{ active: filterStatus === 'resolved' }" @click="applyContactStatFilter('resolved')">
         <div class="stat-icon-wrap stat-icon-green">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -65,7 +65,7 @@
         <p class="stat-label">RESOLVED</p>
         <p class="stat-sub-label">Đã phản hồi</p>
         <h2 class="stat-value">{{ resolvedCount }}</h2>
-      </div>
+      </button>
     </div>
 
     <!-- FILTERS -->
@@ -538,6 +538,12 @@ function resetFilter() {
   searchQuery.value    = ''
 }
 
+function applyContactStatFilter(status) {
+  filterCategory.value = ''
+  searchQuery.value = ''
+  filterStatus.value = status === 'all' ? '' : status
+}
+
 function openDetail(c) {
   selected.value   = c
   showDetail.value = true
@@ -635,6 +641,25 @@ onMounted(fetchContacts)
   overflow: hidden;
   color: #fff;
 }
+.stat-card-btn {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.stat-card-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
+  filter: saturate(1.05);
+}
+.stat-card-btn:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 3px;
+}
+.stat-card-btn.active {
+  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.28);
+}
 .stat-card::after {
   content: '';
   position: absolute;
@@ -657,7 +682,7 @@ onMounted(fetchContacts)
 .stat-icon-blue svg,
 .stat-icon-orange svg,
 .stat-icon-green svg { stroke: #fff; }
-.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: uppercase; }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: capitalize; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
 .stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-card-gradient { background: linear-gradient(135deg, #93c5fd, #3b82f6, #2563eb); border: none; justify-content: flex-end; min-height: 120px; }
@@ -763,7 +788,7 @@ td { padding: 13px 16px; vertical-align: middle; }
 .meta-item { display: flex; align-items: center; gap: 10px; }
 .meta-key { font-size: 12px; font-weight: 600; color: #94a3b8; width: 90px; flex-shrink: 0; }
 .meta-val { font-size: 13px; color: #1e293b; }
-.detail-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: capitalize; letter-spacing: 0.5px; }
 .detail-body { font-size: 13.5px; color: #334155; line-height: 1.7; background: #f8faff; border-radius: 10px; padding: 14px; border: 1px solid #e8edf5; }
 .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .15s; font-family: inherit; }

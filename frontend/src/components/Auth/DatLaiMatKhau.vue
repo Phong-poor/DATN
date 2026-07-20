@@ -108,8 +108,8 @@ async function submit() {
     const res = await api.post('/forgot-password/reset-password', {
       email: email.value,
       otp: otp.value,
-      password: form.value.password,
-      password_confirmation: form.value.confirm,
+      matkhau: form.value.password,
+      matkhau_confirmation: form.value.confirm,
     })
 
     showModal('success', 'Thành công', formatAuthMessage(res.data.message, 'Đổi mật khẩu thành công!'), () => {
@@ -345,7 +345,7 @@ async function submit() {
   font-size: 14px;
   font-weight: 600;
   color: #60a5fa;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.08em;
 }
 

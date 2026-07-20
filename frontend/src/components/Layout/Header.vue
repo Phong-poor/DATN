@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import { storageUrl } from '@/services/urls'
+import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 
 const router = useRouter()
@@ -19,12 +19,23 @@ const showUser = ref(false)
 const isMobileMenuOpen = ref(false)
 
 // ===================== ANNOUNCEMENT BAR =====================
+const announcementIcons = {
+  delivery: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
+  payment: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>',
+  sale: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12l-8 8-8-8V4h8z"/><path d="M9 9h.01"/></svg>',
+  warranty: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>',
+}
+
 const announcements = [
   { icon: '🚚', text: 'Giao hàng nhanh trong <strong>2 giờ</strong> nội thành TP.HCM & Hà Nội' },
   { icon: '💳', text: 'Trả góp <strong>0%</strong> lãi suất — Duyệt trong 5 phút' },
   { icon: '🎁', text: 'Giảm đến <strong>20 triệu</strong> cho Gaming Laptop RTX 5090' },
   { icon: '🛡️', text: '<strong>Bảo hành chính hãng</strong> toàn quốc · Đổi trả 7 ngày miễn phí' },
 ]
+announcements[0].icon = announcementIcons.delivery
+announcements[1].icon = announcementIcons.payment
+announcements[2].icon = announcementIcons.sale
+announcements[3].icon = announcementIcons.warranty
 const annIdx = ref(0)
 let annTimer = null
 
@@ -277,7 +288,7 @@ const navToFeaturedItem = async (key, featured) => {
     const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
     if (items.length > 0) {
       const product = items[0]
-      const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+      const variants = productVariants(product)
       const variant = variants.length ? variants[0] : null
       router.push({
         path: `/san-pham/${product.id_sanpham}`,
@@ -303,23 +314,19 @@ const isAccessory = (p) => {
   return false
 }
 
+const productVariants = (product) => {
+  if (Array.isArray(product?.bien_thes)) return product.bien_thes
+  if (Array.isArray(product?.bienThes)) return product.bienThes
+  if (Array.isArray(product?.bienthes)) return product.bienthes
+  return []
+}
+
 const variantImage = (product, variant) => {
-  const gallery = product.hinh_anhs || product.hinhAnhs || []
-  const firstGallery = Array.isArray(gallery)
-    ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
-    : null
-  const firstGalleryImage = firstGallery?.duongdan
-    || firstGallery?.duong_dan
-    || firstGallery?.url
-    || firstGallery?.path
-    || firstGallery?.image
-    || ''
-  const imgPath = variant?.hinhanh || variant?.image || product.hinhanh || firstGalleryImage
-  return imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+  return productImageUrl(product || {}, variant || null, 'https://placehold.co/150')
 }
 
 const resolveProductPrice = (product) => {
-  const variants = Array.isArray(product.bien_thes) ? product.bien_thes : []
+  const variants = productVariants(product)
   if (variants.length > 0) {
     const sorted = variants.slice().sort((a, b) => Number(a.gia || 0) - Number(b.gia || 0))
     return Number(sorted[0].gia || 0)
@@ -329,16 +336,18 @@ const resolveProductPrice = (product) => {
 
 const updateFeaturedProducts = (productsList) => {
   if (!Array.isArray(productsList) || !productsList.length) return
+  const safeProducts = productsList.filter((product) => product && typeof product === 'object')
+  if (!safeProducts.length) return
   const formatVnd = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(num || 0))
 
   // 1. MacBook
-  const macbooks = productsList.filter(p => {
+  const macbooks = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('macbook')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (macbooks.length > 0) {
     const p = macbooks[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.macbook.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -349,14 +358,14 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 2. Workstation
-  const workstations = productsList.filter(p => {
+  const workstations = safeProducts.filter(p => {
     const nameText = String(p.tenSP || '').toLowerCase()
     const catText = String(p.category || p.danh_muc?.ten_danhmuc || '').toLowerCase()
     return nameText.includes('workstation') || catText.includes('workstation') || nameText.includes('precision') || nameText.includes('zbook')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
-  if (workstations.length > 0) {
+  if (megaMenuData.workstation && workstations.length > 0) {
     const p = workstations[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.workstation.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -367,10 +376,10 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 3. Phụ kiện
-  const accessories = productsList.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
+  const accessories = safeProducts.filter(isAccessory).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (accessories.length > 0) {
     const p = accessories[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData['phu-kien'].featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -381,13 +390,13 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 4. AI PC
-  const aipcs = productsList.filter(p => {
+  const aipcs = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('ultra') || text.includes('ai') || text.includes('npu')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
   if (aipcs.length > 0) {
     const p = aipcs[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.aipc.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -398,10 +407,10 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 5. Sale
-  const saleItems = productsList.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
+  const saleItems = safeProducts.filter(p => p.gia_truockhuyenmai && resolveProductPrice(p) < p.gia_truockhuyenmai).sort((a, b) => (b.gia_truockhuyenmai - resolveProductPrice(b)) - (a.gia_truockhuyenmai - resolveProductPrice(a)))
   if (saleItems.length > 0) {
     const p = saleItems[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.sale.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -412,13 +421,13 @@ const updateFeaturedProducts = (productsList) => {
   }
 
   // 6. Gaming
-  const gamingLaptops = productsList.filter(p => {
+  const gamingLaptops = safeProducts.filter(p => {
     const text = String(p.tenSP || '').toLowerCase()
     return text.includes('gaming') || text.includes('rtx') || text.includes('rog')
   }).sort((a, b) => resolveProductPrice(b) - resolveProductPrice(a))
-  if (gamingLaptops.length > 0) {
+  if (megaMenuData.gaming && gamingLaptops.length > 0) {
     const p = gamingLaptops[0]
-    const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+    const variants = productVariants(p)
     megaMenuData.gaming.featured = {
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
@@ -429,9 +438,19 @@ const updateFeaturedProducts = (productsList) => {
   }
 }
 
-const warm = getPrefetchedProductsData()
-if (warm && Array.isArray(warm.productsRaw)) {
-  updateFeaturedProducts(warm.productsRaw)
+try {
+  const warm = getPrefetchedProductsData()
+  if (warm && Array.isArray(warm.productsRaw)) {
+    updateFeaturedProducts(warm.productsRaw)
+  }
+} catch (error) {
+  console.error('Khong the nap cache san pham cho header:', error)
+  try {
+    localStorage.removeItem('nextgen_products_prefetch_cache')
+    localStorage.removeItem('premium_home_cache')
+  } catch {
+    // Ignore cache cleanup failures.
+  }
 }
 
 const navToMegaItem = (key, keyword) => {
@@ -465,7 +484,7 @@ const mobileMenuTarget = (key) => {
   if (key === 'phu-kien') return '/phu-kien'
   if (key === 'gaming') return { path: '/laptop', query: { line: 'gaming' } }
   if (key === 'macbook') return '/macbook'
-  if (key === 'workstation') return '/workstation'
+  if (key === 'workstation') return { path: '/laptop', query: { category: 'workstation' } }
   return { path: '/laptop', query: { category: menuCategoryMap[key] || key } }
 }
 
@@ -473,10 +492,7 @@ const isMenuCurrent = (key) => {
   if (key === 'sale') return route.path === '/khuyen-mai'
   if (key === 'laptop') return ['/laptop', '/labtop', '/gaming', '/macbook'].includes(route.path)
   if (key === 'phu-kien') return route.path === '/phu-kien'
-  if (key === 'workstation') {
-    return route.path === '/workstation' ||
-      (route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation')
-  }
+  if (key === 'workstation') return route.path === '/laptop' && String(route.query.category || '').toLowerCase() === 'workstation'
 
   if (key === 'gaming') return route.path === '/gaming' || (route.path === '/laptop' && String(route.query.line || '').toLowerCase() === 'gaming')
   if (key === 'macbook') return route.path === '/macbook' ||
@@ -510,25 +526,13 @@ const fetchSearchSuggestions = async () => {
     })
     const items = Array.isArray(res.data) ? res.data : (res.data?.data || [])
     searchSuggestions.value = items.slice(0, 3).map(p => {
-      const variants = Array.isArray(p.bien_thes) ? p.bien_thes : []
+      const variants = productVariants(p)
       const variant = variants.length
         ? variants.slice().sort((a, b) => Number(b.gia || 0) - Number(a.gia || 0))[0]
         : null
       const price = Number(variant?.gia || p.gia || 0)
       
-      const gallery = p.hinh_anhs || p.hinhAnhs || []
-      const firstGallery = Array.isArray(gallery)
-        ? gallery.find((img) => img?.duongdan || img?.duong_dan || img?.url || img?.path || img?.image)
-        : null
-      const firstGalleryImage = firstGallery?.duongdan
-        || firstGallery?.duong_dan
-        || firstGallery?.url
-        || firstGallery?.path
-        || firstGallery?.image
-        || ''
-      
-      const imgPath = variant?.hinhanh || variant?.image || p.hinhanh || firstGalleryImage
-      const image = imgPath ? storageUrl(imgPath) : 'https://placehold.co/150'
+      const image = variantImage(p, variant)
       return {
         id_sanpham: p.id_sanpham,
         id_bienthe: variant?.id_bienthe || null,
@@ -708,8 +712,12 @@ onMounted(() => {
     if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType)) return
     import('../Web/TrangLaptop.vue')
     prefetchProductsPage().then(res => {
-      if (res && Array.isArray(res.productsRaw)) {
-        updateFeaturedProducts(res.productsRaw)
+      try {
+        if (res && Array.isArray(res.productsRaw)) {
+          updateFeaturedProducts(res.productsRaw)
+        }
+      } catch (error) {
+        console.error('Khong the cap nhat mega menu tu cache san pham:', error)
       }
     }).catch(() => {})
   }
@@ -790,8 +798,8 @@ const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ th
 
 const avatarUrl = computed(() => {
   if (!user.value || !user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value?.name || 'User') + '&background=6366f1&color=fff&bold=true'
-  if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return storageUrl(user.value.avatar)
+  const rawAvatar = user.value.avatar.startsWith('http') ? user.value.avatar : storageUrl(user.value.avatar)
+  return withImageVersion(rawAvatar, user.value.updated_at || user.value.updatedAt)
 })
 
 const fetchUser = () => {
@@ -809,7 +817,48 @@ const handleLogout = async () => {
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
-  router.push('/login')
+  
+  const publicPages = [
+    '/',
+    '/laptop',
+    '/phu-kien',
+    '/gaming',
+    '/login',
+    '/dang-nhap',
+    '/register',
+    '/dang-ky',
+    '/forgot-password',
+    '/quen-mat-khau',
+    '/otp-verify',
+    '/xac-thuc-otp',
+    '/reset-password',
+    '/reset_password',
+    '/dat-lai-mat-khau',
+    '/login-success',
+    '/dang-nhap-thanh-cong',
+    '/news',
+    '/tin-tuc',
+    '/contact',
+    '/lien-he',
+    '/cart',
+    '/gio-hang',
+    '/thank-you',
+    '/cam-on',
+    '/payment-failed',
+    '/thanh-toan-that-bai',
+    '/khuyen-mai',
+  ]
+
+  const isPublic =
+    publicPages.includes(route.path) ||
+    route.path.startsWith('/products/') ||
+    route.path.startsWith('/san-pham/') ||
+    route.path.startsWith('/news/') ||
+    route.path.startsWith('/tin-tuc/')
+
+  if (!isPublic) {
+    router.push('/')
+  }
 }
 
 const warmProductsPageNow = () => {
@@ -856,7 +905,7 @@ const openLuckyWheelMobile = () => {
     <div class="header-inner">
 
       <!-- LOGO -->
-      <router-link to="/" class="logo-wrap" aria-label="Predator Group">
+      <router-link to="/" class="logo-wrap" aria-label="NextGen Laptop">
         <img src="/nextgen_logo_header.png" alt="NextGen Laptop" class="logo-img" />
       </router-link>
 
@@ -1231,6 +1280,17 @@ const openLuckyWheelMobile = () => {
   color: #94a3b8;
   letter-spacing: 0.1px;
 }
+.ann-text :deep(.ann-code-icon) {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  color: #38bdf8;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -2px;
+}
 .ann-text :deep(strong) { color: #e2e8f0; font-weight: 600; }
 .ann-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ann-link {
@@ -1239,6 +1299,26 @@ const openLuckyWheelMobile = () => {
   transition: color 0.2s; font-family: 'Inter', sans-serif;
 }
 .ann-link svg { width: 12px; height: 12px; }
+.ann-right > .ann-link:last-child {
+  gap: 6px;
+  font-size: 0;
+}
+.ann-right > .ann-link:last-child::before {
+  content: "VND";
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ann-right > .ann-link:last-child::after {
+  content: "VND";
+  font-size: 12px;
+}
 .ann-link:hover { color: #e2e8f0; }
 .ann-sep { color: #cbd5e1; font-size: 12px; }
 
@@ -1257,13 +1337,13 @@ const openLuckyWheelMobile = () => {
   background: rgba(13, 27, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .header.scrolled {
   background: rgba(13, 27, 46, 0.99);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
-  border-bottom-color: rgba(37, 99, 235, 0.2);
+  border-bottom-color: transparent;
 }
 
 .header-inner {
@@ -1457,7 +1537,7 @@ const openLuckyWheelMobile = () => {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: #ffffff;
   margin-bottom: 9px;
   padding-left: 8px;
@@ -1506,7 +1586,7 @@ const openLuckyWheelMobile = () => {
   letter-spacing: 0.2px;
   flex-shrink: 0;
   margin-left: 2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 .mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
 .mega-item-badge.new  { background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
@@ -1571,7 +1651,7 @@ const openLuckyWheelMobile = () => {
   color: white;
   padding: 2.5px 7px;
   border-radius: 6px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
@@ -1876,10 +1956,10 @@ const openLuckyWheelMobile = () => {
 .cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
 .cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
 
-.user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 50%; }
+.user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; }
 .user-action:hover { transform: none; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; }
+.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 10px; object-fit: cover; object-position: center; display: block; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;
@@ -2041,7 +2121,7 @@ const openLuckyWheelMobile = () => {
 .user-card-avatar { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(96,165,250,0.75); flex-shrink: 0; box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35); }
 .uc-name { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 900; color: #ffffff; margin-bottom: 2px; text-shadow: 0 1px 8px rgba(0,0,0,0.35); }
 .uc-email { font-size: 11.5px; font-weight: 650; color: #cbd5e1; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-.uc-badge { font-size: 8.5px; font-weight: 900; letter-spacing: 0.8px; color: #dbeafe; background: rgba(37,99,235,0.38); border: 1px solid rgba(96,165,250,0.55); padding: 2px 7px; border-radius: 20px; text-transform: uppercase; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+.uc-badge { font-size: 8.5px; font-weight: 900; letter-spacing: 0.8px; color: #dbeafe; background: rgba(37,99,235,0.38); border: 1px solid rgba(96,165,250,0.55); padding: 2px 7px; border-radius: 20px; text-transform: capitalize; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
 
 /* USER MENU */
 .user-menu { padding: 8px; display: flex; flex-direction: column; gap: 3px; }
@@ -2139,7 +2219,7 @@ const openLuckyWheelMobile = () => {
 .mob-nav { padding: 0 12px; flex: 1; }
 .mob-nav-label {
   font-size: 9.5px; font-weight: 800; letter-spacing: 1.2px;
-  text-transform: uppercase; color: #94a3b8;
+  text-transform: capitalize; color: #94a3b8;
   padding: 12px 8px 6px;
 }
 .mob-link {

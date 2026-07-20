@@ -133,8 +133,21 @@ const drawWheel = () => {
     // 4. Draw Prize text & icons
     ctx.save()
     ctx.translate(cx, cy)
-    ctx.rotate(angleStart + sectorAngle / 2)
-    ctx.textAlign = 'right'
+    
+    const angle = angleStart + sectorAngle / 2
+    let normAngle = angle % (2 * Math.PI)
+    if (normAngle < 0) normAngle += 2 * Math.PI
+    
+    const isUpsideDown = normAngle > Math.PI / 2 && normAngle < (3 * Math.PI) / 2
+    
+    if (isUpsideDown) {
+      ctx.rotate(angle + Math.PI)
+      ctx.textAlign = 'left'
+    } else {
+      ctx.rotate(angle)
+      ctx.textAlign = 'right'
+    }
+    
     ctx.textBaseline = 'middle'
     ctx.fillStyle = prize.mau_chu || '#ffffff'
     ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif'
@@ -146,7 +159,8 @@ const drawWheel = () => {
     else if (prize.loai === 'ticket') text = '⚡ ' + text
     else text = '☘️ ' + text
     
-    ctx.fillText(text, radius - 18, 0)
+    const xPos = isUpsideDown ? -(radius - 18) : (radius - 18)
+    ctx.fillText(text, xPos, 0)
     ctx.restore()
   }
   
@@ -190,15 +204,20 @@ const startSpin = async () => {
     return
   }
 
-  // if (tickets.value <= 0) {
-  //   swal.warning('Hết lượt quay', 'Hãy nhận thêm lượt quay miễn phí để tiếp tục chơi nhé!')
-  //   return
-  // }
+  if (tickets.value <= 0) {
+    swal.warning('Hết lượt quay', 'Hãy nhận thêm lượt quay miễn phí để tiếp tục chơi nhé!')
+    return
+  }
   
   try {
     const res = await api.post('/vong-quay/quay')
     if (!res.data?.success) {
-      swal.error('Lỗi', res.data?.message || 'Không thể thực hiện quay.')
+      const msg = res.data?.message
+      if (msg) {
+        swal.info('Thông báo', msg)
+      } else {
+        swal.error('Lỗi', 'Không thể thực hiện quay.')
+      }
       return
     }
 
@@ -261,7 +280,12 @@ const startSpin = async () => {
     animationFrameId = requestAnimationFrame(animate)
     
   } catch (e) {
-    swal.error('Lỗi', e?.response?.data?.message || 'Có lỗi xảy ra khi thực hiện quay.')
+    const errMsg = e?.response?.data?.message
+    if (errMsg) {
+      swal.info('Thông báo', errMsg)
+    } else {
+      swal.error('Lỗi', 'Có lỗi xảy ra khi thực hiện quay.')
+    }
   }
 }
 
@@ -275,7 +299,12 @@ const claimDailyTicket = async () => {
       swal.success('Thành Công!', res.data.message)
     }
   } catch (e) {
-    swal.error('Không thể nhận lượt', e?.response?.data?.message || 'Đã xảy ra lỗi khi nhận lượt.')
+    const errMsg = e?.response?.data?.message
+    if (errMsg) {
+      swal.info('Thông báo', errMsg)
+    } else {
+      swal.error('Không thể nhận lượt', 'Đã xảy ra lỗi khi nhận lượt.')
+    }
   }
 }
 
@@ -354,9 +383,16 @@ onUnmounted(() => {
             </div>
           </div>
           
-          <div class="tickets-hud">
-            <span class="ticket-icon">⚡</span>
-            <span>Mỗi ngày <strong>1</strong> lượt quay miễn phí</span>
+          <div class="hud-container">
+            <div class="tickets-hud">
+              <span class="ticket-icon">⚡</span>
+              <span>Mỗi ngày <strong>1</strong> lượt quay miễn phí</span>
+            </div>
+            
+            <div class="tickets-hud">
+              <span class="ticket-icon">🎟️</span>
+              <span>Lượt của bạn: <strong>{{ tickets }}</strong></span>
+            </div>
           </div>
         </div>
         
@@ -623,7 +659,16 @@ onUnmounted(() => {
   color: #94a3b8;
 }
 
-/* Tickets HUD */
+/* Tickets HUD Container */
+.hud-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 .tickets-hud {
   background: rgba(30, 41, 59, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.06);

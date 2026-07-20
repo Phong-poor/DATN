@@ -6,7 +6,7 @@ export default function Footer() {
       {/* Background glow */}
       <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">

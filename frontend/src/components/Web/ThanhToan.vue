@@ -1177,12 +1177,12 @@ const confirmOrder = async () => {
 }
 
 /* CONTAINER */
-.container {
-  max-width: 1040px;
+.site-container {
+  max-width: var(--container-max-width);
   margin: auto;
-  padding: 28px 20px;
+  padding: 28px var(--container-padding-desktop);
   display: flex;
-  gap: 24px;
+  gap: var(--space-6);
   align-items: start;
 }
 
@@ -1206,9 +1206,9 @@ const confirmOrder = async () => {
 /* BOX */
 .box {
   background: #e5e7eb;
-  padding: 18px;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
   border: 1px solid #cbd5e1;
 }
 
@@ -1247,7 +1247,7 @@ input:not([type="radio"]):not([type="checkbox"]) {
   padding: 0 14px;
   border: none;
   background: #111f35;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   box-sizing: border-box;
   margin-bottom: 12px;
@@ -1259,7 +1259,7 @@ select {
   padding: 0 14px;
   border: none;
   background: #111f35;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   box-sizing: border-box;
 }
@@ -1281,24 +1281,24 @@ textarea {
 
 /* CUSTOM CHECKOUT INPUTS */
 .checkout-input {
-  width: 100% !important;
-  height: 42px !important;
-  padding: 0 14px !important;
-  border: 1px solid #d1d5db !important;
-  background: var(--tn-bg) !important;
-  border-radius: 10px !important;
-  font-size: 13px !important;
-  color: #1e293b !important;
-  box-sizing: border-box !important;
-  margin-bottom: 10px !important;
-  outline: none !important;
-  transition: all 0.2s ease !important;
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  background: var(--tn-bg);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: #1e293b;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  outline: none;
+  transition: all 0.2s ease;
 }
 
 .checkout-input:focus {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
-  background: var(--tn-surface) !important;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+  background: var(--tn-surface);
 }
 
 .checkout-textarea {
@@ -1883,7 +1883,7 @@ textarea {
   font-weight: 800;
   padding: 2px 6px;
   border-radius: 10px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .checkout-combo-qty {

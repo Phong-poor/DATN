@@ -34,7 +34,9 @@
           <!-- Body -->
           <div class="chat-body" ref="chatBody">
             <div v-for="(msg, index) in messages" :key="index" class="message-wrapper"
-              :class="msg.role === 'user' ? 'message-right' : 'message-left'">
+              :class="msg.role === 'user' ? 'message-right' : 'message-left'"
+              :data-message-role="msg.role"
+              :data-message-index="index">
               <div v-if="msg.role === 'bot'" class="bot-avatar-small">
                 <img src="/support_avatar.png" alt="Bot" />
               </div>
@@ -65,14 +67,28 @@
               <div class="bot-avatar-small">
                 <img src="/support_avatar.png" alt="Bot" />
               </div>
-              <div class="message-bubble bot typing-indicator">
-                <span></span><span></span><span></span>
+              <div class="message-bubble bot typing-indicator" aria-live="polite">
+                <span class="typing-text">Mia đang trả lời</span>
+                <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
               </div>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="chat-footer">
+            <div class="quick-suggestions" aria-label="Gợi ý câu hỏi nhanh">
+              <button
+                v-for="suggestion in quickSuggestions"
+                :key="suggestion"
+                type="button"
+                class="quick-suggestion-chip"
+                :disabled="isLoading"
+                @click="sendQuickSuggestion(suggestion)"
+              >
+                {{ suggestion }}
+              </button>
+            </div>
+
             <form @submit.prevent="sendMessage" class="input-form">
               <input type="text" v-model="newMessage" placeholder="Trò chuyện với Mia (ví dụ: tư vấn laptop văn phòng)..."
                 :disabled="isLoading" autocomplete="off" />
@@ -419,34 +435,52 @@
               </div>
             </div>
 
-            <!-- VietQR block -->
+            <!-- MoMo personal QR block -->
             <div v-if="createdOrder && (createdOrder.PTTT === 'Chuyển khoản' || createdOrder.PTTT === 'bank')" class="vietqr-payment-box" :class="{ expired: paymentQrExpired }">
-              <div class="vietqr-heading">QUÉT MÃ ĐỂ THANH TOÁN CHUYỂN KHOẢN</div>
+              <div class="vietqr-heading">QUÉT MÃ MOMO ĐỂ THANH TOÁN</div>
               <div class="payment-expire-timer" :class="{ expired: paymentQrExpired }">
                 {{ paymentQrExpired ? 'Mã QR đã hết hạn sau 15 phút' : `Mã QR còn hiệu lực ${paymentQrRemainingText}` }}
               </div>
               <div class="vietqr-image-wrapper">
-                <img :src="getVietQrUrl(createdOrder)" class="vietqr-qrcode-img" alt="VietQR VinaTech" />
+                <img
+                  v-if="!vietQrImageFailed"
+                  :src="momoQrImageUrl"
+                  class="vietqr-qrcode-img momo-personal-qr"
+                  alt="MoMo QR Lê Ngọc Tài"
+                  @error="useNextMomoQrImage"
+                />
+                <div v-else class="vietqr-fallback">
+                  <strong>Chưa có ảnh QR MoMo</strong>
+                  <span>Đặt ảnh QR vào frontend/public/payment với tên momo-ngoc-tai.jpg hoặc qr-momo.jpg.</span>
+                </div>
               </div>
               <div class="vietqr-bank-details">
                 <div class="vietqr-row">
-                  <span class="vqr-label">Ngân hàng:</span>
-                  <span class="vqr-val">MB Bank (Quân Đội)</span>
-                </div>
-                <div class="vietqr-row clickable-copy" @click="copyPaymentText('0900123456789', 'Đã sao chép số tài khoản MB Bank!')" title="Click để sao chép">
-                  <span class="vqr-label">Số tài khoản:</span>
-                  <span class="vqr-val font-mono">0900123456789 <i class="copy-icon">📋</i></span>
+                  <span class="vqr-label">Ví nhận:</span>
+                  <span class="vqr-val">{{ momoAccountName }}</span>
                 </div>
                 <div class="vietqr-row">
-                  <span class="vqr-label">Chủ tài khoản:</span>
-                  <span class="vqr-val">CONG TY VINATECH</span>
+                  <span class="vqr-label">STK MoMo:</span>
+                  <span class="vqr-val font-mono">{{ momoMaskedAccount }}</span>
                 </div>
-                <div class="vietqr-row clickable-copy" @click="copyPaymentText('VINATECH ' + (createdOrder.ma_dathang || createdOrder.id_dathang), 'Đã sao chép nội dung chuyển khoản!')" title="Click để sao chép">
+                <div class="vietqr-row clickable-copy" @click="copyPaymentText(String(paymentQrAmount), 'Đã sao chép số tiền!')" title="Click để sao chép">
+                  <span class="vqr-label">Số tiền:</span>
+                  <span class="vqr-val font-mono">{{ formatPrice(paymentQrAmount) }} <i class="copy-icon">📋</i></span>
+                </div>
+                <div class="vietqr-row clickable-copy" @click="copyPaymentText(paymentQrMemo, 'Đã sao chép nội dung chuyển khoản!')" title="Click để sao chép">
                   <span class="vqr-label">Nội dung CK:</span>
-                  <span class="vqr-val font-mono highlight-memo">VINATECH {{ createdOrder.ma_dathang || createdOrder.id_dathang }} <i class="copy-icon">📋</i></span>
+                  <span class="vqr-val font-mono highlight-memo">{{ paymentQrMemo }} <i class="copy-icon">📋</i></span>
                 </div>
               </div>
-              <div class="vietqr-hint">{{ paymentQrExpired ? 'Vui lòng tạo lại đơn hoặc liên hệ nhân viên để lấy mã mới.' : '💡 Nhấp vào Số tài khoản hoặc Nội dung CK để sao chép nhanh!' }}</div>
+              <button
+                type="button"
+                class="payment-confirm-btn"
+                :disabled="paymentQrExpired || paymentNoticeLoading || paymentNoticeSent"
+                @click="confirmManualPayment"
+              >
+                {{ paymentNoticeSent ? 'Đã gửi thông báo thanh toán' : (paymentNoticeLoading ? 'Đang gửi thông báo...' : 'Tôi đã chuyển khoản') }}
+              </button>
+              <div class="vietqr-hint">{{ paymentQrExpired ? 'Vui lòng tạo lại đơn hoặc liên hệ nhân viên để lấy mã mới.' : 'Sau khi chuyển khoản xong, bấm nút bên trên để gửi Gmail thông báo cho cửa hàng kiểm tra giao dịch.' }}</div>
             </div>
 
             <div class="bill-actions">
@@ -454,7 +488,7 @@
               <button type="button" class="done-btn" @click="resetChatbotView">Quay lại trò chuyện</button>
             </div>
             
-            <p class="bill-note">Hóa đơn chi tiết đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư.</p>
+            <p class="bill-note">Sau khi chuyển khoản, bấm “Tôi đã chuyển khoản” để cửa hàng nhận Gmail thông báo và kiểm tra giao dịch.</p>
           </div>
         </template>
       </div>
@@ -537,7 +571,26 @@ const confirmInfoChecked = ref(false);
 const paymentQrDurationMs = 15 * 60 * 1000;
 const paymentQrExpiresAt = ref(null);
 const paymentQrRemainingMs = ref(paymentQrDurationMs);
+const vietQrImageFailed = ref(false);
+const momoQrImageIndex = ref(0);
+const paymentNoticeLoading = ref(false);
+const paymentNoticeSent = ref(false);
 let paymentQrTimer = null;
+
+const momoQrImageCandidates = [
+  '/payment/momo-ngoc-tai.jpg',
+  '/payment/momo-ngoc-tai.png',
+  '/payment/momo-ngoc-tai.jpeg',
+  '/payment/qr-momo.jpg',
+  '/payment/qr-momo.png',
+  '/payment/qr-momo.jpeg',
+  '/payment/momo-qr.jpg',
+  '/payment/momo-qr.png',
+  '/payment/momo-qr.jpeg',
+];
+const momoQrImageUrl = computed(() => momoQrImageCandidates[momoQrImageIndex.value]);
+const momoAccountName = 'LÊ NGỌC TÀI';
+const momoMaskedAccount = '*******383';
 
 const checkoutProducts = computed(() => {
   const productMap = new Map();
@@ -564,6 +617,11 @@ const selectCheckoutProduct = (product) => {
 const selectedProductPrice = computed(() => Number(selectedProduct.value?.gia || 0));
 const depositAmount = computed(() => Math.ceil(selectedProductPrice.value * 0.5));
 const remainingAmount = computed(() => Math.max(0, selectedProductPrice.value - depositAmount.value));
+const paymentQrAmount = computed(() => {
+  const orderTotal = Number(createdOrder.value?.tongtien || createdOrder.value?.tong_tien || selectedProductPrice.value || 0);
+  return Math.max(1000, depositAmount.value || Math.ceil(orderTotal * 0.5));
+});
+const paymentQrMemo = computed(() => `VINATECH ${createdOrder.value?.ma_dathang || createdOrder.value?.id_dathang || 'ORDER'}`);
 const paymentQrExpired = computed(() => paymentQrRemainingMs.value <= 0);
 const paymentQrRemainingText = computed(() => {
   const totalSeconds = Math.max(0, Math.ceil(paymentQrRemainingMs.value / 1000));
@@ -593,6 +651,10 @@ const updatePaymentQrRemaining = () => {
 
 const startPaymentQrTimer = () => {
   stopPaymentQrTimer();
+  vietQrImageFailed.value = false;
+  momoQrImageIndex.value = 0;
+  paymentNoticeLoading.value = false;
+  paymentNoticeSent.value = false;
   paymentQrExpiresAt.value = Date.now() + paymentQrDurationMs;
   updatePaymentQrRemaining();
   paymentQrTimer = setInterval(updatePaymentQrRemaining, 1000);
@@ -652,6 +714,10 @@ const resetChatbotView = () => {
   confirmInfoChecked.value = false;
   paymentQrExpiresAt.value = null;
   paymentQrRemainingMs.value = paymentQrDurationMs;
+  vietQrImageFailed.value = false;
+  momoQrImageIndex.value = 0;
+  paymentNoticeLoading.value = false;
+  paymentNoticeSent.value = false;
 };
 
 const goToProduct = (bt) => {
@@ -754,7 +820,7 @@ const submitDirectOrder = async () => {
         window.dispatchEvent(new Event('cart-updated'));
         
         // Kích hoạt gửi email hóa đơn
-        if (createdOrder.value?.id_dathang) {
+        if (false && createdOrder.value?.id_dathang) {
           api.post(`/orders/send-email/${createdOrder.value.id_dathang}`).catch(e => {
              console.error('Lỗi gửi email bill từ chatbot:', e);
           });
@@ -778,18 +844,6 @@ const submitDirectOrder = async () => {
   }
 };
 
-const getVietQrUrl = (order) => {
-  if (!order) return '';
-  const bankId = 'MB'; // MB Bank
-  const accountNo = '0900123456789';
-  const template = 'print'; // print or compact
-  const amount = depositAmount.value || Math.ceil(Number(order.tongtien || order.tong_tien || selectedProduct.value?.gia || 0) * 0.5);
-  const memo = `VINATECH ${order.ma_dathang || order.id_dathang}`;
-  const accountName = 'CONG TY VINATECH';
-  
-  return `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${amount}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(accountName)}`;
-};
-
 const copyText = (text, successMsg) => {
   navigator.clipboard.writeText(text).then(() => {
     swal.toast(successMsg || 'Đã sao chép vào bộ nhớ tạm!');
@@ -805,6 +859,45 @@ const copyPaymentText = (text, successMsg) => {
   }
 
   copyText(text, successMsg);
+};
+
+const useNextMomoQrImage = () => {
+  if (momoQrImageIndex.value < momoQrImageCandidates.length - 1) {
+    momoQrImageIndex.value += 1;
+    return;
+  }
+
+  vietQrImageFailed.value = true;
+};
+
+const confirmManualPayment = async () => {
+  if (!createdOrder.value?.id_dathang || paymentNoticeLoading.value || paymentNoticeSent.value) return;
+
+  if (paymentQrExpired.value) {
+    swal.warning('Mã QR đã hết hạn', 'Vui lòng tạo lại đơn hoặc liên hệ nhân viên để lấy mã mới.');
+    return;
+  }
+
+  paymentNoticeLoading.value = true;
+
+  try {
+    const res = await api.post(`/orders/${createdOrder.value.id_dathang}/payment-notice`, {
+      amount: paymentQrAmount.value,
+      memo: paymentQrMemo.value,
+      method: 'momo_personal_qr',
+    });
+
+    paymentNoticeSent.value = true;
+    if (res.data?.order) {
+      createdOrder.value = { ...createdOrder.value, ...res.data.order };
+    }
+    swal.success('Đã gửi thông báo', res.data?.message || 'Cửa hàng đã nhận thông báo chuyển khoản và sẽ kiểm tra giao dịch.');
+  } catch (error) {
+    console.error('Lỗi gửi thông báo thanh toán:', error);
+    swal.error('Lỗi thông báo', error.response?.data?.message || 'Không gửi được thông báo thanh toán. Vui lòng thử lại.');
+  } finally {
+    paymentNoticeLoading.value = false;
+  }
 };
 
 const getDisplayName = (bt) => {
@@ -847,6 +940,15 @@ const messages = ref([
   }
 ]);
 
+const quickSuggestions = [
+  'Laptop giá rẻ',
+  'Laptop gaming 25 triệu',
+  'MacBook văn phòng',
+  'Máy cho sinh viên',
+  'Laptop đồ họa',
+  'Có khuyến mãi không?',
+];
+
 const toggleChat = () => {
   if (currentChatMode.value === 'admin') {
     window.dispatchEvent(new CustomEvent('toggle-admin-chat'));
@@ -884,6 +986,21 @@ const scrollToBottom = async () => {
   }
 };
 
+const scrollToLatestConversationStart = async () => {
+  await nextTick();
+  if (!chatBody.value) return;
+
+  const userMessages = chatBody.value.querySelectorAll('[data-message-role="user"]');
+  const botMessages = chatBody.value.querySelectorAll('[data-message-role="bot"]');
+  const latestExchangeStart = userMessages[userMessages.length - 1] || botMessages[botMessages.length - 1];
+  if (!latestExchangeStart) return;
+
+  chatBody.value.scrollTo({
+    top: Math.max(latestExchangeStart.offsetTop - 18, 0),
+    behavior: 'smooth',
+  });
+};
+
 const sendMessage = async () => {
   if (!newMessage.value.trim() || isLoading.value) return;
 
@@ -893,44 +1010,56 @@ const sendMessage = async () => {
   isLoading.value = true;
   await scrollToBottom();
 
+  let botMessage = null;
+
   try {
     const response = await api.post('/chat', { message: userText });
 
     if (response.data.reply) {
-      messages.value.push({
+      botMessage = {
         role: 'bot',
         content: response.data.reply,
         products: response.data.products || []
-      });
+      };
     } else {
-      messages.value.push({
+      botMessage = {
         role: 'bot',
         content: 'Bot chưa có phản hồi hợp lệ từ server.'
-      });
+      };
     }
   } catch (error) {
     console.error('Chat error full:', error);
 
     if (error?.response?.data?.reply) {
-      messages.value.push({
+      botMessage = {
         role: 'bot',
         content: error.response.data.reply
-      });
+      };
     } else if (error?.response?.data?.message) {
-      messages.value.push({
+      botMessage = {
         role: 'bot',
         content: 'Lỗi backend: ' + error.response.data.message
-      });
+      };
     } else {
-      messages.value.push({
+      botMessage = {
         role: 'bot',
         content: 'Không gọi được API chat. Kiểm tra Laravel route /api/chat và controller.'
-      });
+      };
     }
   } finally {
     isLoading.value = false;
-    await scrollToBottom();
+    if (botMessage) {
+      messages.value.push(botMessage);
+      await scrollToLatestConversationStart();
+    }
   }
+};
+
+const sendQuickSuggestion = (suggestion) => {
+  if (isLoading.value) return;
+
+  newMessage.value = suggestion;
+  sendMessage();
 };
 
 // Listen for global interaction events
@@ -1089,8 +1218,8 @@ onUnmounted(() => {
 }
 
 .chat-close-btn:hover {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 @media (max-width: 640px) {
@@ -1122,11 +1251,11 @@ onUnmounted(() => {
 
 /* ===== HEADER ===== */
 .chat-header {
-  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+  background: #0d1b2e;
   padding: 15px 20px;
-  color: #0f172a;
+  color: #ffffff;
   position: relative;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
 }
 
 .mode-toggle-btn {
@@ -1184,13 +1313,13 @@ onUnmounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .title-wrap .subtitle {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.82);
   opacity: 1;
   font-weight: 600;
 }
@@ -1369,13 +1498,26 @@ onUnmounted(() => {
 
 /* ===== TYPING INDICATOR ===== */
 .typing-indicator {
-  display: flex;
-  gap: 4px;
-  padding: 15px 18px;
+  display: inline-flex;
+  gap: 8px;
+  padding: 12px 16px;
   align-items: center;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.typing-indicator span {
+.typing-text {
+  white-space: nowrap;
+}
+
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-dots i {
   width: 6px;
   height: 6px;
   background: #2563eb;
@@ -1384,15 +1526,15 @@ onUnmounted(() => {
   opacity: 0.5;
 }
 
-.typing-indicator span:nth-child(1) {
+.typing-dots i:nth-child(1) {
   animation-delay: 0s;
 }
 
-.typing-indicator span:nth-child(2) {
+.typing-dots i:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.typing-indicator span:nth-child(3) {
+.typing-dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
 
@@ -1415,6 +1557,47 @@ onUnmounted(() => {
   padding: 15px;
   background: #ffffff;
   border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.quick-suggestions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quick-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-suggestion-chip {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+  white-space: nowrap;
+}
+
+.quick-suggestion-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.quick-suggestion-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .input-form {
@@ -1586,7 +1769,7 @@ onUnmounted(() => {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.35px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 0 0 5px 2px;
 }
 
@@ -1672,7 +1855,7 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -1741,7 +1924,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 800;
   color: #38bdf8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -1856,7 +2039,7 @@ onUnmounted(() => {
   font-weight: 800;
   color: #fff;
   margin-bottom: 12px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -2065,7 +2248,7 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 800;
   color: #4ade80;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
   letter-spacing: 0.5px;
 }
 
@@ -2090,8 +2273,8 @@ onUnmounted(() => {
 
 .vietqr-image-wrapper {
   background: #ffffff;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 12px;
   display: inline-block;
   margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -2103,9 +2286,45 @@ onUnmounted(() => {
 }
 
 .vietqr-qrcode-img {
-  width: 150px;
-  height: 150px;
+  width: 172px;
+  height: 172px;
   display: block;
+}
+
+.momo-personal-qr {
+  width: min(210px, 100%);
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.vietqr-fallback {
+  width: 172px;
+  height: 172px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #0f172a;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.vietqr-fallback strong {
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.vietqr-fallback span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #475569;
 }
 
 .vietqr-bank-details {
@@ -2119,6 +2338,7 @@ onUnmounted(() => {
 .vietqr-row {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
   font-size: 11.5px;
   margin: 4px 0;
   color: #cbd5e1;
@@ -2131,6 +2351,7 @@ onUnmounted(() => {
 .vietqr-row .vqr-val {
   color: #ffffff;
   font-weight: 600;
+  text-align: right;
 }
 
 .clickable-copy {
@@ -2164,6 +2385,31 @@ onUnmounted(() => {
   color: #94a3b8;
   margin-top: 6px;
   font-style: italic;
+}
+
+.payment-confirm-btn {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ec4899, #d946ef);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(217, 70, 239, 0.22);
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.payment-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.payment-confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  box-shadow: none;
 }
 
 /* Compact checkout form inside chatbot */
@@ -2521,7 +2767,7 @@ onUnmounted(() => {
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.45px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .shipping-form input,
@@ -2565,7 +2811,7 @@ onUnmounted(() => {
   color: #102018;
   font-size: 10px;
   font-weight: 900;
-  text-transform: uppercase;
+  text-transform: capitalize;
   cursor: pointer;
 }
 
@@ -2587,24 +2833,25 @@ onUnmounted(() => {
 
 /* Checkout form should feel like the product cards inside the chatbot */
 .chatbot-window .checkout-chat-header {
-  background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  background: #0d1b2e;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
   padding: 15px 20px;
 }
 
 .chatbot-window .checkout-chat-header .title-wrap .title {
-  color: #0f172a;
+  color: #ffffff;
   font-size: 16px;
 }
 
 .chatbot-window .checkout-chat-header .title-wrap .subtitle {
-  color: #64748b;
+  color: #7ee787;
   font-size: 12px;
 }
 
 .chatbot-window .checkout-chat-header .chat-back-navigation-btn,
 .chatbot-window .checkout-chat-header .chat-close-btn {
-  color: #475569;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .chatbot-window .form-view {

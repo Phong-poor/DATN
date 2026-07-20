@@ -156,6 +156,11 @@ const toDateInput = (value) => {
   return date.toISOString().slice(0, 10)
 }
 const formatNumber = (value) => new Intl.NumberFormat('vi-VN').format(value || 0)
+const applyNewsStatFilter = (status) => {
+  searchQuery.value = ''
+  selectedCategory.value = 'all'
+  selectedStatus.value = status
+}
 const initials = (name = 'Admin') => name.trim().split(' ').map((word) => word[0]).slice(-2).join('').toUpperCase()
 const getAvatarStyle = (name = 'Admin') => {
   const i = name.charCodeAt(0) % avatarColors.length
@@ -425,7 +430,7 @@ onMounted(async () => {
 
         <!-- STATS -->
         <div class="stats">
-            <div class="stat-card stat-blue">
+            <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: selectedStatus === 'all' }" @click="applyNewsStatFilter('all')">
                 <div>
                     <p>TỔNG BÀI VIẾT</p>
                     <b>{{ formatNumber(stats.total) }}</b>
@@ -438,8 +443,8 @@ onMounted(async () => {
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-green">
+            </button>
+            <button type="button" class="stat-card stat-green stat-card-btn" :class="{ active: selectedStatus === 'published' }" @click="applyNewsStatFilter('published')">
                 <div>
                     <p>ĐÃ XUẤT BẢN</p>
                     <b>{{ formatNumber(stats.published) }}</b>
@@ -449,8 +454,8 @@ onMounted(async () => {
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-purple">
+            </button>
+            <button type="button" class="stat-card stat-purple stat-card-btn" @click="applyNewsStatFilter('all')">
                 <div>
                     <p>LƯỢT XEM</p>
                     <b>{{ formatNumber(stats.views) }}</b>
@@ -460,8 +465,8 @@ onMounted(async () => {
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                     </svg>
                 </div>
-            </div>
-            <div class="stat-card stat-amber">
+            </button>
+            <button type="button" class="stat-card stat-amber stat-card-btn" :class="{ active: selectedStatus === 'draft' }" @click="applyNewsStatFilter('draft')">
                 <div>
                     <p>BẢN NHÁP</p>
                     <b>{{ formatNumber(stats.draft) }}</b>
@@ -471,7 +476,7 @@ onMounted(async () => {
                         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                     </svg>
                 </div>
-            </div>
+            </button>
         </div>
 
         <!-- FILTER BAR -->
@@ -747,6 +752,25 @@ onMounted(async () => {
     color: #fff;
     box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
 }
+.stat-card-btn {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.stat-card-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, .2);
+    filter: saturate(1.05);
+}
+.stat-card-btn:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .28);
+    outline-offset: 3px;
+}
+.stat-card-btn.active {
+    box-shadow: 0 18px 34px rgba(37, 99, 235, .28);
+}
 .stat-card::after {
     content: '';
     position: absolute;
@@ -762,7 +786,7 @@ onMounted(async () => {
 .stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-purple { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-amber { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
-.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: capitalize; }
 .stat-card b { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .stat-icon svg { width: 24px; height: 24px; }
@@ -902,7 +926,7 @@ table { width: 100%; border-collapse: collapse; }
 .stats { display: grid; gap: 20px; grid-template-columns: repeat(4,minmax(220px,1fr)); padding: 0 32px 20px; }
 .stat-card { align-items: center; border: 1px solid transparent; border-radius: 16px; display: flex; justify-content: space-between; min-height: 136px; overflow: hidden; padding: 26px 28px; position: relative; box-shadow: 0 12px 26px rgba(15,23,42,.12); color: #fff; }
 .stat-card::after { content: ''; position: absolute; width: 150px; height: 150px; border-radius: 999px; right: -28px; top: -54px; background: rgba(255,255,255,.13); pointer-events: none; }
-.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: capitalize; }
 .stat-card b { color: #fff; font-size: 34px; line-height: 1; font-weight: 800; }
 .stat-icon { align-items: center; border-radius: 14px; display: flex; height: 48px; justify-content: center; width: 48px; }
 .stat-icon svg { height: 24px; width: 24px; }

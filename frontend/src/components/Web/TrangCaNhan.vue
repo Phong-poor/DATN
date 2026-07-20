@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -8,11 +8,11 @@ import { isFormDirty } from '@/services/unsavedChanges'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
-import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
-// ── Active tab ────────────────────────────────────────────
+// â”€â”€ Active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const route = useRoute()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
 
@@ -30,7 +30,7 @@ const tabs = [
   { key: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
 ]
 
-// ── Toast ─────────────────────────────────────────────────
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const toast = ref({ show: false, msg: '' })
 const showToast = (msg) => {
   toast.value = { show: true, msg }
@@ -39,13 +39,13 @@ const showToast = (msg) => {
   }, 2500)
 }
 
-// ── Cancellation state ────────────────────────────────────
+// â”€â”€ Cancellation state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const showCancelModal = ref(false)
 const orderToCancel = ref(null)
 const cancelReason = ref('')
 const isSubmitting = ref(false)
 
-// ── Review state ──────────────────────────────────────────
+// â”€â”€ Review state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const showReviewModal = ref(false)
 const reviewForm = ref({
   id_dathang: null,
@@ -57,9 +57,9 @@ const reviewForm = ref({
 const hoverRating = ref(0)
 const isSubmittingReview = ref(false)
 
-// ════════════════════════════════════════════════
-//  TAB 1 — PROFILE
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 1 â€” PROFILE
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const user = ref({
   name: '',
   email: '',
@@ -77,7 +77,7 @@ const tempAvatarUrl = ref('')
 const sidebarAvatarUrl = computed(() => {
   if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
   if (user.value.avatar.startsWith('http')) return user.value.avatar
-  return normalizeImageUrl(user.value.avatar, '')
+  return withImageVersion(normalizeImageUrl(user.value.avatar, ''), user.value.updated_at || user.value.updatedAt)
 })
 
 const formAvatarUrl = computed(() => {
@@ -92,21 +92,47 @@ const updateUserData = (apiUser) => {
     phone: apiUser.phone || '',
     birthday: apiUser.date_of_birth || '',
     gender: apiUser.gender || '',
-    avatar: apiUser.avatar || user.value.avatar,
+    avatar: apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || user.value.avatar,
+    updated_at: apiUser.updated_at || user.value.updated_at,
     xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
     memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
     joinDate: apiUser.created_at
       ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
       : user.value.joinDate,
+    is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
+    id_google: apiUser.id_google || null,
+    is_facebook_account: Boolean(apiUser.is_facebook_account || apiUser.id_facebook),
+    id_facebook: apiUser.id_facebook || null,
+  }
+
+  if (apiUser.email) {
+    pwForm.value.email = apiUser.email
   }
 }
+
+const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
+const isSocialAccount = computed(() => Boolean(
+  user.value?.is_google_account || user.value?.id_google ||
+  user.value?.is_facebook_account || user.value?.id_facebook
+))
+const isTabAllowed = (key) => {
+  if (key === 'password' && isSocialAccount.value) return false
+  return true
+}
+const filteredTabs = computed(() => tabs.filter(tab => isTabAllowed(tab.key)))
+
+watch([activeTab, isSocialAccount], ([tab, social]) => {
+  if (tab === 'password' && social) {
+    activeTab.value = 'profile'
+  }
+})
 
 const fileInput = ref(null)
 const selectedAvatarFile = ref(null)
 const isUploadingAvatar = ref(false)
 
 const triggerAvatarUpload = () => {
-  fileInput.value.click()
+  fileInput.value?.click()
 }
 
 const handleAvatarUpload = async (event) => {
@@ -146,7 +172,10 @@ const handleAvatarUpload = async (event) => {
     })
     
     if (avatarRes.data.user) {
-      updateUserData(avatarRes.data.user)
+      updateUserData({
+        ...avatarRes.data.user,
+        updated_at: avatarRes.data.user.updated_at || Date.now()
+      })
       updateUser(user.value)
       window.dispatchEvent(new Event('user-updated'))
       showToast('Cập nhật ảnh đại diện thành công!')
@@ -155,7 +184,7 @@ const handleAvatarUpload = async (event) => {
   } catch (error) {
     console.error('Lỗi upload avatar:', error)
     showToast('Lỗi cập nhật ảnh đại diện!')
-    // Nếu lỗi thì thu hồi và reset ảnh xem trước
+    // Náº¿u lá»—i thì thu hồi và reset ảnh xem trước
     if (tempAvatarUrl.value) {
       URL.revokeObjectURL(tempAvatarUrl.value)
       tempAvatarUrl.value = ''
@@ -199,7 +228,7 @@ const loadUser = async () => {
 
     updateUser(user.value)
   } catch (error) {
-    console.error('Load user lỗi:', error)
+    console.error('Lỗi tải người dùng:', error)
 
     const parsed = getUser()
     if (parsed) {
@@ -218,6 +247,94 @@ const loadUser = async () => {
     }
   }
 }
+
+const orderFlow = ['pending', 'confirmed', 'shipping', 'done']
+const refundFlow = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+
+const formatTimelineDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const parseTimelineTime = (value) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const shouldSpreadDemoTimeline = (timeline) => {
+  const times = timeline
+    .map((step) => parseTimelineTime(step.time)?.getTime())
+    .filter(Boolean)
+
+  if (times.length < 3) return false
+
+  return Math.max(...times) - Math.min(...times) < 30 * 60 * 1000
+}
+
+const realisticShipmentTime = (order, step, index, baseDate) => {
+  const base = baseDate || new Date()
+  const offsets = {
+    created: 0,
+    waiting_pickup: 15 * 60 * 1000,
+    picked_up: 3 * 60 * 60 * 1000,
+    delivering: 5 * 60 * 60 * 1000,
+  }
+
+  if (step.status === 'delivered') {
+    const expectedDate = getShippingInfo(order)?.expected_delivery_date
+    const expected = expectedDate ? new Date(`${expectedDate}T10:30:00`) : null
+    if (expected && !Number.isNaN(expected.getTime()) && expected > base) return expected
+    return new Date(base.getTime() + 26 * 60 * 60 * 1000)
+  }
+
+  return new Date(base.getTime() + (offsets[step.status] ?? index * 2 * 60 * 60 * 1000))
+}
+
+const interpolateDate = (startValue, endValue, ratio) => {
+  const start = new Date(startValue).getTime()
+  const end = new Date(endValue).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return endValue || startValue
+  return new Date(start + (end - start) * ratio).toISOString()
+}
+
+const timelineDateFor = (order, key, statusKey, flow, ratio = 1) => {
+  const history = order.du_lieu_thanh_toan?.status_history || {}
+  if (history[key]) return formatTimelineDate(history[key])
+
+  const currentIndex = flow.indexOf(statusKey)
+  const targetIndex = flow.indexOf(key)
+  if (targetIndex === -1 || currentIndex === -1 || targetIndex > currentIndex) return null
+
+  if (key === 'pending') return formatTimelineDate(order.created_at)
+  if (key === statusKey) return formatTimelineDate(order.updated_at || order.created_at)
+
+  return formatTimelineDate(interpolateDate(order.created_at, order.updated_at, ratio))
+}
+
+const buildOrderSteps = (order, statusKey) => [
+  { label: 'Đặt hàng', date: timelineDateFor(order, 'pending', statusKey, orderFlow, 0), done: true },
+  { label: 'Xác nhận', date: timelineDateFor(order, 'confirmed', statusKey, orderFlow, 0.35), done: statusKey !== 'pending' },
+  { label: 'Đang giao', date: timelineDateFor(order, 'shipping', statusKey, orderFlow, 0.68), done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+  { label: 'Hoàn thành', date: timelineDateFor(order, 'done', statusKey, orderFlow, 1), done: statusKey === 'done' || statusKey.startsWith('refund') },
+]
+
+const buildRefundSteps = (order, statusKey) => statusKey.startsWith('refund') ? [
+  { label: 'Yêu cầu hoàn trả', date: timelineDateFor(order, 'refund_pending', statusKey, refundFlow, 0.2), done: refundFlow.indexOf(statusKey) >= 0 },
+  { label: 'Chờ lấy hàng hoàn', date: timelineDateFor(order, 'refund_pickup', statusKey, refundFlow, 0.4), done: refundFlow.indexOf(statusKey) >= 1 },
+  { label: 'Đang giao hoàn', date: timelineDateFor(order, 'refund_delivering', statusKey, refundFlow, 0.6), done: refundFlow.indexOf(statusKey) >= 2 },
+  { label: 'Đã nhận hoàn', date: timelineDateFor(order, 'refund_received', statusKey, refundFlow, 0.8), done: refundFlow.indexOf(statusKey) >= 3 },
+  { label: 'Đã hoàn tiền', date: timelineDateFor(order, 'refunded', statusKey, refundFlow, 1), done: refundFlow.indexOf(statusKey) >= 4 },
+] : null
 
 const fetchOrders = async () => {
   try {
@@ -241,9 +358,12 @@ const fetchOrders = async () => {
           id_dathang: order.id_dathang,
           id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
           date: new Date(order.created_at).toLocaleDateString('vi-VN'),
+          created_at: order.created_at,
           status: statusKey,
           trangthai: order.trangthai,
           updated_at: order.updated_at,
+          du_lieu_thanh_toan: order.du_lieu_thanh_toan || {},
+          shipping: order.du_lieu_thanh_toan?.shipping_demo || null,
           total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
           tongtien: order.tongtien,
           giam_gia: order.giam_gia || 0,
@@ -289,21 +409,14 @@ const fetchOrders = async () => {
               img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://placehold.co/200')
             }
           }),
-          steps: [
-            { label: 'Đặt hàng', date: new Date(order.created_at).toLocaleString('vi-VN'), done: true },
-            { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
-            { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
-            { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
-          ],
-          refundSteps: statusKey.startsWith('refund') ? [
-            { label: 'Yêu cầu hoàn trả', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 0 },
-            { label: 'Chờ lấy hàng hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 1 },
-            { label: 'Đang giao hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 2 },
-            { label: 'Đã nhận hoàn', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 3 },
-            { label: 'Đã hoàn tiền', date: null, done: ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded'].indexOf(statusKey) >= 4 },
-          ] : null
+          steps: buildOrderSteps(order, statusKey),
+          refundSteps: buildRefundSteps(order, statusKey)
         }
       })
+      if (selectedOrder.value) {
+        const freshSelected = orders.value.find(order => order.id_dathang === selectedOrder.value.id_dathang)
+        if (freshSelected) selectedOrder.value = freshSelected
+      }
     }
   } catch (error) {
     console.error('Lỗi tải đơn hàng:', error)
@@ -311,6 +424,11 @@ const fetchOrders = async () => {
 }
 
 const openCancelModal = (order) => {
+  if (!canCancelOrder(order)) {
+    showToast('Đơn hàng đã vào luồng vận chuyển nên không thể hủy.')
+    return
+  }
+
   orderToCancel.value = order
   cancelReason.value = ''
   showCancelModal.value = true
@@ -509,7 +627,7 @@ const submitReview = async () => {
         if (item) item.is_reviewed = true
       }
       
-      // Tải lại toàn bộ đơn hàng để cập nhật danh sách chính
+      // Táº£i láº¡i toÃ n bá»™ đơn hàng để cập nhật danh sách chính
       await fetchOrders()
     }
   } catch (err) {
@@ -537,6 +655,9 @@ const fetchWishlistCount = async () => {
 onMounted(() => {
   loadUser()
   fetchOrders()
+  orderRefreshTimer = window.setInterval(() => {
+    if (activeTab.value === 'orders') fetchOrders()
+  }, 20000)
   fetchWishlistCount()
   fetchPromotions()
   fetchAddresses()
@@ -565,10 +686,24 @@ onMounted(() => {
           if (e.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
           if (e.trangthai === 'cancelled') statusKey = 'cancelled'
           orders.value[index].status = statusKey
+          orders.value[index].updated_at = e.updated_at || new Date().toISOString()
+          orders.value[index].du_lieu_thanh_toan = {
+            ...(orders.value[index].du_lieu_thanh_toan || {}),
+            status_history: e.status_history || {
+              ...orders.value[index].du_lieu_thanh_toan?.status_history,
+              [e.trangthai]: orders.value[index].updated_at,
+            },
+          }
+          orders.value[index].steps = buildOrderSteps(orders.value[index], statusKey)
+          orders.value[index].refundSteps = buildRefundSteps(orders.value[index], statusKey)
 
           if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
             selectedOrder.value.trangthai = e.trangthai
             selectedOrder.value.status = statusKey
+            selectedOrder.value.updated_at = orders.value[index].updated_at
+            selectedOrder.value.du_lieu_thanh_toan = orders.value[index].du_lieu_thanh_toan
+            selectedOrder.value.steps = orders.value[index].steps
+            selectedOrder.value.refundSteps = orders.value[index].refundSteps
           }
         }
       })
@@ -576,6 +711,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (orderRefreshTimer) {
+    window.clearInterval(orderRefreshTimer)
+    orderRefreshTimer = null
+  }
   if (tempAvatarUrl.value) {
     URL.revokeObjectURL(tempAvatarUrl.value)
   }
@@ -586,7 +725,7 @@ onUnmounted(() => {
   }
 })
 
-// ── DAILY CHECK-IN ───────────────────────────────────────
+// â”€â”€ DAILY CHECK-IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const attendanceData = ref({
   checked_today: false,
   current_streak: 0,
@@ -670,15 +809,11 @@ const fetchXuHistory = async (page) => {
 const startEdit = () => {
   profileForm.value = { 
     ...user.value,
-    currentEmail: '',
-    newPass: '',
-    confirmPass: ''
   }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
   if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
 
   editing.value = true
-  otpVerifiedForPassword.value = false
 }
 
 const isProfileFormDirty = () => {
@@ -688,10 +823,7 @@ const isProfileFormDirty = () => {
     profileForm.value.phone !== user.value.phone ||
     profileForm.value.birthday !== user.value.birthday ||
     (profileForm.value.gender === 'male' ? 'Nam' : profileForm.value.gender === 'female' ? 'Nữ' : profileForm.value.gender) !== user.value.gender ||
-    profileForm.value.avatar !== user.value.avatar ||
-    profileForm.value.currentEmail !== '' ||
-    profileForm.value.newPass !== '' ||
-    profileForm.value.confirmPass !== ''
+    profileForm.value.avatar !== user.value.avatar
   )
 }
 
@@ -713,6 +845,7 @@ const cancelEdit = async (force = false) => {
 }
 
 const changeTab = async (tabKey) => {
+  if (tabKey === 'password' && isSocialAccount.value) return
   if (activeTab.value === tabKey) return
 
   if (isFormDirty.value) {
@@ -730,15 +863,16 @@ const changeTab = async (tabKey) => {
   if (activeTab.value === 'profile') {
     await cancelEdit(true)
   } else if (activeTab.value === 'password') {
-    pwForm.value = { current: '', newPass: '', confirm: '' }
+    pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
     pwErrors.value = {}
-    showPwCaptcha.value = false
+    passwordTabOtpPending.value = false
   }
 
   activeTab.value = tabKey
 }
 
 const otpVerifiedForPassword = ref(false)
+const passwordTabOtpPending = ref(false)
 const profilePwErrors = ref({})
 const showProfileOtpModal = ref(false)
 const profileOtpCode = ref(['', '', '', '', '', ''])
@@ -762,9 +896,15 @@ const resendProfileOtp = async () => {
   if (profileOtpResendCooldown.value > 0) return
   sendingProfileOtp.value = true
   try {
-    await api.post('/user/change-password/request-otp', {
-      email: profileForm.value.currentEmail
-    })
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/request-otp', {
+        email: pwForm.value.email || user.value.email,
+      })
+    } else {
+      await api.post('/user/change-password/request-otp', {
+        email: profileForm.value.currentEmail
+      })
+    }
     showToast('Đã gửi lại mã OTP!')
     profileOtpResendCooldown.value = 60
     const cooldownTimer = setInterval(() => {
@@ -854,12 +994,24 @@ const verifyProfileOtp = async () => {
   verifyingProfileOtp.value = true
   profilePwErrors.value.otp = ''
   try {
-    await api.post('/user/change-password/check-otp', {
-      otp: code
-    })
-    showProfileOtpModal.value = false
-    otpVerifiedForPassword.value = true
-    showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/verify-otp', {
+        otp: code,
+        new_password: pwForm.value.newPass,
+      })
+      showProfileOtpModal.value = false
+      passwordTabOtpPending.value = false
+      pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+      pwErrors.value = {}
+      await swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } else {
+      await api.post('/user/change-password/check-otp', {
+        otp: code
+      })
+      showProfileOtpModal.value = false
+      otpVerifiedForPassword.value = true
+      showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    }
   } catch (error) {
     profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
   } finally {
@@ -881,7 +1033,10 @@ const saveProfile = async () => {
         }
       })
       if (avatarRes.data.user) {
-        updateUserData(avatarRes.data.user)
+        updateUserData({
+          ...avatarRes.data.user,
+          updated_at: avatarRes.data.user.updated_at || Date.now()
+        })
       }
     }
 
@@ -904,39 +1059,12 @@ const saveProfile = async () => {
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
-    // Handle password change if user successfully verified OTP and entered new password
-    if (otpVerifiedForPassword.value && profileForm.value.newPass) {
-      profilePwErrors.value = {}
-      if (!profileForm.value.newPass) profilePwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
-      if (profileForm.value.newPass !== profileForm.value.confirmPass) profilePwErrors.value.confirmPass = 'Mật khẩu xác nhận không khớp'
-
-      if (Object.keys(profilePwErrors.value).length === 0) {
-        try {
-          await api.post('/user/change-password/verify-otp', {
-            otp: profileOtpCode.value.join(''),
-            new_password: profileForm.value.newPass
-          })
-          otpVerifiedForPassword.value = false
-          profileForm.value.currentEmail = ''
-          profileForm.value.newPass = ''
-          profileForm.value.confirmPass = ''
-        } catch (err) {
-          showToast(err.response?.data?.message || 'Lỗi đổi mật khẩu')
-          savingProfile.value = false
-          return // Don't close edit form
-        }
-      } else {
-         savingProfile.value = false
-         return // Show errors, don't close form
-      }
-    }
-
     editing.value = false
     isFormDirty.value = false
     showToast('Cập nhật thành công!')
 
   } catch (error) {
-    console.error('LỖI API:', error.response?.data)
+    console.error('Lỗi API:', error.response?.data)
     showToast(error.response?.data?.message || 'Lỗi cập nhật!')
   } finally {
     savingProfile.value = false
@@ -953,9 +1081,9 @@ const stats = computed(() => [
   { label: 'Xu', value: rewardPoints.value, icon: 'star' },
 ])
 
-// ════════════════════════════════════════════════
-//  TAB 2 — ORDERS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 2 â€” ORDERS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const orderTab = ref('all')
 const selectedOrder = ref(null)
 
@@ -990,7 +1118,171 @@ const statusMap = {
   cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
 }
 
+const shipmentStyleMap = {
+  created: { color: '#6366f1', bg: '#eef2ff' },
+  waiting_pickup: { color: '#b45309', bg: '#fef3c7' },
+  picked_up: { color: '#0369a1', bg: '#e0f2fe' },
+  delivering: { color: '#2563eb', bg: '#dbeafe' },
+  delivered: { color: '#15803d', bg: '#dcfce7' },
+  delivery_failed: { color: '#dc2626', bg: '#fee2e2' },
+  returning: { color: '#ea580c', bg: '#ffedd5' },
+  returned: { color: '#7c3aed', bg: '#ede9fe' },
+}
+
+const shipmentLabelMap = {
+  created: 'Đã tạo vận đơn',
+  waiting_pickup: 'Chờ lấy hàng',
+  picked_up: 'Đã lấy hàng',
+  delivering: 'Đang giao hàng',
+  delivered: 'Giao thành công',
+  delivery_failed: 'Giao thất bại',
+  returning: 'Đang hoàn về',
+  returned: 'Đã hoàn về kho',
+}
+
+const shipmentNoteMap = {
+  created: 'Cửa hàng đã tạo vận đơn trên hệ thống NextGen Express.',
+  waiting_pickup: 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.',
+  picked_up: 'Đơn vị vận chuyển đã lấy hàng tại kho.',
+  delivering: 'Shipper đang giao hàng đến địa chỉ của bạn.',
+  delivered: 'Khách hàng đã nhận hàng thành công.',
+  delivery_failed: 'Giao hàng chưa thành công, cửa hàng sẽ liên hệ để hỗ trợ.',
+  returning: 'Đơn hàng đang được chuyển hoàn về kho.',
+  returned: 'Đơn hàng đã hoàn về kho NextGen.',
+}
+
+const getShipment = (order) => order?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
+const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const canCancelOrder = (order) => {
+  if (!['pending', 'confirmed'].includes(order?.status)) return false
+
+  const shipmentStatus = getShipment(order)?.status
+  const lockedShipmentStatuses = [
+    'waiting_pickup',
+    'picked_up',
+    'delivering',
+    'delivered',
+    'delivery_failed',
+    'returning',
+    'returned',
+  ]
+
+  return !lockedShipmentStatuses.includes(shipmentStatus)
+}
+const canShowShippingPanel = (order) => {
+  const status = String(order?.status || '')
+  return Boolean(order) && !status.startsWith('refund') && !['cancelled'].includes(status)
+}
+const getShippingInfo = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) return shipment
+
+  const status = order?.status || 'pending'
+  const fallbackByStatus = {
+    pending: {
+      tracking_code: 'Chờ cửa hàng xác nhận',
+      service_area: 'Chưa xác định',
+      service_level: 'Chưa tạo vận đơn',
+      expected_delivery_date: '-',
+      timeline_status: 'created',
+      timeline_label: 'Chờ xác nhận đơn',
+      timeline_note: 'Đơn hàng đang chờ cửa hàng xác nhận trước khi tạo vận đơn.',
+    },
+    confirmed: {
+      tracking_code: 'Đang đồng bộ vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Chờ lấy hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'waiting_pickup',
+      timeline_label: 'Chờ lấy hàng',
+      timeline_note: 'Đơn đã xác nhận, hệ thống đang đồng bộ vận đơn với NextGen Express.',
+    },
+    shipping: {
+      tracking_code: 'Đang cập nhật mã vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Đang giao hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'delivering',
+      timeline_label: 'Đang giao hàng',
+      timeline_note: 'Đơn hàng đang được vận chuyển, thông tin chi tiết sẽ được cập nhật sau.',
+    },
+    done: {
+      tracking_code: 'Đã hoàn tất',
+      service_area: 'Hoàn thành',
+      service_level: 'Giao thành công',
+      expected_delivery_date: order?.date || '-',
+      timeline_status: 'delivered',
+      timeline_label: 'Giao thành công',
+      timeline_note: 'Đơn hàng đã hoàn thành.',
+    },
+  }
+
+  const fallback = fallbackByStatus[status] || fallbackByStatus.pending
+
+  return {
+    provider: 'NextGen Express',
+    tracking_code: fallback.tracking_code,
+    expected_delivery_date: fallback.expected_delivery_date,
+    service_area: fallback.service_area,
+    service_level: fallback.service_level,
+    cod_amount: 0,
+    status,
+    fallback_timeline: [{
+      status: fallback.timeline_status,
+      label: fallback.timeline_label,
+      note: fallback.timeline_note,
+      time: order?.rawDate || order?.date || null,
+    }],
+  }
+}
+const getDisplayStatus = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && ['confirmed', 'shipping', 'done'].includes(order.status)) {
+    return shipmentLabelMap[shipment.status] || shipment.status_label || statusMap[order.status]?.label || order.status
+  }
+  return statusMap[order.status]?.label || order.status
+}
+const getDisplayStatusStyle = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && shipmentStyleMap[shipment.status]) return shipmentStyleMap[shipment.status]
+  return statusMap[order.status] || statusMap.pending
+}
+const getOrderStatusSubtext = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) {
+    return `${shipment.tracking_code} · Dự kiến ${shipment.expected_delivery_date || '-'}`
+  }
+
+  const fallback = {
+    pending: 'Đơn đang chờ cửa hàng xác nhận, chưa tạo vận đơn.',
+    confirmed: 'Đơn đã xác nhận, vận đơn đang được đồng bộ.',
+    shipping: 'Đơn đang được vận chuyển, đang cập nhật mã vận đơn.',
+    done: 'Đơn đã hoàn thành.',
+    cancelled: 'Đơn đã hủy, không tạo vận đơn.',
+    refund_pending: 'Yêu cầu hoàn trả đang chờ xử lý.',
+    refund_pickup: 'Đang chờ lấy hàng hoàn.',
+    refund_delivering: 'Hàng hoàn đang được vận chuyển.',
+    refund_received: 'Cửa hàng đã nhận hàng hoàn.',
+    refunded: 'Đã hoàn tiền cho đơn hàng.',
+    refund_rejected: 'Yêu cầu hoàn trả đã bị từ chối.',
+  }
+
+  return fallback[order?.status] || 'Trạng thái đơn hàng đang được cập nhật.'
+}
+const shippingTimelineFor = (order) => {
+  const timeline = getShippingInfo(order)?.timeline || getShippingInfo(order)?.fallback_timeline || []
+  const shouldSpread = shouldSpreadDemoTimeline(timeline)
+  const baseDate = parseTimelineTime(timeline[0]?.time) || parseTimelineTime(order?.created_at) || new Date()
+
+  return timeline.map((step, index) => ({
+    label: shipmentLabelMap[step.status] || step.label || step.status,
+    note: shipmentNoteMap[step.status] || step.note || 'Trạng thái vận chuyển đã được cập nhật.',
+    date: formatTimelineDate(shouldSpread ? realisticShipmentTime(order, step, index, baseDate) : step.time) || '-',
+  }))
+}
+
 const orders = ref([])
+let orderRefreshTimer = null
 
 const orderMode = ref('mua')
 
@@ -1019,9 +1311,9 @@ watch(orderTab, () => {
   currentPage.value = 1
 })
 
-// ════════════════════════════════════════════════
-//  TAB 3 — ADDRESS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 3 â€” ADDRESS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const showAddrForm = ref(false)
 const editingAddrIdx = ref(null)
 const savingAddr = ref(false)
@@ -1466,10 +1758,10 @@ const removeAddr = (i) => {
     })
 }
 
-// ════════════════════════════════════════════════
-//  TAB 4 — PASSWORD
-// ════════════════════════════════════════════════
-const pwForm = ref({ current: '', newPass: '', confirm: '' })
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 4 â€” PASSWORD
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const pwForm = ref({ current: '', email: '', newPass: '', confirm: '' })
 const showPw = ref({ current: false, newPass: false, confirm: false })
 const savingPw = ref(false)
 const pwErrors = ref({})
@@ -1567,8 +1859,8 @@ const pwRequirements = computed(() => [
 const savePw = async () => {
   pwErrors.value = {}
 
-  if (!pwForm.value.current) {
-    pwErrors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
+  if (!pwForm.value.email) {
+    pwErrors.value.email = 'Vui lòng nhập email xác minh'
   }
 
   if (!pwForm.value.newPass) {
@@ -1583,75 +1875,39 @@ const savePw = async () => {
 
   if (Object.keys(pwErrors.value).length) return
 
-  if (!showPwCaptcha.value) {
-    showPwCaptcha.value = true
-    await loadPwCaptcha()
-    pwErrors.value.captcha = 'Vui lòng xác minh trước khi cập nhật mật khẩu'
-    return
-  }
-
-  if (!pwCaptcha.value.answer) {
-    pwErrors.value.captcha = 'Vui lòng nhập captcha'
-  }
-
-  if (Object.keys(pwErrors.value).length) return
-
   savingPw.value = true
   try {
-    const res = await api.put('/user/change-password', {
-      current_password: pwForm.value.current,
-      new_password: pwForm.value.newPass,
-      new_password_confirmation: pwForm.value.confirm,
-      captcha_answer: pwCaptcha.value.answer,
+    await api.post('/user/change-password/request-otp', {
+      email: pwForm.value.email,
     })
 
-    pwForm.value = { current: '', newPass: '', confirm: '' }
-    pwCaptcha.value = { question: '', answer: '' }
-    captchaVerified.value = false
-    showPwCaptcha.value = false
-    await swal.success('Thành công', res.data?.message || 'Đổi mật khẩu thành công!')
+    passwordTabOtpPending.value = true
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    profilePwErrors.value = {}
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     const data = error.response?.data || {}
 
     if (error.response?.status === 422) {
-      if (data.errors?.current_password?.[0]) {
-        pwErrors.value.current = data.errors.current_password[0]
-        await loadPwCaptcha()
-      }
-
-      if (data.errors?.new_password?.[0]) {
-        pwErrors.value.newPass = data.errors.new_password[0]
-      }
-
-      if (data.errors?.captcha_answer?.[0]) {
-        pwErrors.value.captcha = data.errors.captcha_answer[0]
-        await loadPwCaptcha()
-      }
-
-      if (!Object.keys(pwErrors.value).length && data.message) {
-        const message = data.message
-        if (message.toLowerCase().includes('captcha')) {
-          pwErrors.value.captcha = message
-          await loadPwCaptcha()
-        } else if (message.toLowerCase().includes('current') || message.includes('hiện tại')) {
-          pwErrors.value.current = message
-          await loadPwCaptcha()
-        } else {
-          pwErrors.value.newPass = message
-        }
+      if (data.errors?.email?.[0]) {
+        pwErrors.value.email = data.errors.email[0]
+      } else if (data.message) {
+        pwErrors.value.email = data.message
       }
       return
     }
 
-    showToast(data.message || 'Có lỗi xảy ra khi đổi mật khẩu!')
+    showToast(data.message || 'Có lỗi xảy ra khi gửi mã OTP!')
   } finally {
     savingPw.value = false
   }
 }
 
-// ════════════════════════════════════════════════
-//  TAB 5 — PROMOTIONS
-// ════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 5 â€” PROMOTIONS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const promotions = ref([])
 const promoPage = ref(1)
 const promoPerPage = 5
@@ -1711,8 +1967,65 @@ const promoStatusMap = {
             </button>
           </div>
           <div class="modal-body">
-            <div class="modal-status" :style="{ color: statusMap[selectedOrder.status].color, background: statusMap[selectedOrder.status].bg }">
-              {{ statusMap[selectedOrder.status].label }}
+            <div class="modal-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+              {{ getDisplayStatus(selectedOrder) }}
+            </div>
+
+            <div v-if="canShowShippingPanel(selectedOrder)" class="customer-shipping-card">
+              <div class="shipping-card-head">
+                <div class="shipping-title-row">
+                  <div class="shipping-icon">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M3 7h11v9H3z"/>
+                      <path d="M14 10h4l3 3v3h-7z"/>
+                      <circle cx="7" cy="18" r="2"/>
+                      <circle cx="18" cy="18" r="2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="shipping-kicker">Theo dõi vận chuyển</p>
+                    <h3>{{ getShippingInfo(selectedOrder).provider || 'NextGen Express' }}</h3>
+                    <span>{{ getShippingInfo(selectedOrder).tracking_code }}</span>
+                  </div>
+                </div>
+                <span class="shipping-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                  {{ getDisplayStatus(selectedOrder) }}
+                </span>
+              </div>
+              <div class="shipping-info-grid">
+                <div>
+                  <span>Dự kiến giao</span>
+                  <b>{{ getShippingInfo(selectedOrder).expected_delivery_date || '-' }}</b>
+                </div>
+                <div>
+                  <span>Khu vực</span>
+                  <b>{{ getShippingInfo(selectedOrder).service_area || 'Tiêu chuẩn' }}</b>
+                </div>
+                <div>
+                  <span>Gói giao</span>
+                  <b>{{ getShippingInfo(selectedOrder).service_level || 'Giao tiêu chuẩn' }}</b>
+                </div>
+                <div>
+                  <span>Thu hộ COD</span>
+                  <b>{{ new Intl.NumberFormat('vi-VN').format(getShippingInfo(selectedOrder).cod_amount || 0) }}đ</b>
+                </div>
+              </div>
+              <div class="shipping-events">
+                <div class="shipping-events-head">
+                  <span>Lịch trình đơn hàng</span>
+                  <b>{{ shippingTimelineFor(selectedOrder).length }} cập nhật</b>
+                </div>
+                <div class="shipping-events-rail">
+                  <div v-for="(event, idx) in shippingTimelineFor(selectedOrder)" :key="idx" class="shipping-event">
+                    <span></span>
+                    <div>
+                      <b>{{ event.label }}</b>
+                      <p>{{ event.note }}</p>
+                      <small>{{ event.date }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="(selectedOrder.status === 'cancelled' || selectedOrder.status === 'refund_pending' || selectedOrder.status === 'refunded') && selectedOrder.lydo" class="alert mb-4" :class="{'alert-danger': selectedOrder.status === 'cancelled', 'alert-warning': selectedOrder.status !== 'cancelled'}" style="font-size: 13px; padding: 12px; border-radius: 10px;">
@@ -1722,7 +2035,7 @@ const promoStatusMap = {
               </div>
             </div>
 
-            <div class="timeline" v-if="selectedOrder.steps && !selectedOrder.status.startsWith('refund')">
+            <div class="timeline" v-if="selectedOrder.steps && !canShowShippingPanel(selectedOrder) && !selectedOrder.status.startsWith('refund')">
               <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                 <div class="tl-col">
                   <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -1771,7 +2084,10 @@ const promoStatusMap = {
             <div class="modal-footer">
               <div class="modal-btns">
                 <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)"
-                  class="btn-modal-huy" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
+                  class="btn-modal-huy"
+                  :class="{ 'is-hidden': !canCancelOrder(selectedOrder) }"
+                  :disabled="!canCancelOrder(selectedOrder)"
+                  @click="openCancelModal(selectedOrder)">Hủy đơn</button>
                 <button v-if="isRefundable(selectedOrder)"
                   class="btn-modal-hoantra" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
                 <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
@@ -1904,7 +2220,7 @@ const promoStatusMap = {
               <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
             <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
-            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
+            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
           </div>
 
           <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
@@ -1961,17 +2277,19 @@ const promoStatusMap = {
           <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
-                <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                        <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1; justify-content: space-between;">
-                            <div class="d-flex align-items-center gap-2">
-                                <img :src="item.img" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ item.name }}</div>
-                                    <div style="font-size: 11px; color: #64748b;">SL: {{ item.qty }}</div>
-                                </div>
+                <div class="refund-items-list">
+                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card" :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                        <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
+                            <img :src="item.img" class="refund-product-img" :alt="item.name">
+                            <div class="refund-product-info">
+                                <div class="refund-product-name">{{ item.name }}</div>
+                                <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
                             </div>
-                            <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
+                            <div class="refund-product-side">
+                                <div class="refund-product-price">{{ item.price }}</div>
+                                <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' : 'Chọn' }}</span>
+                            </div>
+                            <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems">
                         </label>
                     </div>
                 </div>
@@ -2135,7 +2453,7 @@ const promoStatusMap = {
 
     <div class="container">
 
-      <!-- ── SIDEBAR ── -->
+      <!-- â”€â”€ SIDEBAR â”€â”€ -->
       <aside class="sidebar">
         <!-- Input ẩn cho avatar upload -->
         <input 
@@ -2176,7 +2494,7 @@ const promoStatusMap = {
         <!-- NAV BUTTONS -->
         <nav class="side-nav">
           <button
-            v-for="tab in tabs" :key="tab.key"
+            v-for="tab in filteredTabs" :key="tab.key"
             class="side-btn"
             :class="{ active: activeTab === tab.key }"
             @click="changeTab(tab.key)"
@@ -2197,11 +2515,11 @@ const promoStatusMap = {
         </nav>
       </aside>
 
-      <!-- ── MAIN CONTENT ── -->
+      <!-- â”€â”€ MAIN CONTENT â”€â”€ -->
       <main class="main">
 
-        <!-- ════ TAB: PROFILE ════ -->
-        <!-- ════ TAB: PROFILE ════ -->
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
         <div v-if="activeTab === 'profile'" style="display: flex; flex-direction: column; gap: 24px;">
           <!-- Thông tin cá nhân -->
           <div class="card">
@@ -2218,7 +2536,7 @@ const promoStatusMap = {
             <div v-if="!editing" class="info-grid">
               <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
               <div class="info-row">
-                <span class="info-lbl">🪙 Xu tích lũy</span>
+                <span class="info-lbl">Xu tích lũy</span>
                 <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
                   <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
                   <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
@@ -2240,8 +2558,8 @@ const promoStatusMap = {
               </div>
             </div>
             <form v-else class="edit-form" @submit.prevent="saveProfile">
-              <div class="form-avatar-section">
-                <div class="form-avatar-dashed-border" @click="triggerAvatarUpload">
+              <div class="form-avatar-section" @click="triggerAvatarUpload" role="button" tabindex="0" @keydown.enter.prevent="triggerAvatarUpload" @keydown.space.prevent="triggerAvatarUpload">
+                <div class="form-avatar-dashed-border">
                   <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
                     <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
                     <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
@@ -2270,33 +2588,6 @@ const promoStatusMap = {
                 </div>
               </div>
 
-              
-              <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Để trống nếu bạn không muốn thay đổi mật khẩu.</p>
-              
-              <div v-if="!otpVerifiedForPassword" class="form-group">
-                <label>Nhập email hiện tại để đổi mật khẩu mới</label>
-                <div style="display: flex; gap: 10px;">
-                  <input v-model="profileForm.currentEmail" type="email" placeholder="Nhập email hiện tại để xác thực" autocomplete="off" style="flex: 1;" />
-                  <button type="button" @click="requestOtpForPassword" :disabled="sendingProfileOtp || !profileForm.currentEmail" style="padding: 0 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s;" :style="(!profileForm.currentEmail || sendingProfileOtp) ? 'opacity: 0.6; cursor: not-allowed;' : ''">
-                    {{ sendingProfileOtp ? 'Đang gửi...' : 'Gửi mã OTP' }}
-                  </button>
-                </div>
-                <span v-if="profilePwErrors.currentEmail" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.currentEmail }}</span>
-              </div>
-              
-              <div v-if="otpVerifiedForPassword" class="form-row">
-                <div class="form-group">
-                  <label>Mật khẩu mới</label>
-                  <input v-model="profileForm.newPass" type="password" placeholder="Nhập mật khẩu mới" autocomplete="off" />
-                  <span v-if="profilePwErrors.newPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.newPass }}</span>
-                </div>
-                <div class="form-group">
-                  <label>Xác nhận mật khẩu</label>
-                  <input v-model="profileForm.confirmPass" type="password" placeholder="Xác nhận mật khẩu mới" autocomplete="off" />
-                  <span v-if="profilePwErrors.confirmPass" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;">{{ profilePwErrors.confirmPass }}</span>
-                </div>
-              </div>
-
               <div class="form-actions">
                 <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingProfile">
@@ -2322,7 +2613,7 @@ const promoStatusMap = {
               <div v-for="d in attendanceData.days_progress" :key="d.day" class="attendance-day-box" :class="d.status">
                 <div class="day-num">{{ d.label }}</div>
                 <div class="day-xu">
-                  <span class="coin-icon">🪙</span>
+                  <span class="coin-icon">Xu</span>
                   <span class="xu-val">+{{ d.xu }}</span>
                 </div>
                 <div class="day-status-icon">
@@ -2364,7 +2655,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: ORDERS ════ -->
+        <!-- â•â•â•â• TAB: ORDERS â•â•â•â• -->
         <div v-else-if="activeTab === 'orders'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
@@ -2423,20 +2714,31 @@ const promoStatusMap = {
                   <td>
                     <div style="font-weight: 600;">{{ order.total }}</div>
                     <div v-if="order.xu_dung > 0" style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
-                      🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
+                      Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
                     </div>
                   </td>
                   <td>
-                    <span class="status-cell" :style="{ color: statusMap[order.status].color }">
-                      {{ statusMap[order.status].label }}
-                    </span>
+                    <div class="customer-shipment-state">
+                      <span class="status-cell" :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
+                        {{ getDisplayStatus(order) }}
+                      </span>
+                      <span class="customer-tracking" :class="{ muted: !hasShipment(order) }">
+                        {{ getOrderStatusSubtext(order) }}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <div class="btn-group">
-                      <button class="btn-xem" @click="selectedOrder = order">Xem</button>
-                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
-                      <button v-if="['pending', 'confirmed'].includes(order.status)" class="btn-huy-don" @click="openCancelModal(order)">Hủy đơn</button>
-                      <button v-if="isRefundable(order)" class="btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
+                      <button class="order-action-btn btn-xem" @click="selectedOrder = order">Xem</button>
+                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="order-action-btn btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button
+                        v-if="['pending', 'confirmed'].includes(order.status)"
+                        class="order-action-btn btn-huy-don"
+                        :class="{ 'is-hidden': !canCancelOrder(order) }"
+                        :disabled="!canCancelOrder(order)"
+                        @click="openCancelModal(order)"
+                      >Hủy đơn</button>
+                      <button v-if="isRefundable(order)" class="order-action-btn btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
                     </div>
                     
                   </td>
@@ -2457,7 +2759,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: ADDRESS ════ -->
+        <!-- â•â•â•â• TAB: ADDRESS â•â•â•â• -->
         <div v-else-if="activeTab === 'address'">
           <div class="page-header-inline" style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div><h1 class="card-title">Địa chỉ của tôi</h1><p class="card-sub">Quản lý địa chỉ giao hàng</p></div>
@@ -2489,7 +2791,7 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: PROMOTIONS ════ -->
+        <!-- â•â•â•â• TAB: PROMOTIONS â•â•â•â• -->
         <div v-else-if="activeTab === 'promotions'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
@@ -2584,22 +2886,20 @@ const promoStatusMap = {
           </div>
         </div>
 
-        <!-- ════ TAB: PASSWORD ════ -->
+        <!-- â•â•â•â• TAB: PASSWORD â•â•â•â• -->
         <div v-else-if="activeTab === 'password'">
           <div class="page-header-inline"><h1 class="card-title">Đổi mật khẩu</h1><p class="card-sub">Cập nhật mật khẩu để bảo mật tài khoản</p></div>
           <div class="pw-layout">
             <div class="card">
               <form @submit.prevent="savePw" class="form">
-                <div class="form-group" :class="{ error: pwErrors.current }">
-                  <label>Mật khẩu hiện tại</label>
+                <div class="form-group" :class="{ error: pwErrors.email }">
+                  <label>Email xác minh</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <input :type="showPw.current ? 'text' : 'password'" v-model="pwForm.current" placeholder="••••••••" />
-                    <button type="button" class="eye-btn" @click="showPw.current = !showPw.current">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                    <input type="email" v-model="pwForm.email" placeholder="name@example.com" />
                   </div>
-                  <span class="err-msg" v-if="pwErrors.current">{{ pwErrors.current }}</span>
+                  <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
+                  <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
                 </div>
                 <div class="form-group" :class="{ error: pwErrors.newPass }">
                   <label>Mật khẩu mới</label>
@@ -2627,36 +2927,9 @@ const promoStatusMap = {
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
-                <div v-if="showPwCaptcha" class="form-group" :class="{ error: pwErrors.captcha }">
-                  <label>Xác minh</label>
-                  <div class="turnstile-box" :class="{ checked: captchaVerified, loading: loadingPwCaptcha || verifyingCaptcha }">
-                    <button
-                      type="button"
-                      class="turnstile-check"
-                      :aria-pressed="captchaVerified"
-                      :disabled="loadingPwCaptcha || verifyingCaptcha"
-                      @click="toggleHumanCaptcha"
-                    >
-                      <svg v-if="captchaVerified" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span v-else-if="loadingPwCaptcha || verifyingCaptcha" class="turnstile-spinner"></span>
-                    </button>
-                    <span class="turnstile-text">Xác minh bạn là con người</span>
-                    <div class="turnstile-brand">
-                      <div class="cloudflare-mark">
-                        <span></span>
-                      </div>
-                      <strong>CLOUDFLARE</strong>
-                      <small>Quyền riêng tư · Điều khoản</small>
-                      <button type="button" class="turnstile-refresh" title="Tải lại xác minh" @click="loadPwCaptcha">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8.49-6"/><path d="M3 12a9 9 0 0 1 15.49-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <span class="err-msg" v-if="pwErrors.captcha">{{ pwErrors.captcha }}</span>
-                </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
                   <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  {{ savingPw ? 'Đang cập nhật...' : (showPwCaptcha ? 'Cập nhật mật khẩu' : 'Tiếp tục') }}
+                  {{ savingPw ? 'Đang gửi OTP...' : 'Tiếp tục' }}
                 </button>
               </form>
             </div>
@@ -2693,7 +2966,7 @@ const promoStatusMap = {
 
 <style scoped>
 
-/* ── BASE ── */
+/* â”€â”€ BASE â”€â”€ */
 .page {
   min-height: 100vh;
   background: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
@@ -2709,7 +2982,7 @@ const promoStatusMap = {
   align-items: start;
 }
 
-/* ── SIDEBAR ── */
+/* â”€â”€ SIDEBAR â”€â”€ */
 .sidebar {
   background: rgba(17, 31, 53, 0.6);
   backdrop-filter: blur(16px);
@@ -2781,7 +3054,7 @@ const promoStatusMap = {
   border: 1px solid rgba(37, 99, 235, 0.3);
   padding: 3px 12px;
   border-radius: 20px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .sidebar-join {
@@ -2790,7 +3063,7 @@ const promoStatusMap = {
   margin: 8px 0 0;
 }
 
-/* ── STAT GRID ── */
+/* â”€â”€ STAT GRID â”€â”€ */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2839,11 +3112,11 @@ const promoStatusMap = {
 .stat-lbl {
   font-size: 10px;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
-/* ── SIDEBAR NAV BUTTONS ── */
+/* â”€â”€ SIDEBAR NAV BUTTONS â”€â”€ */
 .side-nav {
   padding: 10px 12px 16px;
   display: flex;
@@ -2917,7 +3190,7 @@ const promoStatusMap = {
   transform: translateX(0);
 }
 
-/* ── MAIN ── */
+/* â”€â”€ MAIN â”€â”€ */
 .main {
   min-width: 0;
 }
@@ -3007,7 +3280,7 @@ const promoStatusMap = {
   font-size: 10px;
   color: #64748b;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
 }
 .info-val {
@@ -3216,7 +3489,14 @@ const promoStatusMap = {
   margin-top: 2px;
 }
 
-/* ── CATEGORY TABS ── */
+.pw-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* â”€â”€ CATEGORY TABS â”€â”€ */
 .category-tabs {
   display: flex;
   gap: 8px;
@@ -3259,7 +3539,7 @@ const promoStatusMap = {
   margin-left: 6px;
 }
 
-/* ── ORDER TABS (Segmented Control) ── */
+/* â”€â”€ ORDER TABS (Segmented Control) â”€â”€ */
 .order-tabs {
   display: flex;
   gap: 4px;
@@ -3306,7 +3586,7 @@ const promoStatusMap = {
   color: #ffffff;
 }
 
-/* ── TABLES ── */
+/* â”€â”€ TABLES â”€â”€ */
 .table-card {
   background: transparent;
   border-radius: 18px;
@@ -3325,7 +3605,7 @@ const promoStatusMap = {
   padding: 16px 20px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   font-size: 11px;
   letter-spacing: 0.8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -3357,78 +3637,314 @@ const promoStatusMap = {
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid currentColor;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
+}
+.customer-shipment-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.customer-tracking {
+  max-width: 230px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.customer-tracking.muted {
+  color: #64748b;
+  font-weight: 500;
+}
+.customer-shipping-card {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    #f8fafc;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+.shipping-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.shipping-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.shipping-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  flex-shrink: 0;
+}
+.shipping-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shipping-kicker {
+  margin: 0 0 3px;
+  color: #0284c7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.shipping-card-head h3 {
+  margin: 0 0 2px;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.shipping-card-head span:not(.shipping-status) {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.shipping-status {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+.shipping-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.shipping-info-grid > div {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  min-height: 52px;
+  min-width: 0;
+}
+.shipping-info-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.shipping-info-grid b {
+  color: #0f172a;
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shipping-events {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.shipping-events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.shipping-events-head span {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+.shipping-events-head b {
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 900;
+}
+.shipping-events-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 220px;
+  padding: 1px 4px 1px 1px;
+  scrollbar-width: thin;
+  scrollbar-color: #93c5fd #eff6ff;
+}
+.shipping-events-rail::-webkit-scrollbar {
+  width: 6px;
+}
+.shipping-events-rail::-webkit-scrollbar-track {
+  background: #eff6ff;
+  border-radius: 999px;
+}
+.shipping-events-rail::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 999px;
+}
+.shipping-event {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  min-height: 82px;
+}
+.shipping-event:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 40px;
+  bottom: -12px;
+  width: 2px;
+  background: #bae6fd;
+}
+.shipping-event > span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  border: 5px solid #e0f2fe;
+  margin-top: 0;
+  z-index: 1;
+  box-shadow: 0 6px 14px rgba(14, 165, 233, 0.22);
+}
+.shipping-event b {
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 4px;
+}
+.shipping-event p {
+  margin: 3px 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.shipping-event small {
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .shipping-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .shipping-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Buttons inside tables */
 .btn-group {
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 240px;
+}
+.order-action-btn {
+  min-width: 66px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.05;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.order-action-btn:hover {
+  transform: translateY(-1px);
+}
+.order-action-btn.is-hidden,
+.btn-modal-huy.is-hidden {
+  opacity: 0.45;
+  filter: grayscale(0.45);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.order-action-btn.is-hidden:hover,
+.btn-modal-huy.is-hidden:hover {
+  transform: none;
+  cursor: not-allowed;
 }
 .btn-xem {
-  background: #0284c7;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
   color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  border-color: transparent;
 }
 .btn-xem:hover {
-  background: #0369a1;
-  box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.24);
 }
 .btn-hoan-tra {
-  background: transparent;
-  color: #f97316;
-  border: 1.5px solid rgba(249, 115, 22, 0.5);
-  padding: 5px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fed7aa;
 }
 .btn-hoan-tra:hover {
   background: #f97316;
   color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+  border-color: #f97316;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
 }
 .btn-mua-lai {
-  background: #1D4ED8;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
   color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  border-color: transparent;
 }
 .btn-mua-lai:hover {
-  background: #1E40AF;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.24);
 }
 .btn-huy-don {
-  background: transparent;
-  color: #ef4444;
-  border: 1.5px solid rgba(239, 68, 68, 0.5);
-  padding: 5px 14px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  background: #fff7f7;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 .btn-huy-don:hover {
   background: #ef4444;
   color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  border-color: #ef4444;
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
 }
 
 /* Pagination */
@@ -3853,7 +4369,7 @@ const promoStatusMap = {
   font-size: 12px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
   margin: 0 0 14px;
 }
@@ -3926,7 +4442,7 @@ const promoStatusMap = {
   font-weight: 500;
 }
 .tip-list li::before {
-  content: '•';
+  content: 'â€¢';
   position: absolute;
   left: 0;
   color: #38bdf8;
@@ -4038,7 +4554,7 @@ const promoStatusMap = {
   padding: 5px 14px;
   border-radius: 99px;
   margin-bottom: 20px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   border: 1px solid currentColor;
   background: rgba(255, 255, 255, 0.03);
@@ -4183,7 +4699,7 @@ const promoStatusMap = {
   font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.8px;
   margin: 0 0 12px;
 }
@@ -4266,7 +4782,7 @@ const promoStatusMap = {
   font-size: 12px;
   color: #64748b;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .total-value {
@@ -4334,6 +4850,117 @@ const promoStatusMap = {
 .review-modal {
   max-width: 480px !important;
 }
+
+.refund-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 14px;
+}
+
+.refund-product-card {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.refund-product-card:hover,
+.refund-product-card.selected {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.14);
+}
+
+.refund-product-card.selected {
+  background: #eff6ff;
+}
+
+.refund-product-label {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.refund-product-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.refund-product-info {
+  min-width: 0;
+}
+
+.refund-product-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refund-product-qty {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.refund-product-side {
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.refund-product-price {
+  color: #0284c7;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.refund-check-pill {
+  min-width: 76px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.refund-product-card.selected .refund-check-pill {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.refund-product-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .review-product-info {
   background: rgba(13, 27, 46, 0.5);
   padding: 14px;
@@ -4844,7 +5471,7 @@ const promoStatusMap = {
 .btn-edit:hover,
 .btn-save,
 .order-tab.active,
-.btn-xem,
+.btn-xem:not(.order-action-btn),
 .p-num.active,
 .btn-add,
 .btn-modal-mua {
@@ -4855,7 +5482,7 @@ const promoStatusMap = {
 }
 
 .btn-save:hover,
-.btn-xem:hover,
+.btn-xem:not(.order-action-btn):hover,
 .btn-add:hover,
 .btn-modal-mua:hover {
   background: #0369a1;
@@ -5039,6 +5666,455 @@ const promoStatusMap = {
   color: #64748b;
 }
 
+.modal .tl-dot {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.modal .tl-item.done .tl-dot {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.modal .tl-line {
+  width: 2px;
+  background: #dbeafe;
+  margin: 3px 0;
+}
+
+.modal .tl-line.done {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.modal .tl-label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .tl-date {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal .tl-item:not(.done) .tl-label {
+  color: #334155;
+}
+
+.modal .section-title {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+}
+
+.modal .modal-item {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+}
+
+.modal .modal-item img {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.modal .modal-item-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .modal-item-qty {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.modal .modal-footer {
+  border-top-color: #dbeafe;
+  align-items: center;
+  gap: 18px;
+}
+
+.modal .modal-btns {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal .btn-modal-huy,
+.modal .btn-modal-hoantra,
+.modal .btn-modal-mua,
+.modal .btn-review-small {
+  min-height: 42px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.modal .btn-modal-huy {
+  background: #ffffff;
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+  padding: 9px 18px;
+}
+
+.modal .btn-modal-huy:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
+}
+
+.modal .btn-modal-hoantra {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.modal .btn-modal-hoantra:hover {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+}
+
+.modal .btn-modal-mua {
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  border: 0;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.20);
+}
+
+.modal .btn-modal-mua:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+}
+
+.modal .btn-review-small {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  padding: 7px 12px;
+}
+
+.modal .btn-review-small:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.modal .modal-total-wrap {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.modal .modal-total-wrap > div:last-child {
+  border-top-color: #dbeafe !important;
+}
+
+.modal .total-label {
+  color: #475569;
+  font-size: 12px;
+}
+
+.modal .total-value {
+  color: #2563eb !important;
+  text-shadow: none;
+  font-size: 22px !important;
+}
+
+.overlay:has(.timeline) {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.modal:has(.timeline) {
+  max-width: 560px;
+  max-height: none;
+  overflow: visible;
+  border-radius: 18px;
+}
+
+.modal:has(.timeline) .modal-head {
+  padding: 18px 24px 0;
+}
+
+.modal:has(.timeline) .modal-title {
+  font-size: 17px;
+}
+
+.modal:has(.timeline) .modal-id {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.timeline) .modal-body {
+  padding: 14px 24px 22px;
+}
+
+.modal:has(.timeline) .modal-status {
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.timeline) .timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 2px 0 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.modal:has(.timeline) .tl-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-col {
+  width: 28px;
+}
+
+.modal:has(.timeline) .tl-dot {
+  width: 26px;
+  height: 26px;
+}
+
+.modal:has(.timeline) .tl-line {
+  display: none;
+}
+
+.modal:has(.timeline) .tl-content {
+  padding-bottom: 0;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-label {
+  font-size: 12.5px;
+  line-height: 1.25;
+  margin: 1px 0 3px;
+  white-space: nowrap;
+}
+
+.modal:has(.timeline) .tl-date {
+  font-size: 10.5px;
+  line-height: 1.25;
+  margin: 0;
+  color: #64748b;
+}
+
+.modal:has(.timeline) .section-title {
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.timeline) .modal-item-name {
+  font-size: 13px;
+}
+
+.modal:has(.timeline) .modal-item-qty,
+.modal:has(.timeline) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.timeline) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.timeline) .btn-modal-huy,
+.modal:has(.timeline) .btn-modal-hoantra,
+.modal:has(.timeline) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.timeline) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.timeline) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.timeline) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.overlay:has(.customer-shipping-card) {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.modal:has(.customer-shipping-card) {
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.modal:has(.customer-shipping-card) .modal-head {
+  padding: 16px 22px 0;
+}
+
+.modal:has(.customer-shipping-card) .modal-title {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.modal:has(.customer-shipping-card) .modal-id {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.customer-shipping-card) .modal-body {
+  padding: 12px 22px 20px;
+}
+
+.modal:has(.customer-shipping-card) .modal-status {
+  margin-bottom: 10px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.customer-shipping-card) .section-title {
+  margin: 12px 0 8px;
+  color: #64748b;
+}
+
+.modal:has(.customer-shipping-card) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+  border-color: #dbeafe;
+  background: #f8fbff;
+}
+
+.modal:has(.customer-shipping-card) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-name {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-qty,
+.modal:has(.customer-shipping-card) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.customer-shipping-card) .btn-modal-huy,
+.modal:has(.customer-shipping-card) .btn-modal-hoantra,
+.modal:has(.customer-shipping-card) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.customer-shipping-card) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.customer-shipping-card) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.customer-shipping-card) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
 .timeline-dot {
   background: #ffffff;
   border-color: #cbd5e1;
@@ -5068,6 +6144,43 @@ const promoStatusMap = {
 }
 
 @media (max-width: 576px) {
+  .refund-product-label {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .refund-product-img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .refund-product-side {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .overlay:has(.timeline) {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .modal:has(.timeline) {
+    width: calc(100% - 12px);
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .modal:has(.timeline) .timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal:has(.timeline) .modal-footer {
+    grid-template-columns: 1fr;
+  }
+
   .page {
     padding: 20px 14px 48px;
   }
@@ -5081,7 +6194,7 @@ const promoStatusMap = {
   }
 }
 
-/* ── DAILY CHECK-IN CARD ── */
+/* â”€â”€ DAILY CHECK-IN CARD â”€â”€ */
 .attendance-card {
   margin-top: 10px;
 }
@@ -5096,13 +6209,15 @@ const promoStatusMap = {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(253, 230, 138, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 16px;
   padding: 16px 8px;
+  min-height: 136px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  color: #1f2937;
 }
 .attendance-day-box::before {
   content: '';
@@ -5110,7 +6225,7 @@ const promoStatusMap = {
   inset: 0;
   border-radius: 16px;
   padding: 1.5px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  background: linear-gradient(135deg, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -5119,58 +6234,74 @@ const promoStatusMap = {
 
 /* Checked Day */
 .attendance-day-box.checked {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 .attendance-day-box.checked .day-num {
-  color: #10b981;
-  font-weight: 700;
+  color: #92400e;
+  font-weight: 800;
 }
 .attendance-day-box.checked .xu-val {
-  color: #a7f3d0;
+  color: #b45309;
 }
 
 /* Current Day */
 .attendance-day-box.current {
-  background: rgba(234, 179, 8, 0.15);
-  border-color: rgba(234, 179, 8, 0.6);
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.2);
+  background: rgba(253, 224, 71, 0.3);
+  border-color: rgba(234, 179, 8, 0.85);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.28);
   transform: translateY(-4px);
   animation: pulse-border 2s infinite;
 }
 .attendance-day-box.current .day-num {
-  color: #facc15;
-  font-weight: 700;
+  color: #92400e;
+  font-weight: 800;
 }
 .attendance-day-box.current .xu-val {
-  color: #fef08a;
-  font-weight: bold;
+  color: #92400e;
+  font-weight: 800;
 }
 
 /* Locked Day */
 .attendance-day-box.locked {
-  opacity: 0.6;
+  background: rgba(250, 204, 21, 0.12);
+  opacity: 1;
+}
+.attendance-day-box.locked .day-num,
+.attendance-day-box.locked .xu-val {
+  color: #4b5563;
 }
 
 .day-num {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
-  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 .day-xu {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 12px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 10px 14px;
+  width: fit-content;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(249, 115, 22, 0.08);
 }
 .coin-icon {
   font-size: 16px;
 }
 .xu-val {
-  font-size: 14px;
-  font-weight: 700;
-  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 900;
+  color: #92400e;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
 }
 .day-status-icon svg {
   width: 24px;
