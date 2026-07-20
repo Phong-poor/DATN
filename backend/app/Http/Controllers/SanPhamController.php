@@ -142,7 +142,7 @@ class SanPhamController extends Controller
                 ->orderByDesc('id_sanpham')
                 ->limit(12)
                 ->get()
-                ->map(function ($product) {
+                ->map(function ($product) use ($imageVersion) {
                     $variants = $product->bienThes
                         ->sortByDesc(fn ($variant) => (int) $variant->soluong > 0)
                         ->take(1)

@@ -92,8 +92,7 @@ if ($startedEmulator) {
     Start-Sleep -Seconds 30
 }
 
-Write-Host ''
-Write-Host "Emulator $device and local services are ready. Starting Flutter..." -ForegroundColor Green
+Write-Host "Emulator $device and local services are ready. Starting Expo..." -ForegroundColor Green
 Set-Location $mobile
-$mode = if ($Debug) { '--debug' } else { '--profile' }
-& flutter run -d $device --no-pub $mode
+& npx expo start --android
+

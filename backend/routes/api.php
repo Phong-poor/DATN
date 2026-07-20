@@ -62,6 +62,11 @@ Route::get('/forgot-password/captcha', [ForgotPasswordController::class, 'captch
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
+// Mobile-specific forgot password (no captcha required)
+Route::post('/mobile/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtpMobile']);
+Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPasswordMobile']);
+
+
 // ================= LIÊN HỆ (KHÁCH) =================
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);

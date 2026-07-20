@@ -108,7 +108,7 @@ class VnpayController extends Controller
                 }
                 
                 if ($order->trangthai == 'pending') {
-                    $this->restoreCartAndDeleteOrder($order);
+                    $this->restoreCartAndCancelOrder($order);
                 }
                 
                 return response()->json(['RspCode' => '00', 'Message' => 'Payment Failed']);
@@ -164,7 +164,7 @@ class VnpayController extends Controller
             } else {
                 $order = DatHang::find($orderId);
                 if ($order && $order->trangthai == 'pending') {
-                    $this->restoreCartAndDeleteOrder($order);
+                    $this->restoreCartAndCancelOrder($order);
                 }
                 return redirect($frontendUrl . '/payment-failed');
             }
@@ -173,13 +173,56 @@ class VnpayController extends Controller
         return redirect($frontendUrl . '/payment-failed');
     }
 
-    private function restoreCartAndDeleteOrder($order)
+    private function restoreCartAndCancelOrder($order)
     {
-        $orderWithDetails = DatHang::with('chi_tiets')->find($order->id_dathang);
-        
-        if ($orderWithDetails) {
-            \App\Models\DatHangChiTiet::where('id_dathang', $orderWithDetails->id_dathang)->delete();
-            $orderWithDetails->delete();
-        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+            $orderWithDetails = DatHang::with('chi_tiets')->find($order->id_dathang);
+            if ($orderWithDetails) {
+                // Restore cart items
+                foreach ($orderWithDetails->chi_tiets as $detail) {
+                    $cartItem = \App\Models\GioHang::where('id_khachhang', $orderWithDetails->id_khachhang)
+                        ->where('id_bienthe', $detail->id_bienthe)
+                        ->first();
+                    if ($cartItem) {
+                        $cartItem->increment('soluong', $detail->soluong);
+                    } else {
+                        \App\Models\GioHang::create([
+                            'id_khachhang' => $orderWithDetails->id_khachhang,
+                            'id_bienthe' => $detail->id_bienthe,
+                            'soluong' => $detail->soluong,
+                        ]);
+                    }
+                }
+
+                // Cancel the order properly to restore stock and coins
+                $orderWithDetails->update([
+                    'trangthai' => 'cancelled',
+                    'lydo' => 'Thanh toán VNPAY thất bại hoặc bị hủy bởi người dùng',
+                    'trang_thai_thanh_toan' => 'failed',
+                ]);
+
+                // Restore stock
+                foreach ($orderWithDetails->chi_tiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                    }
+                }
+
+                // Restore coins
+                if ($orderWithDetails->xu_dung > 0) {
+                    $user = $orderWithDetails->user;
+                    if ($user) {
+                        $user->increment('xu', $orderWithDetails->xu_dung);
+                        \App\Models\XuHistory::create([
+                            'id_khachhang' => $orderWithDetails->id_khachhang,
+                            'so_xu' => $orderWithDetails->xu_dung,
+                            'loai_giao_dich' => 'hoan_tra',
+                            'id_dathang' => $orderWithDetails->id_dathang,
+                            'mo_ta' => 'Hoàn xu do hủy thanh toán VNPAY đơn hàng #' . $orderWithDetails->id_dathang,
+                        ]);
+                    }
+                }
+            }
+        });
     }
 }
