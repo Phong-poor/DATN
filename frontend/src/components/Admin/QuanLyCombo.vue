@@ -1232,7 +1232,7 @@ onMounted(() => {
               <!-- Selected product badge/info -->
               <div v-else class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px;">
                 <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #2563eb; font-weight: 700; display: block; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Laptop Đang Chọn:</span>
+                  <span style="font-size: 10px; color: #2563eb; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Laptop Đang Chọn:</span>
                   <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
                 </div>
                 <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="img-remove-btn" style="padding: 6px 12px; font-size: 11px; margin: 0;">
@@ -1249,7 +1249,7 @@ onMounted(() => {
               <!-- Selected variant badge/info (similar to Selected Laptop box) -->
               <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px;">
                 <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #166534; font-weight: 700; display: block; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Cấu Hình Đang Chọn:</span>
+                  <span style="font-size: 10px; color: #166534; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Cấu Hình Đang Chọn:</span>
                   <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
                   <span style="font-size: 11px; color: #166534; font-weight: 700; margin-top: 4px; display: block;">
                     Giá bán lẻ lẻ: {{ getSelectedVariantPrice(offerForm.id_bienthe) }}
@@ -1678,7 +1678,7 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.88);
   font-weight: 800;
   letter-spacing: .03em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 0 0 20px;
 }
 
@@ -1771,7 +1771,7 @@ onMounted(() => {
   color: #64748b;
   font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: .04em;
 }
 
@@ -2280,7 +2280,7 @@ onMounted(() => {
   font-weight: 700;
   color: #64748b;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -2730,7 +2730,7 @@ onMounted(() => {
   font-weight: 700;
   color: #475569;
   border-bottom: 1.5px solid #edf2f7;
-  text-transform: uppercase;
+  text-transform: capitalize;
   font-size: 11px;
   letter-spacing: 0.05em;
 }
@@ -2819,7 +2819,7 @@ onMounted(() => {
   font-weight: 700;
   white-space: nowrap;
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.03em;
 }
 
@@ -2981,7 +2981,7 @@ onMounted(() => {
 .detail-section-title {
   font-size: 10.5px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: #64748b;
   letter-spacing: 0.05em;
   margin-bottom: 8px;

@@ -1097,7 +1097,7 @@ onMounted(loadAll)
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   padding: 6px 16px;
   border-radius: 99px;
   margin-bottom: 16px;
@@ -1405,7 +1405,7 @@ onMounted(loadAll)
 }
 .info-badge-label {
   font-size: 10px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   font-weight: 700;
   color: #64748b;
   margin-bottom: 2px;
@@ -1566,6 +1566,7 @@ onMounted(loadAll)
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
   gap: 22px;
+  align-items: start;
 }
 .video-submit-card,
 .video-list-card {
@@ -1607,6 +1608,12 @@ onMounted(loadAll)
   gap: 14px;
 }
 .video-form-grid .full {
+  grid-column: 1 / -1;
+}
+.video-form-grid .input-group:has(input[accept*="video/"]) {
+  display: none;
+}
+.video-form-grid .input-group:has(input[placeholder*="youtube.com"]) {
   grid-column: 1 / -1;
 }
 .video-form-grid textarea {
@@ -1808,7 +1815,7 @@ onMounted(loadAll)
   padding: 14px 18px;
   border-bottom: 1px solid #e2e8f0;
   font-size: 12.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .modern-table td {

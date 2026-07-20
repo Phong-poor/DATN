@@ -347,6 +347,10 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
+        Route::post('/orders/shipment/sync-demo', [DatHangController::class, 'syncDemoShipments']);
+        Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
+        Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
+        Route::post('/orders/{id}/shipment/fail', [DatHangController::class, 'markDemoShipmentFailed']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);

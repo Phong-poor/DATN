@@ -6,7 +6,7 @@ import swal from '@/services/swal'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
 import { productImageUrl, comboImageUrl, imageFallbackUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
-import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { prefetchProductDetail, prefetchProductsPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
 import {
   Tag,
   Flame,
@@ -75,6 +75,57 @@ const openCombo = (combo) => {
 }
 
 const getComboImage = (combo) => comboImageUrl(combo, imageFallbackUrl)
+
+const toFiniteNumber = (value) => {
+  const number = Number.parseFloat(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+const getProductPrice = (product) => {
+  const baseVariant = Array.isArray(product?.bien_thes) && product.bien_thes.length > 0
+    ? product.bien_thes[0]
+    : null
+  return toFiniteNumber(
+    product?.giaKM ||
+    product?.gia_khuyen_mai ||
+    product?.gia_km ||
+    product?.giaSP ||
+    product?.gia ||
+    baseVariant?.gia_khuyen_mai ||
+    baseVariant?.giaKM ||
+    baseVariant?.gia
+  )
+}
+
+const getProductOriginalPrice = (product, currentPrice) => {
+  const baseVariant = Array.isArray(product?.bien_thes) && product.bien_thes.length > 0
+    ? product.bien_thes[0]
+    : null
+  const originalPrice = toFiniteNumber(
+    product?.gia_goc ||
+    product?.giaGoc ||
+    product?.giaSP ||
+    product?.oldPrice ||
+    baseVariant?.gia_goc ||
+    baseVariant?.giaGoc
+  )
+  if (originalPrice > currentPrice) return originalPrice
+  return currentPrice > 0 ? Math.floor(currentPrice * 1.2) : 0
+}
+
+const formatCurrency = (value) => {
+  const number = toFiniteNumber(value)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number)
+}
+
+const getDiscountPercent = (product) => {
+  const price = toFiniteNumber(product?.gia)
+  const oldPrice = toFiniteNumber(product?.oldPrice)
+  if (price <= 0 || oldPrice <= price) return 0
+  return Math.round((1 - price / oldPrice) * 100)
+}
+
+const hasValidPrice = (product) => toFiniteNumber(product?.gia) > 0
 
 const getOriginalPrice = (combo) => {
   if (!combo.products) return 0
@@ -177,9 +228,9 @@ async function fetchPromotionsData() {
     if (rawProducts.length > 0) {
       // Find products with active discount or fallback to first 8 products
       let filtered = rawProducts.filter(p => {
-        const giaKM = parseFloat(p.giaKM)
-        const giaSP = parseFloat(p.giaSP)
-        return giaKM > 0 && giaKM < giaSP
+        const giaKM = toFiniteNumber(p.giaKM || p.gia_khuyen_mai || p.gia_km || p.bien_thes?.[0]?.gia_khuyen_mai || p.bien_thes?.[0]?.giaKM)
+        const giaSP = toFiniteNumber(p.giaSP || p.gia || p.bien_thes?.[0]?.gia)
+        return giaKM > 0 && giaSP > 0 && giaKM < giaSP
       })
 
       if (filtered.length === 0) {
@@ -187,8 +238,9 @@ async function fetchPromotionsData() {
       }
 
       products.value = filtered.map(p => {
-        const giaSP = parseFloat(p.giaKM) > 0 ? parseFloat(p.giaKM) : parseFloat(p.giaSP)
         const baseVariant = (p.bien_thes && p.bien_thes.length > 0) ? p.bien_thes[0] : null
+        const giaSP = getProductPrice(p)
+        const oldPrice = getProductOriginalPrice(p, giaSP)
         
         // Extract specs attributes
         const generalSpecs = []
@@ -223,13 +275,15 @@ async function fetchPromotionsData() {
         }
 
         return {
+          ...p,
           id: p.id_sanpham,
+          id_sanpham: p.id_sanpham,
           id_bienthe: baseVariant?.id_bienthe || p.id_bienthe || null,
           tenSP: p.tenSP,
           brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'ASUS',
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop Gaming',
           gia: giaSP,
-          oldPrice: Math.floor(giaSP * 1.2), // Simulated original price
+          oldPrice,
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
           image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
@@ -262,9 +316,19 @@ async function fetchPromotionsData() {
           const sold = p.so_luong_da_ban || 0
           const soldPercent = Math.min(Math.round((sold / limit) * 100), 100)
           const remainingCount = Math.max(limit - sold, 0)
+          const gia = toFiniteNumber(p.gia_flash_sale || p.giaFlashSale || p.giaKM || p.gia_khuyen_mai || p.gia || p.bien_thes?.[0]?.gia)
+          const oldPrice = getProductOriginalPrice(p, gia)
           return {
             ...p,
-            id: p.id_sanpham,
+            id: p.id_sanpham || p.san_pham?.id_sanpham || p.id,
+            id_sanpham: p.id_sanpham || p.san_pham?.id_sanpham || p.id,
+            id_bienthe: p.id_bienthe || p.id_bien_the || p.bienthe?.id_bienthe || p.bien_the?.id_bienthe || p.bien_thes?.[0]?.id_bienthe || null,
+            tenSP: p.tenSP || p.san_pham?.tenSP || p.ten_sanpham || 'Sản phẩm khuyến mãi',
+            brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || p.san_pham?.thuong_hieu?.ten_thuonghieu || 'NextGen',
+            category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || p.san_pham?.danh_muc?.ten_danhmuc || 'Khuyến mãi',
+            gia,
+            oldPrice,
+            image: p.image || productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
             soldPercent,
             remainingCount
           }
@@ -525,8 +589,32 @@ const addToCart = async (product) => {
   }
 }
 
-const goToDetail = (productId) => {
-  router.push(`/san-pham/${productId}`)
+const warmDetail = (product) => {
+  if (!product || typeof product !== 'object') return
+  primeProductDetailFromCard(product)
+  const productId = product.id_sanpham || product.id || product.san_pham?.id_sanpham
+  if (productId) prefetchProductDetail(productId).catch(() => {})
+}
+
+const goToDetail = (product) => {
+  const productId = typeof product === 'object'
+    ? (product.id_sanpham || product.id || product.san_pham?.id_sanpham)
+    : product
+  const variantId = typeof product === 'object'
+    ? (product.id_bienthe || product.id_bien_the || product.bienthe?.id_bienthe || product.bien_the?.id_bienthe)
+    : null
+
+  if (!productId) {
+    swal.error('Không mở được sản phẩm', 'Sản phẩm này chưa có mã chi tiết hợp lệ.')
+    return
+  }
+
+  warmDetail(product)
+
+  router.push({
+    path: `/san-pham/${productId}`,
+    query: variantId ? { variant: variantId } : {}
+  })
 }
 
 const submitNewsletter = async () => {
@@ -837,11 +925,11 @@ const initScrollReveal = () => {
         </div>
 
         <div class="flash-sale-grid scroll-reveal reveal-stagger">
-          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod.id)">
+          <div v-for="prod in flashSaleProducts" :key="prod.id" class="flash-sale-card" @click="goToDetail(prod)">
             <div class="flash-img-box">
               <img :src="prod.image" :alt="prod.tenSP" />
-              <div class="discount-absolute-badge">
-                -{{ Math.round((1 - prod.gia / prod.oldPrice) * 100) }}%
+              <div class="discount-absolute-badge" v-if="getDiscountPercent(prod) > 0">
+                -{{ getDiscountPercent(prod) }}%
               </div>
             </div>
 
@@ -850,8 +938,8 @@ const initScrollReveal = () => {
               <h3 class="product-title">{{ prod.tenSP }}</h3>
 
               <div class="price-flex-group">
-                <span class="price-new">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.gia) }}</span>
-                <span class="price-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
+                <span class="price-new">{{ hasValidPrice(prod) ? formatCurrency(prod.gia) : 'Liên hệ' }}</span>
+                <span class="price-old" v-if="prod.oldPrice > prod.gia">{{ formatCurrency(prod.oldPrice) }}</span>
               </div>
 
               <div class="stock-progress-container">
@@ -957,7 +1045,7 @@ const initScrollReveal = () => {
             <div class="combo-main-content">
               <div class="combo-details">
                 <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                  Tiết kiệm {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+                  Tiết kiệm {{ formatCurrency(getOriginalPrice(combo) - combo.giakhuyenmai) }}
                 </span>
                 <h3>{{ combo.ten_combo }}</h3>
                 <p>{{ combo.mota }}</p>
@@ -965,11 +1053,11 @@ const initScrollReveal = () => {
                 <div class="combo-pricing-group">
                   <div class="price-block">
                     <span class="price-label">Giá Combo:</span>
-                    <span class="price-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(combo.giakhuyenmai) }}</span>
+                    <span class="price-val">{{ formatCurrency(combo.giakhuyenmai) }}</span>
                   </div>
                   <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
                     <span class="price-label">Tổng Giá gốc:</span>
-                    <span class="price-val-old">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(getOriginalPrice(combo)) }}</span>
+                    <span class="price-val-old">{{ formatCurrency(getOriginalPrice(combo)) }}</span>
                   </div>
                 </div>
 
@@ -1036,8 +1124,8 @@ const initScrollReveal = () => {
           <div v-for="prod in filteredProducts" :key="prod.id" class="promo-product-card" @click="goToDetail(prod)">
             <div class="prod-img-wrap">
               <img :src="prod.image" :alt="prod.tenSP" />
-              <div class="badge-percent-overlay">
-                -{{ Math.round((1 - prod.gia / prod.oldPrice) * 100) }}%
+              <div class="badge-percent-overlay" v-if="getDiscountPercent(prod) > 0">
+                -{{ getDiscountPercent(prod) }}%
               </div>
               <button class="wishlist-fav-btn" @click.stop="toggleWishlist(prod)">
                 <Heart class="fav-icon" />
@@ -1066,8 +1154,8 @@ const initScrollReveal = () => {
 
               <div class="prod-price-action-row">
                 <div class="price-flex-block">
-                  <span class="price-main-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.gia) }}</span>
-                  <span class="price-old-val">{{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.oldPrice) }}</span>
+                  <span class="price-main-val">{{ hasValidPrice(prod) ? formatCurrency(prod.gia) : 'Liên hệ' }}</span>
+                  <span class="price-old-val" v-if="prod.oldPrice > prod.gia">{{ formatCurrency(prod.oldPrice) }}</span>
                 </div>
                 <button
                   @click.stop="addToCart(prod)"
@@ -1225,7 +1313,7 @@ const initScrollReveal = () => {
   font-size: clamp(28px, 3.5vw, 42px);
   font-weight: 800;
   letter-spacing: -0.02em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 16px 0 12px 0;
   background: linear-gradient(135deg, var(--text-light) 0%, #cbd5e1 100%);
   -webkit-background-clip: text;
@@ -1249,7 +1337,7 @@ const initScrollReveal = () => {
   color: var(--accent);
   font-size: 12.5px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.05em;
 }
 
@@ -1613,7 +1701,7 @@ const initScrollReveal = () => {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-light);
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-bottom: 12px;
   letter-spacing: 0.05em;
 }
@@ -1698,7 +1786,7 @@ const initScrollReveal = () => {
   font-size: clamp(26px, 3vw, 36px);
   font-weight: 800;
   margin: 12px 0 0 0;
-  text-transform: uppercase;
+  text-transform: capitalize;
   background: linear-gradient(135deg, var(--text-light) 0%, #cbd5e1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1829,7 +1917,7 @@ const initScrollReveal = () => {
   font-size: 10.5px;
   font-weight: 700;
   color: var(--accent);
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.02em;
   margin-bottom: 4px;
 }
@@ -1989,7 +2077,7 @@ const initScrollReveal = () => {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.06);
   color: #cbd5e1;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .voucher-glass-card.shipping .voucher-badge { color: #93c5fd !important; background: rgba(37, 99, 235, 0.08); }
@@ -2147,7 +2235,7 @@ const initScrollReveal = () => {
   font-size: 11px;
   font-weight: 600;
   color: #64748b;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.05em;
 }
 
@@ -2397,7 +2485,7 @@ const initScrollReveal = () => {
   font-size: 11px;
   font-weight: 700;
   color: #64748b;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.02em;
   margin-bottom: 4px;
 }
@@ -2628,7 +2716,7 @@ const initScrollReveal = () => {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 6px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.02em;
 }
 
@@ -2724,7 +2812,7 @@ const initScrollReveal = () => {
   font-size: 9.5px;
   font-weight: 700;
   color: var(--accent);
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-bottom: 6px;
 }
 
@@ -2812,7 +2900,7 @@ const initScrollReveal = () => {
   margin: 0 0 12px 0;
   color: #070e1b;
   letter-spacing: -0.01em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .newsletter-headline p {

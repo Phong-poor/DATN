@@ -1,12 +1,24 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { BarChart3, DollarSign, Package, PackageCheck, UserPlus, Users } from 'lucide-vue-next'
+import {
+    AlertTriangle,
+    BarChart3,
+    ClipboardList,
+    DollarSign,
+    FileSpreadsheet,
+    Package,
+    PackageCheck,
+    ShoppingCart,
+    TrendingUp,
+    UserPlus,
+    Users,
+} from 'lucide-vue-next'
 import api from '@/services/api'
 import echo from '@/services/echo'
 
 // State
 const period = ref('all')          // all | week | month | year
-const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v3_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
 const statusLabels = [
@@ -33,6 +45,31 @@ const createDashboardShell = (selectedPeriod = 'all') => ({
     bieu_do_san_pham: [],
     don_hang: [],
     san_pham: [],
+    ton_kho_canh_bao: [],
+    don_can_xu_ly: [],
+    thanh_toan: [],
+    danh_muc_ban_chay: [],
+    phan_tich: {
+        gia_tri_don_trung_binh: '0đ',
+        don_hoan_thanh: 0,
+        tong_don: 0,
+        ti_le_hoan_thanh: 0,
+        doanh_thu: { current: '0đ', previous: '0đ', trend: 0 },
+        don_hang: { current: 0, previous: 0, trend: 0 },
+        khach_hang: { current: 0, previous: 0, trend: 0 },
+    },
+    nhan_su_hoat_dong: {
+        online: 0,
+        idle: 0,
+        offline: 0,
+        total: 0,
+        items: [],
+    },
+    khach_hang_hoat_dong: {
+        online: 0,
+        recent: 0,
+        visited_today: 0,
+    },
 })
 
 const getDashboardCacheKey = (selectedPeriod) => `${DASHBOARD_CACHE_PREFIX}${selectedPeriod}`
@@ -64,7 +101,7 @@ const loading = ref(false)
 const data = ref(readDashboardCache(period.value) || createDashboardShell(period.value))
 const errorMessage = ref('')
 const searchQuery = ref('')
-const hoveredStatus = ref(null) // Để quản lý trạng thái đang hover
+const hoveredStatus = ref(null) // Quản lý trạng thái đang hover
 const hoveredChartPoint = ref(null)
 const chartTab = ref('sales')   // sales | customers | products
 
@@ -209,6 +246,202 @@ const stats = computed(() => {
     ]
 })
 
+const statusCount = (status) => Number(data.value?.trang_thai?.find((item) => item.status === status)?.count || 0)
+
+const normalOrderTotal = computed(() =>
+    normalStatusesData.value.reduce((sum, item) => sum + Number(item.count || 0), 0)
+)
+
+const pendingOrders = computed(() => statusCount('pending'))
+const processingOrders = computed(() => statusCount('confirmed') + statusCount('shipping'))
+const completedOrders = computed(() => statusCount('done'))
+const cancelledOrders = computed(() => statusCount('cancelled'))
+const openRefunds = computed(() =>
+    ['refund_pending', 'refund_pickup', 'refund_delivering'].reduce((sum, status) => sum + statusCount(status), 0)
+)
+
+const lowStockItems = computed(() => data.value?.ton_kho_canh_bao || [])
+const handlingOrders = computed(() => data.value?.don_can_xu_ly || [])
+const paymentMethods = computed(() => data.value?.thanh_toan || [])
+const topCategories = computed(() => data.value?.danh_muc_ban_chay || [])
+const staffActivity = computed(() => data.value?.nhan_su_hoat_dong || createDashboardShell(period.value).nhan_su_hoat_dong)
+const activeStaffList = computed(() => staffActivity.value.items || [])
+const customerActivity = computed(() => data.value?.khach_hang_hoat_dong || createDashboardShell(period.value).khach_hang_hoat_dong)
+
+const staffStatusClass = (status) => {
+    return {
+        online: 'online',
+        idle: 'idle',
+        offline: 'offline',
+    }[status] || 'offline'
+}
+
+const paymentChartRows = computed(() => {
+    const rows = paymentMethods.value.map((item) => ({
+        ...item,
+        total: Number(item.total || 0),
+    }))
+    const max = Math.max(...rows.map((item) => item.total), 1)
+    return rows.map((item) => ({
+        ...item,
+        pct: Math.round((item.total / max) * 100),
+    }))
+})
+
+const categoryChartRows = computed(() => {
+    const rows = topCategories.value.map((item) => ({
+        ...item,
+        total: Number(item.total || 0),
+    }))
+    const max = Math.max(...rows.map((item) => item.total), 1)
+    return rows.map((item) => ({
+        ...item,
+        pct: Math.round((item.total / max) * 100),
+    }))
+})
+
+const stockRiskRows = computed(() => lowStockItems.value.map((item) => {
+    const quantity = Number(item.soluong || 0)
+    const risk = Math.max(8, Math.min(100, Math.round(((5 - Math.min(quantity, 5)) / 5) * 100)))
+    return {
+        ...item,
+        risk,
+        tone: quantity <= 0 ? 'danger' : quantity <= 2 ? 'warn' : 'soft',
+    }
+}))
+
+const orderPipelineRows = computed(() => {
+    const rows = normalStatusesData.value.map((item) => ({
+        ...item,
+        count: Number(item.count || 0),
+    }))
+    const max = Math.max(...rows.map((item) => item.count), 1)
+    return rows.map((item) => ({
+        ...item,
+        pct: Math.round((item.count / max) * 100),
+        color: getColor(item.status),
+    }))
+})
+
+const trendClass = (value) => {
+    const trend = Number(value || 0)
+    if (trend > 0) return 'up'
+    if (trend < 0) return 'down'
+    return 'flat'
+}
+
+const trendText = (value) => {
+    const trend = Number(value || 0)
+    if (trend > 0) return `+${trend}%`
+    if (trend < 0) return `${trend}%`
+    return '0%'
+}
+
+const analysisCards = computed(() => {
+    const insight = data.value?.phan_tich || createDashboardShell(period.value).phan_tich
+    return [
+        {
+            label: 'Doanh thu kỳ này',
+            value: insight.doanh_thu?.current || '0đ',
+            previous: `Kỳ trước: ${insight.doanh_thu?.previous || '0đ'}`,
+            trend: insight.doanh_thu?.trend || 0,
+        },
+        {
+            label: 'Đơn hàng kỳ này',
+            value: insight.don_hang?.current || 0,
+            previous: `Kỳ trước: ${insight.don_hang?.previous || 0} đơn`,
+            trend: insight.don_hang?.trend || 0,
+        },
+        {
+            label: 'Khách mới kỳ này',
+            value: insight.khach_hang?.current || 0,
+            previous: `Kỳ trước: ${insight.khach_hang?.previous || 0} khách`,
+            trend: insight.khach_hang?.trend || 0,
+        },
+        {
+            label: 'Giá trị đơn trung bình',
+            value: insight.gia_tri_don_trung_binh || '0đ',
+            previous: `${insight.don_hoan_thanh || 0}/${insight.tong_don || 0} đơn hoàn thành`,
+            trend: insight.ti_le_hoan_thanh || 0,
+            suffix: 'Hoàn thành',
+        },
+    ]
+})
+
+const completionRate = computed(() =>
+    normalOrderTotal.value > 0 ? Math.round((completedOrders.value / normalOrderTotal.value) * 100) : 0
+)
+
+const cancelRate = computed(() =>
+    normalOrderTotal.value > 0 ? Math.round((cancelledOrders.value / normalOrderTotal.value) * 100) : 0
+)
+
+const operationCards = computed(() => [
+    {
+        label: 'Tổng đơn hàng',
+        value: normalOrderTotal.value,
+        sub: 'Theo kỳ đang chọn',
+        icon: ShoppingCart,
+        tone: 'blue',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Chờ xử lý',
+        value: pendingOrders.value,
+        sub: 'Đơn cần xác nhận',
+        icon: ClipboardList,
+        tone: 'amber',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Tỷ lệ hoàn thành',
+        value: `${completionRate.value}%`,
+        sub: `${completedOrders.value} đơn hoàn thành`,
+        icon: TrendingUp,
+        tone: 'green',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Rủi ro hủy/hoàn',
+        value: `${cancelRate.value}%`,
+        sub: `${cancelledOrders.value} hủy, ${openRefunds.value} hoàn trả`,
+        icon: AlertTriangle,
+        tone: 'red',
+        to: '/admin/quan-ly-don-hang',
+    },
+])
+
+const urgentTasks = computed(() => [
+    {
+        label: 'Xác nhận đơn mới',
+        value: pendingOrders.value,
+        detail: 'Ưu tiên xử lý trước khi chuyển giao vận.',
+        tone: 'warn',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Theo dõi hoàn trả',
+        value: openRefunds.value,
+        detail: 'Kiểm tra yêu cầu hoàn và trạng thái lấy hàng.',
+        tone: 'danger',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Đơn đang vận hành',
+        value: processingOrders.value,
+        detail: 'Theo dõi đơn đã xác nhận hoặc đang giao.',
+        tone: 'info',
+        to: '/admin/quan-ly-don-hang',
+    },
+    {
+        label: 'Rà soát bán chạy',
+        value: lowStockItems.value.length,
+        detail: 'Bổ sung hàng cho biến thể còn ít hoặc đã hết.',
+        tone: 'success',
+        to: '/admin/quan-ly-san-pham',
+    },
+])
+
 // Donut chart helpers
 const cx = 60, cy = 60, r = 46
 const circumference = 2 * Math.PI * r
@@ -261,7 +494,7 @@ const normalCenterStat = computed(() => {
     const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
     return {
         pct,
-        label: found?.label?.toUpperCase() ?? 'HOÀN THÀNH'
+        label: found?.label ?? 'Hoàn thành'
     }
 })
 
@@ -275,7 +508,7 @@ const refundCenterStat = computed(() => {
     const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
     return {
         pct,
-        label: found?.label?.toUpperCase() ?? 'ĐÃ HOÀN TIỀN'
+        label: found?.label ?? 'Đã hoàn tiền'
     }
 })
 
@@ -359,7 +592,7 @@ const revenueChart = computed(() => {
     const orders = items.map((i) => Math.max(1, Math.round(i.revenue / avgTicket)))
     const maxOrders = Math.max(...orders, 1)
 
-    // Add horizontal padding inside the chart area so the first and last bars don't touch the axes
+    // Add horizontal padding inside the chart area so the first and last bars do not touch the axes.
     const paddingX = itemCount === 1 ? 0 : 40
     const plotW = innerW - 2 * paddingX
 
@@ -469,6 +702,281 @@ const productChart = computed(() => {
     return { width, height, left, right, top, innerW, innerH, colWidth, points, yTicks }
 })
 
+const moneyToNumber = (value) => {
+    if (typeof value === 'number') return value
+    const normalized = String(value ?? '').replace(/[^\d-]/g, '')
+    return Number(normalized) || 0
+}
+
+const numberToExport = (value) => Number(value || 0)
+const digitsToNumber = (value) => Number(String(value ?? '').replace(/[^\d-]/g, '')) || 0
+
+const exportMoney = (value) => moneyToNumber(value).toLocaleString('vi-VN') + 'đ'
+const exportNumber = (value) => numberToExport(value).toLocaleString('vi-VN')
+
+const escapeXml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+
+const xmlCell = (value, {
+    style = 'Text',
+    type = typeof value === 'number' ? 'Number' : 'String',
+    mergeAcross = 0,
+    index = null,
+} = {}) => {
+    const attrs = [
+        `ss:StyleID="${style}"`,
+        mergeAcross ? `ss:MergeAcross="${mergeAcross}"` : '',
+        index ? `ss:Index="${index}"` : '',
+    ].filter(Boolean).join(' ')
+    return `<Cell ${attrs}><Data ss:Type="${type}">${escapeXml(value)}</Data></Cell>`
+}
+
+const xmlRow = (cells = [], height = null) => {
+    const attrs = height ? ` ss:Height="${height}"` : ''
+    return `<Row${attrs}>${cells.join('')}</Row>`
+}
+
+const xmlColumns = (widths) => widths.map((width) => `<Column ss:Width="${width}"/>`).join('')
+
+const xmlWorksheet = (name, widths, rows) => `
+<Worksheet ss:Name="${escapeXml(name).slice(0, 31)}">
+    <Table>${xmlColumns(widths)}${rows.join('')}</Table>
+    <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+        <FreezePanes/>
+        <FrozenNoSplit/>
+        <SplitHorizontal>6</SplitHorizontal>
+        <TopRowBottomPane>6</TopRowBottomPane>
+        <ActivePane>2</ActivePane>
+        <Panes>
+            <Pane><Number>3</Number></Pane>
+            <Pane><Number>2</Number></Pane>
+        </Panes>
+        <ProtectObjects>False</ProtectObjects>
+        <ProtectScenarios>False</ProtectScenarios>
+    </WorksheetOptions>
+</Worksheet>`
+
+const tableSheetRows = (title, headers, rows, exportedAt) => {
+    const normalizedRows = rows.length ? rows : [['Chưa có dữ liệu']]
+    return [
+        xmlRow([xmlCell(`NEXTGEN LAPTOP - ${title}`, { style: 'SheetTitle', mergeAcross: Math.max(headers.length - 1, 0) })], 30),
+        xmlRow([xmlCell(`Kỳ báo cáo: ${periodLabel.value}`, { style: 'SheetMeta', mergeAcross: 1 }), xmlCell(`Ngày xuất: ${exportedAt.toLocaleString('vi-VN')}`, { style: 'SheetMeta', mergeAcross: Math.max(headers.length - 3, 0) })], 22),
+        xmlRow([], 8),
+        xmlRow(headers.map((header) => xmlCell(header, { style: 'TableHeader' })), 24),
+        ...normalizedRows.map((row, index) => xmlRow(row.map((value) => xmlCell(value, { style: index % 2 ? 'TableCellAlt' : 'TableCell' })), 24)),
+    ]
+}
+
+const downloadExcelXml = (xml, fileName) => {
+    const blob = new Blob(['\ufeff', xml], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+}
+
+const exportDashboardExcel = () => {
+    if (!data.value) return
+
+    const dashboard = data.value
+    const insight = dashboard.phan_tich || createDashboardShell(period.value).phan_tich
+    const staff = dashboard.nhan_su_hoat_dong || createDashboardShell(period.value).nhan_su_hoat_dong
+    const customers = dashboard.khach_hang_hoat_dong || createDashboardShell(period.value).khach_hang_hoat_dong
+    const exportedAt = new Date()
+
+    const bestPayment = [...(dashboard.thanh_toan || [])].sort((a, b) => numberToExport(b.total) - numberToExport(a.total))[0]
+    const bestCategory = [...(dashboard.danh_muc_ban_chay || [])].sort((a, b) => numberToExport(b.total) - numberToExport(a.total))[0]
+    const totalRevenue = moneyToNumber(dashboard.doanh_thu)
+    const periodRevenue = moneyToNumber(insight.doanh_thu?.current)
+    const previousRevenue = moneyToNumber(insight.doanh_thu?.previous)
+    const averageOrderValue = moneyToNumber(insight.gia_tri_don_trung_binh)
+
+    const reportRows = [
+        xmlRow([xmlCell('NEXTGEN LAPTOP', { style: 'Brand', mergeAcross: 6 })], 26),
+        xmlRow([xmlCell('BÁO CÁO TỔNG QUAN HỆ THỐNG', { style: 'Title', mergeAcross: 6 })], 38),
+        xmlRow([
+            xmlCell('Kỳ báo cáo', { style: 'MetaKey' }),
+            xmlCell(periodLabel.value, { style: 'MetaValue', mergeAcross: 1 }),
+            xmlCell('Ngày xuất', { style: 'MetaKey' }),
+            xmlCell(exportedAt.toLocaleString('vi-VN'), { style: 'MetaValue', mergeAcross: 2 }),
+        ], 24),
+        xmlRow([
+            xmlCell('Đơn vị lập', { style: 'MetaKey' }),
+            xmlCell('NextGen Laptop', { style: 'MetaValue', mergeAcross: 1 }),
+            xmlCell('Loại báo cáo', { style: 'MetaKey' }),
+            xmlCell('Quản trị - kế toán', { style: 'MetaValue', mergeAcross: 2 }),
+        ], 24),
+        xmlRow([], 10),
+        xmlRow([
+            xmlCell('DOANH THU TỔNG', { style: 'KpiLabel', mergeAcross: 1 }),
+            xmlCell('ĐƠN HÀNG', { style: 'KpiLabel', mergeAcross: 1 }),
+            xmlCell('TỶ LỆ HOÀN THÀNH', { style: 'KpiLabel', mergeAcross: 1 }),
+            xmlCell('GIÁ TRỊ ĐƠN TB', { style: 'KpiLabel' }),
+        ], 24),
+        xmlRow([
+            xmlCell(exportMoney(totalRevenue), { style: 'KpiValue', mergeAcross: 1 }),
+            xmlCell(exportNumber(normalOrderTotal.value), { style: 'KpiValue', mergeAcross: 1 }),
+            xmlCell(`${completionRate.value}%`, { style: 'KpiValue', mergeAcross: 1 }),
+            xmlCell(exportMoney(averageOrderValue), { style: 'KpiValue' }),
+        ], 38),
+        xmlRow([
+            xmlCell('Đơn hoàn thành', { style: 'KpiSub' }),
+            xmlCell(exportNumber(completedOrders.value), { style: 'KpiSub' }),
+            xmlCell('Chờ xử lý', { style: 'KpiSub' }),
+            xmlCell(exportNumber(pendingOrders.value), { style: 'KpiSub' }),
+            xmlCell('Rủi ro hủy/hoàn', { style: 'KpiSub' }),
+            xmlCell(`${cancelRate.value}%`, { style: 'KpiSub' }),
+            xmlCell(`${insight.don_hoan_thanh || 0}/${insight.tong_don || 0} đơn`, { style: 'KpiSub' }),
+        ], 24),
+        xmlRow([], 10),
+        xmlRow([xmlCell('I. TÓM TẮT CHỈ SỐ CHÍNH', { style: 'Section', mergeAcross: 6 })], 26),
+        xmlRow(['Nhóm chỉ tiêu', 'Chỉ tiêu', 'Giá trị', 'Đơn vị', 'Diễn giải', 'Kỳ báo cáo', 'Nguồn dữ liệu'].map((header) => xmlCell(header, { style: 'TableHeader' })), 25),
+        ...[
+            ['Tài chính', 'Doanh thu tổng', exportMoney(totalRevenue), 'đ', 'Doanh thu từ đơn hàng hoàn thành', periodLabel.value, 'Đơn hàng'],
+            ['Tài chính', 'Doanh thu kỳ này', exportMoney(periodRevenue), 'đ', 'Doanh thu dùng so sánh tăng trưởng', periodLabel.value, 'Đơn hàng'],
+            ['Tài chính', 'Doanh thu kỳ trước', exportMoney(previousRevenue), 'đ', 'Mốc so sánh liền kề theo kỳ', periodLabel.value, 'Đơn hàng'],
+            ['Tài chính', 'Tăng trưởng doanh thu', `${numberToExport(insight.doanh_thu?.trend)}%`, '%', 'So với kỳ trước', periodLabel.value, 'Đơn hàng'],
+            ['Đơn hàng', 'Tổng đơn hàng', exportNumber(normalOrderTotal.value), 'đơn', 'Tổng đơn không tính nhóm hoàn trả nội bộ', periodLabel.value, 'Đơn hàng'],
+            ['Đơn hàng', 'Đơn hoàn thành', exportNumber(completedOrders.value), 'đơn', 'Đơn đã hoàn tất giao dịch', periodLabel.value, 'Đơn hàng'],
+            ['Đơn hàng', 'Tỷ lệ hoàn thành', `${completionRate.value}%`, '%', `${completedOrders.value}/${normalOrderTotal.value} đơn hoàn thành`, periodLabel.value, 'Đơn hàng'],
+            ['Đơn hàng', 'Rủi ro hủy/hoàn', `${cancelRate.value}%`, '%', `${cancelledOrders.value} hủy, ${openRefunds.value} yêu cầu hoàn`, periodLabel.value, 'Đơn hàng'],
+            ['Khách hàng', 'Tổng khách hàng', exportNumber(dashboard.khach_hang), 'khách', 'Tổng tài khoản khách hàng', periodLabel.value, 'Người dùng'],
+            ['Khách hàng', 'Khách mới kỳ này', exportNumber(insight.khach_hang?.current), 'khách', 'Khách đăng ký trong kỳ', periodLabel.value, 'Người dùng'],
+            ['Kho hàng', 'Sản phẩm kho', exportNumber(dashboard.bien_the), 'biến thể', 'Tổng biến thể đang quản lý', periodLabel.value, 'Kho hàng'],
+            ['Kho hàng', 'Cảnh báo tồn kho', exportNumber(lowStockItems.value.length), 'sản phẩm', 'Biến thể còn ít hoặc đã hết', periodLabel.value, 'Kho hàng'],
+        ].map((row, index) => xmlRow(row.map((cell) => xmlCell(cell, { style: index % 2 ? 'TableCellAlt' : 'TableCell' })), 24)),
+        xmlRow([], 10),
+        xmlRow([xmlCell('II. THEO DÕI KẾ TOÁN - THUẾ', { style: 'Section', mergeAcross: 6 })], 26),
+        xmlRow(['Khoản mục', 'Giá trị', 'Đơn vị', 'Ghi chú', '', '', ''].map((header) => xmlCell(header, { style: header ? 'TableHeader' : 'TableHeaderBlank' })), 25),
+        ...[
+            ['Doanh thu đã hoàn thành', exportMoney(totalRevenue), 'đ', 'Cơ sở đối chiếu doanh thu theo đơn hoàn thành', '', '', ''],
+            ['Giá trị đơn trung bình', exportMoney(averageOrderValue), 'đ', `${insight.don_hoan_thanh || 0}/${insight.tong_don || 0} đơn hoàn thành`, '', '', ''],
+            ['Phương thức thanh toán chính', bestPayment?.label || 'Chưa có dữ liệu', 'phương thức', `${bestPayment?.total || 0} đơn`, '', '', ''],
+            ['Danh mục bán chạy', bestCategory?.label || 'Chưa có dữ liệu', 'danh mục', `${bestCategory?.total || 0} sản phẩm`, '', '', ''],
+        ].map((row, index) => xmlRow(row.map((cell) => xmlCell(cell, { style: index % 2 ? 'TableCellAlt' : 'TableCell' })), 24)),
+        xmlRow([], 10),
+        xmlRow([xmlCell('III. VẬN HÀNH & HOẠT ĐỘNG ONLINE', { style: 'Section', mergeAcross: 6 })], 26),
+        xmlRow(['Khoản mục', 'Giá trị', 'Đơn vị', 'Ghi chú', '', '', ''].map((header) => xmlCell(header, { style: header ? 'TableHeader' : 'TableHeaderBlank' })), 25),
+        ...[
+            ['Chờ xử lý', exportNumber(pendingOrders.value), 'đơn', 'Đơn cần xác nhận', '', '', ''],
+            ['Đơn đang vận hành', exportNumber(processingOrders.value), 'đơn', 'Đã xác nhận hoặc đang giao', '', '', ''],
+            ['Khách online', exportNumber(customers.online), 'khách', 'Hoạt động trong 5 phút gần nhất', '', '', ''],
+            ['Khách ghé hôm nay', exportNumber(customers.visited_today), 'khách', 'Có hoạt động trong ngày', '', '', ''],
+            ['Nhân sự online', exportNumber(staff.online), 'người', `${staff.online || 0}/${staff.total || 0} nhân sự`, '', '', ''],
+        ].map((row, index) => xmlRow(row.map((cell) => xmlCell(cell, { style: index % 2 ? 'TableCellAlt' : 'TableCell' })), 24)),
+        xmlRow([], 10),
+        xmlRow([xmlCell('IV. GHI CHÚ BÁO CÁO', { style: 'Section', mergeAcross: 6 })], 26),
+        xmlRow([xmlCell('Báo cáo được xuất từ dashboard quản trị NextGen. Số liệu phục vụ theo dõi vận hành, kế toán nội bộ và đối chiếu khi cần.', { style: 'Note', mergeAcross: 6 })], 32),
+        xmlRow([xmlCell('Các khoản doanh thu trong báo cáo được lấy theo đơn hàng có trạng thái hoàn thành tại thời điểm xuất file.', { style: 'Note', mergeAcross: 6 })], 32),
+        xmlRow([], 18),
+        xmlRow([
+            xmlCell('Người lập báo cáo', { style: 'Sign', mergeAcross: 1 }),
+            xmlCell('Kế toán/Quản lý duyệt', { style: 'Sign', mergeAcross: 2 }),
+            xmlCell('Đại diện đơn vị', { style: 'Sign', mergeAcross: 1 }),
+        ], 28),
+        xmlRow([], 54),
+        xmlRow([
+            xmlCell('Ký, ghi rõ họ tên', { style: 'SignSub', mergeAcross: 1 }),
+            xmlCell('Ký, ghi rõ họ tên', { style: 'SignSub', mergeAcross: 2 }),
+            xmlCell('Ký, ghi rõ họ tên', { style: 'SignSub', mergeAcross: 1 }),
+        ], 22),
+    ]
+
+    const worksheets = [
+        xmlWorksheet('Tong quan', [96, 150, 96, 72, 246, 96, 96], reportRows),
+        xmlWorksheet('Doanh thu ngay', [110, 140], tableSheetRows(
+            'Doanh thu ngày',
+            ['Ngày', 'Doanh thu'],
+            (dashboard.bieu_do || []).map((item) => [item.label, exportMoney(item.total)]),
+            exportedAt,
+        )),
+        xmlWorksheet('Trang thai don', [120, 190, 90, 90], tableSheetRows(
+            'Trạng thái đơn',
+            ['Mã trạng thái', 'Trạng thái', 'Số lượng', 'Tỷ lệ (%)'],
+            (dashboard.trang_thai || []).map((item) => [item.status, item.label, exportNumber(item.count), `${item.pct}%`]),
+            exportedAt,
+        )),
+        xmlWorksheet('Don hang moi', [120, 180, 140, 150], tableSheetRows(
+            'Đơn hàng mới',
+            ['Mã đơn', 'Khách hàng', 'Tổng tiền', 'Trạng thái'],
+            (dashboard.don_hang || []).map((item) => [item.id, item.khach, exportMoney(item.tong), item.trangthai]),
+            exportedAt,
+        )),
+        xmlWorksheet('Thanh toan', [180, 90], tableSheetRows(
+            'Thanh toán',
+            ['Phương thức', 'Số đơn'],
+            (dashboard.thanh_toan || []).map((item) => [item.label, exportNumber(item.total)]),
+            exportedAt,
+        )),
+        xmlWorksheet('San pham ban chay', [330, 140, 90], tableSheetRows(
+            'Sản phẩm bán chạy',
+            ['Sản phẩm', 'Giá bán', 'Đã bán'],
+            (dashboard.san_pham || []).map((item) => [item.ten, exportMoney(item.gia), exportNumber(digitsToNumber(item.tong_ban))]),
+            exportedAt,
+        )),
+        xmlWorksheet('Danh muc ban chay', [200, 120, 140], tableSheetRows(
+            'Danh mục bán chạy',
+            ['Danh mục', 'Số lượng bán', 'Doanh thu'],
+            (dashboard.danh_muc_ban_chay || []).map((item) => [item.label, exportNumber(item.total), exportMoney(item.revenue)]),
+            exportedAt,
+        )),
+        xmlWorksheet('Canh bao kho', [330, 90, 140], tableSheetRows(
+            'Cảnh báo kho',
+            ['Sản phẩm', 'Tồn kho', 'Giá bán'],
+            (dashboard.ton_kho_canh_bao || []).map((item) => [item.ten, exportNumber(item.soluong), exportMoney(item.gia)]),
+            exportedAt,
+        )),
+    ]
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+    xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:x="urn:schemas-microsoft-com:office:excel"
+    xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+    xmlns:html="http://www.w3.org/TR/REC-html40">
+    <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+        <Title>Báo cáo tổng quan hệ thống NextGen</Title>
+        <Subject>Báo cáo kỳ ${escapeXml(periodLabel.value)}</Subject>
+        <Author>NextGen Laptop</Author>
+        <Company>NextGen Laptop</Company>
+        <Created>${exportedAt.toISOString()}</Created>
+    </DocumentProperties>
+    <Styles>
+        <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10" ss:Color="#0F172A"/></Style>
+        <Style ss:ID="Brand"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="11" ss:Bold="1" ss:Color="#2563EB"/><Interior ss:Color="#EFF6FF" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="Title"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="20" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0F172A" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="MetaKey"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#475569"/><Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/></Borders></Style>
+        <Style ss:ID="MetaValue"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#0F172A"/><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/></Borders></Style>
+        <Style ss:ID="KpiLabel"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="9" ss:Bold="1" ss:Color="#DBEAFE"/><Interior ss:Color="#1E40AF" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="KpiValue"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="17" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2563EB" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="KpiSub"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#334155"/><Interior ss:Color="#EFF6FF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFDBFE"/></Borders></Style>
+        <Style ss:ID="Section"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="12" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1D4ED8" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="TableHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2563EB" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1D4ED8"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#93C5FD"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#93C5FD"/></Borders></Style>
+        <Style ss:ID="TableHeaderBlank"><Interior ss:Color="#2563EB" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="TableCell"><Alignment ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10" ss:Color="#0F172A"/><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/></Borders></Style>
+        <Style ss:ID="TableCellAlt"><Alignment ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10" ss:Color="#0F172A"/><Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/></Borders></Style>
+        <Style ss:ID="Note"><Alignment ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10" ss:Italic="1" ss:Color="#475569"/><Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/></Borders></Style>
+        <Style ss:ID="Sign"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#0F172A"/><Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="SignSub"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="9" ss:Italic="1" ss:Color="#64748B"/></Style>
+        <Style ss:ID="SheetTitle"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="16" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0F172A" ss:Pattern="Solid"/></Style>
+        <Style ss:ID="SheetMeta"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1" ss:Color="#475569"/><Interior ss:Color="#EFF6FF" ss:Pattern="Solid"/></Style>
+    </Styles>
+    ${worksheets.join('')}
+</Workbook>`
+
+    const fileDate = exportedAt.toISOString().slice(0, 10)
+    downloadExcelXml(xml, `bao-cao-tong-quan-${period.value}-${fileDate}.xls`)
+}
+
 // Status badge class
 function statusClass(s) {
     return { pending: 'warn', confirmed: 'confirmed', shipping: 'info', done: 'ok', cancelled: 'out' }[s] ?? 'warn'
@@ -488,6 +996,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <p>Chào mừng trở lại, hôm nay là {{ today }}</p>
             </div>
             <div class="topbar-right">
+                <button class="export-btn" type="button" @click="exportDashboardExcel">
+                    <FileSpreadsheet aria-hidden="true" />
+                    Xuất Excel
+                </button>
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <circle cx="11" cy="11" r="8" />
@@ -495,7 +1007,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </svg>
                     <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
                 </div>
-                <button class="icon-btn">🔔</button>
+                <button class="icon-btn" type="button" @click="fetchDashboard">↻</button>
             </div>
         </div>
 
@@ -523,20 +1035,199 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 </div>
             </div>
 
-            <!-- STAT CARDS -->
-            <div class="stats-grid">
-                <router-link class="stat-card stat-card-link" v-for="s in stats" :key="s.label" :to="s.to"
-                    :style="{ background: s.cardBg, borderColor: s.borderColor }"
-                    :aria-label="`${s.label}: ${s.value}. ${s.hint}`">
-                    <div class="stat-top">
-                        <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
-                            <component :is="s.icon" aria-hidden="true" />
+            <section class="dashboard-cluster overview-cluster">
+                <div class="cluster-head">
+                    <div>
+                        <span class="cluster-kicker">Tổng quan</span>
+                        <h3>Chỉ số chính</h3>
+                    </div>
+                    <small>{{ periodLabel }}</small>
+                </div>
+
+                <!-- STAT CARDS -->
+                <div class="stats-grid">
+                    <router-link class="stat-card stat-card-link" v-for="s in stats" :key="s.label" :to="s.to"
+                        :style="{ background: s.cardBg, borderColor: s.borderColor }"
+                        :aria-label="`${s.label}: ${s.value}. ${s.hint}`">
+                        <div class="stat-top">
+                            <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
+                                <component :is="s.icon" aria-hidden="true" />
+                            </div>
+                        </div>
+                        <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
+                        <b class="stat-value">{{ s.value }}</b>
+                        <span class="stat-card-action">{{ s.hint }}</span>
+                    </router-link>
+                </div>
+            </section>
+
+            <section class="dashboard-cluster performance-cluster">
+                <div class="cluster-head">
+                    <div>
+                        <span class="cluster-kicker">Điều hành</span>
+                        <h3>Vận hành và hiệu suất</h3>
+                    </div>
+                    <small>Cập nhật theo kỳ thống kê</small>
+                </div>
+
+                <div class="performance-layout">
+                    <div class="metric-panel">
+                        <div class="cluster-subhead">Tình trạng vận hành</div>
+                        <div class="ops-grid">
+                            <router-link
+                                v-for="card in operationCards"
+                                :key="card.label"
+                                :to="card.to"
+                                :class="['ops-card', `tone-${card.tone}`]"
+                            >
+                                <div class="ops-icon">
+                                    <component :is="card.icon" aria-hidden="true" />
+                                </div>
+                                <div class="ops-copy">
+                                    <span>{{ card.label }}</span>
+                                    <b>{{ card.value }}</b>
+                                    <small>{{ card.sub }}</small>
+                                </div>
+                            </router-link>
                         </div>
                     </div>
-                    <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
-                    <b class="stat-value">{{ s.value }}</b>
-                    <span class="stat-card-action">{{ s.hint }}</span>
-                </router-link>
+
+                    <div class="metric-panel">
+                        <div class="cluster-subhead">So sánh kỳ trước</div>
+                        <div class="analysis-grid">
+                            <div v-for="card in analysisCards" :key="card.label" class="analysis-card">
+                                <div class="analysis-head">
+                                    <span>{{ card.label }}</span>
+                                    <b :class="['trend-pill', trendClass(card.trend)]">
+                                        {{ trendText(card.trend) }}
+                                        <small v-if="card.suffix">{{ card.suffix }}</small>
+                                    </b>
+                                </div>
+                                <strong>{{ card.value }}</strong>
+                                <p>{{ card.previous }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="workbench-card">
+                <div class="workbench-head">
+                    <div>
+                        <span class="eyebrow">Việc cần xử lý</span>
+                        <h3>Ưu tiên vận hành hôm nay</h3>
+                    </div>
+                    <router-link to="/admin/quan-ly-don-hang">Mở đơn hàng</router-link>
+                </div>
+
+                <div class="workbench-layout">
+                    <div class="task-column">
+                        <div class="task-grid">
+                            <router-link
+                                v-for="task in urgentTasks"
+                                :key="task.label"
+                                :to="task.to"
+                                :class="['task-item', `tone-${task.tone}`]"
+                            >
+                                <span class="task-count">{{ task.value }}</span>
+                                <div>
+                                    <b>{{ task.label }}</b>
+                                    <small>{{ task.detail }}</small>
+                                </div>
+                            </router-link>
+                        </div>
+
+                        <div class="operation-flow-card">
+                            <div class="flow-head">
+                                <div>
+                                    <span class="cluster-kicker">Nhịp vận hành</span>
+                                    <h4>Tình hình xử lý nhanh</h4>
+                                </div>
+                                <strong>{{ completionRate }}%</strong>
+                            </div>
+                            <div class="flow-grid">
+                                <div>
+                                    <span>Chờ xác nhận</span>
+                                    <b>{{ pendingOrders }}</b>
+                                </div>
+                                <div>
+                                    <span>Đang vận hành</span>
+                                    <b>{{ processingOrders }}</b>
+                                </div>
+                                <div>
+                                    <span>Cảnh báo kho</span>
+                                    <b>{{ lowStockItems.length }}</b>
+                                </div>
+                                <div>
+                                    <span>Hoàn thành</span>
+                                    <b>{{ completedOrders }}</b>
+                                </div>
+                            </div>
+                            <div class="flow-progress">
+                                <span :style="{ width: `${Math.max(6, Math.min(completionRate, 100))}%` }"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="activity-column">
+                        <div class="staff-activity-card">
+                            <div class="staff-head">
+                                <div>
+                                    <span class="cluster-kicker">Nhân sự</span>
+                                    <h4>Trạng thái nhân viên</h4>
+                                </div>
+                                <strong>{{ staffActivity.online }}/{{ staffActivity.total }}</strong>
+                            </div>
+
+                            <div class="staff-summary">
+                                <span class="online">Online: {{ staffActivity.online }}</span>
+                                <span class="idle">Vắng: {{ staffActivity.idle }}</span>
+                                <span class="offline">Offline: {{ staffActivity.offline }}</span>
+                            </div>
+
+                            <div class="staff-list">
+                                <div
+                                    v-for="staff in activeStaffList"
+                                    :key="staff.id"
+                                    class="staff-row"
+                                >
+                                    <img v-if="staff.avatar" :src="staff.avatar" :alt="staff.ten" />
+                                    <span v-else class="staff-avatar">{{ String(staff.ten || 'N').slice(0, 1) }}</span>
+                                    <div class="staff-main">
+                                        <b>{{ staff.ten }}</b>
+                                        <small>{{ staff.vaitro }} · {{ staff.last_active_text }}</small>
+                                    </div>
+                                    <em :class="staffStatusClass(staff.status)">{{ staff.status_label }}</em>
+                                </div>
+                                <div v-if="!activeStaffList.length" class="empty-mini">Chưa có dữ liệu nhân sự</div>
+                            </div>
+                        </div>
+
+                        <div class="customer-activity-card">
+                            <div class="customer-head">
+                                <div>
+                                    <span class="cluster-kicker">Khách hàng</span>
+                                    <h4>Trạng thái truy cập</h4>
+                                </div>
+                                <strong>{{ customerActivity.online }}</strong>
+                            </div>
+                            <div class="customer-live-strip">
+                                <div>
+                                    <span>Đang online</span>
+                                    <b>{{ customerActivity.online }}</b>
+                                </div>
+                                <div>
+                                    <span>Hoạt động gần đây</span>
+                                    <b>{{ customerActivity.recent }}</b>
+                                </div>
+                                <div>
+                                    <span>Ghé hôm nay</span>
+                                    <b>{{ customerActivity.visited_today }}</b>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- CHARTS ROW -->
@@ -589,8 +1280,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                         <!-- CHART 1: SALES & ORDERS -->
                         <div v-if="chartTab === 'sales' && revenueChart" class="revenue-chart-wrap">
                             <div class="revenue-legend">
-                                <span><i class="dot revenue"></i>Revenue</span>
-                                <span><i class="dot orders"></i>Orders</span>
+                                <span><i class="dot revenue"></i>Doanh thu</span>
+                                <span><i class="dot orders"></i>Đơn hàng</span>
                             </div>
                             <svg class="revenue-svg" :viewBox="`0 0 ${revenueChart.width} ${revenueChart.height}`" preserveAspectRatio="none">
                                 <defs>
@@ -833,6 +1524,152 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
             </div>
 
+            <div class="operations-row">
+                <div class="card operation-panel">
+                    <div class="section-header">
+                        <span class="section-title">Đơn cần theo dõi</span>
+                        <router-link to="/admin/quan-ly-don-hang" class="see-all">Xử lý đơn</router-link>
+                    </div>
+                    <div class="follow-list">
+                        <router-link
+                            v-for="order in handlingOrders"
+                            :key="order.id"
+                            to="/admin/quan-ly-don-hang"
+                            class="follow-item"
+                        >
+                            <div>
+                                <b>{{ order.id }}</b>
+                                <span>{{ order.khach }} · {{ order.tong }}</span>
+                            </div>
+                            <div class="follow-right">
+                                <small>{{ order.tuoi_don }}</small>
+                                <span class="status-badge" :class="statusClass(order.status)">{{ order.trangthai }}</span>
+                            </div>
+                        </router-link>
+                        <div v-if="!handlingOrders.length" class="empty-row">Không có đơn quá hạn cần xử lý</div>
+                    </div>
+                </div>
+
+                <div class="card operation-panel">
+                    <div class="section-header">
+                        <span class="section-title">Cảnh báo tồn kho</span>
+                        <router-link to="/admin/quan-ly-san-pham" class="see-all">Nhập hàng</router-link>
+                    </div>
+                    <div class="stock-list">
+                        <router-link
+                            v-for="item in lowStockItems"
+                            :key="item.id"
+                            to="/admin/quan-ly-san-pham"
+                            class="stock-item"
+                        >
+                            <div>
+                                <b>{{ item.ten }}</b>
+                                <span>{{ item.gia }}</span>
+                            </div>
+                            <strong :class="{ danger: item.soluong <= 0 }">{{ item.soluong }}</strong>
+                        </router-link>
+                        <div v-if="!lowStockItems.length" class="empty-row">Kho đang ổn định</div>
+                    </div>
+                </div>
+
+                <div class="card operation-panel">
+                    <div class="section-header">
+                        <span class="section-title">Góc nhìn kinh doanh</span>
+                        <router-link to="/admin/quan-ly-san-pham" class="see-all">Chi tiết</router-link>
+                    </div>
+                    <div class="mini-section">
+                        <b>Thanh toán</b>
+                        <div v-for="item in paymentMethods" :key="item.label" class="mini-row">
+                            <span>{{ item.label }}</span>
+                            <strong>{{ item.total }}</strong>
+                        </div>
+                        <div v-if="!paymentMethods.length" class="empty-mini">Chưa có dữ liệu</div>
+                    </div>
+                    <div class="mini-section">
+                        <b>Danh mục bán chạy</b>
+                        <div v-for="item in topCategories" :key="item.label" class="mini-row">
+                            <span>{{ item.label }}</span>
+                            <strong>{{ item.total }}</strong>
+                        </div>
+                        <div v-if="!topCategories.length" class="empty-mini">Chưa có dữ liệu</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-charts-row">
+                <div class="card insight-chart-card">
+                    <div class="section-header compact">
+                        <span class="section-title">Biểu đồ thanh toán</span>
+                    </div>
+                    <div class="horizontal-chart">
+                        <div v-for="item in paymentChartRows" :key="item.label" class="chart-bar-row">
+                            <div class="chart-bar-meta">
+                                <span>{{ item.label }}</span>
+                                <b>{{ item.total }}</b>
+                            </div>
+                            <div class="chart-track">
+                                <span class="chart-fill blue" :style="{ width: `${item.pct}%` }"></span>
+                            </div>
+                        </div>
+                        <div v-if="!paymentChartRows.length" class="empty-mini">Chưa có dữ liệu</div>
+                    </div>
+                </div>
+
+                <div class="card insight-chart-card">
+                    <div class="section-header compact">
+                        <span class="section-title">Danh mục bán chạy</span>
+                    </div>
+                    <div class="horizontal-chart">
+                        <div v-for="item in categoryChartRows" :key="item.label" class="chart-bar-row">
+                            <div class="chart-bar-meta">
+                                <span>{{ item.label }}</span>
+                                <b>{{ item.total }}</b>
+                            </div>
+                            <div class="chart-track">
+                                <span class="chart-fill green" :style="{ width: `${item.pct}%` }"></span>
+                            </div>
+                            <small>{{ item.revenue }}</small>
+                        </div>
+                        <div v-if="!categoryChartRows.length" class="empty-mini">Chưa có dữ liệu</div>
+                    </div>
+                </div>
+
+                <div class="card insight-chart-card">
+                    <div class="section-header compact">
+                        <span class="section-title">Rủi ro tồn kho</span>
+                    </div>
+                    <div class="horizontal-chart">
+                        <div v-for="item in stockRiskRows" :key="item.id" class="chart-bar-row">
+                            <div class="chart-bar-meta">
+                                <span>{{ item.ten }}</span>
+                                <b>{{ item.soluong }}</b>
+                            </div>
+                            <div class="chart-track">
+                                <span :class="['chart-fill', item.tone]" :style="{ width: `${item.risk}%` }"></span>
+                            </div>
+                        </div>
+                        <div v-if="!stockRiskRows.length" class="empty-mini">Kho đang ổn định</div>
+                    </div>
+                </div>
+
+                <div class="card insight-chart-card">
+                    <div class="section-header compact">
+                        <span class="section-title">Luồng xử lý đơn</span>
+                    </div>
+                    <div class="horizontal-chart">
+                        <div v-for="item in orderPipelineRows" :key="item.status" class="chart-bar-row">
+                            <div class="chart-bar-meta">
+                                <span>{{ item.label }}</span>
+                                <b>{{ item.count }}</b>
+                            </div>
+                            <div class="chart-track">
+                                <span class="chart-fill custom" :style="{ width: `${item.pct}%`, background: item.color }"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- BOTTOM ROW -->
             <div class="bottom-row">
 
@@ -845,10 +1682,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <table>
                         <thead>
                             <tr>
-                                <th>MÃ ĐƠN</th>
+                                <th>Mã đơn</th>
                                 <th>KHÁCH HÀNG</th>
-                                <th>TỔNG CỘNG</th>
-                                <th>TRẠNG THÁI</th>
+                                <th>Tổng cộng</th>
+                                <th>Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -878,7 +1715,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="product-list">
                         <div class="product-item" v-for="p in data.san_pham" :key="p.id">
                             <img v-if="p.img" :src="p.img" :alt="p.ten" />
-                            <div v-else class="img-placeholder">📦</div>
+                            <div v-else class="img-placeholder">??</div>
                             <div class="product-info">
                                 <b>{{ p.ten }}</b>
                                 <span>Đã bán: {{ p.tong_ban }}</span>
@@ -896,6 +1733,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
             </div>
 
         </template>
+
     </div>
 </template>
 
@@ -955,6 +1793,35 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, .08);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.export-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.export-btn:hover {
+    transform: translateY(-1px);
+    border-color: #2563eb;
+    box-shadow: 0 14px 28px rgba(37, 99, 235, .14);
 }
 
 .search-box {
@@ -1074,7 +1941,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 28px 14px;
+    padding: 0 28px 18px;
 }
 
 .period-bar-label {
@@ -1110,19 +1977,94 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 /* STATS */
+.dashboard-cluster {
+    margin: 0 28px 20px;
+    padding: 20px;
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.06);
+}
+
+.overview-cluster {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 251, 255, 0.94) 100%);
+}
+
+.performance-cluster {
+    background:
+        radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.07), transparent 30%),
+        linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.cluster-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.cluster-head h3 {
+    margin: 3px 0 0;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 950;
+}
+
+.cluster-head small {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 850;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    white-space: nowrap;
+}
+
+.cluster-kicker {
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.cluster-subhead {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 950;
+    margin-bottom: 12px;
+}
+
+.performance-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.metric-panel {
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid #e8eef7;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(220px, 1fr));
-    gap: 20px;
-    padding: 0 32px 20px;
+    gap: 16px;
+    padding: 0;
 }
 
 .stat-card {
-    min-height: 136px;
-    border-radius: 16px;
+    min-height: 126px;
+    border-radius: 14px;
     border: 1px solid transparent;
-    padding: 26px 28px;
-    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+    padding: 22px 24px;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
     color: #fff;
     position: relative;
     overflow: hidden;
@@ -1162,13 +2104,13 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .stat-top {
     display: flex;
     justify-content: flex-start;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 .stat-icon-wrap {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1186,12 +2128,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.03em;
-    margin: 0 0 18px;
-    text-transform: uppercase;
+    margin: 0 0 16px;
+    text-transform: capitalize;
 }
 
 .stat-value {
-    font-size: 34px;
+    font-size: 31px;
     line-height: 1;
     font-weight: 800;
     color: #fff;
@@ -1214,6 +2156,597 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .stat-card-link:focus-visible .stat-card-action {
     opacity: 1;
     transform: translateX(0);
+}
+
+.ops-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0;
+}
+
+.ops-card {
+    display: grid;
+    align-content: center;
+    gap: 12px;
+    min-height: 118px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #e8eef7;
+    background: #f8fafc;
+    text-decoration: none;
+    color: #0f172a;
+    box-shadow: none;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ops-card:first-child {
+    grid-column: 1 / -1;
+    min-height: 118px;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
+}
+
+.ops-card:hover,
+.ops-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: #93c5fd;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.09);
+    outline: none;
+}
+
+.ops-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ops-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.25;
+}
+
+.ops-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.ops-copy span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.ops-copy b {
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.ops-copy small {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.ops-card.tone-blue .ops-icon {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.ops-card:first-child .ops-icon {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.ops-card:first-child .ops-copy span,
+.ops-card:first-child .ops-copy b,
+.ops-card:first-child .ops-copy small {
+    color: #fff;
+}
+
+.ops-card:first-child .ops-copy span,
+.ops-card:first-child .ops-copy small {
+    opacity: 0.86;
+}
+
+.ops-card:first-child .ops-copy b {
+    font-size: 34px;
+}
+
+.ops-card.tone-amber .ops-icon {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.ops-card.tone-green .ops-icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.ops-card.tone-red .ops-icon {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0;
+}
+
+.analysis-card {
+    min-height: 122px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #e8eef7;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: none;
+    display: grid;
+    align-content: space-between;
+}
+
+.analysis-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.analysis-head > span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.analysis-card > strong {
+    display: block;
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 950;
+    margin-bottom: 10px;
+}
+
+.analysis-card > p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.trend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.trend-pill small {
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.trend-pill.up {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.trend-pill.down {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.trend-pill.flat {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.workbench-card {
+    margin: 0 32px 20px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.workbench-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.workbench-head h3 {
+    margin: 4px 0 0;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.workbench-head a {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.eyebrow {
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.task-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.workbench-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 14px;
+    align-items: stretch;
+}
+
+.task-column {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+}
+
+.task-item {
+    display: flex;
+    gap: 12px;
+    min-height: 112px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    text-decoration: none;
+    color: #0f172a;
+    transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.task-item:hover,
+.task-item:focus-visible {
+    transform: translateY(-2px);
+    border-color: #93c5fd;
+    outline: none;
+}
+
+.task-count {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.task-item b {
+    display: block;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.task-item small {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+.task-item.tone-warn .task-count {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.task-item.tone-danger .task-count {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.task-item.tone-info .task-count {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.task-item.tone-success .task-count {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.operation-flow-card {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #dbeafe;
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(248, 251, 255, 0.85)),
+        #ffffff;
+}
+
+.flow-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.flow-head h4 {
+    margin: 3px 0 0;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 950;
+}
+
+.flow-head strong {
+    color: #2563eb;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 950;
+}
+
+.flow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.flow-grid div {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid #e8eef7;
+}
+
+.flow-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 850;
+    line-height: 1.25;
+    margin-bottom: 5px;
+}
+
+.flow-grid b {
+    color: #0f172a;
+    font-size: 19px;
+    line-height: 1;
+    font-weight: 950;
+}
+
+.flow-progress {
+    height: 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    overflow: hidden;
+}
+
+.flow-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.activity-column {
+    display: grid;
+    gap: 12px;
+}
+
+.staff-activity-card,
+.customer-activity-card {
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.customer-activity-card {
+    background:
+        linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(255, 255, 255, 0.92)),
+        #ffffff;
+}
+
+.staff-head,
+.customer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.staff-head h4,
+.customer-head h4 {
+    margin: 3px 0 0;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 950;
+}
+
+.staff-head strong,
+.customer-head strong {
+    color: #2563eb;
+    font-size: 18px;
+    font-weight: 950;
+}
+
+.staff-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.staff-summary span {
+    padding: 8px 6px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.staff-summary .online {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.staff-summary .idle {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.staff-summary .offline {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.customer-live-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.customer-live-strip div {
+    padding: 9px 8px;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.customer-live-strip span {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 850;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+.customer-live-strip b {
+    color: #2563eb;
+    font-size: 17px;
+    font-weight: 950;
+}
+
+.staff-list {
+    display: grid;
+    gap: 8px;
+    max-height: 186px;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.staff-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+}
+
+.staff-row img,
+.staff-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.staff-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.staff-main {
+    min-width: 0;
+}
+
+.staff-main b {
+    display: block;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-main small {
+    display: block;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 750;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-row em {
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.staff-row em.online {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.staff-row em.idle {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.staff-row em.offline {
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 /* CHARTS ROW */
@@ -1516,6 +3049,232 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 /* BOTTOM ROW */
+.operations-row {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 0.9fr;
+    gap: 12px;
+    padding: 0 28px 16px;
+}
+
+.operation-panel {
+    min-height: 250px;
+}
+
+.follow-list,
+.stock-list {
+    display: grid;
+    gap: 10px;
+}
+
+.follow-item,
+.stock-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+    color: #0f172a;
+    text-decoration: none;
+    transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.follow-item:hover,
+.stock-item:hover,
+.follow-item:focus-visible,
+.stock-item:focus-visible {
+    transform: translateY(-2px);
+    background: #fff;
+    border-color: #bfdbfe;
+    outline: none;
+}
+
+.follow-item b,
+.stock-item b {
+    display: block;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+.follow-item span,
+.stock-item span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.follow-right {
+    display: grid;
+    justify-items: end;
+    align-content: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.follow-right small {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.stock-item strong {
+    min-width: 38px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 15px;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.stock-item strong.danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.mini-section {
+    padding: 10px 0 12px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.mini-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.mini-section > b {
+    display: block;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+
+.mini-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.mini-row strong {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.empty-mini {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 0;
+}
+
+.insight-charts-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 28px 16px;
+}
+
+.insight-chart-card {
+    min-height: 230px;
+}
+
+.section-header.compact {
+    margin-bottom: 12px;
+}
+
+.horizontal-chart {
+    display: grid;
+    gap: 12px;
+}
+
+.chart-bar-row {
+    display: grid;
+    gap: 6px;
+}
+
+.chart-bar-row small {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.chart-bar-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.chart-bar-meta span {
+    min-width: 0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chart-bar-meta b {
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.chart-track {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.chart-fill {
+    display: block;
+    height: 100%;
+    min-width: 8px;
+    border-radius: inherit;
+    transition: width 0.24s ease;
+}
+
+.chart-fill.blue {
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.chart-fill.green {
+    background: linear-gradient(90deg, #16a34a, #86efac);
+}
+
+.chart-fill.warn {
+    background: linear-gradient(90deg, #f59e0b, #fde68a);
+}
+
+.chart-fill.danger {
+    background: linear-gradient(90deg, #dc2626, #fca5a5);
+}
+
+.chart-fill.soft {
+    background: linear-gradient(90deg, #38bdf8, #bae6fd);
+}
+
 .bottom-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1719,6 +3478,28 @@ tbody td {
         grid-template-columns: 1fr 1fr 1fr;
     }
 
+    .performance-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .workbench-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ops-grid,
+    .analysis-grid,
+    .task-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ops-card:first-child {
+        grid-column: 1 / -1;
+    }
+
     .charts-row {
         grid-template-columns: 1fr;
     }
@@ -1726,11 +3507,19 @@ tbody td {
     .bottom-row {
         grid-template-columns: 1fr;
     }
+
+    .operations-row {
+        grid-template-columns: 1fr;
+    }
+
+    .insight-charts-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 700px) {
     .stats-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
     }
 
     .topbar {
@@ -1740,12 +3529,61 @@ tbody td {
         padding: 16px;
     }
 
-    .stats-grid,
+    .dashboard-cluster,
     .charts-row,
+    .operations-row,
+    .insight-charts-row,
     .bottom-row,
     .period-bar {
         padding-left: 16px;
         padding-right: 16px;
+    }
+
+    .dashboard-cluster {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .cluster-head {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .staff-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .customer-live-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-row {
+        grid-template-columns: 34px minmax(0, 1fr);
+    }
+
+    .flow-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-row em {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .workbench-card {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .ops-grid,
+    .analysis-grid,
+    .task-grid,
+    .insight-charts-row {
+        grid-template-columns: 1fr;
+    }
+
+    .ops-card:first-child {
+        grid-column: auto;
     }
 }
 

@@ -142,10 +142,11 @@ async function sendContactRequest() {
     success.value = false
     loading.value = true
     const data = (await api.post('/lien-he', {
-      name: name.value,
+      hoten: name.value,
       email: email.value,
-      phone: phone.value,
-      message: `[${subject.value}] ${message.value}`,
+      sodienthoai: phone.value,
+      danhmuc: subject.value,
+      noidung: message.value,
     })).data
     if (data.status) {
       success.value = true
@@ -1025,7 +1026,7 @@ const toggleFaq = (index) => {
   line-height: 1.25;
   letter-spacing: -1.5px;
   margin: 0 0 16px 0;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 .highlight-text {
   color: var(--secondary);
@@ -1113,7 +1114,7 @@ const toggleFaq = (index) => {
   font-size: 11px;
   font-weight: 600;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .stat-border-line {
@@ -1216,7 +1217,7 @@ const toggleFaq = (index) => {
   font-size: 10px;
   font-weight: 700;
   color: var(--text-secondary);
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 .step-line {
@@ -1830,7 +1831,7 @@ const toggleFaq = (index) => {
   font-size: 9.5px;
   font-weight: 700;
   color: #94a3b8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
 }
@@ -2002,7 +2003,7 @@ const toggleFaq = (index) => {
   font-weight: 800;
   color: #94a3b8;
   letter-spacing: 1px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 0 0 20px 0;
 }
 .partners-marquee-container {

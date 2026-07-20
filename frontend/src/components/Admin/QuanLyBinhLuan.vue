@@ -1,34 +1,34 @@
-﻿<template>
+<template>
     <div class="page">
         <div class="container">
 
-            <!-- ── Top Header ── -->
+            <!-- -- Top Header -- -->
             <div class="top-header">
                 <div class="header-left">
-                    <h1 class="page-title">Quản lý Bình luận<br />&amp; Đánh giá</h1>
-                    <p class="page-sub">Theo dõi và phản hồi các đánh giá từ khách hàng của VinaTech</p>
+                    <h1 class="page-title">Qu?n lý Bình lu?n<br />&amp; Ðánh giá</h1>
+                    <p class="page-sub">Theo dõi và ph?n h?i các dánh giá t? khách hàng c?a VinaTech</p>
                 </div>
             </div>
 
             <div class="stats-row">
                     <div class="stat-card">
-                        <div class="stat-label">TỔNG CỘNG</div>
+                        <div class="stat-label">T?NG C?NG</div>
                         <div class="stat-value">{{ statsData.total }}</div>
                     </div>
                     <div class="stat-card highlight">
-                        <div class="stat-label">CHỜ DUYỆT</div>
+                        <div class="stat-label">CH? DUY?T</div>
                         <div class="stat-value">{{ statsData.pending }}</div>
                     </div>
                     <div class="stat-card gold">
-                        <div class="stat-label">ĐÁNH GIÁ TB</div>
-                        <div class="stat-value">{{ statsData.avg }} <span class="star">★</span></div>
+                        <div class="stat-label">ÐÁNH GIÁ TB</div>
+                        <div class="stat-value">{{ statsData.avg }} <span class="star">?</span></div>
                     </div>
             </div>
 
-            <!-- ── Table Card ── -->
+            <!-- -- Table Card -- -->
             <div class="table-card">
                 <div class="table-header">
-                    <h3 class="table-title">Danh sách đánh giá gần đây</h3>
+                    <h3 class="table-title">Danh sách dánh giá g?n dây</h3>
                     <div class="filter-tabs">
                         <button v-for="tab in tabs" :key="tab.key" class="tab-btn"
                             :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label
@@ -41,11 +41,11 @@
                         <thead>
                             <tr>
                                 <th>KHÁCH HÀNG</th>
-                                <th>SẢN PHẨM</th>
-                                <th>ĐÁNH GIÁ</th>
-                                <th>NỘI DUNG</th>
+                                <th>S?N PH?M</th>
+                                <th>ÐÁNH GIÁ</th>
+                                <th>N?I DUNG</th>
                                 <th>NGÀY</th>
-                                <th>TRẠNG THÁI</th>
+                                <th>TR?NG THÁI</th>
                                 <th>THAO TÁC</th>
                             </tr>
                         </thead>
@@ -59,27 +59,27 @@
                                             <span>{{ review.user?.name?.charAt(0) }}</span>
                                         </div>
                                         <div>
-                                            <div class="customer-name">{{ review.user?.name || 'Ẩn danh' }}</div>
+                                            <div class="customer-name">{{ review.user?.name || '?n danh' }}</div>
                                             <div class="customer-email">{{ review.user?.email }}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 <!-- Product -->
-                                                                <td><span class="product-link">{{ review.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</span></td>
+                                                                <td><span class="product-link">{{ review.bien_the?.san_pham?.tenSP || 'S?n ph?m' }}</span></td>
 
                                 <!-- Stars -->
                                 <td>
                                     <div class="stars">
                                         <span v-for="s in 5" :key="s" class="star-icon"
-                                            :class="s <= review.danhgia ? 'filled' : 'empty'">★</span>
+                                            :class="s <= review.danhgia ? 'filled' : 'empty'">?</span>
                                     </div>
                                 </td>
 
                                 <!-- Content -->
                                 <td>
                                     <p class="review-text">
-                                        {{ review.binhluan || '(Không có nội dung)' }}
+                                        {{ review.binhluan || '(Không có n?i dung)' }}
                                     </p>
                                 </td>
 
@@ -97,15 +97,15 @@
                                 <td>
                                     <div class="action-btns">
                                         <button v-if="isPendingLike(review)" class="action-btn approve"
-                                            @click="approveReview(review)">DUYỆT<br />NGAY</button>
+                                            @click="approveReview(review)">DUY?T<br />NGAY</button>
                                         
-                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu Spam" @click="markAsSpam(review)">
+                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Ðánh d?u Spam" @click="markAsSpam(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                                             </svg>
                                         </button>
 
-                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Ðua v? ch? duy?t th? công" @click="undoReview(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
@@ -127,7 +127,7 @@
 
                 <!-- Pagination -->
                 <div class="pagination" v-if="pagination.last_page > 1">
-                    <span class="page-info">Trang {{ pagination.current_page }} / {{ pagination.last_page }} (Tổng {{ pagination.total }} đánh giá)</span>
+                    <span class="page-info">Trang {{ pagination.current_page }} / {{ pagination.last_page }} (T?ng {{ pagination.total }} dánh giá)</span>
                     <div class="page-btns">
                         <button class="page-btn arrow" :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
                         <template v-for="(p, index) in compactPageNumbers" :key="`${p}-${index}`">
@@ -140,7 +140,7 @@
                 </div>
             </div>
 
-            <!-- ── Bottom Banners ── -->
+            <!-- -- Bottom Banners -- -->
             <div class="bottom-row">
                 <div class="banner-card ai-ready">
                     <div class="banner-icon">
@@ -149,16 +149,16 @@
                             <path d="M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z" />
                         </svg>
                     </div>
-                    <h4>Tất cả đã sẵn sàng!</h4>
-                    <p>Hiện không có bình luận nào cần kiểm duyệt gấp. Hệ thống AI đang tự động lọc các nội dung spam
-                        thô tục.</p>
+                    <h4>T?t c? dã s?n sàng!</h4>
+                    <p>Hi?n không có bình lu?n nào c?n ki?m duy?t g?p. H? th?ng AI dang t? d?ng l?c các n?i dung spam
+                        thô t?c.</p>
                 </div>
 
                 <div class="banner-card moderation-tool">
                     <div class="tool-card-head">
                         <div>
                             <div class="banner-badge">TOOL</div>
-                            <h4>Công cụ<br />duyệt bình luận</h4>
+                            <h4>Công c?<br />duy?t bình lu?n</h4>
                         </div>
                         <button
                             class="tool-switch"
@@ -168,18 +168,18 @@
                             @click="toggleTool"
                         >
                             <span class="tool-dot"></span>
-                            <strong v-if="toolStatusLoading">Đang cập nhật</strong>
-                            <strong v-else-if="toolIsOn">Đang bật</strong>
-                            <strong v-else>Đang tắt</strong>
+                            <strong v-if="toolStatusLoading">Ðang c?p nh?t</strong>
+                            <strong v-else-if="toolIsOn">Ðang b?t</strong>
+                            <strong v-else>Ðang t?t</strong>
                         </button>
                     </div>
                     <p>
                         {{ toolIsOn
-                            ? 'Tool đang kiểm soát đánh giá khách hàng. Đánh giá tốt sẽ được tự duyệt, nội dung tục tĩu/spam/công kích sẽ bị ẩn.'
-                            : 'Tool đang tắt. Đánh giá mới sẽ chờ admin kiểm duyệt thủ công khi bạn không có nhu cầu chạy kiểm soát tự động.' }}
+                            ? 'Tool dang ki?m soát dánh giá khách hàng. Ðánh giá t?t s? du?c t? duy?t, n?i dung t?c tiu/spam/công kích s? b? ?n.'
+                            : 'Tool dang t?t. Ðánh giá m?i s? ch? admin ki?m duy?t th? công khi b?n không có nhu c?u ch?y ki?m soát t? d?ng.' }}
                     </p>
                     <div class="tool-summary">
-                        <span>Chờ duyệt toàn hệ thống</span>
+                        <span>Ch? duy?t toàn h? th?ng</span>
                         <strong>{{ statsData.pending }}</strong>
                     </div>
                     <div class="tool-actions">
@@ -192,10 +192,10 @@
                             {{ toolActionText }}
                         </button>
                         <button class="banner-btn primary" @click="openPendingQueue">
-                            XEM CHỜ DUYỆT
+                            XEM CH? DUY?T
                         </button>
                         <button class="banner-btn success" :disabled="pendingOnPage.length === 0 || bulkLoading" @click="approvePendingOnPage">
-                            DUYỆT TRANG NÀY ({{ pendingOnPage.length }})
+                            DUY?T TRANG NÀY ({{ pendingOnPage.length }})
                         </button>
                     </div>
                 </div>
@@ -230,14 +230,14 @@ let autoRefreshTimer = null
 
 const toolIsOn = computed(() => toolEnabled.value === true)
 const toolActionText = computed(() => {
-    if (toolStatusLoading.value) return 'ĐANG CẬP NHẬT...'
-    return toolIsOn.value ? 'TẮT TOOL' : 'BẬT TOOL'
+    if (toolStatusLoading.value) return 'ÐANG C?P NH?T...'
+    return toolIsOn.value ? 'T?T TOOL' : 'B?T TOOL'
 })
 
 const tabs = [
-    { key: 'all', label: 'Tất cả' },
-    { key: 'pending', label: 'Chờ duyệt' },
-    { key: 'approved', label: 'Đã duyệt' },
+    { key: 'all', label: 'T?t c?' },
+    { key: 'pending', label: 'Ch? duy?t' },
+    { key: 'approved', label: 'Ðã duy?t' },
 ]
 
 const reviews = ref([])
@@ -330,14 +330,14 @@ const fetchReviews = async () => {
         pagination.value = res.data.pagination || pagination.value
         statsData.value = res.data.stats || statsData.value
     } catch (err) {
-        console.error('Lỗi khi tải đánh giá:', err)
+        console.error('L?i khi t?i dánh giá:', err)
     } finally {
         isLoading.value = false
     }
 }
 
 const statusLabel = (status) => {
-    const map = { approved: 'ĐÃ DUYỆT', pending: 'CHỜ DUYỆT', spam: 'CHỜ DUYỆT' }
+    const map = { approved: 'ÐÃ DUY?T', pending: 'CH? DUY?T', spam: 'CH? DUY?T' }
     return map[status] || status
 }
 
@@ -354,7 +354,7 @@ const updateStatusDropdown = async (review, newStatus) => {
             fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi cập nhật trạng thái: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i c?p nh?t tr?ng thái: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -366,14 +366,14 @@ const undoReview = async (review) => {
             fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi khôi phục: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i khôi ph?c: ' + (err.response?.data?.message || err.message))
     }
 }
 
 const showUndoToast = (review, oldStatus) => {
     if (toast.value.timeout) clearTimeout(toast.value.timeout);
     toast.value.show = true;
-    toast.value.message = 'Đã chuyển bình luận vào mục SPAM.';
+    toast.value.message = 'Ðã chuy?n bình lu?n vào m?c SPAM.';
     toast.value.reviewId = review.id_danhgia;
     toast.value.oldStatus = oldStatus;
 
@@ -394,12 +394,12 @@ const triggerUndo = async () => {
         const res = await api.put(`/admin/reviews/${reviewId}/status`, { trangthai: targetStatus });
         if (res.data.success) review.trangthai = targetStatus;
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi hoàn tác: ' + err.message);
+        swal.error('L?i', 'L?i hoàn tác: ' + err.message);
     }
 }
 
 const approveReview = async (review) => {
-    const isConfirmed = await swal.confirm('Xác nhận duyệt', 'Bạn có chắc chắn muốn duyệt đánh giá này không?')
+    const isConfirmed = await swal.confirm('Xác nh?n duy?t', 'B?n có ch?c ch?n mu?n duy?t dánh giá này không?')
     if (!isConfirmed) return;
 
     try {
@@ -408,11 +408,11 @@ const approveReview = async (review) => {
         })
         if (res.data.success) {
             review.trangthai = 'approved'
-            swal.success('Thành công', 'Duyệt đánh giá thành công!')
+            swal.success('Thành công', 'Duy?t dánh giá thành công!')
             fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi khi duyệt đánh giá: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i khi duy?t dánh giá: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -428,22 +428,22 @@ const markAsSpam = async (review) => {
             fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi khi đánh dấu spam: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i khi dánh d?u spam: ' + (err.response?.data?.message || err.message))
     }
 }
 
 const deleteReview = async (id) => {
-    const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?')
+    const isConfirmed = await swal.confirm('Xác nh?n xóa', 'B?n có ch?c ch?n mu?n xóa vinh vi?n dánh giá này?')
     if (!isConfirmed) return;
 
     try {
         const res = await api.delete(`/admin/reviews/${id}`)
         if (res.data.success) {
-            swal.success('Đã xóa', 'Đã xóa đánh giá thành công!')
+            swal.success('Ðã xóa', 'Ðã xóa dánh giá thành công!')
             fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi khi xóa đánh giá: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i khi xóa dánh giá: ' + (err.response?.data?.message || err.message))
     }
 }
 
@@ -456,13 +456,13 @@ const openPendingQueue = () => {
 const approvePendingOnPage = async () => {
     const ids = pendingOnPage.value.map(review => review.id_danhgia)
     if (!ids.length) {
-        swal.info('Không có bình luận chờ duyệt', 'Trang hiện tại chưa có bình luận nào cần duyệt.')
+        swal.info('Không có bình lu?n ch? duy?t', 'Trang hi?n t?i chua có bình lu?n nào c?n duy?t.')
         return
     }
 
     const isConfirmed = await swal.confirm(
-        'Duyệt bình luận trên trang này',
-        `Bạn có chắc muốn duyệt ${ids.length} bình luận đang chờ trên trang hiện tại?`
+        'Duy?t bình lu?n trên trang này',
+        `B?n có ch?c mu?n duy?t ${ids.length} bình lu?n dang ch? trên trang hi?n t?i?`
     )
     if (!isConfirmed) return
 
@@ -474,11 +474,11 @@ const approvePendingOnPage = async () => {
         })
 
         if (res.data.success) {
-            swal.success('Thành công', `Đã duyệt ${res.data.updated || ids.length} bình luận.`)
+            swal.success('Thành công', `Ðã duy?t ${res.data.updated || ids.length} bình lu?n.`)
             await fetchReviews()
         }
     } catch (err) {
-        swal.error('Lỗi', 'Lỗi duyệt hàng loạt: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'L?i duy?t hàng lo?t: ' + (err.response?.data?.message || err.message))
     } finally {
         bulkLoading.value = false
     }
@@ -490,13 +490,13 @@ const fetchToolStatus = async () => {
         const res = await api.get('/admin/reviews/ai-status')
         toolEnabled.value = normalizeToolStatus(res.data.active)
     } catch (err) {
-        console.error('Lỗi khi tải trạng thái tool tự duyệt:', err)
+        console.error('L?i khi t?i tr?ng thái tool t? duy?t:', err)
     }
 }
 
 const runAutoModeration = async () => {
     if (!toolEnabled.value) {
-        swal.info('Tool đang tắt', 'Hãy bật tool tự duyệt trước khi chạy kiểm soát đánh giá.')
+        swal.info('Tool dang t?t', 'Hãy b?t tool t? duy?t tru?c khi ch?y ki?m soát dánh giá.')
         return
     }
 
@@ -505,12 +505,12 @@ const runAutoModeration = async () => {
         const res = await api.post('/admin/reviews/auto-moderate', { limit: 200 })
         const summary = res.data.summary || {}
         await swal.success(
-            'Tool tự duyệt đã chạy',
-            `Đã quét ${summary.scanned || 0} đánh giá. Duyệt: ${summary.approved || 0}, Spam: ${summary.spam || 0}, còn chờ: ${summary.pending || 0}.`
+            'Tool t? duy?t dã ch?y',
+            `Ðã quét ${summary.scanned || 0} dánh giá. Duy?t: ${summary.approved || 0}, Spam: ${summary.spam || 0}, còn ch?: ${summary.pending || 0}.`
         )
         await fetchReviews()
     } catch (err) {
-        swal.error('Lỗi', 'Không chạy được tool tự duyệt: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'Không ch?y du?c tool t? duy?t: ' + (err.response?.data?.message || err.message))
     } finally {
         autoModerationLoading.value = false
     }
@@ -525,14 +525,14 @@ const toggleTool = async () => {
         const res = await api.post('/admin/reviews/ai-status', { active: nextStatus })
         toolEnabled.value = normalizeToolStatus(res.data.active)
         swal.success(
-            toolEnabled.value ? 'Đã bật tool tự duyệt' : 'Đã tắt tool tự duyệt',
+            toolEnabled.value ? 'Ðã b?t tool t? duy?t' : 'Ðã t?t tool t? duy?t',
             toolEnabled.value
-                ? 'Hệ thống sẽ tự kiểm soát đánh giá mới của khách hàng.'
-                : 'Đánh giá mới sẽ chuyển sang trạng thái chờ duyệt thủ công.'
+                ? 'H? th?ng s? t? ki?m soát dánh giá m?i c?a khách hàng.'
+                : 'Ðánh giá m?i s? chuy?n sang tr?ng thái ch? duy?t th? công.'
         )
     } catch (err) {
         toolEnabled.value = !nextStatus
-        swal.error('Lỗi', 'Không cập nhật được trạng thái tool: ' + (err.response?.data?.message || err.message))
+        swal.error('L?i', 'Không c?p nh?t du?c tr?ng thái tool: ' + (err.response?.data?.message || err.message))
     } finally {
         toolStatusLoading.value = false
         await fetchToolStatus()
@@ -576,7 +576,7 @@ onUnmounted(() => {
     padding: 0;
 }
 
-/* ── Layout ── */
+/* -- Layout -- */
 .page {
     font-family: 'Be Vietnam Pro', sans-serif;
     background: #f0f2f7;
@@ -593,7 +593,7 @@ onUnmounted(() => {
     gap: 20px;
 }
 
-/* ── Header ── */
+/* -- Header -- */
 .top-header {
     display: flex;
     align-items: flex-start;
@@ -616,7 +616,7 @@ onUnmounted(() => {
     max-width: 240px;
 }
 
-/* ── Stat Cards ── */
+/* -- Stat Cards -- */
 .stats-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -664,7 +664,7 @@ onUnmounted(() => {
     letter-spacing: .03em;
     color: rgba(255, 255, 255, .88);
     margin-bottom: 20px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .stat-value {
@@ -686,7 +686,7 @@ onUnmounted(() => {
     font-size: 18px;
 }
 
-/* ── Table Card ── */
+/* -- Table Card -- */
 .table-card {
     background: #fff;
     border-radius: 16px;
@@ -852,7 +852,7 @@ td {
     color: #475569;
     max-width: 280px;
     line-height: 1.5;
-    /* Hiển thị tối đa 2 dòng và thêm dấu 3 chấm */
+    /* Hi?n th? t?i da 2 dòng và thêm d?u 3 ch?m */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -1020,7 +1020,7 @@ td {
     padding: 0 4px;
 }
 
-/* ── Bottom Banners ── */
+/* -- Bottom Banners -- */
 .bottom-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1262,7 +1262,7 @@ td {
     transform: scale(1.03);
 }
 
-/* ── Responsive ── */
+/* -- Responsive -- */
 @media (max-width: 600px) {
     .bottom-row {
         grid-template-columns: 1fr;
@@ -1273,7 +1273,7 @@ td {
     }
 }
 
-/* ── Toast Undo ── */
+/* -- Toast Undo -- */
 .toast-undo {
     position: fixed;
     bottom: 40px;

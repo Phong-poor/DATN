@@ -2773,7 +2773,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: #64748B;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     display: block;
     margin-bottom: 6px;
@@ -3250,7 +3250,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 1px;
     display: block;
     margin-bottom: 2px;
@@ -3660,7 +3660,7 @@ const handleSelectVariantById = (idBienThe) => {
     color: var(--primary);
     display: block;
     margin-bottom: 8px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 .section-main-title {
     font-family: var(--font-heading);
@@ -3768,7 +3768,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 10px;
     font-weight: 800;
     color: #64748b;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 1.2px;
     margin: 0 0 2px 0;
     border-bottom: 1.5px solid #e2e8f0;
@@ -3804,7 +3804,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 8.5px;
     font-weight: 750;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 
@@ -3828,7 +3828,7 @@ const handleSelectVariantById = (idBienThe) => {
     padding: 1px 3px;
     border-radius: 3px;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .spec-badge.hot {
@@ -3964,7 +3964,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-family: var(--font-heading);
     font-size: 11px;
     font-weight: 800;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.6px;
     padding: 12px 16px;
     border-bottom: 1px solid #e2e8f0;
@@ -4071,7 +4071,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: var(--text-secondary);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 .spec-card-content .value {
@@ -4530,7 +4530,7 @@ const handleSelectVariantById = (idBienThe) => {
     color: #bfdbfe;
     font-size: 11px;
     font-weight: 800;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: .5px;
 }
 
@@ -4738,7 +4738,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-weight: 600;
     color: #64748b;
     background: transparent;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 .price-side .price-tag {
     font-family: var(--font-heading);
@@ -4903,7 +4903,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
-    text-transform: uppercase;
+    text-transform: capitalize;
     margin-bottom: 16px;
 }
 .picker-list-wrapper {

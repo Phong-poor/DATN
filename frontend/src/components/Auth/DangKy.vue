@@ -470,7 +470,7 @@ const loginFacebook = () => {
   font-size: 14px;
   font-weight: 600;
   color: #60a5fa;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.08em;
 }
 

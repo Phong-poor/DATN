@@ -674,7 +674,7 @@ const handleAddToCart = async () => {
   font-size: 10px;
   font-weight: 700;
   color: #1d4ed8;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 

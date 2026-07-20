@@ -20,7 +20,7 @@
       </div>
 
       <div class="menu-section">
-        <p class="menu-label">MAIN MENU</p>
+        <p class="menu-label">Menu chính</p>
         <div v-for="item in filteredMenuConfig" :key="item.label || item.path" class="menu-wrapper">
           <!-- Normal Link -->
           <router-link
@@ -30,7 +30,7 @@
           >
             <div :class="['item', (item.path === '/admin' ? isExactActive : isActive) && 'active']">
               <component :is="item.icon" class="item-icon" />
-              <span>{{ item.label }}</span>
+              <span class="menu-text">{{ sentenceCaseLabel(item.label) }}</span>
             </div>
           </router-link>
 
@@ -43,7 +43,7 @@
               @click="toggleDropdown(item.label)"
             >
               <component :is="item.icon" class="item-icon" />
-              <span>{{ item.label }}</span>
+              <span class="menu-text">{{ sentenceCaseLabel(item.label) }}</span>
               <ChevronDown class="chevron-icon" />
             </button>
 
@@ -56,9 +56,9 @@
               >
                 <div :class="['submenu-item', isActive && 'active']">
                   <span class="bullet-dot"></span>
-                  <span>{{ sub.label }}</span>
+                  <span class="submenu-text">{{ sentenceCaseLabel(sub.label) }}</span>
                   <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
-                    {{ sub.badge }}
+                    {{ sentenceCaseLabel(sub.badge) }}
                   </span>
                 </div>
               </router-link>
@@ -240,6 +240,12 @@ const notifyMenuRef = ref(null)
 
 const currentLocale = ref(getLocale())
 const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
+
+const sentenceCaseLabel = (value) => {
+  const text = String(value || '').trim().replace(/\s+/g, ' ')
+  if (!text) return ''
+  return text.charAt(0).toLocaleUpperCase('vi-VN') + text.slice(1).toLocaleLowerCase('vi-VN')
+}
 
 const appearance = ref({
   primary_color: '#2563eb',
@@ -734,7 +740,43 @@ onUnmounted(() => {
     letter-spacing: 1.5px; 
     padding: 16px 12px 8px; 
     margin: 0; 
-    text-transform: uppercase;
+    text-transform: capitalize;
+}
+.admin-layout :deep(.item),
+.admin-layout :deep(.submenu-item),
+.admin-layout :deep(.submenu-badge),
+.admin-layout :deep(.admin-topbar-title h2),
+.admin-layout :deep(.card-title),
+.admin-layout :deep(.section-title),
+.admin-layout :deep(.chart-title),
+.admin-layout :deep(.stat-label),
+.admin-layout :deep(.period-tab),
+.admin-layout :deep(.chart-nav-btn),
+.admin-layout :deep(.status-badge),
+.admin-layout :deep(th),
+.admin-layout :deep(button) {
+  text-transform: lowercase !important;
+}
+.admin-layout :deep(.item)::first-letter,
+.admin-layout :deep(.submenu-item)::first-letter,
+.admin-layout :deep(.submenu-badge)::first-letter,
+.admin-layout :deep(.admin-topbar-title h2)::first-letter,
+.admin-layout :deep(.card-title)::first-letter,
+.admin-layout :deep(.section-title)::first-letter,
+.admin-layout :deep(.chart-title)::first-letter,
+.admin-layout :deep(.stat-label)::first-letter,
+.admin-layout :deep(.period-tab)::first-letter,
+.admin-layout :deep(.chart-nav-btn)::first-letter,
+.admin-layout :deep(.status-badge)::first-letter,
+.admin-layout :deep(th)::first-letter,
+.admin-layout :deep(button)::first-letter {
+  text-transform: uppercase !important;
+}
+.menu-label,
+.menu-text,
+.submenu-text,
+.submenu-badge {
+  text-transform: none !important;
 }
 .menu-section { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 16px; }
 .menu-section { -ms-overflow-style: none; scrollbar-width: none; }
@@ -839,7 +881,7 @@ a { text-decoration: none; }
   padding: 1.5px 5px;
   border-radius: 4px;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   flex-shrink: 0;
 }
 .badge-thủ-kho {
@@ -1210,7 +1252,7 @@ a { text-decoration: none; }
     line-height: 1.25;
     font-weight: 800 !important;
     letter-spacing: 0.03em !important;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .main :deep(.stat-card b),

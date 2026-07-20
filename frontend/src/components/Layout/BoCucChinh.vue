@@ -60,7 +60,7 @@ onUnmounted(() => {
     <div class="web-intro-header">
       <Header />
     </div>
-    <main class="web-intro-main">
+    <main class="web-intro-main" :class="{ 'product-detail-gap': route.name === 'product-detail' }">
       <router-view v-slot="{ Component }">
         <transition name="page-fade">
           <component :is="Component" :key="route.fullPath" />
@@ -92,7 +92,7 @@ onUnmounted(() => {
 .web-layout {
   min-height: 100vh;
   background: #f8fafc;
-  padding-top: 116px;
+  padding-top: 108px;
   overflow-x: clip;
 }
 
@@ -105,8 +105,11 @@ onUnmounted(() => {
 .web-intro-main {
   position: relative;
   min-height: calc(100vh - 116px);
-  padding-top: 40px;
   isolation: isolate;
+}
+
+.web-intro-main.product-detail-gap {
+  padding-top: 40px;
 }
 
 .page-fade-enter-active,
@@ -121,10 +124,10 @@ onUnmounted(() => {
 
 @media (max-width: 600px) {
   .web-layout {
-    padding-top: 64px;
+    padding-top: 60px;
   }
 
-  .web-intro-main {
+  .web-intro-main.product-detail-gap {
     padding-top: 24px;
   }
 }
