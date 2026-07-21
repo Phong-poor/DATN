@@ -26,9 +26,8 @@
           <router-link
             v-if="!item.isDropdown"
             :to="item.path"
-            v-slot="{ isActive, isExactActive }"
           >
-            <div :class="['item', (item.path === '/admin' ? isExactActive : isActive) && 'active']">
+            <div :class="['item', isMenuPathActive(item.path) && 'active']">
               <component :is="item.icon" class="item-icon" />
               <span class="menu-text">{{ sentenceCaseLabel(item.label) }}</span>
             </div>
@@ -52,9 +51,8 @@
                 v-for="sub in item.children"
                 :key="sub.path"
                 :to="sub.path"
-                v-slot="{ isActive }"
               >
-                <div :class="['submenu-item', isActive && 'active']">
+                <div :class="['submenu-item', isMenuPathActive(sub.path) && 'active']">
                   <span class="bullet-dot"></span>
                   <span class="submenu-text">{{ sentenceCaseLabel(sub.label) }}</span>
                   <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
@@ -413,15 +411,22 @@ function toggleDropdown(label) {
   dropdownStates.value[label] = !dropdownStates.value[label]
 }
 
+function isMenuPathActive(path) {
+  if (path === '/admin') return route.name === 'admin-dashboard'
+  const target = router.resolve(path)
+  if (target.name && route.name) return target.name === route.name
+  return route.path.replace(/\/$/, '') === target.path.replace(/\/$/, '')
+}
+
 function isParentActive(item) {
   if (!item.children) return false
-  return item.children.some(child => route.path === child.path)
+  return item.children.some(child => isMenuPathActive(child.path))
 }
 
 function autoOpenDropdowns() {
   menuConfig.forEach(item => {
     if (item.isDropdown && item.children) {
-      const hasActiveChild = item.children.some(child => route.path === child.path)
+      const hasActiveChild = item.children.some(child => isMenuPathActive(child.path))
       if (hasActiveChild) {
         dropdownStates.value[item.label] = true
       }
@@ -715,21 +720,21 @@ onUnmounted(() => {
 .sidebar { 
     width: 260px; 
     min-width: 260px; 
-    background: #081225; 
+    background: #0b0d12; 
     padding: 24px 16px; 
     height: 100vh; 
     overflow: hidden; 
     position: relative; 
     display: flex; 
     flex-direction: column; 
-    border-right: 1px solid rgba(255, 255, 255, 0.04);
+    border-right: 1px solid rgba(125, 211, 252, 0.14);
 }
 .sidebar-logo { 
     display: flex; 
     align-items: center; 
     justify-content: center; 
     padding: 0 4px 20px; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.12); 
     margin-bottom: 12px; 
 }
 .admin-logo-img { width: 220px; max-width: 100%; height: 74px; object-fit: contain; display: block; filter: drop-shadow(0 8px 18px rgba(0,0,0,.24)); }
@@ -920,8 +925,8 @@ a { text-decoration: none; }
     margin-top: auto; 
     padding: 12px; 
     border-radius: 12px; 
-    background: rgba(255, 255, 255, 0.03); 
-    border: 1px solid rgba(255, 255, 255, 0.05); 
+    background: rgba(255, 255, 255, 0.055); 
+    border: 1px solid rgba(125, 211, 252, 0.13); 
     display: flex; 
     gap: 10px; 
     align-items: center; 
@@ -964,12 +969,13 @@ a { text-decoration: none; }
     margin: 0 -32px 24px; 
     padding: 18px 32px; 
     width: calc(100% + 64px); 
-    background: #ffffff; 
-    border-bottom: 1px solid rgba(15,23,42,.05); 
-    box-shadow: 0 2px 10px rgba(15,23,42,0.02);
+    background: #0b0d12; 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
+    border-radius: 0;
+    box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
 }
-.admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; }
-.admin-topbar-title p { margin: 4px 0 0; color: #64748b; font-size: 12.5px; }
+.admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; }
+.admin-topbar-title p { margin: 4px 0 0; color: rgba(219, 234, 254, 0.76); font-size: 12.5px; }
 .admin-topbar-actions { display: flex; align-items: center; gap: 10px; }
 .topbar-home-link { 
     display: inline-flex; 
@@ -979,9 +985,9 @@ a { text-decoration: none; }
     height: 44px; 
     padding: 0 18px; 
     border-radius: 999px; 
-    border: 1px solid rgba(37, 99, 235, 0.2); 
-    background: rgba(37, 99, 235, 0.04); 
-    color: #2563eb; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
+    color: #e0f2fe; 
     text-decoration: none; 
     font-size: 13px; 
     font-weight: 600; 
@@ -991,7 +997,7 @@ a { text-decoration: none; }
     transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 .topbar-home-link svg { width: 16px; height: 16px; flex-shrink: 0; }
-.topbar-home-link:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
+.topbar-home-link:hover { background: rgba(37, 99, 235, 0.42); color: #ffffff; border-color: rgba(125, 211, 252, 0.46); box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
 .topbar-home-link:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.16); }
 .topbar-icon-group { display: flex; align-items: center; gap: 10px; height: 44px; }
 .topbar-popover { position: relative; display: flex; align-items: center; }
@@ -999,9 +1005,9 @@ a { text-decoration: none; }
     width: 44px; 
     height: 44px; 
     border-radius: 50%; 
-    border: 1px solid rgba(15,23,42,.12); 
-    background: #ffffff; 
-    color: #475569; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
+    color: #e0f2fe; 
     display: grid; 
     place-items: center; 
     cursor: pointer; 
@@ -1011,9 +1017,9 @@ a { text-decoration: none; }
 }
 .topbar-icon-button:hover,
 .topbar-icon-button.active {
-    background: #eef2ff;
-    color: #2563eb;
-    border-color: rgba(37, 99, 235, 0.35);
+    background: rgba(37, 99, 235, 0.42);
+    color: #ffffff;
+    border-color: rgba(125, 211, 252, 0.46);
     box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
     transform: translateY(-2px);
 }
@@ -1026,7 +1032,7 @@ a { text-decoration: none; }
 }
 .topbar-icon-button svg { width: 20px; height: 20px; }
 .topbar-icon-button svg { transition: transform 0.18s ease; }
-.icon-flag { font-size: 12px; font-weight: 700; letter-spacing: .4px; line-height: 1; }
+.icon-flag { font-size: 12px; font-weight: 700; letter-spacing: .4px; line-height: 1; color: #ffffff; }
 .icon-badge { position: absolute; top: 3px; right: 3px; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
 .topbar-icon-button:hover .icon-badge {
     animation: topbarBadgePop 0.42s ease both, topbarBadgePulse 1.45s ease-in-out 0.42s infinite;
@@ -1053,7 +1059,7 @@ a { text-decoration: none; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
 .notify-title { font-size: 13px; color: #0f172a; font-weight: 600; }
 .notify-time { font-size: 11px; color: #64748b; }
-.topbar-divider { width: 1px; height: 32px; background: rgba(15,23,42,.08); }
+.topbar-divider { width: 1px; height: 32px; background: rgba(191, 219, 254, 0.22); }
 .topbar-user { position: relative; display: flex; align-items: center; }
 .topbar-user-btn { 
     display: inline-flex; 
@@ -1062,16 +1068,16 @@ a { text-decoration: none; }
     height: 44px;
     padding: 4px 12px 4px 4px; 
     border-radius: 999px; 
-    border: 1px solid rgba(15,23,42,.08); 
-    background: #ffffff; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
     cursor: pointer; 
     line-height: 1;
     transform: translateY(0);
     transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-user-btn:hover { background: #f8fafc; border-color: rgba(37, 99, 235, 0.22); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
+.topbar-user-btn:hover { background: rgba(37, 99, 235, 0.42); border-color: rgba(125, 211, 252, 0.46); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
 .topbar-user-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08); }
-.topbar-user-btn svg { width: 15px; height: 15px; color: #64748b; }
+.topbar-user-btn svg { width: 15px; height: 15px; color: rgba(219, 234, 254, 0.72); }
 .topbar-user-btn .user-avatar {
     width: 36px;
     height: 36px;
@@ -1079,8 +1085,8 @@ a { text-decoration: none; }
     flex-shrink: 0;
 }
 .user-meta { display: flex; flex-direction: column; align-items: flex-start; }
-.user-name { font-size: 13.5px; font-weight: 600; color: #0f172a; }
-.user-role { font-size: 11px; color: #64748b; }
+.user-name { font-size: 13.5px; font-weight: 600; color: #ffffff; }
+.user-role { font-size: 11px; color: rgba(219, 234, 254, 0.72); }
 .user-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 240px; padding: 10px; border-radius: 12px; background: #fff; border: 1px solid rgba(15,23,42,.08); box-shadow: 0 12px 30px rgba(15,23,42,.08); z-index: 20; }
 .user-dropdown-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(15,23,42,.08); margin-bottom: 10px; }
 .user-dropdown-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #2563eb); color: #fff; display: grid; place-items: center; overflow: hidden; font-weight: 700; }

@@ -1127,6 +1127,20 @@ td {
 
 .action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
+.action-btn.edit-btn {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+.action-btn.edit-btn:hover {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+.action-btn.edit-btn svg {
+  stroke: currentColor !important;
+}
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .select-btn:hover { background: #eff6ff; border-color: #93c5fd; }

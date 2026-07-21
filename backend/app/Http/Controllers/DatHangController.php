@@ -173,17 +173,92 @@ class DatHangController extends Controller
         return $shipment;
     }
 
-    private function saveShipment(DatHang $order, array $shipment, string $orderStatus): DatHang
+    private function saveShipment(DatHang $order, array $shipment, string $orderStatus, array $extraUpdates = []): DatHang
     {
         $paymentData = $this->paymentDataWithStatusTime($order, $orderStatus);
         $paymentData['shipping_demo'] = $shipment;
 
-        $order->update([
+        $order->update(array_merge([
             'trangthai' => $orderStatus,
             'du_lieu_thanh_toan' => $paymentData,
-        ]);
+        ], $extraUpdates));
 
         return $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+    }
+
+    private function normalizedFailureReason(?string $reason): string
+    {
+        $reason = trim((string) $reason);
+
+        return $reason !== '' ? $reason : 'Không liên hệ được người nhận';
+    }
+
+    private function isReceiverRefusalReason(string $reason): bool
+    {
+        return str_contains(mb_strtolower($reason, 'UTF-8'), 'từ chối');
+    }
+
+    private function isContactFailureReason(string $reason): bool
+    {
+        $reason = mb_strtolower($reason, 'UTF-8');
+
+        return str_contains($reason, 'không liên hệ')
+            || str_contains($reason, 'không có người nhận')
+            || str_contains($reason, 'hẹn giao lại')
+            || str_contains($reason, 'địa chỉ');
+    }
+
+    private function isPaidTransferOrder(DatHang $order): bool
+    {
+        if (($order->trang_thai_thanh_toan ?? '') !== 'paid') {
+            return false;
+        }
+
+        $method = mb_strtolower((string) ($order->PTTT ?? ''), 'UTF-8');
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $provider = mb_strtolower((string) ($paymentData['provider'] ?? $paymentData['payment_provider'] ?? ''), 'UTF-8');
+
+        return str_contains($method, 'chuyển khoản')
+            || str_contains($method, 'ck')
+            || str_contains($method, 'bank')
+            || str_contains($method, 'vnpay')
+            || str_contains($method, 'momo')
+            || str_contains($provider, 'bank')
+            || str_contains($provider, 'vnpay')
+            || str_contains($provider, 'momo');
+    }
+
+    private function applyReturnAndRefund(DatHang $order, array $shipment, string $reason): array
+    {
+        $now = now();
+        $shipment['return_reason'] = $reason;
+        $shipment['returned_at'] = $now->toDateTimeString();
+
+        $shipment = $this->appendShipmentTimeline(
+            $shipment,
+            'returning',
+            'Đơn hàng được chuyển hoàn về kho: '.$reason,
+            $now
+        );
+
+        $shipment = $this->appendShipmentTimeline(
+            $shipment,
+            'returned',
+            'Kho đã tiếp nhận hàng hoàn. Đơn hàng kết thúc quy trình giao nhận.',
+            $now->copy()->addMinutes(5)
+        );
+
+        $updates = [];
+        if ($this->isPaidTransferOrder($order)) {
+            $shipment['refund_status'] = 'refunded';
+            $shipment['refund_note'] = 'Đã hoàn tiền cho khách vì đơn chuyển khoản không giao thành công.';
+            $updates['trang_thai_thanh_toan'] = 'refunded';
+        } else {
+            $shipment['refund_status'] = 'not_required';
+            $shipment['refund_note'] = 'Không phát sinh hoàn tiền vì đơn COD hoặc chưa thanh toán online.';
+        }
+
+        return [$shipment, $updates];
     }
 
     private function demoShipmentPlan(DatHang $order): array
@@ -1393,8 +1468,12 @@ class DatHangController extends Controller
         }
     }
 
-    public function markDemoShipmentFailed($id)
+    public function markDemoShipmentFailed(Request $request, $id)
     {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
         $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
         $paymentData = $order->du_lieu_thanh_toan ?? [];
         $shipment = $paymentData['shipping_demo'] ?? null;
@@ -1416,15 +1495,53 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            $shipment = $this->appendShipmentTimeline($shipment, 'delivery_failed', 'Shipper giao không thành công, cần liên hệ lại khách hoặc hẹn giao lại.');
-            $order = $this->saveShipment($order, $shipment, 'shipping');
+            $reason = $this->normalizedFailureReason($validated['reason'] ?? null);
+            $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+            $shouldRetry = $this->isContactFailureReason($reason) && ! $this->isReceiverRefusalReason($reason);
+
+            if ($shouldRetry) {
+                $attempts += 1;
+                $shipment['delivery_attempts'] = $attempts;
+            }
+
+            $shipment['failure_reason'] = $reason;
+            $shipment['last_failure_reason'] = $reason;
+            $shipment['failed_at'] = now()->toDateTimeString();
+            $shipment['can_retry'] = $shouldRetry && $attempts < 3;
+
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivery_failed',
+                $shouldRetry
+                    ? "Giao hàng thất bại lần {$attempts}/3: {$reason}."
+                    : 'Giao hàng thất bại: '.$reason
+            );
+
+            $extraUpdates = [];
+            $message = 'Đã ghi nhận giao hàng thất bại.';
+
+            if ($this->isReceiverRefusalReason($reason)) {
+                [$shipment, $extraUpdates] = $this->applyReturnAndRefund($order, $shipment, 'Khách từ chối nhận hàng');
+                $message = $extraUpdates
+                    ? 'Khách từ chối nhận hàng. Đơn đã chuyển hoàn và ghi nhận hoàn tiền.'
+                    : 'Khách từ chối nhận hàng. Đơn đã chuyển hoàn về kho.';
+            } elseif ($shouldRetry && $attempts >= 3) {
+                [$shipment, $extraUpdates] = $this->applyReturnAndRefund($order, $shipment, 'Không giao được sau 3 lần');
+                $message = $extraUpdates
+                    ? 'Đơn đã giao thất bại 3 lần, chuyển hoàn và ghi nhận hoàn tiền.'
+                    : 'Đơn đã giao thất bại 3 lần và được chuyển hoàn về kho.';
+            } elseif ($shouldRetry) {
+                $message = "Đã ghi nhận giao thất bại lần {$attempts}/3. Có thể sắp xếp giao lại.";
+            }
+
+            $order = $this->saveShipment($order, $shipment, 'shipping', $extraUpdates);
 
             DB::commit();
             event(new OrderStatusUpdated($order));
 
             return response()->json([
                 'success' => true,
-                'message' => 'Đã ghi nhận giao hàng thất bại.',
+                'message' => $message,
                 'order' => $order,
             ]);
         } catch (\Exception $e) {
@@ -1433,6 +1550,68 @@ class DatHangController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi khi cập nhật vận chuyển: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function retryDemoShipment($id)
+    {
+        $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $shipment = $paymentData['shipping_demo'] ?? null;
+
+        if (empty($shipment['tracking_code'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng chưa có vận đơn demo.',
+            ], 422);
+        }
+
+        if (($shipment['status'] ?? null) !== 'delivery_failed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể giao lại đơn đang giao thất bại.',
+            ], 422);
+        }
+
+        $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+        if ($attempts >= 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn đã giao thất bại 3 lần, không thể giao lại.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $nextAttempt = $attempts + 1;
+            $shipment['failure_reason'] = null;
+            $shipment['can_retry'] = false;
+            $shipment['retrying_at'] = now()->toDateTimeString();
+
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivering',
+                "Cửa hàng đã sắp xếp giao lại lần {$nextAttempt}/3.",
+                now()
+            );
+            $order = $this->saveShipment($order, $shipment, 'shipping');
+
+            DB::commit();
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã sắp xếp giao lại lần {$nextAttempt}/3.",
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi khi cập nhật giao lại: '.$e->getMessage(),
             ], 500);
         }
     }

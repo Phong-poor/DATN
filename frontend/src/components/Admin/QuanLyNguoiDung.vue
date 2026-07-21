@@ -575,24 +575,6 @@ const submitEdit = async () => {
                 </div>
             </div>
             <div class="filter-actions">
-                <button class="btn-filter" @click="resetAdvancedFilters">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        style="width:14px;height:14px">
-                        <line x1="4" y1="6" x2="20" y2="6" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                        <line x1="11" y1="18" x2="13" y2="18" />
-                    </svg>
-                    Đặt lại bộ lọc
-                </button>
-                <button class="btn-export" @click="exportUsersReport" :disabled="filtered.length === 0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        style="width:14px;height:14px">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Xuất báo cáo
-                </button>
                 <button class="btn-new-user" @click="openModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
                         style="width:14px;height:14px">
@@ -613,7 +595,18 @@ const submitEdit = async () => {
             @clear="clearSelection"
             @delete-selected="removeSelected"
             @delete-all="removeAllFiltered"
-        />
+        >
+            <template #tools>
+                <button class="btn-export bulk-export-btn" @click="exportUsersReport" :disabled="filtered.length === 0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Xuất báo cáo
+                </button>
+            </template>
+        </BulkDeleteToolbar>
 
         <!-- TABLE -->
         <div class="table-wrap">
@@ -1008,6 +1001,17 @@ const submitEdit = async () => {
     margin: 0 32px 14px;
 }
 
+.bulk-export-btn {
+    min-height: 34px;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.bulk-export-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 /* STATS */
 .stats {
     display: grid;
@@ -1158,12 +1162,24 @@ const submitEdit = async () => {
 
 /* FILTER ROW */
 .filter-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto auto;
     align-items: center;
-    justify-content: space-between;
     padding: 0 32px 14px;
-    flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
+}
+
+.filter-row .search-box {
+    width: 100%;
+    max-width: none;
+}
+
+.filter-row .search-box input,
+.filter-row .tabs-group,
+.filter-row .btn-filter,
+.filter-row .btn-export,
+.filter-row .btn-new-user {
+    min-height: 44px;
 }
 
 .tabs-group {
@@ -1327,7 +1343,10 @@ const submitEdit = async () => {
 
 .filter-actions {
     display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .btn-filter,
@@ -2095,9 +2114,35 @@ tbody td {
 }
 
 /* RESPONSIVE */
+@media (max-width: 1250px) {
+    .filter-row {
+        grid-template-columns: minmax(240px, 1fr) auto;
+    }
+
+    .filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
 @media (max-width: 900px) {
     .stats {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-row .search-box {
+        max-width: none;
+    }
+
+    .tabs-group,
+    .filter-actions {
+        grid-column: auto;
+        justify-content: flex-start;
+        overflow-x: auto;
     }
 
     .bottom-grid {

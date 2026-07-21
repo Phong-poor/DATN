@@ -15,7 +15,7 @@ class User extends Authenticatable
 
     protected $table = 'khachhang';
 
-    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth', 'facebook_id'];
+    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth'];
 
     protected $fillable = [
         'ten',
@@ -27,7 +27,6 @@ class User extends Authenticatable
         'anhdaidien',
         'matkhau',
         'vaitro',
-        'id_facebook',
         'id_google',
         'trangthai',
         'hoat_dong_cuoi_luc',
@@ -239,16 +238,6 @@ class User extends Authenticatable
     public function setGenderAttribute($value): void
     {
         $this->attributes['gioitinh'] = $value;
-    }
-
-    public function getFacebookIdAttribute(): ?string
-    {
-        return $this->id_facebook;
-    }
-
-    public function setFacebookIdAttribute($value): void
-    {
-        $this->attributes['id_facebook'] = $value;
     }
 
     public function getAvatarAttribute(): ?string

@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BadgeCheck,
-  ChevronLeft,
   ChevronRight,
   Flame,
   Heart,
@@ -590,7 +589,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="laptop-page">
+  <main class="laptop-page" :class="{ 'is-accessory-page': isAccessoryPage }">
     <section class="lp-hero">
       <aside class="lp-sidebar">
         <h3>{{ isAccessoryPage ? 'Danh mục Phụ kiện' : 'Danh mục Gaming Laptop' }}</h3>
@@ -612,9 +611,6 @@ onMounted(() => {
 
       <div class="lp-hero-main">
         <div class="lp-hero-panel">
-          <button class="hero-nav prev" type="button" aria-label="Slide trước">
-            <ChevronLeft />
-          </button>
           <div class="hero-copy">
             <span class="hero-kicker">{{ isAccessoryPage ? 'Phụ kiện cao cấp' : 'Công nghệ gaming' }}</span>
             <h1>{{ isAccessoryPage ? 'Trải nghiệm đỉnh cao Phụ kiện cực chất' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
@@ -624,9 +620,6 @@ onMounted(() => {
               <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
             </div>
           </div>
-          <button class="hero-nav next" type="button" aria-label="Slide sau">
-            <ChevronRight />
-          </button>
           <div class="hero-dots" aria-hidden="true">
             <span class="active"></span>
             <span></span>
@@ -2349,7 +2342,7 @@ onMounted(() => {
   background:
     linear-gradient(180deg, rgba(19, 35, 59, 0.98), rgba(8, 18, 34, 0.98)),
     #0b1628;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), inset 0 -1px rgba(255, 255, 255, 0.06);
+  box-shadow: none !important;
 }
 
 .lp-brands p,
@@ -2394,23 +2387,24 @@ onMounted(() => {
   position: relative;
   width: clamp(116px, 10vw, 176px);
   height: 58px;
-  border: 1px solid rgba(226, 232, 240, 0.12);
+  border: 1px solid #e7edf5;
   border-radius: 8px;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  background: #ffffff;
   display: grid;
   place-items: center;
   padding: 9px 22px;
   cursor: pointer;
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   transition: transform var(--lp-ease), background var(--lp-ease), filter var(--lp-ease), border-color var(--lp-ease);
   flex: 0 0 auto;
 }
 
 .brand-logo-card:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(180deg, #ffffff, #eef6ff);
-  border-color: rgba(125, 211, 252, 0.4);
-  filter: drop-shadow(0 10px 18px rgba(14, 165, 233, 0.18));
+  transform: translateY(-1px);
+  background: #fbfdff;
+  border-color: #cbd9ec;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  filter: none;
 }
 
 .brand-logo-card img {
@@ -3263,42 +3257,6 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.hero-nav {
-  position: absolute;
-  top: 50%;
-  z-index: 4;
-  width: 34px;
-  height: 34px;
-  transform: translateY(-50%);
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #0f172a;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
-  transition: transform var(--lp-ease), background var(--lp-ease);
-}
-
-.hero-nav:hover {
-  transform: translateY(-50%) scale(1.05);
-  background: #fff;
-}
-
-.hero-nav svg {
-  width: 18px;
-  height: 18px;
-}
-
-.hero-nav.prev {
-  left: 18px;
-}
-
-.hero-nav.next {
-  right: 18px;
-}
-
 .hero-dots {
   position: absolute;
   left: 46px;
@@ -3527,6 +3485,76 @@ onMounted(() => {
   margin-top: 8px;
 }
 
+/* Catalog là hai cột độc lập, không còn một card lớn bọc chung. */
+.laptop-page {
+  overflow-x: clip;
+}
+
+.laptop-page .lp-catalog {
+  width: 100%;
+  margin-inline: 0;
+  padding: clamp(28px, 4vw, 52px) clamp(32px, 5.5vw, 104px);
+  background: #f4f7fb;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.laptop-page .lp-catalog .catalog-layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  overflow: visible;
+}
+
+.laptop-page .lp-catalog .filter-card {
+  position: sticky;
+  top: var(--lp-catalog-sticky-top, 118px);
+  align-self: start;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  background: #ffffff;
+  border: 1px solid #d9e3f0;
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.laptop-page .lp-catalog .catalog-results {
+  min-width: 0;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Trang phụ kiện cũng chỉ dùng thanh cuộn chính của trình duyệt. */
+.laptop-page.is-accessory-page .lp-catalog,
+.laptop-page.is-accessory-page .catalog-layout,
+.laptop-page.is-accessory-page .catalog-results,
+.laptop-page.is-accessory-page .product-grid,
+.laptop-page.is-accessory-page .skeleton-grid {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.laptop-page.is-accessory-page .filter-card {
+  position: sticky;
+  top: var(--lp-catalog-sticky-top, 118px);
+  max-height: none;
+  overflow: visible;
+}
+
+.laptop-page .lp-hero .lp-sidebar h3,
+.laptop-page .lp-hero .line-btn span {
+  text-transform: capitalize !important;
+}
+
 @media (max-width: 1100px) {
   .lp-hero,
   .catalog-layout {
@@ -3535,6 +3563,16 @@ onMounted(() => {
 
   .lp-sidebar,
   .filter-card {
+    position: static;
+  }
+
+  .laptop-page .lp-catalog .filter-card {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .laptop-page.is-accessory-page .filter-card {
     position: static;
   }
 
@@ -3601,35 +3639,6 @@ onMounted(() => {
   .lp-showroom-visual,
   .lp-showroom-visual img {
     min-height: 190px;
-  }
-}
-
-@media (min-width: 1101px) {
-  .lp-catalog .product-grid,
-  .lp-catalog .skeleton-grid {
-    max-height: 640px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 8px;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-
-  .lp-catalog .product-grid::-webkit-scrollbar,
-  .lp-catalog .skeleton-grid::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .lp-catalog .product-grid::-webkit-scrollbar-thumb,
-  .lp-catalog .skeleton-grid::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 99px;
-  }
-
-  .lp-catalog .product-grid::-webkit-scrollbar-track,
-  .lp-catalog .skeleton-grid::-webkit-scrollbar-track {
-    background: transparent;
   }
 }
 

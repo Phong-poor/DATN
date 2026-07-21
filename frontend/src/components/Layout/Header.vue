@@ -1,6 +1,25 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  Apple,
+  BadgeCheck,
+  Briefcase,
+  Code2,
+  Cpu,
+  Gamepad2,
+  Gift,
+  GraduationCap,
+  Headphones,
+  Laptop,
+  Medal,
+  Monitor,
+  Mouse,
+  Package,
+  Sparkles,
+  Star,
+  Tags,
+} from 'lucide-vue-next'
 import api from '../../services/api' 
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
@@ -237,6 +256,57 @@ const visibleMegaMenuData = computed(() => {
   return menus
 })
 
+const normalizeIconText = (value) => String(value || '')
+  .toLocaleLowerCase('vi-VN')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+
+const megaSectionIcon = (title) => {
+  const text = normalizeIconText(title)
+  if (text.includes('thuong') || text.includes('hi')) return Tags
+  if (text.includes('nhu') || text.includes('cau')) return Cpu
+  if (text.includes('noi') || text.includes('bat')) return Star
+  if (text.includes('combo') || text.includes('sale') || text.includes('uu')) return Gift
+  if (text.includes('phu') || text.includes('loai')) return Mouse
+  return Laptop
+}
+
+const megaItemIcon = (label, sectionTitle = '') => {
+  const text = `${normalizeIconText(label)} ${normalizeIconText(sectionTitle)}`
+  if (text.includes('gaming') || text.includes('rtx') || text.includes('esports')) return Gamepad2
+  if (text.includes('macbook') || text.includes('apple')) return Apple
+  if (text.includes('van phong') || text.includes('doanh nghiep') || text.includes('workstation')) return Briefcase
+  if (text.includes('hoc') || text.includes('sinh vien')) return GraduationCap
+  if (text.includes('ai') || text.includes('ultra') || text.includes('npu') || text.includes('copilot')) return Cpu
+  if (text.includes('lap trinh') || text.includes('code')) return Code2
+  if (text.includes('tai nghe')) return Headphones
+  if (text.includes('chuot') || text.includes('ban phim') || text.includes('logitech') || text.includes('razer')) return Mouse
+  if (text.includes('sale') || text.includes('combo') || text.includes('flash') || text.includes('giam')) return Gift
+  if (text.includes('asus') || text.includes('rog')) return Medal
+  if (text.includes('lenovo') || text.includes('dell') || text.includes('hp') || text.includes('msi') || text.includes('acer') || text.includes('gigabyte')) return BadgeCheck
+  if (text.includes('man hinh')) return Monitor
+  if (text.includes('balo') || text.includes('hub')) return Package
+  if (text.includes('mong') || text.includes('premium') || text.includes('flagship')) return Sparkles
+  return Laptop
+}
+
+const megaBrandLogo = (label = '') => {
+  const text = normalizeIconText(label)
+  if (text.includes('asus') || text.includes('rog')) return '/ASUS_Logo.svg.png'
+  if (text.includes('apple') || text.includes('macbook')) return '/Apple_logo_black.svg.png'
+  if (text.includes('lenovo') || text.includes('legion')) return '/Lenovo_logo_2015.svg.png'
+  if (text.includes('dell')) return '/Dell_Logo.svg.png'
+  if (text.includes('msi')) return '/brands/msi.svg'
+  if (text.includes('acer') || text.includes('predator')) return '/brands/acer.svg'
+  if (text.includes('hp')) return '/brands/hp.svg'
+  if (text.includes('gigabyte')) return '/brands/gigabyte.svg'
+  if (text.includes('logitech')) return '/brands/logitech.svg'
+  if (text.includes('razer')) return '/brands/razer.svg'
+  if (text.includes('akko') || text.includes('dareu')) return '/brands/akko.png'
+  if (text.includes('corsair') || text.includes('hyperx')) return '/brands/corsair.svg'
+  return ''
+}
+
 const openMega = (key) => {
   clearTimeout(megaLeaveTimer)
   activeMegaMenu.value = key
@@ -274,6 +344,14 @@ const navToFeaturedItem = async (key, featured) => {
   activeMegaMenu.value = null
   const name = featured?.name
   if (!name) return
+
+  if (featured.productId) {
+    router.push({
+      path: `/san-pham/${featured.productId}`,
+      query: featured.variantId ? { variant: featured.variantId } : {}
+    })
+    return
+  }
 
   if (key === 'laptop') {
     router.push('/laptop')
@@ -334,11 +412,37 @@ const resolveProductPrice = (product) => {
   return Number(product.gia || 0)
 }
 
+const featuredIdentity = (product, variant) => ({
+  productId: product?.id_sanpham || product?.id || null,
+  variantId: variant?.id_bienthe || null,
+})
+
 const updateFeaturedProducts = (productsList) => {
   if (!Array.isArray(productsList) || !productsList.length) return
   const safeProducts = productsList.filter((product) => product && typeof product === 'object')
   if (!safeProducts.length) return
   const formatVnd = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(num || 0))
+
+  // Laptop nổi bật: giữ ID thật để card mở thẳng trang chi tiết.
+  const laptops = safeProducts.filter(p => !isAccessory(p)).sort((a, b) => {
+    const aName = String(a.tenSP || '').toLowerCase()
+    const bName = String(b.tenSP || '').toLowerCase()
+    const aPriority = /gaming|rtx|rog|macbook/.test(aName) ? 1 : 0
+    const bPriority = /gaming|rtx|rog|macbook/.test(bName) ? 1 : 0
+    return (bPriority - aPriority) || (resolveProductPrice(b) - resolveProductPrice(a))
+  })
+  if (laptops.length > 0) {
+    const p = laptops[0]
+    const variants = productVariants(p)
+    megaMenuData.laptop.featured = {
+      ...featuredIdentity(p, variants[0]),
+      name: p.tenSP,
+      price: formatVnd(resolveProductPrice(p)),
+      oldPrice: p.gia_truockhuyenmai ? formatVnd(p.gia_truockhuyenmai) : '',
+      tag: 'NỔI BẬT',
+      img: variantImage(p, variants[0])
+    }
+  }
 
   // 1. MacBook
   const macbooks = safeProducts.filter(p => {
@@ -349,6 +453,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = macbooks[0]
     const variants = productVariants(p)
     megaMenuData.macbook.featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: p.gia_truockhuyenmai ? formatVnd(p.gia_truockhuyenmai) : '',
@@ -367,6 +472,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = workstations[0]
     const variants = productVariants(p)
     megaMenuData.workstation.featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: '',
@@ -381,6 +487,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = accessories[0]
     const variants = productVariants(p)
     megaMenuData['phu-kien'].featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: '',
@@ -398,6 +505,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = aipcs[0]
     const variants = productVariants(p)
     megaMenuData.aipc.featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: '',
@@ -412,6 +520,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = saleItems[0]
     const variants = productVariants(p)
     megaMenuData.sale.featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: formatVnd(p.gia_truockhuyenmai),
@@ -429,6 +538,7 @@ const updateFeaturedProducts = (productsList) => {
     const p = gamingLaptops[0]
     const variants = productVariants(p)
     megaMenuData.gaming.featured = {
+      ...featuredIdentity(p, variants[0]),
       name: p.tenSP,
       price: formatVnd(resolveProductPrice(p)),
       oldPrice: '',
@@ -936,10 +1046,10 @@ const openLuckyWheelMobile = () => {
                 '--accent': menu.accent,
                 '--accent-bg': menu.accentBg,
                 width: (menu.sections.length + (menu.featured ? 1 : 0)) === 2
-                  ? '440px'
+                  ? '420px'
                   : (menu.sections.length + (menu.featured ? 1 : 0)) === 3
-                    ? '660px'
-                    : '860px'
+                    ? '630px'
+                    : '820px'
               }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
@@ -949,13 +1059,16 @@ const openLuckyWheelMobile = () => {
                 class="mega-body"
                 :style="{
                   gridTemplateColumns: menu.featured
-                    ? `repeat(${menu.sections.length}, 1fr) 1.35fr`
-                    : `repeat(${menu.sections.length}, 1fr)`
+                    ? `repeat(${menu.sections.length}, minmax(0, 1fr)) minmax(210px, 1.35fr)`
+                    : `repeat(${menu.sections.length}, minmax(0, 1fr))`
                 }"
               >
                 <!-- SECTIONS (Columns 1, 2, 3) -->
                 <div v-for="(section, sIdx) in menu.sections" :key="section.title" class="mega-col" :class="`col-${sIdx + 1}`">
                   <div class="mega-col-title">
+                    <span class="mega-title-icon">
+                      <component :is="megaSectionIcon(section.title)" :size="17" :stroke-width="2.2" />
+                    </span>
                     {{ section.title }}
                   </div>
                   <ul class="mega-list">
@@ -965,6 +1078,16 @@ const openLuckyWheelMobile = () => {
                         class="mega-link"
                         @click.prevent="navToMegaItem(key, it.q)"
                       >
+                        <span
+                          v-if="megaBrandLogo(it.label)"
+                          class="mega-link-brand-logo"
+                          aria-hidden="true"
+                        >
+                          <img :src="megaBrandLogo(it.label)" :alt="`${it.label} logo`" />
+                        </span>
+                        <span v-else class="mega-link-icon" aria-hidden="true">
+                          <component :is="megaItemIcon(it.label, section.title)" :size="18" :stroke-width="2.35" />
+                        </span>
                         <span class="mega-link-text">{{ it.label }}</span>
                         <span v-if="it.badge" class="mega-item-badge" :class="it.badge.toLowerCase()">{{ it.badge }}</span>
                       </a>
@@ -1423,6 +1546,7 @@ const openLuckyWheelMobile = () => {
   border-radius: 10px;
   transition: all 0.2s;
   white-space: nowrap;
+  text-transform: none !important;
 }
 .nav-btn:hover, .nav-btn.active {
   background: transparent;
@@ -1456,6 +1580,7 @@ const openLuckyWheelMobile = () => {
   transition: all 0.2s;
   white-space: nowrap;
   position: relative;
+  text-transform: none !important;
 }
 .nav-plain-link:hover { background: transparent; color: #60a5fa; }
 
@@ -1477,7 +1602,7 @@ const openLuckyWheelMobile = () => {
   backdrop-filter: blur(30px) saturate(190%);
   -webkit-backdrop-filter: blur(30px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
+  border-radius: 17px;
   box-shadow: 
     0 24px 50px rgba(0, 0, 0, 0.55), 
     0 8px 24px rgba(0, 0, 0, 0.35),
@@ -1485,7 +1610,7 @@ const openLuckyWheelMobile = () => {
   z-index: 9999;
   width: min(760px, calc(100vw - 48px));
   overflow: hidden;
-  padding: 24px 28px;
+  padding: 20px;
 }
 
 /* Bridge trong suốt lấp khoảng trống giữa button và dropdown */
@@ -1508,7 +1633,8 @@ const openLuckyWheelMobile = () => {
 }
 
 .mega-col {
-  padding: 0 12px;
+  min-width: 0;
+  padding: 0 11px;
   border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
@@ -1534,13 +1660,34 @@ const openLuckyWheelMobile = () => {
 .mega-col-title {
   font-family: 'Outfit', sans-serif;
   font-size: 11px;
-  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: capitalize;
   color: #ffffff;
-  margin-bottom: 9px;
-  padding-left: 8px;
+  min-height: 26px;
+  margin-bottom: 10px;
+  padding: 0 6px;
+  border-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mega-title-icon {
+  width: 22px;
+  height: 22px;
+  color: #8fc3ff;
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  border-radius: 6px;
+  background: rgba(96, 165, 250, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.mega-title-icon svg,
+.mega-link-icon svg {
+  display: block;
 }
 
 /* COMPACT CLEAN LINKS */
@@ -1548,44 +1695,106 @@ const openLuckyWheelMobile = () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 .mega-link {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
+  gap: 11px;
+  min-height: 52px;
   padding: 7px 8px;
+  box-sizing: border-box;
   background: transparent;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mega-link-icon {
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.18));
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.mega-link-brand-logo {
+  width: 30px;
+  height: 30px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.9));
+  border: 1px solid rgba(191, 219, 254, 0.38);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.mega-link-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.mega-link-brand-logo + .mega-link-text {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.mega-list li:first-child .mega-link {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .mega-link-text {
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.45;
   color: #ffffff;
+  flex: 1 1 auto;
+  min-width: 0;
   transition: color 0.15s ease;
 }
 .mega-link:hover {
   background: var(--accent-bg);
+  border-color: rgba(96, 165, 250, 0.22);
   transform: translateX(4px);
 }
 .mega-link:hover .mega-link-text {
   color: var(--accent);
   font-weight: 600;
 }
+.mega-link:hover .mega-link-icon {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.32);
+  border-color: rgba(96, 165, 250, 0.42);
+  transform: scale(1.08);
+}
+.mega-link:hover .mega-link-brand-logo {
+  transform: scale(1.05);
+  border-color: rgba(96, 165, 250, 0.55);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
 
 /* ITEM BADGES */
 .mega-item-badge {
-  font-size: 9px;
   font-size: 9px;
   font-weight: 800;
   padding: 2px 5px;
   border-radius: 4px;
   letter-spacing: 0.2px;
   flex-shrink: 0;
-  margin-left: 2px;
+  margin-left: auto;
   text-transform: capitalize;
 }
 .mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
@@ -1594,7 +1803,8 @@ const openLuckyWheelMobile = () => {
 .mega-item-badge.sale { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.15); }
 
 .mega-featured-panel {
-  padding: 0 0 0 12px;
+  min-width: 0;
+  padding: 0 0 0 14px;
   display: flex;
   flex-direction: column;
 }
@@ -1606,7 +1816,7 @@ const openLuckyWheelMobile = () => {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 9px;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -1624,18 +1834,18 @@ const openLuckyWheelMobile = () => {
   position: relative;
   background: rgba(255, 255, 255, 0.16);
   border-radius: 8px;
-  height: 68px;
+  height: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
 .mfp-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mfp-card:hover .mfp-img {
@@ -1690,7 +1900,6 @@ const openLuckyWheelMobile = () => {
   border-radius: 8px;
   color: white;
   font-family: 'Outfit', sans-serif;
-  font-size: 11px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
