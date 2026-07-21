@@ -18,7 +18,7 @@ import echo from '@/services/echo'
 
 // State
 const period = ref('all')          // all | week | month | year
-const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v3_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v4_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
 const statusLabels = [
@@ -243,6 +243,17 @@ const stats = computed(() => {
             borderColor: 'transparent',
             labelColor: 'rgba(255,255,255,.88)'
         },
+        {
+            label: 'Tổng đơn hàng',
+            value: normalOrderTotal.value,
+            to: '/admin/quan-ly-don-hang',
+            hint: 'Xem đơn hàng',
+            icon: ShoppingCart,
+            iconBg: 'rgba(255,255,255,.16)',
+            cardBg: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+            borderColor: 'transparent',
+            labelColor: 'rgba(255,255,255,.88)'
+        },
     ]
 })
 
@@ -323,6 +334,43 @@ const orderPipelineRows = computed(() => {
     }))
 })
 
+const paymentDonut = computed(() => {
+    const rows = paymentChartRows.value
+    const total = rows.reduce((sum, item) => sum + item.total, 0)
+    const leader = [...rows].sort((a, b) => b.total - a.total)[0]
+    return {
+        pct: total > 0 ? Math.round(((leader?.total || 0) / total) * 100) : 0,
+        label: leader?.label || 'Chưa có dữ liệu',
+    }
+})
+
+const categoryDonut = computed(() => {
+    const rows = categoryChartRows.value
+    const total = rows.reduce((sum, item) => sum + item.total, 0)
+    const leader = [...rows].sort((a, b) => b.total - a.total)[0]
+    return {
+        pct: total > 0 ? Math.round(((leader?.total || 0) / total) * 100) : 0,
+        label: leader?.label || 'Chưa có dữ liệu',
+    }
+})
+
+const stockDonut = computed(() => {
+    const rows = stockRiskRows.value
+    const average = rows.length
+        ? Math.round(rows.reduce((sum, item) => sum + item.risk, 0) / rows.length)
+        : 0
+    return { pct: average, label: rows.length ? 'Mức cảnh báo' : 'Kho ổn định' }
+})
+
+const orderDonut = computed(() => {
+    const total = normalOrderTotal.value
+    const done = completedOrders.value
+    return {
+        pct: total > 0 ? Math.round((done / total) * 100) : 0,
+        label: 'Đã hoàn thành',
+    }
+})
+
 const trendClass = (value) => {
     const trend = Number(value || 0)
     if (trend > 0) return 'up'
@@ -337,6 +385,33 @@ const trendText = (value) => {
     return '0%'
 }
 
+const numberFromMetric = (value) => {
+    if (typeof value === 'number') return value
+    if (value === null || value === undefined) return 0
+
+    const normalized = String(value)
+        .replace(/[^\d,.-]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : 0
+}
+
+const calcTrendPercent = (current, previous, fallback = 0) => {
+    const fallbackTrend = Number(fallback || 0)
+    if (fallbackTrend !== 0) return fallbackTrend
+
+    const currentValue = numberFromMetric(current)
+    const previousValue = numberFromMetric(previous)
+
+    if (previousValue <= 0) {
+        return currentValue > 0 ? 100 : 0
+    }
+
+    return Number((((currentValue - previousValue) / previousValue) * 100).toFixed(1))
+}
+
 const analysisCards = computed(() => {
     const insight = data.value?.phan_tich || createDashboardShell(period.value).phan_tich
     return [
@@ -344,19 +419,19 @@ const analysisCards = computed(() => {
             label: 'Doanh thu kỳ này',
             value: insight.doanh_thu?.current || '0đ',
             previous: `Kỳ trước: ${insight.doanh_thu?.previous || '0đ'}`,
-            trend: insight.doanh_thu?.trend || 0,
+            trend: calcTrendPercent(insight.doanh_thu?.current, insight.doanh_thu?.previous, insight.doanh_thu?.trend),
         },
         {
             label: 'Đơn hàng kỳ này',
             value: insight.don_hang?.current || 0,
             previous: `Kỳ trước: ${insight.don_hang?.previous || 0} đơn`,
-            trend: insight.don_hang?.trend || 0,
+            trend: calcTrendPercent(insight.don_hang?.current, insight.don_hang?.previous, insight.don_hang?.trend),
         },
         {
             label: 'Khách mới kỳ này',
             value: insight.khach_hang?.current || 0,
             previous: `Kỳ trước: ${insight.khach_hang?.previous || 0} khách`,
-            trend: insight.khach_hang?.trend || 0,
+            trend: calcTrendPercent(insight.khach_hang?.current, insight.khach_hang?.previous, insight.khach_hang?.trend),
         },
         {
             label: 'Giá trị đơn trung bình',
@@ -995,20 +1070,6 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <h2>Tổng quan hệ thống</h2>
                 <p>Chào mừng trở lại, hôm nay là {{ today }}</p>
             </div>
-            <div class="topbar-right">
-                <button class="export-btn" type="button" @click="exportDashboardExcel">
-                    <FileSpreadsheet aria-hidden="true" />
-                    Xuất Excel
-                </button>
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35" />
-                    </svg>
-                    <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
-                </div>
-                <button class="icon-btn" type="button" @click="fetchDashboard">↻</button>
-            </div>
         </div>
 
         <!-- Subtle background loader only, content remains visible while refreshing -->
@@ -1024,14 +1085,29 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
         <template v-if="data">
 
-            <!-- PERIOD SELECTOR (global) -->
-            <div class="period-bar">
-                <span class="period-bar-label">Kỳ thống kê:</span>
-                <div class="period-tabs">
-                    <button v-for="p in [['all', 'Tất cả'], ['week', 'Tuần này'], ['month', 'Tháng này'], ['year', 'Năm nay']]" :key="p[0]"
-                        :class="['period-tab', { active: period === p[0] }]" @click="period = p[0]">
-                        {{ p[1] }}
+            <div class="dashboard-controls">
+                <!-- PERIOD SELECTOR (global) -->
+                <div class="period-bar">
+                    <span class="period-bar-label">Kỳ thống kê:</span>
+                    <div class="period-tabs">
+                        <button v-for="p in [['all', 'Tất cả'], ['week', 'Tuần này'], ['month', 'Tháng này'], ['year', 'Năm nay']]" :key="p[0]"
+                            :class="['period-tab', { active: period === p[0] }]" @click="period = p[0]">
+                            {{ p[1] }}
+                        </button>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="export-btn" type="button" @click="exportDashboardExcel">
+                        <FileSpreadsheet aria-hidden="true" />
+                        Xuất Excel
                     </button>
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                        <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
+                    </div>
                 </div>
             </div>
 
@@ -1053,8 +1129,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
                                 <component :is="s.icon" aria-hidden="true" />
                             </div>
+                            <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                         </div>
-                        <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                         <b class="stat-value">{{ s.value }}</b>
                         <span class="stat-card-action">{{ s.hint }}</span>
                     </router-link>
@@ -1601,6 +1677,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="section-header compact">
                         <span class="section-title">Biểu đồ thanh toán</span>
                     </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${paymentDonut.pct}%` }">
+                            <div><b>{{ paymentDonut.pct }}%</b><span>{{ paymentDonut.label }}</span></div>
+                        </div>
+                    </div>
                     <div class="horizontal-chart">
                         <div v-for="item in paymentChartRows" :key="item.label" class="chart-bar-row">
                             <div class="chart-bar-meta">
@@ -1618,6 +1699,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
                         <span class="section-title">Danh mục bán chạy</span>
+                    </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${categoryDonut.pct}%` }">
+                            <div><b>{{ categoryDonut.pct }}%</b><span>{{ categoryDonut.label }}</span></div>
+                        </div>
                     </div>
                     <div class="horizontal-chart">
                         <div v-for="item in categoryChartRows" :key="item.label" class="chart-bar-row">
@@ -1638,6 +1724,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="section-header compact">
                         <span class="section-title">Rủi ro tồn kho</span>
                     </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${stockDonut.pct}%` }">
+                            <div><b>{{ stockDonut.pct }}%</b><span>{{ stockDonut.label }}</span></div>
+                        </div>
+                    </div>
                     <div class="horizontal-chart">
                         <div v-for="item in stockRiskRows" :key="item.id" class="chart-bar-row">
                             <div class="chart-bar-meta">
@@ -1655,6 +1746,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
                         <span class="section-title">Luồng xử lý đơn</span>
+                    </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${orderDonut.pct}%` }">
+                            <div><b>{{ orderDonut.pct }}%</b><span>{{ orderDonut.label }}</span></div>
+                        </div>
                     </div>
                     <div class="horizontal-chart">
                         <div v-for="item in orderPipelineRows" :key="item.status" class="chart-bar-row">
@@ -1854,19 +1950,6 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     border-color: #2563eb;
 }
 
-.icon-btn {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
-}
-
-.icon-btn:hover {
-    background: #e2e8f0;
-}
-
 /* LOADING */
 .loading-wrap {
     display: flex;
@@ -1937,11 +2020,19 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 /* PERIOD BAR */
+.dashboard-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 0 28px 18px;
+}
+
 .period-bar {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 28px 18px;
+    padding: 0;
 }
 
 .period-bar-label {
@@ -2054,8 +2145,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
     padding: 0;
 }
 
@@ -2071,6 +2162,46 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.overview-cluster .stat-card {
+    min-width: 0;
+    padding: 14px 18px !important;
+}
+
+.overview-cluster .stat-icon-wrap {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+}
+
+.overview-cluster .stat-icon-wrap svg {
+    width: 19px;
+    height: 19px;
+}
+
+.overview-cluster .stat-top {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.overview-cluster .stat-label {
+    margin: 0;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.overview-cluster .stat-value {
+    max-width: 100%;
+    font-size: clamp(24px, 1.8vw, 31px) !important;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.overview-cluster .stat-card:first-child .stat-value {
+    font-size: clamp(21px, 1.55vw, 27px) !important;
 }
 
 .stat-card-link {
@@ -3199,6 +3330,56 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     margin-bottom: 12px;
 }
 
+.mini-donut-summary {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 16px;
+}
+
+.mini-donut {
+    --donut-value: 0%;
+    width: 112px;
+    height: 112px;
+    padding: 14px;
+    border-radius: 50%;
+    background: conic-gradient(#3b82f6 0 var(--donut-value), #ec4899 var(--donut-value) 100%);
+    transform: rotate(-90deg);
+    box-shadow: 0 8px 22px rgba(59, 130, 246, 0.12);
+}
+
+.mini-donut > div {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+    transform: rotate(90deg);
+}
+
+.mini-donut b {
+    color: #0f172a;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.mini-donut span {
+    display: -webkit-box;
+    max-width: 68px;
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 8px;
+    line-height: 1.2;
+    font-weight: 700;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .horizontal-chart {
     display: grid;
     gap: 12px;
@@ -3475,7 +3656,7 @@ tbody td {
 /* RESPONSIVE */
 @media (max-width: 1100px) {
     .stats-grid {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
 
     .performance-layout {
@@ -3519,7 +3700,7 @@ tbody td {
 
 @media (max-width: 700px) {
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 
     .topbar {
@@ -3527,6 +3708,25 @@ tbody td {
         align-items: flex-start;
         gap: 12px;
         padding: 16px;
+    }
+
+    .dashboard-controls {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 0 16px 16px;
+    }
+
+    .dashboard-controls .topbar-right {
+        flex-wrap: wrap;
+    }
+
+    .dashboard-controls .search-box {
+        flex: 1 1 190px;
+    }
+
+    .dashboard-controls .search-box input {
+        width: 100%;
+        height: 38px;
     }
 
     .dashboard-cluster,
