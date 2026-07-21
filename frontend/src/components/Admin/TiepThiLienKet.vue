@@ -18,7 +18,6 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   TrendingUp,
   UserCheck,
   Users,
@@ -491,14 +490,6 @@ onMounted(loadData)
 <template>
   <div class="affiliate-admin">
     <section class="affiliate-hero">
-      <div>
-        <div class="eyebrow">
-          <Sparkles :size="16" />
-          Affiliate Commerce Ops
-        </div>
-        <h1>Affiliate Center Admin</h1>
-        <p>Theo dõi publisher, duyệt hoa hồng, xử lý rút tiền và tối ưu hiệu suất tiếp thị liên kết trong một màn hình.</p>
-      </div>
       <div class="hero-actions">
         <button class="btn ghost" type="button" @click="exportCsv">
           <Download :size="18" />
@@ -998,36 +989,10 @@ onMounted(loadData)
 
 .affiliate-hero {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
-}
-
-.eyebrow {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 800;
-  margin-bottom: 10px;
-  text-transform: capitalize;
-}
-
-.affiliate-hero h1 {
-  margin: 0 0 8px;
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.affiliate-hero p {
-  margin: 0;
-  max-width: 760px;
-  color: #64748b;
-  font-size: 15px;
-  line-height: 1.6;
+  justify-content: flex-end;
+  gap: 20px;
+  margin-bottom: 16px;
 }
 
 .hero-actions,

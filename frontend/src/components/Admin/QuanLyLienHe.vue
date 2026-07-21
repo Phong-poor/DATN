@@ -1,17 +1,6 @@
 <template>
   <div class="page">
 
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="search-box">
-        <svg viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input type="text" placeholder="Tìm kiếm nhanh..." v-model="searchQuery" />
-      </div>
-    </div>
-
     <!-- BREADCRUMB + TITLE -->
     <div class="page-heading">
       <p class="breadcrumb"><span>HỆ THỐNG</span> <span class="sep">›</span> <span class="active-crumb">QUẢN LÝ LIÊN HỆ</span></p>
@@ -128,7 +117,17 @@
       @clear="clearSelection"
       @delete-selected="removeSelected"
       @delete-all="removeAllFiltered"
-    />
+    >
+      <template #tools>
+        <div class="search-box bulk-search-box">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input type="text" placeholder="Tìm kiếm nhanh..." v-model="searchQuery" />
+        </div>
+      </template>
+    </BulkDeleteToolbar>
 
     <!-- TABLE -->
     <div v-if="!loading && !errorMsg" class="table-card">
@@ -581,12 +580,12 @@ onMounted(fetchContacts)
   position: relative;
 }
 
-/* TOPBAR */
-.topbar { display: flex; align-items: center; justify-content: flex-start; }
+/* SEARCH */
 .search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; width: 250px; }
 .search-box svg { width: 14px; height: 14px; stroke: #94a3b8; stroke-width: 2; fill: none; flex-shrink: 0; }
 .search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; font-family: inherit; }
 .search-box input::placeholder { color: #94a3b8; }
+.bulk-search-box { width: 250px; min-height: 36px; padding-top: 7px; padding-bottom: 7px; }
 .icon-btn { position: relative; width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
 .icon-btn:hover { background: #f1f5f9; }
 .icon-btn svg { width: 15px; height: 15px; stroke: #64748b; stroke-width: 1.8; fill: none; }

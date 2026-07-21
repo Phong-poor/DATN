@@ -195,26 +195,20 @@ onMounted(async () => {
         <p class="page-subtitle">Cấu hình các ô trúng thưởng, tỷ lệ trúng và kết nối voucher giảm giá.</p>
       </div>
     </div>
-    <!-- STATS & VALIDATION BANNER -->
-    <div class="info-row">
-      <div class="stat-card" :class="{ 'warning-border': Math.abs(totalWeight - 100) > 0.01 }">
-        <span class="stat-label">TỔNG TỶ LỆ CÁC Ô TRÚNG</span>
-        <h3 class="value" :class="{ 'error-color': Math.abs(totalWeight - 100) > 0.01 }">
-          {{ totalWeight.toFixed(2) }}%
-        </h3>
-      </div>
-    </div>
-
-
     <div class="admin-grid">
       <!-- LEFT COLUMN: LIST OF WHEEL SLOTS -->
       <div class="panel list-panel">
         <div class="panel-head" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
           <h3>Cơ Cấu Ô Vòng Quay ({{ slots.length }} Ô)</h3>
-          <button class="btn-primary" @click="openAdd">
-            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Tạo mới
-          </button>
+          <div class="panel-head-actions">
+            <span class="total-weight-badge" :class="{ invalid: Math.abs(totalWeight - 100) > 0.01 }">
+              Tổng tỷ lệ: <b>{{ totalWeight.toFixed(2) }}%</b>
+            </span>
+            <button class="btn-primary" @click="openAdd">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Tạo mới
+            </button>
+          </div>
         </div>
 
         <div v-if="loading" class="spinner-box">
@@ -527,6 +521,41 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.panel-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.total-weight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.total-weight-badge b {
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.total-weight-badge.invalid {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.total-weight-badge.invalid b {
+  color: #ef4444;
 }
 
 .panel {
