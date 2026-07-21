@@ -15,7 +15,6 @@ const loading = ref(false)
 const adminOpening = ref(false)
 const webOpening = ref(false)
 const socialOpening = ref(false)
-const facebookLoginEnabled = true
 
 const failedAttempts = ref(Number(localStorage.getItem('login_failed_attempts') || 0))
 const lockUntil = ref(Number(localStorage.getItem('login_lock_until') || 0))
@@ -99,25 +98,6 @@ const loginGoogle = () => {
   const params = new URLSearchParams({ frontend_url: window.location.origin })
   if (refCode) params.set('ref', refCode)
   const endpoint = `/auth/google?${params.toString()}`
-  setTimeout(() => {
-    window.location.href = `${api.defaults.baseURL}${endpoint}`
-  }, 620)
-}
-
-const loginFacebook = () => {
-  if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
-  if (!facebookLoginEnabled) {
-    showModal('error', 'Facebook chưa sẵn sàng', 'Facebook Login cần app Facebook bật HTTPS/OAuth security. Hiện tại dự án đang ưu tiên đăng nhập bằng Google.')
-    return
-  }
-  socialOpening.value = true
-  if (route.query.redirect) {
-    sessionStorage.setItem('redirect_after_auth', route.query.redirect)
-  }
-  const refCode = localStorage.getItem('affiliate_ref') || ''
-  const params = new URLSearchParams({ frontend_url: window.location.origin })
-  if (refCode) params.set('ref', refCode)
-  const endpoint = `/auth/facebook?${params.toString()}`
   setTimeout(() => {
     window.location.href = `${api.defaults.baseURL}${endpoint}`
   }, 620)
@@ -282,14 +262,11 @@ onMounted(() => {
       google_callback_failed: 'Không thể xác thực Google. Vui lòng thử lại.',
       google_create_failed: 'Đăng nhập Google thất bại do lỗi tạo tài khoản.',
       google_user_not_found: 'Không tạo được tài khoản từ Google.',
-      facebook_callback_failed: 'Không thể xác thực Facebook. Vui lòng thử lại.',
-      facebook_create_failed: 'Đăng nhập Facebook thất bại do lỗi tạo tài khoản.',
-      facebook_user_not_found: 'Không tạo được tài khoản từ Facebook.',
       missing_token: 'Máy chủ không trả về token đăng nhập. Vui lòng thử lại.',
       profile_fetch_failed: 'Đăng nhập thành công nhưng không thể lấy thông tin tài khoản. Vui lòng thử lại.',
     }
     const errorCode = String(route.query.social_error)
-    const provider = errorCode.startsWith('google') ? 'Google' : (errorCode.startsWith('facebook') ? 'Facebook' : 'mạng xã hội')
+    const provider = errorCode.startsWith('google') ? 'Google' : 'mạng xã hội'
     showModal('error', `Lỗi đăng nhập ${provider}`, messageByCode[errorCode] || 'Đăng nhập mạng xã hội thất bại.')
   }
 
@@ -449,9 +426,6 @@ const handleLogin = async () => {
             <span class="pill">Ưu đãi thành viên</span>
           </div>
         </div>
-        <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/login_laptop_mockup.png" alt="NextGen laptop workspace" />
-        </div>
       </div>
 
       <!-- RIGHT (White Column) -->
@@ -520,7 +494,7 @@ const handleLogin = async () => {
           <!-- SUBMIT BUTTON -->
           <button type="submit" class="submit-btn" :disabled="loading || adminOpening || webOpening || socialOpening || secondsRemaining > 0">
             <span class="btn-text">
-              {{ secondsRemaining > 0 ? `Thử lại sau ${secondsRemaining}s` : (adminOpening ? 'Đang mở trang quản trị...' : (webOpening ? 'Đang mở trang chủ...' : (socialOpening ? 'Đang kết nối...' : (loading ? 'Đang đăng nhập...' : 'Đăng Nhập Ngay')))) }}
+              {{ secondsRemaining > 0 ? `Thử lại sau ${secondsRemaining}s` : (adminOpening ? 'Đang mở trang quản trị...' : (webOpening ? 'Đang mở trang chủ...' : (socialOpening ? 'Đang kết nối...' : (loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay')))) }}
             </span>
             <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -532,7 +506,7 @@ const handleLogin = async () => {
         <!-- OR DIVIDER -->
         <div class="or-divider">
           <span class="divider-line"></span>
-          <span class="divider-text">HOẶC</span>
+          <span class="divider-text">Hoặc</span>
           <span class="divider-line"></span>
         </div>
 
@@ -545,18 +519,7 @@ const handleLogin = async () => {
               <path fill="#FBBC05" d="M3.964 10.711A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.711V4.957H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.043l3.007-2.332z"/>
               <path fill="#EA4335" d="M9 3.578c1.322 0 2.508.454 3.44 1.346l2.581-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.957l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
             </svg>
-            Google
-          </button>
-          <button
-            @click="loginFacebook"
-            class="social-btn-facebook"
-            :disabled="adminOpening || webOpening || socialOpening || !facebookLoginEnabled"
-            :title="facebookLoginEnabled ? 'Đăng nhập bằng Facebook' : 'Facebook Login đang tắt trong môi trường dev'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Facebook
+            Đăng nhập bằng Google
           </button>
         </div>
 
@@ -657,18 +620,47 @@ const handleLogin = async () => {
 }
 
 .left-col {
-  background-color: #0d1b2e;
+  background: #0d1b2e;
   color: #ffffff;
   padding: 40px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transition:
     transform 1.02s cubic-bezier(0.72, 0, 0.16, 1),
     opacity 0.82s ease;
+}
+
+.left-col::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/anhlogin.jpg') center / cover no-repeat;
+  opacity: 0.78;
+  transform: scale(1.02);
+}
+
+.left-col::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(13, 27, 46, 0.58), rgba(13, 27, 46, 0.36)),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.66), rgba(15, 23, 42, 0.12));
+  pointer-events: none;
+}
+
+.left-content {
+  position: relative;
+  z-index: 2;
+  max-width: 360px;
 }
 
 
@@ -677,7 +669,7 @@ const handleLogin = async () => {
   flex-direction: column;
   gap: 6px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .brand-title {
@@ -702,7 +694,7 @@ const handleLogin = async () => {
   margin-top: 12px;
   margin-bottom: 20px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .highlight-pills {
@@ -710,7 +702,7 @@ const handleLogin = async () => {
   flex-wrap: wrap;
   gap: 8px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .pill {
@@ -722,24 +714,6 @@ const handleLogin = async () => {
   font-weight: 500;
   border: 1px solid rgba(59, 130, 246, 0.25);
   backdrop-filter: blur(4px);
-}
-
-.laptop-img-wrapper {
-  margin-top: auto;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-}
-
-.laptop-img {
-  width: 100%;
-  max-width: 320px;
-  height: 180px;
-  border-radius: 12px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-  object-fit: cover;
 }
 
 .right-col {
@@ -968,6 +942,11 @@ const handleLogin = async () => {
   gap: 8px;
   margin-top: 6px;
   transition: background-color 0.2s;
+  text-transform: none !important;
+}
+
+.btn-text {
+  text-transform: none !important;
 }
 
 .submit-btn:hover {
@@ -1006,6 +985,7 @@ const handleLogin = async () => {
   font-weight: 600;
   color: #9ca3af;
   padding: 0 10px;
+  text-transform: none !important;
 }
 
 .social-row {
@@ -1013,8 +993,7 @@ const handleLogin = async () => {
   gap: 8px;
 }
 
-.social-btn-google,
-.social-btn-facebook {
+.social-btn-google {
   flex: 1;
   height: 38px;
   background-color: #ffffff;
@@ -1029,6 +1008,7 @@ const handleLogin = async () => {
   justify-content: center;
   gap: 8px;
   transition: background-color 0.2s, border-color 0.2s;
+  text-transform: none !important;
 }
 
 .google-logo {
@@ -1038,14 +1018,12 @@ const handleLogin = async () => {
   display: block;
 }
 
-.social-btn-google:hover,
-.social-btn-facebook:hover {
+.social-btn-google:hover {
   background-color: #f0f7ff;
   border-color: #93c5fd;
 }
 
-.social-btn-google:disabled,
-.social-btn-facebook:disabled {
+.social-btn-google:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
