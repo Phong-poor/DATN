@@ -1144,8 +1144,7 @@ class DatHangController extends Controller
             ->where('id_khachhang', $userId)
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
-                      ->orWhere('trang_thai_thanh_toan', 'paid')
-                      ->orWhere('trangthai', 'cancelled');
+                      ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -1244,8 +1243,7 @@ class DatHangController extends Controller
         $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
-                      ->orWhere('trang_thai_thanh_toan', 'paid')
-                      ->orWhere('trangthai', 'cancelled');
+                      ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
             })
             ->orderBy('created_at', 'desc')
             ->get();
