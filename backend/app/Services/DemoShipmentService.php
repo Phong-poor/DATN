@@ -28,7 +28,10 @@ class DemoShipmentService
                 $shipment = $paymentData['shipping_demo'] ?? null;
 
                 if (empty($shipment['tracking_code'])) {
-                    if ($currentOrderStatus === 'pending' && $order->created_at && $order->created_at->diffInSeconds(now()) >= $this->confirmAfterSeconds()) {
+                    $isCod = !in_array(strtolower(trim((string)$order->PTTT)), ['vnpay', 'momo']);
+                    $isPaid = $order->trang_thai_thanh_toan === 'paid';
+
+                    if ($currentOrderStatus === 'pending' && ($isCod || $isPaid) && $order->created_at && $order->created_at->diffInSeconds(now()) >= $this->confirmAfterSeconds()) {
                         $shipment = $this->buildDemoShipmentForOrderStatus($order, 'confirmed');
                         $paymentData = $this->paymentDataWithStatusTime($order, 'confirmed');
                         $paymentData['shipping_demo'] = $shipment;

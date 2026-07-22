@@ -1177,11 +1177,12 @@ const confirmOrder = async () => {
 }
 
 /* CONTAINER */
-.site-container {
+.container {
   max-width: var(--container-max-width);
   margin: auto;
   padding: 28px var(--container-padding-desktop);
   display: flex;
+  justify-content: center;
   gap: var(--space-6);
   align-items: start;
 }

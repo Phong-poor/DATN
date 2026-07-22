@@ -41,6 +41,18 @@ class DatHang extends Model
         'thanh_toan_luc' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($order) {
+            if (($order->trangthai === 'done' || $order->trangthai === 'completed') && strtolower(trim((string)$order->PTTT)) === 'cod') {
+                $order->trang_thai_thanh_toan = 'paid';
+                if (!$order->thanh_toan_luc) {
+                    $order->thanh_toan_luc = now();
+                }
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'id_khachhang');

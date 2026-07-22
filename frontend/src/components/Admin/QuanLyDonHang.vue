@@ -601,6 +601,38 @@ const getAvatarStyle = (name) => {
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
 }
 
+const paymentStatusMap = {
+    paid: { label: 'Đã thanh toán', bg: '#dcfce7', color: '#15803d' },
+    unpaid: { label: 'Chưa thanh toán', bg: '#fee2e2', color: '#dc2626' },
+}
+
+const getPaymentStatus = (order) => {
+    const method = String(order.raw?.PTTT || '').toLowerCase().trim()
+    if (method === 'vnpay' || method === 'momo') {
+        if (order.status === 'cancelled' && order.raw?.trang_thai_thanh_toan !== 'paid') {
+            return 'unpaid'
+        }
+        return 'paid'
+    }
+    if (method === 'cod') {
+        const shipment = getShipment(order)
+        const isDelivered = (shipment?.status === 'delivered') || (order.status === 'done')
+        return isDelivered ? 'paid' : 'unpaid'
+    }
+    return order.raw?.trang_thai_thanh_toan === 'paid' ? 'paid' : 'unpaid'
+}
+
+const getPaymentStatusLabel = (order) => {
+    const status = getPaymentStatus(order)
+    return paymentStatusMap[status]?.label || 'Chưa thanh toán'
+}
+
+const getPaymentStatusStyle = (order) => {
+    const status = getPaymentStatus(order)
+    const map = paymentStatusMap[status] || paymentStatusMap.unpaid
+    return { background: map.bg, color: map.color }
+}
+
 async function exportExcel() {
     const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
@@ -608,7 +640,7 @@ async function exportExcel() {
 
     const titleRow = [`Báo cáo đơn hàng - ${tabLabel} (xuất ngày ${today})`]
     const blankRow = []
-    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
+    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Thanh toán', 'Ghi chú']
 
     const dataRows = filteredOrders.value.map(o => [
         o.id,
@@ -619,14 +651,15 @@ async function exportExcel() {
         o.date,
         o.total,
         getDisplayStatusLabel(o),
+        getPaymentStatusLabel(o),
         o.note,
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([titleRow, blankRow, header, ...dataRows])
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }]
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }]
     ws['!cols'] = [
         { wch: 16 }, { wch: 22 }, { wch: 26 }, { wch: 14 },
-        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 28 },
+        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 28 },
     ]
 
     const wb = XLSX.utils.book_new()
@@ -742,12 +775,13 @@ async function exportExcel() {
                         <th>Ngày đặt hàng</th>
                         <th>Tổng tiền</th>
                         <th>Trạng thái</th>
+                        <th>Thanh toán</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="7" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
 
@@ -793,6 +827,12 @@ async function exportExcel() {
                                     {{ getShipment(o).return_reason }}<small v-if="getShipmentRefundNote(o)">{{ getShipmentRefundNote(o) }}</small>
                                 </span>
                             </div>
+                        </td>
+
+                        <td>
+                            <span class="status-pill" :style="getPaymentStatusStyle(o)">
+                                {{ getPaymentStatusLabel(o) }}
+                            </span>
                         </td>
 
                         <td>
@@ -951,7 +991,15 @@ async function exportExcel() {
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Thanh toán</span>
-                                    <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
+                                    <span class="info-value" style="text-transform: uppercase;">{{ viewOrder.raw.PTTT }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Trạng thái thanh toán</span>
+                                    <span class="info-value">
+                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder)" style="padding: 2px 8px; font-size: 0.85em; border-radius: 4px;">
+                                            {{ getPaymentStatusLabel(viewOrder) }}
+                                        </span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -1122,7 +1170,7 @@ async function exportExcel() {
 * { box-sizing: border-box; }
 
 .page {
-    padding: 28px 40px;
+    padding: 24px 20px;
     background: #f5f7fb;
     min-height: 100vh;
     font-family: sans-serif;
@@ -1344,39 +1392,49 @@ async function exportExcel() {
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8fafc; }
 thead th {
-    padding: 13px 20px; font-size: 11px; font-weight: 700;
+    padding: 12px 10px; font-size: 11px; font-weight: 700;
     color: #94a3b8; text-align: left; letter-spacing: 0.06em;
     border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
 }
 tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
 tbody tr.row-selected { background: #eff6ff; }
-tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: middle; }
+tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: middle; }
 .empty { text-align: center; color: #94a3b8; padding: 50px !important; }
 
 .select-col { width: 44px; text-align: center; }
 .select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
 .select-col input:disabled { cursor: not-allowed; opacity: 0.45; }
 
-.order-id { color: #2563eb; font-weight: 700; font-size: 13px; }
+.order-id { color: #2563eb; font-weight: 700; font-size: 13px; white-space: nowrap; }
 
 .customer-cell { display: flex; align-items: center; gap: 12px; }
 .avatar {
-    width: 38px; height: 38px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
 }
 .customer-cell b { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
-.customer-cell span { font-size: 12px; color: #94a3b8; }
+.customer-cell span {
+    font-size: 11px;
+    color: #94a3b8;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
 
-.date-cell { color: #64748b; }
-.total { font-size: 14px; font-weight: 700; color: #0f172a; }
+.date-cell { color: #64748b; white-space: nowrap; }
+.total { font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; }
 
 .status-pill, .status-select {
     display: inline-block; font-size: 11px; font-weight: 600;
     padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
     border: none; outline: none; cursor: pointer;
+    white-space: nowrap;
 }
 
 .status-stack {
@@ -1390,14 +1448,14 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     font-size: 11px;
     color: #64748b;
     font-weight: 600;
-    max-width: 190px;
+    max-width: 140px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .failure-reason {
-    max-width: 260px;
+    max-width: 200px;
     font-size: 12px;
     color: #dc2626;
     font-weight: 800;
@@ -1412,7 +1470,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     font-weight: 700;
 }
 .return-note {
-    max-width: 260px;
+    max-width: 200px;
     font-size: 12px;
     color: #7c3aed;
     font-weight: 800;
@@ -1427,13 +1485,13 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background-size: 12px;
 }
 
-.actions { display: flex; gap: 6px; }
+.actions { display: flex; gap: 4px; }
 .act-btn {
-    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
     background: white; cursor: pointer; display: flex;
     align-items: center; justify-content: center; color: #64748b; transition: all 0.2s;
 }
-.act-btn svg { width: 14px; height: 14px; }
+.act-btn svg { width: 13px; height: 13px; }
 .act-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #2563eb; }
 .act-btn.logistics { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
 .act-btn.logistics:hover { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; }
