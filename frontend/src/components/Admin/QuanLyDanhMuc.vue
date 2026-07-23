@@ -53,19 +53,19 @@
             <th class="select-col">
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredCategories.length" @change="toggleCurrentPageSelection" />
             </th>
-            <th>ID</th>
+            <th>STT</th>
             <th>TÊN DANH MỤC</th>
             <th>TRẠNG THÁI</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="dm in filteredCategories" :key="dm.id_danhmuc" :class="{ 'row-selected': selectedIds.includes(dm.id_danhmuc) }">
+          <tr v-for="(dm, index) in filteredCategories" :key="dm.id_danhmuc" :class="{ 'row-selected': selectedIds.includes(dm.id_danhmuc) }">
             <td class="select-col">
               <input type="checkbox" :checked="selectedIds.includes(dm.id)" @change="toggleItemSelection(dm.id)" />
             </td>
-            <td class="cat-name">
-              #{{ dm.id }}
+            <td class="cat-name" style="font-weight: bold;">
+              {{ index + 1 }}
             </td>
             <td>
               <p class="cat-name">{{ dm.ten_danhmuc }}</p>
@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { getUser } from '@/services/auth';
 import api from '@/services/api';
 import swal from '@/services/swal';
@@ -196,7 +196,10 @@ const defaultForm = () => ({
   trangthai: 'active',
   id_danhmuc_cha: '',
 });
+import { registerOfflineForm } from '@/services/offlineSync';
+
 const form = ref(defaultForm());
+registerOfflineForm(form, 'quan-ly-danh-muc');
 
 // --- LẤY DỮ LIỆU TỪ DB ---
 const fetchCategories = async () => {
@@ -216,8 +219,17 @@ const fetchCategories = async () => {
   }
 };
 
+const syncSuccessHandler = () => {
+  fetchCategories();
+};
+
 onMounted(() => {
   fetchCategories();
+  window.addEventListener('offline-sync-success', syncSuccessHandler);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler);
 });
 
 // --- TÌM KIẾM & LỌC THEO TAB ---

@@ -223,7 +223,7 @@ class DemoShipmentService
         return $this->appendShipmentTimeline($shipment, 'waiting_pickup', 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.');
     }
 
-    private function demoShipmentStartTime(DatHang $order): Carbon
+    private function demoShipmentStartTime(DatHang $order): \Carbon\CarbonInterface
     {
         $start = $order->created_at
             ? $order->created_at->copy()->addMinutes(15)

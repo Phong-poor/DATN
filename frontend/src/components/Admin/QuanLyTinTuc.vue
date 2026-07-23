@@ -5,6 +5,7 @@ import api from '@/services/api'
 import { getUser, updateUser } from '@/services/auth'
 import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
@@ -584,14 +585,14 @@ onMounted(async () => {
       </table>
     </div>
 
-    <div class="table-footer">
-      <span class="showing">Hiển thị trang {{ currentPage }} trên {{ lastPage }}</span>
-      <div class="pagination">
-        <button :disabled="currentPage <= 1" @click="fetchPosts(currentPage - 1)">‹</button>
-        <button class="active">{{ currentPage }}</button>
-        <button :disabled="currentPage >= lastPage" @click="fetchPosts(currentPage + 1)">›</button>
-      </div>
-    </div>
+    <PhanTrangAdmin
+      v-model:currentPage="currentPage"
+      :total-pages="lastPage"
+      :total-items="totalPosts"
+      :page-size="10"
+      item-label="bài viết"
+      @change-page="fetchPosts"
+    />
 
     <div class="page-footer">© 2026 VINATECH ECOSYSTEM • QUẢN LÝ NỘI DUNG</div>
 

@@ -34,6 +34,8 @@ class User extends Authenticatable
         'last_active_at',
         'xu',
         'luot_quay',
+        'face_descriptor',
+        'face_registered',
     ];
 
     protected $hidden = [
@@ -117,7 +119,7 @@ class User extends Authenticatable
                 'marketing_quan_ly', 'affiliate_quan_ly', 
                 'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
                 'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
-                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly'
+                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly', 'quan_ly_cham_cong'
             ];
         }
 
@@ -269,5 +271,10 @@ class User extends Authenticatable
     public function setLastActiveAtAttribute($value): void
     {
         $this->attributes['hoat_dong_cuoi_luc'] = $value;
+    }
+
+    public function chamCongs()
+    {
+        return $this->hasMany(ChamCong::class, 'id_nhanvien');
     }
 }

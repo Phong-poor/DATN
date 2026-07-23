@@ -46,6 +46,7 @@ const newsletterEmail = ref('')
 const activeCategoryTab = ref('all')
 
 // Countdown timers state
+const fsDays = ref('00')
 const fsHours = ref('04')
 const fsMinutes = ref('12')
 const fsSeconds = ref('45')
@@ -274,6 +275,12 @@ async function fetchPromotionsData() {
           } catch (e) {}
         }
 
+        // Extract thong_so_ky_thuat (real technical specs)
+        let tskt = []
+        try {
+          tskt = typeof p.thong_so_ky_thuat === 'string' ? JSON.parse(p.thong_so_ky_thuat || '[]') : (p.thong_so_ky_thuat || [])
+        } catch (e) { tskt = [] }
+
         return {
           ...p,
           id: p.id_sanpham,
@@ -284,6 +291,7 @@ async function fetchPromotionsData() {
           category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop Gaming',
           gia: giaSP,
           oldPrice,
+          thong_so_ky_thuat: Array.isArray(tskt) ? tskt : [],
           specs: generalSpecs.length > 0 ? generalSpecs.slice(0, 4) : [ram, ssd, 'IPS FHD'],
           image: productImageUrl(p, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'),
           rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
@@ -453,6 +461,27 @@ const flashSaleProducts = computed(() => {
   return flashSaleProductsList.value
 })
 
+// ===================== PRODUCT FULL TITLE (Tên SP + Thông số kỹ thuật) =====================
+const getProductFullTitle = (prod) => {
+  if (!prod) return ''
+  const baseName = prod.tenSP || ''
+  // Ưu tiên lấy từ thong_so_ky_thuat (thông số kỹ thuật thật)
+  let specValues = []
+  if (Array.isArray(prod.thong_so_ky_thuat) && prod.thong_so_ky_thuat.length > 0) {
+    specValues = prod.thong_so_ky_thuat.map(s => s.giatri || '').filter(Boolean)
+  }
+  // Nếu không có thong_so_ky_thuat → fallback về specs (biến thể)
+  if (specValues.length === 0 && Array.isArray(prod.specs) && prod.specs.length > 0) {
+    specValues = prod.specs.map(s => (typeof s === 'string' ? s : s?.value || '')).filter(Boolean)
+  }
+  // Chỉ ghép thêm những specs chưa có trong tên sản phẩm
+  const missingSpecs = specValues.filter(val => val && !baseName.toLowerCase().includes(val.toLowerCase()))
+  if (missingSpecs.length > 0) {
+    return `${baseName} ${missingSpecs.join(' ')}`
+  }
+  return baseName
+}
+
 // ===================== TIMERS CONTROLLER =====================
 let countdownInterval = null
 const startTimers = () => {
@@ -468,6 +497,7 @@ const startFlashSaleCountdown = (endTimeStr) => {
     const diff = end - now
     
     if (diff <= 0) {
+      fsDays.value = '00'
       fsHours.value = '00'
       fsMinutes.value = '00'
       fsSeconds.value = '00'
@@ -476,10 +506,12 @@ const startFlashSaleCountdown = (endTimeStr) => {
       return
     }
     
-    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     const seconds = Math.floor((diff % (1000 * 60)) / 1000)
     
+    fsDays.value = String(days).padStart(2, '0')
     fsHours.value = String(hours).padStart(2, '0')
     fsMinutes.value = String(minutes).padStart(2, '0')
     fsSeconds.value = String(seconds).padStart(2, '0')
@@ -915,6 +947,8 @@ const initScrollReveal = () => {
           <div class="countdown-clock">
             <span class="clock-label">KẾT THÚC SAU:</span>
             <div class="timer-numbers">
+              <span class="timer-segment">{{ fsDays }}</span>
+              <span class="timer-colon">:</span>
               <span class="timer-segment">{{ fsHours }}</span>
               <span class="timer-colon">:</span>
               <span class="timer-segment">{{ fsMinutes }}</span>
@@ -935,7 +969,7 @@ const initScrollReveal = () => {
 
             <div class="flash-card-info">
               <span class="product-brand">{{ prod.brand }}</span>
-              <h3 class="product-title">{{ prod.tenSP }}</h3>
+              <h3 class="product-title">{{ getProductFullTitle(prod) }}</h3>
 
               <div class="price-flex-group">
                 <span class="price-new">{{ hasValidPrice(prod) ? formatCurrency(prod.gia) : 'Liên hệ' }}</span>
@@ -1134,7 +1168,7 @@ const initScrollReveal = () => {
 
             <div class="prod-info-details">
               <span class="prod-category-label">{{ prod.category }}</span>
-              <h3 class="prod-name-title">{{ prod.tenSP }}</h3>
+              <h3 class="prod-name-title">{{ getProductFullTitle(prod) }}</h3>
 
               <div class="prod-rating-row">
                 <div class="stars-group">
@@ -1932,7 +1966,6 @@ const initScrollReveal = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 34px;
 }
 
 .price-flex-group {
@@ -2500,7 +2533,6 @@ const initScrollReveal = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 40px;
 }
 
 .prod-rating-row {

@@ -169,8 +169,6 @@
               <div class="user-dropdown-list">
                 <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/ho-so-quan-tri')">Hồ sơ của tôi</button>
                 <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/cai-dat-he-thong')">Cài đặt</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/nhat-ky-hoat-dong')">Nhật ký hoạt động</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/hoa-don')">Thanh toán</button>
               </div>
               <button class="dropdown-item sign-out logout-item" type="button" @click="handleLogout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,7 +183,7 @@
         </div>
       </section>
 
-      <router-view v-slot="{ Component }">
+      <router-view :key="routeKey" v-slot="{ Component }">
         <transition name="page-fade">
           <component :is="Component" />
         </transition>
@@ -221,10 +219,15 @@ import {
   Gift,
   ChevronDown,
   Coins,
+  Camera,
+  ClipboardCheck,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
+
+const refreshCounter = ref(0)
+const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
 
 const pageTitle = computed(() => route.meta.title || 'Bảng quản trị')
 const user = ref(getUser() || {})
@@ -333,8 +336,10 @@ const menuConfig = [
     children: [
       { path: '/admin/quan-ly-nguoi-dung', label: 'Người dùng', badge: 'ADMIN' },
       { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-cham-cong', label: 'Quản lý chấm công', badge: 'ADMIN' },
     ]
   },
+  { path: '/admin/cham-cong-camera', label: 'Chấm công bằng Camera', icon: Camera },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
@@ -373,6 +378,7 @@ const filteredMenuConfig = computed(() => {
     
     '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
     '/admin/xu': 'xu_quan_ly',
+    '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
   }
 
   return menuConfig.map(item => {
@@ -676,6 +682,10 @@ async function fetchLatestUserProfile() {
   }
 }
 
+const handleSyncSuccess = () => {
+  refreshCounter.value++
+}
+
 onMounted(async () => {
   if (sessionStorage.getItem('admin_intro_animation') === '1') {
     sessionStorage.removeItem('admin_intro_animation')
@@ -689,6 +699,7 @@ onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutside)
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
+  window.addEventListener('offline-sync-success', handleSyncSuccess)
   document.documentElement.lang = currentLocale.value
   await loadAppearanceSettings()
   hydrateNotifications()
@@ -705,6 +716,7 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   window.removeEventListener('user-updated', refreshUser)
   window.removeEventListener('admin-settings-updated', handleSettingsUpdated)
+  window.removeEventListener('offline-sync-success', handleSyncSuccess)
 })
 </script>
 
@@ -742,42 +754,7 @@ onUnmounted(() => {
     margin: 0; 
     text-transform: capitalize;
 }
-.admin-layout :deep(.item),
-.admin-layout :deep(.submenu-item),
-.admin-layout :deep(.submenu-badge),
-.admin-layout :deep(.admin-topbar-title h2),
-.admin-layout :deep(.card-title),
-.admin-layout :deep(.section-title),
-.admin-layout :deep(.chart-title),
-.admin-layout :deep(.stat-label),
-.admin-layout :deep(.period-tab),
-.admin-layout :deep(.chart-nav-btn),
-.admin-layout :deep(.status-badge),
-.admin-layout :deep(th),
-.admin-layout :deep(button) {
-  text-transform: lowercase !important;
-}
-.admin-layout :deep(.item)::first-letter,
-.admin-layout :deep(.submenu-item)::first-letter,
-.admin-layout :deep(.submenu-badge)::first-letter,
-.admin-layout :deep(.admin-topbar-title h2)::first-letter,
-.admin-layout :deep(.card-title)::first-letter,
-.admin-layout :deep(.section-title)::first-letter,
-.admin-layout :deep(.chart-title)::first-letter,
-.admin-layout :deep(.stat-label)::first-letter,
-.admin-layout :deep(.period-tab)::first-letter,
-.admin-layout :deep(.chart-nav-btn)::first-letter,
-.admin-layout :deep(.status-badge)::first-letter,
-.admin-layout :deep(th)::first-letter,
-.admin-layout :deep(button)::first-letter {
-  text-transform: uppercase !important;
-}
-.menu-label,
-.menu-text,
-.submenu-text,
-.submenu-badge {
-  text-transform: none !important;
-}
+
 .menu-section { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 16px; }
 .menu-section { -ms-overflow-style: none; scrollbar-width: none; }
 .menu-section::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -833,7 +810,7 @@ a { text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-left: 18px;
+  padding-left: 12px;
 }
 .dropdown-group.is-open .submenu {
   max-height: 300px;
@@ -842,16 +819,17 @@ a { text-decoration: none; }
   margin-bottom: 4px;
 }
 .submenu-item {
-  padding: 8px 14px;
+  padding: 8px 10px;
   border-radius: 8px;
   color: rgba(248, 250, 252, 0.6);
   font-size: 13px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 36px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .submenu-item:hover {
   background: rgba(255, 255, 255, 0.03);
@@ -952,7 +930,7 @@ a { text-decoration: none; }
     border-color: #ef4444;
 }
 .sidebar-logout-btn svg { width: 14px; height: 14px; }
-.main { flex: 1; padding: 0 32px 32px; height: 100vh; overflow-y: auto; background: #f8fafc; }
+.main { flex: 1; padding: 0 32px 32px; height: 100vh; overflow-y: auto; overflow-x: hidden; background: #f8fafc; min-width: 0; }
 .admin-topbar { 
     position: sticky; 
     top: 0; 
@@ -1335,5 +1313,156 @@ a { text-decoration: none; }
   .admin-layout.intro-active .main > :not(.admin-topbar) {
     animation-duration: 0.01ms !important;
   }
+}
+
+.main :deep(.search-box) {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 0 12px !important;
+  width: 280px !important;
+  height: 38px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.main :deep(.search-box:focus-within) {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+  background: #ffffff !important;
+}
+
+.main :deep(.search-box svg) {
+  position: static !important;
+  transform: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  stroke: #64748b !important;
+  color: #64748b !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+  pointer-events: none !important;
+}
+
+.main :deep(.search-box input) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  background: transparent !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.main :deep(.search-box input::placeholder) {
+  color: #94a3b8 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLOBAL ADMIN PAGINATION DESIGN SYSTEM
+   ════════════════════════════════════════════════════════════ */
+.main :deep(.table-footer),
+.main :deep(.table-pagination),
+.main :deep(.pagination-wrap),
+.main :deep(.pagination-container),
+.main :deep(.pagination-footer) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 32px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.main :deep(.showing),
+.main :deep(.pagination-info),
+.main :deep(.page-info) {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.main :deep(.pagination),
+.main :deep(.pagination-nav),
+.main :deep(.pagination-controls) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.main :deep(.pagination button),
+.main :deep(.pagination .page-btn),
+.main :deep(.pagination-nav button),
+.main :deep(.pagination a),
+.main :deep(.page-link) {
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 8px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  cursor: pointer !important;
+}
+
+.main :deep(.pagination button:hover:not(:disabled)),
+.main :deep(.pagination .page-btn:hover:not(:disabled)),
+.main :deep(.pagination-nav button:hover:not(:disabled)),
+.main :deep(.page-link:hover) {
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  background: #eff6ff !important;
+}
+
+.main :deep(.pagination button.active),
+.main :deep(.pagination .page-btn.active),
+.main :deep(.pagination-nav button.active),
+.main :deep(.page-item.active .page-link) {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+}
+
+.main :deep(.pagination button:disabled),
+.main :deep(.pagination .page-btn:disabled),
+.main :deep(.pagination-nav button:disabled) {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+.main :deep(.pagination .dots),
+.main :deep(.pagination span.dots),
+.main :deep(.page-indicator) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  padding: 0 4px !important;
 }
 </style>

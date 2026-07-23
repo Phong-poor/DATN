@@ -185,6 +185,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/diem-danh/status', [App\Http\Controllers\DiemDanhController::class, 'getStatus']);
     Route::post('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'checkIn']);
 
+    // ===== CHẤM CÔNG NHÂN VIÊN =====
+    Route::get('/cham-cong/status', [App\Http\Controllers\ChamCongController::class, 'getStatus']);
+    Route::post('/cham-cong/register-face', [App\Http\Controllers\ChamCongController::class, 'dangKyKhuonMat']);
+    Route::post('/cham-cong/delete-face', [App\Http\Controllers\ChamCongController::class, 'xoaKhuonMat']);
+    Route::post('/cham-cong/check', [App\Http\Controllers\ChamCongController::class, 'checkInCheckOut']);
+    Route::get('/cham-cong/my-history', [App\Http\Controllers\ChamCongController::class, 'getLichSuCaNhan']);
+    Route::get('/cham-cong/leaderboard', [App\Http\Controllers\ChamCongController::class, 'getLeaderboard']);
+
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
     Route::post('/affiliate/activate', [AffiliateController::class, 'activate']);
@@ -458,6 +466,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'adminIndex']);
         Route::get('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminGetSettings']);
         Route::put('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminUpdateSettings']);
+
+        // ===== ADMIN TIME ATTENDANCE =====
+        Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);

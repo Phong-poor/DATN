@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { storageUrl } from '@/services/urls'
 import swal from '@/services/swal'
+import { registerOfflineForm } from '@/services/offlineSync'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 // --- Tabs State ---
 const activeTab = ref('combos') // 'combos' | 'offers'
@@ -31,6 +33,7 @@ const defaultForm = () => ({
 })
 
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-combo')
 const imgPreview = ref('')
 const fileInputRef = ref(null)
 const fieldErrors = ref({})
@@ -655,11 +658,23 @@ const formatOfferDate = (dateStr) => {
   }
 }
 
+const syncSuccessHandler = () => {
+  fetchCombos()
+  fetchProductsPool()
+  fetchOffers()
+  fetchAllProducts()
+}
+
 onMounted(() => {
   fetchCombos()
   fetchProductsPool()
   fetchOffers()
   fetchAllProducts()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 </script>
 
@@ -828,20 +843,15 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
-        <div v-if="filteredCombos.length" class="combo-pagination">
-          <div class="pagination-summary">
-            Hiển thị {{ comboPageStart }}-{{ comboPageEnd }} / {{ filteredCombos.length }} combo
-          </div>
-          <div class="pagination-controls">
-            <button class="page-btn" :disabled="comboCurrentPage === 1" @click="changeComboPage(comboCurrentPage - 1)">
-              ‹
-            </button>
-            <span class="page-btn active page-indicator">{{ comboCurrentPage }}/{{ comboTotalPages }}</span>
-            <button class="page-btn" :disabled="comboCurrentPage === comboTotalPages" @click="changeComboPage(comboCurrentPage + 1)">
-              ›
-            </button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-if="filteredCombos.length"
+          v-model:currentPage="comboCurrentPage"
+          :total-pages="comboTotalPages"
+          :total-items="filteredCombos.length"
+          :page-size="comboItemsPerPage"
+          item-label="combo"
+          @change-page="changeComboPage"
+        />
         <div v-if="false" v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
           <div class="combo-badge" :class="combo.trangthai === 1 ? 'active' : 'draft'">
             {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}

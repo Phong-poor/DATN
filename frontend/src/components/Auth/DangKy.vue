@@ -259,7 +259,7 @@ const loginFacebook = () => {
                   <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="example@gmail.com" @blur="isTouched.email.value = true" />
+              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="Example@gmail.com" @blur="isTouched.email.value = true" />
             </div>
             <p v-if="emailError" class="field-hint error">{{ emailError }}</p>
           </div>

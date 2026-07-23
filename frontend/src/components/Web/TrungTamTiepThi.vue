@@ -846,7 +846,7 @@ onMounted(loadAll)
 
                     <label class="input-group">
                       <span>Hoặc dán link video</span>
-                      <input v-model="videoForm.video_url" placeholder="https://youtube.com/shorts/..." />
+                      <input v-model="videoForm.video_url" placeholder="Https://youtube.com/shorts/..." />
                     </label>
 
                     <label class="input-group">
