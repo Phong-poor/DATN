@@ -686,37 +686,26 @@ onBeforeUnmount(() => {
     ══════════════════════════════════════════════════════ -->
     <template v-if="currentView === 'list'">
 
-    <!-- Header -->
-    <div class="top">
-      <div v-if="activeTab === 'combos'">
-        <h1>Quản lý Combo khuyến mãi</h1>
-        <p>Tạo và quản lý các combo ghép phụ kiện giá tốt nhất</p>
-      </div>
-      <div v-else>
-        <h1>Cấu hình Ưu đãi Biến thể</h1>
-        <p>Gắn combo phụ kiện làm quà tặng/ưu đãi khi khách mua biến thể sản phẩm chính</p>
-      </div>
-      
-      <button v-if="activeTab === 'combos'" class="add-btn" @click="openAddModal">+ Thêm Combo mới</button>
-      <button v-else class="add-btn" @click="openAddOfferModal">+ Tạo Ưu Đãi Mới</button>
-    </div>
-
     <!-- Tab switcher navigation -->
     <div class="tabs-navigation">
-      <button 
-        class="tab-nav-btn" 
-        :class="{ active: activeTab === 'combos' }" 
-        @click="activeTab = 'combos'"
-      >
-        📦 Quản lý Combo Bán Lẻ
-      </button>
-      <button 
-        class="tab-nav-btn" 
-        :class="{ active: activeTab === 'offers' }" 
-        @click="activeTab = 'offers'"
-      >
-        🎁 Cấu hình Ưu đãi Biến thể
-      </button>
+      <div class="tab-nav-list">
+        <button 
+          class="tab-nav-btn" 
+          :class="{ active: activeTab === 'combos' }" 
+          @click="activeTab = 'combos'"
+        >
+          Quản lý Combo Bán Lẻ
+        </button>
+        <button 
+          class="tab-nav-btn" 
+          :class="{ active: activeTab === 'offers' }" 
+          @click="activeTab = 'offers'"
+        >
+          Cấu hình Ưu đãi Biến thể
+        </button>
+      </div>
+      <button v-if="activeTab === 'combos'" class="add-btn" @click="openAddModal">+ Thêm Combo mới</button>
+      <button v-else class="add-btn" @click="openAddOfferModal">+ Tạo Ưu Đãi Mới</button>
     </div>
 
     <!-- Stats Cards -->
@@ -2685,13 +2674,35 @@ onBeforeUnmount(() => {
 /* ── Tab Navigation Styles ── */
 .tabs-navigation {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 28px;
-  background: #f1f5f9;
+  width: 100%;
+}
+
+.tab-nav-list {
+  display: flex;
+  gap: 8px;
   padding: 4px;
-  border-radius: 12px;
-  width: fit-content;
   border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .tabs-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tab-nav-list {
+    overflow-x: auto;
+  }
+
+  .tabs-navigation > .add-btn {
+    align-self: flex-end;
+  }
 }
 
 .tab-nav-btn {

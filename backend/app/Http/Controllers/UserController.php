@@ -212,6 +212,9 @@ class UserController extends Controller
         $genderMap = [
             'male' => 'Nam',
             'female' => 'Nữ',
+            'Nam' => 'Nam',
+            'Nữ' => 'Nữ',
+            'Nu' => 'Nữ',
         ];
 
         $user->ten = $validated['ten'];

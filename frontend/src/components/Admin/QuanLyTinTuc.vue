@@ -395,32 +395,12 @@ onMounted(async () => {
 
 <template>
   <div class="page">
-    <div class="topbar">
+    <div class="page-header">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
         </svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm bài viết, tác giả..." />
-      </div>
-      <div class="topbar-right">
-        <button class="icon-btn">🔔</button>
-        <button class="icon-btn">🌙</button>
-        <button class="icon-btn">?</button>
-        <div class="admin-wrap">
-          <div class="admin-text"><b>{{ currentAuthorName }}</b><span>Quản trị viên</span></div>
-          <div class="avatar-circle">{{ initials(currentAuthorName) }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="breadcrumb">
-      <span>Hệ thống</span><span class="sep">›</span><span class="crumb-active">Quản lý tin tức</span>
-    </div>
-
-    <div class="page-header">
-      <div>
-        <h1>Bài viết &amp; Tin tức</h1>
-        <p>Quản lý nội dung truyền thông, cập nhật công nghệ và thông tin nội bộ của VinaTech.</p>
       </div>
       <button class="btn-new" @click="openModal">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -726,7 +706,8 @@ onMounted(async () => {
 .crumb-active { color: #2563eb; font-weight: 500; }
 
 /* PAGE HEADER */
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 32px 20px; }
+.page-header { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 32px 20px; }
+.page-header .search-box { width: 300px; }
 .page-header h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 6px; letter-spacing: -0.02em; }
 .page-header p { font-size: 13px; color: #64748b; margin: 0; max-width: 460px; line-height: 1.5; }
 

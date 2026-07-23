@@ -645,6 +645,30 @@ onUnmounted(() => {
     pointer-events: none;
 }
 
+.stat-icon {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    z-index: 1;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .12);
+}
+
+.stat-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .stat-card.highlight {
     background: linear-gradient(135deg, #0f2747 0%, #1e3a5f 55%, #0f172a 100%);
 }
@@ -847,7 +871,7 @@ td {
     color: #475569;
     max-width: 280px;
     line-height: 1.5;
-    /* Hi?n th? t?i da 2 dòng và thêm d?u 3 ch?m */
+    /* Hiển thị tối đa 2 dòng và thêm dấu 3 chấm */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;

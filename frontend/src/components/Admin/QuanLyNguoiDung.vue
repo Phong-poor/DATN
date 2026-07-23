@@ -620,7 +620,18 @@ const submitEdit = async () => {
             @clear="clearSelection"
             @delete-selected="removeSelected"
             @delete-all="removeAllFiltered"
-        />
+        >
+            <template #tools>
+                <button class="btn-export bulk-export-btn" @click="exportUsersReport" :disabled="filtered.length === 0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Xuất báo cáo
+                </button>
+            </template>
+        </BulkDeleteToolbar>
 
         <!-- TABLE -->
         <div class="table-wrap">
@@ -1013,6 +1024,17 @@ const submitEdit = async () => {
     margin: 0 32px 14px;
 }
 
+.bulk-export-btn {
+    min-height: 34px;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.bulk-export-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 /* STATS */
 .stats {
     display: grid;
@@ -1374,7 +1396,10 @@ const submitEdit = async () => {
 
 .filter-actions {
     display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .btn-filter,
@@ -2200,9 +2225,35 @@ tbody td {
 }
 
 /* RESPONSIVE */
+@media (max-width: 1250px) {
+    .filter-row {
+        grid-template-columns: minmax(240px, 1fr) auto;
+    }
+
+    .filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
 @media (max-width: 900px) {
     .stats {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-row .search-box {
+        max-width: none;
+    }
+
+    .tabs-group,
+    .filter-actions {
+        grid-column: auto;
+        justify-content: flex-start;
+        overflow-x: auto;
     }
 
     .bottom-grid {

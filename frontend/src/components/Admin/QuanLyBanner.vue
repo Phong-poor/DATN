@@ -1,25 +1,10 @@
 <template>
   <div class="page">
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="search-box">
+    <!-- PAGE HEADER -->
+    <div v-if="!showForm" class="page-header">
+      <div v-if="!showForm" class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm theo tiêu đề..." />
-      </div>
-    </div>
-
-    <!-- BREADCRUMB -->
-    <div class="breadcrumb">
-      <span>Hệ thống</span>
-      <span class="sep">›</span>
-      <span class="active-crumb">Quản lý Banner</span>
-    </div>
-
-    <!-- PAGE HEADER -->
-    <div class="page-header">
-      <div>
-        <h1>BANNER QUẢNG CÁO</h1>
-        <p>Tạo các chương trình khuyến mãi dạng banner trượt (Hero carousel) ở trang chủ.</p>
       </div>
       <button class="btn-new" @click="openCreate" v-if="!showForm">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -632,9 +617,9 @@ onMounted(() => {
 
 .page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
 }
 
 .page-header h1 {

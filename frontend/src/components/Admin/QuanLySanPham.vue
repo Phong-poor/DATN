@@ -1906,10 +1906,6 @@ onBeforeUnmount(() => {
     <template v-if="currentView === 'list'">
 
     <div class="top">
-      <div>
-        <h1>Qu&#7843;n l&#253; s&#7843;n ph&#7849;m</h1>
-        <p>C&#7853;p nh&#7853;t v&#224; theo d&#245;i danh m&#7909;c thi&#7871;t b&#7883; c&#244;ng ngh&#7879; 2026</p>
-      </div>
       <div class="excel-actions">
         <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
           <svg v-if="!isExporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
@@ -2763,22 +2759,9 @@ onBeforeUnmount(() => {
 
 .top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 28px;
-}
-
-.top h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 4px;
-}
-
-.top p {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0;
+  margin-bottom: 20px;
 }
 
 .add-btn {

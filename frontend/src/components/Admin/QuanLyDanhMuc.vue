@@ -1,21 +1,11 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="topbar-left">
-        <h2 class="topbar-title">Danh mục sản phẩm</h2>
+    <div class="hero">
+      <div class="hero-actions">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
         </div>
-      </div>
-    </div>
-
-    <div class="hero">
-      <div class="hero-text">
-        <h1>Kiến trúc <span class="hero-accent">Hệ sinh thái</span><br/>Laptop</h1>
-        <p>Quản lý và tối ưu hóa các phân khúc sản phẩm dựa trên nhu cầu của khách hàng.</p>
-      </div>
-      <div class="hero-actions">
         <button v-if="activeTab === 'parent' && hasPermission('danh_muc_sua')" class="btn-primary" @click="openCreateParent">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           Tạo Danh mục Gốc
@@ -390,7 +380,9 @@ const deleteCategory = async (id) => {
 .search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 14px; width: 220px; }
 .search-box svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; fill: none; }
 .search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.hero { display: flex; align-items: center; justify-content: flex-end; gap: 20px; }
+.hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.hero-actions .search-box { width: 260px; min-height: 40px; }
 .hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1.25; margin-bottom: 12px; }
 .hero-accent { color: #2563eb; }
 .hero-text p { font-size: 13.5px; color: #64748b; line-height: 1.7; }

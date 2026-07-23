@@ -315,9 +315,6 @@ const deleteRole = async (role) => {
         <h1>Quản lý vai trò & quyền hạn</h1>
         <p>Phân chia các quyền hành động chi tiết cho từng vị trí nhân viên quản trị hệ thống DATN 2026</p>
       </div>
-      <button class="add-btn" @click="openAddModal">
-        <span>+</span> Tạo vai trò mới
-      </button>
     </div>
 
     <!-- Search bar -->
@@ -329,6 +326,9 @@ const deleteRole = async (role) => {
         </svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm tên, mã hoặc mô tả chức vụ..." />
       </div>
+      <button class="add-btn" @click="openAddModal">
+        <span>+</span> Tạo vai trò mới
+      </button>
     </div>
 
     <!-- Table content -->
@@ -529,6 +529,9 @@ const deleteRole = async (role) => {
 
 .filter-bar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   background: #ffffff;
   padding: 12px 16px;
   border-radius: 10px;

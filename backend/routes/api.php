@@ -42,9 +42,6 @@ use App\Http\Controllers\Api\AffiliateWalletController;
 use App\Http\Controllers\Api\AffiliateWithdrawalController;
 
 // Geocode routes moved inside auth:sanctum
-Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
-Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
-
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
@@ -364,6 +361,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
         Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
         Route::post('/orders/{id}/shipment/fail', [DatHangController::class, 'markDemoShipmentFailed']);
+        Route::post('/orders/{id}/shipment/retry', [DatHangController::class, 'retryDemoShipment']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);

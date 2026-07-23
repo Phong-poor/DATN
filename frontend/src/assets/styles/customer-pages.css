@@ -259,6 +259,7 @@
 
 .checkout-page > .container {
   display: flex;
+  justify-content: center;
   gap: var(--ds-space-6);
   align-items: flex-start;
   max-width: var(--ds-container) !important;

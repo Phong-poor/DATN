@@ -1,6 +1,7 @@
 <script setup>
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import Swal from 'sweetalert2'
   
 import api from '../../services/api'
 import swal from '../../services/swal'
@@ -141,10 +142,25 @@ const shipmentNoteMap = {
 }
 
 const getShipmentStatusLabel = (status, fallback = '') => shipmentLabelMap[status] || fallback || status || 'Đang cập nhật'
-const getShipmentNote = (status, fallback = '') => shipmentNoteMap[status] || fallback || 'Đã cập nhật trạng thái vận chuyển.'
+const getShipmentNote = (status, fallback = '') => fallback || shipmentNoteMap[status] || 'Đã cập nhật trạng thái vận chuyển.'
 
 const getShipment = (order) => order?.raw?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
 const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const getShipmentFailureReason = (order) => {
+    const shipment = getShipment(order)
+    if (shipment?.failure_reason) return shipment.failure_reason
+    const failedStep = shipment?.timeline?.findLast?.(step => step.status === 'delivery_failed')
+        || [...(shipment?.timeline || [])].reverse().find(step => step.status === 'delivery_failed')
+    const note = failedStep?.note || ''
+    if (!note || note.includes('Shipper giao không thành công')) return 'Không liên hệ được người nhận'
+    return note.replace(/^Giao hàng thất bại:\s*/i, '')
+}
+const getShipmentAttempts = (order) => Number(getShipment(order)?.delivery_attempts || 0)
+const getShipmentAttemptText = (order) => {
+    const attempts = getShipmentAttempts(order)
+    return attempts > 0 ? `Đã giao thất bại ${attempts}/3 lần` : ''
+}
+const getShipmentRefundNote = (order) => getShipment(order)?.refund_note || ''
 const getShipmentStatusStyle = (order) => {
     const status = getShipment(order)?.status
     return shipmentStyleMap[status] || getStatusStyle(order.status)
@@ -271,17 +287,102 @@ const advanceShipment = async (order) => {
 }
 
 const failShipment = async (order) => {
-    const ok = await swal.confirm('Ghi nhận giao thất bại', `Đánh dấu ${order.id} giao không thành công?`)
-    if (!ok) return
+    const reasons = {
+        'Không liên hệ được người nhận': 'Không liên hệ được người nhận',
+        'Khách hẹn giao lại': 'Khách hẹn giao lại',
+        'Khách từ chối nhận hàng': 'Khách từ chối nhận hàng',
+        'Địa chỉ giao hàng không chính xác': 'Địa chỉ giao hàng không chính xác',
+        'Không có người nhận tại địa chỉ': 'Không có người nhận tại địa chỉ',
+        'Khác': 'Khác',
+    }
+
+    const result = await Swal.fire({
+        title: 'Ghi nhận giao thất bại',
+        text: `Chọn lý do cho ${order.id}`,
+        input: 'select',
+        inputOptions: reasons,
+        inputValue: 'Không liên hệ được người nhận',
+        inputPlaceholder: 'Chọn lý do',
+        showCancelButton: true,
+        confirmButtonText: 'Ghi nhận',
+        cancelButtonText: 'Hủy',
+        buttonsStyling: false,
+        customClass: {
+            popup: 'swal2-custom-popup',
+            title: 'swal2-custom-title',
+            htmlContainer: 'swal2-custom-content',
+            confirmButton: 'swal2-custom-confirm',
+            cancelButton: 'swal2-custom-cancel',
+        },
+        preConfirm: (value) => {
+            if (!value) {
+                Swal.showValidationMessage('Vui lòng chọn lý do giao thất bại.')
+                return false
+            }
+            return value
+        },
+    })
+
+    if (!result.isConfirmed) return
+
+    let reason = result.value
+    if (reason === 'Khác') {
+        const custom = await Swal.fire({
+            title: 'Nhập lý do cụ thể',
+            input: 'textarea',
+            inputPlaceholder: 'VD: Khách đi công tác, hẹn giao lại vào ngày mai...',
+            inputAttributes: { maxlength: 255 },
+            showCancelButton: true,
+            confirmButtonText: 'Tiếp tục',
+            cancelButtonText: 'Hủy',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'swal2-custom-popup',
+                title: 'swal2-custom-title',
+                htmlContainer: 'swal2-custom-content',
+                confirmButton: 'swal2-custom-confirm',
+                cancelButton: 'swal2-custom-cancel',
+            },
+            preConfirm: (value) => {
+                if (!String(value || '').trim()) {
+                    Swal.showValidationMessage('Vui lòng nhập lý do cụ thể.')
+                    return false
+                }
+                return String(value).trim()
+            },
+        })
+
+        if (!custom.isConfirmed) return
+        reason = custom.value
+    }
 
     try {
-        const res = await api.post(`/admin/orders/${order.id_backend}/shipment/fail`)
+        const res = await api.post(`/admin/orders/${order.id_backend}/shipment/fail`, { reason })
         if (res.data.success) {
             syncOrderFromApi(res.data.order)
             swal.success('Đã ghi nhận', res.data.message || 'Đã cập nhật vận chuyển.')
         }
     } catch (error) {
         swal.error('Lỗi', error.response?.data?.message || 'Không thể ghi nhận giao thất bại')
+    }
+}
+
+const retryShipment = async (order) => {
+    const attempts = getShipmentAttempts(order)
+    const ok = await swal.confirm(
+        'Sắp xếp giao lại',
+        `Giao lại ${order.id} lần ${attempts + 1}/3?`
+    )
+    if (!ok) return
+
+    try {
+        const res = await api.post(`/admin/orders/${order.id_backend}/shipment/retry`)
+        if (res.data.success) {
+            syncOrderFromApi(res.data.order)
+            swal.success('Thành công', res.data.message || 'Đã sắp xếp giao lại.')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể sắp xếp giao lại')
     }
 }
 
@@ -297,6 +398,14 @@ const canAdvanceShipment = (order) => {
 const canFailShipment = (order) => {
     const status = getShipment(order)?.status
     return hasShipment(order) && ['picked_up', 'delivering'].includes(status)
+}
+
+const canRetryShipment = (order) => {
+    const shipment = getShipment(order)
+    return hasShipment(order)
+        && shipment?.status === 'delivery_failed'
+        && getShipmentAttempts(order) < 3
+        && shipment?.can_retry !== false
 }
 
 const confirmUpdateStatus = async (id, currentStatus) => {
@@ -499,6 +608,38 @@ const getAvatarStyle = (name) => {
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
 }
 
+const paymentStatusMap = {
+    paid: { label: 'Đã thanh toán', bg: '#dcfce7', color: '#15803d' },
+    unpaid: { label: 'Chưa thanh toán', bg: '#fee2e2', color: '#dc2626' },
+}
+
+const getPaymentStatus = (order) => {
+    const method = String(order.raw?.PTTT || '').toLowerCase().trim()
+    if (method === 'vnpay' || method === 'momo') {
+        if (order.status === 'cancelled' && order.raw?.trang_thai_thanh_toan !== 'paid') {
+            return 'unpaid'
+        }
+        return 'paid'
+    }
+    if (method === 'cod') {
+        const shipment = getShipment(order)
+        const isDelivered = (shipment?.status === 'delivered') || (order.status === 'done')
+        return isDelivered ? 'paid' : 'unpaid'
+    }
+    return order.raw?.trang_thai_thanh_toan === 'paid' ? 'paid' : 'unpaid'
+}
+
+const getPaymentStatusLabel = (order) => {
+    const status = getPaymentStatus(order)
+    return paymentStatusMap[status]?.label || 'Chưa thanh toán'
+}
+
+const getPaymentStatusStyle = (order) => {
+    const status = getPaymentStatus(order)
+    const map = paymentStatusMap[status] || paymentStatusMap.unpaid
+    return { background: map.bg, color: map.color }
+}
+
 async function exportExcel() {
     const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
@@ -506,7 +647,7 @@ async function exportExcel() {
 
     const titleRow = [`Báo cáo đơn hàng - ${tabLabel} (xuất ngày ${today})`]
     const blankRow = []
-    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
+    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Thanh toán', 'Ghi chú']
 
     const dataRows = filteredOrders.value.map(o => [
         o.id,
@@ -517,14 +658,15 @@ async function exportExcel() {
         o.date,
         o.total,
         getDisplayStatusLabel(o),
+        getPaymentStatusLabel(o),
         o.note,
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([titleRow, blankRow, header, ...dataRows])
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }]
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }]
     ws['!cols'] = [
         { wch: 16 }, { wch: 22 }, { wch: 26 }, { wch: 14 },
-        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 28 },
+        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 28 },
     ]
 
     const wb = XLSX.utils.book_new()
@@ -545,28 +687,23 @@ async function exportExcel() {
             <span class="active-crumb">Quản lý đơn hàng</span>
         </div>
 
-        <!-- TOP -->
-        <div class="top">
-            <h1>Quản lý đơn hàng</h1>
-            <div class="top-actions">
-                <button class="btn-export" @click="exportExcel">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Xuất báo cáo
-                </button>
-            </div>
-        </div>
-
         <!-- CATEGORY TABS -->
         <div class="category-tabs" style="margin-bottom: 20px;">
-            <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
-                Đơn mua hàng
-            </button>
-            <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
-                Đơn hoàn trả
+            <div class="category-tab-list">
+                <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
+                    Đơn mua hàng
+                </button>
+                <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
+                    Đơn hoàn trả
+                </button>
+            </div>
+            <button class="btn-export" @click="exportExcel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Xuất báo cáo
             </button>
         </div>
 
@@ -645,12 +782,13 @@ async function exportExcel() {
                         <th>Ngày đặt hàng</th>
                         <th>Tổng tiền</th>
                         <th>Trạng thái</th>
+                        <th>Thanh toán</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="7" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
 
@@ -688,7 +826,20 @@ async function exportExcel() {
                                 <span v-if="hasShipment(o)" class="tracking-code">
                                     {{ getShipment(o).provider }} - {{ getShipment(o).tracking_code }}
                                 </span>
+                                <span v-if="getShipment(o)?.status === 'delivery_failed'" class="failure-reason">
+                                    Lý do: {{ getShipmentFailureReason(o) || 'Không liên hệ được người nhận' }}
+                                    <small v-if="getShipmentAttemptText(o)">{{ getShipmentAttemptText(o) }}</small>
+                                </span>
+                                <span v-if="getShipment(o)?.status === 'returned' && getShipment(o)?.return_reason" class="return-note">
+                                    {{ getShipment(o).return_reason }}<small v-if="getShipmentRefundNote(o)">{{ getShipmentRefundNote(o) }}</small>
+                                </span>
                             </div>
+                        </td>
+
+                        <td>
+                            <span class="status-pill" :style="getPaymentStatusStyle(o)">
+                                {{ getPaymentStatusLabel(o) }}
+                            </span>
                         </td>
 
                         <td>
@@ -728,6 +879,16 @@ async function exportExcel() {
                                         <path d="M12 9v4"/>
                                         <path d="M12 17h.01"/>
                                         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="canRetryShipment(o)"
+                                        class="act-btn retry"
+                                        @click="retryShipment(o)"
+                                        :title="`Giao lại lần ${getShipmentAttempts(o) + 1}/3`">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 12a9 9 0 1 1-3-6.7"/>
+                                        <path d="M21 3v6h-6"/>
                                     </svg>
                                 </button>
 
@@ -829,7 +990,15 @@ async function exportExcel() {
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Thanh toán</span>
-                                    <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
+                                    <span class="info-value" style="text-transform: uppercase;">{{ viewOrder.raw.PTTT }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Trạng thái thanh toán</span>
+                                    <span class="info-value">
+                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder)" style="padding: 2px 8px; font-size: 0.85em; border-radius: 4px;">
+                                            {{ getPaymentStatusLabel(viewOrder) }}
+                                        </span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -845,6 +1014,16 @@ async function exportExcel() {
                                     <span class="status-pill" :style="getShipmentStatusStyle(viewOrder)">
                                         {{ getShipmentStatusLabel(getShipment(viewOrder).status, getShipment(viewOrder).status_label) }}
                                     </span>
+                                </div>
+                                <div v-if="getShipment(viewOrder).status === 'delivery_failed'" class="shipment-failure-box">
+                                    <span>Lý do giao thất bại</span>
+                                    <b>{{ getShipmentFailureReason(viewOrder) || 'Không liên hệ được người nhận' }}</b>
+                                    <p v-if="getShipmentAttemptText(viewOrder)">{{ getShipmentAttemptText(viewOrder) }}. Tối đa 3 lần trước khi chuyển hoàn.</p>
+                                </div>
+                                <div v-if="getShipment(viewOrder).status === 'returned'" class="shipment-failure-box is-returned">
+                                    <span>Đơn đã chuyển hoàn</span>
+                                    <b>{{ getShipment(viewOrder).return_reason || 'Đã hoàn về kho' }}</b>
+                                    <p v-if="getShipmentRefundNote(viewOrder)">{{ getShipmentRefundNote(viewOrder) }}</p>
                                 </div>
                                 <div class="shipment-grid">
                                     <div>
@@ -990,7 +1169,7 @@ async function exportExcel() {
 * { box-sizing: border-box; }
 
 .page {
-    padding: 28px 40px;
+    padding: 24px 20px;
     background: #f5f7fb;
     min-height: 100vh;
     font-family: sans-serif;
@@ -1212,39 +1391,49 @@ async function exportExcel() {
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8fafc; }
 thead th {
-    padding: 13px 20px; font-size: 11px; font-weight: 700;
+    padding: 12px 10px; font-size: 11px; font-weight: 700;
     color: #94a3b8; text-align: left; letter-spacing: 0.06em;
     border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
 }
 tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
 tbody tr.row-selected { background: #eff6ff; }
-tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: middle; }
+tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: middle; }
 .empty { text-align: center; color: #94a3b8; padding: 50px !important; }
 
 .select-col { width: 44px; text-align: center; }
 .select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
 .select-col input:disabled { cursor: not-allowed; opacity: 0.45; }
 
-.order-id { color: #2563eb; font-weight: 700; font-size: 13px; }
+.order-id { color: #2563eb; font-weight: 700; font-size: 13px; white-space: nowrap; }
 
 .customer-cell { display: flex; align-items: center; gap: 12px; }
 .avatar {
-    width: 38px; height: 38px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
 }
 .customer-cell b { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
-.customer-cell span { font-size: 12px; color: #94a3b8; }
+.customer-cell span {
+    font-size: 11px;
+    color: #94a3b8;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
 
-.date-cell { color: #64748b; }
-.total { font-size: 14px; font-weight: 700; color: #0f172a; }
+.date-cell { color: #64748b; white-space: nowrap; }
+.total { font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; }
 
 .status-pill, .status-select {
     display: inline-block; font-size: 11px; font-weight: 600;
     padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
     border: none; outline: none; cursor: pointer;
+    white-space: nowrap;
 }
 
 .status-stack {
@@ -1258,10 +1447,33 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     font-size: 11px;
     color: #64748b;
     font-weight: 600;
-    max-width: 190px;
+    max-width: 140px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.failure-reason {
+    max-width: 200px;
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 800;
+    line-height: 1.35;
+}
+.failure-reason small,
+.return-note small {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+}
+.return-note {
+    max-width: 200px;
+    font-size: 12px;
+    color: #7c3aed;
+    font-weight: 800;
+    line-height: 1.35;
 }
 .status-select {
     appearance: none;
@@ -1272,16 +1484,18 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background-size: 12px;
 }
 
-.actions { display: flex; gap: 6px; }
+.actions { display: flex; gap: 4px; }
 .act-btn {
-    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
     background: white; cursor: pointer; display: flex;
     align-items: center; justify-content: center; color: #64748b; transition: all 0.2s;
 }
-.act-btn svg { width: 14px; height: 14px; }
+.act-btn svg { width: 13px; height: 13px; }
 .act-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #2563eb; }
 .act-btn.logistics { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
 .act-btn.logistics:hover { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; }
+.act-btn.retry { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+.act-btn.retry:hover { background: #dcfce7; border-color: #86efac; color: #15803d; }
 .act-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #ef4444; }
 
 /* FOOTER */
@@ -1391,6 +1605,9 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .page { padding: 20px 16px; }
+    .category-tabs { align-items: stretch; flex-direction: column; gap: 8px; }
+    .category-tab-list { overflow-x: auto; }
+    .category-tabs > .btn-export { align-self: flex-end; margin-bottom: 8px; }
     .search-row { flex-direction: column; align-items: stretch; }
     .tabs { overflow-x: auto; }
     .table-wrap { overflow-x: auto; }
@@ -1465,6 +1682,51 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     color: #0f172a;
     font-size: 15px;
     margin-top: 4px;
+}
+
+.shipment-failure-box {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    margin: 0 0 14px;
+}
+
+.shipment-failure-box span {
+    display: block;
+    color: #ef4444;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.shipment-failure-box b {
+    color: #991b1b;
+    font-size: 14px;
+}
+
+.shipment-failure-box p {
+    margin: 6px 0 0;
+    color: #7f1d1d;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.shipment-failure-box.is-returned {
+    border-color: #ddd6fe;
+    background: #f5f3ff;
+}
+
+.shipment-failure-box.is-returned span {
+    color: #7c3aed;
+}
+
+.shipment-failure-box.is-returned b,
+.shipment-failure-box.is-returned p {
+    color: #5b21b6;
 }
 
 .shipment-provider,
@@ -1599,7 +1861,9 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 
 <style scoped>
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.category-tabs { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.category-tab-list { display: flex; align-items: flex-end; gap: 12px; }
+.category-tabs > .btn-export { flex-shrink: 0; margin-bottom: 8px; }
 .cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
 .cat-tab:hover { color: #2563eb; }
 .cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }

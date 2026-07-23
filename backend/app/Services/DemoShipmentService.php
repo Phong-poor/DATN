@@ -28,7 +28,10 @@ class DemoShipmentService
                 $shipment = $paymentData['shipping_demo'] ?? null;
 
                 if (empty($shipment['tracking_code'])) {
-                    if ($currentOrderStatus === 'pending' && $order->created_at && now()->diffInSeconds($order->created_at) >= 900) {
+                    $isCod = !in_array(strtolower(trim((string)$order->PTTT)), ['vnpay', 'momo']);
+                    $isPaid = $order->trang_thai_thanh_toan === 'paid';
+
+                    if ($currentOrderStatus === 'pending' && ($isCod || $isPaid) && $order->created_at && $order->created_at->diffInSeconds(now()) >= $this->confirmAfterSeconds()) {
                         $shipment = $this->buildDemoShipmentForOrderStatus($order, 'confirmed');
                         $paymentData = $this->paymentDataWithStatusTime($order, 'confirmed');
                         $paymentData['shipping_demo'] = $shipment;
@@ -61,6 +64,37 @@ class DemoShipmentService
                     return;
                 }
 
+                if (($shipment['status'] ?? null) === 'delivery_failed' && ($shipment['can_retry'] ?? false)) {
+                    $lastSyncAt = $shipment['last_sync_at'] ?? $shipment['failed_at'] ?? null;
+                    $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+
+                    if ($lastSyncAt && $attempts < 3 && Carbon::parse($lastSyncAt)->diffInSeconds(now()) >= $this->retryAfterSeconds()) {
+                        $nextAttempt = $attempts + 1;
+                        $shipment['failure_reason'] = null;
+                        $shipment['can_retry'] = false;
+                        $shipment['auto_retry_at'] = now()->toDateTimeString();
+
+                        $shipment = $this->appendShipmentTimeline(
+                            $shipment,
+                            'delivering',
+                            "Hệ thống tự động sắp xếp giao lại lần {$nextAttempt}/3."
+                        );
+
+                        $paymentData = $this->paymentDataWithStatusTime($order, 'shipping');
+                        $paymentData['shipping_demo'] = $shipment;
+
+                        $order->update([
+                            'trangthai' => 'shipping',
+                            'du_lieu_thanh_toan' => $paymentData,
+                        ]);
+
+                        $updated++;
+                        event(new OrderStatusUpdated($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                    }
+
+                    return;
+                }
+
                 $step = $this->autoShipmentSteps()[$shipment['status'] ?? null] ?? null;
                 if (! $step) {
                     return;
@@ -72,7 +106,7 @@ class DemoShipmentService
                 }
 
                 $afterSeconds = $shipment['auto_plan'][$step['plan_key'] ?? ''] ?? $step['after_seconds'];
-                if (now()->diffInSeconds(Carbon::parse($lastSyncAt)) < $afterSeconds) {
+                if (Carbon::parse($lastSyncAt)->diffInSeconds(now()) < $afterSeconds) {
                     return;
                 }
 
@@ -138,7 +172,7 @@ class DemoShipmentService
         if (! $time && ! empty($shipment['last_sync_at'])) {
             $plan = $shipment['auto_plan'] ?? [];
             $offsets = [
-                'waiting_pickup' => random_int(300, 1200),
+                'waiting_pickup' => $this->randomScaledSeconds(300, 1200),
                 'picked_up' => $plan['pickup_after_seconds'] ?? 10800,
                 'delivering' => $plan['dispatch_after_seconds'] ?? 7200,
                 'delivered' => $plan['delivery_after_seconds'] ?? 86400,
@@ -226,10 +260,10 @@ class DemoShipmentService
     private function demoShipmentStartTime(DatHang $order): \Carbon\CarbonInterface
     {
         $start = $order->created_at
-            ? $order->created_at->copy()->addMinutes(15)
-            : now();
+            ? Carbon::parse($order->created_at)->addMinutes(15)
+            : Carbon::now();
 
-        return $start->greaterThan(now()) ? now() : $start;
+        return $start->greaterThan(Carbon::now()) ? Carbon::now() : $start;
     }
 
     private function demoShipmentPlan(DatHang $order): array
@@ -263,9 +297,9 @@ class DemoShipmentService
             return [
                 'service_area' => 'Nội thành',
                 'service_level' => 'Giao nhanh trong ngày',
-                'pickup_after_seconds' => random_int(7200, 10800),
-                'dispatch_after_seconds' => random_int(1800, 3600),
-                'delivery_after_seconds' => random_int(7200, 14400),
+                'pickup_after_seconds' => $this->randomScaledSeconds(7200, 10800),
+                'dispatch_after_seconds' => $this->randomScaledSeconds(1800, 3600),
+                'delivery_after_seconds' => $this->randomScaledSeconds(7200, 14400),
             ];
         }
 
@@ -273,19 +307,48 @@ class DemoShipmentService
             return [
                 'service_area' => 'Tỉnh gần',
                 'service_level' => 'Giao liên tỉnh nhanh',
-                'pickup_after_seconds' => random_int(7200, 10800),
-                'dispatch_after_seconds' => random_int(3600, 7200),
-                'delivery_after_seconds' => random_int(43200, 86400),
+                'pickup_after_seconds' => $this->randomScaledSeconds(7200, 10800),
+                'dispatch_after_seconds' => $this->randomScaledSeconds(3600, 7200),
+                'delivery_after_seconds' => $this->randomScaledSeconds(43200, 86400),
             ];
         }
 
         return [
             'service_area' => 'Tỉnh xa',
             'service_level' => 'Giao tiêu chuẩn',
-            'pickup_after_seconds' => random_int(7200, 10800),
-            'dispatch_after_seconds' => random_int(7200, 14400),
-            'delivery_after_seconds' => random_int(172800, 345600),
+            'pickup_after_seconds' => $this->randomScaledSeconds(7200, 10800),
+            'dispatch_after_seconds' => $this->randomScaledSeconds(7200, 14400),
+            'delivery_after_seconds' => $this->randomScaledSeconds(172800, 345600),
         ];
+    }
+
+    private function confirmAfterSeconds(): int
+    {
+        $default = app()->environment('local') ? 60 : 900;
+
+        return max(1, (int) env('DEMO_SHIPMENT_CONFIRM_SECONDS', $default));
+    }
+
+    private function demoTimeScale(): float
+    {
+        $default = app()->environment('local') ? 0.02 : 1.0;
+
+        return max(0.001, (float) env('DEMO_SHIPMENT_TIME_SCALE', $default));
+    }
+
+    private function scaledSeconds(int $seconds): int
+    {
+        return max(1, (int) round($seconds * $this->demoTimeScale()));
+    }
+
+    private function randomScaledSeconds(int $min, int $max): int
+    {
+        return $this->scaledSeconds(random_int($min, $max));
+    }
+
+    private function retryAfterSeconds(): int
+    {
+        return $this->randomScaledSeconds(7200, 14400);
     }
 
     private function autoShipmentSteps(): array

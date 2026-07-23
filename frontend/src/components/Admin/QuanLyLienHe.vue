@@ -1,17 +1,6 @@
 <template>
   <div class="page">
 
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="search-box">
-        <svg viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input type="text" placeholder="Tìm kiếm nhanh..." v-model="searchQuery" />
-      </div>
-    </div>
-
     <!-- BREADCRUMB + TITLE -->
     <div class="page-heading">
       <p class="breadcrumb"><span>HỆ THỐNG</span> <span class="sep">›</span> <span class="active-crumb">QUẢN LÝ LIÊN HỆ</span></p>
@@ -120,7 +109,17 @@
       @clear="clearSelection"
       @delete-selected="removeSelected"
       @delete-all="removeAllFiltered"
-    />
+    >
+      <template #tools>
+        <div class="search-box bulk-search-box">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input type="text" placeholder="Tìm kiếm nhanh..." v-model="searchQuery" />
+        </div>
+      </template>
+    </BulkDeleteToolbar>
 
     <!-- TABLE -->
     <div v-if="!loading && !errorMsg" class="table-card">

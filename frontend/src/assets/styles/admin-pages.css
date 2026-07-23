@@ -28,9 +28,9 @@
 }
 
 .admin-layout .sidebar {
-  background: #0b1220 !important;
-  border-right: 1px solid rgba(226, 232, 240, 0.10) !important;
-  box-shadow: 18px 0 44px rgba(15, 23, 42, 0.12) !important;
+  background: #0b0d12 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 18px 0 44px rgba(0, 0, 0, 0.16) !important;
 }
 
 .admin-layout .sidebar-logo,
@@ -49,10 +49,15 @@
 }
 
 .admin-layout .item.active,
-.admin-layout .item.parent-active,
 .admin-layout .submenu-item.active {
   background: var(--admin-primary) !important;
   color: #ffffff !important;
+}
+
+.admin-layout .item.parent-active:not(.active) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #93c5fd !important;
+  box-shadow: none !important;
 }
 
 .admin-layout .item:hover,
@@ -74,7 +79,15 @@
   color: #dbeafe !important;
 }
 
-.admin-layout .admin-topbar,
+.admin-layout .admin-topbar {
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0 !important;
+  background: #0b0d12 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(14px);
+}
+
 .admin-layout .topbar-dropdown,
 .admin-layout .user-dropdown {
   border: 1px solid var(--admin-border) !important;
@@ -113,6 +126,99 @@
 .admin-layout .showing,
 .admin-layout .pagination-info {
   color: var(--admin-muted) !important;
+}
+
+.admin-layout .admin-topbar .admin-topbar-title h2 {
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .admin-topbar-title p {
+  color: rgba(219, 234, 254, 0.76) !important;
+}
+
+.admin-layout .admin-topbar .topbar-home-link,
+.admin-layout .admin-topbar .topbar-icon-button,
+.admin-layout .admin-topbar .topbar-user-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(191, 219, 254, 0.24) !important;
+  color: #e0f2fe !important;
+}
+
+.admin-layout .admin-topbar .topbar-home-link:hover,
+.admin-layout .admin-topbar .topbar-icon-button:hover,
+.admin-layout .admin-topbar .topbar-icon-button.active,
+.admin-layout .admin-topbar .topbar-user-btn:hover {
+  background: rgba(37, 99, 235, 0.42) !important;
+  border-color: rgba(125, 211, 252, 0.46) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .user-name,
+.admin-layout .admin-topbar .icon-flag {
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .user-role,
+.admin-layout .admin-topbar .topbar-user-btn svg {
+  color: rgba(219, 234, 254, 0.72) !important;
+}
+
+.admin-layout .admin-topbar .topbar-divider {
+  background: rgba(191, 219, 254, 0.22) !important;
+}
+
+/* Header chính của layout đã hiển thị tên trang. Ẩn các tiêu đề lặp lại
+   trong phần nội dung nhưng vẫn giữ nguyên nút thao tác, tìm kiếm và bộ lọc. */
+.admin-layout .page > .topbar:first-child .topbar-left > h1,
+.admin-layout .page > .topbar:first-child .topbar-left > h2,
+.admin-layout .page > .topbar:first-child .topbar-left > p,
+.admin-layout .page > .page-header > div:first-child:has(> h1),
+.admin-layout .page > .page-header > div:first-child:has(> h2),
+.admin-layout .page > .top > div:first-child:has(> h1),
+.admin-layout .page > .top > div:first-child:has(> h2),
+.admin-layout .page > .top > h1,
+.admin-layout .top-header > .header-left:has(> .page-title),
+.admin-layout .roles-management > .top-header > div:first-child:has(> h1),
+.admin-layout .admin-vongquay-page > .top-header > div:first-child:has(> .page-title) {
+  display: none !important;
+}
+
+.admin-layout .page > .hero > .hero-text:has(> h1) {
+  display: none !important;
+}
+
+.admin-layout .page > .topbar:first-child,
+.admin-layout .page > .page-header,
+.admin-layout .page > .top,
+.admin-layout .roles-management > .top-header {
+  justify-content: flex-end !important;
+}
+
+.admin-layout .page > .hero:has(> .hero-text > h1) {
+  min-height: 0 !important;
+  justify-content: flex-end !important;
+  padding-top: 0 !important;
+}
+
+.admin-layout .page > .topbar:first-child:has(.topbar-left) {
+  min-height: 0 !important;
+  padding-top: 0 !important;
+}
+
+.admin-layout .page > .page-header:has(> div:first-child > h1),
+.admin-layout .page > .top:has(> div:first-child > h1),
+.admin-layout .roles-management > .top-header:has(> div:first-child > h1) {
+  min-height: 0 !important;
+  margin-top: 0 !important;
+}
+
+.admin-layout .page > .breadcrumb,
+.admin-layout .page > .breadcrumbs {
+  display: none !important;
+}
+
+.admin-layout .top-header:not(:has(button)):has(.page-title) {
+  display: none !important;
 }
 
 .admin-layout .section-card,
