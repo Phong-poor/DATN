@@ -346,7 +346,6 @@
 .admin-layout .btn-primary,
 .admin-layout .btn-submit,
 .admin-layout .save-btn,
-.admin-layout .edit-btn,
 .admin-layout .btn-new-user,
 .admin-layout .btn-primary-sm,
 .admin-layout .page-btn.active,
@@ -366,7 +365,6 @@
 .admin-layout .btn-primary:hover,
 .admin-layout .btn-submit:hover,
 .admin-layout .save-btn:hover,
-.admin-layout .edit-btn:hover,
 .admin-layout .btn-new-user:hover,
 .admin-layout .btn-primary-sm:hover {
   background: var(--admin-primary-hover) !important;

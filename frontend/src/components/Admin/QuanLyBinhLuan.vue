@@ -5,31 +5,22 @@
             <!-- -- Top Header -- -->
             <div class="top-header">
                 <div class="header-left">
-                    <h1 class="page-title">Quản lý bình luận<br />&amp; đánh giá</h1>
+                    <h1 class="page-title">Quản lý Bình luận<br />&amp; Đánh giá</h1>
                     <p class="page-sub">Theo dõi và phản hồi các đánh giá từ khách hàng của NextGen</p>
                 </div>
             </div>
 
             <div class="stats-row">
                     <div class="stat-card">
-                        <div class="stat-icon">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
-                        </div>
                         <div class="stat-label">TỔNG CỘNG</div>
                         <div class="stat-value">{{ statsData.total }}</div>
                     </div>
                     <div class="stat-card highlight">
-                        <div class="stat-icon">
-                            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                        </div>
                         <div class="stat-label">CHỜ DUYỆT</div>
                         <div class="stat-value">{{ statsData.pending }}</div>
                     </div>
                     <div class="stat-card gold">
-                        <div class="stat-icon">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg>
-                        </div>
-                        <div class="stat-label">ĐÁNH GIÁ TRUNG BÌNH</div>
+                        <div class="stat-label">ĐÁNH GIÁ TB</div>
                         <div class="stat-value">{{ statsData.avg }} <span class="star">★</span></div>
                     </div>
             </div>
@@ -108,7 +99,7 @@
                                         <button v-if="isPendingLike(review)" class="action-btn approve"
                                             @click="approveReview(review)">DUYỆT<br />NGAY</button>
                                         
-                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu spam" @click="markAsSpam(review)">
+                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu Spam" @click="markAsSpam(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                                             </svg>
@@ -135,18 +126,13 @@
                 </div>
 
                 <!-- Pagination -->
-                <div class="pagination" v-if="pagination.last_page > 1">
-                    <span class="page-info">Trang {{ pagination.current_page }} / {{ pagination.last_page }} (Tổng {{ pagination.total }} đánh giá)</span>
-                    <div class="page-btns">
-                        <button class="page-btn arrow" :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
-                        <template v-for="(p, index) in compactPageNumbers" :key="`${p}-${index}`">
-                            <span v-if="p === '...'" class="page-dots">...</span>
-                            <button v-else class="page-btn" :class="{ active: currentPage === p }"
-                                @click="currentPage = p">{{ p }}</button>
-                        </template>
-                        <button class="page-btn arrow" :disabled="currentPage === pagination.last_page" @click="currentPage++">&gt;</button>
-                    </div>
-                </div>
+                <PhanTrangAdmin
+                    v-model:currentPage="currentPage"
+                    :total-pages="pagination.last_page"
+                    :total-items="pagination.total"
+                    :page-size="pagination.per_page || 10"
+                    item-label="đánh giá"
+                />
             </div>
 
             <!-- -- Bottom Banners -- -->
@@ -159,15 +145,14 @@
                         </svg>
                     </div>
                     <h4>Tất cả đã sẵn sàng!</h4>
-                    <p>Hiện không có bình luận nào cần kiểm duyệt gấp. Hệ thống AI đang tự động lọc các nội dung spam,
-                        thô tục.</p>
+                    <p>Hiện không có bình luận nào cần kiểm duyệt gấp. Hệ thống AI đang tự động lọc các nội dung spam thô tục.</p>
                 </div>
 
                 <div class="banner-card moderation-tool">
                     <div class="tool-card-head">
                         <div>
                             <div class="banner-badge">TOOL</div>
-                            <h4>Công cụ<br />duyệt bình luận</h4>
+                            <h4>Công cụ<br />Duyệt bình luận</h4>
                         </div>
                         <button
                             class="tool-switch"
@@ -184,8 +169,8 @@
                     </div>
                     <p>
                         {{ toolIsOn
-                            ? 'Công cụ đang kiểm soát đánh giá khách hàng. Đánh giá tốt sẽ được tự duyệt, nội dung tục tĩu, spam hoặc công kích sẽ bị ẩn.'
-                            : 'Công cụ đang tắt. Đánh giá mới sẽ chờ quản trị viên kiểm duyệt thủ công.' }}
+                            ? 'Tool đang kiểm soát đánh giá khách hàng. Đánh giá tốt sẽ được tự duyệt, nội dung tục tĩu/spam/công kích sẽ bị ẩn.'
+                            : 'Tool đang tắt. Đánh giá mới sẽ chờ admin kiểm duyệt thủ công khi bạn không có nhu cầu chạy kiểm soát tự động.' }}
                     </p>
                     <div class="tool-summary">
                         <span>Chờ duyệt toàn hệ thống</span>
@@ -227,6 +212,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const activeTab = ref('all')
 const currentPage = ref(1)
@@ -240,7 +226,7 @@ let autoRefreshTimer = null
 const toolIsOn = computed(() => toolEnabled.value === true)
 const toolActionText = computed(() => {
     if (toolStatusLoading.value) return 'ĐANG CẬP NHẬT...'
-    return toolIsOn.value ? 'TẮT CÔNG CỤ' : 'BẬT CÔNG CỤ'
+    return toolIsOn.value ? 'TẮT TOOL' : 'BẬT TOOL'
 })
 
 const tabs = [
@@ -382,7 +368,7 @@ const undoReview = async (review) => {
 const showUndoToast = (review, oldStatus) => {
     if (toast.value.timeout) clearTimeout(toast.value.timeout);
     toast.value.show = true;
-    toast.value.message = 'Đã chuyển bình luận vào mục spam.';
+    toast.value.message = 'Đã chuyển bình luận vào mục SPAM.';
     toast.value.reviewId = review.id_danhgia;
     toast.value.oldStatus = oldStatus;
 
@@ -499,13 +485,13 @@ const fetchToolStatus = async () => {
         const res = await api.get('/admin/reviews/ai-status')
         toolEnabled.value = normalizeToolStatus(res.data.active)
     } catch (err) {
-        console.error('Lỗi khi tải trạng thái công cụ tự duyệt:', err)
+        console.error('Lỗi khi tải trạng thái tool tự duyệt:', err)
     }
 }
 
 const runAutoModeration = async () => {
     if (!toolEnabled.value) {
-        swal.info('Công cụ đang tắt', 'Hãy bật công cụ tự duyệt trước khi chạy kiểm soát đánh giá.')
+        swal.info('Tool đang tắt', 'Hãy bật tool tự duyệt trước khi chạy kiểm soát đánh giá.')
         return
     }
 
@@ -514,12 +500,12 @@ const runAutoModeration = async () => {
         const res = await api.post('/admin/reviews/auto-moderate', { limit: 200 })
         const summary = res.data.summary || {}
         await swal.success(
-            'Công cụ tự duyệt đã chạy',
-            `Đã quét ${summary.scanned || 0} đánh giá. Duyệt: ${summary.approved || 0}, spam: ${summary.spam || 0}, còn chờ: ${summary.pending || 0}.`
+            'Tool tự duyệt đã chạy',
+            `Đã quét ${summary.scanned || 0} đánh giá. Duyệt: ${summary.approved || 0}, Spam: ${summary.spam || 0}, còn chờ: ${summary.pending || 0}.`
         )
         await fetchReviews()
     } catch (err) {
-        swal.error('Lỗi', 'Không chạy được công cụ tự duyệt: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Không chạy được tool tự duyệt: ' + (err.response?.data?.message || err.message))
     } finally {
         autoModerationLoading.value = false
     }
@@ -534,14 +520,14 @@ const toggleTool = async () => {
         const res = await api.post('/admin/reviews/ai-status', { active: nextStatus })
         toolEnabled.value = normalizeToolStatus(res.data.active)
         swal.success(
-            toolEnabled.value ? 'Đã bật công cụ tự duyệt' : 'Đã tắt công cụ tự duyệt',
+            toolEnabled.value ? 'Đã bật tool tự duyệt' : 'Đã tắt tool tự duyệt',
             toolEnabled.value
                 ? 'Hệ thống sẽ tự kiểm soát đánh giá mới của khách hàng.'
                 : 'Đánh giá mới sẽ chuyển sang trạng thái chờ duyệt thủ công.'
         )
     } catch (err) {
         toolEnabled.value = !nextStatus
-        swal.error('Lỗi', 'Không cập nhật được trạng thái công cụ: ' + (err.response?.data?.message || err.message))
+        swal.error('Lỗi', 'Không cập nhật được trạng thái tool: ' + (err.response?.data?.message || err.message))
     } finally {
         toolStatusLoading.value = false
         await fetchToolStatus()

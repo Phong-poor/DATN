@@ -130,7 +130,7 @@
             <tr v-else-if="filteredPromos.length === 0">
               <td colspan="8" class="empty-row">Không tìm thấy chương trình nào.</td>
             </tr>
-            <tr v-else v-for="p in filteredPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
+            <tr v-else v-for="p in paginatedPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
               <td class="select-col">
                 <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleItemSelection(p.id)" />
               </td>
@@ -176,14 +176,13 @@
       </table>
     </div>
 
-      <div class="pagination-row">
-        <span class="page-info">Hiển thị 1-{{ filteredPromos.length }} trên <strong>{{ promos.length }}</strong> khuyến mãi</span>
-        <div class="pagination">
-          <button class="page-btn">‹</button>
-          <button class="page-btn active">1</button>
-          <button class="page-btn">›</button>
-        </div>
-      </div>
+      <PhanTrangAdmin
+        v-model:currentPage="currentPage"
+        :total-pages="totalPages"
+        :total-items="filteredPromos.length"
+        :page-size="pageSize"
+        item-label="khuyến mãi"
+      />
 
       <!-- BOTTOM CARDS -->
       <div class="bottom-row">
@@ -434,11 +433,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { registerOfflineForm } from '@/services/offlineSync'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const searchQuery = ref('')
 const currentView = ref('list') // 'list' | 'promo-form'
@@ -446,6 +447,9 @@ const isEdit = ref(false)
 const editId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+
+const currentPage = ref(1)
+const pageSize = ref(7)
 
 // ── Toast ──────────────────────────────────────
 const toast = ref({ show: false, msg: '', type: 'success' })
@@ -479,6 +483,7 @@ const defaultForm = () => ({
 })
 
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-khuyen-mai')
 const errors = ref({})
 const promos = ref([])
 
@@ -517,7 +522,18 @@ const fetchPromos = async () => {
   }
 }
 
-onMounted(fetchPromos)
+const syncSuccessHandler = () => {
+  fetchPromos()
+}
+
+onMounted(() => {
+  fetchPromos()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
+})
 
 // ================= COMPUTED =================
 const filteredPromos = computed(() => {
@@ -527,6 +543,13 @@ const filteredPromos = computed(() => {
     p.ten.toLowerCase().includes(q) ||
     p.code.toLowerCase().includes(q)
   )
+})
+
+const totalPages = computed(() => Math.ceil(filteredPromos.value.length / pageSize.value) || 1)
+
+const paginatedPromos = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredPromos.value.slice(start, start + pageSize.value)
 })
 
 const {
@@ -783,30 +806,41 @@ async function deletePromo(id) {
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  padding: 8px 14px;
-  width: 260px;
+  padding: 0 12px;
+  width: 280px;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .search-box svg {
   width: 15px;
   height: 15px;
-  stroke: #94a3b8;
+  stroke: #64748b;
   stroke-width: 2;
   fill: none;
   flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .search-box input {
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-size: 13px;
-  color: #1e293b;
-  background: transparent;
+  color: #0f172a;
+  background: transparent !important;
   width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .search-box input::placeholder {

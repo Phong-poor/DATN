@@ -201,7 +201,7 @@
                   </div>
                   <div class="field">
                     <label>Email nhận hóa đơn</label>
-                    <input v-model="checkoutForm.email" placeholder="email@example.com" type="email" required />
+                    <input v-model="checkoutForm.email" placeholder="Email@example.com" type="email" required />
                   </div>
                   <div class="field">
                     <label>Địa chỉ nhận hàng</label>

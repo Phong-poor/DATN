@@ -62,6 +62,17 @@ const commonConfig = {
 
 const swal = {
   success(title, text = '') {
+    if (typeof window !== 'undefined' && window.__lastRequestWasOfflineQueued) {
+      window.__lastRequestWasOfflineQueued = false
+      return Swal.fire({
+        ...iconConfig('warning'),
+        title: 'Đã lưu tạm offline',
+        text: 'Dữ liệu đã được lưu cục bộ và sẽ tự động đồng bộ khi có mạng.',
+        ...commonConfig,
+        timer: 3000,
+        showConfirmButton: false,
+      })
+    }
     return Swal.fire({
       ...iconConfig('success'),
       title,
@@ -73,6 +84,22 @@ const swal = {
   },
 
   error(title, text = '') {
+    const isOfflineMsg = String(text || '').includes('ngoại tuyến') || 
+                         String(text || '').includes('mạng') || 
+                         String(title || '').includes('offline') ||
+                         String(title || '').includes('ngoại tuyến') ||
+                         String(text || '').includes('offline')
+                         
+    if (isOfflineMsg) {
+      return Swal.fire({
+        ...iconConfig('warning'),
+        title: 'Thông báo',
+        text,
+        ...commonConfig,
+        timer: 3000,
+        showConfirmButton: false,
+      })
+    }
     return Swal.fire({
       ...iconConfig('error'),
       title,
@@ -114,25 +141,14 @@ const swal = {
   },
 
   toast(title, icon = 'success') {
-    const Toast = Swal.mixin({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
+    return Swal.fire({
+      ...iconConfig(icon),
+      title,
+      ...commonConfig,
       timer: 3000,
-      timerProgressBar: true,
-      background: '#ffffff',
-      color: '#0f172a',
-      customClass: {
-        popup: 'swal2-toast-popup',
-        title: 'swal2-toast-title',
-      },
-      didOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer)
-        toast.addEventListener('mouseleave', Swal.resumeTimer)
-      },
+      showConfirmButton: true,
+      confirmButtonText: 'OK',
     })
-
-    return Toast.fire({ icon, title })
   },
 }
 

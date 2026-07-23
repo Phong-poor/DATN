@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 import {
   BadgeCheck,
   Ban,
@@ -503,39 +504,62 @@ onMounted(loadData)
       </div>
     </section>
 
-    <section class="metrics-grid">
-      <article class="metric-card blue">
-        <div class="metric-icon"><Users :size="24" /></div>
-        <div>
-          <span>Publisher</span>
-          <strong>{{ stats.publishers }}</strong>
-          <small>{{ stats.activeProfiles }} đang hoạt động · {{ stats.pendingProfiles }} chờ duyệt</small>
+    <section class="ttlk-stats-grid">
+      <!-- Card 1 -->
+      <div class="ttlk-stat-card">
+        <span class="ttlk-label">NHÀ TIẾP THỊ</span>
+        <div class="ttlk-card-body">
+          <div class="ttlk-left-group">
+            <div class="ttlk-icon-box">
+              <Users :size="20" />
+            </div>
+            <h2 class="ttlk-number">{{ stats.publishers }}</h2>
+          </div>
+          <span class="ttlk-badge neutral">{{ stats.activeProfiles }} Hoạt động · {{ stats.pendingProfiles }} Chờ</span>
         </div>
-      </article>
-      <article class="metric-card blue">
-        <div class="metric-icon"><Clock3 :size="24" /></div>
-        <div>
-          <span>Hoa hồng chờ duyệt</span>
-          <strong>{{ formatMoney(stats.pendingCommissionAmount) }}</strong>
-          <small>{{ stats.pendingCommissionCount }} giao dịch cần xử lý</small>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="ttlk-stat-card">
+        <span class="ttlk-label">HOA HỒNG CHỜ DUYỆT</span>
+        <div class="ttlk-card-body">
+          <div class="ttlk-left-group">
+            <div class="ttlk-icon-box">
+              <Clock3 :size="20" />
+            </div>
+            <h2 class="ttlk-number">{{ formatMoney(stats.pendingCommissionAmount) }}</h2>
+          </div>
+          <span class="ttlk-badge warning">{{ stats.pendingCommissionCount }} Cần xử lý</span>
         </div>
-      </article>
-      <article class="metric-card teal">
-        <div class="metric-icon"><Banknote :size="24" /></div>
-        <div>
-          <span>Rút tiền chờ duyệt</span>
-          <strong>{{ formatMoney(stats.pendingWithdrawAmount) }}</strong>
-          <small>{{ stats.pendingWithdrawCount }} yêu cầu thanh toán</small>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="ttlk-stat-card">
+        <span class="ttlk-label">RÚT TIỀN CHỜ DUYỆT</span>
+        <div class="ttlk-card-body">
+          <div class="ttlk-left-group">
+            <div class="ttlk-icon-box">
+              <Banknote :size="20" />
+            </div>
+            <h2 class="ttlk-number">{{ formatMoney(stats.pendingWithdrawAmount) }}</h2>
+          </div>
+          <span class="ttlk-badge warning">{{ stats.pendingWithdrawCount }} Yêu cầu</span>
         </div>
-      </article>
-      <article class="metric-card violet">
-        <div class="metric-icon"><TrendingUp :size="24" /></div>
-        <div>
-          <span>Đã thanh toán</span>
-          <strong>{{ formatMoney(stats.paidAmount) }}</strong>
-          <small>{{ stats.conversionOrders }} đơn có ghi nhận hoa hồng</small>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="ttlk-stat-card">
+        <span class="ttlk-label">ĐÃ THANH TOÁN</span>
+        <div class="ttlk-card-body">
+          <div class="ttlk-left-group">
+            <div class="ttlk-icon-box">
+              <TrendingUp :size="20" />
+            </div>
+            <h2 class="ttlk-number">{{ formatMoney(stats.paidAmount) }}</h2>
+          </div>
+          <span class="ttlk-badge success">{{ stats.conversionOrders }} Đơn hoa hồng</span>
         </div>
-      </article>
+      </div>
     </section>
 
     <section class="control-panel">
@@ -614,24 +638,14 @@ onMounted(loadData)
             </div>
           </div>
 
-          <div v-if="filteredProfiles.length > 0" class="pagination-bar">
-            <div class="pagination-info">
-              Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredProfiles.length }} publisher
-            </div>
-            <div class="pagination-actions">
-              <label class="page-size">
-                <span>Dòng/trang</span>
-                <select v-model.number="itemsPerPage">
-                  <option :value="5">5</option>
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                </select>
-              </label>
-              <button type="button" class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">Trước</button>
-              <span class="page-btn number active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-              <button type="button" class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">Sau</button>
-            </div>
-          </div>
+          <PhanTrangAdmin
+            v-if="filteredProfiles.length > 0"
+            v-model:currentPage="currentPage"
+            :total-pages="totalPages"
+            :total-items="filteredProfiles.length"
+            :page-size="itemsPerPage"
+            item-label="publisher"
+          />
         </article>
 
         <aside class="data-card profile-panel">
@@ -776,24 +790,14 @@ onMounted(loadData)
           </table>
         </div>
 
-        <div v-if="filteredCommissions.length > 0" class="pagination-bar">
-          <div class="pagination-info">
-            Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredCommissions.length }} giao dịch
-          </div>
-          <div class="pagination-actions">
-            <label class="page-size">
-              <span>Dòng/trang</span>
-              <select v-model.number="itemsPerPage">
-                <option :value="5">5</option>
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-              </select>
-            </label>
-            <button type="button" class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">Trước</button>
-            <span class="page-btn number active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-            <button type="button" class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">Sau</button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-if="filteredCommissions.length > 0"
+          v-model:currentPage="currentPage"
+          :total-pages="totalPages"
+          :total-items="filteredCommissions.length"
+          :page-size="itemsPerPage"
+          item-label="giao dịch"
+        />
       </section>
 
       <section v-else-if="activeTab === 'videos'" class="data-card">
@@ -870,24 +874,14 @@ onMounted(loadData)
           </div>
         </div>
 
-        <div v-if="filteredVideos.length > 0" class="pagination-bar">
-          <div class="pagination-info">
-            Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredVideos.length }} video
-          </div>
-          <div class="pagination-actions">
-            <label class="page-size">
-              <span>Dòng/trang</span>
-              <select v-model.number="itemsPerPage">
-                <option :value="5">5</option>
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-              </select>
-            </label>
-            <button type="button" class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">Trước</button>
-            <span class="page-btn number active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-            <button type="button" class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">Sau</button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-if="filteredVideos.length > 0"
+          v-model:currentPage="currentPage"
+          :total-pages="totalPages"
+          :total-items="filteredVideos.length"
+          :page-size="itemsPerPage"
+          item-label="video"
+        />
       </section>
 
       <section v-else class="data-card">
@@ -958,24 +952,14 @@ onMounted(loadData)
           </div>
         </div>
 
-        <div v-if="filteredWithdraws.length > 0" class="pagination-bar">
-          <div class="pagination-info">
-            Hiển thị {{ pageStart }}-{{ pageEnd }} / {{ filteredWithdraws.length }} yêu cầu
-          </div>
-          <div class="pagination-actions">
-            <label class="page-size">
-              <span>Dòng/trang</span>
-              <select v-model.number="itemsPerPage">
-                <option :value="5">5</option>
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-              </select>
-            </label>
-            <button type="button" class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">Trước</button>
-            <span class="page-btn number active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-            <button type="button" class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">Sau</button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-if="filteredWithdraws.length > 0"
+          v-model:currentPage="currentPage"
+          :total-pages="totalPages"
+          :total-items="filteredWithdraws.length"
+          :page-size="itemsPerPage"
+          item-label="yêu cầu"
+        />
       </section>
     </template>
   </div>
@@ -1059,75 +1043,110 @@ onMounted(loadData)
   background: #eff6ff;
 }
 
-.metrics-grid {
+.ttlk-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 18px;
 }
 
-.metric-card {
-  min-height: 142px;
-  border-radius: 8px;
-  padding: 20px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 18px 34px rgba(15, 23, 42, .10);
+@media (max-width: 1200px) {
+  .ttlk-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.metric-card::after {
-  content: "";
+.ttlk-stat-card {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%) !important;
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+  position: relative;
+  overflow: hidden;
+  border: none !important;
+  transition: all 0.2s ease;
+}
+
+.ttlk-stat-card::after {
+  content: '';
   position: absolute;
   width: 140px;
   height: 140px;
-  right: -42px;
-  top: -42px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, 0.12);
+  top: -45px;
+  right: -25px;
+  pointer-events: none;
 }
 
-.metric-card.blue { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
-.metric-card.amber { background: linear-gradient(135deg, #c2410c, #f97316); }
-.metric-card.teal { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
-.metric-card.violet { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
-
-.metric-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, .18);
-  flex: 0 0 auto;
+.ttlk-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
 }
 
-.metric-card span,
-.metric-card small {
-  display: block;
-  color: rgba(255, 255, 255, .86);
+.ttlk-label {
+  font-size: 11.5px;
   font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
 }
 
-.metric-card span {
-  font-size: 12px;
-  text-transform: capitalize;
+.ttlk-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 
-.metric-card strong {
-  display: block;
-  margin: 7px 0 4px;
-  font-size: 28px;
-  line-height: 1.1;
-  font-weight: 900;
+.ttlk-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.metric-card small {
-  font-size: 12px;
+.ttlk-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
 }
+
+.ttlk-number {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff !important;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ttlk-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ttlk-badge.neutral { color: #1d4ed8 !important; }
+.ttlk-badge.warning { color: #d97706 !important; }
+.ttlk-badge.success { color: #059669 !important; }
 
 .control-panel,
 .data-card,
@@ -1202,20 +1221,63 @@ onMounted(loadData)
 
 .search-box,
 .select-box {
-  min-width: 200px;
-  height: 46px;
-  border: 1px solid #dbe4f0;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  background: #fff;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06);
+  height: 42px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.search-box:focus-within,
+.select-box:focus-within {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
 }
 
 .search-box {
-  width: min(520px, 55vw);
+  width: min(520px, 55vw) !important;
+}
+
+.select-box {
+  min-width: 180px !important;
+}
+
+.search-box svg,
+.select-box svg {
+  color: #64748b !important;
+  stroke: #64748b !important;
+  flex-shrink: 0 !important;
+}
+
+.search-box input,
+.select-box select {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  appearance: none !important;
+}
+
+.search-box input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.select-box select {
+  cursor: pointer !important;
+  padding-right: 12px !important;
 }
 
 .search-box input,

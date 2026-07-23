@@ -29,7 +29,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>STT</th>
               <th>TÊN ĐỢT SALE</th>
               <th>THỜI GIAN BẮT ĐẦU</th>
               <th>THỜI GIAN KẾT THÚC</th>
@@ -39,8 +39,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in sessions" :key="s.id_session">
-              <td>#{{ s.id_session }}</td>
+            <tr v-for="(s, index) in sessions" :key="s.id_session">
+              <td style="font-weight: bold; text-align: center;">{{ index + 1 }}</td>
               <td class="cat-name">{{ s.ten_dot }}</td>
               <td>{{ formatDateTime(s.thoi_gian_bat_dau) }}</td>
               <td>{{ formatDateTime(s.thoi_gian_ket_thuc) }}</td>
@@ -1145,6 +1145,8 @@ td {
 .action-delete:hover svg { stroke: #ef4444; }
 .select-btn:hover { background: #eff6ff; border-color: #93c5fd; }
 .select-btn:hover svg { stroke: #2563eb; }
+.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+.edit-btn:hover svg { stroke: #2563eb; }
 
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 40px; }
 

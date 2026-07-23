@@ -9,6 +9,7 @@ import echo from '../../services/echo'
 import { productImageUrl, storageUrl } from '@/services/urls'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const getOrderItemImage = (item) => {
   const bt = item?.bien_the || item?.bienThe
@@ -451,12 +452,17 @@ const deleteOrder = async (id) => {
     }
 }
 
+const syncSuccessHandler = () => {
+    fetchOrders()
+}
+
 onMounted(() => {
     fetchOrders()
     autoRefreshTimer = window.setInterval(() => {
         fetchOrders()
     }, 20000)
     document.addEventListener('click', closeDateDropdown)
+    window.addEventListener('offline-sync-success', syncSuccessHandler)
 
     echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
@@ -482,6 +488,7 @@ onUnmounted(() => {
     }
     echo.leaveChannel('admin-orders')
     document.removeEventListener('click', closeDateDropdown)
+    window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 
 watch(searchQuery, () => {
@@ -929,22 +936,14 @@ async function exportExcel() {
         </div>
 
         <!-- FOOTER -->
-        <div class="table-footer">
-            <span class="showing" v-if="filteredOrders.length > 0">
-                Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng
-            </span>
-            <span class="showing" v-else>Không có dữ liệu hiển thị</span>
-
-            <div class="pagination" v-if="totalPages > 1">
-                <button :disabled="currentPage === 1" @click="currentPage--">‹</button>
-                <button 
-                    v-for="p in totalPages" :key="p" 
-                    :class="{ active: currentPage === p }"
-                    @click="currentPage = p"
-                >{{ p }}</button>
-                <button :disabled="currentPage === totalPages" @click="currentPage++">›</button>
-            </div>
-
+        <div class="don-hang-footer-row">
+            <PhanTrangAdmin
+                v-model:currentPage="currentPage"
+                :total-pages="totalPages"
+                :total-items="filteredOrders.length"
+                :page-size="itemsPerPage"
+                item-label="đơn hàng"
+            />
             <div class="revenue-chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
@@ -1500,27 +1499,21 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
 .act-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #ef4444; }
 
 /* FOOTER */
-.table-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-top: 16px; flex-wrap: wrap; gap: 12px;
+.don-hang-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
 }
-.showing { font-size: 13px; color: #64748b; }
-
-.pagination { display: flex; gap: 6px; }
-.pagination button {
-    width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0;
-    background: white; font-size: 13px; cursor: pointer; color: #334155; transition: all 0.2s;
-}
-.pagination button:hover { border-color: #2563eb; color: #2563eb; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.pagination .active { background: #2563eb; border-color: #2563eb; color: white; }
-.pagination .dots { border: none; background: transparent; cursor: default; }
-.pagination .dots:hover { color: #334155; border-color: transparent; }
 
 .revenue-chip {
     display: flex; align-items: center; gap: 10px;
-    background: white; border: 1px solid #f1f5f9;
-    padding: 10px 16px; border-radius: 12px;
+    background: white; border: 1px solid #e2e8f0;
+    padding: 8px 16px; border-radius: 12px;
+    margin-left: auto;
+    margin-right: 32px;
 }
 .revenue-chip svg { width: 20px; height: 20px; color: #2563eb; }
 .revenue-chip span { font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.06em; display: block; }

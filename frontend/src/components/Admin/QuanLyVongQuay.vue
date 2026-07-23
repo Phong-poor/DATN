@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -195,6 +196,17 @@ onMounted(async () => {
         <p class="page-subtitle">Cấu hình các ô trúng thưởng, tỷ lệ trúng và kết nối voucher giảm giá.</p>
       </div>
     </div>
+    <!-- STATS & VALIDATION BANNER -->
+    <div class="info-row">
+      <div class="stat-card" :class="{ 'warning-border': Math.abs(totalWeight - 100) > 0.01 }">
+        <div class="stat-label-vongquay">TỔNG TỶ LỆ CÁC Ô TRÚNG</div>
+        <h3 class="value" :class="{ 'error-color': Math.abs(totalWeight - 100) > 0.01 }">
+          {{ totalWeight.toFixed(2) }}%
+        </h3>
+      </div>
+    </div>
+
+
     <div class="admin-grid">
       <!-- LEFT COLUMN: LIST OF WHEEL SLOTS -->
       <div class="panel list-panel">
@@ -316,23 +328,15 @@ onMounted(async () => {
           </table>
 
           <!-- Pagination -->
-          <div class="pagination-footer" v-if="historyTotalPages > 1">
-            <button 
-              class="page-btn" 
-              :disabled="historyPage === 1" 
-              @click="fetchHistory(historyPage - 1)"
-            >
-              Trước
-            </button>
-            <span class="page-indicator">Trang {{ historyPage }} / {{ historyTotalPages }}</span>
-            <button 
-              class="page-btn" 
-              :disabled="historyPage === historyTotalPages" 
-              @click="fetchHistory(historyPage + 1)"
-            >
-              Sau
-            </button>
-          </div>
+          <PhanTrangAdmin
+            v-if="historyTotalPages >= 1"
+            v-model:currentPage="historyPage"
+            :total-pages="historyTotalPages"
+            :total-items="history.length"
+            :page-size="10"
+            item-label="lượt quay"
+            @change-page="fetchHistory"
+          />
         </div>
       </div>
     </div>
@@ -488,10 +492,10 @@ onMounted(async () => {
   background: #fffaf0;
 }
 
-.stat-card .stat-label {
+.stat-card .stat-label-vongquay {
   font-size: 10.5px;
   font-weight: 800;
-  color: #0f172a;
+  color: #475569;
   letter-spacing: 1px;
 }
 

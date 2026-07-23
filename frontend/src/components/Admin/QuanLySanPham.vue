@@ -10,6 +10,7 @@ const hasPermission = (perm) => {
   return user.value?.cac_quyen?.includes(perm)
 }
 import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const PRODUCTS_CACHE_KEY = 'nextgen_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
@@ -748,9 +749,9 @@ const buildAttributeGroups = () => {
             label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
-              label: c.name,
-              value: c.name,
-              hex: c.hex_code,
+              label: c.ten || c.name,
+              value: c.ten || c.name,
+              hex: c.mamau || c.hex || c.hex_code,
             })),
           },
         ],
@@ -855,7 +856,10 @@ const defaultForm = () => ({
   weight: '',
 })
 
+import { registerOfflineForm } from '@/services/offlineSync';
+
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-san-pham')
 const fieldErrors = ref({})
 
 /**
@@ -1857,16 +1861,28 @@ const submitForm = async () => {
     resetForm()
     closeModal()
   } catch (error) {
-    console.error(error)
-    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
-      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
-      : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    if (error.isOfflineQueue) {
+      localStorage.removeItem(`global_form_draft_${window.location.pathname}`)
+      resetForm()
+      closeModal()
+      await swal.info('Chế độ ngoại tuyến', 'Yêu cầu thêm/sửa sản phẩm đã được lưu tạm vào hàng đợi. Hệ thống sẽ tự động gửi lên máy chủ khi có mạng trở lại.')
+    } else {
+      console.error(error)
+      swal.error('Lỗi', getErrorMessage(error, isEditMode.value
+        ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
+        : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    }
   }
+}
+
+const syncSuccessHandler = () => {
+  fetchProducts()
 }
 
 onMounted(() => {
   loadProductsCache()
   fetchProducts()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
   Promise.allSettled([
     fetchParentCategories(),
     fetchCategories(),
@@ -1874,6 +1890,10 @@ onMounted(() => {
     fetchAttributeGroups(),
     fetchColors(),
   ])
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 </script>
 
@@ -2079,13 +2099,14 @@ onMounted(() => {
       </table>
     </div>
 
-    <div class="pagination">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">&#8249;</button>
-
-      <span class="pg-active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">&#8250;</button>
-    </div>
+    <PhanTrangAdmin
+      v-model:currentPage="currentPage"
+      :total-pages="totalPages"
+      :total-items="filteredProducts.length"
+      :page-size="pageSize"
+      item-label="sản phẩm"
+      @change-page="goToPage"
+    />
 
     </template><!-- end list view -->
 
@@ -2287,7 +2308,7 @@ onMounted(() => {
                           <div class="fst-options-wrap">
                             <div v-if="t.id === 'color-type'" class="color-swatches-grid">
                               <button v-for="opt in t.options" :key="getOptionValue(opt)" class="color-swatch-btn" :class="{ selected: isSelected(t.id, getOptionValue(opt)) }" @click="toggleOption(t.id, getOptionValue(opt))">
-                                <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }"><span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">OK</span></span>
+                                <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }"><span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span></span>
                                 <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
                               </button>
                             </div>
@@ -4865,6 +4886,8 @@ tbody td {
 }
 
 .tree-search-wrapper .search-icon {
+  position: static;
+  transform: none;
   width: 16px;
   height: 16px;
   color: #94a3b8;

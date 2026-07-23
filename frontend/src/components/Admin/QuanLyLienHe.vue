@@ -17,42 +17,34 @@
     <div class="stats-row">
       <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: !filterStatus && !filterCategory && !searchQuery }" @click="applyContactStatFilter('all')">
         <div class="stat-icon-wrap stat-icon-blue">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <p class="stat-label">TOTAL</p>
-        <p class="stat-sub-label">Tổng liên hệ</p>
+        <p class="stat-label">Tổng liên hệ</p>
         <h2 class="stat-value">{{ contacts.length }}</h2>
       </button>
-     <!-- <div class="stat-card stat-card-gradient">
-        <div class="stat-card-check">
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" /></svg>
-        </div>
-        <p class="stat-tag">URGENT</p>
-        <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
-        <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
-      </div>-->
+
       <button type="button" class="stat-card stat-orange stat-card-btn" :class="{ active: filterStatus === 'processing' }" @click="applyContactStatFilter('processing')">
         <div class="stat-icon-wrap stat-icon-orange">
-          <svg viewBox="0 0 24 24" fill="none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
         </div>
-        <p class="stat-label">IN PROGRESS</p>
-        <p class="stat-sub-label">Chờ sử lý </p>
+        <p class="stat-label">Chờ xử lý</p>
         <h2 class="stat-value">{{ processingCount }}</h2>
       </button>
+
       <button type="button" class="stat-card stat-teal stat-card-btn" :class="{ active: filterStatus === 'resolved' }" @click="applyContactStatFilter('resolved')">
         <div class="stat-icon-wrap stat-icon-green">
-          <svg viewBox="0 0 24 24" fill="none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
-        <p class="stat-label">RESOLVED</p>
-        <p class="stat-sub-label">Đã phản hồi</p>
+        <p class="stat-label">Đã phản hồi</p>
         <h2 class="stat-value">{{ resolvedCount }}</h2>
       </button>
     </div>
@@ -61,7 +53,7 @@
     <div class="filter-bar">
       <div class="filter-chips">
         <div class="filter-item">
-          <span class="filter-key">Category:</span>
+          <span class="filter-key">Danh mục:</span>
           <select class="filter-select" v-model="filterCategory">
             <option value="">Tất cả danh mục</option>
             <option value="tu-van">Tư vấn</option>
@@ -71,7 +63,7 @@
           </select>
         </div>
         <div class="filter-item">
-          <span class="filter-key">Status:</span>
+          <span class="filter-key">Trạng thái:</span>
           <select class="filter-select" v-model="filterStatus">
             <option value="">Tất cả trạng thái</option>
             <option value="new">Mới</option>
@@ -146,7 +138,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="c in filteredContacts" :key="c.id" @click="openDetail(c)" class="table-row" :class="{ 'row-selected': selectedIds.includes(c.id) }">
+          <tr v-for="c in paginatedContacts" :key="c.id" @click="openDetail(c)" class="table-row" :class="{ 'row-selected': selectedIds.includes(c.id) }">
             <td class="select-col" @click.stop>
               <input type="checkbox" :checked="selectedIds.includes(c.id)" @change="toggleItemSelection(c.id)" />
             </td>
@@ -193,9 +185,13 @@
         </tbody>
       </table>
 
-      <div class="pagination-row">
-        <span class="page-info">Hiển thị {{ filteredContacts.length }} trong số <strong>{{ contacts.length }}</strong> liên hệ</span>
-      </div>
+      <PhanTrangAdmin
+        v-model:currentPage="currentPage"
+        :total-pages="totalPages"
+        :total-items="filteredContacts.length"
+        :page-size="pageSize"
+        item-label="liên hệ"
+      />
     </div>
 
     <!-- FAB -->
@@ -333,8 +329,11 @@ import api from '@/services/api'
 import swal from '@/services/swal'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 // ─── State ───────────────────────────────────────────────
+const currentPage   = ref(1)
+const pageSize      = ref(7)
 const searchQuery   = ref('')
 const filterCategory = ref('')
 const filterStatus  = ref('')
@@ -497,6 +496,13 @@ const filteredContacts = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.ceil(filteredContacts.value.length / pageSize.value) || 1)
+
+const paginatedContacts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredContacts.value.slice(start, start + pageSize.value)
+})
+
 const {
   selectedIds,
   isBulkDeleting,
@@ -580,14 +586,49 @@ onMounted(fetchContacts)
   position: relative;
 }
 
-/* SEARCH */
-.search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; width: 250px; }
-.search-box svg { width: 14px; height: 14px; stroke: #94a3b8; stroke-width: 2; fill: none; flex-shrink: 0; }
-.search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; font-family: inherit; }
+/* TOPBAR */
+.topbar { display: flex; align-items: center; justify-content: flex-start; }
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 12px;
+  width: 280px;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+.search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+.search-box svg {
+  width: 15px;
+  height: 15px;
+  stroke: #64748b;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+.search-box input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  color: #0f172a;
+  background: transparent !important;
+  width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
 .search-box input::placeholder { color: #94a3b8; }
-.bulk-search-box { width: 250px; min-height: 36px; padding-top: 7px; padding-bottom: 7px; }
-.icon-btn { position: relative; width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
-.icon-btn:hover { background: #f1f5f9; }
+.icon-btn { position: relative; width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #cbd5e1; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.icon-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
 .icon-btn svg { width: 15px; height: 15px; stroke: #64748b; stroke-width: 1.8; fill: none; }
 
 /* HEADING */
@@ -658,14 +699,26 @@ onMounted(fetchContacts)
 .stat-card.stat-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
 .stat-card.stat-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-teal { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
-.stat-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-.stat-icon-wrap svg { width: 24px; height: 24px; stroke-width: 2.2; fill: none; }
-.stat-icon-blue,
-.stat-icon-orange,
-.stat-icon-green { background: rgba(255,255,255,.18); }
-.stat-icon-blue svg,
-.stat-icon-orange svg,
-.stat-icon-green svg { stroke: #fff; }
+.stats-row .stat-icon-wrap {
+  background: transparent !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin-bottom: 8px;
+  border-radius: 0 !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  align-self: flex-start !important;
+}
+.stats-row .stat-icon-wrap svg {
+  width: 26px !important;
+  height: 26px !important;
+  stroke-width: 2.2;
+  fill: none;
+  stroke: #ffffff !important;
+}
 .stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: capitalize; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
 .stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
@@ -676,11 +729,37 @@ onMounted(fetchContacts)
 .stat-tag { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,.65); }
 
 /* FILTER */
-.filter-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 12px; border: 1px solid #e8edf5; padding: 10px 16px; }
-.filter-chips { display: flex; align-items: center; gap: 14px; }
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 10px 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.filter-chips { display: flex; align-items: center; gap: 16px; }
 .filter-item { display: flex; align-items: center; gap: 8px; }
-.filter-key { font-size: 12.5px; font-weight: 600; color: #64748b; white-space: nowrap; }
-.filter-select { border: none; outline: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #2563eb; cursor: pointer; font-family: inherit; }
+.filter-key { font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+.filter-select {
+  border: 1.5px solid #cbd5e1 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #2563eb !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+.filter-select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+}
 .filter-actions { display: flex; gap: 6px; }
 
 /* LOADING / ERROR */

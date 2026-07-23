@@ -556,30 +556,47 @@ onMounted(() => {
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  padding: 8px 14px;
-  width: 260px;
+  padding: 0 12px;
+  width: 280px;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .search-box svg {
   width: 15px;
   height: 15px;
-  stroke: #94a3b8;
+  stroke: #64748b;
   stroke-width: 2;
   fill: none;
   flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .search-box input {
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-size: 13px;
-  color: #1e293b;
-  background: transparent;
+  color: #0f172a;
+  background: transparent !important;
   width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.search-box input::placeholder {
+  color: #94a3b8;
 }
 
 .breadcrumb {

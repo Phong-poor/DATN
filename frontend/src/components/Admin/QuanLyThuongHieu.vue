@@ -30,19 +30,19 @@
             <th class="select-col">
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredBrands.length" @change="toggleCurrentPageSelection" />
             </th>
-            <th>ID</th>
+            <th>STT</th>
             <th>LOGO</th>
             <th>TÊN THƯƠNG HIỆU</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="th in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
+          <tr v-for="(th, index) in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
             <td class="select-col">
               <input type="checkbox" :checked="selectedIds.includes(th.id_thuonghieu)" @change="toggleItemSelection(th.id_thuonghieu)" />
             </td>
-            <td class="cat-name">
-              #{{ th.id_thuonghieu }}
+            <td class="cat-name" style="font-weight: bold;">
+              {{ index + 1 }}
             </td>
             <td>
               <div class="brand-logo-cell">
@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { getUser } from '@/services/auth';
 import api from '@/services/api';
 import swal from '@/services/swal';
@@ -194,7 +194,10 @@ const defaultForm = () => ({
   ten_thuonghieu: '',
   danh_muc_ids: []
 });
+import { registerOfflineForm } from '@/services/offlineSync';
+
 const form = ref(defaultForm());
+registerOfflineForm(form, 'quan-ly-thuong-hieu');
 const logoPreview = ref('');
 const logoFile = ref(null);
 const fileInputRef = ref(null);
@@ -228,9 +231,19 @@ const fetchCategories = async () => {
   }
 };
 
+const syncSuccessHandler = () => {
+  fetchBrands();
+  fetchCategories();
+};
+
 onMounted(() => {
   fetchBrands();
   fetchCategories();
+  window.addEventListener('offline-sync-success', syncSuccessHandler);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler);
 });
 
 // Lấy tên danh mục để hiển thị
@@ -400,6 +413,8 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
+.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+.edit-btn:hover svg { stroke: #2563eb; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
 
 /* MODAL CSS */

@@ -4,6 +4,7 @@ import { getUser } from '@/services/auth'
 import api from '@/services/api'
 import * as XLSX from 'xlsx'
 import swal from '@/services/swal'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const user = ref(getUser() || {})
 const hasPermission = (perm) => {
@@ -935,22 +936,13 @@ async function handleImportFile(e) {
             </tr>
           </tbody>
         </table>
-        <div class="table-footer">
-          <span class="page-info">{{ groups.length }} nhóm</span>
-          <div class="pagination">
-            <button class="page-btn" :disabled="groupPage === 1" @click="groupPagination.prevPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <span class="page-btn active page-indicator">{{ groupPage }}/{{ groupPages }}</span>
-            <button class="page-btn" :disabled="groupPage === groupPages" @click="groupPagination.nextPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-model:currentPage="groupPage"
+          :total-pages="groupPages"
+          :total-items="groupPagination.total"
+          :page-size="5"
+          item-label="nhóm"
+        />
       </div>
 
       <!-- LOẠI THUỘC TÍNH -->
@@ -1014,22 +1006,13 @@ async function handleImportFile(e) {
             </tr>
           </tbody>
         </table>
-        <div class="table-footer">
-          <span class="page-info">{{ attrs.length }} thuộc tính</span>
-          <div class="pagination">
-            <button class="page-btn" :disabled="attrPage === 1" @click="attrPagination.prevPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <span class="page-btn active page-indicator">{{ attrPage }}/{{ attrPages }}</span>
-            <button class="page-btn" :disabled="attrPage === attrPages" @click="attrPagination.nextPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-model:currentPage="attrPage"
+          :total-pages="attrPages"
+          :total-items="attrPagination.total"
+          :page-size="5"
+          item-label="thuộc tính"
+        />
       </div>
     </div>
 
@@ -1171,22 +1154,13 @@ async function handleImportFile(e) {
               </tr>
             </tbody>
           </table>
-          <div class="table-footer">
-            <span class="page-info">Hiển thị {{ variantPagination.from }}–{{ variantPagination.to }} / {{ variantPagination.total }}</span>
-            <div class="pagination">
-              <button class="page-btn" :disabled="variantPage === 1" @click="variantPagination.prevPage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <span class="page-btn active page-indicator">{{ variantPage }}/{{ variantPages }}</span>
-              <button class="page-btn" :disabled="variantPage === variantPages" @click="variantPagination.nextPage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <PhanTrangAdmin
+            v-model:currentPage="variantPage"
+            :total-pages="variantPages"
+            :total-items="variantPagination.total"
+            :page-size="10"
+            item-label="biến thể"
+          />
         </div>
 
         <!-- COLOR TABLE -->
@@ -1228,22 +1202,13 @@ async function handleImportFile(e) {
               </tr>
             </tbody>
           </table>
-          <div class="table-footer">
-            <span class="page-info">Hiển thị {{ colorPagination.from }}–{{ colorPagination.to }} / {{ colorPagination.total }}</span>
-            <div class="pagination">
-              <button class="page-btn" :disabled="colorPage === 1" @click="colorPagination.prevPage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <span class="page-btn active page-indicator">{{ colorPage }}/{{ colorPages }}</span>
-              <button class="page-btn" :disabled="colorPage === colorPages" @click="colorPagination.nextPage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <PhanTrangAdmin
+            v-model:currentPage="colorPage"
+            :total-pages="colorPages"
+            :total-items="colorPagination.total"
+            :page-size="10"
+            item-label="màu"
+          />
         </div>
       </div>
 

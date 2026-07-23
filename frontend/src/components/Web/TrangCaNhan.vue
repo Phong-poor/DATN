@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -2925,7 +2925,7 @@ const promoStatusMap = {
                   <label>Email xác minh</label>
                   <div class="input-wrap">
                     <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
-                    <input type="email" v-model="pwForm.email" placeholder="name@example.com" />
+                    <input type="email" v-model="pwForm.email" placeholder="Name@example.com" />
                   </div>
                   <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
                   <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>

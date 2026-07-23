@@ -423,7 +423,7 @@ const handleLogin = async () => {
                   <path d="M2 7l10 7 10-7"/>
                 </svg>
               </span>
-              <input v-model="email" type="email" name="username" autocomplete="username" placeholder="example@vinatech.vn" />
+              <input v-model="email" type="email" name="username" autocomplete="username" placeholder="Example@vinatech.vn" />
             </div>
           </div>
 

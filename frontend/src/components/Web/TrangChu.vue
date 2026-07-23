@@ -690,6 +690,7 @@ const reviews = [
 ]
 
 // Flash Sale Countdown Logic
+const days = ref('00')
 const hours = ref('04')
 const minutes = ref('25')
 const seconds = ref('10')
@@ -702,15 +703,18 @@ const startCountdown = () => {
         const diff = endTime - Date.now()
         if (diff <= 0) {
             clearInterval(countdownInterval)
+            days.value = '00'
             hours.value = '00'
             minutes.value = '00'
             seconds.value = '00'
             return
         }
-        const h = Math.floor(diff / (1000 * 60 * 60))
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24))
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
         const s = Math.floor((diff % (1000 * 60)) / 1000)
         
+        days.value = String(d).padStart(2, '0')
         hours.value = String(h).padStart(2, '0')
         minutes.value = String(m).padStart(2, '0')
         seconds.value = String(s).padStart(2, '0')
@@ -742,6 +746,72 @@ const activeHeroProduct = computed(() => {
     }
     return products[current.value % products.length]
 })
+
+const getHeroSpecsList = (product) => {
+    if (!product) return []
+    let list = Array.isArray(product.specs) ? [...product.specs] : []
+    
+    if (Array.isArray(product.thong_so_ky_thuat)) {
+        product.thong_so_ky_thuat.forEach(item => {
+            if (item.ten_thuoctinh && item.giatri && !list.some(s => s.label && s.label.toLowerCase() === item.ten_thuoctinh.toLowerCase())) {
+                list.push({ label: item.ten_thuoctinh, value: item.giatri })
+            }
+        })
+    }
+    
+    const nameStr = `${product.name || ''} ${product.fullName || ''}`
+    
+    if (!list.some(s => s.label && s.label.toUpperCase() === 'RAM')) {
+        const ramMatch = nameStr.match(/(\d+\s*GB)\s*(RAM|DDR\d)?/i) || nameStr.match(/RAM\s*(\d+\s*GB)/i)
+        if (ramMatch) list.push({ label: 'RAM', value: ramMatch[1].toUpperCase() })
+    }
+    
+    if (!list.some(s => s.label && s.label.toUpperCase() === 'CPU')) {
+        const cpuMatch = nameStr.match(/(Intel\s+Core\s+i\d-\w+|i[3579]-\w+|Ryzen\s+[3579]\s+\w+|Ultra\s+[579]\s+\w+|M[12345]\s+(?:Pro|Max)?)/i)
+        if (cpuMatch) list.push({ label: 'CPU', value: cpuMatch[1] })
+    }
+    
+    if (!list.some(s => s.label && (s.label.toUpperCase().includes('SSD') || s.label.toUpperCase().includes('CỨNG')))) {
+        const ssdMatch = nameStr.match(/(256GB|512GB|1TB|2TB)\s*(SSD)?/i)
+        if (ssdMatch) list.push({ label: 'SSD', value: ssdMatch[0].toUpperCase() })
+    }
+    
+    if (!list.some(s => s.label && (s.label.toUpperCase().includes('GPU') || s.label.toUpperCase().includes('CARD') || s.label.toUpperCase().includes('VGA')))) {
+        const gpuMatch = nameStr.match(/(RTX\s*\d{4}(?:\s*Ti)?|GTX\s*\d{4}|Radeon\s*\w+)/i)
+        if (gpuMatch) list.push({ label: 'GPU', value: gpuMatch[0].toUpperCase() })
+    }
+
+    if (!list.length) {
+        list = [
+            { label: 'CPU', value: 'Intel Core i7' },
+            { label: 'RAM', value: '16GB DDR5' },
+            { label: 'SSD', value: '512GB NVMe' },
+            { label: 'GPU', value: 'RTX 4060' }
+        ]
+    }
+    return list
+}
+
+const getHeroSpecsText = (product) => {
+    const list = getHeroSpecsList(product)
+    return list.map(s => s.value).filter(Boolean).join(' ')
+}
+
+const getHeroFullTitle = (product) => {
+    if (!product) return ''
+    const baseName = product.name || ''
+    const specsList = getHeroSpecsList(product)
+    
+    const missingSpecs = specsList
+        .map(s => s.value)
+        .filter(Boolean)
+        .filter(val => !baseName.toLowerCase().includes(val.toLowerCase()))
+    
+    if (missingSpecs.length > 0) {
+        return `${baseName} ${missingSpecs.join(' ')}`
+    }
+    return baseName
+}
 
 const handlePrimaryClick = (slide) => {
     if (slide?.link) {
@@ -882,11 +952,11 @@ onUnmounted(() => {
                                 <div class="hero-product-info" v-if="activeHeroProduct">
                                     <div class="hero-product-copy">
                                         <span class="hero-product-brand">{{ activeHeroProduct.brandName || activeHeroProduct.category }}</span>
-                                        <strong class="hero-product-title">{{ activeHeroProduct.name }}</strong>
+                                        <strong class="hero-product-title">{{ getHeroFullTitle(activeHeroProduct) }}</strong>
                                         
                                         <!-- Row of Specs tags with inline SVG icons -->
                                         <div class="hero-product-specs">
-                                            <span class="spec-tag" v-for="spec in (activeHeroProduct.specs && activeHeroProduct.specs.length ? activeHeroProduct.specs : [{label: 'CPU', value: 'M5 Pro Chip'}, {label: 'Màn hình', value: '14.2&quot; Liquid Retina XDR'}, {label: 'RAM', value: '18GB Unified Memory'}, {label: 'SSD', value: '512GB SSD'}])" :key="spec.label">
+                                            <span class="spec-tag" v-for="spec in getHeroSpecsList(activeHeroProduct)" :key="spec.label">
                                                 <svg v-if="spec.label === 'CPU'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" stroke-width="2"></rect><rect x="9" y="9" width="6" height="6" stroke-width="2"></rect><path stroke-linecap="round" d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3" stroke-width="2"></path></svg>
                                                 <svg v-else-if="spec.label === 'Màn hình' || spec.label === 'Screen'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="13" rx="2" stroke-width="2"></rect><path stroke-linecap="round" d="M12 16v5M8 21h8" stroke-width="2"></path></svg>
                                                 <svg v-else-if="spec.label === 'RAM'" class="spec-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9h14M5 15h14M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/></svg>
@@ -960,6 +1030,8 @@ onUnmounted(() => {
                             <p>Sở hữu ngay các siêu phẩm công nghệ với mức giá tốt nhất trong ngày.</p>
                         </div>
                         <div class="countdown-clock">
+                            <span class="timer-segment">{{ days }}</span>
+                            <span class="timer-colon">:</span>
                             <span class="timer-segment">{{ hours }}</span>
                             <span class="timer-colon">:</span>
                             <span class="timer-segment">{{ minutes }}</span>
@@ -2140,15 +2212,34 @@ onUnmounted(() => {
 
 .hero-product-title {
     color: #ffffff !important;
-    font-size: 15px;
-    line-height: 1.3;
-    font-weight: 600;
-    white-space: nowrap;
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 700;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
+    margin: 2px 0 6px 0;
     -webkit-text-fill-color: currentColor;
     text-shadow: none;
+}
+
+.hero-product-name-text {
+    color: #ffffff !important;
+}
+
+.hero-title-spec-inline {
+    font-size: 12px;
+    font-weight: 600;
+    color: #60a5fa !important;
+    background: rgba(37, 99, 235, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    -webkit-text-fill-color: currentColor;
 }
 
 .hero-product-specs {
@@ -2463,23 +2554,7 @@ onUnmounted(() => {
     margin: 0;
 }
 
-.section-header :is(h1, h2, h3),
-.ambient-label,
-.tab-pill,
-.interactive-anchor,
-.btn-premium-glow,
-.btn-premium-glass {
-    text-transform: lowercase !important;
-}
 
-.section-header :is(h1, h2, h3)::first-letter,
-.ambient-label::first-letter,
-.tab-pill::first-letter,
-.interactive-anchor::first-letter,
-.btn-premium-glow::first-letter,
-.btn-premium-glass::first-letter {
-    text-transform: uppercase !important;
-}
 
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
 .category-section {

@@ -6,6 +6,7 @@ import { getUser } from '../../services/auth.js'
 import * as XLSX from 'xlsx'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 // ─── API ─────────────────────────────
 // ─── STATE ───────────────────────────
@@ -541,48 +542,72 @@ const submitEdit = async () => {
 
         <!-- FILTER ROW -->
         <div class="filter-row">
-            <div class="search-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                </svg>
-                <input v-model="searchQuery" @input="onSearch"
-                    placeholder="Tìm kiếm người dùng, email..." />
-            </div>
-            <div class="tabs-group">
-                <button v-for="t in tabs" :key="t" class="tab" :class="{ active: activeTab === t }"
-                    @click="onTabChange(t)">{{ t }}</button>
-                <div class="tab-divider"></div>
-                <div class="tab status-tab">
-                    <span>Trạng thái:</span>
-                    <div class="custom-dropdown status-filter-dropdown">
-                        <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown">
-                            <span>{{ selectedStatus }}</span>
-                            <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
+            <div class="filter-top-bar">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input v-model="searchQuery" @input="onSearch"
+                        placeholder="Tìm kiếm người dùng, email..." />
+                </div>
+                <div class="tabs-group">
+                    <button v-for="t in tabs" :key="t" class="tab" :class="{ active: activeTab === t }"
+                        @click="onTabChange(t)">{{ t }}</button>
+                    <div class="tab-divider"></div>
+                    <div class="tab status-tab">
+                        <span>Trạng thái:</span>
+                        <div class="custom-dropdown status-filter-dropdown">
+                            <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown">
+                                <span>{{ selectedStatus }}</span>
+                                <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <transition name="fade-slide">
+                                <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
+                                    <li v-for="s in statusOptions" :key="s"
+                                        :class="{ active: selectedStatus === s }"
+                                        @click="selectedStatus = s; onStatusChange(); isOpenStatusDropdown = false">
+                                        {{ s }}
+                                    </li>
+                                </ul>
+                            </transition>
                         </div>
-                        <transition name="fade-slide">
-                            <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
-                                <li v-for="s in statusOptions" :key="s"
-                                    :class="{ active: selectedStatus === s }"
-                                    @click="selectedStatus = s; onStatusChange(); isOpenStatusDropdown = false">
-                                    {{ s }}
-                                </li>
-                            </ul>
-                        </transition>
                     </div>
                 </div>
             </div>
-            <div class="filter-actions">
-                <button class="btn-new-user" @click="openModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                        style="width:14px;height:14px">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Thêm người dùng
-                </button>
+            <div class="filter-bottom-bar">
+                <div class="filter-left-actions">
+                    <button class="btn-filter" @click="resetAdvancedFilters">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            style="width:14px;height:14px">
+                            <line x1="4" y1="6" x2="20" y2="6" />
+                            <line x1="8" y1="12" x2="16" y2="12" />
+                            <line x1="11" y1="18" x2="13" y2="18" />
+                        </svg>
+                        Đặt lại bộ lọc
+                    </button>
+                    <button class="btn-export" @click="exportUsersReport" :disabled="filtered.length === 0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            style="width:14px;height:14px">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Xuất báo cáo
+                    </button>
+                </div>
+                <div class="filter-right-actions">
+                    <button class="btn-new-user" @click="openModal" v-if="activeTab === 'Admin'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                            style="width:14px;height:14px">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Thêm người dùng
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -617,11 +642,11 @@ const submitEdit = async () => {
                         <th class="select-col">
                             <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedUsers.length" @change="toggleCurrentPageSelection" />
                         </th>
-                        <th>NGƯỜI DÙNG</th>
-                        <th>VAI TRÒ</th>
-                        <th>NGÀY THAM GIA</th>
-                        <th>TRẠNG THÁI</th>
-                        <th>THAO TÁC</th>
+                        <th class="col-user">NGƯỜI DÙNG</th>
+                        <th class="col-role">VAI TRÒ</th>
+                        <th class="col-date">NGÀY THAM GIA</th>
+                        <th class="col-status">TRẠNG THÁI</th>
+                        <th class="col-actions">THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -632,28 +657,28 @@ const submitEdit = async () => {
                         <td class="select-col">
                             <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
                         </td>
-                        <td>
+                        <td class="col-user">
                             <div class="user-cell">
                                 <div class="user-avatar" :style="getAvatarStyle(u.name)">{{ initials(u.name) }}</div>
-                                <div>
+                                <div class="user-info-text">
                                     <b>{{ u.name }}</b>
                                     <span>{{ u.email }}</span>
                                 </div>
                             </div>
                         </td>
-                        <td>
+                        <td class="col-role">
                             <span class="role-badge"
                                 :style="{ background: roleStyle[u.role]?.bg || '#f1f5f9', color: roleStyle[u.role]?.color || '#475569' }">
                                 {{ u.role }}
                             </span>
                         </td>
-                        <td class="date-cell">{{ u.joined }}</td>
-                        <td>
+                        <td class="col-date date-cell">{{ u.joined }}</td>
+                        <td class="col-status">
                             <span class="status-dot" :style="{ color: statusStyle[u.status]?.color }">
                                 ● {{ u.status }}
                             </span>
                         </td>
-                        <td>
+                        <td class="col-actions">
                             <div class="actions">
                                 <!-- Sửa -->
                                 <button class="act-btn" title="Chỉnh sửa" @click="openEditModal(u)">
@@ -697,35 +722,14 @@ const submitEdit = async () => {
         </div>
 
         <!-- PAGINATION -->
-        <div class="table-footer">
-            <span class="showing">
-                Hiển thị {{ filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1 }} –
-                {{ Math.min(currentPage * pageSize, filtered.length) }}
-                của {{ filtered.length }} người dùng
-            </span>
-            <div class="pagination">
-                <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
-
-                <!-- Nút trang đầu nếu không hiển thị -->
-                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-                <template v-if="pageNumbers[0] > 1">
-                    <button @click="goToPage(1)">1</button>
-                    <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
-                </template>
-
-                <button v-for="p in pageNumbers" :key="p" :class="{ active: currentPage === p }" @click="goToPage(p)">{{
-                    p }}</button>
-
-                <!-- Nút trang cuối nếu không hiển thị -->
-                <template v-if="pageNumbers[pageNumbers.length - 1] < totalPages">
-                    <button class="dots" v-if="pageNumbers[pageNumbers.length - 1] < totalPages - 1"
-                        disabled>...</button>
-                    <button @click="goToPage(totalPages)">{{ totalPages }}</button>
-                </template>
-
-                <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">›</button>
-            </div>
-        </div>
+        <PhanTrangAdmin
+            v-model:currentPage="currentPage"
+            :total-pages="totalPages"
+            :total-items="filtered.length"
+            :page-size="pageSize"
+            item-label="người dùng"
+            @change-page="goToPage"
+        />
 
         <!-- BOTTOM CARDS -->
         <div class="bottom-grid">
@@ -940,34 +944,53 @@ const submitEdit = async () => {
 
 .search-box {
     position: relative;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px;
+    padding: 0 12px;
     width: 280px;
+    height: 38px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
 }
 
 .search-box svg {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
-    color: #94a3b8;
-    pointer-events: none;
+    position: static !important;
+    transform: none !important;
+    width: 15px !important;
+    height: 15px !important;
+    stroke: #64748b !important;
+    color: #64748b !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+    flex-shrink: 0 !important;
+    margin-right: 8px !important;
+    pointer-events: none !important;
 }
 
 .search-box input {
-    width: 100%;
-    padding: 8px 12px 8px 32px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    font-size: 13px;
-    color: #0f172a;
-    outline: none;
-    background: #f8fafc;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    color: #0f172a !important;
+    background: transparent !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
 }
 
-.search-box input:focus {
-    border-color: #2563eb;
-    background: white;
+.search-box input::placeholder {
+    color: #94a3b8 !important;
 }
 
 .btn-new-user {
@@ -1015,9 +1038,19 @@ const submitEdit = async () => {
 /* STATS */
 .stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     padding: 0 32px 20px;
+}
+@media (max-width: 1200px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 600px) {
+    .stats {
+        grid-template-columns: 1fr;
+    }
 }
 
 .stat-card {
@@ -1162,24 +1195,44 @@ const submitEdit = async () => {
 
 /* FILTER ROW */
 .filter-row {
-    display: grid;
-    grid-template-columns: minmax(240px, 1fr) auto auto;
-    align-items: center;
-    padding: 0 32px 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin: 0 32px 16px;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.filter-row .search-box {
+.filter-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
-    max-width: none;
 }
 
-.filter-row .search-box input,
-.filter-row .tabs-group,
-.filter-row .btn-filter,
-.filter-row .btn-export,
-.filter-row .btn-new-user {
-    min-height: 44px;
+.filter-left-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
 }
 
 .tabs-group {
@@ -1394,6 +1447,7 @@ const submitEdit = async () => {
 table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 thead tr {
@@ -1428,14 +1482,35 @@ tbody tr.row-selected {
 }
 
 tbody td {
-    padding: 16px 18px;
+    padding: 14px 18px;
     font-size: 13px;
     vertical-align: middle;
 }
 
 .select-col {
-    width: 44px;
+    width: 48px !important;
     text-align: center;
+}
+
+.col-user {
+    width: 32%;
+}
+
+.col-role {
+    width: 22%;
+}
+
+.col-date {
+    width: 16%;
+}
+
+.col-status {
+    width: 15%;
+}
+
+.col-actions {
+    width: 15%;
+    text-align: right;
 }
 
 .select-col input {
@@ -1460,6 +1535,12 @@ tbody td {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+}
+
+.user-info-text {
+    min-width: 0;
+    overflow: hidden;
 }
 
 .user-avatar {
@@ -1480,11 +1561,18 @@ tbody td {
     font-weight: 600;
     color: #0f172a;
     margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .user-cell span {
+    display: block;
     font-size: 12px;
     color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .role-badge {
@@ -1494,20 +1582,25 @@ tbody td {
     padding: 4px 10px;
     border-radius: 6px;
     letter-spacing: 0.04em;
+    white-space: nowrap;
 }
 
 .date-cell {
     color: #64748b;
     font-size: 13px;
+    white-space: nowrap;
 }
 
 .status-dot {
     font-size: 13px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .actions {
     display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 5px;
 }
 
@@ -1554,50 +1647,67 @@ tbody td {
     color: #ef4444;
 }
 
-/* FOOTER */
+/* FOOTER & PAGINATION */
 .table-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 14px 32px;
+    background: transparent;
+    border: none;
 }
 
 .showing {
     font-size: 13px;
+    font-weight: 500;
     color: #64748b;
 }
 
 .pagination {
     display: flex;
-    gap: 5px;
+    align-items: center;
+    gap: 6px;
 }
 
 .pagination button {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    font-size: 13px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
     cursor: pointer;
     color: #334155;
-    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .pagination button:hover:not(:disabled) {
     border-color: #2563eb;
     color: #2563eb;
+    background: #eff6ff;
 }
 
 .pagination button:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+    box-shadow: none;
 }
 
-.pagination .active {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: white;
+.pagination button.active {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    border-color: #2563eb !important;
+    color: white !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28) !important;
 }
 
 .pagination .dots {
@@ -1605,6 +1715,7 @@ tbody td {
     background: transparent;
     cursor: default;
     pointer-events: none;
+    box-shadow: none;
 }
 
 /* BOTTOM GRID */
