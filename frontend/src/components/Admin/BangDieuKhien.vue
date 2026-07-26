@@ -5,7 +5,7 @@ import {
     BarChart3,
     ClipboardList,
     DollarSign,
-    FileSpreadsheet,
+    Download,
     Package,
     PackageCheck,
     ShoppingCart,
@@ -1097,9 +1097,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <button class="export-btn" type="button" @click="exportDashboardExcel">
-                        <FileSpreadsheet aria-hidden="true" />
-                        Xuất Excel
+                    <button class="export-btn admin-report-export" type="button" @click="exportDashboardExcel">
+                        <Download aria-hidden="true" />
+                        Xuất báo cáo
                     </button>
                     <div class="search-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1839,10 +1839,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .page {
-    background: #f5f7fb;
-    min-height: 100vh;
+    background: transparent;
+    min-height: calc(100vh - 77px);
     font-family: sans-serif;
-    padding: 0 0 40px;
+    padding: 24px 0 40px;
     position: relative;
 }
 
@@ -1865,7 +1865,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 /* TOPBAR */
 .topbar {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     padding: 20px 28px 16px;
@@ -1977,7 +1977,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .dashboard-error {
-    margin: 0 28px 16px;
+    margin: 0 0 16px;
     padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid #fecaca;
@@ -2024,8 +2024,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    padding: 0 28px 18px;
+    gap: 16px;
+    padding: 0 0 16px;
 }
 
 .period-bar {
@@ -2069,12 +2069,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 /* STATS */
 .dashboard-cluster {
-    margin: 0 28px 20px;
+    margin: 0 0 20px;
     padding: 20px;
     border-radius: 18px;
     border: 1px solid #e2e8f0;
-    background: rgba(255, 255, 255, 0.72);
-    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.06);
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
 }
 
 .overview-cluster {
@@ -2131,7 +2131,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .performance-layout {
     display: grid;
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    gap: 18px;
+    gap: 16px;
     align-items: stretch;
 }
 
@@ -2146,7 +2146,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 12px !important;
+    gap: 16px !important;
     padding: 0;
 }
 
@@ -2492,7 +2492,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .workbench-card {
-    margin: 0 32px 20px;
+    margin: 0 0 20px;
     padding: 16px;
     border-radius: 14px;
     border: 1px solid #dbeafe;
@@ -2884,23 +2884,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .charts-row {
     display: grid;
     grid-template-columns: 1fr 300px;
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
     align-items: stretch;
 }
 
 .right-col {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     height: 100%;
 }
 
 .card {
     background: white;
     border-radius: 14px;
-    border: 1px solid #f1f5f9;
-    padding: 18px 20px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
 }
 
 .chart-card {
@@ -3183,8 +3184,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .operations-row {
     display: grid;
     grid-template-columns: 1.15fr 1fr 0.9fr;
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
 }
 
 .operation-panel {
@@ -3318,8 +3319,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .insight-charts-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
 }
 
 .insight-chart-card {
@@ -3459,8 +3460,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .bottom-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 28px;
+    gap: 16px;
+    padding: 0;
 }
 
 /* ORDERS TABLE */
@@ -3713,7 +3714,7 @@ tbody td {
     .dashboard-controls {
         align-items: stretch;
         flex-direction: column;
-        padding: 0 16px 16px;
+        padding: 0 0 16px;
     }
 
     .dashboard-controls .topbar-right {
@@ -3729,19 +3730,18 @@ tbody td {
         height: 38px;
     }
 
-    .dashboard-cluster,
     .charts-row,
     .operations-row,
     .insight-charts-row,
-    .bottom-row,
-    .period-bar {
-        padding-left: 16px;
-        padding-right: 16px;
+    .bottom-row {
+        padding-left: 0;
+        padding-right: 0;
     }
 
     .dashboard-cluster {
-        margin-left: 16px;
-        margin-right: 16px;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 16px;
     }
 
     .cluster-head {
@@ -3768,11 +3768,6 @@ tbody td {
     .staff-row em {
         grid-column: 2;
         justify-self: start;
-    }
-
-    .workbench-card {
-        margin-left: 16px;
-        margin-right: 16px;
     }
 
     .ops-grid,
