@@ -7,7 +7,7 @@
 .product-detail-wrapper,
 .cart-root,
 .checkout-page {
-  background: var(--ds-bg);
+  background: var(--ds-bg) !important;
   color: var(--ds-text);
 }
 
