@@ -5418,15 +5418,15 @@ const promoStatusMap = {
 <style scoped>
 /* Light customer account theme */
 .page {
-  background: #f5f7fb;
-  padding: 32px 24px 64px;
+  background: #ffffff;
+  padding: 32px 24px 48px;
   color: #0f172a;
 }
 
 .container {
   max-width: 1240px;
   grid-template-columns: 280px minmax(0, 1fr);
-  gap: 28px;
+  gap: 24px;
 }
 
 .sidebar,
@@ -5435,16 +5435,16 @@ const promoStatusMap = {
 .req-card,
 .tip-card,
 .table-card {
-  background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 54%);
-  border: 1px solid #38bdf8;
-  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.18);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .sidebar {
   border-radius: 16px;
-  top: 18px;
+  top: 24px;
 }
 
 .avatar-section,
@@ -5499,15 +5499,15 @@ const promoStatusMap = {
 .modal-item,
 .review-product-info,
 .captcha-question {
-  background: linear-gradient(180deg, #e0f2fe 0%, #f8fbff 100%);
-  border: 1px solid #7dd3fc;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
 .stat-card:hover,
 .info-row:hover {
-  background: #d0ecff;
-  border-color: #0284c7;
-  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.18);
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
 }
 
 .stat-val {
@@ -5528,7 +5528,7 @@ const promoStatusMap = {
 }
 
 .side-btn:hover {
-  background: #d0ecff;
+  background: #eff6ff;
   color: #0369a1;
 }
 
@@ -5551,7 +5551,7 @@ const promoStatusMap = {
 
 .card {
   border-radius: 16px;
-  padding: 32px;
+  padding: 24px;
 }
 
 .btn-edit {
