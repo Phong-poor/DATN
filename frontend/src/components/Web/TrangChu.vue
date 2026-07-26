@@ -1502,7 +1502,7 @@ onUnmounted(() => {
     --bg-card-dark: #10243D;
     
     --bg-primary-light: #ffffff;
-    --bg-secondary-light: #f6f8fc;
+    --bg-secondary-light: #ffffff;
     --bg-card-light: #ffffff;
     
     --accent-blue: #2563EB;
@@ -4387,6 +4387,99 @@ onUnmounted(() => {
     .combo-home-card {
         flex-basis: 86vw;
         min-width: 86vw;
+    }
+}
+
+/* Unify the home canvas and remove stacked vertical whitespace. */
+.premium-theme,
+.premium-theme .section,
+.premium-theme .product-section,
+.premium-theme .category-section,
+.premium-theme .ecosystem-section,
+.premium-theme .values-section,
+.premium-theme .magazine-news-section,
+.premium-theme .reviews-slider-section,
+.premium-theme .combos-section,
+.premium-theme .cyber-newsletter-section {
+    background-color: #ffffff;
+}
+
+.premium-theme .section {
+    padding-top: 48px;
+    padding-bottom: 48px;
+}
+
+.premium-theme .section-header {
+    margin-bottom: 32px;
+}
+
+.premium-theme .premium-tabs-strip {
+    margin-bottom: 28px;
+}
+
+.premium-theme .global-action-row {
+    margin-top: 28px;
+}
+
+.premium-theme .combos-section,
+.premium-theme .cyber-newsletter-section {
+    padding-top: 48px;
+    padding-bottom: 48px;
+}
+
+.premium-theme .trust-card {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
+/* Keep the affiliate carousel canvas flush with the white section. */
+.premium-theme .category-section > .grid-container,
+.premium-theme .affiliate-video-slider-shell,
+.premium-theme .affiliate-video-showcase-grid {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 0 !important;
+    box-shadow: none;
+}
+
+.premium-theme .category-section {
+    border: 0 !important;
+}
+
+.premium-theme .affiliate-video-showcase-grid {
+    padding-top: 4px;
+    padding-bottom: 0;
+}
+
+.premium-theme .affiliate-video-card,
+.premium-theme .affiliate-video-card:hover {
+    box-shadow: none;
+}
+
+@media (max-width: 992px) {
+    .premium-theme .section,
+    .premium-theme .combos-section,
+    .premium-theme .cyber-newsletter-section {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+
+    .premium-theme .section-header {
+        margin-bottom: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .premium-theme .section,
+    .premium-theme .combos-section,
+    .premium-theme .cyber-newsletter-section {
+        padding-top: 32px;
+        padding-bottom: 32px;
+    }
+
+    .premium-theme .section-header,
+    .premium-theme .premium-tabs-strip {
+        margin-bottom: 24px;
     }
 }
 </style>
