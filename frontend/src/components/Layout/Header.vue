@@ -46,10 +46,10 @@ const announcementIcons = {
 }
 
 const announcements = [
-  { icon: '🚚', text: 'Giao hàng nhanh trong <strong>2 giờ</strong> nội thành TP.HCM & Hà Nội' },
-  { icon: '💳', text: 'Trả góp <strong>0%</strong> lãi suất — Duyệt trong 5 phút' },
-  { icon: '🎁', text: 'Giảm đến <strong>20 triệu</strong> cho Gaming Laptop RTX 5090' },
-  { icon: '🛡️', text: '<strong>Bảo hành chính hãng</strong> toàn quốc · Đổi trả 7 ngày miễn phí' },
+  { icon: '🚚', text: 'Giao nhanh · Trong <strong>2 giờ</strong>' },
+  { icon: '💳', text: 'Trả góp <strong>0%</strong> · Duyệt 5 phút' },
+  { icon: '🎁', text: 'RTX 5090 · Giảm <strong>20 triệu</strong>' },
+  { icon: '🛡️', text: 'Bảo hành toàn quốc · <strong>Đổi trả 7 ngày</strong>' },
 ]
 announcements[0].icon = announcementIcons.delivery
 announcements[1].icon = announcementIcons.payment
@@ -57,10 +57,6 @@ announcements[2].icon = announcementIcons.sale
 announcements[3].icon = announcementIcons.warranty
 const annIdx = ref(0)
 let annTimer = null
-
-// ===================== SCROLL BEHAVIOR =====================
-const isScrolled = ref(false)
-const handleScroll = () => { isScrolled.value = window.scrollY > 20 }
 
 // ===================== MEGA MENU =====================
 const activeMegaMenu = ref(null)
@@ -251,10 +247,11 @@ const megaMenuData = reactive({
   },
 })
 
-const visibleMegaMenuData = computed(() => {
-  const { aipc, macbook, ...menus } = megaMenuData
-  return menus
-})
+const visibleMegaMenuData = computed(() => ({
+  laptop: megaMenuData.laptop,
+  'phu-kien': megaMenuData['phu-kien'],
+  sale: megaMenuData.sale,
+}))
 
 const normalizeIconText = (value) => String(value || '')
   .toLocaleLowerCase('vi-VN')
@@ -310,6 +307,10 @@ const megaBrandLogo = (label = '') => {
 const openMega = (key) => {
   clearTimeout(megaLeaveTimer)
   activeMegaMenu.value = key
+}
+const toggleMega = (key) => {
+  clearTimeout(megaLeaveTimer)
+  activeMegaMenu.value = activeMegaMenu.value === key ? null : key
 }
 const closeMega = () => {
   megaLeaveTimer = setTimeout(() => { activeMegaMenu.value = null }, 250)
@@ -566,7 +567,18 @@ try {
 const navToMegaItem = (key, keyword) => {
   activeMegaMenu.value = null
   if (key === 'sale') {
-    router.push({ path: '/khuyen-mai', query: keyword ? { q: keyword } : {} })
+    const normalizedKeyword = normalizeIconText(keyword)
+    const section = normalizedKeyword.includes('combo')
+      ? 'combo-offers'
+      : normalizedKeyword.includes('tra gop')
+        ? 'voucher-center'
+        : normalizedKeyword.includes('flash') || normalizedKeyword.includes('30%')
+          ? 'flash-sale'
+          : 'discount-grid'
+    router.push({
+      path: '/khuyen-mai',
+      query: { ...(keyword ? { q: keyword } : {}), section }
+    })
     return
   }
   if (key === 'laptop') {
@@ -810,7 +822,6 @@ onMounted(() => {
   window.addEventListener('cart-updated', handleCartUpdated)
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
   window.addEventListener('user-updated', fetchUser)
-  window.addEventListener('scroll', handleScroll, { passive: true })
   scheduleHeaderDataHydration()
 
   // Announcement bar rotation
@@ -844,7 +855,6 @@ onUnmounted(() => {
   window.removeEventListener('cart-updated', handleCartUpdated)
   window.removeEventListener('wishlist-updated', handleWishlistUpdated)
   window.removeEventListener('user-updated', fetchUser)
-  window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleOutside)
   if (headerDataIdleId !== null && 'cancelIdleCallback' in window) {
     window.cancelIdleCallback(headerDataIdleId)
@@ -992,13 +1002,6 @@ const openLuckyWheelMobile = () => {
   <!-- ===== ANNOUNCEMENT BAR ===== -->
   <div class="ann-bar">
     <div class="ann-container">
-      <transition name="ann-slide" mode="out-in">
-        <span
-          class="ann-text"
-          :key="annIdx"
-          v-html="announcements[annIdx].icon + ' ' + announcements[annIdx].text"
-        ></span>
-      </transition>
       <div class="ann-right">
         <a href="tel:18009999" class="ann-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -1011,7 +1014,7 @@ const openLuckyWheelMobile = () => {
   </div>
 
   <!-- ===== MAIN HEADER ===== -->
-  <header class="header" :class="{ scrolled: isScrolled }">
+  <header class="header">
     <div class="header-inner">
 
       <!-- LOGO -->
@@ -1021,17 +1024,26 @@ const openLuckyWheelMobile = () => {
 
       <!-- MEGA MENU NAVIGATION -->
       <nav class="mega-nav">
+        <div class="mega-nav-links">
+        <router-link
+          to="/"
+          class="nav-plain-link nav-discover-link"
+          active-class="nav-discover-parent"
+          exact-active-class="router-link-exact-active"
+        >
+          Khám phá
+        </router-link>
         <div
           v-for="(menu, key) in visibleMegaMenuData"
           :key="key"
           class="mega-nav-item"
-          @mouseenter="openMega(key)"
           @mouseleave="closeMega"
         >
           <button
             class="nav-btn"
             :class="{ active: activeMegaMenu === key, current: isMenuCurrent(key) }"
-            @click="navToCategory(key)"
+            :aria-expanded="activeMegaMenu === key"
+            @click.stop="toggleMega(key)"
           >
             {{ menu.label }}
             <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1046,10 +1058,10 @@ const openLuckyWheelMobile = () => {
                 '--accent': menu.accent,
                 '--accent-bg': menu.accentBg,
                 width: (menu.sections.length + (menu.featured ? 1 : 0)) === 2
-                  ? '420px'
+                  ? '500px'
                   : (menu.sections.length + (menu.featured ? 1 : 0)) === 3
-                    ? '630px'
-                    : '820px'
+                    ? '760px'
+                    : '920px'
               }"
               @mouseenter="keepMega"
               @mouseleave="closeMega"
@@ -1059,7 +1071,7 @@ const openLuckyWheelMobile = () => {
                 class="mega-body"
                 :style="{
                   gridTemplateColumns: menu.featured
-                    ? `repeat(${menu.sections.length}, minmax(0, 1fr)) minmax(210px, 1.35fr)`
+                    ? `repeat(${menu.sections.length}, minmax(190px, 1fr)) minmax(230px, 1.25fr)`
                     : `repeat(${menu.sections.length}, minmax(0, 1fr))`
                 }"
               >
@@ -1124,7 +1136,15 @@ const openLuckyWheelMobile = () => {
         <!-- Extra links -->
         <router-link to="/tin-tuc" class="nav-plain-link" @mouseenter="warmProductsPageNow">Tin tức</router-link>
         <router-link to="/lien-he" class="nav-plain-link">Liên hệ</router-link>
+        </div>
 
+        <transition name="ann-slide" mode="out-in">
+          <span
+            class="nav-announcement"
+            :key="annIdx"
+            v-html="announcements[annIdx].icon + ' ' + announcements[annIdx].text"
+          ></span>
+        </transition>
       </nav>
 
       <!-- SEARCH BAR -->
@@ -1178,6 +1198,17 @@ const openLuckyWheelMobile = () => {
 
       <!-- HEADER ACTIONS -->
       <div class="header-actions">
+        <div class="header-contact">
+          <div class="header-contact-primary">
+            <a href="tel:18009999" class="ann-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              1800 9999
+            </a>
+            <span class="ann-sep">|</span>
+            <span class="ann-link header-currency">VND</span>
+          </div>
+          <a href="mailto:support@nextgenlaptop.vn" class="header-email">support@nextgenlaptop.vn</a>
+        </div>
 
         <!-- WISHLIST -->
         <div class="dropdown-wrap" @mouseenter="showWishlist = true" @mouseleave="showWishlist = false">
@@ -1349,6 +1380,16 @@ const openLuckyWheelMobile = () => {
 
       <nav class="mob-nav">
         <div class="mob-nav-label">Danh mục</div>
+        <router-link
+          to="/"
+          @click="isMobileMenuOpen = false"
+          class="mob-link"
+          active-class="mob-discover-parent"
+          exact-active-class="router-link-exact-active"
+        >
+          Khám phá
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </router-link>
         <router-link v-for="(menu, key) in megaMenuData" :key="key"
           :to="mobileMenuTarget(key)" @click="isMobileMenuOpen = false" class="mob-link" :class="{ current: isMenuCurrent(key) }">
           {{ menu.label }}
@@ -1383,19 +1424,22 @@ const openLuckyWheelMobile = () => {
   right: 0;
   z-index: 1001;
   background: #0f172a;
-  height: 34px;
-  display: flex;
+  height: 40px;
+  display: none;
   align-items: center;
   overflow: hidden;
 }
 .ann-container {
-  max-width: none;
-  width: 100%;
+  width: min(calc(100% - 64px), 1360px);
+  max-width: 1360px;
   margin: auto;
-  padding: 0 110px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.ann-container:has(.ann-right:only-child) {
+  justify-content: flex-end;
 }
 .ann-text {
   font-family: 'Inter', sans-serif;
@@ -1453,70 +1497,80 @@ const openLuckyWheelMobile = () => {
 /* ============================= MAIN HEADER ============================= */
 .header {
   position: fixed;
-  top: 34px;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(13, 27, 46, 0.95);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background-color: #0d1b2e;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-bottom: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.header.scrolled {
-  background: rgba(13, 27, 46, 0.99);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
-  border-bottom-color: transparent;
+  transition: none;
+  height: 128px;
 }
 
 .header-inner {
-  width: 100%;
-  max-width: none;
+  position: relative;
+  width: min(calc(100% - 64px), 1360px);
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 0 110px;
-  height: 74px;
+  padding: 0;
+  height: 128px;
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(470px, 1fr) minmax(300px, 330px) max-content;
+  grid-template-columns: minmax(224px, 1fr) minmax(480px, 760px) minmax(224px, 1fr);
+  grid-template-rows: 80px 48px;
   align-items: center;
-  gap: clamp(16px, 1.3vw, 26px);
+  column-gap: 32px;
+  row-gap: 0;
 }
 
 /* LOGO */
 .logo-wrap {
   grid-column: 1;
+  grid-row: 1;
   justify-self: start;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 340px;
-  min-width: 340px;
-  height: 72px;
+  width: 224px;
+  min-width: 224px;
+  height: 56px;
   text-decoration: none;
   flex-shrink: 0;
   overflow: visible;
   transition: filter 0.2s ease;
+  margin-left: 16px;
 }
 .logo-wrap:hover { filter: brightness(1.05); }
 .logo-img {
   width: 100%;
   height: 100%;
-  max-height: 72px;
+  max-height: 56px;
   object-fit: contain;
   object-position: left center;
   filter: drop-shadow(0 3px 8px rgba(0,0,0,0.25));
+  transform: scale(1.2);
+  transform-origin: left center;
 }
 
 /* ============================= MEGA NAV ============================= */
 .mega-nav {
-  grid-column: 2;
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: flex;
   align-items: center;
-  justify-self: start;
-  width: auto;
-  max-width: 560px;
-  margin-left: clamp(4px, 0.6vw, 12px);
-  gap: clamp(4px, 0.55vw, 10px);
-  justify-content: flex-start;
+  justify-self: stretch;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  gap: 24px;
+  justify-content: center;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  height: 40px;
+  padding: 0;
+  align-self: start;
+  transform: translateY(-24px);
   min-width: 0;
   z-index: 2;
 }
@@ -1528,18 +1582,28 @@ const openLuckyWheelMobile = () => {
   justify-content: center;
 }
 
+.mega-nav-links {
+  width: min(100%, 760px);
+  height: 100%;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 0;
+}
+
 .nav-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 44px;
-  min-width: 82px;
-  padding: 8px 6px;
+  height: 40px;
+  min-width: 76px;
+  padding: 8px;
   border: none;
   background: transparent;
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #cbd5e1;
   cursor: pointer;
@@ -1568,11 +1632,11 @@ const openLuckyWheelMobile = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 44px;
+  height: 40px;
   min-width: 76px;
   padding: 8px 8px;
   font-family: 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #cbd5e1;
   text-decoration: none;
@@ -1598,7 +1662,7 @@ const openLuckyWheelMobile = () => {
   top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(8, 17, 30, 0.96);
+  background: #08111e;
   backdrop-filter: blur(30px) saturate(190%);
   -webkit-backdrop-filter: blur(30px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1609,6 +1673,7 @@ const openLuckyWheelMobile = () => {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 9999;
   width: min(760px, calc(100vw - 48px));
+  max-width: calc(100vw - 32px);
   overflow: hidden;
   padding: 20px;
 }
@@ -1698,13 +1763,14 @@ const openLuckyWheelMobile = () => {
   gap: 4px;
 }
 .mega-link {
-  display: flex;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-start;
   gap: 11px;
   min-height: 52px;
-  padding: 7px 8px;
+  padding: 7px 38px 7px 8px;
   box-sizing: border-box;
+  position: relative;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 9px;
@@ -1763,7 +1829,42 @@ const openLuckyWheelMobile = () => {
   color: #ffffff;
   flex: 1 1 auto;
   min-width: 0;
+  overflow-wrap: anywhere;
   transition: color 0.15s ease;
+}
+.nav-announcement {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 280px;
+  min-width: 0;
+  padding: 0 8px;
+  color: #cbd5e1;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  box-shadow: none;
+}
+.nav-announcement :deep(strong) {
+  color: #60a5fa;
+  font-weight: 700;
+}
+.nav-announcement :deep(.ann-code-icon) {
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  color: #38bdf8;
+  flex: 0 0 auto;
 }
 .mega-link:hover {
   background: var(--accent-bg);
@@ -1788,13 +1889,15 @@ const openLuckyWheelMobile = () => {
 
 /* ITEM BADGES */
 .mega-item-badge {
-  font-size: 9px;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8px;
+  line-height: 1;
   font-weight: 800;
-  padding: 2px 5px;
+  padding: 3px 4px;
   border-radius: 4px;
   letter-spacing: 0.2px;
-  flex-shrink: 0;
-  margin-left: auto;
   text-transform: capitalize;
 }
 .mega-item-badge.hot  { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
@@ -1919,11 +2022,12 @@ const openLuckyWheelMobile = () => {
 
 /* ============================= SEARCH ============================= */
 .search-container {
-  grid-column: 3;
-  width: 100%;
-  max-width: 330px;
-  justify-self: end;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  width: min(580px, calc(100% - 700px));
+  max-width: 580px;
   z-index: 1000;
 }
 .search-wrap {
@@ -1934,7 +2038,7 @@ const openLuckyWheelMobile = () => {
   background: #0f0f10;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 99px;
-  padding: 0 0 0 16px;
+  padding: 0 0 0 24px;
   height: 48px;
   overflow: hidden;
   box-shadow:
@@ -2052,7 +2156,7 @@ const openLuckyWheelMobile = () => {
   min-width: 0;
   height: 100%;
 }
-.search-input::placeholder { color: #68686b !important; opacity: 1; }
+.search-input::placeholder { color: #68686b !important; opacity: 1; text-align: center; }
 .search-clear {
   width: 22px; height: 22px;
   border: none; background: rgba(255,255,255,0.08); border-radius: 50%;
@@ -2131,44 +2235,84 @@ const openLuckyWheelMobile = () => {
 
 /* ============================= HEADER ACTIONS ============================= */
 .header-actions {
-  grid-column: 4;
+  grid-column: 3;
+  grid-row: 1;
   justify-self: end;
   display: flex;
   align-items: center;
-  height: 48px;
-  gap: 10px;
+  height: 40px;
+  gap: 8px;
   flex-shrink: 0;
   min-width: max-content;
+  margin-right: 16px;
+}
+.header-contact {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-right: 8px;
+  padding-right: 16px;
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  white-space: nowrap;
+}
+.header-contact-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.header-contact .ann-link {
+  color: #94a3b8;
+  font-size: 12px;
+}
+.header-email {
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.header-email:hover {
+  color: #60a5fa;
+}
+.header-currency {
+  min-width: 32px;
+  justify-content: center;
 }
 
 .icon-action {
   position: relative;
-  width: 44px; height: 44px;
+  width: 40px; height: 40px;
   border-radius: 12px;
-  border: 1.5px solid transparent;
-  background: transparent;
+  border: 1.5px solid rgba(96, 165, 250, 0.42);
+  background: rgba(37, 99, 235, 0.07);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   color: #94a3b8;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.04), 0 3px 10px rgba(2, 8, 23, 0.16);
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 .icon-action svg { width: 20px; height: 20px; }
-.icon-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
-.icon-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
+.icon-action:hover { background: rgba(37,99,235,0.16); border-color: #60a5fa; color: #60a5fa; box-shadow: 0 0 0 3px rgba(37,99,235,0.10), 0 6px 16px rgba(2,8,23,0.24); transform: translateY(-1px); }
+.icon-action.active { background: rgba(37,99,235,0.18); border-color: #60a5fa; color: #60a5fa; box-shadow: 0 0 0 3px rgba(37,99,235,0.10); }
 
 .cart-action {
-  background: transparent;
+  background: rgba(37, 99, 235, 0.07);
   color: #94a3b8;
-  border: 1.5px solid transparent;
+  border-color: rgba(96, 165, 250, 0.42);
 }
 .cart-action svg { stroke: currentColor; }
-.cart-action:hover { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.2); color: #60a5fa; transform: translateY(-1px); }
-.cart-action.active { background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.25); color: #60a5fa; }
+.cart-action:hover { background: rgba(37,99,235,0.16); border-color: #60a5fa; color: #60a5fa; transform: translateY(-1px); }
+.cart-action.active { background: rgba(37,99,235,0.18); border-color: #60a5fa; color: #60a5fa; }
 
 .user-action { padding: 0; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; }
 .user-action:hover { transform: none; }
 .user-action.active { border-color: #2563eb; }
-.user-avatar { width: 40px; min-width: 40px; height: 40px; border-radius: 10px; object-fit: cover; object-position: center; display: block; }
+.user-avatar { width: 36px; min-width: 36px; height: 36px; border-radius: 10px; object-fit: cover; object-position: center; display: block; }
 
 .action-badge {
   position: absolute; top: -5px; right: -5px;
@@ -2470,21 +2614,38 @@ const openLuckyWheelMobile = () => {
 .mob-slide-enter-from, .mob-slide-leave-to { transform: translateX(100%); }
 
 /* ============================= RESPONSIVE ============================= */
-@media (max-width: 1200px) {
+@media (max-width: 1120px) {
   .ann-container {
-    padding: 0 clamp(32px, 5vw, 64px);
+    width: calc(100% - 64px);
+    padding: 0;
   }
   .header-inner {
-    padding: 0 clamp(32px, 5vw, 64px);
-    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+    width: calc(100% - 64px);
+    padding: 0;
+    height: 72px;
+    grid-template-columns: 200px minmax(280px, 1fr) auto auto;
+    grid-template-rows: 72px;
+    column-gap: 16px;
+  }
+  .header { height: 72px; }
+  .logo-wrap,
+  .search-container,
+  .header-actions {
+    grid-row: 1;
   }
   .mega-nav { display: none; }
   .search-container {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 100%;
     grid-column: 2;
     justify-self: center;
-    max-width: 260px;
+    max-width: 480px;
   }
   .header-actions { grid-column: 3; }
+  .header-contact { display: none; }
   .hamburger { grid-column: 4; }
   .hamburger { display: flex; }
 }
@@ -2493,11 +2654,11 @@ const openLuckyWheelMobile = () => {
   .search-container { display: none; }
   .header-inner {
     grid-template-columns: auto 1fr auto;
-    gap: 12px;
+    gap: 16px;
   }
   .logo-wrap {
-    width: 240px;
-    min-width: 240px;
+    width: 200px;
+    min-width: 200px;
   }
   .header-actions {
     grid-column: 2;
@@ -2510,16 +2671,17 @@ const openLuckyWheelMobile = () => {
   .ann-bar { display: none; }
   .header {
     top: 0;
+    height: 64px;
   }
   .header-inner {
     width: calc(100% - 32px);
     padding: 0;
-    height: 60px;
+    height: 64px;
   }
   .logo-wrap {
-    width: 200px;
-    min-width: 200px;
-    height: 60px;
+    width: 176px;
+    min-width: 176px;
+    height: 56px;
   }
 }
 
