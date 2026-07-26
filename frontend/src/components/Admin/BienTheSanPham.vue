@@ -677,12 +677,21 @@ onUnmounted(() => {
 
 function exportVariants() {
   const today = new Date().toLocaleDateString('vi-VN')
-  const title = [`DANH SÁCH BIẾN THỂ CẤU HÌNH (xuất ngày ${today})`]
-  const header = ['Tên biến thể', 'Loại thuộc tính', 'Trạng thái', 'Giá cộng thêm']
-  const rows = variants.value.map(v => [v.name, v.type, v.status, v.gia_cong_them || 0])
-  const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows])
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }]
-  ws['!cols'] = [{ wch: 24 }, { wch: 20 }, { wch: 14 }, { wch: 15 }]
+  const title = ['BÁO CÁO CHI TIẾT BIẾN THỂ CẤU HÌNH']
+  const meta = [`Ngày xuất: ${today} | Tổng số biến thể: ${variants.value.length}`]
+  const header = ['STT', 'Tên biến thể', 'Loại thuộc tính', 'Trạng thái', 'Giá cộng thêm (VNĐ)']
+  const rows = variants.value.map((v, index) => [index + 1, v.name, v.type, v.status, Number(v.gia_cong_them) || 0])
+  const ws = XLSX.utils.aoa_to_sheet([title, meta, [], header, ...rows])
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+  ]
+  ws['!cols'] = [{ wch: 7 }, { wch: 28 }, { wch: 22 }, { wch: 16 }, { wch: 20 }]
+  ws['!autofilter'] = { ref: `A4:E${rows.length + 4}` }
+  rows.forEach((_, index) => {
+    const cell = ws[`E${index + 5}`]
+    if (cell) cell.z = '#,##0'
+  })
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Biến thể')
   XLSX.writeFile(wb, `bien-the-${Date.now()}.xlsx`)
@@ -690,12 +699,17 @@ function exportVariants() {
 
 function exportColors() {
   const today = new Date().toLocaleDateString('vi-VN')
-  const title = [`DANH SÁCH MÀU SẮC SẢN PHẨM (xuất ngày ${today})`]
-  const header = ['Tên màu', 'Mã màu (HEX)']
-  const rows = colors.value.map(c => [c.name, c.hex])
-  const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows])
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }]
-  ws['!cols'] = [{ wch: 20 }, { wch: 14 }]
+  const title = ['BÁO CÁO CHI TIẾT MÀU SẮC SẢN PHẨM']
+  const meta = [`Ngày xuất: ${today} | Tổng số màu: ${colors.value.length}`]
+  const header = ['STT', 'Tên màu', 'Mã màu (HEX)']
+  const rows = colors.value.map((c, index) => [index + 1, c.name, c.hex])
+  const ws = XLSX.utils.aoa_to_sheet([title, meta, [], header, ...rows])
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+  ]
+  ws['!cols'] = [{ wch: 7 }, { wch: 24 }, { wch: 16 }]
+  ws['!autofilter'] = { ref: `A4:C${rows.length + 4}` }
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Màu sắc')
   XLSX.writeFile(wb, `mau-sac-${Date.now()}.xlsx`)
@@ -1283,8 +1297,8 @@ async function handleImportFile(e) {
           <h4>Xuất dữ liệu</h4>
           <p>Tải xuống danh sách cấu hình (Excel)</p>
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-            <button class="export-sm-btn" @click="exportVariants">Xuất biến thể</button>
-            <button class="export-sm-btn purple-sm" @click="exportColors">Xuất màu sắc</button>
+            <button class="export-sm-btn admin-report-export" @click="exportVariants">Xuất báo cáo biến thể</button>
+            <button class="export-sm-btn admin-report-export" @click="exportColors">Xuất báo cáo màu sắc</button>
           </div>
         </div>
       </div>
