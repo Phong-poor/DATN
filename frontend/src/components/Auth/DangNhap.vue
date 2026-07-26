@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
@@ -319,6 +319,7 @@ const handleLogin = async () => {
 
   loading.value = true
   preloadAdminRoute()
+  await nextTick()
 
   try {
     const res = await api.post('/login', {
@@ -326,7 +327,7 @@ const handleLogin = async () => {
       matkhau: password.value,
       password: password.value,
       remember: remember.value
-    })
+    }, { immediateLoader: true })
 
     const user = res.data.user
     const token = res.data.token

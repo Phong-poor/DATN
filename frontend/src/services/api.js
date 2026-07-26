@@ -55,7 +55,11 @@ api.interceptors.request.use((config) => {
   }
 
   if (shouldShowGlobalLoader(config)) {
-    window.dispatchEvent(new Event('global-loader-show'))
+    window.dispatchEvent(
+      config.immediateLoader
+        ? new CustomEvent('global-loader-show', { detail: { immediate: true, minDuration: 180 } })
+        : new Event('global-loader-show')
+    )
   }
 
   const token = getToken()

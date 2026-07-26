@@ -67,6 +67,7 @@ Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController:
 // ================= LIÊN HỆ (KHÁCH) =================
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
+Route::post('/showroom-appointments', [LienHeController::class, 'storeAppointment']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
 
 // ================= KHUYẾN MÃI (PUBLIC) =================

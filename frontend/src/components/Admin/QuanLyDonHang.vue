@@ -645,11 +645,13 @@ async function exportExcel() {
     const today = new Date().toLocaleDateString('vi-VN')
     const tabLabel = activeTab.value
 
-    const titleRow = [`Báo cáo đơn hàng - ${tabLabel} (xuất ngày ${today})`]
+    const titleRow = [`BÁO CÁO CHI TIẾT ĐƠN HÀNG - ${tabLabel.toUpperCase()}`]
+    const metaRow = [`Ngày xuất: ${today} | Tổng số đơn: ${filteredOrders.value.length}`]
     const blankRow = []
-    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Thanh toán', 'Ghi chú']
+    const header = ['STT', 'Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền (VNĐ)', 'Trạng thái', 'Thanh toán', 'Ghi chú']
 
-    const dataRows = filteredOrders.value.map(o => [
+    const dataRows = filteredOrders.value.map((o, index) => [
+        index + 1,
         o.id,
         o.name,
         o.email,
@@ -662,12 +664,20 @@ async function exportExcel() {
         o.note,
     ])
 
-    const ws = XLSX.utils.aoa_to_sheet([titleRow, blankRow, header, ...dataRows])
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }]
-    ws['!cols'] = [
-        { wch: 16 }, { wch: 22 }, { wch: 26 }, { wch: 14 },
-        { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 28 },
+    const ws = XLSX.utils.aoa_to_sheet([titleRow, metaRow, blankRow, header, ...dataRows])
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
     ]
+    ws['!cols'] = [
+        { wch: 7 }, { wch: 16 }, { wch: 22 }, { wch: 26 }, { wch: 15 },
+        { wch: 36 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 30 },
+    ]
+    ws['!autofilter'] = { ref: `A4:K${dataRows.length + 4}` }
+    dataRows.forEach((_, index) => {
+        const cell = ws[`H${index + 5}`]
+        if (cell) cell.z = '#,##0'
+    })
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
@@ -697,7 +707,7 @@ async function exportExcel() {
                     Đơn hoàn trả
                 </button>
             </div>
-            <button class="btn-export" @click="exportExcel">
+            <button class="btn-export admin-report-export" @click="exportExcel">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />

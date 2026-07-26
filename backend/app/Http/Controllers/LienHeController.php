@@ -8,6 +8,54 @@ use Illuminate\Support\Facades\Mail;
 
 class LienHeController extends Controller
 {
+    public function storeAppointment(Request $request)
+    {
+        $validated = $request->validate([
+            'hoten' => 'required|string|max:100',
+            'email' => 'required|email|max:100',
+            'sodienthoai' => ['required', 'string', 'max:20', 'regex:/^(0|\\+84)[0-9\\s.-]{8,14}$/'],
+            'showroom_id' => 'required|integer|min:1',
+            'showroom_ten' => 'required|string|max:150',
+            'showroom_diachi' => 'required|string|max:255',
+            'ngay_hen' => 'required|date|after_or_equal:today',
+            'khung_gio' => 'required|in:08:00 - 10:00,10:00 - 12:00,13:30 - 15:30,15:30 - 17:30',
+            'ghi_chu' => 'nullable|string|max:1000',
+        ], [
+            'sodienthoai.regex' => 'Số điện thoại không đúng định dạng.',
+            'ngay_hen.after_or_equal' => 'Ngày trải nghiệm không được ở trong quá khứ.',
+            'khung_gio.in' => 'Khung giờ trải nghiệm không hợp lệ.',
+        ]);
+
+        $content = implode("\n", array_filter([
+            "Showroom: {$validated['showroom_ten']}",
+            "Địa chỉ: {$validated['showroom_diachi']}",
+            "Ngày hẹn: {$validated['ngay_hen']}",
+            "Khung giờ: {$validated['khung_gio']}",
+            !empty($validated['ghi_chu']) ? "Nhu cầu: {$validated['ghi_chu']}" : null,
+        ]));
+
+        $appointment = LienHe::create([
+            'hoten' => $validated['hoten'],
+            'email' => $validated['email'],
+            'sodienthoai' => $validated['sodienthoai'],
+            'noidung' => $content,
+            'danhmuc' => 'Đặt lịch trải nghiệm showroom',
+            'trangthai' => 'new',
+            'loai_yeu_cau' => 'showroom_appointment',
+            'showroom_id' => $validated['showroom_id'],
+            'showroom_ten' => $validated['showroom_ten'],
+            'showroom_diachi' => $validated['showroom_diachi'],
+            'ngay_hen' => $validated['ngay_hen'],
+            'khung_gio' => $validated['khung_gio'],
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đăng ký lịch trải nghiệm thành công.',
+            'data' => $appointment,
+        ], 201);
+    }
+
     public function store(Request $request)
     {
         $payload = [

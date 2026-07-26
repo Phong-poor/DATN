@@ -6,11 +6,23 @@
       `width-${appearance.content_width}`,
       `sidebar-${appearance.sidebar_style}`,
       `anim-${appearance.animation_level}`,
+      sidebarCollapsed && 'sidebar-collapsed',
       adminIntroActive && 'intro-active',
     ]"
     :style="adminVars"
   >
     <aside class="sidebar">
+      <button
+        type="button"
+        class="sidebar-collapse-btn"
+        :aria-label="sidebarCollapsed ? 'Mở rộng thanh quản trị' : 'Thu gọn thanh quản trị'"
+        :title="sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'"
+        @click="toggleSidebar"
+      >
+        <ChevronsRight v-if="sidebarCollapsed" />
+        <ChevronsLeft v-else />
+      </button>
+
       <div class="sidebar-logo">
         <img
           src="/ChatGPT_Image_08_35_43_4_thg_6__2026-removebg-preview.png"
@@ -183,7 +195,9 @@
 
       <router-view :key="routeKey" v-slot="{ Component }">
         <transition name="page-fade">
-          <component :is="Component" />
+          <div :key="routeKey" class="admin-page-shell">
+            <component :is="Component" />
+          </div>
         </transition>
       </router-view>
     </main>
@@ -219,6 +233,8 @@ import {
   Coins,
   Camera,
   ClipboardCheck,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -233,6 +249,7 @@ const userMenuOpen = ref(false)
 const langMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
 const adminIntroActive = ref(false)
+const sidebarCollapsed = ref(localStorage.getItem('admin-sidebar-collapsed') === 'true')
 let adminIntroTimer = null
 
 const userMenuRef = ref(null)
@@ -414,7 +431,16 @@ const dropdownStates = ref({
 })
 
 function toggleDropdown(label) {
+  if (sidebarCollapsed.value) {
+    sidebarCollapsed.value = false
+    localStorage.setItem('admin-sidebar-collapsed', 'false')
+  }
   dropdownStates.value[label] = !dropdownStates.value[label]
+}
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed.value))
 }
 
 function isMenuPathActive(path) {
@@ -727,7 +753,7 @@ onUnmounted(() => {
 
 <style scoped>
 * { box-sizing: border-box; }
-.admin-layout { display: flex; height: 100vh; overflow: hidden; background: #f8fafc; font-family: Inter, sans-serif; }
+.admin-layout { display: flex; height: 100vh; overflow: hidden; background: #eef2f7; font-family: Inter, sans-serif; }
 .admin-layout.dark { background: #0b0f19; }
 .sidebar { 
     width: 260px; 
@@ -740,6 +766,83 @@ onUnmounted(() => {
     display: flex; 
     flex-direction: column; 
     border-right: 1px solid rgba(125, 211, 252, 0.14);
+    transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+}
+.sidebar-collapse-btn {
+    position: absolute;
+    z-index: 3;
+    top: 22px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(96, 165, 250, 0.34);
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.2), rgba(15, 23, 42, 0.92));
+    color: #93c5fd;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.sidebar-collapse-btn:hover {
+    transform: translateY(-1px) scale(1.06);
+    border-color: rgba(96, 165, 250, 0.75);
+    background: linear-gradient(145deg, #2563eb, #1d4ed8);
+    color: #fff;
+    box-shadow: 0 7px 20px rgba(37, 99, 235, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.sidebar-collapse-btn:active {
+    transform: scale(0.94);
+}
+.sidebar-collapse-btn:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 3px;
+}
+.sidebar-collapse-btn svg { width: 17px; height: 17px; stroke-width: 2.3; }
+.sidebar-collapsed .sidebar {
+    width: 76px;
+    min-width: 76px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.sidebar-collapsed .sidebar-collapse-btn {
+    top: 19px;
+    right: 21px;
+}
+.sidebar-collapsed .sidebar-logo {
+    height: 52px;
+    padding: 0 0 20px;
+}
+.sidebar-collapsed .admin-logo-img,
+.sidebar-collapsed .menu-label,
+.sidebar-collapsed .menu-text,
+.sidebar-collapsed .chevron-icon,
+.sidebar-collapsed .submenu,
+.sidebar-collapsed .user-info,
+.sidebar-collapsed .sidebar-logout-btn {
+    display: none;
+}
+.sidebar-collapsed .menu-section {
+    padding-top: 12px;
+}
+.sidebar-collapsed .item {
+    justify-content: center;
+    padding: 11px;
+    gap: 0;
+}
+.sidebar-collapsed .item-icon {
+    width: 20px;
+    height: 20px;
+}
+.sidebar-collapsed .sidebar-user {
+    justify-content: center;
+    padding: 10px;
+}
+.sidebar-collapsed .sidebar-user .user-avatar {
+    width: 34px;
+    min-width: 34px;
 }
 .sidebar-logo { 
     display: flex; 
@@ -935,7 +1038,83 @@ a { text-decoration: none; }
     border-color: #ef4444;
 }
 .sidebar-logout-btn svg { width: 14px; height: 14px; }
-.main { flex: 1; padding: 0 32px 32px; height: 100vh; overflow-y: auto; overflow-x: hidden; background: #f8fafc; min-width: 0; }
+.main {
+    --admin-page-bg: #f4f7fb;
+    --admin-page-space: 24px;
+    --admin-section-gap: 24px;
+    --admin-panel-bg: #ffffff;
+    --admin-panel-border: #e2e8f0;
+    flex: 1;
+    padding: 0 24px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--admin-page-bg);
+    min-width: 0;
+}
+.admin-page-shell {
+    width: 100%;
+    min-height: calc(100vh - 77px);
+    padding: var(--admin-page-space) 0 40px;
+    background: transparent;
+}
+
+/* Every routed admin screen receives spacing and body color from the shell. */
+.admin-page-shell > :deep(.admin),
+.admin-page-shell > :deep(.page),
+.admin-page-shell > :deep(.admin-page),
+.admin-page-shell > :deep(.profile-page),
+.admin-page-shell > :deep(.audit-log-container),
+.admin-page-shell > :deep(.xu-config-page),
+.admin-page-shell > :deep(.settings-v2),
+.admin-page-shell > :deep(.attendance-page),
+.admin-page-shell > :deep(.attendance-admin-page),
+.admin-page-shell > :deep(.combo-management),
+.admin-page-shell > :deep(.roles-management),
+.admin-page-shell > :deep(.admin-vongquay-page),
+.admin-page-shell > :deep(.affiliate-admin) {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    gap: var(--admin-section-gap) !important;
+    background: transparent !important;
+}
+
+/* Keep the primary content rails aligned across legacy admin screens. */
+.admin-page-shell :deep(.page > .topbar),
+.admin-page-shell :deep(.page > .breadcrumb),
+.admin-page-shell :deep(.page > .page-header),
+.admin-page-shell :deep(.page > .stats),
+.admin-page-shell :deep(.page > .filter-bar) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.admin-page-shell :deep(.page > .table-wrap),
+.admin-page-shell :deep(.page > .filter-row),
+.admin-page-shell :deep(.page > .users-bulk-toolbar) {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Variant management used an additional 32px inner rail on every section. */
+.admin-page-shell :deep(.page > .top-tables),
+.admin-page-shell :deep(.page > .tabs),
+.admin-page-shell :deep(.page > .main-layout),
+.admin-page-shell :deep(.page > .bottom-grid) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.admin-page-shell :deep(.dashboard-cluster),
+.admin-page-shell :deep(.workbench-card),
+.admin-page-shell :deep(.table-wrap),
+.admin-page-shell :deep(.filter-row) {
+    border-color: var(--admin-panel-border);
+}
 .admin-topbar { 
     position: sticky; 
     top: 0; 
@@ -944,9 +1123,9 @@ a { text-decoration: none; }
     justify-content: space-between; 
     align-items: center; 
     gap: 18px; 
-    margin: 0 -32px 24px; 
-    padding: 18px 32px; 
-    width: calc(100% + 64px); 
+    margin: 0 -24px;
+    padding: 16px 24px;
+    width: calc(100% + 48px);
     background: #0b0d12; 
     border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
     border-radius: 0;
@@ -1470,5 +1649,57 @@ a { text-decoration: none; }
   color: #64748b !important;
   font-weight: 500 !important;
   padding: 0 4px !important;
+}
+
+/* Một kiểu nút xuất báo cáo dùng thống nhất cho toàn bộ trang admin. */
+.main :deep(.admin-report-export) {
+  width: auto !important;
+  min-width: 122px !important;
+  height: 38px !important;
+  padding: 0 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  flex-shrink: 0 !important;
+  border: 1px solid #d7deea !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #172033 !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  cursor: pointer !important;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+
+.main :deep(.admin-report-export svg) {
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px !important;
+  color: #334155 !important;
+  stroke-width: 1.8 !important;
+}
+
+.main :deep(.admin-report-export:hover:not(:disabled)) {
+  color: #2563eb !important;
+  border-color: #93b4f5 !important;
+  background: #f8fbff !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10) !important;
+  transform: translateY(-1px) !important;
+}
+
+.main :deep(.admin-report-export:focus-visible) {
+  outline: 3px solid rgba(37, 99, 235, 0.18) !important;
+  outline-offset: 2px !important;
+}
+
+.main :deep(.admin-report-export:disabled) {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 </style>

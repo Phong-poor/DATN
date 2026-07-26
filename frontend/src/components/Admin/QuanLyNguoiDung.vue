@@ -259,17 +259,22 @@ const resetAdvancedFilters = () => {
 }
 
 const exportUsersReport = () => {
-    const rows = filtered.value.map((u, idx) => ({
-        STT: idx + 1,
-        'Họ tên': u.name,
-        Email: u.email,
-        'Số điện thoại': u.phone || '',
-        'Vai trò': u.role,
-        'Ngày tham gia': u.joined,
-        'Trạng thái': u.status,
-    }))
-
-    const ws = XLSX.utils.json_to_sheet(rows)
+    const header = ['STT', 'Họ tên', 'Email', 'Số điện thoại', 'Vai trò', 'Ngày tham gia', 'Trạng thái']
+    const rows = filtered.value.map((u, idx) => [
+        idx + 1, u.name, u.email, u.phone || '', u.role, u.joined, u.status,
+    ])
+    const now = new Date()
+    const ws = XLSX.utils.aoa_to_sheet([
+        ['BÁO CÁO CHI TIẾT NGƯỜI DÙNG'],
+        [`Thời điểm xuất: ${now.toLocaleString('vi-VN')} | Tổng số người dùng: ${rows.length}`],
+        [],
+        header,
+        ...rows,
+    ])
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+    ]
     ws['!cols'] = [
         { wch: 8 },
         { wch: 24 },
@@ -279,9 +284,10 @@ const exportUsersReport = () => {
         { wch: 14 },
         { wch: 14 },
     ]
+    ws['!autofilter'] = { ref: `A4:G${rows.length + 4}` }
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'NguoiDung')
-    XLSX.writeFile(wb, `bao-cao-nguoi-dung-${Date.now()}.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, 'Người dùng')
+    XLSX.writeFile(wb, `bao-cao-nguoi-dung-${now.toISOString().slice(0, 10)}.xlsx`)
 }
 
 // ─── PAGINATION COMPUTED ─────────────
@@ -588,7 +594,7 @@ const submitEdit = async () => {
                         </svg>
                         Đặt lại bộ lọc
                     </button>
-                    <button class="btn-export" @click="exportUsersReport" :disabled="filtered.length === 0">
+                    <button class="btn-export admin-report-export" @click="exportUsersReport" :disabled="filtered.length === 0">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             style="width:14px;height:14px">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -622,7 +628,7 @@ const submitEdit = async () => {
             @delete-all="removeAllFiltered"
         >
             <template #tools>
-                <button class="btn-export bulk-export-btn" @click="exportUsersReport" :disabled="filtered.length === 0">
+                <button class="btn-export bulk-export-btn admin-report-export" @click="exportUsersReport" :disabled="filtered.length === 0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />

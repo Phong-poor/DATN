@@ -7,8 +7,10 @@ import {
   Flame,
   Heart,
   Headphones,
+  Keyboard,
   Laptop,
   Monitor,
+  Mouse,
   Search,
   ShieldCheck,
   ShoppingCart,
@@ -123,24 +125,24 @@ const serviceCards = [
 ]
 
 const heroCategories = [
-  { label: 'Laptop Gaming RTX 4050', icon: BadgeCheck, line: 'gaming', q: 'rtx 4050' },
-  { label: 'Laptop Gaming RTX 4060', icon: BadgeCheck, line: 'gaming', q: 'rtx 4060' },
-  { label: 'Laptop Gaming RTX 4070', icon: BadgeCheck, line: 'gaming', q: 'rtx 4070' },
-  { label: 'Laptop Gaming RTX 4080', icon: BadgeCheck, line: 'gaming', q: 'rtx 4080' },
-  { label: 'Laptop Gaming RTX 4090', icon: BadgeCheck, line: 'gaming', q: 'rtx 4090' },
+  { label: 'Laptop Gaming RTX 4050', icon: Laptop, line: 'gaming', q: 'rtx 4050' },
+  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: 'rtx 4060' },
+  { label: 'Laptop Gaming RTX 4070', icon: Laptop, line: 'gaming', q: 'rtx 4070' },
+  { label: 'Laptop Gaming RTX 4080', icon: Laptop, line: 'gaming', q: 'rtx 4080' },
+  { label: 'Laptop Gaming RTX 4090', icon: Laptop, line: 'gaming', q: 'rtx 4090' },
   { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus rog tuf' },
   { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi gaming' },
   { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer predator' },
   { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo legion' },
-  { label: 'Bàn phím cơ Gaming', icon: Monitor, line: 'accessory', q: 'ban phim gaming' },
-  { label: 'Chuột Gaming', icon: Search, line: 'accessory', q: 'chuot gaming' },
+  { label: 'Bàn phím cơ Gaming', icon: Keyboard, line: 'accessory', q: 'ban phim gaming' },
+  { label: 'Chuột Gaming', icon: Mouse, line: 'accessory', q: 'chuot gaming' },
   { label: 'Tai nghe Gaming', icon: Headphones, line: 'accessory', q: 'tai nghe gaming' },
   { label: 'Lót chuột Gaming', icon: Monitor, line: 'accessory', q: 'lot chuot gaming' },
 ]
 
 const heroAccessoryCategories = [
-  { label: 'Chuột Gaming Logitech', icon: BadgeCheck, line: 'mouse', q: 'logitech mouse' },
-  { label: 'Bàn phím cơ Akko', icon: ShieldCheck, line: 'keyboard', q: 'akko keyboard' },
+  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'logitech mouse' },
+  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'akko keyboard' },
   { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'razer headphone' },
   { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot pad' },
   { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'other', q: 'ugreen hub cap' },
@@ -559,7 +561,7 @@ watch(() => route.fullPath, () => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
   if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
-  if (route.query.scroll === 'catalog' || route.query.q) {
+  if (route.query.scroll === 'catalog') {
     scrollToCatalog()
   }
 })
@@ -582,7 +584,7 @@ onMounted(() => {
   if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   loadProducts()
-  if (route.query.scroll === 'catalog' || route.query.q) {
+  if (route.query.scroll === 'catalog') {
     scrollToCatalog()
   }
 })
@@ -619,11 +621,6 @@ onMounted(() => {
               <button @click="isAccessoryPage ? selectLine('all') : selectLine('gaming')">Mua ngay</button>
               <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
             </div>
-          </div>
-          <div class="hero-dots" aria-hidden="true">
-            <span class="active"></span>
-            <span></span>
-            <span></span>
           </div>
         </div>
 
@@ -2361,11 +2358,11 @@ onMounted(() => {
 
 .brand-marquee {
   position: relative;
-  width: min(100% - clamp(48px, 10vw, 192px), 1680px);
+  width: 100%;
   margin-top: 32px;
   overflow: hidden;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0;
+  margin-right: 0;
   padding: 8px 0;
 }
 
@@ -3173,9 +3170,29 @@ onMounted(() => {
 }
 
 .lp-hero .line-btn svg {
-  width: 12px;
-  height: 12px;
-  color: #94a3b8;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  stroke-width: 2.2;
+  color: #3b82f6;
+}
+
+.lp-hero .line-btn:nth-of-type(3n + 2) svg {
+  color: #8b5cf6;
+}
+
+.lp-hero .line-btn:nth-of-type(3n) svg {
+  color: #06b6d4;
+}
+
+.lp-hero .line-btn:nth-of-type(5n) svg {
+  color: #f59e0b;
+}
+
+.lp-hero .line-btn.promo svg {
+  width: 18px;
+  height: 18px;
+  color: #ef4444;
 }
 
 .lp-hero .line-btn:hover,
@@ -3317,8 +3334,29 @@ onMounted(() => {
 }
 
 .lp-hero .lp-services svg {
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 8px;
+  color: #2563eb;
+  background: #eaf2ff;
+  border-radius: 11px;
+  stroke-width: 2.2;
+}
+
+.lp-hero .lp-services article:nth-child(2) svg {
+  color: #7c3aed;
+  background: #f1eafe;
+}
+
+.lp-hero .lp-services article:nth-child(3) svg {
+  color: #059669;
+  background: #e8f8f1;
+}
+
+.lp-hero .lp-services article:nth-child(4) svg {
+  color: #ea580c;
+  background: #fff1e8;
 }
 
 .lp-hero .lp-services strong {
@@ -3877,5 +3915,70 @@ onMounted(() => {
 .combo-empty-icon {
   font-size: 36px;
   margin-bottom: 12px;
+}
+
+/* Unified content typography: compact titles with readable descriptions. */
+.laptop-page h2,
+.laptop-page h3,
+.laptop-page h4,
+.laptop-page h5,
+.laptop-page h6,
+.lp-hero .lp-sidebar h3,
+.lp-hero .lp-services strong,
+.filter-head strong,
+.lp-showroom-item strong {
+  font-size: 14px;
+}
+
+.lp-hero .line-btn,
+.lp-hero .lp-services span,
+.section-copy p,
+.catalog-title > div > span,
+.filter-head span,
+.filter-group label,
+.product-card .specs,
+.flag-card .specs,
+.combo-details p,
+.combos-header .section-sub,
+.lp-showroom-copy > p,
+.lp-showroom-item p {
+  font-size: 13px;
+}
+
+/* Brand marquee heading needs stronger hierarchy than regular body titles. */
+.lp-brands > p {
+  font-size: 16px;
+}
+
+.lp-brands > h2 {
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+/* Compact vertical rhythm between the main page sections. */
+.lp-brands {
+  margin-top: 32px;
+  padding-top: 28px;
+  padding-bottom: 30px;
+}
+
+.brand-marquee {
+  margin-top: 20px;
+}
+
+.lp-flagship,
+.lp-accessories,
+.lp-catalog,
+.lp-showroom,
+.lp-combos {
+  margin-top: clamp(32px, 3vw, 44px);
+}
+
+.section-copy {
+  margin-bottom: 24px;
+}
+
+.laptop-page {
+  padding-bottom: 40px;
 }
 </style>
