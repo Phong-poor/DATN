@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
@@ -37,6 +37,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 
 // ===================== STATE MANAGEMENT =====================
 const isLoading = ref(true)
@@ -194,12 +195,24 @@ const magazineArticles = [
   { id: 3, category: 'Xu hướng phần cứng', title: 'Kiến trúc GPU Blackwell RTX 5090 hứa hẹn bước nhảy vọt như thế nào?', excerpt: 'Tổng hợp tất cả thông số rò rỉ, mức tiêu thụ điện năng dự kiến và hiệu năng Ray Tracing thế hệ mới của card đồ họa khủng nhất năm.', date: '29/05/2026', img: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&q=80' }
 ]
 
+const scrollToPromotionSection = () => {
+  const sectionId = String(route.query.section || '')
+  if (!sectionId) return
+  nextTick(() => {
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  })
+}
+
 // ===================== LIFECYCLE METHODS =====================
 onMounted(() => {
   fetchPromotionsData()
   startTimers()
   fetchUserVouchers()
 })
+
+watch(() => route.query.section, scrollToPromotionSection)
 
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval)
@@ -362,6 +375,7 @@ async function fetchPromotionsData() {
     nextTick(() => {
       initScrollReveal()
       initStatsObserver()
+      scrollToPromotionSection()
     })
   }
 }
@@ -1001,7 +1015,7 @@ const initScrollReveal = () => {
     </section>
 
     <!-- 5. VOUCHER CENTER -->
-    <section class="section voucher-center-section">
+    <section id="voucher-center" class="section voucher-center-section">
       <div class="grid-container">
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
@@ -1063,7 +1077,7 @@ const initScrollReveal = () => {
     </section>
 
     <!-- 6. COMBO SECTION -->
-    <section class="section combo-section">
+    <section id="combo-offers" class="section combo-section">
       <div class="grid-container">
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
@@ -2701,7 +2715,7 @@ const initScrollReveal = () => {
 
 .magazine-layout-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1fr 1fr;
   gap: 32px;
 }
 
@@ -2885,7 +2899,7 @@ const initScrollReveal = () => {
 }
 
 /* ============================================================
-   9. NEWSLETTER (Elegant light theme banner card)
+   9. NEWSLETTER
    ============================================================ */
 .newsletter-section {
   background: var(--bg-dark);
@@ -2896,10 +2910,11 @@ const initScrollReveal = () => {
   position: relative;
   border-radius: 28px;
   padding: 56px;
-  background: var(--tn-surface);
-  color: #0d1b2e;
+  background: linear-gradient(135deg, #081529 0%, #0b1b33 100%);
+  color: #f8fafc;
+  border: 1px solid rgba(96, 165, 250, 0.18);
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
 }
 
 .newsletter-glow-orb {
@@ -2930,7 +2945,7 @@ const initScrollReveal = () => {
   font-size: clamp(24px, 3.2vw, 36px);
   font-weight: 850;
   margin: 0 0 12px 0;
-  color: #070e1b;
+  color: #f8fafc;
   letter-spacing: -0.01em;
   text-transform: capitalize;
 }
@@ -2938,7 +2953,7 @@ const initScrollReveal = () => {
 .newsletter-headline p {
   font-size: 14.5px;
   line-height: 1.65;
-  color: #475569;
+  color: #aebed3;
   margin: 0;
 }
 
@@ -2949,17 +2964,18 @@ const initScrollReveal = () => {
 
 .newsletter-interactive-form {
   display: flex;
+  gap: 8px;
   width: 100%;
   max-width: 440px;
-  background: var(--tn-surface-2);
-  border: 1px solid var(--tn-border);
+  background: #061225;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 12px;
   padding: 6px;
   transition: all 0.3s ease;
 }
 
 .newsletter-interactive-form:focus-within {
-  background: var(--tn-surface);
+  background: #08172b;
   border-color: var(--accent);
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
 }
@@ -2969,7 +2985,7 @@ const initScrollReveal = () => {
   background: transparent;
   border: none;
   outline: none;
-  color: #070e1b;
+  color: #f8fafc;
   font-size: 14px;
   padding: 0 12px;
   font-weight: 500;
@@ -3000,16 +3016,17 @@ const initScrollReveal = () => {
    ANIMATIONS AND TRANSITIONS
    ============================================================ */
 .scroll-reveal {
-  opacity: 0;
+  opacity: 1;
+  transform: none;
   transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .reveal-fade-up {
-  transform: translateY(30px);
+  transform: none;
 }
 
 .reveal-scale-up {
-  transform: scale(0.92);
+  transform: none;
 }
 
 .scroll-reveal.active {
@@ -3018,8 +3035,8 @@ const initScrollReveal = () => {
 }
 
 .reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(20px);
+  opacity: 1;
+  transform: none;
   transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3140,5 +3157,108 @@ const initScrollReveal = () => {
   opacity: 0.7;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* Compact and consistent spacing across promotion sections. */
+.promotions-shell .section {
+  padding-top: 52px;
+  padding-bottom: 52px;
+}
+
+.promotions-shell .section-header {
+  margin-bottom: 32px;
+}
+
+.promotions-shell .categories-section {
+  padding-bottom: 28px;
+}
+
+.promotions-shell .flash-sale-dark-section {
+  padding-top: 40px;
+}
+
+.promotions-shell .flash-header-row {
+  margin-bottom: 28px;
+}
+
+/* Fixed header must not cover sections opened from hero/category links. */
+.promotions-shell #flash-sale,
+.promotions-shell #voucher-center,
+.promotions-shell #combo-offers,
+.promotions-shell #discount-grid {
+  scroll-margin-top: 120px;
+}
+
+/* Keep the ending of the page compact and prevent an empty dark band. */
+.promotions-shell .magazine-section {
+  padding-bottom: 28px;
+}
+
+.promotions-shell .magazine-layout-grid {
+  align-items: start;
+}
+
+.promotions-shell .newsletter-section {
+  padding-top: 28px;
+  padding-bottom: 52px;
+}
+
+.promotions-shell .newsletter-glass-card {
+  padding: 44px 48px;
+}
+
+@media (max-width: 992px) {
+  .promotions-shell .section {
+    padding-top: 44px;
+    padding-bottom: 44px;
+  }
+
+  .promotions-shell .categories-section {
+    padding-bottom: 24px;
+  }
+
+  .promotions-shell .flash-sale-dark-section {
+    padding-top: 36px;
+  }
+
+  .promotions-shell .magazine-section {
+    padding-bottom: 24px;
+  }
+
+  .promotions-shell .newsletter-section {
+    padding-top: 24px;
+    padding-bottom: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .promotions-shell .section {
+    padding-top: 36px;
+    padding-bottom: 36px;
+  }
+
+  .promotions-shell .section-header,
+  .promotions-shell .flash-header-row {
+    margin-bottom: 24px;
+  }
+
+  .promotions-shell .magazine-section {
+    padding-bottom: 20px;
+  }
+
+  .promotions-shell .newsletter-section {
+    padding-top: 20px;
+    padding-bottom: 36px;
+  }
+
+  .promotions-shell .newsletter-glass-card {
+    padding: 28px 20px;
+  }
+
+  .promotions-shell .newsletter-interactive-form input {
+    background: #061225;
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #f8fafc;
+  }
 }
 </style>

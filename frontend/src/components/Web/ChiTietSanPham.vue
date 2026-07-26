@@ -2514,7 +2514,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
-    top: var(--product-sticky-offset, 102px);
+    top: var(--product-sticky-offset, 128px);
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -2529,14 +2529,20 @@ const handleSelectVariantById = (idBienThe) => {
 }
 
 .product-detail-wrapper {
-    --product-sticky-offset: 102px;
+    --product-sticky-offset: 128px;
     min-height: 100vh;
     background: #ffffff;
 }
 
+@media (max-width: 1120px) {
+    .product-detail-wrapper {
+        --product-sticky-offset: 72px;
+    }
+}
+
 @media (max-width: 600px) {
     .product-detail-wrapper {
-        --product-sticky-offset: 60px;
+        --product-sticky-offset: 64px;
     }
 
     .sticky-buy-bar {
@@ -6036,5 +6042,135 @@ const handleSelectVariantById = (idBienThe) => {
 .dropdown-fade-leave-to {
     opacity: 0;
     transform: translateY(-8px);
+}
+
+/* Compact product-detail rhythm and keep the gallery useful beside long info. */
+.premium-hero-container {
+    min-height: 0;
+    padding-bottom: 28px;
+}
+
+.detail-hero-grid {
+    min-height: 0;
+    gap: 28px;
+}
+
+.premium-specs-section,
+.premium-highlights-section,
+.premium-reviews-section {
+    padding-top: 52px;
+    padding-bottom: 52px;
+}
+
+.section-title-wrap,
+.premium-reviews-section .section-title-wrap {
+    margin-bottom: 32px;
+}
+
+.premium-related-products-section {
+    padding-top: 48px;
+    padding-bottom: 24px;
+}
+
+@media (min-width: 1025px) {
+    .gallery-column {
+        position: sticky;
+        top: calc(var(--product-sticky-offset, 102px) + 16px);
+        align-self: start;
+    }
+}
+
+@media (max-width: 1024px) {
+    .premium-specs-section,
+    .premium-highlights-section,
+    .premium-reviews-section {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+}
+
+/* Light review theme aligned with the white storefront canvas. */
+.premium-reviews-section {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.premium-reviews-section .accent-subtitle {
+    color: #2563eb;
+    text-shadow: none;
+}
+
+.premium-reviews-section .section-main-title {
+    color: #0f172a;
+}
+
+.premium-reviews-section .section-description-text {
+    color: #64748b;
+}
+
+.rating-overall-card,
+.rating-meters-card,
+.reviews-cskh-card {
+    background: #f8fafc;
+    border-color: #dbe4ef;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.rating-overall-card .card-label,
+.overall-total-count,
+.name-date-stack .review-timestamp {
+    color: #64748b;
+}
+
+.meters-title,
+.reviews-cskh-card h3,
+.name-date-stack .username {
+    color: #0f172a;
+}
+
+.percent-label,
+.reviews-cskh-card p,
+.comment-p {
+    color: #475569;
+}
+
+.meter-track {
+    background: #e2e8f0;
+}
+
+.review-feedback-card {
+    background: #ffffff;
+    border-color: #dbe4ef;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.review-feedback-card:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+}
+
+.shop-reply-box {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #0f172a;
+    box-shadow: none;
+}
+
+.shop-reply-label {
+    color: #2563eb;
+}
+
+.shop-reply-box p {
+    color: #334155;
+}
+
+.empty-reviews-state {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.empty-reviews-state h4 {
+    color: #0f172a;
 }
 </style>
