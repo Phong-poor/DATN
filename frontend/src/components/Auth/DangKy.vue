@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
@@ -112,6 +112,7 @@ const handleRegister = async () => {
 
   if (loading.value) return
   loading.value = true
+  await nextTick()
 
   try {
     const res = await api.post('/register', {
@@ -121,7 +122,7 @@ const handleRegister = async () => {
       matkhau: password.value,
       matkhau_confirmation: confirm.value,
       referral_code: referralCode.value.trim().toUpperCase() || null,
-    })
+    }, { immediateLoader: true })
     const rewardPromotion = res.data?.referral_reward?.promotion
     const rewardMessage = rewardPromotion
       ? ` Bạn đã nhận voucher ${rewardPromotion.code} trị giá ${formatMoney(rewardPromotion.value)} trong ví ưu đãi.`
