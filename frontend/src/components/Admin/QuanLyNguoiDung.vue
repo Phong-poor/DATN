@@ -557,6 +557,8 @@ const submitEdit = async () => {
                     <input v-model="searchQuery" @input="onSearch"
                         placeholder="Tìm kiếm người dùng, email..." />
                 </div>
+            </div>
+            <div class="filter-bottom-bar">
                 <div class="tabs-group">
                     <button v-for="t in tabs" :key="t" class="tab" :class="{ active: activeTab === t }"
                         @click="onTabChange(t)">{{ t }}</button>
@@ -582,9 +584,8 @@ const submitEdit = async () => {
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="filter-bottom-bar">
-                <div class="filter-left-actions">
+
+                <div class="filter-bottom-actions">
                     <button class="btn-filter" @click="resetAdvancedFilters">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             style="width:14px;height:14px">
@@ -603,8 +604,6 @@ const submitEdit = async () => {
                         </svg>
                         Xuất báo cáo
                     </button>
-                </div>
-                <div class="filter-right-actions">
                     <button class="btn-new-user" @click="openModal" v-if="activeTab === 'Admin'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
                             style="width:14px;height:14px">
@@ -626,18 +625,7 @@ const submitEdit = async () => {
             @clear="clearSelection"
             @delete-selected="removeSelected"
             @delete-all="removeAllFiltered"
-        >
-            <template #tools>
-                <button class="btn-export bulk-export-btn admin-report-export" @click="exportUsersReport" :disabled="filtered.length === 0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Xuất báo cáo
-                </button>
-            </template>
-        </BulkDeleteToolbar>
+        />
 
         <!-- TABLE -->
         <div class="table-wrap">
@@ -956,7 +944,7 @@ const submitEdit = async () => {
     border: 1.5px solid #cbd5e1 !important;
     border-radius: 10px;
     padding: 0 12px;
-    width: 280px;
+    width: 100%;
     height: 38px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     transition: all 0.2s ease;
@@ -1028,17 +1016,6 @@ const submitEdit = async () => {
 
 .users-bulk-toolbar {
     margin: 0 32px 14px;
-}
-
-.bulk-export-btn {
-    min-height: 34px;
-    padding: 8px 12px;
-    white-space: nowrap;
-}
-
-.bulk-export-btn svg {
-    width: 14px;
-    height: 14px;
 }
 
 /* STATS */
@@ -1213,11 +1190,15 @@ const submitEdit = async () => {
 }
 
 .filter-top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: block;
+    width: 100%;
+}
+
+.filter-row > .filter-top-bar > .search-box {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
 }
 
 .filter-bottom-bar {
@@ -1228,17 +1209,12 @@ const submitEdit = async () => {
     width: 100%;
 }
 
-.filter-left-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.filter-right-actions {
+.filter-bottom-actions {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-left: auto;
+    flex-wrap: wrap;
 }
 
 .tabs-group {
@@ -2260,6 +2236,15 @@ tbody td {
         grid-column: auto;
         justify-content: flex-start;
         overflow-x: auto;
+    }
+
+    .filter-bottom-bar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .filter-bottom-actions {
+        margin-left: 0;
     }
 
     .bottom-grid {
