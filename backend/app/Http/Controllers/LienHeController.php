@@ -6,8 +6,37 @@ use Illuminate\Http\Request;
 use App\Models\LienHe;
 use Illuminate\Support\Facades\Mail;
 
+/**
+ * Tiếp nhận liên hệ, yêu cầu tư vấn, lịch hẹn showroom và phản hồi khách hàng.
+ */
 class LienHeController extends Controller
 {
+    public function storeConsultation(Request $request)
+    {
+        $validated = $request->validate([
+            'sodienthoai' => ['required', 'string', 'max:20', 'regex:/^(0|\+84)[0-9\s.-]{8,14}$/'],
+        ], [
+            'sodienthoai.required' => 'Vui lòng nhập số điện thoại.',
+            'sodienthoai.regex' => 'Số điện thoại không đúng định dạng.',
+        ]);
+
+        $consultation = LienHe::create([
+            'hoten' => 'Khách hàng đăng ký tư vấn',
+            'email' => 'support@nextgenlaptop.vn',
+            'sodienthoai' => $validated['sodienthoai'],
+            'noidung' => 'Khách hàng yêu cầu chuyên viên gọi lại để tư vấn.',
+            'danhmuc' => 'Đặt lịch tư vấn',
+            'trangthai' => 'new',
+            'loai_yeu_cau' => 'consultation_callback',
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đăng ký tư vấn thành công.',
+            'data' => $consultation,
+        ], 201);
+    }
+
     public function storeAppointment(Request $request)
     {
         $validated = $request->validate([

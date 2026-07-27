@@ -8,6 +8,9 @@ use App\Models\ChamCong;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
+/**
+ * Xử lý đăng ký khuôn mặt, check-in/check-out và quản lý lịch công nhân viên.
+ */
 class ChamCongController extends Controller
 {
     /**
@@ -28,6 +31,19 @@ class ChamCongController extends Controller
             'checked_in' => $chamCong ? ($chamCong->gio_vao !== null) : false,
             'checked_out' => $chamCong ? ($chamCong->gio_ra !== null) : false,
             'today_record' => $chamCong,
+            'employee' => [
+                'id' => $user->id,
+                'name' => $user->ten,
+                'email' => $user->email,
+                'role' => $user->vaitro,
+                'role_name' => $user->ten_vaitro_hienthi,
+                'avatar' => $user->anhdaidien,
+            ],
+            'work_schedule' => [
+                'morning' => '08:00 - 12:00',
+                'break' => '12:00 - 13:30',
+                'afternoon' => '13:30 - 17:30',
+            ],
         ]);
     }
 
@@ -37,10 +53,17 @@ class ChamCongController extends Controller
     public function dangKyKhuonMat(Request $request)
     {
         $request->validate([
-            'face_descriptor' => 'required|array|min:128',
+            'face_descriptor' => 'required|array|size:128',
+            'face_descriptor.*' => 'numeric',
         ]);
 
         $user = $request->user();
+        if ($user->vaitro === 'user') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ tài khoản nhân viên mới được đăng ký khuôn mặt chấm công.',
+            ], 403);
+        }
         $user->face_descriptor = json_encode($request->face_descriptor);
         $user->face_registered = true;
         $user->save();
@@ -73,12 +96,50 @@ class ChamCongController extends Controller
     public function checkInCheckOut(Request $request)
     {
         $request->validate([
-            'image' => 'required|string', // Dạng Base64
+            'image' => 'required|string',
+            'face_descriptor' => 'required|array|size:128',
+            'face_descriptor.*' => 'numeric',
         ]);
 
         $user = $request->user();
 
-        // 3. Xử lý lưu ảnh chụp
+        if ($user->vaitro === 'user') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản khách hàng không có quyền chấm công nhân viên.',
+            ], 403);
+        }
+
+        if (!$user->face_registered || !$user->face_descriptor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nhân viên chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi chấm công.',
+            ], 422);
+        }
+
+        $storedDescriptor = json_decode($user->face_descriptor, true);
+        if (!is_array($storedDescriptor) || count($storedDescriptor) !== 128) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dữ liệu khuôn mặt đã đăng ký không hợp lệ. Vui lòng đăng ký lại.',
+            ], 422);
+        }
+
+        $faceDistance = $this->calculateEuclideanDistance(
+            array_map('floatval', $storedDescriptor),
+            array_map('floatval', $request->input('face_descriptor'))
+        );
+
+        // Ngưỡng phổ biến của descriptor 128 chiều: nhỏ hơn hoặc bằng 0.55 là cùng một người.
+        if ($faceDistance > 0.55) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Khuôn mặt không khớp với nhân viên đang đăng nhập.',
+                'match_score' => round($faceDistance, 4),
+            ], 422);
+        }
+
+        // Chỉ lưu ảnh sau khi đã xác thực đúng khuôn mặt nhân viên.
         $today = Carbon::today()->toDateString();
         $now = Carbon::now();
         $currentTime = $now->toTimeString();
@@ -184,10 +245,70 @@ class ChamCongController extends Controller
             return response()->json([
                 'success' => true,
                 'type' => 'checkout',
-                'message' => 'Check-out thành công!',
+                'message' => 'Check-out tan ca thành công!',
                 'record' => $chamCong,
             ]);
         }
+    }
+
+    /**
+     * Chấm công nhanh tại máy quản trị: nhận diện khuôn mặt và tự tìm đúng nhân viên.
+     */
+    public function adminQuickCheck(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|string',
+            'face_descriptor' => 'required|array|size:128',
+            'face_descriptor.*' => 'numeric',
+        ]);
+
+        $incoming = array_map('floatval', $request->input('face_descriptor'));
+        $bestEmployee = null;
+        $bestDistance = PHP_FLOAT_MAX;
+
+        $employees = User::where('vaitro', '!=', 'user')
+            ->where('face_registered', true)
+            ->whereNotNull('face_descriptor')
+            ->where('trangthai', '!=', 'locked')
+            ->get();
+
+        foreach ($employees as $employee) {
+            $stored = json_decode($employee->face_descriptor, true);
+            if (!is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
+
+            $distance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $incoming);
+            if ($distance < $bestDistance) {
+                $bestDistance = $distance;
+                $bestEmployee = $employee;
+            }
+        }
+
+        if (!$bestEmployee || $bestDistance > 0.55) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không nhận diện được nhân viên. Vui lòng đăng ký hoặc cập nhật khuôn mặt trước.',
+            ], 422);
+        }
+
+        // Tái sử dụng toàn bộ quy tắc check-in/check-out hiện có với đúng nhân viên vừa nhận diện.
+        $request->setUserResolver(fn () => $bestEmployee);
+        $response = $this->checkInCheckOut($request);
+        $payload = $response->getData(true);
+        if (($payload['success'] ?? false) === true) {
+            $payload['employee'] = [
+                'id' => $bestEmployee->id,
+                'name' => $bestEmployee->ten,
+                'email' => $bestEmployee->email,
+                'role_name' => $bestEmployee->ten_vaitro_hienthi,
+                'avatar' => $bestEmployee->anhdaidien,
+            ];
+            $payload['match_score'] = round($bestDistance, 4);
+            $response->setData($payload);
+        }
+
+        return $response;
     }
 
     /**
@@ -274,29 +395,204 @@ class ChamCongController extends Controller
      */
     public function adminGetLichSu(Request $request)
     {
+        $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'month' => ['nullable', 'date_format:Y-m'],
+            'employee_id' => ['nullable', 'integer'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $date = $request->query('date');
+        $month = $request->query('month');
+        $employeeId = $request->query('employee_id');
         $search = $request->query('search');
+        $currentUser = $request->user();
+        $isAdmin = $currentUser && $currentUser->vaitro === 'admin';
 
         $query = ChamCong::with('user:id,ten,email,anhdaidien,vaitro');
 
         if ($date) {
             $query->where('ngay_cham_cong', $date);
+        } elseif ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            [$year, $monthNumber] = array_map('intval', explode('-', $month));
+            $query->whereYear('ngay_cham_cong', $year)
+                ->whereMonth('ngay_cham_cong', $monthNumber);
         }
 
-        if ($search) {
+        if (!$isAdmin) {
+            // Bảo mật bắt buộc ở server: nhân viên chỉ được xem dữ liệu của chính mình,
+            // kể cả khi cố truyền employee_id của người khác trên URL.
+            $query->where('id_nhanvien', $currentUser->id);
+        } elseif ($employeeId) {
+            $query->where('id_nhanvien', $employeeId);
+        }
+
+        if ($isAdmin && $search) {
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('ten', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
+        $salaryQuery = clone $query;
+        $salaryRows = $salaryQuery->get();
+        $baseSalaryPerDay = 350000;
+        $penaltyPerTenMinutes = 10000;
+
+        $payrollSummary = $salaryRows->reduce(function ($summary, ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes) {
+            $worked = !empty($record->gio_vao);
+            $lateMinutes = max(0, (int) $record->di_tre_phut);
+            $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
+            $grossSalary = $worked ? $baseSalaryPerDay : 0;
+            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+
+            $summary['work_days'] += $worked ? 1 : 0;
+            $summary['on_time_days'] += $worked && $lateMinutes === 0 ? 1 : 0;
+            $summary['late_days'] += $worked && $lateMinutes > 0 ? 1 : 0;
+            $summary['gross_salary'] += $grossSalary;
+            $summary['total_penalty'] += $penalty;
+            $summary['net_salary'] += max(0, $grossSalary - $penalty);
+            return $summary;
+        }, [
+            'work_days' => 0,
+            'on_time_days' => 0,
+            'late_days' => 0,
+            'gross_salary' => 0,
+            'total_penalty' => 0,
+            'net_salary' => 0,
+            'base_salary_per_day' => $baseSalaryPerDay,
+            'penalty_per_ten_minutes' => $penaltyPerTenMinutes,
+        ]);
+        $attendanceSummary = [
+            'present' => $salaryRows->whereNotNull('gio_vao')->pluck('id_nhanvien')->unique()->count(),
+            'late' => $salaryRows->where('di_tre_phut', '>', 0)->count(),
+            'total_work_units' => round((float) $salaryRows->sum('tong_cong'), 2),
+            'total_hours' => round((float) $salaryRows->sum('tong_gio'), 2),
+        ];
+
         $records = $query->orderBy('ngay_cham_cong', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate((int) $request->query('per_page', 15));
+
+        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes) {
+            $worked = !empty($record->gio_vao);
+            $lateMinutes = max(0, (int) $record->di_tre_phut);
+            $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
+            $grossSalary = $worked ? $baseSalaryPerDay : 0;
+            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+
+            $record->setAttribute('luong_ngay', $grossSalary);
+            $record->setAttribute('tien_phat', $penalty);
+            $record->setAttribute('luong_thuc_nhan', max(0, $grossSalary - $penalty));
+            $record->setAttribute(
+                'ghi_chu_luong',
+                !$worked
+                    ? 'Chưa có lượt check-in nên chưa tính lương ngày.'
+                    : ($lateMinutes > 0
+                        ? "Đi làm muộn {$lateMinutes} phút = {$penaltyBlocks} mốc 10 phút × "
+                            . number_format($penaltyPerTenMinutes, 0, ',', '.') . 'đ, tổng khấu trừ '
+                            . number_format($penalty, 0, ',', '.') . 'đ.'
+                        : 'Đi làm đúng giờ, hưởng đủ lương ngày.')
+            );
+            return $record;
+        }));
 
         return response()->json([
             'success' => true,
             'data' => $records,
+            'payroll_summary' => $payrollSummary,
+            'attendance_summary' => $attendanceSummary,
+        ]);
+    }
+
+    /**
+     * Danh bạ hồ sơ chấm công, đồng bộ trực tiếp với Vai trò & quyền.
+     */
+    public function adminGetNhanVien(Request $request)
+    {
+        abort_unless($request->user()?->vaitro === 'admin', 403, 'Chỉ quản trị viên được xem danh sách nhân viên.');
+
+        $employees = User::where('vaitro', '!=', 'user')
+            ->with(['chamCongs' => function ($query) {
+                $query->latest('ngay_cham_cong')->latest('created_at')->limit(1);
+            }])
+            ->orderBy('ten')
+            ->get()
+            ->map(function (User $employee) {
+                $latest = $employee->chamCongs->first();
+
+                return [
+                    'id' => $employee->id,
+                    'ten' => $employee->ten,
+                    'email' => $employee->email,
+                    'sodienthoai' => $employee->sodienthoai,
+                    'anhdaidien' => $employee->anhdaidien,
+                    'ma_vaitro' => $employee->vaitro,
+                    'ten_vaitro' => $employee->ten_vaitro_hienthi,
+                    'trangthai' => $employee->trangthai,
+                    'face_registered' => (bool) $employee->face_registered,
+                    'latest_attendance' => $latest ? [
+                        'date' => $latest->ngay_cham_cong,
+                        'check_in' => $latest->gio_vao,
+                        'check_out' => $latest->gio_ra,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $employees,
+            'summary' => [
+                'total' => $employees->count(),
+                'registered' => $employees->where('face_registered', true)->count(),
+                'not_registered' => $employees->where('face_registered', false)->count(),
+                'locked' => $employees->where('trangthai', 'locked')->count(),
+            ],
+        ]);
+    }
+
+    public function adminDangKyKhuonMat(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'face_descriptor' => 'required|array|size:128',
+            'face_descriptor.*' => 'numeric',
+        ]);
+
+        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        if ($employee->trangthai === 'locked') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản nhân viên đang bị khóa, không thể đăng ký khuôn mặt.',
+            ], 422);
+        }
+        $employee->face_descriptor = json_encode(array_map('floatval', $validated['face_descriptor']));
+        $employee->face_registered = true;
+        $employee->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã đăng ký khuôn mặt cho {$employee->ten}.",
+            'employee' => [
+                'id' => $employee->id,
+                'ten' => $employee->ten,
+                'ten_vaitro' => $employee->ten_vaitro_hienthi,
+                'face_registered' => true,
+            ],
+        ]);
+    }
+
+    public function adminXoaKhuonMat(Request $request, $id)
+    {
+        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $employee->face_descriptor = null;
+        $employee->face_registered = false;
+        $employee->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã xóa dữ liệu khuôn mặt của {$employee->ten}.",
         ]);
     }
 
