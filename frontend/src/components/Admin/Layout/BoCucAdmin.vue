@@ -96,11 +96,22 @@
       </div>
     </aside>
 
-    <main class="main">
+    <main ref="adminMainRef" class="main">
       <section class="admin-topbar">
         <div class="admin-topbar-title">
           <h2>{{ pageTitle }}</h2>
           <p>Quản lý nội dung và điều hành hệ thống</p>
+        </div>
+
+        <div class="attendance-topbar-center">
+          <div class="attendance-topbar-clock">
+            <span>{{ adminClockDate }}</span>
+            <strong>{{ adminClockTime }}</strong>
+          </div>
+          <button type="button" class="topbar-attendance-link" @click="quickAttendanceOpen = true">
+            <Camera />
+            <span>Chấm công</span>
+          </button>
         </div>
 
         <div class="admin-topbar-actions">
@@ -112,17 +123,6 @@
             Trang chủ
           </router-link>
           <div class="topbar-icon-group">
-            <div class="topbar-popover" ref="langMenuRef">
-              <button class="topbar-icon-button" type="button" aria-label="Ngôn ngữ" @click="toggleLangMenu">
-                <span class="icon-flag">{{ localeBadge }}</span>
-              </button>
-              <div v-if="langMenuOpen" class="topbar-dropdown compact-menu">
-                <button class="dropdown-item compact" type="button" :class="{ active: currentLocale === 'vi' }" @click="setLocale('vi')">Tiếng Việt</button>
-                <button class="dropdown-item compact" type="button" :class="{ active: currentLocale === 'en' }" @click="setLocale('en')">English</button>
-              </div>
-            </div>
-
-
             <AdminChatManager />
 
             <div class="topbar-popover" ref="notifyMenuRef">
@@ -135,18 +135,20 @@
                   <b>Thông báo</b>
                   <button class="notify-mark-read" type="button" @click="markAllNotificationsRead">Đánh dấu đã đọc</button>
                 </div>
-                <div v-if="!notifications.some(n => !n.read)" class="notify-empty">Chưa có thông báo mới</div>
-                <button
-                  v-for="item in notifications.filter(n => !n.read)"
-                  :key="item.id"
-                  type="button"
-                  class="notify-item"
-                  :class="{ unread: !item.read }"
-                  @click="openNotification(item)"
-                >
-                  <span class="notify-title">{{ item.title }}</span>
-                  <span class="notify-time">{{ item.time }}</span>
-                </button>
+                <div class="notify-scroll">
+                  <div v-if="!notifications.some(n => !n.read)" class="notify-empty">Chưa có thông báo mới</div>
+                  <button
+                    v-for="item in notifications.filter(n => !n.read)"
+                    :key="item.id"
+                    type="button"
+                    class="notify-item"
+                    :class="{ unread: !item.read }"
+                    @click="openNotification(item)"
+                  >
+                    <span class="notify-title">{{ item.title }}</span>
+                    <span class="notify-time">{{ item.time }}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -193,24 +195,28 @@
         </div>
       </section>
 
-      <router-view :key="routeKey" v-slot="{ Component }">
-        <transition name="page-fade">
-          <div :key="routeKey" class="admin-page-shell">
-            <component :is="Component" />
-          </div>
-        </transition>
+      <ChamCongNhanhModal
+        v-if="quickAttendanceOpen"
+        @close="quickAttendanceOpen = false"
+        @success="handleQuickAttendanceSuccess"
+      />
+
+      <router-view v-slot="{ Component }">
+        <div :key="routeKey" class="admin-page-shell">
+          <component :is="Component" />
+        </div>
       </router-view>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
 import AdminChatManager from '@/components/Admin/Layout/QuanLyChatAdmin.vue'
+import ChamCongNhanhModal from '@/components/Admin/Layout/ChamCongNhanhModal.vue'
 import { storageUrl } from '@/services/urls'
-import { getLocale, setLocale as setAppLocale } from '@/services/i18n'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import {
@@ -242,22 +248,35 @@ const route = useRoute()
 
 const refreshCounter = ref(0)
 const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
+const adminMainRef = ref(null)
+
+watch(
+  () => route.path,
+  async () => {
+    await nextTick()
+    adminMainRef.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }
+)
 
 const pageTitle = computed(() => route.meta.title || 'Bảng quản trị')
 const user = ref(getUser() || {})
 const userMenuOpen = ref(false)
-const langMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
+const quickAttendanceOpen = ref(false)
 const adminIntroActive = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('admin-sidebar-collapsed') === 'true')
 let adminIntroTimer = null
+const adminClock = ref(new Date())
+let adminClockTimer = null
+const adminClockTime = computed(() =>
+  adminClock.value.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+)
+const adminClockDate = computed(() =>
+  adminClock.value.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+)
 
 const userMenuRef = ref(null)
-const langMenuRef = ref(null)
 const notifyMenuRef = ref(null)
-
-const currentLocale = ref(getLocale())
-const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
 
 const sentenceCaseLabel = (value) => {
   const text = String(value || '').trim().replace(/\s+/g, ' ')
@@ -354,7 +373,7 @@ const menuConfig = [
       { path: '/admin/quan-ly-cham-cong', label: 'Quản lý chấm công', badge: 'ADMIN' },
     ]
   },
-  { path: '/admin/cham-cong-camera', label: 'Chấm công bằng Camera', icon: Camera },
+  { path: '/admin/cham-cong-camera', label: 'Xác thực nhân viên', icon: Camera },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
@@ -529,7 +548,6 @@ function refreshUser() {
 }
 
 function closeTopMenus() {
-  langMenuOpen.value = false
   notifyMenuOpen.value = false
 }
 
@@ -537,24 +555,11 @@ function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value
 }
 
-function toggleLangMenu() {
-  const next = !langMenuOpen.value
-  closeTopMenus()
-  langMenuOpen.value = next
-}
-
 function toggleNotifyMenu() {
   const next = !notifyMenuOpen.value
   closeTopMenus()
   notifyMenuOpen.value = next
 }
-
-function setLocale(locale) {
-  currentLocale.value = locale
-  setAppLocale(locale)
-  langMenuOpen.value = false
-}
-
 
 function markAllNotificationsRead() {
   notifications.value = notifications.value.map((n) => ({ ...n, read: true }))
@@ -672,7 +677,6 @@ function isInside(refEl, target) {
 function handleClickOutside(event) {
   const target = event.target
   if (userMenuOpen.value && !isInside(userMenuRef, target)) userMenuOpen.value = false
-  if (langMenuOpen.value && !isInside(langMenuRef, target)) langMenuOpen.value = false
   if (notifyMenuOpen.value && !isInside(notifyMenuRef, target)) notifyMenuOpen.value = false
 }
 
@@ -717,7 +721,14 @@ const handleSyncSuccess = () => {
   refreshCounter.value++
 }
 
+function handleQuickAttendanceSuccess() {
+  loadNotifications()
+}
+
 onMounted(async () => {
+  adminClockTimer = window.setInterval(() => {
+    adminClock.value = new Date()
+  }, 1000)
   if (sessionStorage.getItem('admin_intro_animation') === '1') {
     sessionStorage.removeItem('admin_intro_animation')
     adminIntroActive.value = true
@@ -731,7 +742,7 @@ onMounted(async () => {
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
   window.addEventListener('offline-sync-success', handleSyncSuccess)
-  document.documentElement.lang = currentLocale.value
+  document.documentElement.lang = 'vi'
   await loadAppearanceSettings()
   hydrateNotifications()
   await loadNotifications()
@@ -739,6 +750,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (adminClockTimer) window.clearInterval(adminClockTimer)
   if (adminIntroTimer) {
     clearTimeout(adminIntroTimer)
     adminIntroTimer = null
@@ -768,6 +780,7 @@ onUnmounted(() => {
     border-right: 1px solid rgba(125, 211, 252, 0.14);
     transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
 }
+
 .sidebar-collapse-btn {
     position: absolute;
     z-index: 3;
@@ -1087,8 +1100,7 @@ a { text-decoration: none; }
 .admin-page-shell :deep(.page > .topbar),
 .admin-page-shell :deep(.page > .breadcrumb),
 .admin-page-shell :deep(.page > .page-header),
-.admin-page-shell :deep(.page > .stats),
-.admin-page-shell :deep(.page > .filter-bar) {
+.admin-page-shell :deep(.page > .stats) {
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
@@ -1109,6 +1121,20 @@ a { text-decoration: none; }
     padding-right: 0 !important;
 }
 
+/* Trang xác thực dùng hết vùng làm việc khi menu quản trị được thu gọn. */
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .attendance-today),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .dashboard-grid),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .verification-intro),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .enrollment-banner),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .employee-directory),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .history-card) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
 .admin-page-shell :deep(.dashboard-cluster),
 .admin-page-shell :deep(.workbench-card),
 .admin-page-shell :deep(.table-wrap),
@@ -1122,45 +1148,115 @@ a { text-decoration: none; }
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    gap: 18px; 
+    gap: 14px; 
     margin: 0 -24px;
-    padding: 16px 24px;
+    padding: 10px 24px;
     width: calc(100% + 48px);
     background: #0b0d12; 
     border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
     border-radius: 0;
     box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
 }
-.admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; }
-.admin-topbar-title p { margin: 4px 0 0; color: rgba(219, 234, 254, 0.76); font-size: 12.5px; }
-.admin-topbar-actions { display: flex; align-items: center; gap: 10px; }
+.attendance-topbar-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.attendance-topbar-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    pointer-events: none;
+}
+.attendance-topbar-clock span {
+    color: #cbd5e1 !important;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.attendance-topbar-clock strong {
+    margin-top: 1px;
+    color: #ffffff !important;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .04em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 14px rgba(96, 165, 250, .38);
+    -webkit-text-fill-color: #ffffff;
+}
+.topbar-attendance-link {
+    height: 36px;
+    padding: 0 13px;
+    border: 1px solid rgba(96, 165, 250, .48);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none;
+    font-size: 11.5px;
+    font-weight: 750;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(37, 99, 235, .25);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.topbar-attendance-link svg { width: 15px; height: 15px; }
+.topbar-attendance-link:hover {
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 7px 18px rgba(37, 99, 235, .4);
+}
+@media (max-width: 1050px) {
+    .attendance-topbar-clock span { display: none; }
+    .attendance-topbar-clock strong { font-size: 16px; }
+    .attendance-topbar-clock { min-width: 88px; }
+    .topbar-attendance-link span { display: none; }
+    .topbar-attendance-link { width: 36px; padding: 0; }
+}
+@media (max-width: 820px) {
+    .attendance-topbar-center { display: none; }
+}
+.admin-topbar-title h2 { margin: 0; font-size: 19px; font-weight: 700; color: #ffffff; }
+.admin-topbar-title p { margin: 3px 0 0; color: rgba(219, 234, 254, 0.76); font-size: 11.5px; }
+.admin-topbar-actions { display: flex; align-items: center; gap: 8px; }
 .topbar-home-link { 
     display: inline-flex; 
     align-items: center; 
     justify-content: center;
     gap: 6px; 
-    height: 44px; 
-    padding: 0 18px; 
+    height: 38px; 
+    padding: 0 14px; 
     border-radius: 999px; 
     border: 1px solid rgba(191, 219, 254, 0.24); 
     background: rgba(255, 255, 255, 0.08); 
     color: #e0f2fe; 
     text-decoration: none; 
-    font-size: 13px; 
+    font-size: 12px; 
     font-weight: 600; 
     line-height: 1;
     white-space: nowrap;
     transform: translateY(0);
     transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-home-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar-home-link svg { width: 15px; height: 15px; flex-shrink: 0; }
 .topbar-home-link:hover { background: rgba(37, 99, 235, 0.42); color: #ffffff; border-color: rgba(125, 211, 252, 0.46); box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
 .topbar-home-link:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.16); }
-.topbar-icon-group { display: flex; align-items: center; gap: 10px; height: 44px; }
+.topbar-icon-group { display: flex; align-items: center; gap: 8px; height: 38px; }
 .topbar-popover { position: relative; display: flex; align-items: center; }
 .topbar-icon-button { 
-    width: 44px; 
-    height: 44px; 
+    width: 38px; 
+    height: 38px; 
     border-radius: 50%; 
     border: 1px solid rgba(191, 219, 254, 0.24); 
     background: rgba(255, 255, 255, 0.08); 
@@ -1187,10 +1283,9 @@ a { text-decoration: none; }
 .topbar-icon-button:hover svg {
     transform: scale(1.08);
 }
-.topbar-icon-button svg { width: 20px; height: 20px; }
+.topbar-icon-button svg { width: 18px; height: 18px; }
 .topbar-icon-button svg { transition: transform 0.18s ease; }
-.icon-flag { font-size: 12px; font-weight: 700; letter-spacing: .4px; line-height: 1; color: #ffffff; }
-.icon-badge { position: absolute; top: 3px; right: 3px; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
+.icon-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 9px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
 .topbar-icon-button:hover .icon-badge {
     animation: topbarBadgePop 0.42s ease both, topbarBadgePulse 1.45s ease-in-out 0.42s infinite;
 }
@@ -1206,24 +1301,35 @@ a { text-decoration: none; }
     padding: 8px; 
     z-index: 20; 
 }
-.compact-menu { width: 150px; }
 .apps-dropdown { width: 190px; display: grid; gap: 6px; }
 .notify-menu { width: 320px; }
 .notify-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 4px 4px 8px; border-bottom: 1px solid #edf2f7; }
+.notify-scroll {
+    max-height: min(360px, calc(100vh - 150px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+}
+.notify-scroll::-webkit-scrollbar { width: 6px; }
+.notify-scroll::-webkit-scrollbar-track { background: transparent; }
+.notify-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+.notify-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 .notify-mark-read { border: 0; background: transparent; color: #2563eb; font-size: 12px; cursor: pointer; }
 .notify-empty { color: #64748b; font-size: 13px; padding: 14px 6px; }
 .notify-item { width: 100%; border: 1px solid #eef2f7; background: #fff; border-radius: 10px; padding: 9px 10px; margin-top: 6px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
 .notify-title { font-size: 13px; color: #0f172a; font-weight: 600; }
 .notify-time { font-size: 11px; color: #64748b; }
-.topbar-divider { width: 1px; height: 32px; background: rgba(191, 219, 254, 0.22); }
+.topbar-divider { width: 1px; height: 28px; background: rgba(191, 219, 254, 0.22); }
 .topbar-user { position: relative; display: flex; align-items: center; }
 .topbar-user-btn { 
     display: inline-flex; 
     align-items: center; 
-    gap: 10px; 
-    height: 44px;
-    padding: 4px 12px 4px 4px; 
+    gap: 8px; 
+    height: 38px;
+    padding: 3px 10px 3px 3px; 
     border-radius: 999px; 
     border: 1px solid rgba(191, 219, 254, 0.24); 
     background: rgba(255, 255, 255, 0.08); 
@@ -1236,14 +1342,14 @@ a { text-decoration: none; }
 .topbar-user-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08); }
 .topbar-user-btn svg { width: 15px; height: 15px; color: rgba(219, 234, 254, 0.72); }
 .topbar-user-btn .user-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 13px;
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
     flex-shrink: 0;
 }
 .user-meta { display: flex; flex-direction: column; align-items: flex-start; }
-.user-name { font-size: 13.5px; font-weight: 600; color: #ffffff; }
-.user-role { font-size: 11px; color: rgba(219, 234, 254, 0.72); }
+.user-name { font-size: 12.5px; font-weight: 600; color: #ffffff; }
+.user-role { font-size: 10px; color: rgba(219, 234, 254, 0.72); }
 .user-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 240px; padding: 10px; border-radius: 12px; background: #fff; border: 1px solid rgba(15,23,42,.08); box-shadow: 0 12px 30px rgba(15,23,42,.08); z-index: 20; }
 .user-dropdown-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(15,23,42,.08); margin-bottom: 10px; }
 .user-dropdown-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #2563eb); color: #fff; display: grid; place-items: center; overflow: hidden; font-weight: 700; }
