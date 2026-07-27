@@ -492,11 +492,11 @@ onMounted(loadData)
   <div class="affiliate-admin">
     <section class="affiliate-hero">
       <div class="hero-actions">
-        <button class="btn ghost" type="button" @click="exportCsv">
+        <button class="affiliate-toolbar-btn export" type="button" @click="exportCsv">
           <Download :size="18" />
           Xuất CSV
         </button>
-        <button class="btn primary" type="button" :disabled="loading" @click="loadData">
+        <button class="affiliate-toolbar-btn reload" type="button" :disabled="loading" @click="loadData">
           <Loader2 v-if="loading" :size="18" class="spin" />
           <RefreshCcw v-else :size="18" />
           Tải lại
@@ -572,7 +572,7 @@ onMounted(loadData)
           :class="{ active: activeTab === tab.key }"
           @click="setTab(tab.key)"
         >
-          <component :is="tab.icon" :size="17" />
+          <component :is="tab.icon" :size="15" />
           {{ tab.label }}
           <span>{{ tab.count }}</span>
         </button>
@@ -989,6 +989,67 @@ onMounted(loadData)
   gap: 10px;
 }
 
+.affiliate-toolbar-btn {
+  height: 42px;
+  min-width: 124px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #d7e0ec;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, .05);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.affiliate-toolbar-btn svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  stroke-width: 2.1;
+}
+
+.affiliate-toolbar-btn.export:hover {
+  color: #2563eb;
+  border-color: #93c5fd;
+  background: #f8fbff;
+  box-shadow: 0 7px 18px rgba(37, 99, 235, .12);
+  transform: translateY(-1px);
+}
+
+.affiliate-toolbar-btn.reload {
+  color: #ffffff;
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, .22);
+}
+
+.affiliate-toolbar-btn.reload:hover {
+  border-color: #1d4ed8;
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  box-shadow: 0 9px 20px rgba(37, 99, 235, .28);
+  transform: translateY(-1px);
+}
+
+.affiliate-toolbar-btn:active {
+  transform: translateY(0) scale(.98);
+}
+
+.affiliate-toolbar-btn:disabled {
+  opacity: .62;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn,
 .tab-btn,
 .action,
@@ -1170,17 +1231,21 @@ onMounted(loadData)
 
 .tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .tab-btn {
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
+  height: 38px;
+  padding: 0 11px;
+  border-radius: 11px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  flex: 0 0 auto;
+  gap: 7px;
+  font-size: 13px;
   font-weight: 700;
   color: #334155;
   border: 1px solid transparent;
@@ -1195,15 +1260,15 @@ onMounted(loadData)
 }
 
 .tab-btn span {
-  min-width: 26px;
-  height: 26px;
-  padding: 0 8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
   border-radius: 999px;
   display: inline-grid;
   place-items: center;
   background: rgba(59, 130, 246, 0.12);
   color: #1d4ed8;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
