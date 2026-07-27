@@ -389,14 +389,32 @@ const stopAffiliateVideoDrag = (event) => {
     slider.releasePointerCapture?.(event.pointerId)
 }
 
-const openAffiliateVideoProduct = (video = {}) => {
+const openAffiliateVideoProduct = async (video = {}) => {
     if (video.id) {
         api.post(`/affiliate-videos/${video.id}/track`, { type: 'click' }).catch(() => {})
     }
-    if (video.product?.id_sanpham || video.product_id) {
-        router.push(`/products/${video.product?.id_sanpham || video.product_id}`)
-    } else {
-        router.push('/san-pham')
+
+    const productId = video.product?.id_sanpham || video.product_id || video.id_sanpham
+    if (!productId) {
+        swal.info('Chưa gắn sản phẩm', 'Video YouTube này chưa được cộng tác viên gắn sản phẩm.')
+        return
+    }
+
+    try {
+        const { data: product } = await api.get(`/sanpham/${productId}`, {
+            cache: false,
+            skipGlobalLoader: true,
+        })
+        if (!product?.id_sanpham) throw new Error('PRODUCT_NOT_FOUND')
+
+        const variants = product.bienThes || product.bien_thes || []
+        const availableVariant = variants.find(item => Number(item.soluong) > 0) || variants[0]
+        router.push({
+            path: `/san-pham/${product.id_sanpham}`,
+            query: availableVariant?.id_bienthe ? { variant: availableVariant.id_bienthe } : {},
+        })
+    } catch (error) {
+        swal.error('Không tìm thấy sản phẩm', 'Sản phẩm gắn với video hiện không còn tồn tại hoặc chưa thể tải.')
     }
 }
 
@@ -2915,6 +2933,7 @@ onUnmounted(() => {
     gap: 12px;
     margin-bottom: 48px;
 }
+
 .tab-pill {
     background: var(--tn-surface);
     border: 1px solid #cbd5e1;

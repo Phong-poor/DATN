@@ -15,14 +15,9 @@
               <h4 class="title">Hỗ trợ trực tuyến</h4>
               <p class="subtitle">Admin đang sẵn sàng hỗ trợ bạn</p>
             </div>
-            
-            <!-- Back to AI Button -->
-            <button class="mode-toggle-btn" @click="switchToAI" title="Quay lại Chatbot AI">
-              Tư vấn AI
-            </button>
 
             <!-- Message Search Button -->
-            <button class="mode-toggle-btn search-trigger" @click="showMessageSearch = !showMessageSearch" title="Tìm kiếm tin nhắn" style="padding: 4px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; margin-left: 8px;">
+            <button class="header-action-btn search-trigger" @click="showMessageSearch = !showMessageSearch" title="Tìm kiếm tin nhắn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; display: block;">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
@@ -246,11 +241,6 @@ const subscribeToChannel = () => {
   );
 };
 
-const switchToAI = () => {
-  isOpen.value = false;
-  window.dispatchEvent(new CustomEvent('open-chatbot'));
-};
-
 const formatMessage = (text, query = '') => {
   if (!text) return '';
   let escaped = text
@@ -429,7 +419,7 @@ onUnmounted(() => {
 .header-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: 54px;
 }
 
@@ -469,48 +459,42 @@ onUnmounted(() => {
 
 .title-wrap .title {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   color: #ffffff;
-  line-height: 1.25;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .title-wrap .subtitle {
-  margin: 4px 0 0;
-  font-size: 11px;
+  margin: 5px 0 0;
+  font-size: 10.5px;
   color: #b8c6dc;
   opacity: 1;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
-.mode-toggle-btn {
+.header-action-btn {
   flex: 0 0 auto;
   background: #2563eb;
   border: 1px solid rgba(147, 197, 253, 0.36);
-  border-radius: 999px;
+  border-radius: 50%;
   color: #ffffff;
-  padding: 8px 13px;
-  font-size: 11px;
-  line-height: 1.05;
-  font-weight: 800;
+  padding: 0;
   cursor: pointer;
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
   transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.mode-toggle-btn:first-of-type {
-  margin-left: auto;
-}
-
 .search-trigger {
-  width: 38px !important;
-  height: 38px !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-left: 2px !important;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
 }
 
 .search-trigger svg {
@@ -539,7 +523,7 @@ onUnmounted(() => {
   transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
-.mode-toggle-btn:hover {
+.header-action-btn:hover {
   background: #1d4ed8;
   border-color: rgba(191, 219, 254, 0.55);
   box-shadow: 0 12px 26px rgba(37, 99, 235, 0.34);
