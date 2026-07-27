@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện chương trình khuyến mãi và các điều kiện sử dụng mã giảm giá.
+ */
 class Promotion extends Model
 {
     protected $table = 'vouchers';

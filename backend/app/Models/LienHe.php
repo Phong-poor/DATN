@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu liên hệ, yêu cầu tư vấn hoặc lịch hẹn showroom của khách hàng.
+ */
 class LienHe extends Model
 {
     protected $table = 'lienhe';

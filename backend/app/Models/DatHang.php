@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện đơn hàng, trạng thái thanh toán, vận chuyển và thông tin nhận hàng.
+ */
 class DatHang extends Model
 {
     protected $table = 'dathang';

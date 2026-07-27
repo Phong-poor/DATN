@@ -14,6 +14,9 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\QueryException;
 
+/**
+ * Cung cấp dữ liệu sản phẩm và xử lý tìm kiếm, thêm, sửa, xóa sản phẩm.
+ */
 class SanPhamController extends Controller
 {
     public function index(Request $request)

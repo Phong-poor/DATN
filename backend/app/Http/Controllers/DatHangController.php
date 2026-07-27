@@ -22,6 +22,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Xử lý đặt hàng, thanh toán, trạng thái giao hàng, hủy và hoàn tiền đơn hàng.
+ */
 class DatHangController extends Controller
 {
     private function isAdminShoppingBlocked(): bool

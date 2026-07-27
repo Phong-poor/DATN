@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu giờ vào, giờ ra, công làm việc và ảnh minh chứng của nhân viên theo ngày.
+ */
 class ChamCong extends Model
 {
     use HasFactory;

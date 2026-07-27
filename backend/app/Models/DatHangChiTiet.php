@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu sản phẩm, số lượng và giá tại thời điểm phát sinh một đơn hàng.
+ */
 class DatHangChiTiet extends Model
 {
     protected $table = 'dathang_chitiet';

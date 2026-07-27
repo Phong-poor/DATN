@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
+/**
+ * Xử lý đăng ký, đăng nhập, đăng xuất và xác thực tài khoản mạng xã hội.
+ */
 class AuthController extends Controller
 {
     private function issueSingleSessionToken(User $user, string $tokenName = 'session_token'): string

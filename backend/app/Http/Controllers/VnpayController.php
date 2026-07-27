@@ -8,6 +8,9 @@ use App\Models\DatHang;
 use App\Events\NewOrderPlaced;
 use App\Events\OrderStatusUpdated;
 
+/**
+ * Tạo giao dịch VNPAY, xác minh IPN/return và cập nhật trạng thái đơn hàng.
+ */
 class VnpayController extends Controller
 {
     public function createPaymentUrl($order)
