@@ -576,12 +576,13 @@ onUnmounted(() => {
     font-family: 'Be Vietnam Pro', sans-serif;
     background: #f0f2f7;
     min-height: 100vh;
-    padding: 32px 16px 48px;
+    padding: 32px 28px 48px;
     color: #1a1a2e;
 }
 
 .container {
-    max-width: 1060px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -763,14 +764,24 @@ onUnmounted(() => {
 table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 920px;
 }
+
+th:nth-child(1) { width: 27%; }
+th:nth-child(2) { width: 23%; }
+th:nth-child(3) { width: 9%; }
+th:nth-child(4) { width: 12%; }
+th:nth-child(5) { width: 9%; }
+th:nth-child(6) { width: 9%; }
+th:nth-child(7) { width: 11%; }
 
 thead tr {
     background: #f8fafc;
 }
 
 th {
-    padding: 10px 16px;
+    padding: 10px 12px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .6px;
@@ -780,8 +791,9 @@ th {
 }
 
 td {
-    padding: 14px 16px;
+    padding: 14px 12px;
     vertical-align: middle;
+    min-width: 0;
 }
 
 .review-row {
@@ -802,7 +814,11 @@ td {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-width: 160px;
+    min-width: 0;
+}
+
+.customer-info > div:last-child {
+    min-width: 0;
 }
 
 .avatar {
@@ -837,6 +853,11 @@ td {
 .customer-email {
     font-size: 11.5px;
     color: #94a3b8;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Product */
@@ -844,7 +865,11 @@ td {
     font-size: 12.5px;
     font-weight: 600;
     color: #3b82f6;
-    white-space: nowrap;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.45;
 }
 
 /* Stars */
@@ -921,6 +946,7 @@ td {
 .action-btns {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 6px;
 }
 
@@ -951,14 +977,19 @@ td {
 }
 
 .action-btn.icon-btn {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    flex: 0 0 32px;
     padding: 0;
+    line-height: 0;
 }
 
 .action-btn.icon-btn svg {
-    width: 14px;
-    height: 14px;
+    display: block;
+    width: 15px;
+    height: 15px;
+    margin: 0;
 }
 
 .action-btn.reply {
@@ -971,12 +1002,16 @@ td {
 }
 
 .action-btn.delete {
-    background: #fee2e2;
+    background: #fff1f2;
     color: #ef4444;
+    border: 1px solid #fecdd3;
 }
 
 .action-btn.delete:hover {
-    background: #fecaca;
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
 }
 
 /* Pagination */

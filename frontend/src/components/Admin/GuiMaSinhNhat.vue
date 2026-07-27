@@ -796,13 +796,13 @@ onMounted(async () => {
                   <option value="Gửi lỗi">Gửi thất bại</option>
                 </select>
               </div>
-            </div>
 
-            <div class="action-buttons-group">
-              <button class="btn-action btn-refresh" @click="refreshData">
-                <RefreshCw class="btn-icon" />
-                <span>Tải lại</span>
-              </button>
+              <div class="action-buttons-group history-actions">
+                <button class="btn-action btn-refresh" @click="refreshData">
+                  <RefreshCw class="btn-icon" />
+                  <span>Tải lại</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1275,16 +1275,15 @@ onMounted(async () => {
 /* ACTION BAR */
 .action-bar-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
 }
 
 .search-and-filters {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) minmax(250px, 1fr) minmax(320px, 1.5fr);
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -1296,7 +1295,9 @@ onMounted(async () => {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 8px 14px;
-  width: 280px;
+  width: 100%;
+  box-sizing: border-box;
+  grid-column: 1 / -1;
   box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.01);
   transition: border-color 0.2s ease;
 }
@@ -1330,14 +1331,16 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .birthday-promo-select {
-  min-width: 320px;
+  min-width: 0;
 }
 
 .promo-select {
-  width: min(360px, 48vw);
+  width: 100%;
+  min-width: 0;
 }
 
 .filter-label {
@@ -1378,10 +1381,49 @@ onMounted(async () => {
   border-color: #2563eb;
 }
 
+.filter-dropdown-select .styled-select,
+.date-picker-box .styled-date-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .action-buttons-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.history-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1050px) {
+  .search-and-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .birthday-promo-select {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .search-and-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .search-input-box,
+  .birthday-promo-select {
+    grid-column: auto;
+  }
+
+  .filter-dropdown-select,
+  .date-picker-box,
+  .birthday-promo-select {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 /* BUTTONS DESIGN */

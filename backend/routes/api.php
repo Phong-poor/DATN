@@ -67,6 +67,7 @@ Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController:
 // ================= LIÊN HỆ (KHÁCH) =================
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
+Route::post('/consultation-requests', [LienHeController::class, 'storeConsultation']);
 Route::post('/showroom-appointments', [LienHeController::class, 'storeAppointment']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
 
@@ -468,6 +469,10 @@ Route::middleware(['auth:sanctum', 'admin'])
 
         // ===== ADMIN TIME ATTENDANCE =====
         Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
+        Route::get('/cham-cong/nhan-vien', [App\Http\Controllers\ChamCongController::class, 'adminGetNhanVien']);
+        Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminDangKyKhuonMat']);
+        Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminXoaKhuonMat']);
+        Route::post('/cham-cong/quick-check', [App\Http\Controllers\ChamCongController::class, 'adminQuickCheck']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);

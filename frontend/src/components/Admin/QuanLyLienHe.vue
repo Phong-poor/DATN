@@ -56,10 +56,9 @@
           <span class="filter-key">Danh mục:</span>
           <select class="filter-select" v-model="filterCategory">
             <option value="">Tất cả danh mục</option>
-            <option value="tu-van">Tư vấn</option>
-            <option value="ky-thuat">Kỹ thuật</option>
-            <option value="khieu-nai">Khiếu nại</option>
-            <option value="don-hang">Đơn hàng</option>
+            <option v-for="category in categoryOptions" :key="category" :value="category">
+              {{ category }}
+            </option>
           </select>
         </div>
         <div class="filter-item">
@@ -71,19 +70,6 @@
             <option value="resolved">Đã trả lời</option>
           </select>
         </div>
-      </div>
-      <div class="filter-actions">
-        <button class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none">
-            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-          </svg>
-        </button>
-        <button class="icon-btn" @click="resetFilter">
-          <svg viewBox="0 0 24 24" fill="none">
-            <polyline points="23 4 23 10 17 10" />
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
-        </button>
       </div>
     </div>
 
@@ -193,11 +179,6 @@
         item-label="liên hệ"
       />
     </div>
-
-    <!-- FAB -->
-    <button class="fab">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </button>
 
     <!-- DETAIL MODAL -->
     <transition name="fade">
@@ -388,13 +369,18 @@ function getInitials(name) {
 }
 
 function getTagStyle(category) {
-  const map = {
-    'tu-van':    { label: 'TƯ VẤN',   bg: '#dbeafe', color: '#1e40af' },
-    'ky-thuat':  { label: 'KỸ THUẬT', bg: '#fff7ed', color: '#9a3412' },
-    'khieu-nai': { label: 'KHIẾU NẠI',bg: '#fee2e2', color: '#991b1b' },
-    'don-hang':  { label: 'ĐƠN HÀNG', bg: '#fef3c7', color: '#92400e' },
-  }
-  return map[category] || { label: 'LIÊN HỆ', bg: '#e2e8f0', color: '#475569' }
+  const label = String(category || 'Liên hệ').trim()
+  const normalized = label.toLocaleLowerCase('vi-VN')
+
+  if (normalized.includes('tư vấn')) return { label: label.toUpperCase(), bg: '#dbeafe', color: '#1e40af' }
+  if (normalized.includes('kỹ thuật')) return { label: label.toUpperCase(), bg: '#fff7ed', color: '#9a3412' }
+  if (normalized.includes('bảo hành') || normalized.includes('sửa chữa')) return { label: label.toUpperCase(), bg: '#ede9fe', color: '#6d28d9' }
+  if (normalized.includes('đặt lịch') || normalized.includes('showroom')) return { label: label.toUpperCase(), bg: '#dcfce7', color: '#166534' }
+  if (normalized.includes('hợp tác')) return { label: label.toUpperCase(), bg: '#cffafe', color: '#155e75' }
+  if (normalized.includes('khiếu nại')) return { label: label.toUpperCase(), bg: '#fee2e2', color: '#991b1b' }
+  if (normalized.includes('đơn hàng')) return { label: label.toUpperCase(), bg: '#fef3c7', color: '#92400e' }
+
+  return { label: label.toUpperCase(), bg: '#e2e8f0', color: '#475569' }
 }
 
 function mapItem(item) {
@@ -408,6 +394,7 @@ function mapItem(item) {
     sodienthoai: item.sodienthoai || 'Chưa cập nhật',
     preview:     (item.noidung || '').slice(0, 30),
     noidung:     item.noidung,
+    category:     String(item.danhmuc || 'Liên hệ').trim(),
     tags:        [tag],
     time: new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     date: new Date(item.created_at).toLocaleDateString('vi-VN'),
@@ -478,20 +465,17 @@ async function deleteContact(id) {
 const newCount        = computed(() => contacts.value.filter(c => c.trangthai === 'new').length)
 const processingCount = computed(() => contacts.value.filter(c => c.trangthai === 'processing').length)
 const resolvedCount   = computed(() => contacts.value.filter(c => c.trangthai === 'resolved').length)
+const categoryOptions = computed(() => {
+  return [...new Set(contacts.value.map(c => c.category).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'vi'))
+})
 
 const filteredContacts = computed(() => {
   return contacts.value.filter(c => {
     const q = searchQuery.value.toLowerCase()
     const matchQ      = !q || c.hoten.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
     const matchStatus = !filterStatus.value || c.trangthai === filterStatus.value
-    const matchCat    = !filterCategory.value || c.tags.some(t => {
-      const label = t.label.toLowerCase()
-      if (filterCategory.value === 'tu-van')    return label.includes('tư vấn')
-      if (filterCategory.value === 'ky-thuat')  return label.includes('kỹ thuật')
-      if (filterCategory.value === 'khieu-nai') return label.includes('khiếu nại')
-      if (filterCategory.value === 'don-hang')  return label.includes('đơn hàng')
-      return false
-    })
+    const matchCat    = !filterCategory.value || c.category === filterCategory.value
     return matchQ && matchStatus && matchCat
   })
 })
@@ -520,13 +504,6 @@ const {
   entityLabel: 'liên hệ',
   fetchItems: fetchContacts,
 })
-
-// ─── Actions ─────────────────────────────────────────────
-function resetFilter() {
-  filterCategory.value = ''
-  filterStatus.value   = ''
-  searchQuery.value    = ''
-}
 
 function applyContactStatFilter(status) {
   filterCategory.value = ''
@@ -627,10 +604,6 @@ onMounted(fetchContacts)
   border-radius: 0 !important;
 }
 .search-box input::placeholder { color: #94a3b8; }
-.icon-btn { position: relative; width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #cbd5e1; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-.icon-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
-.icon-btn svg { width: 15px; height: 15px; stroke: #64748b; stroke-width: 1.8; fill: none; }
-
 /* HEADING */
 .breadcrumb { font-size: 11px; font-weight: 600; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px; }
 .sep { margin: 0 6px; }
@@ -732,36 +705,47 @@ onMounted(fetchContacts)
 .filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  padding: 10px 16px;
+  min-height: 68px;
+  padding: 11px 18px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
-.filter-chips { display: flex; align-items: center; gap: 16px; }
-.filter-item { display: flex; align-items: center; gap: 8px; }
-.filter-key { font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+.filter-chips { display: flex; align-items: center; gap: 24px; }
+.filter-item { display: flex; align-items: center; gap: 10px; }
+.filter-key { font-size: 13px; line-height: 1; font-weight: 700; color: #64748b; white-space: nowrap; }
 .filter-select {
+  min-width: 170px;
+  height: 42px;
   border: 1.5px solid #cbd5e1 !important;
   outline: none !important;
   box-shadow: none !important;
-  background: #ffffff !important;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 15px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   color: #2563eb !important;
   cursor: pointer !important;
   font-family: inherit !important;
-  padding: 6px 12px !important;
-  border-radius: 8px !important;
+  padding: 0 38px 0 14px !important;
+  border-radius: 10px !important;
   transition: all 0.2s ease !important;
+}
+.filter-select:hover {
+  border-color: #93c5fd !important;
+  background-color: #f8fbff !important;
 }
 .filter-select:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
 }
-.filter-actions { display: flex; gap: 6px; }
-
 /* LOADING / ERROR */
 .loading-row { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px; background: #fff; border-radius: 16px; color: #64748b; font-size: 14px; }
 .spinner-lg { width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite; }
@@ -823,11 +807,6 @@ td { padding: 13px 16px; vertical-align: middle; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 28px; }
 .pagination-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #f1f5f9; }
 .page-info { font-size: 12px; color: #64748b; }
-
-/* FAB */
-.fab { position: fixed; bottom: 28px; right: 28px; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #3b82f6); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,.4); transition: transform .2s; z-index: 100; }
-.fab:hover { transform: scale(1.1); }
-.fab svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 2; fill: none; }
 
 /* MODAL */
 .overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }

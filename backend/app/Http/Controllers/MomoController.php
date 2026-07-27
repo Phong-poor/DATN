@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Tạo giao dịch MoMo, xác minh callback và cập nhật kết quả thanh toán đơn hàng.
+ */
 class MomoController extends Controller
 {
     public function createPaymentUrl(DatHang $order, ?string $requestType = null): string

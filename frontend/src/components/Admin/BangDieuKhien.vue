@@ -57,6 +57,7 @@ const createDashboardShell = (selectedPeriod = 'all') => ({
         doanh_thu: { current: '0đ', previous: '0đ', trend: 0 },
         don_hang: { current: 0, previous: 0, trend: 0 },
         khach_hang: { current: 0, previous: 0, trend: 0 },
+        san_pham: { current: 0, previous: 0, trend: 0 },
     },
     nhan_su_hoat_dong: {
         online: 0,
@@ -603,7 +604,9 @@ const formatChartAxisLabel = (rawLabel) => {
 }
 
 const shouldShowChartAxisLabel = (index, total) => {
-    return false
+    if (total <= 8) return true
+    const step = Math.ceil(total / 7)
+    return index === 0 || index === total - 1 || index % step === 0
 }
 
 const withChartAxisLabel = (item, index, total) => ({
@@ -651,6 +654,7 @@ const revenueChart = computed(() => {
     const items = data.value.bieu_do.map((d) => ({
         label: d.label,
         revenue: Number(d.total) || 0,
+        orders: Number(d.orders) || 0,
     }))
     const itemCount = items.length
 
@@ -663,8 +667,7 @@ const revenueChart = computed(() => {
     const innerW = width - left - right
     const innerH = height - top - bottom
     const maxRevenue = Math.max(...items.map((i) => i.revenue), 1)
-    const avgTicket = 2000000
-    const orders = items.map((i) => Math.max(1, Math.round(i.revenue / avgTicket)))
+    const orders = items.map((i) => i.orders)
     const maxOrders = Math.max(...orders, 1)
 
     // Add horizontal padding inside the chart area so the first and last bars do not touch the axes.
@@ -775,6 +778,44 @@ const productChart = computed(() => {
     }))
 
     return { width, height, left, right, top, innerW, innerH, colWidth, points, yTicks }
+})
+
+const formatChartMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(moneyToNumber(value))}đ`
+
+const chartSummary = computed(() => {
+    const analysis = data.value?.phan_tich || {}
+
+    if (chartTab.value === 'customers') {
+        const metric = analysis.khach_hang || {}
+        return {
+            primaryLabel: 'Khách hàng mới',
+            primaryValue: `${Number(metric.current || 0).toLocaleString('vi-VN')} người`,
+            secondaryLabel: 'Kỳ trước',
+            secondaryValue: `${Number(metric.previous || 0).toLocaleString('vi-VN')} người`,
+            trend: Number(metric.trend || 0),
+        }
+    }
+
+    if (chartTab.value === 'products') {
+        const metric = analysis.san_pham || {}
+        return {
+            primaryLabel: 'Sản phẩm đã bán',
+            primaryValue: `${Number(metric.current || 0).toLocaleString('vi-VN')} sản phẩm`,
+            secondaryLabel: 'Kỳ trước',
+            secondaryValue: `${Number(metric.previous || 0).toLocaleString('vi-VN')} sản phẩm`,
+            trend: Number(metric.trend || 0),
+        }
+    }
+
+    const revenue = analysis.doanh_thu || {}
+    const orders = analysis.don_hang || {}
+    return {
+        primaryLabel: 'Doanh thu kỳ này',
+        primaryValue: formatChartMoney(revenue.current),
+        secondaryLabel: 'Đơn hàng kỳ này',
+        secondaryValue: `${Number(orders.current || 0).toLocaleString('vi-VN')} đơn`,
+        trend: Number(revenue.trend || 0),
+    }
 })
 
 const moneyToNumber = (value) => {
@@ -1352,6 +1393,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                         </div>
                     </div>
 
+                    <div class="chart-summary-strip">
+                        <div class="chart-summary-item">
+                            <span>{{ chartSummary.primaryLabel }}</span>
+                            <strong>{{ chartSummary.primaryValue }}</strong>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span>{{ chartSummary.secondaryLabel }}</span>
+                            <strong>{{ chartSummary.secondaryValue }}</strong>
+                        </div>
+                        <div class="chart-summary-trend" :class="{ up: chartSummary.trend > 0, down: chartSummary.trend < 0 }">
+                            <TrendingUp aria-hidden="true" />
+                            <div>
+                                <strong>{{ chartSummary.trend > 0 ? '+' : '' }}{{ chartSummary.trend }}%</strong>
+                                <span>so với kỳ trước</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bar-chart">
                         <!-- CHART 1: SALES & ORDERS -->
                         <div v-if="chartTab === 'sales' && revenueChart" class="revenue-chart-wrap">
@@ -1398,11 +1457,14 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </circle>
 
                                 <g v-if="activeChartPoint('sales')" class="chart-hover-tooltip"
-                                    :transform="`translate(${chartTooltipX(revenueChart, activeChartPoint('sales')) - 58} ${chartTooltipY(revenueChart, activeChartPoint('sales'), 'yRevenue') - 34})`">
-                                    <rect width="116" height="48" rx="8" />
-                                    <text x="58" y="18" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('sales').axisLabel }}</text>
-                                    <text x="58" y="35" text-anchor="middle" class="tooltip-value">
+                                    :transform="`translate(${chartTooltipX(revenueChart, activeChartPoint('sales')) - 72} ${chartTooltipY(revenueChart, activeChartPoint('sales'), 'yRevenue') - 48})`">
+                                    <rect width="144" height="64" rx="8" />
+                                    <text x="72" y="17" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('sales').axisLabel }}</text>
+                                    <text x="72" y="36" text-anchor="middle" class="tooltip-value">
                                         {{ new Intl.NumberFormat('vi-VN').format(activeChartPoint('sales').revenue) }}đ
+                                    </text>
+                                    <text x="72" y="53" text-anchor="middle" class="tooltip-secondary">
+                                        {{ activeChartPoint('sales').orders }} đơn hàng
                                     </text>
                                 </g>
 
@@ -2918,6 +2980,85 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     margin-bottom: 16px;
 }
 
+.chart-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 1fr)) auto;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.chart-summary-item,
+.chart-summary-trend {
+    min-height: 58px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    background: #f8fafc;
+    padding: 9px 12px;
+}
+
+.chart-summary-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.chart-summary-item span,
+.chart-summary-trend span {
+    color: #64748b;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.chart-summary-item strong {
+    color: #0f172a;
+    font-size: 15px;
+}
+
+.chart-summary-trend {
+    min-width: 145px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+}
+
+.chart-summary-trend svg {
+    width: 20px;
+    height: 20px;
+}
+
+.chart-summary-trend div {
+    display: grid;
+    gap: 2px;
+}
+
+.chart-summary-trend strong {
+    font-size: 13px;
+}
+
+.chart-summary-trend.up {
+    color: #16a34a;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.chart-summary-trend.down {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+@media (max-width: 900px) {
+    .chart-summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .chart-summary-trend {
+        grid-column: 1 / -1;
+    }
+}
+
 .chart-title {
     font-size: 14px;
     font-weight: 700;
@@ -3329,6 +3470,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .section-header.compact {
     margin-bottom: 12px;
+}
+
+.chart-hover-tooltip .tooltip-secondary {
+    fill: #cbd5e1;
+    font-size: 9px;
+    font-weight: 600;
 }
 
 .mini-donut-summary {

@@ -7,6 +7,9 @@ use App\Models\DanhMucCha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Quản lý danh mục sản phẩm, danh mục con và thuộc tính được kế thừa.
+ */
 class DanhMucController extends Controller
 {
     public function index()

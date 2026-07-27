@@ -1,17 +1,27 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import Inspector from 'vite-plugin-vue-inspector'
 
 // https://vite.dev/config/
 const root = fileURLToPath(new URL('.', import.meta.url))
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, root, '')
   const backendUrl = env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
 
   return {
     root,
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      command === 'serve'
+        ? Inspector({
+            launchEditor: 'code',
+            toggleButtonVisibility: 'never',
+            disableInspectorOnEditorOpen: true,
+          })
+        : null,
+    ].filter(Boolean),
     build: {
         target: 'es2020',
         cssCodeSplit: true,

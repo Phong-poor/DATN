@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện thương hiệu được gắn với các sản phẩm trong hệ thống.
+ */
 class ThuongHieu extends Model
 {
     public $timestamps = false;

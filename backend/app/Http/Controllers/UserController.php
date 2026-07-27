@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 
 
+/**
+ * Quản lý hồ sơ, tài khoản, ảnh đại diện và mật khẩu của người dùng.
+ */
 class UserController extends Controller
 {
     /**

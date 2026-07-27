@@ -15,8 +15,50 @@ const success = ref(false)
 const loading = ref(false)
 const captchaVisible = ref(false)
 const captchaVerified = ref(false)
+const consultationOpen = ref(false)
+const consultationPhone = ref('')
+const consultationLoading = ref(false)
+const consultationError = ref('')
+const consultationSuccess = ref(false)
 
 const currentFormStep = ref(1)
+
+const openConsultation = () => {
+  consultationPhone.value = phone.value || ''
+  consultationError.value = ''
+  consultationSuccess.value = false
+  consultationOpen.value = true
+}
+
+const closeConsultation = () => {
+  if (consultationLoading.value) return
+  consultationOpen.value = false
+}
+
+const submitConsultation = async () => {
+  if (consultationLoading.value) return
+  const normalizedPhone = consultationPhone.value.replace(/\s+/g, ' ').trim()
+  if (!/^(0|\+84)[0-9\s.-]{8,14}$/.test(normalizedPhone)) {
+    consultationError.value = 'Vui lòng nhập số điện thoại hợp lệ.'
+    return
+  }
+
+  consultationLoading.value = true
+  consultationError.value = ''
+  try {
+    const response = (await api.post('/consultation-requests', {
+      sodienthoai: normalizedPhone,
+    }, { immediateLoader: true })).data
+    if (!response.status) throw new Error(response.message || 'Không thể gửi yêu cầu tư vấn.')
+    consultationSuccess.value = true
+  } catch (err) {
+    consultationError.value = err.response?.data?.message
+      || err.response?.data?.errors?.sodienthoai?.[0]
+      || 'Không thể gửi yêu cầu. Vui lòng thử lại.'
+  } finally {
+    consultationLoading.value = false
+  }
+}
 
 const resetCaptcha = () => {
   captchaVisible.value = false
@@ -383,7 +425,7 @@ const toggleFaq = (index) => {
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Máy tính dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
         <div class="hero-actions">
-          <a href="#guidedContactForm" class="btn-glow-primary">Đặt Lịch Tư Vấn</a>
+          <button type="button" class="btn-glow-primary" @click="openConsultation">Đặt Lịch Tư Vấn</button>
           <a href="tel:19008888" class="btn-glass">Hotline 1900 8888</a>
         </div>
 
@@ -892,6 +934,52 @@ const toggleFaq = (index) => {
 
     <Teleport to="body">
       <Transition name="appointment-pop">
+        <div v-if="consultationOpen" class="appointment-overlay" @click.self="closeConsultation">
+          <section class="consultation-modal" role="dialog" aria-modal="true" aria-labelledby="consultation-title">
+            <button type="button" class="appointment-close" aria-label="Đóng" @click="closeConsultation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+
+            <div class="consultation-heading">
+              <span class="consultation-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </span>
+              <div>
+                <span class="appointment-eyebrow">TƯ VẤN MIỄN PHÍ</span>
+                <h3 id="consultation-title">Để lại số điện thoại</h3>
+                <p>Chuyên viên NextGen sẽ gọi lại hỗ trợ bạn sớm nhất.</p>
+              </div>
+            </div>
+
+            <div v-if="consultationSuccess" class="appointment-success consultation-success">
+              <strong>Đăng ký thành công!</strong>
+              <span>Chúng tôi đã nhận được yêu cầu và sẽ sớm liên hệ với bạn.</span>
+              <button type="button" @click="closeConsultation">Hoàn tất</button>
+            </div>
+
+            <form v-else class="consultation-form" @submit.prevent="submitConsultation">
+              <label for="consultation-phone">Số điện thoại của bạn</label>
+              <div class="consultation-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3"/>
+                </svg>
+                <input id="consultation-phone" v-model="consultationPhone" type="tel" inputmode="tel" autocomplete="tel" autofocus placeholder="Ví dụ: 0901 234 567" />
+              </div>
+              <p v-if="consultationError" class="appointment-error">{{ consultationError }}</p>
+              <button class="appointment-submit" type="submit" :disabled="consultationLoading">
+                {{ consultationLoading ? 'Đang đăng ký...' : 'Đăng ký tư vấn' }}
+              </button>
+              <small>Thông tin của bạn được bảo mật và chỉ dùng để hỗ trợ tư vấn.</small>
+            </form>
+          </section>
+        </div>
+      </Transition>
+
+      <Transition name="appointment-pop">
         <div v-if="appointmentOpen" class="appointment-overlay" @click.self="closeAppointment">
           <section class="appointment-modal" role="dialog" aria-modal="true" aria-labelledby="appointment-title">
             <button type="button" class="appointment-close" aria-label="Đóng" @click="closeAppointment">
@@ -1169,6 +1257,7 @@ const toggleFaq = (index) => {
 
 /* Premium Buttons */
 .btn-glow-primary {
+  border: 0;
   padding: 13px 26px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
@@ -1177,6 +1266,7 @@ const toggleFaq = (index) => {
   font-size: 13.5px;
   font-weight: 800;
   text-decoration: none;
+  cursor: pointer;
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
   transition: var(--transition);
 }
@@ -2024,6 +2114,110 @@ const toggleFaq = (index) => {
   background: #ffffff;
   color: #0f172a;
   box-shadow: 0 30px 80px rgba(2, 8, 23, 0.30);
+}
+
+:global(.consultation-modal) {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 30px;
+  border: 1px solid #dbe5f1;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .28);
+}
+
+:global(.consultation-heading) {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 38px;
+  margin-bottom: 24px;
+}
+
+:global(.consultation-icon) {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  display: grid;
+  place-items: center;
+  color: #2563eb;
+  background: #eff6ff;
+  border-radius: 15px;
+}
+
+:global(.consultation-icon svg) {
+  width: 23px;
+  height: 23px;
+}
+
+:global(.consultation-heading h3) {
+  margin: 3px 0 3px;
+  color: #0f172a;
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+:global(.consultation-heading p) {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:global(.consultation-form) {
+  display: grid;
+  gap: 12px;
+}
+
+:global(.consultation-form > label) {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+:global(.consultation-input) {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+:global(.consultation-input:focus-within) {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+}
+
+:global(.consultation-input svg) {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  color: #64748b;
+}
+
+:global(.consultation-input input) {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #0f172a;
+  background: transparent;
+  font: inherit;
+}
+
+:global(.consultation-form small) {
+  color: #94a3b8;
+  font-size: 10.5px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+:global(.consultation-success) {
+  padding-top: 6px;
 }
 :global(.appointment-close) {
   position: absolute;

@@ -1013,7 +1013,19 @@ const sendMessage = async () => {
   let botMessage = null;
 
   try {
-    const response = await api.post('/chat', { message: userText });
+    const history = messages.value
+      .slice(0, -1)
+      .slice(-10)
+      .filter(msg => msg?.content && ['user', 'bot', 'assistant'].includes(msg.role))
+      .map(msg => ({
+        role: msg.role === 'bot' ? 'assistant' : msg.role,
+        content: String(msg.content).slice(0, 1000)
+      }));
+
+    const response = await api.post('/chat', {
+      message: userText,
+      history
+    });
 
     if (response.data.reply) {
       botMessage = {

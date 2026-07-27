@@ -728,7 +728,9 @@ async function exportExcel() {
                     </svg>
                     <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng, khách hàng..." />
                 </div>
+            </div>
 
+            <div class="filter-actions-row">
                 <div class="tabs">
                     <button
                         v-for="tab in currentTabs" :key="tab"
@@ -736,30 +738,30 @@ async function exportExcel() {
                         @click="changeTab(tab)"
                     >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
                 </div>
-            </div>
 
-            <div class="date-filter-wrap">
-                <div class="custom-dropdown date-filter-dropdown">
-                    <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
-                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                            <line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                        <span>{{ selectedMonthYear || 'Tất cả' }}</span>
-                        <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                <div class="date-filter-wrap">
+                    <div class="custom-dropdown date-filter-dropdown">
+                        <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
+                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span>{{ selectedMonthYear || 'Tất cả' }}</span>
+                            <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <transition name="fade-slide">
+                            <ul v-if="isOpenDateDropdown" class="dropdown-menu">
+                                <li v-for="m in availableMonths" :key="m"
+                                    :class="{ active: selectedMonthYear === m }"
+                                    @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
+                                    {{ m }}
+                                </li>
+                            </ul>
+                        </transition>
                     </div>
-                    <transition name="fade-slide">
-                        <ul v-if="isOpenDateDropdown" class="dropdown-menu">
-                            <li v-for="m in availableMonths" :key="m" 
-                                :class="{ active: selectedMonthYear === m }" 
-                                @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
-                                {{ m }}
-                            </li>
-                        </ul>
-                    </transition>
                 </div>
             </div>
         </div>
@@ -1223,9 +1225,9 @@ async function exportExcel() {
     padding: 16px 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
-.search-row { display: flex; align-items: center; gap: 12px; }
+.search-row { display: block; width: 100%; }
 .search-box {
-    flex: 1; position: relative;
+    position: relative; width: 100%;
 }
 .search-box svg {
     position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
@@ -1233,6 +1235,7 @@ async function exportExcel() {
 }
 .search-box input {
     width: 100%; padding: 9px 14px 9px 36px; border-radius: 8px;
+    box-sizing: border-box;
     border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;
     outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
     background: #ffffff;
@@ -1242,6 +1245,12 @@ async function exportExcel() {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+.filter-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
     padding: 8px 14px; border-radius: 8px; border: 1px solid #dbe4f0;
@@ -1619,6 +1628,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     .category-tab-list { overflow-x: auto; }
     .category-tabs > .btn-export { align-self: flex-end; margin-bottom: 8px; }
     .search-row { flex-direction: column; align-items: stretch; }
+    .filter-actions-row { align-items: stretch; flex-direction: column; }
     .tabs { overflow-x: auto; }
     .table-wrap { overflow-x: auto; }
     table { min-width: 700px; }

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu đánh giá sản phẩm, trạng thái kiểm duyệt và phản hồi của quản trị viên.
+ */
 class DanhGia extends Model
 {
     use HasFactory;
