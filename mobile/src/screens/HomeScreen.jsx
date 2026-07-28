@@ -35,6 +35,7 @@ export default function HomeScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [blogs, setBlogs] = useState([]);
+  const [affiliateVideos, setAffiliateVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -183,6 +184,12 @@ export default function HomeScreen({ navigation }) {
         console.log('News API failed:', newsErr);
         // Use imported fallback blogs
         setBlogs(fallbackBlogs);
+      }
+      try {
+        const videoRes = await api.get('/affiliate-videos/public', { params: { limit: 6 } });
+        setAffiliateVideos(Array.isArray(videoRes.data) ? videoRes.data : []);
+      } catch (_) {
+        setAffiliateVideos([]);
       }
     } catch (err) {
       console.log('Error fetching home data:', err);
@@ -629,6 +636,30 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </View>
+
+        {affiliateVideos.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Video từ cộng đồng đối tác</Text>
+            <Text style={styles.sectionSubtitle}>Trải nghiệm sản phẩm do đối tác VinaTech chia sẻ</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {affiliateVideos.map((video) => (
+                <TouchableOpacity
+                  key={video.id}
+                  style={styles.affiliateVideoCard}
+                  onPress={() => {
+                    api.post(`/affiliate-videos/${video.id}/track`, { type: 'click' }).catch(() => {});
+                    const target = video.video_url || getImageUrl(video.video_path);
+                    if (target) Linking.openURL(target);
+                  }}
+                >
+                  <Feather name="play-circle" size={34} color="#fff" />
+                  <Text style={styles.affiliateVideoTitle} numberOfLines={2}>{video.tieu_de}</Text>
+                  <Text style={styles.affiliateVideoAuthor}>{video.affiliate_user?.ten || 'Đối tác VinaTech'}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Section: Tech Insights Magazine (Technology News) */}
         {visibleSections.news ? (
@@ -1319,6 +1350,17 @@ const styles = StyleSheet.create({
   testimonialsScroll: {
     flexDirection: 'row',
   },
+  affiliateVideoCard: {
+    width: 210,
+    minHeight: 135,
+    marginRight: SPACING.md,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    backgroundColor: '#312e81',
+    justifyContent: 'flex-end',
+  },
+  affiliateVideoTitle: { color: '#fff', fontWeight: '800', fontSize: 14, marginTop: SPACING.md },
+  affiliateVideoAuthor: { color: '#c7d2fe', fontSize: 11, marginTop: 5 },
   testimonialCard: {
     width: 260,
     backgroundColor: '#1e293b',

@@ -18,10 +18,20 @@ export default function AffiliateScreen({ navigation }) {
   
   // Withdraw and Lists
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawBankName, setWithdrawBankName] = useState('');
+  const [withdrawAccountName, setWithdrawAccountName] = useState('');
+  const [withdrawAccountNumber, setWithdrawAccountNumber] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [tab, setTab] = useState('referrals'); // 'referrals' | 'withdraws'
   const [referrals, setReferrals] = useState([]);
   const [withdraws, setWithdraws] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [videoTitle, setVideoTitle] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoDescription, setVideoDescription] = useState('');
+  const [videoLoading, setVideoLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -34,12 +44,18 @@ export default function AffiliateScreen({ navigation }) {
       setRefLink(res.data.ref_link || '');
 
       if (res.data.active) {
-        const [refRes, withdrawRes] = await Promise.all([
+        const [refRes, withdrawRes, commissionRes, walletRes, videoRes] = await Promise.all([
           api.get('/affiliate/referrals').catch(() => ({ data: [] })),
           api.get('/affiliate/withdraws').catch(() => ({ data: [] })),
+          api.get('/affiliate/commissions').catch(() => ({ data: [] })),
+          api.get('/affiliate/wallet').catch(() => ({ data: null })),
+          api.get('/affiliate/videos').catch(() => ({ data: [] })),
         ]);
         setReferrals(refRes.data.data || refRes.data || []);
         setWithdraws(withdrawRes.data.data || withdrawRes.data || []);
+        setCommissions(commissionRes.data.data || commissionRes.data || []);
+        setWallet(walletRes.data?.data || walletRes.data || null);
+        setVideos(videoRes.data?.data || videoRes.data || []);
       }
     } catch (err) {
       console.log(err);
@@ -68,6 +84,29 @@ export default function AffiliateScreen({ navigation }) {
     }
   };
 
+  const submitVideo = async () => {
+    if (videoTitle.trim().length < 5 || !/^https?:\/\//.test(videoUrl.trim())) {
+      showAlert('Thiếu thông tin', 'Tiêu đề cần ít nhất 5 ký tự và link video phải bắt đầu bằng http/https.');
+      return;
+    }
+    setVideoLoading(true);
+    try {
+      await api.post('/affiliate/videos', { title: videoTitle.trim(), description: videoDescription.trim() || null, video_url: videoUrl.trim() });
+      setVideoTitle(''); setVideoUrl(''); setVideoDescription('');
+      showAlert('Thành công', 'Video đã được gửi và đang chờ duyệt.');
+      await loadData();
+    } catch (err) {
+      showAlert('Lỗi', err.response?.data?.message || 'Không thể gửi video.');
+    } finally { setVideoLoading(false); }
+  };
+
+  const deleteVideo = async (id) => {
+    try {
+      await api.delete(`/affiliate/videos/${id}`);
+      setVideos((current) => current.filter((video) => video.id !== id));
+    } catch (err) { showAlert('Lỗi', err.response?.data?.message || 'Không thể xóa video.'); }
+  };
+
   const handleCopyLink = () => {
     Clipboard.setString(refLink);
     showAlert('Thành công', 'Đã sao chép link tiếp thị vào bộ nhớ tạm!');
@@ -75,8 +114,8 @@ export default function AffiliateScreen({ navigation }) {
 
   const handleWithdrawRequest = async () => {
     const amountStr = withdrawAmount.trim();
-    if (!amountStr || isNaN(amountStr) || parseFloat(amountStr) <= 0) {
-      showAlert('Lỗi', 'Vui lòng nhập số tiền rút hợp lệ.');
+    if (!amountStr || isNaN(amountStr) || parseFloat(amountStr) < 10000) {
+      showAlert('Lỗi', 'Số tiền rút tối thiểu là 10.000₫.');
       return;
     }
     const amount = parseFloat(amountStr);
@@ -84,15 +123,28 @@ export default function AffiliateScreen({ navigation }) {
       showAlert('Lỗi', 'Số dư hoa hồng khả dụng không đủ.');
       return;
     }
+    if (!withdrawBankName.trim() || !withdrawAccountName.trim() || !withdrawAccountNumber.trim()) {
+      showAlert('Lỗi', 'Vui lòng nhập đầy đủ ngân hàng, tên chủ tài khoản và số tài khoản.');
+      return;
+    }
 
     setWithdrawLoading(true);
     try {
-      await api.post('/affiliate/withdraws', { so_tien: amount });
+      await api.post('/affiliate/withdraws', {
+        amount,
+        bank_name: withdrawBankName.trim(),
+        bank_account_name: withdrawAccountName.trim().toUpperCase(),
+        bank_account_number: withdrawAccountNumber.trim(),
+      });
       showAlert('Thành công', 'Gửi yêu cầu rút tiền thành công! Vui lòng chờ Admin xét duyệt.');
       setWithdrawAmount('');
-      loadData();
+      setWithdrawBankName('');
+      setWithdrawAccountName('');
+      setWithdrawAccountNumber('');
+      await loadData();
     } catch (err) {
-      const msg = err.response?.data?.message || 'Không thể gửi yêu cầu rút tiền.';
+      const validationMessage = Object.values(err.response?.data?.errors || {}).flat()[0];
+      const msg = validationMessage || err.response?.data?.message || 'Không thể gửi yêu cầu rút tiền.';
       showAlert('Lỗi', msg);
     } finally {
       setWithdrawLoading(false);
@@ -216,6 +268,7 @@ export default function AffiliateScreen({ navigation }) {
                 </Text>
               </View>
             </View>
+            {wallet ? <Text style={styles.walletLine}>Ví mới: {formatPrice(wallet.balance)} · Chờ đối soát: {formatPrice(wallet.pending_balance)} · Đã rút: {formatPrice(wallet.total_withdrawn)}</Text> : null}
           </View>
 
           {/* Referral link generator */}
@@ -231,19 +284,63 @@ export default function AffiliateScreen({ navigation }) {
             </View>
           </View>
 
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Đăng video affiliate</Text>
+            <TextInput style={styles.withdrawInput} value={videoTitle} onChangeText={setVideoTitle} placeholder="Tiêu đề video" placeholderTextColor="#64748b" />
+            <TextInput style={styles.withdrawInput} value={videoUrl} onChangeText={setVideoUrl} placeholder="https://youtube.com/..." placeholderTextColor="#64748b" autoCapitalize="none" />
+            <TextInput style={[styles.withdrawInput, { minHeight: 70 }]} value={videoDescription} onChangeText={setVideoDescription} placeholder="Mô tả video" placeholderTextColor="#64748b" multiline />
+            <TouchableOpacity style={[styles.withdrawBtn, videoLoading && { opacity: 0.7 }]} onPress={submitVideo} disabled={videoLoading}>
+              {videoLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.withdrawBtnText}>Gửi video duyệt</Text>}
+            </TouchableOpacity>
+          </View>
+
           {/* Withdraw Request Form */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Yêu cầu rút tiền hoa hồng</Text>
             <Text style={styles.sectionDesc}>Số tiền khả dụng hiện tại có thể rút: {formatPrice(stats?.available_balance)}</Text>
-            <View style={styles.withdrawRow}>
+            <View style={styles.withdrawForm}>
+              <Text style={styles.withdrawLabel}>Số tiền muốn rút</Text>
               <TextInput
                 style={styles.withdrawInput}
                 value={withdrawAmount}
                 onChangeText={setWithdrawAmount}
-                placeholder="Nhập số tiền cần rút..."
+                placeholder="Tối thiểu 10.000₫"
                 placeholderTextColor="#64748b"
                 keyboardType="numeric"
               />
+
+              <Text style={styles.withdrawLabel}>Ngân hàng</Text>
+              <TextInput
+                style={styles.withdrawInput}
+                value={withdrawBankName}
+                onChangeText={setWithdrawBankName}
+                placeholder="Ví dụ: Vietcombank, Techcombank..."
+                placeholderTextColor="#64748b"
+                maxLength={120}
+              />
+
+              <Text style={styles.withdrawLabel}>Tên chủ tài khoản</Text>
+              <TextInput
+                style={styles.withdrawInput}
+                value={withdrawAccountName}
+                onChangeText={setWithdrawAccountName}
+                placeholder="NGUYEN VAN A"
+                placeholderTextColor="#64748b"
+                autoCapitalize="characters"
+                maxLength={120}
+              />
+
+              <Text style={styles.withdrawLabel}>Số tài khoản</Text>
+              <TextInput
+                style={styles.withdrawInput}
+                value={withdrawAccountNumber}
+                onChangeText={setWithdrawAccountNumber}
+                placeholder="Nhập chính xác số tài khoản"
+                placeholderTextColor="#64748b"
+                keyboardType="number-pad"
+                maxLength={50}
+              />
+
               <TouchableOpacity
                 style={[styles.withdrawBtn, withdrawLoading && { opacity: 0.7 }]}
                 onPress={handleWithdrawRequest}
@@ -273,6 +370,12 @@ export default function AffiliateScreen({ navigation }) {
               >
                 <Text style={[styles.tabBtnText, tab === 'withdraws' && styles.tabBtnTextActive]}>Lịch sử rút tiền</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[styles.tabBtn, tab === 'commissions' && styles.tabBtnActive]} onPress={() => setTab('commissions')}>
+                <Text style={[styles.tabBtnText, tab === 'commissions' && styles.tabBtnTextActive]}>Hoa hồng</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.tabBtn, tab === 'videos' && styles.tabBtnActive]} onPress={() => setTab('videos')}>
+                <Text style={[styles.tabBtnText, tab === 'videos' && styles.tabBtnTextActive]}>Video</Text>
+              </TouchableOpacity>
             </View>
 
             {tab === 'referrals' ? (
@@ -289,7 +392,7 @@ export default function AffiliateScreen({ navigation }) {
                   </View>
                 ))
               )
-            ) : (
+            ) : tab === 'withdraws' ? (
               withdraws.length === 0 ? (
                 <Text style={styles.noDataText}>Bạn chưa gửi yêu cầu rút tiền nào.</Text>
               ) : (
@@ -298,13 +401,33 @@ export default function AffiliateScreen({ navigation }) {
                     <View>
                       <Text style={styles.itemName}>Rút {formatPrice(w.so_tien)}</Text>
                       <Text style={[styles.itemStatusText, { color: w.trangthai === 'approved' || w.trangthai === 'paid' ? '#10b981' : w.trangthai === 'pending' ? '#f59e0b' : '#ef4444' }]}>
-                        {w.trangthai === 'pending' ? 'Chờ duyệt' : w.trangthai === 'paid' ? 'Đã chi trả' : 'Từ chối'}
+                        {w.trangthai === 'pending'
+                          ? 'Chờ duyệt'
+                          : w.trangthai === 'approved'
+                            ? 'Đã duyệt'
+                            : w.trangthai === 'paid'
+                              ? 'Đã chi trả'
+                              : 'Từ chối'}
                       </Text>
                     </View>
                     <Text style={styles.itemDate}>{formatDate(w.created_at)}</Text>
                   </View>
                 ))
               )
+            ) : tab === 'commissions' ? (
+              commissions.length === 0 ? <Text style={styles.noDataText}>Chưa có giao dịch hoa hồng.</Text> : commissions.map((commission, index) => (
+                <View key={commission.id || index} style={styles.listRow}>
+                  <View><Text style={styles.itemName}>{formatPrice(commission.so_tien)}</Text><Text style={styles.itemSub}>Đơn #{commission.id_dathang || commission.order?.id_dathang || '—'} · {commission.trangthai}</Text></View>
+                  <Text style={styles.itemDate}>{formatDate(commission.created_at)}</Text>
+                </View>
+              ))
+            ) : (
+              videos.length === 0 ? <Text style={styles.noDataText}>Bạn chưa đăng video affiliate.</Text> : videos.map((video, index) => (
+                <View key={video.id || index} style={styles.listRow}>
+                  <View style={{ flex: 1 }}><Text style={styles.itemName}>{video.tieu_de}</Text><Text style={styles.itemSub}>{video.trangthai}</Text></View>
+                  <TouchableOpacity onPress={() => deleteVideo(video.id)}><Ionicons name="trash-outline" size={20} color={COLORS.error} /></TouchableOpacity>
+                </View>
+              ))
             )}
           </View>
         </ScrollView>
@@ -482,6 +605,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.white,
   },
+  walletLine: { color: '#c7d2fe', fontSize: 11, lineHeight: 18, borderTopWidth: 1, borderTopColor: '#ffffff22', paddingTop: SPACING.sm },
   sectionCard: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
@@ -529,13 +653,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.md,
   },
+  withdrawForm: {
+    gap: SPACING.sm,
+  },
+  withdrawLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: SPACING.xs,
+  },
   withdrawInput: {
-    flex: 1,
     backgroundColor: COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
     color: COLORS.textPrimary,
     fontSize: 13,
   },
@@ -543,7 +676,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     paddingHorizontal: 16,
+    paddingVertical: SPACING.md,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
   },
   withdrawBtnText: {
     color: COLORS.white,
