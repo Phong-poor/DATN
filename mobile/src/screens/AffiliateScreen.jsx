@@ -20,7 +20,7 @@ export default function AffiliateScreen({ navigation }) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [tab, setTab] = useState('referrals'); // 'referrals' | 'withdraws'
-  const [referrals, setReferrals] = useState([]); 
+  const [referrals, setReferrals] = useState([]);
   const [withdraws, setWithdraws] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
