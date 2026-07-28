@@ -174,7 +174,7 @@ export default function CartScreen() {
         onCancel={() => setAlertVisible(false)}
         onConfirm={() => {
           setAlertVisible(false);
-          navigation.navigate('Tài khoản');
+          navigation.navigate('Main', { screen: 'Tài khoản' });
         }}
       />
     </SafeAreaView>

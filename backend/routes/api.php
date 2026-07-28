@@ -30,6 +30,7 @@ use App\Http\Controllers\AffiliateVideoController;
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
+use App\Http\Controllers\SepayController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
@@ -53,6 +54,7 @@ Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
 Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
 Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
+Route::post('/sepay/webhook', [SepayController::class, 'webhook']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::get('/forgot-password/captcha', [ForgotPasswordController::class, 'captcha']);
@@ -76,6 +78,11 @@ Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
+Route::get('/news-tags', [NewsController::class, 'tags']);
+Route::get('/news-feed.xml', [NewsController::class, 'feed']);
+Route::get('/news-sitemap.xml', [NewsController::class, 'sitemap']);
+Route::post('/news/{id}/track', [NewsController::class, 'track'])->whereNumber('id');
+Route::post('/news-subscribe', [NewsController::class, 'subscribe']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
@@ -148,11 +155,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gio-hang/dem', [GioHangController::class, 'demSoLuong']);
 
     // ===== ĐẶT HÀNG =====
-    Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::post('/checkout', [DatHangController::class, 'checkout'])->middleware('checkout.throttle');
     Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
     Route::post('/orders/{id}/payment-notice', [DatHangController::class, 'notifyManualPayment']);
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::get('/orders/{id}/momo-status', [MomoController::class, 'momoQuery']);
+    Route::get('/orders/{id}/sepay-status', [SepayController::class, 'status']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [DatHangController::class, 'refund']);
@@ -410,6 +418,10 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/news/upload-image', [NewsController::class, 'uploadContentImage']);
         Route::post('/news', [NewsController::class, 'store']);
         Route::put('/news/{id}', [NewsController::class, 'update']);
+        Route::patch('/news/{id}/autosave', [NewsController::class, 'autosave']);
+        Route::get('/news/{id}/preview', [NewsController::class, 'preview']);
+        Route::get('/news/{id}/revisions', [NewsController::class, 'revisions']);
+        Route::post('/news/{id}/revisions/{revisionId}/restore', [NewsController::class, 'restoreRevision']);
         Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
 

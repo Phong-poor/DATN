@@ -17,6 +17,17 @@ const useRecentlyViewedStore = create(
         set({ items: updated });
       },
 
+      replaceProducts: (products = []) => {
+        const unique = [];
+        const seen = new Set();
+        products.forEach((product) => {
+          if (!product?.id_sanpham || seen.has(product.id_sanpham)) return;
+          seen.add(product.id_sanpham);
+          unique.push(product);
+        });
+        set({ items: unique.slice(0, 10) });
+      },
+
       clearRecentlyViewed: () => {
         set({ items: [] });
       }

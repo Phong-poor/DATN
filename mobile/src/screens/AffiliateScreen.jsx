@@ -123,7 +123,7 @@ export default function AffiliateScreen({ navigation }) {
           <Text style={styles.authPromptIcon}>🤝</Text>
           <Text style={styles.authPromptTitle}>Yêu cầu đăng nhập</Text>
           <Text style={styles.authPromptDesc}>Vui lòng đăng nhập tài khoản của bạn để tham gia chương trình Tiếp thị liên kết Affiliate Partner.</Text>
-          <TouchableOpacity style={styles.authPromptBtn} onPress={() => navigation.navigate('Tài khoản')}>
+          <TouchableOpacity style={styles.authPromptBtn} onPress={() => navigation.navigate('Main', { screen: 'Tài khoản' })}>
             <Text style={styles.authPromptBtnText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>

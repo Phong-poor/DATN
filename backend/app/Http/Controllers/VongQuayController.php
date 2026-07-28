@@ -141,17 +141,44 @@ class VongQuayController extends Controller
         // 4. Process the reward inside a database transaction to prevent race conditions
         DB::beginTransaction();
         try {
-            // Deduct ticket
-            $currentUser = User::findOrFail($user->id);
+            // Lock the account so parallel requests cannot spend the same ticket.
+            $currentUser = User::lockForUpdate()->findOrFail($user->id);
             if ($currentUser->vaitro !== 'admin') {
-                $currentUser->decrement('luot_quay');
+                if ($currentUser->luot_quay <= 0) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn đã hết lượt quay. Hãy nhận lượt miễn phí để tiếp tục.',
+                        'tickets' => 0,
+                    ], 400);
+                }
+
+                $alreadySpunToday = LichSuQuay::where('id_khachhang', $currentUser->id)
+                    ->where('loai_qua', '!=', 'claim')
+                    ->whereDate('created_at', Carbon::today())
+                    ->exists();
+
+                if ($alreadySpunToday) {
+                    $currentUser->luot_quay = min(1, max(0, (int) $currentUser->luot_quay));
+                    $currentUser->save();
+                    DB::commit();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn đã quay vòng quay hôm nay rồi. Hãy quay lại vào ngày mai nhé!',
+                        'tickets' => $currentUser->luot_quay,
+                    ], 400);
+                }
+
+                // Daily tickets never accumulate: spending one always leaves zero.
+                $currentUser->luot_quay = 0;
+                $currentUser->save();
             }
 
             // Apply award based on prize type
             switch ($winningPrize->loai) {
                 case 'ticket':
-                    $ticketsToAdd = intval($winningPrize->giatri) ?: 1;
-                    $currentUser->increment('luot_quay', $ticketsToAdd);
+                    $currentUser->luot_quay = 1;
+                    $currentUser->save();
                     break;
 
                 case 'coin':
@@ -233,23 +260,38 @@ class VongQuayController extends Controller
     {
         $user = $request->user();
 
-        // Check if user has claimed today
-        $todayClaim = LichSuQuay::where('id_khachhang', $user->id)
-            ->where('loai_qua', 'claim')
-            ->whereDate('created_at', Carbon::today())
-            ->first();
-
-        if ($todayClaim) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn đã nhận lượt quay ngày hôm nay rồi. Hãy quay lại vào ngày mai!',
-            ], 400);
-        }
-
         DB::beginTransaction();
         try {
-            $currentUser = User::findOrFail($user->id);
-            $currentUser->increment('luot_quay', 1);
+            // Lock the account to prevent two simultaneous daily claims.
+            $currentUser = User::lockForUpdate()->findOrFail($user->id);
+            $todayClaim = LichSuQuay::where('id_khachhang', $currentUser->id)
+                ->where('loai_qua', 'claim')
+                ->whereDate('created_at', Carbon::today())
+                ->exists();
+
+            if ($todayClaim) {
+                $hasSpunToday = LichSuQuay::where('id_khachhang', $currentUser->id)
+                    ->where('loai_qua', '!=', 'claim')
+                    ->whereDate('created_at', Carbon::today())
+                    ->exists();
+
+                // Repair legacy accumulated values without restoring a spent ticket.
+                $currentUser->luot_quay = $hasSpunToday
+                    ? 0
+                    : min(1, max(0, (int) $currentUser->luot_quay));
+                $currentUser->save();
+                DB::commit();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đã nhận lượt quay ngày hôm nay rồi. Hãy quay lại vào ngày mai!',
+                    'tickets' => $currentUser->luot_quay,
+                ], 400);
+            }
+
+            // Assignment is intentional: free daily tickets do not accumulate.
+            $currentUser->luot_quay = 1;
+            $currentUser->save();
 
             // Log this claim
             LichSuQuay::create([
@@ -272,7 +314,7 @@ class VongQuayController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Nhận 1 lượt quay miễn phí hàng ngày thành công!',
-            'tickets' => $currentUser->luot_quay,
+            'tickets' => 1,
         ]);
     }
 

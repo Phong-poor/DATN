@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
@@ -6,30 +6,60 @@ import api, { getImageUrl } from '../services/api';
 import { OrderHistorySkeleton } from '../components/SkeletonLoader';
 import { SHIPPING_FEE } from '../constants/pricing';
 import logger from '../utils/logger';
+import useCartStore from '../store/useCartStore';
+
+let activeOrdersRequest = null;
+
+const requestOrders = () => {
+  if (!activeOrdersRequest) {
+    activeOrdersRequest = api.get('/orders').finally(() => {
+      activeOrdersRequest = null;
+    });
+  }
+
+  return activeOrdersRequest;
+};
 
 export default function OrderHistoryScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reorderingId, setReorderingId] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const mountedRef = useRef(true);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    setLoadError('');
     try {
-      const response = await api.get('/orders');
-      if (response.data?.success) {
+      const response = await requestOrders();
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'Invalid orders response');
+      }
+
+      if (mountedRef.current) {
         setOrders(response.data.orders || []);
       }
     } catch (error) {
       logger.log('Error fetching orders:', error);
-      Alert.alert('Lỗi', 'Không thể tải lịch sử đơn hàng.');
+      if (mountedRef.current) {
+        setLoadError('Không thể tải lịch sử đơn hàng. Vui lòng thử lại.');
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchOrders();
-  }, []);
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchOrders]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -63,6 +93,34 @@ export default function OrderHistoryScreen({ navigation }) {
         }
       ]
     );
+  };
+
+  const handleReorder = async (orderId) => {
+    if (reorderingId) return;
+    setReorderingId(orderId);
+    try {
+      const response = await api.post(`/orders/${orderId}/reorder`);
+      if (response.data?.success) {
+        const cartResponse = await api.get('/gio-hang');
+        useCartStore.getState().replaceWithServerCart(cartResponse.data?.gio_hang || []);
+        const skipped = response.data?.skipped || [];
+        Alert.alert(
+          'Đã thêm vào giỏ hàng',
+          skipped.length > 0
+            ? `${response.data.message || 'Đã thêm các sản phẩm còn hàng.'}\nCó ${skipped.length} sản phẩm không thể thêm.`
+            : (response.data.message || 'Các sản phẩm đã được thêm vào giỏ hàng.'),
+          [
+            { text: 'Ở lại', style: 'cancel' },
+            { text: 'Xem giỏ hàng', onPress: () => navigation.navigate('Giỏ hàng') },
+          ]
+        );
+      }
+    } catch (error) {
+      logger.log('Reorder failed:', error);
+      Alert.alert('Không thể mua lại', error.response?.data?.message || 'Vui lòng thử lại sau.');
+    } finally {
+      setReorderingId(null);
+    }
   };
 
   const formatPrice = (value) => {
@@ -167,6 +225,19 @@ export default function OrderHistoryScreen({ navigation }) {
               <Text style={styles.cancelBtnText}>Hủy đơn</Text>
             </TouchableOpacity>
           )}
+          {['done', 'completed', 'cancelled'].includes(item.trangthai) && (
+            <TouchableOpacity
+              style={styles.reorderBtn}
+              onPress={() => handleReorder(item.id_dathang)}
+              disabled={reorderingId === item.id_dathang}
+            >
+              {reorderingId === item.id_dathang ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.reorderBtnText}>Mua lại</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -196,8 +267,19 @@ export default function OrderHistoryScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📦</Text>
-              <Text style={styles.emptyText}>Bạn chưa đặt đơn hàng nào.</Text>
+              <Text style={styles.emptyIcon}>{loadError ? '!' : '📦'}</Text>
+              <Text style={styles.emptyText}>{loadError || 'Bạn chưa đặt đơn hàng nào.'}</Text>
+              {loadError ? (
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={() => {
+                    setLoading(true);
+                    fetchOrders();
+                  }}
+                >
+                  <Text style={styles.retryBtnText}>Thử lại</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
         />
@@ -378,6 +460,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  reorderBtn: {
+    minWidth: 88,
+    minHeight: 36,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reorderBtnText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -392,5 +488,18 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.textTertiary,
     fontSize: 14,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryBtnText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

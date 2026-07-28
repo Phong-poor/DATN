@@ -2,13 +2,13 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../store/useAuthStore';
 import RegisterScreen from './RegisterScreen';
 import api, { getImageUrl } from '../services/api';
 import logoImage from '../../assets/nextgen_logo_header.png';
-import { FontAwesome } from '@expo/vector-icons';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import OptimizedImage from '../components/OptimizedImage';
 
 export default function AccountScreen() {
@@ -59,6 +59,14 @@ export default function AccountScreen() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showForgotConfirm, setShowForgotConfirm] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        checkSession();
+      }
+    }, [checkSession, token])
+  );
 
   // Clear auth store errors when transitioning screens/views
   useEffect(() => {
@@ -345,9 +353,9 @@ export default function AccountScreen() {
     { title: 'Lịch sử đơn hàng', icon: '📦' },
     { title: 'Sổ địa chỉ', icon: '📍' },
     { title: 'Khuyến mãi & Voucher', icon: '🎁' },
-    { title: 'Vòng quay may mắn', icon: '🎡' },
     { title: 'Tiếp thị liên kết (Affiliate)', icon: '🤝' },
     { title: 'Tin tức & Blog', icon: '📰' },
+    { title: 'Chat với nhân viên', iconName: 'message-circle' },
     { title: 'Liên hệ & Hỗ trợ', icon: '📞' },
     { title: 'Cài đặt tài khoản', icon: '⚙️' },
   ];
@@ -882,12 +890,12 @@ export default function AccountScreen() {
                     navigation.navigate('Address');
                   } else if (item.title === 'Khuyến mãi & Voucher') {
                     navigation.navigate('Promotion');
-                  } else if (item.title === 'Vòng quay may mắn') {
-                    navigation.navigate('LuckyWheel');
                   } else if (item.title === 'Tiếp thị liên kết (Affiliate)') {
                     navigation.navigate('Affiliate');
                   } else if (item.title === 'Tin tức & Blog') {
                     navigation.navigate('NewsList');
+                  } else if (item.title === 'Chat với nhân viên') {
+                    navigation.navigate('SupportChat');
                   } else if (item.title === 'Liên hệ & Hỗ trợ') {
                     navigation.navigate('Contact');
                   } else {
@@ -897,7 +905,11 @@ export default function AccountScreen() {
                 return (
                   <TouchableOpacity key={idx} style={styles.menuItem} onPress={handlePress}>
                     <View style={styles.menuLeft}>
-                      <Text style={styles.menuIcon}>{item.icon}</Text>
+                      {item.iconName ? (
+                        <Feather name={item.iconName} size={22} color={COLORS.primaryLight} style={styles.menuIcon} />
+                      ) : (
+                        <Text style={styles.menuIcon}>{item.icon}</Text>
+                      )}
                       <Text style={styles.menuTitle}>{item.title}</Text>
                     </View>
                     <Text style={styles.menuArrow}>❯</Text>

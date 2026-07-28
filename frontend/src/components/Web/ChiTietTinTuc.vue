@@ -10,6 +10,7 @@ const post = ref(null)
 const relatedPosts = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
+const sharing = ref(false)
 
 const placeholderImage = 'https://placehold.co/1200x650?text=Tin+tuc'
 
@@ -112,15 +113,15 @@ const seoSummary = computed(() => {
 })
 
 const applyArticleSeo = (article) => {
-  const description = articleDescription(article)
-  const canonicalPath = `/tin-tuc/${article.id}`
+  const description = article.seo_description || articleDescription(article)
+  const canonicalPath = article.canonical_url || `/tin-tuc/${article.slug || article.id}`
   const fullImageUrl = imageUrl(article.hinhanh)
   const contentImages = parseArticleContent(article.noidung)
     .filter((block) => block.type === 'image')
     .map((block) => imageUrl(block.src))
 
   setSeo({
-    title: compactTitle(article.tieude),
+    title: article.seo_title || compactTitle(article.tieude),
     description,
     keywords: `${article.danhmuc}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
     image: fullImageUrl,
@@ -228,13 +229,15 @@ const fetchPost = async () => {
   try {
     const { data } = await api.get(`/news/${articleId}`, { skipGlobalLoader: true })
     post.value = data
+    relatedPosts.value = data.related || []
     errorMessage.value = ''
     applyArticleSeo(data)
     
     // Tải bài viết liên quan
-    if (data?.category) {
+    if (!relatedPosts.value.length && data?.danhmuc) {
       await fetchRelated(data)
     }
+    api.post(`/news/${data.id}/track`, { event: 'read' }, { skipGlobalLoader: true }).catch(() => {})
     
     saveCache(articleId)
     loading.value = false
@@ -249,6 +252,17 @@ const fetchPost = async () => {
     }
     loading.value = false
   }
+}
+
+const shareArticle = async () => {
+  if (!post.value || sharing.value) return
+  sharing.value = true
+  const url = absoluteUrl(`/tin-tuc/${post.value.slug || post.value.id}`)
+  try {
+    if (navigator.share) await navigator.share({ title: post.value.tieude, text: post.value.tomtat, url })
+    else await navigator.clipboard.writeText(url)
+    await api.post(`/news/${post.value.id}/track`, { event: 'share' }, { skipGlobalLoader: true })
+  } finally { sharing.value = false }
 }
 
 watch(() => route.params.id, () => {
@@ -289,6 +303,7 @@ onMounted(() => {
         </div>
       </header>
 
+      <div class="article-tags"><span v-for="tag in post.tags" :key="tag.id">#{{ tag.name }}</span><span>{{ post.reading_time || 1 }} phút đọc</span><button type="button" :disabled="sharing" @click="shareArticle">{{ sharing ? 'Đang chia sẻ...' : 'Chia sẻ bài viết' }}</button></div>
       <img class="hero-img u-photo" :src="imageUrl(post.hinhanh)" :alt="heroAlt" />
 
       <div class="article-body e-content entry-content">
@@ -434,6 +449,7 @@ onMounted(() => {
   object-fit: cover;
   width: 100%;
 }
+.article-tags{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 16px}.article-tags span{background:#e8f0ff;color:#1d4ed8;border-radius:999px;padding:6px 10px;font-size:12px}.article-tags button{margin-left:auto;border:0;border-radius:9px;background:#2563eb;color:#fff;padding:8px 12px;cursor:pointer}
 
 .article-body {
   background: transparent !important;

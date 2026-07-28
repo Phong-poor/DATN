@@ -53,10 +53,13 @@ return [
         'key' => env('HERE_API_KEY'),
     ],
 
-    'openai' => [
-        'key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
-        'timeout' => (int) env('OPENAI_TIMEOUT', 20),
+    'sepay' => [
+        'bank' => env('SEPAY_BANK'),
+        'account_number' => env('SEPAY_ACCOUNT_NUMBER'),
+        'account_name' => env('SEPAY_ACCOUNT_NAME'),
+        'webhook_api_key' => env('SEPAY_WEBHOOK_API_KEY'),
+        'payment_prefix' => env('SEPAY_PAYMENT_PREFIX', 'DH'),
+        'store_name' => env('SEPAY_STORE_NAME', env('APP_NAME', 'NextGen')),
     ],
 
 ];

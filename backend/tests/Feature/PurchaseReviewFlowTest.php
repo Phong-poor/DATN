@@ -11,6 +11,7 @@ use App\Models\GioHang;
 use App\Models\SanPham;
 use App\Models\ThuongHieu;
 use App\Models\User;
+use App\Services\DemoShipmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
@@ -158,6 +159,59 @@ class PurchaseReviewFlowTest extends TestCase
             'id_bienthe' => $variant->id_bienthe,
             'user_id' => $this->customer->id,
         ]);
+    }
+
+    public function test_checkout_rejects_unknown_payment_method(): void
+    {
+        $response = $this->postJson('/api/checkout', [
+            'diachi' => '123 Nguyen Trai, Quan 1, TP HCM',
+            'PTTT' => 'FREE_PAYMENT',
+            'name' => 'Le Ngoc Tai',
+            'phone' => '0909123456',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['PTTT']);
+        $this->assertDatabaseCount('dathang', 0);
+    }
+
+    public function test_customer_cannot_create_multiple_active_cod_orders(): void
+    {
+        [, $firstVariant] = $this->createSellableVariant('Laptop COD 1', 'Laptop COD 1 16GB', 'COD-LIMIT-1');
+        $this->checkoutOrder($firstVariant);
+
+        [, $secondVariant] = $this->createSellableVariant('Laptop COD 2', 'Laptop COD 2 16GB', 'COD-LIMIT-2');
+        $cartItem = GioHang::create([
+            'id_khachhang' => $this->customer->id,
+            'id_bienthe' => $secondVariant->id_bienthe,
+            'soluong' => 1,
+        ]);
+
+        $response = $this->postJson('/api/checkout', [
+            'diachi' => '123 Nguyen Trai, Quan 1, TP HCM',
+            'PTTT' => 'COD',
+            'name' => 'Le Ngoc Tai',
+            'phone' => '0909123456',
+            'selected_cart_items' => [$cartItem->id_giohang],
+        ]);
+
+        $response->assertStatus(409)->assertJson(['success' => false]);
+        $this->assertSame(5, $secondVariant->fresh()->soluong);
+    }
+
+    public function test_order_history_still_loads_when_demo_shipment_sync_fails(): void
+    {
+        $shipmentService = \Mockery::mock(DemoShipmentService::class);
+        $shipmentService->shouldReceive('syncDueShipments')
+            ->once()
+            ->andThrow(new \RuntimeException('Temporary demo shipment failure'));
+        $this->app->instance(DemoShipmentService::class, $shipmentService);
+
+        $this->getJson('/api/orders')
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'orders' => [],
+            ]);
     }
 
     private function createSellableVariant(string $productName, string $variantName, string $sku): array

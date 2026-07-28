@@ -12,6 +12,11 @@ const selectedCategory = ref('all')
 const selectedStatus = ref('all')
 const showModal = ref(false)
 const formError = ref('')
+const editorMode = ref('write')
+const autosaveState = ref('')
+const revisions = ref([])
+const showRevisions = ref(false)
+let autosaveTimer = null
 
 const isOpenCategoryDropdown = ref(false)
 const isOpenStatusDropdown = ref(false)
@@ -94,6 +99,8 @@ const defaultForm = () => ({
   noidung: '',
   hinhanh: '',
   mota_hinhanh: '',
+  tagsText: '', seo_title: '', seo_description: '', seo_keywords: '', canonical_url: '',
+  no_index: false, noi_bat: false, ghim: false, workflow_status: 'draft', revision_note: '',
 })
 const form = ref(defaultForm())
 
@@ -141,6 +148,13 @@ const buildSmartAlt = (type = 'content') => {
 
 const smartThumbnailAlt = computed(() => buildSmartAlt('thumbnail'))
 const smartContentAlt = computed(() => buildSmartAlt('content'))
+const articleWordCount = computed(() => cleanText(
+  form.value.noidung.replace(/!\[[^\]]*\]\([^)]+\)/g, ' '),
+).split(' ').filter(Boolean).length)
+const contentImageCount = computed(() => (
+  form.value.noidung.match(/!\[[^\]]*\]\([^)]+\)/g) || []
+).length)
+const publishQualityReady = computed(() => articleWordCount.value >= 600 && contentImageCount.value >= 2)
 
 const imageUrl = (path) => {
   if (!path) return placeholderImage
@@ -232,6 +246,45 @@ watch(currentAuthorName, (name) => {
   form.value.tacgia = name
 })
 
+watch(form, () => {
+  if (!showModal.value || !editingPost.value) return
+  clearTimeout(autosaveTimer)
+  autosaveState.value = 'Có thay đổi chưa lưu'
+  autosaveTimer = setTimeout(async () => {
+    try {
+      autosaveState.value = 'Đang tự động lưu...'
+      await api.patch(`/admin/news/${editingPost.value.id}/autosave`, {
+        tieude: form.value.tieude || 'Bản nháp chưa đặt tên', danhmuc: form.value.danhmuc,
+        tomtat: form.value.tomtat || null, noidung: form.value.noidung || null,
+        tags: form.value.tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
+      })
+      autosaveState.value = `Đã tự động lưu lúc ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+    } catch { autosaveState.value = 'Tự động lưu thất bại' }
+  }, 1800)
+}, { deep: true })
+
+const insertMarkdown = async (before, after = '') => {
+  const textarea = contentTextareaRef.value
+  const content = form.value.noidung || ''
+  const start = textarea?.selectionStart ?? content.length
+  const end = textarea?.selectionEnd ?? start
+  const selected = content.slice(start, end) || 'nội dung'
+  form.value.noidung = `${content.slice(0, start)}${before}${selected}${after}${content.slice(end)}`
+  await nextTick(); textarea?.focus()
+}
+
+const loadRevisions = async () => {
+  const { data } = await api.get(`/admin/news/${editingPost.value.id}/revisions`)
+  revisions.value = data.data || []; showRevisions.value = true
+}
+
+const restoreRevision = async (revision) => {
+  const confirmed = await swal.confirm('Khôi phục phiên bản?', `Khôi phục bản ${revision.version}?`, 'Khôi phục', 'Hủy')
+  if (!confirmed) return
+  const { data } = await api.post(`/admin/news/${editingPost.value.id}/revisions/${revision.id}/restore`)
+  openEditModal(data.data); showRevisions.value = false
+}
+
 const onFileChange = (event) => {
   const file = event.target.files?.[0]
   if (!file) return
@@ -268,34 +321,42 @@ const insertContentAtCursor = async (text) => {
 const chooseContentImage = () => {
   contentImageRef.value?.click()
 }
-const onContentImageChange = (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return
-
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader()
-  reader.onload = async (readerEvent) => {
-    uploadingContentImage.value = true
-    try {
-      const alt = contentImageAlt.value.trim() || smartContentAlt.value
-      const { data } = await api.post('/admin/news/upload-image', {
-        image: readerEvent.target.result,
-        alt,
-        tieude: form.value.tieude,
-        danhmuc: form.value.danhmuc,
-      })
-
-      await insertContentAtCursor(data.data.markdown)
-      contentImageAlt.value = ''
-      swal.success('Thành công', 'Đã chèn ảnh vào nội dung bài viết.')
-    } catch (error) {
-      console.error('Lỗi upload ảnh nội dung:', error)
-      swal.error('Lỗi', error.response?.data?.message || 'Không thể upload ảnh nội dung.')
-    } finally {
-      uploadingContentImage.value = false
-      if (contentImageRef.value) contentImageRef.value.value = ''
-    }
-  }
+  reader.onload = (readerEvent) => resolve(readerEvent.target.result)
+  reader.onerror = reject
   reader.readAsDataURL(file)
+})
+
+const onContentImageChange = async (event) => {
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  uploadingContentImage.value = true
+  try {
+    const markdownImages = []
+    for (const [index, file] of files.entries()) {
+      const image = await readFileAsDataUrl(file)
+      const baseAlt = contentImageAlt.value.trim() || smartContentAlt.value
+      const { data } = await api.post('/admin/news/upload-image', {
+        image,
+        alt: files.length > 1 ? `${baseAlt} - ảnh ${index + 1}` : baseAlt,
+        title: form.value.tieude,
+        category: form.value.danhmuc,
+      })
+      markdownImages.push(data.data.markdown)
+    }
+
+    await insertContentAtCursor(markdownImages.join('\n\n'))
+    contentImageAlt.value = ''
+    swal.success('Thành công', `Đã chèn ${markdownImages.length} ảnh vào bài viết.`)
+  } catch (error) {
+    console.error('Lỗi upload ảnh nội dung:', error)
+    swal.error('Lỗi', error.response?.data?.message || 'Không thể upload ảnh nội dung.')
+  } finally {
+    uploadingContentImage.value = false
+    if (contentImageRef.value) contentImageRef.value.value = ''
+  }
 }
 const removeImg = () => {
   imgPreview.value = ''
@@ -308,6 +369,7 @@ const openModal = () => {
   imgPreview.value = ''
   contentImageAlt.value = ''
   formError.value = ''
+  editorMode.value = 'write'; autosaveState.value = 'Bài mới sẽ tự lưu sau lần lưu đầu tiên'
   showModal.value = true
 }
 const openEditModal = (post) => {
@@ -322,10 +384,16 @@ const openEditModal = (post) => {
     noidung: post.noidung || '',
     hinhanh: post.hinhanh || '',
     mota_hinhanh: post.mota_hinhanh || post.tieude || '',
+    tagsText: (post.tags || []).map((tag) => tag.name).join(', '),
+    seo_title: post.seo_title || '', seo_description: post.seo_description || '',
+    seo_keywords: post.seo_keywords || '', canonical_url: post.canonical_url || '',
+    no_index: Boolean(post.no_index), noi_bat: Boolean(post.noi_bat), ghim: Boolean(post.ghim),
+    workflow_status: post.workflow_status || 'draft', revision_note: '',
   }
   imgPreview.value = post.hinhanh ? imageUrl(post.hinhanh) : ''
   contentImageAlt.value = ''
   formError.value = ''
+  editorMode.value = 'write'; autosaveState.value = 'Tự động lưu đang bật'
   showModal.value = true
 }
 const closeModal = () => {
@@ -337,6 +405,8 @@ const validateForm = () => {
   if (!form.value.danhmuc.trim()) return 'Vui lòng chọn danh mục.'
   if (!currentAuthorName.value) return 'Không tìm thấy tên tài khoản đang đăng nhập.'
   if (form.value.trangthai === 'scheduled' && !form.value.dang_luc) return 'Vui lòng chọn ngày đăng cho bài viết hẹn lịch.'
+  if (['published', 'scheduled'].includes(form.value.trangthai) && articleWordCount.value < 600) return `Bài xuất bản cần tối thiểu 600 từ. Hiện có ${articleWordCount.value} từ.`
+  if (['published', 'scheduled'].includes(form.value.trangthai) && contentImageCount.value < 2) return `Bài xuất bản cần ít nhất 2 ảnh trong nội dung. Hiện có ${contentImageCount.value} ảnh.`
   return ''
 }
 const submitForm = async (forcedStatus = null) => {
@@ -355,6 +425,11 @@ const submitForm = async (forcedStatus = null) => {
     noidung: form.value.noidung.trim() || null,
     hinhanh: form.value.hinhanh || null,
     mota_hinhanh: form.value.mota_hinhanh.trim() || smartThumbnailAlt.value,
+    tags: form.value.tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
+    seo_title: form.value.seo_title.trim() || null, seo_description: form.value.seo_description.trim() || null,
+    seo_keywords: form.value.seo_keywords.trim() || null, canonical_url: form.value.canonical_url.trim() || null,
+    no_index: form.value.no_index, noi_bat: form.value.noi_bat, ghim: form.value.ghim,
+    workflow_status: form.value.workflow_status, revision_note: form.value.revision_note.trim() || null,
   }
 
   try {
@@ -631,6 +706,15 @@ onMounted(async () => {
             </div>
             <div class="form-group">
               <label>NỘI DUNG CHI TIẾT</label>
+              <div class="advanced-editor-fields">
+                <div class="form-row">
+                  <div class="form-group"><label>TAG (phân cách bằng dấu phẩy)</label><input v-model="form.tagsText" placeholder="laptop gaming, tư vấn, RTX" /></div>
+                  <div class="form-group"><label>QUY TRÌNH BIÊN TẬP</label><select v-model="form.workflow_status"><option value="draft">Đang viết</option><option value="review">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="published">Hoàn tất</option></select></div>
+                </div>
+                <div class="editor-heading"><span>{{ autosaveState }}</span><button v-if="editingPost" type="button" @click="loadRevisions">Lịch sử phiên bản</button></div>
+                <div class="editor-tabs"><button type="button" :class="{ active: editorMode === 'write' }" @click="editorMode = 'write'">Soạn thảo</button><button type="button" :class="{ active: editorMode === 'preview' }" @click="editorMode = 'preview'">Xem trước</button></div>
+                <div v-if="editorMode === 'write'" class="format-toolbar"><button type="button" @click="insertMarkdown('## ')">H2</button><button type="button" @click="insertMarkdown('### ')">H3</button><button type="button" @click="insertMarkdown('**', '**')"><b>B</b></button><button type="button" @click="insertMarkdown('*', '*')"><i>I</i></button><button type="button" @click="insertMarkdown('- ')">Danh sách</button><button type="button" @click="insertMarkdown('[', '](https://)')">Liên kết</button></div>
+              </div>
               <div class="content-image-tools">
                 <input
                   v-model="contentImageAlt"
@@ -643,18 +727,33 @@ onMounted(async () => {
                   ref="contentImageRef"
                   type="file"
                   accept="image/*"
+                  multiple
                   style="display:none"
                   @change="onContentImageChange"
                 />
               </div>
-              <small class="field-hint">Bỏ trống ALT thì hệ thống tự sinh theo SEO. Ảnh sẽ được chèn vào nội dung theo dạng ![ALT ảnh](đường-dẫn-ảnh) và hiển thị đúng trong khung bài viết.</small>
+              <small class="field-hint">Có thể chọn nhiều ảnh cùng lúc. Bỏ trống ALT thì hệ thống tự sinh theo SEO.</small>
+              <div class="content-quality" :class="{ ready: publishQualityReady }">
+                <span>{{ articleWordCount }}/600 từ</span>
+                <span>{{ contentImageCount }}/2 ảnh nội dung</span>
+                <b>{{ publishQualityReady ? 'Đủ chuẩn xuất bản' : 'Cần bổ sung trước khi xuất bản' }}</b>
+              </div>
               <textarea
+                v-show="editorMode === 'write'"
                 ref="contentTextareaRef"
                 v-model="form.noidung"
                 rows="8"
                 placeholder="Nhập nội dung bài viết..."
               ></textarea>
+              <div v-if="editorMode === 'preview'" class="content-preview"><h1>{{ form.tieude || 'Tiêu đề bài viết' }}</h1><p>{{ form.tomtat }}</p><pre>{{ form.noidung || 'Chưa có nội dung.' }}</pre></div>
             </div>
+            <details class="seo-panel"><summary>SEO và hiển thị nâng cao</summary>
+              <div class="form-group"><label>SEO TITLE ({{ form.seo_title.length }}/70)</label><input v-model="form.seo_title" maxlength="70" :placeholder="form.tieude" /></div>
+              <div class="form-group"><label>META DESCRIPTION ({{ form.seo_description.length }}/320)</label><textarea v-model="form.seo_description" maxlength="320" rows="3" :placeholder="form.tomtat"></textarea></div>
+              <div class="form-row"><div class="form-group"><label>TỪ KHÓA SEO</label><input v-model="form.seo_keywords" /></div><div class="form-group"><label>CANONICAL URL</label><input v-model="form.canonical_url" /></div></div>
+              <div class="display-options"><label><input v-model="form.noi_bat" type="checkbox" /> Bài nổi bật</label><label><input v-model="form.ghim" type="checkbox" /> Ghim đầu danh sách</label><label><input v-model="form.no_index" type="checkbox" /> Không lập chỉ mục</label></div>
+              <div class="form-group"><label>GHI CHÚ PHIÊN BẢN</label><input v-model="form.revision_note" /></div>
+            </details>
             <p v-if="formError" class="form-error">{{ formError }}</p>
           </div>
           <div class="modal-footer">
@@ -667,12 +766,14 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+      <div v-if="showRevisions" class="modal-overlay revision-overlay" @click.self="showRevisions = false"><div class="revision-modal"><div class="modal-header"><h3>Lịch sử phiên bản</h3><button class="modal-close" @click="showRevisions = false">×</button></div><div class="revision-list"><div v-for="revision in revisions" :key="revision.id" class="revision-item"><div><b>Phiên bản {{ revision.version }}</b><span>{{ revision.note }} · {{ revision.editor }} · {{ formatDate(revision.created_at) }}</span></div><button type="button" @click="restoreRevision(revision)">Khôi phục</button></div><p v-if="!revisions.length">Chưa có phiên bản.</p></div></div></div>
     </Teleport>
   </div>
 </template>
 
 <style scoped>
 * { box-sizing: border-box; }
+.editor-heading,.display-options{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.editor-heading{justify-content:flex-end;margin-top:8px;font-size:12px;color:#64748b}.editor-heading button{border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:7px 10px;cursor:pointer}.editor-tabs,.format-toolbar{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}.editor-tabs button,.format-toolbar button{border:1px solid #dbe3ee;background:#fff;border-radius:7px;padding:7px 10px;cursor:pointer}.editor-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}.content-preview{min-height:260px;border:1px solid #dbe3ee;border-radius:10px;padding:22px;background:#fff}.content-preview pre{white-space:pre-wrap;font:inherit;line-height:1.7}.seo-panel{border:1px solid #dbe3ee;border-radius:10px;padding:14px;margin-top:16px}.seo-panel summary{font-weight:700;cursor:pointer;margin-bottom:14px}.display-options label{font-size:13px;color:#334155}.revision-overlay{z-index:10001}.revision-modal{background:#fff;border-radius:14px;width:min(680px,92vw);max-height:80vh;overflow:auto}.revision-list{padding:18px}.revision-item{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eef2f7;padding:14px 0;gap:16px}.revision-item span{display:block;color:#64748b;font-size:12px;margin-top:4px}.revision-item button{border:0;border-radius:8px;background:#e8f0ff;color:#1d4ed8;padding:8px 12px;cursor:pointer}
 
 .page {
     background: #f5f7fb; min-height: 100vh;
@@ -983,6 +1084,10 @@ tbody td { color: #334155; font-size: 13px; padding: 16px; vertical-align: middl
 .content-image-tools button { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; color: #1d4ed8; cursor: pointer; font-size: 12px; font-weight: 700; padding: 10px 14px; white-space: nowrap; }
 .content-image-tools button:hover:not(:disabled) { background: #dbeafe; }
 .field-hint { color: #64748b; font-size: 11px; line-height: 1.5; }
+.content-quality { align-items: center; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; color: #9a3412; display: flex; flex-wrap: wrap; font-size: 11px; gap: 10px; margin: 8px 0; padding: 9px 11px; }
+.content-quality span { background: rgba(255,255,255,.72); border-radius: 999px; padding: 4px 8px; }
+.content-quality b { margin-left: auto; }
+.content-quality.ready { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
 .form-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #ef4444; font-size: 12px; margin: 0; padding: 9px 12px; }
 button:disabled { cursor: not-allowed; opacity: .65; }
 @media (max-width: 900px) { .stats { grid-template-columns: repeat(2,1fr); } }

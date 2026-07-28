@@ -25,6 +25,7 @@ const LoginSuccess = () => import('../components/Web/DangNhapThanhCong.vue')
 const WishlistPage = () => import('../components/Web/TrangDanhSachYeuThich.vue')
 const ThankYou = () => import('../components/Web/CamOn.vue')
 const PaymentFailed = () => import('../components/Web/ThanhToanThatBai.vue')
+const SepayPayment = () => import('../components/Web/ThanhToanSepay.vue')
 const Promotions = () => import('../components/Web/KhuyenMaiKhachHang.vue')
 const AffiliateCenter = () => import('../components/Web/TrungTamTiepThi.vue')
 
@@ -101,6 +102,7 @@ const routes = [
       { path: 'lien-he', alias: ['/contact'], name: 'contact', component: Contact },
       { path: 'gio-hang', alias: ['/cart'], name: 'cart', component: Cart },
       { path: 'thanh-toan', alias: ['/checkout'], name: 'checkout', component: Checkout, meta: { requiresAuth: true } },
+      { path: 'thanh-toan/sepay/:id', name: 'sepay-payment', component: SepayPayment, meta: { requiresAuth: true } },
       { path: 'trang-ca-nhan', alias: ['/profile'], name: 'profile', component: Profile, meta: { requiresAuth: true } },
       { path: 'chat', name: 'chat', component: ChatbotWidget },
       { path: 'don-hang', alias: ['/orderspage'], name: 'orderspage', component: Orderspage, meta: { requiresAuth: true } },

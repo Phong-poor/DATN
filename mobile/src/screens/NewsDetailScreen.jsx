@@ -18,6 +18,21 @@ const stripHtml = (html) => {
     .trim();
 };
 
+const parseArticleBlocks = (content = '') => content
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/<\/p>/gi, '\n\n')
+  .replace(/<\/div>/gi, '\n\n')
+  .split(/\n+/)
+  .map((block) => block.trim())
+  .filter(Boolean)
+  .map((block) => {
+    const image = block.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) return { type: 'image', alt: image[1].trim(), src: image[2].trim() };
+    if (block.startsWith('### ')) return { type: 'h3', text: stripHtml(block.slice(4)) };
+    if (block.startsWith('## ')) return { type: 'h2', text: stripHtml(block.slice(3)) };
+    return { type: 'paragraph', text: stripHtml(block) };
+  });
+
 export default function NewsDetailScreen({ route, navigation }) {
   const { newsId } = route.params;
   const [news, setNews] = useState(null);
@@ -67,8 +82,8 @@ export default function NewsDetailScreen({ route, navigation }) {
   }
 
   const imageUrl = getImageUrl(news.hinhanh);
-  const cleanContent = stripHtml(news.noidung);
   const cleanSummary = stripHtml(news.tomtat);
+  const articleBlocks = parseArticleBlocks(news.noidung);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -111,8 +126,22 @@ export default function NewsDetailScreen({ route, navigation }) {
           </View>
         ) : null}
 
-        {/* Content Body */}
-        <Text style={styles.content}>{cleanContent}</Text>
+        {/* Content Body with inline images */}
+        <View style={styles.articleBody}>
+          {articleBlocks.map((block, index) => {
+            if (block.type === 'image') {
+              return (
+                <View key={`image-${index}`} style={styles.inlineFigure}>
+                  <Image source={{ uri: getImageUrl(block.src) }} style={styles.inlineImage} resizeMode="cover" />
+                  {block.alt ? <Text style={styles.imageCaption}>{block.alt}</Text> : null}
+                </View>
+              );
+            }
+            if (block.type === 'h2') return <Text key={`h2-${index}`} style={styles.contentHeading}>{block.text}</Text>;
+            if (block.type === 'h3') return <Text key={`h3-${index}`} style={styles.contentSubheading}>{block.text}</Text>;
+            return <Text key={`p-${index}`} style={styles.content}>{block.text}</Text>;
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -218,6 +247,42 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontSize: 15,
     lineHeight: 25,
+    marginBottom: SPACING.lg,
+  },
+  articleBody: {
+    width: '100%',
+  },
+  contentHeading: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 27,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  contentSubheading: {
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: '750',
+    lineHeight: 24,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  inlineFigure: {
+    marginVertical: SPACING.md,
+  },
+  inlineImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surface,
+  },
+  imageCaption: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
   },
   loadingContainer: {
     flex: 1,
