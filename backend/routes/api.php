@@ -30,6 +30,7 @@ use App\Http\Controllers\AffiliateVideoController;
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
+use App\Http\Controllers\SepayController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
@@ -56,6 +57,7 @@ Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
 Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
 Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
+Route::post('/sepay/webhook', [SepayController::class, 'webhook']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::get('/forgot-password/captcha', [ForgotPasswordController::class, 'captcha']);
@@ -149,11 +151,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gio-hang/dem', [GioHangController::class, 'demSoLuong']);
 
     // ===== ĐẶT HÀNG =====
-    Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::post('/checkout', [DatHangController::class, 'checkout'])->middleware('checkout.throttle');
     Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
     Route::post('/orders/{id}/payment-notice', [DatHangController::class, 'notifyManualPayment']);
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::get('/orders/{id}/momo-status', [MomoController::class, 'momoQuery']);
+    Route::get('/orders/{id}/sepay-status', [SepayController::class, 'status']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [DatHangController::class, 'refund']);

@@ -95,7 +95,8 @@ const payment = ref('cod')
 const paymentMethodMap = {
     cod: 'COD',
     vnpay: 'VNPay',
-    momo: 'MoMo'
+    momo: 'MoMo',
+    sepay: 'SePay'
 }
 const cart = ref([])
 
@@ -782,6 +783,9 @@ const confirmOrder = async () => {
 
             if (response.data.payUrl) {
                 window.location.href = response.data.payUrl;
+            } else if (response.data.sepay) {
+                sessionStorage.setItem(`sepay_payment_${response.data.sepay.order_id}`, JSON.stringify(response.data.sepay))
+                router.push({ name: 'sepay-payment', params: { id: response.data.sepay.order_id } })
             } else {
                 router.push({ 
                     name: 'thank-you', 
@@ -894,6 +898,17 @@ const confirmOrder = async () => {
               <div class="pay-text">
                 <b>MoMo Sandbox</b>
                 <p>Chuyển sang MoMo để chọn QR, ATM/Napas hoặc Visa/Mastercard/JCB</p>
+              </div>
+            </label>
+
+            <label class="pay-item" :class="{ active: payment === 'sepay' }">
+              <input type="radio" value="sepay" v-model="payment" />
+              <div class="pay-logo">
+                <div class="sepay-mark">SePay</div>
+              </div>
+              <div class="pay-info">
+                <b>Chuyển khoản ngân hàng qua SePay</b>
+                <p>Quét VietQR và tự động xác nhận giao dịch tiền thật</p>
               </div>
             </label>
 

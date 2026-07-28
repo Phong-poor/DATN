@@ -271,7 +271,15 @@ class DatHangController extends Controller
 
     private function syncDueDemoShipments(): void
     {
-        app(DemoShipmentService::class)->syncDueShipments();
+        try {
+            app(DemoShipmentService::class)->syncDueShipments();
+        } catch (\Throwable $error) {
+            // Shipment simulation is auxiliary. It must never prevent customers
+            // from viewing their existing orders when the sync temporarily fails.
+            Log::warning('Demo shipment sync failed', [
+                'error' => $error->getMessage(),
+            ]);
+        }
     }
 
     public function cancelOrder(Request $request, $id)
@@ -415,10 +423,10 @@ class DatHangController extends Controller
 
         $request->validate([
             'id_diachi' => 'nullable|integer',
-            'diachi' => 'required_without:id_diachi|string',
-            'PTTT' => 'required|string',
-            'name' => 'required|string',
-            'phone' => 'required|string',
+            'diachi' => 'required_without:id_diachi|string|min:8|max:500',
+            'PTTT' => 'required|string|in:COD,VNPay,MoMo,SePay',
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'-]+$/u'],
+            'phone' => ['required', 'string', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
             'selected_cart_items' => 'nullable|array',
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
             'selected_variants' => 'nullable|array',
@@ -427,6 +435,31 @@ class DatHangController extends Controller
 
         $userId = Auth::id();
         $diaChiGiaoHang = $request->diachi;
+
+        $recentUnpaidOrders = DatHang::where('id_khachhang', $userId)
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->where('trangthai', 'pending')
+            ->whereIn('trang_thai_thanh_toan', ['pending', 'unpaid'])
+            ->count();
+        if ($recentUnpaidOrders >= 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn đang có quá nhiều đơn chưa thanh toán hoặc chưa được xử lý. Vui lòng hoàn tất hoặc hủy đơn cũ.',
+            ], 429);
+        }
+
+        if ($request->PTTT === 'COD') {
+            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
+                ->where('PTTT', 'COD')
+                ->where('trangthai', 'pending')
+                ->exists();
+            if ($hasActiveCodOrder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đã có một đơn COD đang chờ xử lý. Vui lòng hoàn tất hoặc hủy đơn đó trước khi đặt thêm.',
+                ], 409);
+            }
+        }
 
         if ($request->filled('id_diachi')) {
             $diaChi = DiaChi::where('id_user', $userId)
@@ -724,6 +757,17 @@ class DatHangController extends Controller
 
         }
 
+        if ($paymentProvider === 'sepay' && (
+            (string) config('services.sepay.bank') === '' ||
+            (string) config('services.sepay.account_number') === '' ||
+            (string) config('services.sepay.webhook_api_key') === ''
+        )) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SePay chưa được cấu hình đầy đủ trong file .env.',
+            ], 422);
+        }
+
         $donHang = null;
 
         try {
@@ -763,7 +807,7 @@ class DatHangController extends Controller
 
             if ($hasPaymentTracking) {
                 $orderData['nha_cung_cap_thanh_toan'] = $paymentProvider;
-                $orderData['trang_thai_thanh_toan'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
+                $orderData['trang_thai_thanh_toan'] = in_array($paymentProvider, ['momo', 'vnpay', 'sepay'], true) ? 'pending' : 'unpaid';
                 $orderData['du_lieu_thanh_toan'] = [
                     'checkout' => [
                         'promo_id' => $promoId,
@@ -919,7 +963,7 @@ class DatHangController extends Controller
             Cache::forget('dashboard_data_year');
 
             // MoMo chỉ thông báo đơn mới cho admin sau khi thanh toán thành công.
-            if (! $isMomoPayment) {
+            if (! in_array($paymentProvider, ['momo', 'vnpay', 'sepay'], true)) {
                 broadcast(new OrderPlaced($donHang));
             }
 
@@ -935,11 +979,33 @@ class DatHangController extends Controller
                 $donHang = $donHang->fresh();
             }
 
+            $sepayPayment = null;
+            if ($paymentProvider === 'sepay') {
+                $bank = (string) config('services.sepay.bank');
+                $account = (string) config('services.sepay.account_number');
+                $paymentCode = (string) config('services.sepay.payment_prefix', 'DH').$donHang->id_dathang;
+                $sepayPayment = [
+                    'order_id' => $donHang->id_dathang,
+                    'amount' => (float) $donHang->tongtien,
+                    'payment_code' => $paymentCode,
+                    'bank' => $bank,
+                    'account_number' => $account,
+                    'account_name' => config('services.sepay.account_name'),
+                    'qr_url' => 'https://vietqr.app/img?'.http_build_query([
+                        'acc' => $account, 'bank' => $bank, 'amount' => (int) round($donHang->tongtien),
+                        'des' => $paymentCode, 'template' => 'compact', 'showinfo' => 'true',
+                        'fullacc' => 'true', 'holder' => config('services.sepay.account_name'),
+                        'store' => config('services.sepay.store_name'),
+                    ]),
+                ];
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Đặt hàng thành công!',
                 'order' => $donHang,
                 'payUrl' => $payUrl,
+                'sepay' => $sepayPayment,
                 'giam_gia' => $giamGia,
                 'granted_vouchers' => $grantedVouchers,
             ]);
@@ -1498,6 +1564,7 @@ class DatHangController extends Controller
         return match ($method) {
             'MoMo', 'MOMO', 'momo' => 'momo',
             'Ví điện tử', 'VNPAY', 'VNPay', 'vnpay' => 'vnpay',
+            'SePay', 'SEPAY', 'sepay' => 'sepay',
             'COD' => 'cod',
             'Chuyển khoản' => 'bank',
             default => null,
@@ -1513,7 +1580,7 @@ class DatHangController extends Controller
     {
         try {
             $cutoff = \Carbon\Carbon::now()->subMinutes(15);
-            $unpaidOrders = DatHang::whereIn('PTTT', ['vnpay', 'momo'])
+            $unpaidOrders = DatHang::whereIn('PTTT', ['vnpay', 'momo', 'SePay', 'SEPAY', 'sepay'])
                 ->where('trangthai', 'pending')
                 ->where('trang_thai_thanh_toan', 'pending')
                 ->where('created_at', '<', $cutoff)

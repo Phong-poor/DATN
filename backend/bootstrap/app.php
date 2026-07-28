@@ -23,11 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'update_admin_activity' => \App\Http\Middleware\UpdateAdminActivity::class,
+            'checkout.throttle' => \App\Http\Middleware\CheckoutThrottle::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('birthdays:send-coupons')->everyMinute();
         $schedule->command('orders:sync-demo-shipments')->everyMinute()->withoutOverlapping();
+        $schedule->command('orders:expire-pending-payments')->everyMinute()->withoutOverlapping();
         $schedule->command('cart:clean-expired')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions) {
