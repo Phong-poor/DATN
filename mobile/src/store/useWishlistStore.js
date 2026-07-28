@@ -22,6 +22,7 @@ const useWishlistStore = create(
               const sanpham = bienthe?.sanpham;
               return {
                 id_yeuthich: item.id, // Keep the relation ID for deletion
+                soluong_yeuthich: Number(item.soluong || 1),
                 id_sanpham: sanpham?.id_sanpham || item.id_sanpham,
                 tenSP: sanpham?.tenSP || 'Sản phẩm',
                 hinhanh: sanpham?.hinhanh,
@@ -105,6 +106,23 @@ const useWishlistStore = create(
             }
           } catch (err) {
             logger.log('Failed to remove from wishlist backend:', err);
+          }
+        }
+      },
+
+      updateQuantity: async (productId, quantity) => {
+        const safeQuantity = Math.max(1, Number(quantity) || 1);
+        const item = get().items.find((entry) => entry.id_sanpham === productId);
+        if (!item) return;
+        set({ items: get().items.map((entry) => entry.id_sanpham === productId
+          ? { ...entry, soluong_yeuthich: safeQuantity }
+          : entry) });
+        if (useAuthStore.getState().token && item.id_yeuthich) {
+          try {
+            await api.put(`/yeu-thich/cap-nhat/${item.id_yeuthich}`, { soluong: safeQuantity });
+          } catch (err) {
+            logger.log('Failed to update wishlist quantity:', err);
+            get().fetchWishlist();
           }
         }
       },

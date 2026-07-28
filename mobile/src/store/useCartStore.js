@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
+import useAuthStore from './useAuthStore';
 
 const useCartStore = create(
   persist(
@@ -93,6 +95,7 @@ const useCartStore = create(
           serverId: item.id_giohang,
           comboId: item.id_combo || null,
           comboGroupId: item.id_nhom_combo || null,
+          comboName: item.ten_combo || null,
           productId: item.id_sanpham || null,
           variantId: item.id_bienthe,
           name: item.ten_san_pham || item.ten_combo || 'Sản phẩm',
@@ -100,9 +103,60 @@ const useCartStore = create(
           price: parseFloat(item.gia ?? item.gia_combo ?? 0),
           quantity: parseInt(item.soluong || 1, 10),
           image: item.hinh_anh || item.hinhanh_combo || null,
-          maxStock: parseInt(item.ton_kho || 999, 10),
+          maxStock: parseInt(item.ton_kho || 0, 10) + parseInt(item.soluong || 1, 10),
         }));
         set({ items: mappedItems });
+      },
+
+      fetchServerCart: async () => {
+        if (!useAuthStore.getState().token) return get().items;
+        const response = await api.get('/gio-hang');
+        get().replaceWithServerCart(response.data?.gio_hang || []);
+        return get().items;
+      },
+
+      syncLocalCartToServer: async () => {
+        if (!useAuthStore.getState().token) return;
+        const localItems = get().items.filter((item) => !item.serverId && item.variantId);
+        for (const item of localItems) {
+          await api.post('/gio-hang/them', {
+            id_bienthe: item.variantId,
+            soluong: item.quantity,
+          });
+        }
+        await get().fetchServerCart();
+      },
+
+      addProductToServer: async (variantId, quantity = 1) => {
+        await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: quantity });
+        await get().fetchServerCart();
+      },
+
+      addComboToServer: async (comboId, selectedVariants, quantity = 1) => {
+        await api.post('/gio-hang/them-combo', {
+          id_combo: comboId,
+          selected_variants: selectedVariants,
+          soluong: quantity,
+        });
+        await get().fetchServerCart();
+      },
+
+      updateServerQuantity: async (item, quantity) => {
+        if (item.comboGroupId) {
+          await api.put(`/gio-hang/cap-nhat-combo/${item.comboGroupId}`, { soluong: quantity });
+        } else {
+          await api.put(`/gio-hang/cap-nhat/${item.serverId}`, { soluong: quantity });
+        }
+        await get().fetchServerCart();
+      },
+
+      removeServerItem: async (item) => {
+        if (item.comboGroupId) {
+          await api.delete(`/gio-hang/xoa-combo/${item.comboGroupId}`);
+        } else {
+          await api.delete(`/gio-hang/xoa/${item.serverId}`);
+        }
+        await get().fetchServerCart();
       },
 
       clearCart: () => {

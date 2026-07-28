@@ -239,7 +239,14 @@ class AuthController extends Controller
         }
 
         $driver = Socialite::driver('google')->stateless();
-        if ($request->has('ref')) {
+        if ($request->boolean('mobile')) {
+            $mobileRedirect = (string) $request->query('mobile_redirect', 'nexzen://auth');
+            if (!str_starts_with($mobileRedirect, 'nexzen://') && !str_starts_with($mobileRedirect, 'exp://')) {
+                $mobileRedirect = 'nexzen://auth';
+            }
+            $encodedRedirect = rtrim(strtr(base64_encode($mobileRedirect), '+/', '-_'), '=');
+            $driver->with(['state' => 'mobile|'.$encodedRedirect.'|'.strtoupper((string) $request->query('ref', ''))]);
+        } elseif ($request->has('ref')) {
             $driver->with(['state' => $request->query('ref')]);
         }
         return $driver->redirect();
@@ -247,6 +254,16 @@ class AuthController extends Controller
 
     public function handleGoogle(Request $request)
     {
+        $oauthState = (string) $request->query('state', '');
+        $isMobile = str_starts_with($oauthState, 'mobile|');
+        $mobileState = $isMobile ? explode('|', $oauthState, 3) : [];
+        $encodedRedirect = $mobileState[1] ?? '';
+        $mobileRedirect = $encodedRedirect
+            ? base64_decode(strtr($encodedRedirect, '-_', '+/').str_repeat('=', (4 - strlen($encodedRedirect) % 4) % 4))
+            : 'nexzen://auth';
+        if (!is_string($mobileRedirect) || (!str_starts_with($mobileRedirect, 'nexzen://') && !str_starts_with($mobileRedirect, 'exp://'))) {
+            $mobileRedirect = 'nexzen://auth';
+        }
         try {
             $driver = Socialite::driver('google')->stateless();
             if (app()->environment('local')) {
@@ -255,7 +272,7 @@ class AuthController extends Controller
             $googleUser = $driver->user();
         } catch (\Throwable $e) {
             Log::warning('Google OAuth callback failed', ['message' => $e->getMessage()]);
-            return redirect($this->frontendUrl('/login', ['social_error' => 'google_callback_failed']));
+            return $isMobile ? redirect($mobileRedirect.'?error=google_callback_failed') : redirect($this->frontendUrl('/login', ['social_error' => 'google_callback_failed']));
         }
 
         $googleId = $googleUser->getId();
@@ -278,7 +295,7 @@ class AuthController extends Controller
                 ]);
 
                 // Record referral code if present in the state parameter
-                $refCode = $request->query('state');
+                $refCode = $isMobile ? ($mobileState[2] ?? '') : $oauthState;
                 if (!empty($refCode)) {
                     $refCode = strtoupper($refCode);
                     $profile = AffiliateProfile::where('ma_affiliate', $refCode)
@@ -305,14 +322,17 @@ class AuthController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            return redirect($this->frontendUrl('/login', ['social_error' => 'google_create_failed']));
+            return $isMobile ? redirect($mobileRedirect.'?error=google_create_failed') : redirect($this->frontendUrl('/login', ['social_error' => 'google_create_failed']));
         }
 
         if (!$user) {
-            return redirect($this->frontendUrl('/login', ['social_error' => 'google_user_not_found']));
+            return $isMobile ? redirect($mobileRedirect.'?error=google_user_not_found') : redirect($this->frontendUrl('/login', ['social_error' => 'google_user_not_found']));
         }
 
         $token = $this->issueSingleSessionToken($user, 'auth_token');
+        if ($isMobile) {
+            return redirect($mobileRedirect.'?'.http_build_query(['token' => $token, 'provider' => 'google']));
+        }
         return redirect($this->frontendUrl('/login-success', [
             'token' => $token,
             'provider' => 'google',

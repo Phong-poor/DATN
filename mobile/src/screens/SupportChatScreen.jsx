@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -10,10 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import useAuthStore from '../store/useAuthStore';
 import { COLORS, RADIUS, SPACING } from '../utils/theme';
 import logger from '../utils/logger';
@@ -27,6 +31,8 @@ export default function SupportChatScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
   const listRef = useRef(null);
 
   const currentUserId = user?.id ?? user?.id_nguoidung ?? user?.id_user;
@@ -67,16 +73,22 @@ export default function SupportChatScreen({ navigation }) {
 
   const sendMessage = async () => {
     const content = text.trim();
-    if (!content || sending) return;
+    if ((!content && !attachment) || sending) return;
 
     setSending(true);
     setText('');
     setError('');
     try {
-      const response = await api.post('/chat/send', {
-        noidung: content,
-        id_cuoc_tro_chuyen: conversationId,
-      });
+      const response = editingMessage
+        ? await api.put(`/chat/messages/${editingMessage.id}`, { noidung: content })
+        : await api.post('/chat/send', {
+          noidung: content,
+          id_cuoc_tro_chuyen: conversationId,
+          attachments_base64: attachment ? [`data:${attachment.mimeType || 'image/jpeg'};base64,${attachment.base64}`] : [],
+          attachment_names: attachment ? [attachment.fileName || 'chat-image.jpg'] : [],
+        });
+      setAttachment(null);
+      setEditingMessage(null);
       const sent = response.data?.message;
       if (sent && !Array.isArray(sent)) {
         setMessages((current) => [...current.filter((item) => item.id !== sent.id), sent]);
@@ -92,6 +104,54 @@ export default function SupportChatScreen({ navigation }) {
     }
   };
 
+  const pickAttachment = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.75, base64: true });
+    if (!result.canceled && result.assets?.[0]?.base64) setAttachment(result.assets[0]);
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+      const asset = !result.canceled ? result.assets?.[0] : null;
+      if (!asset) return;
+      if (Number(asset.size || 0) > 12 * 1024 * 1024) {
+        setError('Tệp đính kèm tối đa 12 MB.');
+        return;
+      }
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      setAttachment({
+        base64: String(dataUrl).split(',')[1],
+        mimeType: asset.mimeType || 'application/octet-stream',
+        fileName: asset.name || 'attachment.bin',
+      });
+      setError('');
+    } catch (err) {
+      setError('Không thể đọc tệp đã chọn.');
+    }
+  };
+
+  const openMessageActions = (item) => {
+    Alert.alert('Tin nhắn của bạn', 'Chọn thao tác', [
+      ...(item.noidung ? [{ text: 'Sửa', onPress: () => { setEditingMessage(item); setText(item.noidung); } }] : []),
+      { text: 'Xóa', style: 'destructive', onPress: async () => {
+        try {
+          await api.delete(`/chat/messages/${item.id}`);
+          setMessages((current) => current.filter((message) => message.id !== item.id));
+        } catch (err) {
+          setError(err.response?.data?.message || 'Không thể xóa tin nhắn.');
+        }
+      } },
+      { text: 'Hủy', style: 'cancel' },
+    ]);
+  };
+
   const renderMessage = ({ item }) => {
     const isMine = String(item.id_nguoigui) === String(currentUserId);
     const senderName = item.sender?.ten || item.sender?.name || (isMine ? 'Bạn' : 'Nhân viên hỗ trợ');
@@ -101,11 +161,16 @@ export default function SupportChatScreen({ navigation }) {
 
     return (
       <View style={[styles.messageRow, isMine ? styles.mineRow : styles.supportRow]}>
-        <View style={[styles.bubble, isMine ? styles.mineBubble : styles.supportBubble]}>
+        <TouchableOpacity disabled={!isMine} onLongPress={() => openMessageActions(item)} style={[styles.bubble, isMine ? styles.mineBubble : styles.supportBubble]}>
           {!isMine && <Text style={styles.sender}>{senderName}</Text>}
-          <Text style={styles.messageText}>{item.noidung}</Text>
+          {item.duongdan_dinhkem && /\.(jpe?g|png|gif|webp|bmp)$/i.test(item.ten_dinhkem || item.duongdan_dinhkem)
+            ? <Image source={{ uri: getImageUrl(item.duongdan_dinhkem) }} style={styles.attachmentImage} />
+            : item.duongdan_dinhkem ? (
+              <View style={styles.fileAttachment}><Feather name="file-text" size={20} color={COLORS.primaryLight} /><Text style={styles.fileName} numberOfLines={2}>{item.ten_dinhkem || 'Tệp đính kèm'}</Text></View>
+            ) : null}
+          {item.noidung ? <Text style={styles.messageText}>{item.noidung}</Text> : null}
           <Text style={[styles.time, isMine && styles.mineTime]}>{sentAt}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -163,19 +228,25 @@ export default function SupportChatScreen({ navigation }) {
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <View style={styles.composer}>
+          <TouchableOpacity style={styles.attachButton} onPress={pickAttachment} disabled={!!editingMessage}>
+            <Feather name="image" size={21} color={COLORS.primaryLight} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.attachButton} onPress={pickDocument} disabled={!!editingMessage}>
+            <Feather name="paperclip" size={21} color={COLORS.primaryLight} />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder="Nhập tin nhắn..."
+            placeholder={editingMessage ? 'Sửa tin nhắn...' : attachment ? 'Thêm lời nhắn cho ảnh...' : 'Nhập tin nhắn...'}
             placeholderTextColor={COLORS.textMuted}
             multiline
             maxLength={5000}
           />
           <TouchableOpacity
-            style={[styles.sendButton, (!text.trim() || sending) && styles.disabledButton]}
+            style={[styles.sendButton, ((!text.trim() && !attachment) || sending) && styles.disabledButton]}
             onPress={sendMessage}
-            disabled={!text.trim() || sending}
+            disabled={(!text.trim() && !attachment) || sending}
             accessibilityLabel="Gửi tin nhắn"
           >
             {sending
@@ -235,6 +306,9 @@ const styles = StyleSheet.create({
   supportBubble: { backgroundColor: COLORS.surfaceLight, borderBottomLeftRadius: 3 },
   sender: { color: COLORS.primaryLight, fontSize: 11, fontWeight: '700', marginBottom: 4 },
   messageText: { color: COLORS.textPrimary, fontSize: 14, lineHeight: 20 },
+  attachmentImage: { width: 210, height: 160, borderRadius: RADIUS.md, marginBottom: 6, backgroundColor: COLORS.background },
+  fileAttachment: { flexDirection: 'row', alignItems: 'center', gap: 7, padding: 8, borderRadius: RADIUS.sm, backgroundColor: COLORS.background, marginBottom: 5 },
+  fileName: { color: COLORS.textPrimary, fontSize: 12, flex: 1 },
   time: { color: COLORS.textTertiary, fontSize: 9, marginTop: 4, alignSelf: 'flex-end' },
   mineTime: { color: 'rgba(255,255,255,0.72)' },
   errorText: { color: COLORS.error, fontSize: 12, textAlign: 'center', paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xs },
@@ -247,6 +321,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.surface,
   },
+  attachButton: { width: 38, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: {
     flex: 1,
     minHeight: 44,

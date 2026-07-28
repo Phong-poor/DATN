@@ -43,6 +43,7 @@ export default function NewsDetailScreen({ route, navigation }) {
       try {
         const res = await api.get(`/news/${newsId}`);
         setNews(res.data);
+        api.post(`/news/${newsId}/track`, { event: 'read' }).catch(() => {});
       } catch (err) {
         console.log('Failed to fetch news detail:', err);
       } finally {

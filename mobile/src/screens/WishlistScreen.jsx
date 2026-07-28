@@ -14,6 +14,7 @@ export default function WishlistScreen() {
   const items = useWishlistStore((state) => state.items);
   const fetchWishlist = useWishlistStore((state) => state.fetchWishlist);
   const removeFromWishlist = useWishlistStore((state) => state.removeFromWishlist);
+  const updateQuantity = useWishlistStore((state) => state.updateQuantity);
   const addToCart = useCartStore((state) => state.addToCart);
 
   // Sync wishlist on mount
@@ -67,6 +68,11 @@ export default function WishlistScreen() {
         <View style={styles.details}>
           <Text style={styles.name} numberOfLines={2}>{item.tenSP}</Text>
           <Text style={styles.price}>{formatPrice(price)}</Text>
+          <View style={styles.quantityRow}>
+            <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(item.id_sanpham, (item.soluong_yeuthich || 1) - 1)}><Text style={styles.quantityText}>−</Text></TouchableOpacity>
+            <Text style={styles.quantityValue}>{item.soluong_yeuthich || 1}</Text>
+            <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(item.id_sanpham, (item.soluong_yeuthich || 1) + 1)}><Text style={styles.quantityText}>+</Text></TouchableOpacity>
+          </View>
           
           <TouchableOpacity 
             style={styles.addCartBtn} 
@@ -200,6 +206,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     alignSelf: 'flex-start',
   },
+  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  quantityBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+  quantityText: { color: COLORS.textPrimary, fontSize: 17, fontWeight: '700' },
+  quantityValue: { color: COLORS.textPrimary, minWidth: 22, textAlign: 'center', fontWeight: '700' },
   addCartText: {
     color: COLORS.white,
     fontSize: 12,

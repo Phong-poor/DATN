@@ -236,7 +236,7 @@ class GioHangController extends Controller
                 }
             }
 
-            // Trừ tồn kho lập tức của từng biến thể con
+            // Giữ chỗ tồn kho ngay khi combo được thêm vào giỏ, đồng bộ với sản phẩm lẻ.
             foreach ($selectedVariants as $idBienThe) {
                 BienThe::where('id_bienthe', $idBienThe)->decrement('soluong', $soLuong);
             }
@@ -280,7 +280,7 @@ class GioHangController extends Controller
             ], 404);
         }
 
-        // Kiểm tra tồn kho của tất cả sản phẩm con khi tăng số lượng
+        // Kiểm tra phần tồn kho bổ sung khi tăng số lượng.
         foreach ($items as $item) {
             $bienThe = BienThe::findOrFail($item->id_bienthe);
             $diff = $newSoLuong - $item->soluong;
@@ -297,13 +297,11 @@ class GioHangController extends Controller
             foreach ($items as $item) {
                 $bienThe = BienThe::findOrFail($item->id_bienthe);
                 $diff = $newSoLuong - $item->soluong;
-
                 if ($diff > 0) {
                     $bienThe->decrement('soluong', $diff);
                 } elseif ($diff < 0) {
                     $bienThe->increment('soluong', abs($diff));
                 }
-
                 $item->update(['soluong' => $newSoLuong]);
             }
 

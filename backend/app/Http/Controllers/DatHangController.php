@@ -851,17 +851,6 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            $stockNeeded = $gioHangItems
-                ->groupBy('id_bienthe')
-                ->map(fn ($items) => $items->sum('soluong'));
-
-            foreach ($stockNeeded as $idBienThe => $neededQty) {
-                $bienThe = BienThe::where('id_bienthe', $idBienThe)->lockForUpdate()->first();
-                if (! $bienThe || $bienThe->soluong < $neededQty) {
-                    throw new \Exception("Sản phẩm {$bienThe?->ten_bienthe} không đủ số lượng trong kho.");
-                }
-            }
-
             $orderData = [
                 'id_khachhang' => $userId,
                 'tongtien' => $tongTienSauGiam,
@@ -937,10 +926,6 @@ class DatHangController extends Controller
                 }
 
                 DatHangChiTiet::create($orderDetailData);
-            }
-
-            foreach ($stockNeeded as $idBienThe => $neededQty) {
-                BienThe::where('id_bienthe', $idBienThe)->decrement('soluong', $neededQty);
             }
 
             // Xóa giỏ hàng sau khi đặt hàng thành công (tất cả payment methods)

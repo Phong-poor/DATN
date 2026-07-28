@@ -16,6 +16,10 @@ export default function ContactScreen({ navigation }) {
   const [category, setCategory] = useState('Tư vấn');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('08:00 - 10:00');
+  const [appointmentNote, setAppointmentNote] = useState('');
+  const [appointmentLoading, setAppointmentLoading] = useState(false);
 
   // Pre-fill user data if logged in
   useEffect(() => {
@@ -61,6 +65,43 @@ export default function ContactScreen({ navigation }) {
   };
 
   const categories = ['Tư vấn', 'Hỗ trợ kỹ thuật', 'Bảo hành', 'Góp ý'];
+  const appointmentTimes = ['08:00 - 10:00', '10:00 - 12:00', '13:30 - 15:30', '15:30 - 17:30'];
+
+  const requestCallback = async () => {
+    if (!/^(0|\+84)[0-9\s.-]{8,14}$/.test(phone.trim())) {
+      showAlert('Lỗi', 'Vui lòng nhập số điện thoại hợp lệ.');
+      return;
+    }
+    try {
+      const response = await api.post('/consultation-requests', { sodienthoai: phone.trim() });
+      showAlert('Thành công', response.data?.message || 'Đã gửi yêu cầu gọi tư vấn.');
+    } catch (err) {
+      showAlert('Lỗi', err.response?.data?.message || 'Không thể gửi yêu cầu tư vấn.');
+    }
+  };
+
+  const bookAppointment = async () => {
+    if (!name.trim() || !email.trim() || !phone.trim() || !appointmentDate) {
+      showAlert('Thiếu thông tin', 'Vui lòng nhập họ tên, email, số điện thoại và ngày hẹn.');
+      return;
+    }
+    setAppointmentLoading(true);
+    try {
+      const response = await api.post('/showroom-appointments', {
+        hoten: name.trim(), email: email.trim(), sodienthoai: phone.trim(),
+        showroom_id: 1, showroom_ten: 'Showroom VinaTech TP.HCM',
+        showroom_diachi: '120 Trần Hưng Đạo, Quận 1, TP. Hồ Chí Minh',
+        ngay_hen: appointmentDate, khung_gio: appointmentTime,
+        ghi_chu: appointmentNote.trim() || null,
+      });
+      showAlert('Thành công', response.data?.message || 'Đã đăng ký lịch trải nghiệm.');
+      setAppointmentNote('');
+    } catch (err) {
+      showAlert('Lỗi', err.response?.data?.message || Object.values(err.response?.data?.errors || {})[0]?.[0] || 'Không thể gửi lịch hẹn.');
+    } finally {
+      setAppointmentLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -186,6 +227,33 @@ export default function ContactScreen({ navigation }) {
               )}
             </TouchableOpacity>
           </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Yêu cầu gọi tư vấn</Text>
+            <Text style={styles.helperText}>Chuyên viên sẽ gọi lại theo số điện thoại bạn nhập phía trên.</Text>
+            <TouchableOpacity style={styles.outlineBtn} onPress={requestCallback}>
+              <Ionicons name="call-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.outlineBtnText}>Yêu cầu gọi lại</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Đặt lịch trải nghiệm showroom</Text>
+            <Text style={styles.label}>Ngày hẹn (YYYY-MM-DD) *</Text>
+            <TextInput style={styles.input} value={appointmentDate} onChangeText={setAppointmentDate} placeholder="2026-08-01" placeholderTextColor="#64748b" />
+            <Text style={[styles.label, { marginTop: SPACING.md }]}>Khung giờ</Text>
+            <View style={styles.categoryRow}>
+              {appointmentTimes.map((time) => (
+                <TouchableOpacity key={time} style={[styles.categoryBtn, appointmentTime === time && styles.categoryBtnActive]} onPress={() => setAppointmentTime(time)}>
+                  <Text style={[styles.categoryBtnText, appointmentTime === time && styles.categoryBtnTextActive]}>{time}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput style={[styles.input, styles.textArea, { marginTop: SPACING.md }]} value={appointmentNote} onChangeText={setAppointmentNote} placeholder="Nhu cầu trải nghiệm..." placeholderTextColor="#64748b" multiline />
+            <TouchableOpacity style={[styles.submitBtn, appointmentLoading && { opacity: 0.7 }]} onPress={bookAppointment} disabled={appointmentLoading}>
+              {appointmentLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Đặt lịch showroom</Text>}
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -247,6 +315,9 @@ const styles = StyleSheet.create({
     borderLeftColor: COLORS.primary,
     paddingLeft: SPACING.sm,
   },
+  helperText: { color: COLORS.textTertiary, fontSize: 13, lineHeight: 19, marginBottom: SPACING.md },
+  outlineBtn: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.primary, borderRadius: RADIUS.md, padding: SPACING.md },
+  outlineBtnText: { color: COLORS.primary, fontWeight: '700' },
   infoRow: {
     flexDirection: 'row',
     marginBottom: SPACING.md,

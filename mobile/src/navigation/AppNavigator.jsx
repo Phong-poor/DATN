@@ -24,6 +24,8 @@ import LuckyWheelScreen from '../screens/LuckyWheelScreen';
 import AffiliateScreen from '../screens/AffiliateScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import SupportChatScreen from '../screens/SupportChatScreen';
+import SepayPaymentScreen from '../screens/SepayPaymentScreen';
+import XuHistoryScreen from '../screens/XuHistoryScreen';
 import { COLORS } from '../utils/theme';
 
 const Stack = createNativeStackNavigator();
@@ -108,6 +110,8 @@ export default function AppNavigator() {
       <Stack.Screen name="Giỏ hàng" component={CartScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="SepayPayment" component={SepayPaymentScreen} />
+      <Stack.Screen name="XuHistory" component={XuHistoryScreen} />
       <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />

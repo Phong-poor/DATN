@@ -10,10 +10,14 @@ import CustomAlert from '../components/CustomAlert';
 import { SHIPPING_FEE } from '../constants/pricing';
 import logger from '../utils/logger';
 
-export default function CheckoutScreen({ navigation }) {
+export default function CheckoutScreen({ navigation, route }) {
   const user = useAuthStore((state) => state.user);
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+  const buyNowVariantId = route?.params?.buyNowVariantId;
+  const checkoutItems = buyNowVariantId
+    ? items.filter((item) => Number(item.variantId) === Number(buyNowVariantId))
+    : items;
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,6 +27,7 @@ export default function CheckoutScreen({ navigation }) {
 
   // Address book states
   const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
 
   // Fetch address book on mount
@@ -37,8 +42,8 @@ export default function CheckoutScreen({ navigation }) {
           setAddresses(data);
           const defaultAddr = data.find(addr => addr.mac_dinh) || data[0];
           if (defaultAddr) {
-            const fullAddrStr = [defaultAddr.diachi_cuthe, defaultAddr.phuong_xa, defaultAddr.tinh_thanhpho].filter(Boolean).join(', ');
-            setAddress(fullAddrStr);
+            setSelectedAddressId(defaultAddr.id_diachi);
+            setAddress(defaultAddr.dia_chi_day_du || [defaultAddr.diachi_cuthe, defaultAddr.phuong_xa, defaultAddr.tinh_thanhpho].filter(Boolean).join(', '));
           }
         }
       } catch (err) {
@@ -55,6 +60,11 @@ export default function CheckoutScreen({ navigation }) {
   const [promoMessage, setPromoMessage] = useState('');
   const [promoError, setPromoError] = useState(null);
   const [userVouchers, setUserVouchers] = useState([]);
+  const [freeshipCode, setFreeshipCode] = useState('');
+  const [xuSettings, setXuSettings] = useState(null);
+  const [xuBalance, setXuBalance] = useState(0);
+  const [useXu, setUseXu] = useState(false);
+  const [xuToUse, setXuToUse] = useState(0);
 
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
@@ -81,6 +91,16 @@ export default function CheckoutScreen({ navigation }) {
     fetchUserVouchers();
   }, []);
 
+  useEffect(() => {
+    if (!useAuthStore.getState().token) return;
+    Promise.all([api.get('/xu/settings'), api.get('/xu/balance')])
+      .then(([settingsRes, balanceRes]) => {
+        setXuSettings(settingsRes.data?.settings || null);
+        setXuBalance(Number(balanceRes.data?.xu || 0));
+      })
+      .catch((err) => logger.log('Failed to fetch xu information:', err));
+  }, []);
+
   const showAlert = (title, message, type = 'info', onConfirm = null) => {
     setAlertConfig({
       visible: true,
@@ -99,19 +119,24 @@ export default function CheckoutScreen({ navigation }) {
     if (user) {
       setName(user.name || user.ten || '');
       setPhone(user.phone || user.sodienthoai || '');
-      if (user.dia_chis && user.dia_chis.length > 0) {
-        const defaultAddr = user.dia_chis.find(addr => addr.is_default) || user.dia_chis[0];
-        setAddress(defaultAddr.dia_chi_day_du || defaultAddr.diachi || '');
-      }
     }
   }, [user]);
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
+  const xuRate = Number(xuSettings?.ti_le_quy_doi || 1);
+  const xuMaxPercent = Number(xuSettings?.phan_tram_giam_toi_da || 0);
+  const maxUsableXu = xuSettings?.trang_thai
+    ? Math.max(0, Math.min(xuBalance, Math.floor((Math.max(0, calculateSubtotal() - promoDiscount) * xuMaxPercent / 100) / xuRate)))
+    : 0;
+  const appliedXu = useXu ? Math.min(Number(xuToUse) || 0, maxUsableXu) : 0;
+  const xuDiscount = appliedXu * xuRate;
+  const freeshipDiscount = freeshipCode ? SHIPPING_FEE : 0;
+
   const calculateTotal = () => {
-    return Math.max(0, calculateSubtotal() + SHIPPING_FEE - promoDiscount);
+    return Math.max(0, calculateSubtotal() + SHIPPING_FEE - promoDiscount - freeshipDiscount - xuDiscount);
   };
 
   const formatPrice = (value) => {
@@ -176,25 +201,33 @@ export default function CheckoutScreen({ navigation }) {
     setLoading(true);
 
     try {
-      // 1. Clear backend cart first to prevent mixing old cart items
-      await api.delete('/gio-hang/xoa-tat');
-
-      // 2. Sync all local cart items to backend cart
-      for (const item of items) {
+      // Sync only guest/local items. Authenticated cart items already live on the server.
+      for (const item of items.filter(cartItem => !cartItem.serverId)) {
         await api.post('/gio-hang/them', {
           id_bienthe: item.variantId,
           soluong: item.quantity,
         });
       }
 
-      // 3. Call the checkout/create order endpoint
+      const serverCartRes = await api.get('/gio-hang');
+      const serverCart = serverCartRes.data?.gio_hang || serverCartRes.data?.data || serverCartRes.data?.cart || [];
+      const buyNowCartItem = buyNowVariantId
+        ? serverCart.find((item) => Number(item.id_bienthe) === Number(buyNowVariantId) && !item.id_combo)
+        : null;
       const response = await api.post('/checkout', {
-        id_diachi: null,
+        id_diachi: selectedAddressId,
         diachi: address.trim(),
         name: name.trim(),
         phone: phone.trim(),
         PTTT: paymentMethod,
         promo_code: promoApplied ? promoCode.trim().toUpperCase() : null,
+        freeship_code: freeshipCode || null,
+        dung_xu: appliedXu > 0,
+        so_xu_dung: appliedXu,
+        selected_cart_items: buyNowVariantId
+          ? (buyNowCartItem?.id_giohang ? [buyNowCartItem.id_giohang] : undefined)
+          : serverCart.map((item) => item.id_giohang).filter(Boolean),
+        selected_variants: buyNowVariantId ? [Number(buyNowVariantId)] : undefined,
       });
 
       if (response.data.success) {
@@ -202,6 +235,13 @@ export default function CheckoutScreen({ navigation }) {
         clearCart();
         
         const payUrl = response.data.payUrl;
+        if (response.data.sepay) {
+          navigation.replace('SepayPayment', {
+            payment: response.data.sepay,
+            order: response.data.order,
+          });
+          return;
+        }
         
         if (paymentMethod !== 'COD' && payUrl) {
           try {
@@ -288,7 +328,10 @@ export default function CheckoutScreen({ navigation }) {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={address}
-                onChangeText={setAddress}
+                onChangeText={(value) => {
+                  setAddress(value);
+                  setSelectedAddressId(null);
+                }}
                 placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành phố..."
                 placeholderTextColor="#64748b"
                 multiline
@@ -345,6 +388,18 @@ export default function CheckoutScreen({ navigation }) {
               </View>
               <View style={[styles.radio, paymentMethod === 'VNPay' && styles.activeRadio]} />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.paymentOption, paymentMethod === 'SePay' && styles.activePaymentOption]}
+              onPress={() => setPaymentMethod('SePay')}
+            >
+              <Ionicons name="qr-code-outline" size={26} color="#16a34a" style={styles.paymentVectorIcon} />
+              <View style={styles.paymentTextWrapper}>
+                <Text style={styles.paymentName}>SePay / VietQR</Text>
+                <Text style={styles.paymentDesc}>Quét QR ngân hàng, đơn tự xác nhận khi nhận tiền</Text>
+              </View>
+              <View style={[styles.radio, paymentMethod === 'SePay' && styles.activeRadio]} />
+            </TouchableOpacity>
           </View>
 
           {/* Voucher Section */}
@@ -387,7 +442,7 @@ export default function CheckoutScreen({ navigation }) {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vouchersScroll}>
                   {userVouchers.map((item) => {
                     const promo = item.promotion;
-                    if (!promo || item.trang_thai !== 0) return null;
+                    if (!promo || item.trang_thai !== 0 || promo.danhmuc === 'freeship') return null;
                     return (
                       <TouchableOpacity 
                         key={item.id} 
@@ -409,10 +464,65 @@ export default function CheckoutScreen({ navigation }) {
             )}
           </View>
 
+          {userVouchers.some((item) => item.promotion?.danhmuc === 'freeship' && item.trang_thai === 0) && (
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Voucher miễn phí vận chuyển</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {userVouchers.map((item) => {
+                  const promo = item.promotion;
+                  if (!promo || promo.danhmuc !== 'freeship' || item.trang_thai !== 0) return null;
+                  const selected = freeshipCode === promo.code;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.voucherBadge, selected && styles.selectedVoucherBadge]}
+                      onPress={() => setFreeshipCode(selected ? '' : promo.code)}
+                    >
+                      <Ionicons name="car-outline" size={18} color="#a5b4fc" />
+                      <Text style={styles.voucherBadgeText}>{promo.code}</Text>
+                      <Text style={styles.voucherBadgeDesc}>{selected ? 'Đã chọn' : 'Chọn mã'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {xuSettings?.trang_thai ? (
+            <View style={styles.sectionCard}>
+              <View style={styles.xuHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sectionTitle}>Thanh toán bằng xu</Text>
+                  <Text style={styles.xuHint}>Bạn có {xuBalance.toLocaleString('vi-VN')} xu · dùng tối đa {maxUsableXu.toLocaleString('vi-VN')} xu</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.xuSwitch, useXu && styles.xuSwitchActive]}
+                  onPress={() => {
+                    const next = !useXu;
+                    setUseXu(next);
+                    setXuToUse(next ? maxUsableXu : 0);
+                  }}
+                >
+                  <View style={[styles.xuSwitchKnob, useXu && styles.xuSwitchKnobActive]} />
+                </TouchableOpacity>
+              </View>
+              {useXu && (
+                <TextInput
+                  style={styles.input}
+                  value={String(xuToUse)}
+                  onChangeText={(value) => setXuToUse(Math.min(maxUsableXu, Number(value.replace(/\D/g, '')) || 0))}
+                  keyboardType="number-pad"
+                  placeholder="Số xu muốn dùng"
+                  placeholderTextColor="#64748b"
+                />
+              )}
+            </View>
+          ) : null}
+
           {/* Order Summary list */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Tóm tắt đơn hàng</Text>
-            {items.map((item) => (
+            {checkoutItems.map((item) => (
               <View key={item.id} style={styles.itemRow}>
                 <View style={styles.itemLeft}>
                   <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
@@ -433,7 +543,7 @@ export default function CheckoutScreen({ navigation }) {
 
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Phí vận chuyển</Text>
-              <Text style={styles.priceValue}>{formatPrice(SHIPPING_FEE)}</Text>
+              <Text style={styles.priceValue}>{formatPrice(SHIPPING_FEE - freeshipDiscount)}</Text>
             </View>
 
             {promoApplied && (
@@ -442,6 +552,13 @@ export default function CheckoutScreen({ navigation }) {
                 <Text style={[styles.priceValue, { color: COLORS.success || '#22c55e' }]}>
                   -{formatPrice(promoDiscount)}
                 </Text>
+              </View>
+            )}
+
+            {xuDiscount > 0 && (
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Giảm bằng xu ({appliedXu.toLocaleString('vi-VN')} xu)</Text>
+                <Text style={[styles.priceValue, { color: COLORS.success || '#22c55e' }]}>-{formatPrice(xuDiscount)}</Text>
               </View>
             )}
 
@@ -503,7 +620,7 @@ export default function CheckoutScreen({ navigation }) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {addresses.map((addr) => {
-                const fullAddrStr = [addr.diachi_cuthe, addr.phuong_xa, addr.tinh_thanhpho]
+                const fullAddrStr = addr.dia_chi_day_du || [addr.diachi_cuthe, addr.phuong_xa, addr.tinh_thanhpho]
                   .filter(Boolean)
                   .join(', ');
 
@@ -514,11 +631,12 @@ export default function CheckoutScreen({ navigation }) {
                       padding: 16,
                       borderRadius: 12,
                       borderWidth: 1,
-                      borderColor: address === fullAddrStr ? COLORS.primary : COLORS.border,
-                      backgroundColor: address === fullAddrStr ? 'rgba(99, 102, 241, 0.05)' : COLORS.surface,
+                      borderColor: selectedAddressId === addr.id_diachi ? COLORS.primary : COLORS.border,
+                      backgroundColor: selectedAddressId === addr.id_diachi ? 'rgba(99, 102, 241, 0.05)' : COLORS.surface,
                       marginBottom: 12,
                     }}
                     onPress={() => {
+                      setSelectedAddressId(addr.id_diachi);
                       setAddress(fullAddrStr);
                       setAddressModalVisible(false);
                     }}
@@ -700,6 +818,38 @@ const styles = StyleSheet.create({
     color: '#818cf8',
     fontSize: 10,
     marginTop: 2,
+  },
+  selectedVoucherBadge: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(99, 102, 241, 0.22)',
+  },
+  xuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  xuHint: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+  },
+  xuSwitch: {
+    width: 46,
+    height: 26,
+    borderRadius: 13,
+    padding: 3,
+    backgroundColor: COLORS.border,
+  },
+  xuSwitchActive: {
+    backgroundColor: COLORS.primary,
+  },
+  xuSwitchKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+  },
+  xuSwitchKnobActive: {
+    alignSelf: 'flex-end',
   },
   textArea: {
     height: 80,
