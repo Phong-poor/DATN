@@ -625,6 +625,25 @@ const clearChartHover = () => {
 
 const activeChartPoint = (chart) => hoveredChartPoint.value?.chart === chart ? hoveredChartPoint.value : null
 
+const buildSmoothChartPath = (points, yKey) => {
+    if (!points.length) return ''
+    if (points.length === 1) return `M ${points[0].x} ${points[0][yKey]}`
+
+    return points.reduce((path, point, index) => {
+        if (index === 0) return `M ${point.x} ${point[yKey]}`
+
+        const previous = points[index - 1]
+        const beforePrevious = points[index - 2] || previous
+        const next = points[index + 1] || point
+        const cp1x = previous.x + (point.x - beforePrevious.x) / 6
+        const cp1y = previous[yKey] + (point[yKey] - beforePrevious[yKey]) / 6
+        const cp2x = point.x - (next.x - previous.x) / 6
+        const cp2y = point[yKey] - (next[yKey] - previous[yKey]) / 6
+
+        return `${path} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${point.x} ${point[yKey]}`
+    }, '')
+}
+
 const chartTooltipX = (chart, point) => {
     if (!chart || !point) return 0
     return Math.min(Math.max(point.x, chart.left + 72), chart.width - 72)
@@ -687,14 +706,14 @@ const revenueChart = computed(() => {
         return withChartAxisLabel({ ...item, orders: orders[idx], x, yRevenue, yOrders }, idx, itemCount)
     })
 
-    const line = points.map((p) => `${p.x},${p.yOrders}`).join(' ')
+    const ordersPath = buildSmoothChartPath(points, 'yOrders')
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
         y: top + innerH - ratio * innerH,
         revenueValue: Math.round(maxRevenue * ratio),
         orderValue: Math.round(maxOrders * ratio),
     }))
 
-    return { width, height, left, right, top, innerW, innerH, colWidth, points, line, yTicks }
+    return { width, height, left, right, top, innerW, innerH, colWidth, points, ordersPath, yTicks }
 })
 
 const customerChart = computed(() => {
@@ -1422,13 +1441,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <defs>
                                     <!-- Gradient for Revenue Bars -->
                                     <linearGradient id="revenueBarGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#2563eb" />
-                                        <stop offset="100%" stop-color="#93c5fd" />
+                                        <stop offset="0%" stop-color="#3b82f6" />
+                                        <stop offset="100%" stop-color="#bfdbfe" />
                                     </linearGradient>
-                                    <!-- Soft Glow Filter for Line Chart -->
-                                    <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2563eb" flood-opacity="0.3" />
-                                    </filter>
                                 </defs>
 
                                 <line v-for="tick in revenueChart.yTicks" :key="`grid-${tick.y}`" :x1="revenueChart.left"
@@ -1447,7 +1462,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </rect>
 
                                 <!-- Orders Line and Points with Glow and Tooltips -->
-                                <polyline :points="revenueChart.line" class="orders-line" />
+                                <path :d="revenueChart.ordersPath" class="orders-line" />
                                 <circle v-for="p in revenueChart.points" :key="`pt-${p.label}`" 
                                     :cx="p.x" :cy="p.yOrders" r="5" 
                                     class="orders-point"
@@ -3192,18 +3207,17 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .dot.revenue {
-    background: #2563eb;
+    background: #60a5fa;
 }
 
 .dot.orders {
-    background: #2563eb;
+    background: #1e3a8a;
 }
 
 .revenue-bar {
     fill: url(#revenueBarGradient);
-    opacity: 0.88;
-    rx: 6px;
-    filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.15));
+    opacity: 0.9;
+    rx: 5px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
@@ -3211,30 +3225,28 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .revenue-bar:hover {
     opacity: 1;
     fill: #2563eb;
-    filter: drop-shadow(0 6px 15px rgba(37, 99, 235, 0.35));
 }
 
 .orders-line {
     fill: none;
-    stroke: #2563eb;
-    stroke-width: 3.5;
+    stroke: #1e3a8a;
+    stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-    filter: url(#emeraldGlow);
 }
 
 .orders-point {
     fill: #ffffff;
-    stroke: #2563eb;
-    stroke-width: 3;
+    stroke: #1e3a8a;
+    stroke-width: 2.5;
     r: 5;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
 .orders-point:hover {
-    r: 7;
-    fill: #2563eb;
+    r: 6.5;
+    fill: #1e3a8a;
     stroke: #ffffff;
 }
 

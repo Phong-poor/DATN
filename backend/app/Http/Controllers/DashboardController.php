@@ -9,6 +9,7 @@ use App\Models\DatHang;
 use App\Models\User;
 use App\Models\BienThe;
 use App\Models\DatHangChiTiet;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -21,7 +22,7 @@ class DashboardController extends Controller
         try {
             $period = $request->query('period', 'all');
 
-            $data = Cache::remember("dashboard_data_v4_{$period}", 120, function () use ($period) {
+            $data = Cache::remember("dashboard_data_v5_{$period}", 120, function () use ($period) {
                 // ================= TIME =================
                 $now = now();
                 $dateFrom = match ($period) {
@@ -113,38 +114,74 @@ class DashboardController extends Controller
                 ];
             })->values();
 
-            // ================= BIỂU ĐỒ DOANH THU =================
-            $bieuDo = DatHang::selectRaw("
-                    DATE(created_at) as label,
-                    SUM(tongtien) as total,
+            // ================= BIỂU ĐỒ THEO ĐÚNG KỲ SO SÁNH =================
+            // "Tất cả" dùng 30 ngày gần nhất giống phần phân tích; năm nhóm theo tháng.
+            $chartByMonth = $period === 'year';
+            $chartGroupSql = $chartByMonth
+                ? "DATE_FORMAT(created_at, '%Y-%m')"
+                : 'DATE(created_at)';
+
+            $chartPeriods = collect(CarbonPeriod::create(
+                $trendCurrentFrom->copy()->startOfDay(),
+                $chartByMonth ? '1 month' : '1 day',
+                $now->copy()->endOfDay()
+            ))->map(fn ($date) => $chartByMonth ? $date->format('Y-m') : $date->format('Y-m-d'));
+
+            $bieuDoRaw = DatHang::selectRaw("
+                    {$chartGroupSql} as label,
+                    SUM(CASE WHEN trangthai = 'done' THEN tongtien ELSE 0 END) as total,
                     COUNT(*) as orders
                 ")
-                ->where('trangthai', 'done')
-                ->whereBetween('created_at', [$dateFrom, $now])
+                ->whereBetween('created_at', [$trendCurrentFrom, $now])
                 ->groupBy('label')
                 ->orderBy('label')
-                ->get();
+                ->get()
+                ->keyBy('label');
 
-            // ================= BIỂU ĐỒ KHÁCH HÀNG =================
-            $bieuDoKhachHang = User::where('vaitro', 'user')
-                ->selectRaw("DATE(created_at) as label, COUNT(*) as total")
-                ->whereBetween('created_at', [$dateFrom, $now])
+            $bieuDo = $chartPeriods->map(function ($label) use ($bieuDoRaw) {
+                $row = $bieuDoRaw->get($label);
+                return [
+                    'label' => $label,
+                    'total' => (float) ($row->total ?? 0),
+                    'orders' => (int) ($row->orders ?? 0),
+                ];
+            })->values();
+
+            $bieuDoKhachHangRaw = User::where('vaitro', 'user')
+                ->selectRaw("{$chartGroupSql} as label, COUNT(*) as total")
+                ->whereBetween('created_at', [$trendCurrentFrom, $now])
                 ->groupBy('label')
                 ->orderBy('label')
-                ->get();
+                ->get()
+                ->keyBy('label');
 
-            // ================= BIỂU ĐỒ SẢN PHẨM =================
-            $bieuDoSanPham = DatHangChiTiet::selectRaw("
-                    DATE(created_at) as label,
+            $bieuDoKhachHang = $chartPeriods->map(function ($label) use ($bieuDoKhachHangRaw) {
+                return [
+                    'label' => $label,
+                    'total' => (int) ($bieuDoKhachHangRaw->get($label)->total ?? 0),
+                ];
+            })->values();
+
+            $bieuDoSanPhamRaw = DatHangChiTiet::selectRaw("
+                    {$chartGroupSql} as label,
                     SUM(soluong) as total
                 ")
-                ->whereHas('datHang', function ($q) use ($dateFrom) {
+                ->whereHas('datHang', function ($q) use ($trendCurrentFrom, $now) {
                     $q->where('trangthai', 'done')
-                      ->whereBetween('created_at', [$dateFrom, now()]);
+                      ->whereBetween('created_at', [$trendCurrentFrom, $now]);
                 })
+                ->whereBetween('created_at', [$trendCurrentFrom, $now])
                 ->groupBy('label')
                 ->orderBy('label')
-                ->get();
+                ->get()
+                ->keyBy('label');
+
+            $bieuDoSanPham = $chartPeriods->map(function ($label) use ($bieuDoSanPhamRaw) {
+                return [
+                    'label' => $label,
+                    'total' => (int) ($bieuDoSanPhamRaw->get($label)->total ?? 0),
+                ];
+            })->values();
 
             // ================= ĐƠN HÀNG =================
             $donHangQuery = DatHang::with('user');
