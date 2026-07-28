@@ -8,7 +8,11 @@ import { getUser } from '@/services/auth'
 
 const router = useRouter()
 const currentUser = ref(getUser() || {})
-const isAdmin = computed(() => currentUser.value?.vaitro === 'admin')
+const isAdmin = computed(() => Boolean(currentUser.value?.vaitro && currentUser.value.vaitro !== 'user'))
+const isOwnEmployee = (employeeOrId) => {
+  const employeeId = typeof employeeOrId === 'object' ? employeeOrId?.id : employeeOrId
+  return Number(employeeId) === Number(currentUser.value?.id)
+}
 // === STATES ===
 const logs = ref([])
 const employees = ref([])
@@ -190,6 +194,7 @@ function openFaceEnrollment(employee) {
 }
 
 async function openEmployeeCalendar(employee) {
+  if (!isOwnEmployee(employee)) return
   calendarEmployee.value = employee
   calendarMonth.value = new Date().toISOString().slice(0, 7)
   selectedCalendarLog.value = null
@@ -347,8 +352,24 @@ onMounted(() => {
       </div>
 
       <div class="employee-grid">
-        <article v-for="employee in filteredEmployees()" :key="employee.id" class="employee-card" role="button" tabindex="0"
-          @click="openEmployeeCalendar(employee)" @keydown.enter="openEmployeeCalendar(employee)">
+        <article
+          v-for="employee in filteredEmployees()"
+          :key="employee.id"
+          class="employee-card"
+          :class="{ 'salary-accessible': isOwnEmployee(employee), 'salary-locked': !isOwnEmployee(employee) }"
+          :role="isOwnEmployee(employee) ? 'button' : undefined"
+          :tabindex="isOwnEmployee(employee) ? 0 : -1"
+          :title="isOwnEmployee(employee) ? 'Bấm để xem chi tiết lương của bạn' : 'Lương cá nhân được bảo mật'"
+          @click="openEmployeeCalendar(employee)"
+          @keydown.enter="openEmployeeCalendar(employee)"
+        >
+          <span v-if="!isOwnEmployee(employee)" class="salary-lock-notice" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <rect x="5" y="10" width="14" height="10" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            Không thể xem lương người khác
+          </span>
           <img :src="getAvatarUrl(employee.anhdaidien, employee.ten)" :alt="employee.ten" />
           <div class="employee-main">
             <div class="employee-name-line">
@@ -395,7 +416,7 @@ onMounted(() => {
       <div class="payroll-heading">
         <div>
           <span class="section-eyebrow">LỊCH LÀM VIỆC & TÍNH LƯƠNG</span>
-          <h3>Bảng công nhân viên</h3>
+          <h3>Bảng công và lương của tôi</h3>
           <p>Lương chuẩn {{ formatMoney(payrollSummary.base_salary_per_day) }}/ngày. Cứ mỗi 10 phút đi muộn trừ {{ formatMoney(payrollSummary.penalty_per_ten_minutes) }}.</p>
         </div>
         <div class="view-switcher">
@@ -406,15 +427,6 @@ onMounted(() => {
       </div>
 
       <div class="payroll-filters">
-        <label>
-          <span>Nhân viên</span>
-          <select v-model="selectedEmployeeId">
-            <option value="">Tất cả nhân viên</option>
-            <option v-for="employee in employees" :key="employee.id" :value="employee.id">
-              {{ employee.ten }} — {{ employee.ten_vaitro }}
-            </option>
-          </select>
-        </label>
         <label v-if="viewMode === 'day'">
           <span>Ngày làm việc</span>
           <input v-model="filterDate" type="date" />
@@ -505,10 +517,11 @@ onMounted(() => {
                 </div>
               </td>
               <td>
-                <div class="payroll-note" :class="{ late: log.tien_phat > 0 }">
+                <div v-if="isOwnEmployee(log.id_nhanvien)" class="payroll-note" :class="{ late: log.tien_phat > 0 }">
                   <strong>{{ log.tien_phat > 0 ? `Trừ ${formatMoney(log.tien_phat)}` : 'Không khấu trừ' }}</strong>
                   <span>{{ log.ghi_chu_luong }}</span>
                 </div>
+                <span v-else class="salary-private">Riêng tư</span>
               </td>
               <td>
                 <div class="evidence-pair">
@@ -732,6 +745,7 @@ onMounted(() => {
   padding-right: 4px;
 }
 .employee-card {
+  position: relative;
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr) auto;
   align-items: center;
@@ -740,15 +754,72 @@ onMounted(() => {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #fbfdff;
-  cursor: pointer;
+  cursor: default;
   transition: border-color .18s, box-shadow .18s, transform .18s;
 }
-.employee-card:hover,
-.employee-card:focus-visible {
+.employee-card.salary-accessible {
+  cursor: pointer;
+}
+.employee-card.salary-accessible:hover,
+.employee-card.salary-accessible:focus-visible {
   border-color: #93c5fd;
   outline: none;
   box-shadow: 0 7px 18px rgba(37, 99, 235, .1);
   transform: translateY(-1px);
+}
+.employee-card.salary-locked:hover {
+  border-color: #e2e8f0;
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+.salary-lock-notice {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .14);
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -5px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+.salary-lock-notice svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.employee-card.salary-locked:hover .salary-lock-notice {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.employee-card.salary-locked .face-profile,
+.employee-card.salary-locked .face-profile button {
+  cursor: pointer;
+}
+.salary-private {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
 }
 .employee-card > img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid #dbeafe; }
 .employee-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
