@@ -238,6 +238,11 @@ export default function ProductDetailScreen({ route, navigation }) {
       
       // Save to recently viewed products
       useRecentlyViewedStore.getState().addProduct(data);
+      if (useAuthStore.getState().token) {
+        api.post(`/sanpham-daxem/${productId}`).catch((error) => {
+          logger.log('Failed to sync recently viewed product:', error);
+        });
+      }
 
       // Initialize selected options
       if (defaultVariant) {

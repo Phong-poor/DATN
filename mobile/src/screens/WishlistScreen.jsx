@@ -108,7 +108,7 @@ export default function WishlistScreen() {
           <Text style={styles.emptyText}>Danh sách yêu thích trống</Text>
           <TouchableOpacity 
             style={styles.exploreBtn} 
-            onPress={() => navigation.navigate('Trang chủ')}
+            onPress={() => navigation.navigate('Main', { screen: 'Trang chủ' })}
           >
             <Text style={styles.exploreText}>Khám phá ngay</Text>
           </TouchableOpacity>

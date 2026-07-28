@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity,
   ActivityIndicator, Alert, Modal, ScrollView, KeyboardAvoidingView, Platform,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -264,6 +265,31 @@ export default function AddressScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
 
+  const fetchAddresses = useCallback(async () => {
+    if (!token) {
+      setAddresses([]);
+      return;
+    }
+
+    try {
+      const res = await api.get('/user/dia-chi');
+      const data = res.data?.data || res.data || [];
+      setAddresses(Array.isArray(data) ? data : []);
+    } catch {
+      setAddresses([]);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetchAddresses().finally(() => setLoading(false));
+  }, [fetchAddresses, token]);
+
   if (!token) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -278,28 +304,13 @@ export default function AddressScreen() {
           <Text style={styles.authPromptIcon}>📍</Text>
           <Text style={styles.authPromptTitle}>Yêu cầu đăng nhập</Text>
           <Text style={styles.authPromptDesc}>Vui lòng đăng nhập tài khoản của bạn để xem và quản lý sổ địa chỉ giao hàng.</Text>
-          <TouchableOpacity style={styles.authPromptBtn} onPress={() => navigation.navigate('Tài khoản')}>
+          <TouchableOpacity style={styles.authPromptBtn} onPress={() => navigation.navigate('Main', { screen: 'Tài khoản' })}>
             <Text style={styles.authPromptBtnText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
-
-  const fetchAddresses = useCallback(async () => {
-    try {
-      const res = await api.get('/user/dia-chi');
-      const data = res.data?.data || res.data || [];
-      setAddresses(Array.isArray(data) ? data : []);
-    } catch {
-      setAddresses([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchAddresses().finally(() => setLoading(false));
-  }, [fetchAddresses]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

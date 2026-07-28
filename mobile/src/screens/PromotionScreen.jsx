@@ -201,7 +201,7 @@ export default function PromotionScreen() {
           <Text style={[styles.emptySubtitle, { textAlign: 'center', paddingHorizontal: 20 }]}>Đăng nhập để xem và quản lý voucher của bạn</Text>
           <TouchableOpacity 
             style={{ marginTop: 15, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: COLORS.primary, borderRadius: RADIUS.md }}
-            onPress={() => navigation.navigate('Tài khoản')}
+            onPress={() => navigation.navigate('Main', { screen: 'Tài khoản' })}
           >
             <Text style={{ color: '#fff', fontWeight: '700' }}>Đăng nhập ngay</Text>
           </TouchableOpacity>

@@ -14,8 +14,8 @@ import logoImage from '../../assets/nextgen_logo_header.png';
 import supportAvatar from '../../assets/support_avatar.png';
 import logger from '../utils/logger';
 import useCartStore from '../store/useCartStore';
-import useAuthStore from '../store/useAuthStore';
 import useRecentlyViewedStore from '../store/useRecentlyViewedStore';
+import useAuthStore from '../store/useAuthStore';
 const statsData = [
   { value: '15K+', label: 'Khách Hàng Hài Lòng', icon: '👥' },
   { value: '500+', label: 'Sản Phẩm Cao Cấp', icon: '💻' },
@@ -28,8 +28,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
   const cartItems = useCartStore((state) => state.items);
   const cartCount = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems]);
-  const user = useAuthStore((state) => state.user);
   const recentlyViewed = useRecentlyViewedStore((state) => state.items);
+  const token = useAuthStore((state) => state.token);
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -197,6 +197,17 @@ export default function HomeScreen({ navigation }) {
     fetchHomeData();
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    api.get('/sanpham-daxem')
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          useRecentlyViewedStore.getState().replaceProducts(response.data);
+        }
+      })
+      .catch((error) => logger.log('Failed to load recently viewed products:', error));
+  }, [token]);
+
   // Optimized banner auto-scroll (only when user isn't interacting)
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -310,11 +321,13 @@ export default function HomeScreen({ navigation }) {
             contentPosition="left"
           />
 
-          {/* Right Actions: Cart and Account next to each other */}
+          {/* Right Actions: Cart and notifications */}
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.headerBtn} 
               onPress={() => navigation.navigate('Giỏ hàng')}
+              accessibilityRole="button"
+              accessibilityLabel="Mở giỏ hàng"
             >
               <Feather name="shopping-cart" size={24} color={COLORS.textPrimary} />
               {cartCount > 0 && (
@@ -326,24 +339,11 @@ export default function HomeScreen({ navigation }) {
 
             <TouchableOpacity 
               style={[styles.headerBtn, { marginLeft: SPACING.md }]} 
-              onPress={() => navigation.navigate('Tài khoản')}
+              onPress={() => navigation.navigate('Notifications')}
+              accessibilityRole="button"
+              accessibilityLabel="Mở thông báo"
             >
-              {user ? (
-                user.anhdaidien ? (
-                  <OptimizedImage 
-                    source={{ uri: getImageUrl(user.anhdaidien) }} 
-                    style={styles.headerAvatarImage} 
-                  />
-                ) : (
-                  <View style={styles.headerAvatar}>
-                    <Text style={styles.headerAvatarText}>
-                      {user.name ? user.name.substring(0, 2).toUpperCase() : 'ML'}
-                    </Text>
-                  </View>
-                )
-              ) : (
-                <Feather name="user" size={24} color={COLORS.textPrimary} />
-              )}
+              <Feather name="bell" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -910,9 +910,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     padding: SPACING.xs,
   },
-  headerIcon: {
-    fontSize: 20,
-  },
   badgeContainer: {
     position: 'absolute',
     top: -4,
@@ -929,24 +926,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 10,
     fontWeight: 'bold',
-  },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e0e7ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerAvatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  headerAvatarText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6366f1',
   },
   errorBanner: {
     backgroundColor: COLORS.error,
