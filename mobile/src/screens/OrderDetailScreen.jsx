@@ -1,13 +1,22 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TextInput, View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
 import { Feather } from '@expo/vector-icons';
-import { getImageUrl } from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import { SHIPPING_FEE } from '../constants/pricing';
+import * as ImagePicker from 'expo-image-picker';
+import logger from '../utils/logger';
 
 export default function OrderDetailScreen({ route, navigation }) {
   const { order } = route.params || {};
+  const [refundVisible, setRefundVisible] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundProof, setRefundProof] = useState(null);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+
+  const refundableItems = useMemo(() => order?.chi_tiets || [], [order]);
 
   const formatPrice = (value) => {
     return parseFloat(value || 0).toLocaleString('vi-VN') + 'đ';
@@ -37,6 +46,18 @@ export default function OrderDetailScreen({ route, navigation }) {
         return { label: 'Đã hoàn thành', color: '#10b981', icon: 'check-circle' };
       case 'cancelled':
         return { label: 'Đã hủy', color: '#ef4444', icon: 'x-circle' };
+      case 'refund_pending':
+        return { label: 'Đang chờ duyệt hoàn trả', color: '#f97316', icon: 'rotate-ccw' };
+      case 'refund_pickup':
+        return { label: 'Chờ lấy hàng hoàn', color: '#d97706', icon: 'package' };
+      case 'refund_delivering':
+        return { label: 'Đang giao hàng hoàn', color: '#3b82f6', icon: 'truck' };
+      case 'refund_received':
+        return { label: 'Đã nhận hàng hoàn', color: '#0284c7', icon: 'inbox' };
+      case 'refunded':
+        return { label: 'Đã hoàn tiền', color: '#10b981', icon: 'check-circle' };
+      case 'refund_rejected':
+        return { label: 'Từ chối hoàn trả', color: '#ef4444', icon: 'x-circle' };
       default:
         return { label: status, color: '#94a3b8', icon: 'info' };
     }
@@ -62,6 +83,89 @@ export default function OrderDetailScreen({ route, navigation }) {
 
   const activeStep = getTimelineIndex(order?.trangthai);
   const statusDetails = getStatusLabel(order?.trangthai);
+
+  const getPaymentLabel = () => {
+    if (order?.PTTT === 'VNPay') return 'Online qua cổng VNPay';
+    if (order?.PTTT === 'MoMo' || order?.PTTT === 'momo') return 'Online qua cổng MoMo';
+    return 'Thanh toán tiền mặt (COD)';
+  };
+
+  const openRefund = () => {
+    const allItemIds = refundableItems
+      .map((item) => item.id_bienthe)
+      .filter((id) => id !== null && id !== undefined);
+    setSelectedItemIds([...new Set(allItemIds)]);
+    setRefundReason('');
+    setRefundProof(null);
+    setRefundVisible(true);
+  };
+
+  const toggleRefundItem = (variantId) => {
+    setSelectedItemIds((current) => current.includes(variantId)
+      ? current.filter((id) => id !== variantId)
+      : [...current, variantId]);
+  };
+
+  const pickRefundProof = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Cần quyền truy cập', 'Vui lòng cho phép ứng dụng truy cập thư viện ảnh.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions?.Images || 'images',
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      setRefundProof(result.assets[0]);
+    }
+  };
+
+  const submitRefund = async () => {
+    if (!refundReason.trim()) {
+      Alert.alert('Thiếu lý do', 'Vui lòng nhập lý do hoàn trả.');
+      return;
+    }
+    if (selectedItemIds.length === 0) {
+      Alert.alert('Chưa chọn sản phẩm', 'Vui lòng chọn ít nhất một sản phẩm cần hoàn trả.');
+      return;
+    }
+    if (!refundProof?.uri) {
+      Alert.alert('Thiếu bằng chứng', 'Vui lòng chọn ảnh bằng chứng cho yêu cầu hoàn trả.');
+      return;
+    }
+
+    setSubmittingRefund(true);
+    try {
+      const formData = new FormData();
+      formData.append('lydo', refundReason.trim());
+      formData.append('proof', {
+        uri: refundProof.uri,
+        name: refundProof.fileName || `refund-${Date.now()}.jpg`,
+        type: refundProof.mimeType || 'image/jpeg',
+      });
+      selectedItemIds.forEach((id) => formData.append('item_ids[]', String(id)));
+
+      const response = await api.post(`/orders/${order.id_dathang}/refund`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      });
+      if (response.data?.success) {
+        setRefundVisible(false);
+        Alert.alert('Đã gửi yêu cầu', response.data?.message || 'Yêu cầu hoàn trả đã được gửi.', [
+          { text: 'Đồng ý', onPress: () => navigation.replace('OrderHistory') },
+        ]);
+      }
+    } catch (error) {
+      logger.log('Refund request failed:', error);
+      const validation = error.response?.data?.errors;
+      const firstValidation = validation ? Object.values(validation).flat()[0] : null;
+      Alert.alert('Không thể gửi yêu cầu', firstValidation || error.response?.data?.message || 'Vui lòng thử lại sau.');
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
 
   // Normal delivery timeline nodes
   const timelineSteps = [
@@ -238,7 +342,7 @@ export default function OrderDetailScreen({ route, navigation }) {
           <View style={styles.billingRow}>
             <Text style={styles.billingLabel}>Phương thức thanh toán</Text>
             <Text style={styles.billingValue}>
-              {order?.PTTT === 'VNPay' ? 'Online qua cổng VNPay' : 'Thanh toán tiền mặt (COD)'}
+              {getPaymentLabel()}
             </Text>
           </View>
 
@@ -272,7 +376,89 @@ export default function OrderDetailScreen({ route, navigation }) {
             <Text style={styles.totalValue}>{formatPrice(order?.tongtien)}</Text>
           </View>
         </View>
+
+        {(order?.trangthai === 'done' || order?.trangthai === 'completed') && (
+          <TouchableOpacity style={styles.refundButton} onPress={openRefund}>
+            <Feather name="rotate-ccw" size={17} color={COLORS.white} />
+            <Text style={styles.refundButtonText}>Yêu cầu hoàn trả</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
+
+      <Modal
+        visible={refundVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !submittingRefund && setRefundVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.refundSheet}>
+            <View style={styles.refundHeader}>
+              <View>
+                <Text style={styles.refundTitle}>Yêu cầu hoàn trả</Text>
+                <Text style={styles.refundHint}>Chọn sản phẩm và gửi ảnh bằng chứng</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRefundVisible(false)} disabled={submittingRefund}>
+                <Feather name="x" size={24} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.refundLabel}>Sản phẩm hoàn trả</Text>
+              {refundableItems.map((detail, index) => {
+                const variantId = detail.id_bienthe;
+                const selected = selectedItemIds.includes(variantId);
+                return (
+                  <TouchableOpacity
+                    key={`${variantId}-${index}`}
+                    style={[styles.refundItem, selected && styles.refundItemSelected]}
+                    onPress={() => toggleRefundItem(variantId)}
+                  >
+                    <Feather name={selected ? 'check-square' : 'square'} size={20} color={selected ? COLORS.primaryLight : COLORS.textTertiary} />
+                    <View style={styles.refundItemCopy}>
+                      <Text style={styles.refundItemName}>{detail.bien_the?.san_pham?.tenSP || 'Sản phẩm'}</Text>
+                      <Text style={styles.refundItemVariant}>{detail.bien_the?.ten_bienthe || 'Mặc định'} · SL {detail.soluong}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <Text style={styles.refundLabel}>Lý do hoàn trả</Text>
+              <TextInput
+                value={refundReason}
+                onChangeText={setRefundReason}
+                style={styles.refundInput}
+                placeholder="Mô tả tình trạng sản phẩm..."
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                maxLength={2000}
+              />
+
+              <Text style={styles.refundLabel}>Ảnh bằng chứng</Text>
+              <TouchableOpacity style={styles.proofPicker} onPress={pickRefundProof}>
+                {refundProof?.uri ? (
+                  <Image source={{ uri: refundProof.uri }} style={styles.proofImage} />
+                ) : (
+                  <>
+                    <Feather name="image" size={28} color={COLORS.primaryLight} />
+                    <Text style={styles.proofPickerText}>Chọn ảnh từ thư viện</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.submitRefundButton, submittingRefund && styles.disabledButton]}
+                onPress={submitRefund}
+                disabled={submittingRefund}
+              >
+                {submittingRefund
+                  ? <ActivityIndicator color={COLORS.white} />
+                  : <Text style={styles.submitRefundText}>Gửi yêu cầu hoàn trả</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -569,4 +755,66 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.warning,
   },
+  refundButton: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f97316',
+    borderRadius: RADIUS.md,
+    paddingVertical: 14,
+    marginBottom: SPACING.xxl,
+  },
+  refundButtonText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
+  refundSheet: {
+    maxHeight: '88%',
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.lg,
+  },
+  refundHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.lg },
+  refundTitle: { color: COLORS.textPrimary, fontSize: 18, fontWeight: '800' },
+  refundHint: { color: COLORS.textTertiary, fontSize: 11, marginTop: 3 },
+  refundLabel: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: SPACING.sm, marginTop: SPACING.md },
+  refundItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  refundItemSelected: { borderColor: COLORS.primary, backgroundColor: 'rgba(99,102,241,0.08)' },
+  refundItemCopy: { flex: 1, marginLeft: SPACING.md },
+  refundItemName: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '600' },
+  refundItemVariant: { color: COLORS.textTertiary, fontSize: 11, marginTop: 3 },
+  refundInput: {
+    minHeight: 90,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
+    textAlignVertical: 'top',
+  },
+  proofPicker: {
+    height: 150,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    backgroundColor: COLORS.background,
+  },
+  proofPickerText: { color: COLORS.primaryLight, fontSize: 12, fontWeight: '600', marginTop: SPACING.sm },
+  proofImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  submitRefundButton: { backgroundColor: '#f97316', borderRadius: RADIUS.md, alignItems: 'center', paddingVertical: 14, marginTop: SPACING.xl, marginBottom: SPACING.xxl },
+  submitRefundText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+  disabledButton: { opacity: 0.55 },
 });

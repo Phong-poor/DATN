@@ -18,7 +18,7 @@ export default function CheckoutScreen({ navigation }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' or 'VNPay'
+  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD', 'VNPay' or 'MoMo'
   const [loading, setLoading] = useState(false);
 
   // Address book states
@@ -193,7 +193,7 @@ export default function CheckoutScreen({ navigation }) {
         diachi: address.trim(),
         name: name.trim(),
         phone: phone.trim(),
-        PTTT: paymentMethod, // 'COD' or 'VNPay'
+        PTTT: paymentMethod,
         promo_code: promoApplied ? promoCode.trim().toUpperCase() : null,
       });
 
@@ -203,11 +203,20 @@ export default function CheckoutScreen({ navigation }) {
         
         const payUrl = response.data.payUrl;
         
-        if (paymentMethod === 'VNPay' && payUrl) {
+        if (paymentMethod !== 'COD' && payUrl) {
           try {
-            Linking.openURL(payUrl);
+            const canOpen = await Linking.canOpenURL(payUrl);
+            if (!canOpen) {
+              throw new Error('Thiết bị không thể mở liên kết thanh toán.');
+            }
+            await Linking.openURL(payUrl);
           } catch (linkErr) {
             logger.log('Failed to open payment URL:', linkErr);
+            showAlert(
+              'Không mở được cổng thanh toán',
+              'Đơn hàng đã được tạo. Bạn có thể mở lại thanh toán trong lịch sử đơn hàng.',
+              'warning'
+            );
           }
           navigation.replace('OrderSuccess', { order: response.data.order });
         } else {
@@ -305,6 +314,21 @@ export default function CheckoutScreen({ navigation }) {
                 <Text style={styles.paymentDesc}>Thanh toán bằng tiền mặt khi nhận hàng</Text>
               </View>
               <View style={[styles.radio, paymentMethod === 'COD' && styles.activeRadio]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'MoMo' && styles.activePaymentOption
+              ]}
+              onPress={() => setPaymentMethod('MoMo')}
+            >
+              <Ionicons name="wallet-outline" size={26} color="#d82d8b" style={styles.paymentVectorIcon} />
+              <View style={styles.paymentTextWrapper}>
+                <Text style={styles.paymentName}>Ví MoMo</Text>
+                <Text style={styles.paymentDesc}>Thanh toán online qua ứng dụng hoặc cổng MoMo</Text>
+              </View>
+              <View style={[styles.radio, paymentMethod === 'MoMo' && styles.activeRadio]} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -697,6 +721,9 @@ const styles = StyleSheet.create({
   },
   paymentIcon: {
     fontSize: 22,
+    marginRight: SPACING.md,
+  },
+  paymentVectorIcon: {
     marginRight: SPACING.md,
   },
   paymentTextWrapper: {

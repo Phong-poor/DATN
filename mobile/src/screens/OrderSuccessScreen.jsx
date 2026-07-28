@@ -23,6 +23,12 @@ export default function OrderSuccessScreen({ route, navigation }) {
     }
   };
 
+  const getPaymentLabel = () => {
+    if (order?.PTTT === 'VNPay') return 'Thanh toán online (VNPay)';
+    if (order?.PTTT === 'MoMo' || order?.PTTT === 'momo') return 'Thanh toán online (MoMo)';
+    return 'Thanh toán khi nhận hàng (COD)';
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -48,7 +54,7 @@ export default function OrderSuccessScreen({ route, navigation }) {
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Phương thức thanh toán</Text>
               <Text style={styles.detailValue}>
-                {order.PTTT === 'VNPay' ? 'Thanh toán online (VNPay)' : 'Thanh toán khi nhận hàng (COD)'}
+                {getPaymentLabel()}
               </Text>
             </View>
 

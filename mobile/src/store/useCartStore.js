@@ -87,6 +87,24 @@ const useCartStore = create(
         set({ items: newItems });
       },
 
+      replaceWithServerCart: (serverItems = []) => {
+        const mappedItems = serverItems.map((item) => ({
+          id: `server_${item.id_giohang}`,
+          serverId: item.id_giohang,
+          comboId: item.id_combo || null,
+          comboGroupId: item.id_nhom_combo || null,
+          productId: item.id_sanpham || null,
+          variantId: item.id_bienthe,
+          name: item.ten_san_pham || item.ten_combo || 'Sản phẩm',
+          variantName: item.ten_bienthe || null,
+          price: parseFloat(item.gia ?? item.gia_combo ?? 0),
+          quantity: parseInt(item.soluong || 1, 10),
+          image: item.hinh_anh || item.hinhanh_combo || null,
+          maxStock: parseInt(item.ton_kho || 999, 10),
+        }));
+        set({ items: mappedItems });
+      },
+
       clearCart: () => {
         set({ items: [] });
       },
