@@ -79,6 +79,11 @@ Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
+Route::get('/news-tags', [NewsController::class, 'tags']);
+Route::get('/news-feed.xml', [NewsController::class, 'feed']);
+Route::get('/news-sitemap.xml', [NewsController::class, 'sitemap']);
+Route::post('/news/{id}/track', [NewsController::class, 'track'])->whereNumber('id');
+Route::post('/news-subscribe', [NewsController::class, 'subscribe']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
@@ -405,6 +410,10 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/news/upload-image', [NewsController::class, 'uploadContentImage']);
         Route::post('/news', [NewsController::class, 'store']);
         Route::put('/news/{id}', [NewsController::class, 'update']);
+        Route::patch('/news/{id}/autosave', [NewsController::class, 'autosave']);
+        Route::get('/news/{id}/preview', [NewsController::class, 'preview']);
+        Route::get('/news/{id}/revisions', [NewsController::class, 'revisions']);
+        Route::post('/news/{id}/revisions/{revisionId}/restore', [NewsController::class, 'restoreRevision']);
         Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
 
