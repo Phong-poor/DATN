@@ -31,6 +31,8 @@ export default defineConfig(({ mode, command }) => {
             output: {
                 manualChunks(id) {
                     if (!id.includes('node_modules')) return undefined
+                    if (id.includes('@vladmandic/face-api')) return 'vendor-face-api'
+                    if (id.includes('lucide-vue-next')) return 'vendor-icons'
                     if (id.includes('vue') || id.includes('vue-router') || id.includes('vuex')) {
                         return 'vendor-vue'
                     }
@@ -39,7 +41,9 @@ export default defineConfig(({ mode, command }) => {
                     if (id.includes('leaflet')) return 'vendor-map'
                     if (id.includes('xlsx')) return 'vendor-xlsx'
                     if (id.includes('axios')) return 'vendor-http'
-                    return 'vendor'
+                    // Để Vite giữ thư viện chỉ dùng ở route động trong chính chunk
+                    // của route đó, tránh bắt mọi trang tải một vendor khổng lồ.
+                    return undefined
                 }
             }
         },
