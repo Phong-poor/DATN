@@ -228,7 +228,7 @@ class AuthController extends Controller
                     <div style='text-align: left; background: #f1f5f9; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; color: #334155; margin-bottom: 24px;'>
                         GOOGLE_CLIENT_ID=your_client_id<br>
                         GOOGLE_CLIENT_SECRET=your_client_secret<br>
-                        GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/api/auth/google/callback
+                        GOOGLE_REDIRECT_URI=" . e((string) config('services.google.redirect')) . "
                     </div>
                     <a href='" . env('FRONTEND_URL', 'http://localhost:5173') . "/login' class='btn'>Quay lại trang Đăng nhập</a>
                 </div>

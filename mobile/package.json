@@ -31,7 +31,8 @@
     "lan": "expo start --lan --go",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "node scripts/verify-mobile.mjs"
   },
   "private": true
 }
