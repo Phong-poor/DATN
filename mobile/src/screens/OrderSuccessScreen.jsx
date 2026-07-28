@@ -1,11 +1,23 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
 import { Feather } from '@expo/vector-icons';
+import api from '../services/api';
 
 export default function OrderSuccessScreen({ route, navigation }) {
   const { order } = route.params || {};
+  const paymentConfirmed = route.params?.paymentConfirmed;
+  const emailRequested = useRef(false);
+
+  useEffect(() => {
+    const orderId = order?.id_dathang || order?.id_donhang || order?.id;
+    const method = String(order?.PTTT || '').toLowerCase();
+    const paid = paymentConfirmed || order?.trang_thai_thanh_toan === 'paid' || method === 'cod';
+    if (!orderId || !paid || emailRequested.current) return;
+    emailRequested.current = true;
+    api.post(`/orders/send-email/${orderId}`).catch(() => {});
+  }, [order, paymentConfirmed]);
 
   const formatPrice = (value) => {
     return parseFloat(value || 0).toLocaleString('vi-VN') + 'đ';
@@ -26,6 +38,7 @@ export default function OrderSuccessScreen({ route, navigation }) {
   const getPaymentLabel = () => {
     if (order?.PTTT === 'VNPay') return 'Thanh toán online (VNPay)';
     if (order?.PTTT === 'MoMo' || order?.PTTT === 'momo') return 'Thanh toán online (MoMo)';
+    if (order?.PTTT === 'SePay') return 'Chuyển khoản tự động (SePay)';
     return 'Thanh toán khi nhận hàng (COD)';
   };
 
