@@ -14,8 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../utils/theme';
 import api from '../services/api';
 import logger from '../utils/logger';
+import useCartStore from '../store/useCartStore';
+import useAuthStore from '../store/useAuthStore';
 
 export default function ChatbotScreen({ navigation }) {
+  const token = useAuthStore((state) => state.token);
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -53,6 +56,7 @@ export default function ChatbotScreen({ navigation }) {
         text: replyText,
         isBot: true,
         time: new Date(),
+        products: Array.isArray(res.data?.products) ? res.data.products : [],
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
@@ -66,6 +70,20 @@ export default function ChatbotScreen({ navigation }) {
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const buySuggestedProduct = async (variant) => {
+    const product = variant.san_pham || variant.sanpham || variant.product || {};
+    if (!token) {
+      navigation.navigate('Main', { screen: 'Tài khoản' });
+      return;
+    }
+    try {
+      await useCartStore.getState().addProductToServer(variant.id_bienthe, 1);
+      navigation.navigate('Checkout', { buyNowVariantId: variant.id_bienthe });
+    } catch (error) {
+      setMessages((current) => [...current, { id: `cart-error-${Date.now()}`, text: error.response?.data?.message || 'Không thể thêm sản phẩm này vào đơn hàng.', isBot: true, time: new Date() }]);
     }
   };
 
@@ -122,6 +140,21 @@ export default function ChatbotScreen({ navigation }) {
               >
                 {msg.text}
               </Text>
+              {msg.products?.map((variant) => {
+                const product = variant.san_pham || variant.sanpham || variant.product || {};
+                return (
+                  <View key={variant.id_bienthe} style={styles.productSuggestion}>
+                    <TouchableOpacity onPress={() => navigation.navigate('ProductDetail', { productId: product.id_sanpham || variant.id_sanpham })}>
+                      <Text style={styles.productName} numberOfLines={2}>{product.tenSP || variant.ten_bienthe}</Text>
+                      <Text style={styles.productVariant}>{variant.ten_bienthe}</Text>
+                      <Text style={styles.productPrice}>{Number(variant.gia || 0).toLocaleString('vi-VN')}đ</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.buyButton} onPress={() => buySuggestedProduct(variant)}>
+                      <Text style={styles.buyButtonText}>{token ? 'Mua & chọn địa chỉ' : 'Đăng nhập để mua'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           </View>
         ))}
@@ -262,6 +295,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  productSuggestion: { width: 245, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: SPACING.md, marginTop: SPACING.sm },
+  productName: { color: COLORS.textPrimary, fontWeight: '800', fontSize: 13 },
+  productVariant: { color: COLORS.textTertiary, fontSize: 11, marginTop: 3 },
+  productPrice: { color: COLORS.warning, fontWeight: '900', marginTop: 5 },
+  buyButton: { backgroundColor: COLORS.primary, borderRadius: RADIUS.sm, alignItems: 'center', padding: 8, marginTop: SPACING.sm },
+  buyButtonText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   botText: {
     color: COLORS.textSecondary,
   },
