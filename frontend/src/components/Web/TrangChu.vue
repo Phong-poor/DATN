@@ -2574,6 +2574,24 @@ onUnmounted(() => {
 
 
 
+.section-header :is(h1, h2, h3),
+.ambient-label,
+.tab-pill,
+.interactive-anchor,
+.btn-premium-glow,
+.btn-premium-glass {
+    text-transform: lowercase !important;
+}
+
+.section-header :is(h1, h2, h3)::first-letter,
+.ambient-label::first-letter,
+.tab-pill::first-letter,
+.interactive-anchor::first-letter,
+.btn-premium-glow::first-letter,
+.btn-premium-glass::first-letter {
+    text-transform: uppercase !important;
+}
+
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
 .category-section {
     background: var(--tn-bg);

@@ -140,6 +140,84 @@
   box-sizing: border-box;
 }
 
+:where(body) :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .btn,
+  .stat-card-tag,
+  .badge,
+  .badge-tag,
+  .status-badge,
+  .pill,
+  .tab-pill,
+  .role-name-badge,
+  .voucher-section-title,
+  .interactive-anchor,
+  th,
+  label > span
+) {
+  text-transform: lowercase !important;
+}
+
+:where(body) :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .btn,
+  .stat-card-tag,
+  .badge,
+  .badge-tag,
+  .status-badge,
+  .pill,
+  .tab-pill,
+  .role-name-badge,
+  .voucher-section-title,
+  .interactive-anchor,
+  th,
+  label > span
+)::first-letter {
+  text-transform: uppercase !important;
+}
+
+:where(body) :where(
+  input,
+  textarea,
+  select,
+  option,
+  code,
+  pre,
+  .logo,
+  .sidebar-logo,
+  .order-code,
+  .price-current,
+  .current-price,
+  .price,
+  .strike-price,
+  .old-price,
+  .admin-name,
+  .user-name,
+  .sidebar-name,
+  .reviewer-name
+) {
+  text-transform: none !important;
+}
+
+.web-layout button:not([data-preserve-case]),
+.web-layout a.btn:not([data-preserve-case]),
+.web-layout a[class*="btn-"]:not([data-preserve-case]),
+.web-layout [role="button"]:not([data-preserve-case]) {
+  text-transform: capitalize !important;
+}
+
 
 
 html,
