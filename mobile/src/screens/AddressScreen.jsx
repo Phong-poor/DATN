@@ -31,7 +31,6 @@ const TINH_THANH = [
 
 const emptyForm = {
   tinh_thanhpho: '',
-  quan_huyen: '',
   phuong_xa: '',
   diachi_cuthe: '',
   loai_diachi: 'home',
@@ -58,7 +57,7 @@ function AddressCard({ address, onEdit, onDelete, onSetDefault }) {
             {address.loai_diachi === 'company' ? 'Công ty' : 'Nhà riêng'}
           </Text>
           <Text style={styles.cardAddr} numberOfLines={2}>
-            {[address.diachi_cuthe, address.phuong_xa, address.quan_huyen, address.tinh_thanhpho]
+            {[address.diachi_cuthe, address.phuong_xa, address.tinh_thanhpho]
               .filter(Boolean).join(', ')}
           </Text>
         </View>
@@ -94,7 +93,6 @@ function AddressFormModal({ visible, address, onClose, onSaved }) {
     if (address) {
       setForm({
         tinh_thanhpho: address.tinh_thanhpho || '',
-        quan_huyen: address.quan_huyen || '',
         phuong_xa: address.phuong_xa || '',
         diachi_cuthe: address.diachi_cuthe || '',
         loai_diachi: address.loai_diachi || 'home',
@@ -206,15 +204,6 @@ function AddressFormModal({ visible, address, onClose, onSaved }) {
                 </View>
               )}
 
-              {/* Quận/huyện */}
-              <Text style={styles.fieldLabel}>Quận/Huyện</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={form.quan_huyen}
-                onChangeText={v => setField('quan_huyen', v)}
-                placeholder="VD: Quận 1, Huyện Bình Chánh..."
-                placeholderTextColor={COLORS.textTertiary}
-              />
 
               {/* Phường/xã */}
               <Text style={styles.fieldLabel}>Phường/Xã <Text style={styles.required}>*</Text></Text>
