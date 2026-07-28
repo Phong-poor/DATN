@@ -33,7 +33,7 @@ class AdminMiddleware
         }
 
         // Quản trị viên tối cao (admin) có toàn quyền
-        if ($user->vaitro === 'admin') {
+        if ($user->vaitro !== 'user') {
             return $next($request);
         }
 
