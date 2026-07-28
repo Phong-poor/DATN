@@ -1349,7 +1349,6 @@ const mapInitialPosition = ref(null)
 const defaultAddrForm = () => ({
   id: null,
   province: '',
-  district: '',
   ward: '',
   detail: '',
   fullAddress: '',
@@ -1535,7 +1534,6 @@ const findWardCodeByName = (name) => findAddressCodeByName(wards.value, name)
 const handleProvinceChange = async () => {
   const province = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
   addrForm.value.province = province?.name || ''
-  addrForm.value.district = ''
   addrForm.value.ward = ''
   addrForm.value.fullAddress = addrForm.value.province
   selectedWardCode.value = ''
@@ -1547,7 +1545,6 @@ const handleProvinceChange = async () => {
 const handleWardChange = async () => {
   const ward = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
   addrForm.value.ward = ward?.name || ''
-  addrForm.value.district = ward?.districtName || ''
   addrForm.value.fullAddress = [addrForm.value.province, addrForm.value.ward].filter(Boolean).join(', ')
   mapInitialPosition.value = null
   await prepareMapInitialPosition()
@@ -1606,10 +1603,9 @@ const openMapPicker = async () => {
 const mapAddressFromApi = (addr) => ({
   id: addr.id_diachi,
   province: addr.tinh_thanhpho || '',
-  district: addr.quan_huyen || '',
   ward: addr.phuong_xa || '',
   detail: addr.diachi_cuthe || '',
-  fullAddress: [addr.phuong_xa, addr.quan_huyen, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
+  fullAddress: [addr.phuong_xa, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
   latitude: addr.latitude ?? null,
   longitude: addr.longitude ?? null,
   type: addr.loai_diachi || 'home',
@@ -1618,7 +1614,6 @@ const mapAddressFromApi = (addr) => ({
 
 const mapAddressToApi = () => ({
   tinh_thanhpho: addrForm.value.province || addrForm.value.fullAddress || 'Không xác định',
-  quan_huyen: addrForm.value.district || '',
   phuong_xa: addrForm.value.ward || addrForm.value.fullAddress || 'Không xác định',
   diachi_cuthe: addrForm.value.detail,
   latitude: addrForm.value.latitude,
@@ -1632,11 +1627,9 @@ const applyMapAddress = (address) => {
   const selectedWard = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
 
   addrForm.value.province = selectedProvince?.name || address.province || addrForm.value.province || ''
-  addrForm.value.district = address.district || addrForm.value.district || ''
   addrForm.value.ward = selectedWard?.name || address.ward || addrForm.value.ward || ''
   addrForm.value.fullAddress = [
     addrForm.value.ward,
-    addrForm.value.district,
     addrForm.value.province,
   ].filter((item) => item && item !== 'Không xác định').join(', ') || address.fullAddress || ''
   addrForm.value.latitude = address.latitude ?? addrForm.value.latitude
