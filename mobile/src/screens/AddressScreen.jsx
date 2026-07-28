@@ -7,8 +7,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import AddressMap from '../components/AddressMap';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../utils/theme';
 import api from '../services/api';
 import useAuthStore from '../store/useAuthStore';
@@ -500,20 +500,11 @@ function AddressFormModal({ visible, address, onClose, onSaved }) {
               </TouchableOpacity>
 
               {Number.isFinite(Number(form.latitude)) && Number.isFinite(Number(form.longitude)) && (
-                <View style={styles.mapWrap}>
-                  <MapView
-                    key={`${form.latitude}-${form.longitude}`}
-                    style={styles.map}
-                    initialRegion={{ latitude: Number(form.latitude), longitude: Number(form.longitude), latitudeDelta: 0.006, longitudeDelta: 0.006 }}
-                  >
-                    <Marker
-                      draggable
-                      coordinate={{ latitude: Number(form.latitude), longitude: Number(form.longitude) }}
-                      onDragEnd={(event) => applyCoordinates(event.nativeEvent.coordinate.latitude, event.nativeEvent.coordinate.longitude)}
-                    />
-                  </MapView>
-                  <Text style={styles.mapHint}>Giữ và kéo ghim để chỉnh chính xác điểm giao hàng</Text>
-                </View>
+                <AddressMap
+                  latitude={form.latitude}
+                  longitude={form.longitude}
+                  onCoordinateChange={({ latitude, longitude }) => applyCoordinates(latitude, longitude)}
+                />
               )}
 
               {(form.latitude !== null && form.longitude !== null) && (
@@ -866,9 +857,6 @@ const styles = StyleSheet.create({
     padding: SPACING.md, marginTop: SPACING.md,
   },
   locationButtonText: { color: COLORS.primary, fontWeight: '700' },
-  mapWrap: { marginTop: SPACING.md, borderRadius: RADIUS.lg, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
-  map: { width: '100%', height: 230 },
-  mapHint: { color: COLORS.textTertiary, fontSize: 11, textAlign: 'center', padding: SPACING.sm, backgroundColor: COLORS.surface },
   coordinateText: { color: COLORS.success, fontSize: 10, fontWeight: '700' },
   defaultToggleRow: {
     flexDirection: 'row',
