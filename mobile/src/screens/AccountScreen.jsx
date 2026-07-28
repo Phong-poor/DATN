@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../store/useAuthStore';
 import RegisterScreen from './RegisterScreen';
-import api, { getImageUrl } from '../services/api';
+import api, { API_BASE_URL, getImageUrl } from '../services/api';
 import logoImage from '../../assets/nextgen_logo_header.png';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import OptimizedImage from '../components/OptimizedImage';
@@ -15,6 +15,7 @@ export default function AccountScreen() {
   const navigation = useNavigation();
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
+  const completeSocialLogin = useAuthStore((state) => state.completeSocialLogin);
   const loading = useAuthStore((state) => state.loading);
   const error = useAuthStore((state) => state.error);
   const login = useAuthStore((state) => state.login);
@@ -67,6 +68,37 @@ export default function AccountScreen() {
       }
     }, [checkSession, token])
   );
+
+  useEffect(() => {
+    const handleAuthUrl = async ({ url }) => {
+      if (!url || !url.includes('/auth') && !url.startsWith('nexzen://auth')) return;
+      const query = url.split('?')[1] || '';
+      const params = Object.fromEntries(query.split('&').filter(Boolean).map((part) => {
+        const [key, value = ''] = part.split('=');
+        return [decodeURIComponent(key), decodeURIComponent(value.replace(/\+/g, ' '))];
+      }));
+      if (params.error) {
+        setClientError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+        return;
+      }
+      if (params.token) await completeSocialLogin(params.token);
+    };
+    const subscription = Linking.addEventListener('url', handleAuthUrl);
+    Linking.getInitialURL().then((url) => url && handleAuthUrl({ url }));
+    return () => subscription.remove();
+  }, [completeSocialLogin]);
+
+  const handleGoogleLogin = async () => {
+    const initialUrl = await Linking.getInitialURL();
+    const expoBase = initialUrl?.startsWith('exp://')
+      ? initialUrl.split('?')[0].replace(/\/--\/.*$/, '')
+      : null;
+    const redirectUrl = expoBase ? `${expoBase}/--/auth` : 'nexzen://auth';
+    const authUrl = `${API_BASE_URL}/auth/google?mobile=1&mobile_redirect=${encodeURIComponent(redirectUrl)}`;
+    const canOpen = await Linking.canOpenURL(authUrl);
+    if (canOpen) await Linking.openURL(authUrl);
+    else setClientError('Thiết bị không thể mở trang đăng nhập Google.');
+  };
 
   // Clear auth store errors when transitioning screens/views
   useEffect(() => {
@@ -353,6 +385,7 @@ export default function AccountScreen() {
     { title: 'Lịch sử đơn hàng', icon: '📦' },
     { title: 'Sổ địa chỉ', icon: '📍' },
     { title: 'Khuyến mãi & Voucher', icon: '🎁' },
+    { title: 'Ví xu & lịch sử', icon: '🪙' },
     { title: 'Tiếp thị liên kết (Affiliate)', icon: '🤝' },
     { title: 'Tin tức & Blog', icon: '📰' },
     { title: 'Chat với nhân viên', iconName: 'message-circle' },
@@ -598,9 +631,7 @@ export default function AccountScreen() {
               <TouchableOpacity 
                 style={styles.googleLoginBtn} 
                 activeOpacity={0.85}
-                onPress={() => {
-                  Alert.alert('Đăng nhập Google', 'Tính năng đăng nhập bằng Google đang được liên kết với API.');
-                }}
+                onPress={handleGoogleLogin}
               >
                 <FontAwesome name="google" size={20} color="#EA4335" />
                 <Text style={styles.googleLoginText}>Đăng nhập với Google</Text>
@@ -890,6 +921,8 @@ export default function AccountScreen() {
                     navigation.navigate('Address');
                   } else if (item.title === 'Khuyến mãi & Voucher') {
                     navigation.navigate('Promotion');
+                  } else if (item.title === 'Ví xu & lịch sử') {
+                    navigation.navigate('XuHistory');
                   } else if (item.title === 'Tiếp thị liên kết (Affiliate)') {
                     navigation.navigate('Affiliate');
                   } else if (item.title === 'Tin tức & Blog') {

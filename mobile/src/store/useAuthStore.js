@@ -121,6 +121,21 @@ const useAuthStore = create(
 
       clearError: () => set({ error: null }),
 
+      completeSocialLogin: async (token) => {
+        if (!token) return { success: false };
+        set({ token, loading: true, error: null });
+        try {
+          const response = await axios.get(`${API_BASE_URL}/auth/session`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+          });
+          set({ user: response.data?.user || null, loading: false });
+          return { success: !!response.data?.user };
+        } catch (error) {
+          set({ token: null, user: null, loading: false, error: 'Không thể hoàn tất đăng nhập Google.' });
+          return { success: false };
+        }
+      },
+
       uploadAvatar: async (uri) => {
         const token = get().token;
         if (!token) return { success: false, error: 'Chưa đăng nhập' };
