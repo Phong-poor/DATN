@@ -838,6 +838,7 @@ class DatHangController extends Controller
         if ($paymentProvider === 'sepay' && (
             (string) config('services.sepay.bank') === '' ||
             (string) config('services.sepay.account_number') === '' ||
+            (string) config('services.sepay.account_name') === '' ||
             (string) config('services.sepay.webhook_api_key') === ''
         )) {
             return response()->json([
