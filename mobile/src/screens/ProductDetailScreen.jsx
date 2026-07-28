@@ -329,7 +329,7 @@ export default function ProductDetailScreen({ route, navigation }) {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedVariant) {
       showAlert('Thông báo', 'Cấu hình này hiện không khả dụng. Vui lòng chọn cấu hình khác!');
       return;
@@ -340,7 +340,16 @@ export default function ProductDetailScreen({ route, navigation }) {
       return;
     }
 
-    addToCart(product, 1, selectedVariant);
+    try {
+      if (token) {
+        await useCartStore.getState().addProductToServer(selectedVariant.id_bienthe, 1);
+      } else {
+        addToCart(product, 1, selectedVariant);
+      }
+    } catch (error) {
+      showAlert('Lỗi', error.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
+      return;
+    }
     showAlert(
       'Thành công',
       `Đã thêm "${product.tenSP}" cấu hình "${selectedVariant.ten_bienthe}" vào giỏ hàng!`,
@@ -353,12 +362,43 @@ export default function ProductDetailScreen({ route, navigation }) {
     );
   };
 
-  const handleAddComboToCart = (combo) => {
+  const handleBuyNow = async () => {
+    if (!selectedVariant || Number(selectedVariant.soluong || 0) <= 0) return;
+    if (!token) {
+      showAlert('Cần đăng nhập', 'Vui lòng đăng nhập để sử dụng chức năng mua ngay và thanh toán.');
+      return;
+    }
+    try {
+      await useCartStore.getState().addProductToServer(selectedVariant.id_bienthe, 1);
+      navigation.navigate('Checkout', { buyNowVariantId: selectedVariant.id_bienthe });
+    } catch (error) {
+      showAlert('Lỗi', error.response?.data?.message || 'Không thể tạo đơn mua ngay.');
+    }
+  };
+
+  const handleAddComboToCart = async (combo) => {
     if (!combo || !combo.products) return;
-    combo.products.forEach(p => {
-      const variant = p.bien_thes && p.bien_thes.length > 0 ? p.bien_thes[0] : null;
-      addToCart(p, 1, variant);
-    });
+    const selectedVariants = combo.products
+      .map(p => p.bien_thes?.find(v => Number(v.soluong || 0) > 0) || p.bien_thes?.[0])
+      .filter(Boolean);
+    if (selectedVariants.length !== combo.products.length) {
+      showAlert('Không thể thêm combo', 'Một sản phẩm trong combo chưa có biến thể khả dụng.');
+      return;
+    }
+    try {
+      if (token) {
+        await useCartStore.getState().addComboToServer(
+          combo.id_combo,
+          selectedVariants.map(variant => variant.id_bienthe),
+          1
+        );
+      } else {
+        combo.products.forEach((p, index) => addToCart(p, 1, selectedVariants[index]));
+      }
+    } catch (error) {
+      showAlert('Lỗi', error.response?.data?.message || 'Không thể thêm combo vào giỏ hàng.');
+      return;
+    }
     showAlert(
       'Thành công',
       `Đã thêm toàn bộ sản phẩm trong combo "${combo.ten_combo}" vào giỏ hàng!`,
@@ -936,6 +976,14 @@ export default function ProductDetailScreen({ route, navigation }) {
           </Text>
         </View>
         
+        <View style={styles.purchaseActions}>
+        <TouchableOpacity
+          style={[styles.buyNowBtn, (!selectedVariant || parseInt(stock || 0) === 0) && styles.disabledBtn]}
+          onPress={handleBuyNow}
+          disabled={!selectedVariant || parseInt(stock || 0) === 0}
+        >
+          <Text style={styles.buyNowBtnText}>Mua ngay</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.addToCartBtn,
@@ -950,6 +998,7 @@ export default function ProductDetailScreen({ route, navigation }) {
               : 'Liên hệ'}
           </Text>
         </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -1258,12 +1307,33 @@ const styles = StyleSheet.create({
     color: COLORS.warning,
   },
   addToCartBtn: {
+    flex: 1,
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  purchaseActions: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  buyNowBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buyNowBtnText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   disabledBtn: {
     backgroundColor: COLORS.border,

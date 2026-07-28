@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import useCartStore from '../store/useCartStore';
 import useAuthStore from '../store/useAuthStore';
 import api, { getImageUrl } from '../services/api';
@@ -16,10 +16,24 @@ export default function CartScreen() {
   const token = useAuthStore((state) => state.token);
 
   const [alertVisible, setAlertVisible] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const items = useCartStore((state) => state.items);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return undefined;
+      let active = true;
+      setSyncing(true);
+      useCartStore.getState().syncLocalCartToServer()
+        .catch((err) => console.log('[Cart Server Sync Error]', err))
+        .finally(() => active && setSyncing(false));
+      return () => { active = false; };
+    }, [token])
+  );
 
   // Sync cart item stocks from the database API upon opening the cart
   useEffect(() => {
@@ -74,9 +88,42 @@ export default function CartScreen() {
       `Bạn có chắc chắn muốn xóa sản phẩm "${item.name}" khỏi giỏ hàng không?`,
       [
         { text: 'Hủy', style: 'cancel' },
-        { text: 'Xóa', style: 'destructive', onPress: () => removeFromCart(item.id) }
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token || !item.serverId) {
+              removeFromCart(item.id);
+              return;
+            }
+            setUpdatingId(item.comboGroupId || item.id);
+            try {
+              await useCartStore.getState().removeServerItem(item);
+            } catch (err) {
+              showAlert('Lỗi', err.response?.data?.message || 'Không thể xóa sản phẩm khỏi giỏ hàng.');
+            } finally {
+              setUpdatingId(null);
+            }
+          },
+        }
       ]
     );
+  };
+
+  const handleQuantityChange = async (item, quantity) => {
+    if (quantity <= 0) return;
+    if (!token || !item.serverId) {
+      updateQuantity(item.id, quantity);
+      return;
+    }
+    setUpdatingId(item.comboGroupId || item.id);
+    try {
+      await useCartStore.getState().updateServerQuantity(item, quantity);
+    } catch (err) {
+      showAlert('Lỗi', err.response?.data?.message || 'Không thể cập nhật số lượng.');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const renderItem = ({ item }) => {
@@ -96,10 +143,11 @@ export default function CartScreen() {
           {item.variantName && (
             <Text style={styles.variantName}>{item.variantName}</Text>
           )}
+          {!!item.comboId && <Text style={styles.comboName}>Combo: {item.comboName || 'Ưu đãi theo bộ'}</Text>}
           <Text style={styles.price}>{formatPrice(item.price)}</Text>
           <View style={styles.quantityRow}>
             <TouchableOpacity 
-              onPress={() => updateQuantity(item.id, item.quantity - 1)} 
+              onPress={() => handleQuantityChange(item, item.quantity - 1)}
               style={[styles.qtyBtn, item.quantity <= 1 && styles.qtyBtnDisabled]}
               disabled={item.quantity <= 1}
             >
@@ -111,7 +159,7 @@ export default function CartScreen() {
             </TouchableOpacity>
             <Text style={styles.qtyText}>{item.quantity}</Text>
             <TouchableOpacity 
-              onPress={() => updateQuantity(item.id, item.quantity + 1)} 
+              onPress={() => handleQuantityChange(item, item.quantity + 1)}
               style={[styles.qtyBtn, item.quantity >= (item.maxStock || 999) && styles.qtyBtnDisabled]}
               disabled={item.quantity >= (item.maxStock || 999)}
             >
@@ -124,7 +172,9 @@ export default function CartScreen() {
           </View>
         </View>
         <TouchableOpacity onPress={() => handleDelete(item)} style={styles.removeBtn}>
-          <Text style={styles.removeBtnText}>🗑️</Text>
+          {updatingId === (item.comboGroupId || item.id)
+            ? <ActivityIndicator size="small" color={COLORS.error} />
+            : <Feather name="trash-2" size={18} color={COLORS.error} />}
         </TouchableOpacity>
       </View>
     );
@@ -161,6 +211,13 @@ export default function CartScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🛒</Text>
           <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
+        </View>
+      )}
+
+      {syncing && (
+        <View style={styles.syncBadge}>
+          <ActivityIndicator size="small" color={COLORS.white} />
+          <Text style={styles.syncBadgeText}>Đang đồng bộ giỏ hàng...</Text>
         </View>
       )}
 
@@ -256,6 +313,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: SPACING.xs,
   },
+  comboName: {
+    fontSize: 10,
+    color: COLORS.success,
+    fontWeight: '700',
+    marginBottom: SPACING.xs,
+  },
   price: {
     fontSize: 14,
     fontWeight: '700',
@@ -347,4 +410,17 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     fontSize: 16,
   },
+  syncBadge: {
+    position: 'absolute',
+    top: 72,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  syncBadgeText: { color: COLORS.white, fontSize: 11, fontWeight: '700' },
 });
