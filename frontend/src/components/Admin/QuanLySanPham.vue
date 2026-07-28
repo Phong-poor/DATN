@@ -1,4 +1,4 @@
-<script setup>
+  <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { getUser } from '@/services/auth'
 import api from '@/services/api'
@@ -10,6 +10,7 @@ const hasPermission = (perm) => {
   return user.value?.cac_quyen?.includes(perm)
 }
 import { invalidateProductsPrefetchCache } from '@/services/productsPrefetch'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const PRODUCTS_CACHE_KEY = 'nextgen_admin_products_cache'
 const PRODUCTS_CACHE_TTL = 2 * 60 * 1000
@@ -338,21 +339,38 @@ const handleExportExcel = async () => {
       return
     }
 
-    // Map data to user-friendly column names
-    const worksheetData = data.map(item => ({
-      'ID Biến Thể': item.id_bienthe,
-      'Tên Sản Phẩm': item.tenSP,
-      'Biến Thể': item.ten_bienthe,
-      'Giá': item.gia,
-      'Số Lượng': item.soluong
-    }))
-
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+    const generatedAt = new Date()
+    const header = ['STT', 'ID biến thể', 'Tên sản phẩm', 'Biến thể', 'Giá bán (VNĐ)', 'Số lượng tồn', 'Giá trị tồn (VNĐ)']
+    const rows = data.map((item, index) => {
+      const price = Number(item.gia) || 0
+      const quantity = Number(item.soluong) || 0
+      return [index + 1, item.id_bienthe, item.tenSP, item.ten_bienthe, price, quantity, price * quantity]
+    })
+    const totalQuantity = rows.reduce((sum, row) => sum + row[5], 0)
+    const totalValue = rows.reduce((sum, row) => sum + row[6], 0)
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['BÁO CÁO CHI TIẾT TỒN KHO NEXTGEN'],
+      [`Thời điểm xuất: ${generatedAt.toLocaleString('vi-VN')}`],
+      [`Tổng số biến thể: ${rows.length} | Tổng tồn: ${totalQuantity} | Tổng giá trị tồn: ${totalValue.toLocaleString('vi-VN')} VNĐ`],
+      [],
+      header,
+      ...rows,
+    ])
+    worksheet['!merges'] = [0, 1, 2].map(r => ({ s: { r, c: 0 }, e: { r, c: 6 } }))
+    worksheet['!cols'] = [
+      { wch: 7 }, { wch: 15 }, { wch: 38 }, { wch: 26 },
+      { wch: 18 }, { wch: 15 }, { wch: 22 },
+    ]
+    worksheet['!autofilter'] = { ref: `A5:G${rows.length + 5}` }
+    rows.forEach((_, index) => {
+      const excelRow = index + 6
+      if (worksheet[`E${excelRow}`]) worksheet[`E${excelRow}`].z = '#,##0'
+      if (worksheet[`G${excelRow}`]) worksheet[`G${excelRow}`].z = '#,##0'
+    })
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory")
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tồn kho chi tiết')
 
-    // Download file
-    XLSX.writeFile(workbook, `Kho_Hang_NextGen_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`)
+    XLSX.writeFile(workbook, `Bao_cao_ton_kho_NextGen_${generatedAt.toISOString().slice(0, 10)}.xlsx`)
   } catch (error) {
     console.error(error)
     swal.error('Lỗi', 'Lỗi khi xuất file Excel')
@@ -423,19 +441,33 @@ const handleExportVariantsExcel = async () => {
   }
 
   const XLSX = await loadXlsx()
-  const data = generatedRows.value.map(row => {
-    const item = {}
-    headers.forEach(h => {
-      item[h.label] = row.attrs[h.id] || ''
-    })
-    item['Giá'] = row.price
-    item['Kho'] = row.stock
-    return item
+  const columnHeaders = ['STT', ...headers.map(h => h.label), 'Giá (VNĐ)', 'Kho']
+  const rows = generatedRows.value.map((row, index) => [
+    index + 1,
+    ...headers.map(h => row.attrs[h.id] || ''),
+    Number(row.price) || 0,
+    Number(row.stock) || 0,
+  ])
+  const lastColumn = XLSX.utils.encode_col(columnHeaders.length - 1)
+  const ws = XLSX.utils.aoa_to_sheet([
+    [`BÁO CÁO BIẾN THỂ - ${(form.value.name || 'SẢN PHẨM').toUpperCase()}`],
+    [`Thời điểm xuất: ${new Date().toLocaleString('vi-VN')} | Tổng cấu hình: ${rows.length}`],
+    [],
+    columnHeaders,
+    ...rows,
+  ])
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: columnHeaders.length - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: columnHeaders.length - 1 } },
+  ]
+  ws['!cols'] = [{ wch: 7 }, ...headers.map(() => ({ wch: 20 })), { wch: 18 }, { wch: 12 }]
+  ws['!autofilter'] = { ref: `A4:${lastColumn}${rows.length + 4}` }
+  rows.forEach((_, index) => {
+    const priceCell = ws[`${XLSX.utils.encode_col(columnHeaders.length - 2)}${index + 5}`]
+    if (priceCell) priceCell.z = '#,##0'
   })
-
-  const ws = XLSX.utils.json_to_sheet(data)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, "Variants")
+  XLSX.utils.book_append_sheet(wb, ws, 'Biến thể')
   XLSX.writeFile(wb, `${form.value.name || 'SanPham'}_BienThe.xlsx`)
 }
 
@@ -748,9 +780,9 @@ const buildAttributeGroups = () => {
             label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
-              label: c.name,
-              value: c.name,
-              hex: c.hex_code,
+              label: c.ten || c.name,
+              value: c.ten || c.name,
+              hex: c.mamau || c.hex || c.hex_code,
             })),
           },
         ],
@@ -855,7 +887,10 @@ const defaultForm = () => ({
   weight: '',
 })
 
+import { registerOfflineForm } from '@/services/offlineSync';
+
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-san-pham')
 const fieldErrors = ref({})
 
 /**
@@ -1857,16 +1892,28 @@ const submitForm = async () => {
     resetForm()
     closeModal()
   } catch (error) {
-    console.error(error)
-    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
-      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
-      : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    if (error.isOfflineQueue) {
+      localStorage.removeItem(`global_form_draft_${window.location.pathname}`)
+      resetForm()
+      closeModal()
+      await swal.info('Chế độ ngoại tuyến', 'Yêu cầu thêm/sửa sản phẩm đã được lưu tạm vào hàng đợi. Hệ thống sẽ tự động gửi lên máy chủ khi có mạng trở lại.')
+    } else {
+      console.error(error)
+      swal.error('Lỗi', getErrorMessage(error, isEditMode.value
+        ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
+        : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    }
   }
+}
+
+const syncSuccessHandler = () => {
+  fetchProducts()
 }
 
 onMounted(() => {
   loadProductsCache()
   fetchProducts()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
   Promise.allSettled([
     fetchParentCategories(),
     fetchCategories(),
@@ -1874,6 +1921,10 @@ onMounted(() => {
     fetchAttributeGroups(),
     fetchColors(),
   ])
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 </script>
 
@@ -1886,12 +1937,8 @@ onMounted(() => {
     <template v-if="currentView === 'list'">
 
     <div class="top">
-      <div>
-        <h1>Qu&#7843;n l&#253; s&#7843;n ph&#7849;m</h1>
-        <p>C&#7853;p nh&#7853;t v&#224; theo d&#245;i danh m&#7909;c thi&#7871;t b&#7883; c&#244;ng ngh&#7879; 2026</p>
-      </div>
       <div class="excel-actions">
-        <button class="btn-excel btn-export" @click="handleExportExcel" :disabled="isExporting">
+        <button class="btn-excel btn-export admin-report-export" @click="handleExportExcel" :disabled="isExporting">
           <svg v-if="!isExporting" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
             fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1899,7 +1946,7 @@ onMounted(() => {
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           <span v-else class="spinner-sm"></span>
-          {{ isExporting ? '\u0110ang xu\u1ea5t...' : 'Xu\u1ea5t Excel' }}
+          {{ isExporting ? '\u0110ang xu\u1ea5t...' : 'Xu\u1ea5t b\u00e1o c\u00e1o' }}
         </button>
 
         <button v-if="hasPermission('nhap_xuat_kho')" class="btn-excel btn-import" @click="triggerImportExcel" :disabled="isImporting">
@@ -2083,13 +2130,14 @@ onMounted(() => {
       </table>
     </div>
 
-    <div class="pagination">
-      <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">&#8249;</button>
-
-      <span class="pg-active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
-
-      <button :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">&#8250;</button>
-    </div>
+    <PhanTrangAdmin
+      v-model:currentPage="currentPage"
+      :total-pages="totalPages"
+      :total-items="filteredProducts.length"
+      :page-size="pageSize"
+      item-label="sản phẩm"
+      @change-page="goToPage"
+    />
 
     </template><!-- end list view -->
 
@@ -2291,7 +2339,7 @@ onMounted(() => {
                           <div class="fst-options-wrap">
                             <div v-if="t.id === 'color-type'" class="color-swatches-grid">
                               <button v-for="opt in t.options" :key="getOptionValue(opt)" class="color-swatch-btn" :class="{ selected: isSelected(t.id, getOptionValue(opt)) }" @click="toggleOption(t.id, getOptionValue(opt))">
-                                <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }"><span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">OK</span></span>
+                                <span class="swatch-circle" :style="{ backgroundColor: getOptionHex(opt) || '#ccc' }"><span v-if="isSelected(t.id, getOptionValue(opt))" class="swatch-check">✓</span></span>
                                 <span class="swatch-label">{{ getOptionLabel(opt) }}</span>
                               </button>
                             </div>
@@ -2345,7 +2393,7 @@ onMounted(() => {
               <div class="p2-toolbar">
                 <button class="btn-back" @click="backToSelect">{{ isEditMode ? 'Quay lại chọn / chỉnh biến thể' : 'Chỉnh lại lựa chọn' }}</button>
                 <div class="modal-excel-actions">
-                  <button class="btn-xl-sm btn-xl-export" title="Xuất danh sách biến thể ra Excel" @click="handleExportVariantsExcel">Xu&#7845;t Excel</button>
+                  <button class="btn-xl-sm btn-xl-export admin-report-export" title="Xuất danh sách biến thể ra Excel" @click="handleExportVariantsExcel">Xuất báo cáo</button>
                   <button class="btn-xl-sm btn-xl-import" title="Nhập danh sách biến thể từ Excel" @click="triggerImportVariantsExcel">Nh&#7853;p Excel</button>
                   <input type="file" ref="importVariantsExcelRef" style="display: none" accept=".xlsx, .xls" @change="handleImportVariantsExcel" />
                 </div>
@@ -2742,22 +2790,9 @@ onMounted(() => {
 
 .top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 28px;
-}
-
-.top h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 4px;
-}
-
-.top p {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0;
+  margin-bottom: 20px;
 }
 
 .add-btn {
@@ -4882,6 +4917,8 @@ tbody td {
 }
 
 .tree-search-wrapper .search-icon {
+  position: static;
+  transform: none;
   width: 16px;
   height: 16px;
   color: #94a3b8;

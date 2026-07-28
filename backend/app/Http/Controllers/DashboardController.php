@@ -11,6 +11,9 @@ use App\Models\BienThe;
 use App\Models\DatHangChiTiet;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Tổng hợp số liệu doanh thu, đơn hàng, sản phẩm và người dùng cho dashboard.
+ */
 class DashboardController extends Controller
 {
     public function index(Request $request)
@@ -18,7 +21,7 @@ class DashboardController extends Controller
         try {
             $period = $request->query('period', 'all');
 
-            $data = Cache::remember("dashboard_data_v3_{$period}", 120, function () use ($period) {
+            $data = Cache::remember("dashboard_data_v4_{$period}", 120, function () use ($period) {
                 // ================= TIME =================
                 $now = now();
                 $dateFrom = match ($period) {
@@ -113,7 +116,8 @@ class DashboardController extends Controller
             // ================= BIỂU ĐỒ DOANH THU =================
             $bieuDo = DatHang::selectRaw("
                     DATE(created_at) as label,
-                    SUM(tongtien) as total
+                    SUM(tongtien) as total,
+                    COUNT(*) as orders
                 ")
                 ->where('trangthai', 'done')
                 ->whereBetween('created_at', [$dateFrom, $now])
@@ -311,6 +315,17 @@ class DashboardController extends Controller
                 ->whereBetween('created_at', [$trendPreviousFrom, $trendPreviousTo])
                 ->count();
 
+            $sanPhamKyNay = DatHangChiTiet::whereHas('datHang', function ($q) use ($trendCurrentFrom, $now) {
+                    $q->where('trangthai', 'done')
+                      ->whereBetween('created_at', [$trendCurrentFrom, $now]);
+                })
+                ->sum('soluong');
+            $sanPhamKyTruoc = DatHangChiTiet::whereHas('datHang', function ($q) use ($trendPreviousFrom, $trendPreviousTo) {
+                    $q->where('trangthai', 'done')
+                      ->whereBetween('created_at', [$trendPreviousFrom, $trendPreviousTo]);
+                })
+                ->sum('soluong');
+
             $phanTich = [
                 'gia_tri_don_trung_binh' => $giaTriDonTrungBinh,
                 'don_hoan_thanh' => $donHoanThanh,
@@ -330,6 +345,11 @@ class DashboardController extends Controller
                     'current' => $khachKyNay,
                     'previous' => $khachKyTruoc,
                     'trend' => $calcTrend($khachKyNay, $khachKyTruoc),
+                ],
+                'san_pham' => [
+                    'current' => (int) $sanPhamKyNay,
+                    'previous' => (int) $sanPhamKyTruoc,
+                    'trend' => $calcTrend($sanPhamKyNay, $sanPhamKyTruoc),
                 ],
             ];
 

@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '@/services/api'
 import { storageUrl } from '@/services/urls'
 import swal from '@/services/swal'
+import { registerOfflineForm } from '@/services/offlineSync'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 // --- Tabs State ---
 const activeTab = ref('combos') // 'combos' | 'offers'
@@ -31,6 +33,7 @@ const defaultForm = () => ({
 })
 
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-combo')
 const imgPreview = ref('')
 const fileInputRef = ref(null)
 const fieldErrors = ref({})
@@ -655,11 +658,23 @@ const formatOfferDate = (dateStr) => {
   }
 }
 
+const syncSuccessHandler = () => {
+  fetchCombos()
+  fetchProductsPool()
+  fetchOffers()
+  fetchAllProducts()
+}
+
 onMounted(() => {
   fetchCombos()
   fetchProductsPool()
   fetchOffers()
   fetchAllProducts()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 </script>
 
@@ -671,37 +686,26 @@ onMounted(() => {
     ══════════════════════════════════════════════════════ -->
     <template v-if="currentView === 'list'">
 
-    <!-- Header -->
-    <div class="top">
-      <div v-if="activeTab === 'combos'">
-        <h1>Quản lý Combo khuyến mãi</h1>
-        <p>Tạo và quản lý các combo ghép phụ kiện giá tốt nhất</p>
-      </div>
-      <div v-else>
-        <h1>Cấu hình Ưu đãi Biến thể</h1>
-        <p>Gắn combo phụ kiện làm quà tặng/ưu đãi khi khách mua biến thể sản phẩm chính</p>
-      </div>
-      
-      <button v-if="activeTab === 'combos'" class="add-btn" @click="openAddModal">+ Thêm Combo mới</button>
-      <button v-else class="add-btn" @click="openAddOfferModal">+ Tạo Ưu Đãi Mới</button>
-    </div>
-
     <!-- Tab switcher navigation -->
     <div class="tabs-navigation">
-      <button 
-        class="tab-nav-btn" 
-        :class="{ active: activeTab === 'combos' }" 
-        @click="activeTab = 'combos'"
-      >
-        📦 Quản lý Combo Bán Lẻ
-      </button>
-      <button 
-        class="tab-nav-btn" 
-        :class="{ active: activeTab === 'offers' }" 
-        @click="activeTab = 'offers'"
-      >
-        🎁 Cấu hình Ưu đãi Biến thể
-      </button>
+      <div class="tab-nav-list">
+        <button 
+          class="tab-nav-btn" 
+          :class="{ active: activeTab === 'combos' }" 
+          @click="activeTab = 'combos'"
+        >
+          Quản lý Combo Bán Lẻ
+        </button>
+        <button 
+          class="tab-nav-btn" 
+          :class="{ active: activeTab === 'offers' }" 
+          @click="activeTab = 'offers'"
+        >
+          Cấu hình Ưu đãi Biến thể
+        </button>
+      </div>
+      <button v-if="activeTab === 'combos'" class="add-btn" @click="openAddModal">+ Thêm Combo mới</button>
+      <button v-else class="add-btn" @click="openAddOfferModal">+ Tạo Ưu Đãi Mới</button>
     </div>
 
     <!-- Stats Cards -->
@@ -828,20 +832,15 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
-        <div v-if="filteredCombos.length" class="combo-pagination">
-          <div class="pagination-summary">
-            Hiển thị {{ comboPageStart }}-{{ comboPageEnd }} / {{ filteredCombos.length }} combo
-          </div>
-          <div class="pagination-controls">
-            <button class="page-btn" :disabled="comboCurrentPage === 1" @click="changeComboPage(comboCurrentPage - 1)">
-              ‹
-            </button>
-            <span class="page-btn active page-indicator">{{ comboCurrentPage }}/{{ comboTotalPages }}</span>
-            <button class="page-btn" :disabled="comboCurrentPage === comboTotalPages" @click="changeComboPage(comboCurrentPage + 1)">
-              ›
-            </button>
-          </div>
-        </div>
+        <PhanTrangAdmin
+          v-if="filteredCombos.length"
+          v-model:currentPage="comboCurrentPage"
+          :total-pages="comboTotalPages"
+          :total-items="filteredCombos.length"
+          :page-size="comboItemsPerPage"
+          item-label="combo"
+          @change-page="changeComboPage"
+        />
         <div v-if="false" v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
           <div class="combo-badge" :class="combo.trangthai === 1 ? 'active' : 'draft'">
             {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}
@@ -2675,13 +2674,35 @@ onMounted(() => {
 /* ── Tab Navigation Styles ── */
 .tabs-navigation {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 28px;
-  background: #f1f5f9;
+  width: 100%;
+}
+
+.tab-nav-list {
+  display: flex;
+  gap: 8px;
   padding: 4px;
-  border-radius: 12px;
-  width: fit-content;
   border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .tabs-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tab-nav-list {
+    overflow-x: auto;
+  }
+
+  .tabs-navigation > .add-btn {
+    align-self: flex-end;
+  }
 }
 
 .tab-nav-btn {

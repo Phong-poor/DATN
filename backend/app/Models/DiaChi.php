@@ -16,7 +16,6 @@ class DiaChi extends Model
     protected $fillable = [
         'id_user',
         'tinh_thanhpho',
-        'quan_huyen',
         'phuong_xa',
         'diachi_cuthe',
         'latitude',
@@ -45,7 +44,6 @@ class DiaChi extends Model
         return collect([
             $this->diachi_cuthe,
             $this->phuong_xa,
-            $this->quan_huyen,
             $this->tinh_thanhpho,
         ])->filter(fn ($value) => $value && $value !== 'Không xác định')->implode(', ');
     }

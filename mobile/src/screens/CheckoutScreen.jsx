@@ -37,7 +37,7 @@ export default function CheckoutScreen({ navigation }) {
           setAddresses(data);
           const defaultAddr = data.find(addr => addr.mac_dinh) || data[0];
           if (defaultAddr) {
-            const fullAddrStr = [defaultAddr.diachi_cuthe, defaultAddr.phuong_xa, defaultAddr.quan_huyen, defaultAddr.tinh_thanhpho].filter(Boolean).join(', ');
+            const fullAddrStr = [defaultAddr.diachi_cuthe, defaultAddr.phuong_xa, defaultAddr.tinh_thanhpho].filter(Boolean).join(', ');
             setAddress(fullAddrStr);
           }
         }
@@ -289,7 +289,7 @@ export default function CheckoutScreen({ navigation }) {
                 style={[styles.input, styles.textArea]}
                 value={address}
                 onChangeText={setAddress}
-                placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
+                placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành phố..."
                 placeholderTextColor="#64748b"
                 multiline
                 numberOfLines={3}
@@ -503,7 +503,7 @@ export default function CheckoutScreen({ navigation }) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {addresses.map((addr) => {
-                const fullAddrStr = [addr.diachi_cuthe, addr.phuong_xa, addr.quan_huyen, addr.tinh_thanhpho]
+                const fullAddrStr = [addr.diachi_cuthe, addr.phuong_xa, addr.tinh_thanhpho]
                   .filter(Boolean)
                   .join(', ');
 

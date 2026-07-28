@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Quản lý giỏ hàng của khách, gồm sản phẩm lẻ và các gói combo.
+ */
 class GioHangController extends Controller
 {
     public function index()

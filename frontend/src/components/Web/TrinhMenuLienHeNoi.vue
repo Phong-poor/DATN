@@ -1,24 +1,41 @@
 <template>
-  <div class="floating-menu-container" :class="{ 'menu-open': isOpen }">
+  <div
+    class="floating-menu-container"
+    :class="{ 'menu-open': isOpen }"
+    @mouseenter="openMenu"
+    @mouseleave="scheduleClose"
+  >
     <!-- Menu Options -->
     <transition name="speed-dial">
       <div v-if="isOpen" class="menu-options">
         
-        <!-- Option 1: Online Consultation -->
         <button 
           type="button" 
-          class="menu-option-btn ai-btn" 
+          class="menu-option-btn ai-btn option-ai" 
           @click="triggerAction('ai')"
-          aria-label="Tư vấn trực tuyến"
+          aria-label="Nhắn với trợ lý AI"
         >
-          <span class="menu-tooltip">Tư vấn trực tuyến</span>
-          <span class="option-icon">💬</span>
+          <span class="menu-tooltip">Trợ lý AI</span>
+          <span class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/><path d="M8 9h8M8 13h5"/></svg>
+          </span>
         </button>
 
-        <!-- Option 2: Zalo Chat -->
+        <button
+          type="button"
+          class="menu-option-btn admin-btn option-admin"
+          @click="triggerAction('admin')"
+          aria-label="Nhắn với nhân viên Admin"
+        >
+          <span class="menu-tooltip">Nhắn Admin</span>
+          <span class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M18 11a4 4 0 0 1 0 8"/></svg>
+          </span>
+        </button>
+
         <button 
           type="button" 
-          class="menu-option-btn zalo-btn" 
+          class="menu-option-btn zalo-btn option-zalo" 
           @click="triggerAction('zalo')"
           aria-label="Chat Zalo"
         >
@@ -33,7 +50,7 @@
     <button 
       type="button" 
       class="master-menu-btn" 
-      @click="toggleMenu" 
+      @click.stop="toggleMenu"
       :aria-label="isOpen ? 'Đóng menu' : 'Mở menu liên hệ'"
     >
       <!-- Online Status Badge -->
@@ -43,30 +60,49 @@
         <div v-if="!isOpen" class="avatar-container">
           <img src="/support_avatar.png" alt="Tư vấn viên" class="assistant-avatar" />
         </div>
-        <!-- Close icon when open -->
-        <span v-else class="close-icon">✕</span>
+        <span v-else class="close-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </span>
       </div>
     </button>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 
 const isOpen = ref(false)
+let closeTimer = null
+
+const openMenu = () => {
+  clearTimeout(closeTimer)
+  isOpen.value = true
+}
+
+const scheduleClose = () => {
+  clearTimeout(closeTimer)
+  closeTimer = setTimeout(() => {
+    isOpen.value = false
+  }, 180)
+}
 
 const toggleMenu = () => {
+  clearTimeout(closeTimer)
   isOpen.value = !isOpen.value
 }
 
 const triggerAction = (type) => {
   if (type === 'ai') {
     window.dispatchEvent(new CustomEvent('open-chatbot'))
+  } else if (type === 'admin') {
+    window.dispatchEvent(new CustomEvent('open-admin-chat'))
   } else if (type === 'zalo') {
     window.dispatchEvent(new CustomEvent('open-zalo'))
   }
   isOpen.value = false
 }
+
+onUnmounted(() => clearTimeout(closeTimer))
 </script>
 
 <style scoped>
@@ -77,10 +113,8 @@ const triggerAction = (type) => {
   right: var(--floating-widget-right, 24px);
   bottom: 28px;
   z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  width: 58px;
+  height: 58px;
 }
 
 /* ========== MASTER BUTTON ========== */
@@ -218,23 +252,42 @@ const triggerAction = (type) => {
 }
 
 .close-icon {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
   color: white;
+  display: grid;
+  place-items: center;
 }
 
-/* ========== OPTIONS LIST ========== */
+.close-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ========== CURVED SPEED DIAL ========== */
 .menu-options {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 2px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 174px;
+  height: 174px;
+  pointer-events: none;
+}
+
+.menu-options::before {
+  content: '';
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  width: 124px;
+  height: 124px;
+  border-top: 1px solid rgba(96, 165, 250, 0.22);
+  border-left: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 50%;
+  opacity: 0.8;
 }
 
 /* ========== OPTION BUTTONS ========== */
 .menu-option-btn {
+  position: absolute;
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -246,7 +299,24 @@ const triggerAction = (type) => {
   justify-content: center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
+  position: absolute;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.option-ai {
+  right: 104px;
+  bottom: 6px;
+}
+
+.option-admin {
+  right: 76px;
+  bottom: 76px;
+}
+
+.option-zalo {
+  right: 6px;
+  bottom: 104px;
 }
 
 .menu-option-btn:hover {
@@ -295,6 +365,15 @@ const triggerAction = (type) => {
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
 }
 
+.admin-btn {
+  background: linear-gradient(145deg, #7c3aed, #4f46e5);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.34);
+}
+
+.admin-btn:hover {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.48);
+}
+
 .zalo-btn {
   background: #0068ff;
   box-shadow: 0 6px 18px rgba(0, 104, 255, 0.3);
@@ -317,6 +396,12 @@ const triggerAction = (type) => {
   justify-content: center;
 }
 
+.option-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 /* ========== SPEED DIAL TRANSITIONS ========== */
 .speed-dial-enter-active {
   transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -329,7 +414,8 @@ const triggerAction = (type) => {
 .speed-dial-enter-from,
 .speed-dial-leave-to {
   opacity: 0;
-  transform: translateY(24px) scale(0.8);
+  transform: translate(26px, 26px) scale(0.72);
+  transform-origin: right bottom;
 }
 
 /* ========== RESPONSIVE ========== */
@@ -337,7 +423,8 @@ const triggerAction = (type) => {
   .floating-menu-container {
     right: var(--floating-widget-right-mobile, 18px);
     bottom: 20px;
-    gap: 10px;
+    width: 48px;
+    height: 48px;
   }
   .master-menu-btn {
     width: 48px;
@@ -346,6 +433,28 @@ const triggerAction = (type) => {
   .menu-option-btn {
     width: 40px;
     height: 40px;
+  }
+  .menu-options {
+    width: 148px;
+    height: 148px;
+  }
+  .menu-options::before {
+    right: 18px;
+    bottom: 18px;
+    width: 102px;
+    height: 102px;
+  }
+  .option-ai {
+    right: 88px;
+    bottom: 4px;
+  }
+  .option-admin {
+    right: 64px;
+    bottom: 64px;
+  }
+  .option-zalo {
+    right: 4px;
+    bottom: 88px;
   }
   .menu-tooltip {
     right: 52px;

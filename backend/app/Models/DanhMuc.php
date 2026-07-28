@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện danh mục sản phẩm và quan hệ danh mục cha, con, thuộc tính.
+ */
 class DanhMuc extends Model
 {
     public $timestamps = false;

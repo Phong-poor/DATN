@@ -10,12 +10,15 @@
   <FloatingContactMenu v-if="showChatbot && widgetsReady" />
   <VongQuayNoi v-if="showLuckyWheel && widgetsReady" />
   <VongQuayPopup v-if="showWheelPopup" @close="showWheelPopup = false" />
+  <OfflineSyncManager v-if="showOfflineManager" />
 </template>
 
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import GlobalLoader from '@/components/Layout/TrinhTaiTrang.vue'
+import OfflineSyncManager from '@/components/Layout/OfflineSyncManager.vue'
+import { initGlobalDraftManager } from '@/services/offlineSync'
 const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatbot.vue'))
 const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatAdmin.vue'))
 const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/KhungZalo.vue'))
@@ -23,6 +26,7 @@ const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/
 const VongQuayNoi = defineAsyncComponent(() => import('@/components/Web/VongQuayNoi.vue'))
 const VongQuayPopup = defineAsyncComponent(() => import('@/components/Web/VongQuayPopup.vue'))
 const route = useRoute()
+const router = useRouter()
 const widgetsReady = ref(false)
 const adminChatReady = ref(false)
 const showWheelPopup = ref(false)
@@ -38,12 +42,17 @@ const showChatbot = computed(() => {
   return true
 })
 
+const showOfflineManager = computed(() => {
+  return route.path && route.path.startsWith('/admin')
+})
+
 const showLuckyWheel = computed(() => {
   const allowedRoutes = ['home', 'laptop', 'phu-kien', 'product-detail']
   return route.name && allowedRoutes.includes(route.name)
 })
 
 onMounted(() => {
+  initGlobalDraftManager(router)
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual'
   }

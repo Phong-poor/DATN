@@ -7,6 +7,9 @@ use App\Models\Promotion;
 use App\Models\UserVoucher;
 use App\Models\DatHang;
 
+/**
+ * Quản lý mã khuyến mãi, kiểm tra điều kiện áp dụng và voucher của người dùng.
+ */
 class PromotionController extends Controller
 {
     // GET /api/user/vouchers — fetch vouchers owned by the user

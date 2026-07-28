@@ -43,9 +43,6 @@ use App\Http\Controllers\Api\AffiliateWalletController;
 use App\Http\Controllers\Api\AffiliateWithdrawalController;
 
 // Geocode routes moved inside auth:sanctum
-Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
-Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
-
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
@@ -72,6 +69,8 @@ Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController:
 // ================= LIÊN HỆ (KHÁCH) =================
 Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
+Route::post('/consultation-requests', [LienHeController::class, 'storeConsultation']);
+Route::post('/showroom-appointments', [LienHeController::class, 'storeAppointment']);
 Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
 
 // ================= KHUYẾN MÃI (PUBLIC) =================
@@ -192,6 +191,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== ĐIỂM DANH HÀNG NGÀY =====
     Route::get('/diem-danh/status', [App\Http\Controllers\DiemDanhController::class, 'getStatus']);
     Route::post('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'checkIn']);
+
+    // ===== CHẤM CÔNG NHÂN VIÊN =====
+    Route::get('/cham-cong/status', [App\Http\Controllers\ChamCongController::class, 'getStatus']);
+    Route::post('/cham-cong/register-face', [App\Http\Controllers\ChamCongController::class, 'dangKyKhuonMat']);
+    Route::post('/cham-cong/delete-face', [App\Http\Controllers\ChamCongController::class, 'xoaKhuonMat']);
+    Route::post('/cham-cong/check', [App\Http\Controllers\ChamCongController::class, 'checkInCheckOut']);
+    Route::get('/cham-cong/my-history', [App\Http\Controllers\ChamCongController::class, 'getLichSuCaNhan']);
+    Route::get('/cham-cong/leaderboard', [App\Http\Controllers\ChamCongController::class, 'getLeaderboard']);
 
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
@@ -364,6 +371,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
         Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
         Route::post('/orders/{id}/shipment/fail', [DatHangController::class, 'markDemoShipmentFailed']);
+        Route::post('/orders/{id}/shipment/retry', [DatHangController::class, 'retryDemoShipment']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
@@ -470,6 +478,13 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'adminIndex']);
         Route::get('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminGetSettings']);
         Route::put('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminUpdateSettings']);
+
+        // ===== ADMIN TIME ATTENDANCE =====
+        Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
+        Route::get('/cham-cong/nhan-vien', [App\Http\Controllers\ChamCongController::class, 'adminGetNhanVien']);
+        Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminDangKyKhuonMat']);
+        Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminXoaKhuonMat']);
+        Route::post('/cham-cong/quick-check', [App\Http\Controllers\ChamCongController::class, 'adminQuickCheck']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);

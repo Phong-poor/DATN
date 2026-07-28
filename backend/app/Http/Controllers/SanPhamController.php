@@ -14,14 +14,26 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\QueryException;
 
+/**
+ * Cung cấp dữ liệu sản phẩm và xử lý tìm kiếm, thêm, sửa, xóa sản phẩm.
+ */
 class SanPhamController extends Controller
 {
     public function index(Request $request)
     {
         $imageVersion = $this->sanPhamCacheVersion();
-        $cacheKey = 'sanpham_index_' . $imageVersion . '_' . md5(json_encode($request->all()));
         
-        $sanphams = Cache::remember($cacheKey, 600, function () use ($request, $imageVersion) {
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+        
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+        
+        $cacheKey = 'sanpham_index_' . $imageVersion . '_' . $isAdminStr . '_' . md5(json_encode($request->all()));
+        
+        $sanphams = Cache::remember($cacheKey, 600, function () use ($request, $imageVersion, $isAdminRequest) {
             $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
@@ -33,8 +45,13 @@ class SanPhamController extends Controller
             }], 'danhgia')
             ->withCount(['reviews as rating_count' => function ($q) {
                 $q->where('trangthai', 'approved');
-            }])
-            ->orderByDesc('id_sanpham');
+            }]);
+
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            $query->orderByDesc('id_sanpham');
         
         $attributesToFilter = [
             'ram'      => 'ram',
@@ -221,12 +238,20 @@ class SanPhamController extends Controller
             return response()->json([]);
         }
 
-        $sanphams = Cache::remember('sanpham_search_' . $this->sanPhamCacheVersion() . '_' . md5($keyword), 120, function () use ($keyword) {
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+
+        $sanphams = Cache::remember('sanpham_search_' . $this->sanPhamCacheVersion() . '_' . $isAdminStr . '_' . md5($keyword), 120, function () use ($keyword, $isAdminRequest) {
             $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
                 ->pluck('id_sanpham')
                 ->toArray();
 
-            return SanPham::with([
+            $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
                 'bienThes',
@@ -237,8 +262,13 @@ class SanPhamController extends Controller
             }], 'danhgia')
             ->withCount(['reviews as rating_count' => function ($q) {
                 $q->where('trangthai', 'approved');
-            }])
-            ->where(function ($q) use ($keyword, $idsByBienThe) {
+            }]);
+
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            return $query->where(function ($q) use ($keyword, $idsByBienThe) {
                 $q->where('tenSP', 'LIKE', "%{$keyword}%");
 
                 if (!empty($idsByBienThe)) {
@@ -255,13 +285,27 @@ class SanPhamController extends Controller
     public function show($id)
     {
         $cacheVersion = $this->sanPhamCacheVersion();
-        $result = Cache::remember("sanpham_show_{$cacheVersion}_{$id}", 600, function () use ($id, $cacheVersion) {
-            $sanpham = SanPham::with([
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+
+        $result = Cache::remember("sanpham_show_{$cacheVersion}_{$isAdminStr}_{$id}", 600, function () use ($id, $isAdminRequest, $cacheVersion) {
+            $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
                 'hinhAnhs',
                 'bienThes.comboOffers.sanPhams.bienThes'
-            ])->find($id);
+            ]);
+
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            $sanpham = $query->find($id);
 
             if (!$sanpham) return null;
 

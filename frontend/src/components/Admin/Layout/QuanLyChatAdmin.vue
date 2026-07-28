@@ -600,8 +600,8 @@ onUnmounted(() => {
 }
 
 .topbar-icon-button {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(15,23,42,.12);
   background: #fff;
@@ -628,8 +628,8 @@ onUnmounted(() => {
 }
 
 .topbar-icon-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   transition: transform 0.18s ease;
 }
 

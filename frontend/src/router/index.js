@@ -81,6 +81,8 @@ const adminChildren = [
   { path: 'vong-quay', name: 'admin-vongquay', component: () => import('../components/Admin/QuanLyVongQuay.vue'), meta: { title: 'Quản lý Vòng quay' } },
   { path: 'diem-danh', name: 'admin-diemdanh', component: () => import('../components/Admin/QuanLyDiemDanh.vue'), meta: { title: 'Quản lý Điểm danh' } },
   { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quản lý vai trò' } },
+  { path: 'cham-cong-camera', name: 'admin-chamcong-camera', component: () => import('../components/Admin/ChamCongCamera.vue'), meta: { title: 'Xác thực nhân viên' } },
+  { path: 'quan-ly-cham-cong', name: 'admin-quanly-chamcong', component: () => import('../components/Admin/QuanLyChamCong.vue'), meta: { title: 'Quản lý chấm công' } },
 ]
 
 const routes = [
@@ -164,8 +166,13 @@ router.afterEach(() => {
 })
 
 router.beforeEach((to, from, next) => {
+  const isAdminInternalNavigation =
+    to.path.startsWith('/admin') && from.path.startsWith('/admin')
   const shouldShowRouteLoader =
-    to.fullPath !== from.fullPath && !to.path.startsWith('/products/') && !to.path.startsWith('/san-pham/')
+    to.fullPath !== from.fullPath &&
+    !isAdminInternalNavigation &&
+    !to.path.startsWith('/products/') &&
+    !to.path.startsWith('/san-pham/')
 
   if (shouldShowRouteLoader && !isFormDirty.value) {
     showRouteLoader()
@@ -233,6 +240,7 @@ router.beforeEach((to, from, next) => {
         '/admin/xu': 'xu_quan_ly',
         '/admin/vong-quay': 'vong_quay_quan_ly',
         '/admin/diem-danh': 'diem_danh_quan_ly',
+        '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
       }
 
       const basicPaths = [
@@ -241,7 +249,8 @@ router.beforeEach((to, from, next) => {
         '/admin/ho-so-quan-tri',
         '/admin/profile',
         '/admin/cai-dat-he-thong',
-        '/admin/settings'
+        '/admin/settings',
+        '/admin/cham-cong-camera'
       ]
 
       const cleanPath = to.path.replace(/\/$/, '')

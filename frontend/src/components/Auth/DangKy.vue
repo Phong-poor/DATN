@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
@@ -54,7 +54,6 @@ const referralCode = ref('')
 
 const normalizedPhone = computed(() => normalizePhone(phone.value))
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`
-const facebookLoginEnabled = true
 
 const isTouched = { name: ref(false), email: ref(false), phone: ref(false), password: ref(false), confirm: ref(false) }
 
@@ -113,6 +112,7 @@ const handleRegister = async () => {
 
   if (loading.value) return
   loading.value = true
+  await nextTick()
 
   try {
     const res = await api.post('/register', {
@@ -122,7 +122,7 @@ const handleRegister = async () => {
       matkhau: password.value,
       matkhau_confirmation: confirm.value,
       referral_code: referralCode.value.trim().toUpperCase() || null,
-    })
+    }, { immediateLoader: true })
     const rewardPromotion = res.data?.referral_reward?.promotion
     const rewardMessage = rewardPromotion
       ? ` Bạn đã nhận voucher ${rewardPromotion.code} trị giá ${formatMoney(rewardPromotion.value)} trong ví ưu đãi.`
@@ -165,17 +165,6 @@ const loginGoogle = () => {
   window.location.href = `${api.defaults.baseURL}${endpoint}`
 }
 
-const loginFacebook = () => {
-  if (!facebookLoginEnabled) {
-    showModal('error', 'Facebook chưa sẵn sàng', 'Facebook Login cần app Facebook bật HTTPS/OAuth security. Hiện tại dự án đang ưu tiên đăng nhập bằng Google.')
-    return
-  }
-  const refCode = localStorage.getItem('affiliate_ref') || ''
-  const params = new URLSearchParams({ frontend_url: window.location.origin })
-  if (refCode) params.set('ref', refCode)
-  const endpoint = `/auth/facebook?${params.toString()}`
-  window.location.href = `${api.defaults.baseURL}${endpoint}`
-}
 </script>
 
 <template>
@@ -214,9 +203,6 @@ const loginFacebook = () => {
               Ưu đãi thành viên
             </span>
           </div>
-        </div>
-        <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/register_laptop.jpg" alt="NextGen laptop workspace" />
         </div>
       </div>
 
@@ -259,7 +245,7 @@ const loginFacebook = () => {
                   <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="example@gmail.com" @blur="isTouched.email.value = true" />
+              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="Example@gmail.com" @blur="isTouched.email.value = true" />
             </div>
             <p v-if="emailError" class="field-hint error">{{ emailError }}</p>
           </div>
@@ -351,7 +337,7 @@ const loginFacebook = () => {
           <!-- SUBMIT BUTTON -->
           <button type="submit" class="submit-btn" :disabled="loading">
             <span class="btn-text">
-              {{ loading ? 'Đang tạo tài khoản...' : 'Đăng Ký Ngay' }}
+              {{ loading ? 'Đang tạo tài khoản...' : 'Đăng ký ngay' }}
             </span>
           </button>
         </form>
@@ -359,7 +345,7 @@ const loginFacebook = () => {
         <!-- OR DIVIDER -->
         <div class="or-divider">
           <span class="divider-line"></span>
-          <span class="divider-text">HOẶC</span>
+          <span class="divider-text">Hoặc</span>
           <span class="divider-line"></span>
         </div>
 
@@ -372,18 +358,7 @@ const loginFacebook = () => {
               <path fill="#FBBC05" d="M3.964 10.711A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.711V4.957H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.043l3.007-2.332z"/>
               <path fill="#EA4335" d="M9 3.578c1.322 0 2.508.454 3.44 1.346l2.581-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.957l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
             </svg>
-            Google
-          </button>
-          <button
-            @click="loginFacebook"
-            class="social-btn-facebook"
-            :disabled="!facebookLoginEnabled"
-            :title="facebookLoginEnabled ? 'Đăng nhập bằng Facebook' : 'Facebook Login đang tắt trong môi trường dev'"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Facebook
+            Đăng nhập bằng Google
           </button>
         </div>
 
@@ -451,19 +426,50 @@ const loginFacebook = () => {
 }
 
 .left-col {
-  background-color: #0d1b2e;
+  background: #0d1b2e;
   color: #ffffff;
   padding: 36px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.left-col::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/register_laptop.jpg') center / cover no-repeat;
+  opacity: 0.76;
+  transform: scale(1.02);
+}
+
+.left-col::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(13, 27, 46, 0.62), rgba(13, 27, 46, 0.42)),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.18));
+  pointer-events: none;
+}
+
+.left-content {
+  position: relative;
+  z-index: 2;
+  max-width: 360px;
 }
 
 .brand-header {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+  z-index: 2;
 }
 
 .brand-title {
@@ -487,12 +493,16 @@ const loginFacebook = () => {
   line-height: 1.5;
   margin-top: 12px;
   margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
 }
 
 .highlight-pills {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .pill {
@@ -514,22 +524,6 @@ const loginFacebook = () => {
   width: 14px;
   height: 14px;
   color: #60a5fa;
-}
-
-.laptop-img-wrapper {
-  margin-top: auto;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.laptop-img {
-  width: 100%;
-  max-width: 320px;
-  height: 180px;
-  border-radius: 12px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-  object-fit: cover;
 }
 
 .right-col {
@@ -767,6 +761,11 @@ const loginFacebook = () => {
   justify-content: center;
   margin-top: 4px;
   transition: background-color 0.2s;
+  text-transform: none !important;
+}
+
+.btn-text {
+  text-transform: none !important;
 }
 
 .submit-btn:hover {
@@ -795,6 +794,7 @@ const loginFacebook = () => {
   font-weight: 600;
   color: #9ca3af;
   padding: 0 10px;
+  text-transform: none !important;
 }
 
 .social-row {
@@ -802,8 +802,7 @@ const loginFacebook = () => {
   gap: 8px;
 }
 
-.social-btn-google,
-.social-btn-facebook {
+.social-btn-google {
   flex: 1;
   height: 32px;
   background-color: #ffffff;
@@ -818,6 +817,7 @@ const loginFacebook = () => {
   justify-content: center;
   gap: 6px;
   transition: background-color 0.2s, border-color 0.2s;
+  text-transform: none !important;
 }
 
 .google-logo {
@@ -827,8 +827,7 @@ const loginFacebook = () => {
   display: block;
 }
 
-.social-btn-google:hover,
-.social-btn-facebook:hover {
+.social-btn-google:hover {
   background-color: #f0f7ff;
   border-color: #93c5fd;
 }
@@ -845,6 +844,7 @@ const loginFacebook = () => {
   color: #2563eb;
   font-weight: 700;
   cursor: pointer;
+  text-transform: none !important;
 }
 
 .register-link:hover {

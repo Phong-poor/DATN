@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Quản lý thương hiệu và lọc thương hiệu theo danh mục sản phẩm.
+ */
 class ThuongHieuController extends Controller
 {
     public function index()

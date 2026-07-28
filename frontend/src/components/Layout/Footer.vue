@@ -268,7 +268,7 @@ onUnmounted(() => {
 
   background-color: var(--cyber-dark-bg);
   color: #e2e8f0;
-  padding: 80px 0 32px;
+  padding: 56px 0 24px;
   position: relative;
   overflow: hidden;
   border-top: 1px solid rgba(37, 99, 235, 0.22);
@@ -323,8 +323,12 @@ onUnmounted(() => {
 .directory-grid {
   display: grid;
   grid-template-columns: 1.35fr 1fr 1fr 1fr 1.35fr;
-  gap: 40px;
-  padding-bottom: 56px;
+  gap: 32px;
+  align-items: start;
+  padding-bottom: 32px;
+}
+.dir-col {
+  min-width: 0;
 }
 
 /* COLUMN 1: BRAND HUB */
@@ -337,7 +341,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 .footer-logo {
   height: 38px;
@@ -364,7 +368,7 @@ onUnmounted(() => {
   font-size: 13.5px;
   line-height: 1.7;
   color: var(--text-muted);
-  margin: 0 0 24px;
+  margin: 0 0 20px;
 }
 
 /* Live status widget styling */
@@ -372,8 +376,8 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 14px;
-  padding: 12px 16px;
-  margin-bottom: 24px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
   width: 100%;
   max-width: 280px;
   backdrop-filter: blur(8px);
@@ -426,19 +430,22 @@ onUnmounted(() => {
 .social-tray {
   display: flex;
   gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 .social-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .social-btn svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
 }
 .social-btn.facebook {
   background: #3b5998;
@@ -488,7 +495,7 @@ onUnmounted(() => {
   text-transform: capitalize;
   letter-spacing: 0.08em;
   color: var(--text-primary);
-  margin-bottom: 24px;
+  margin: 0 0 20px;
   position: relative;
 }
 .col-title::after {
@@ -509,13 +516,14 @@ onUnmounted(() => {
   margin: 0;
 }
 .footer-links li {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .footer-links .link-item {
   color: var(--text-muted);
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 500;
+  line-height: 1.5;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: inline-block;
   position: relative;
@@ -545,8 +553,8 @@ onUnmounted(() => {
 .news-desc {
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 18px;
-  line-height: 1.5;
+  margin: 0 0 16px;
+  line-height: 1.6;
 }
 .subscribe-box-glass {
   display: flex;
@@ -557,7 +565,8 @@ onUnmounted(() => {
   border-radius: 16px;
   border: 1.5px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s;
-  margin-bottom: 24px;
+  min-height: 52px;
+  margin-bottom: 20px;
   backdrop-filter: blur(8px);
 }
 .subscribe-box-glass:focus-within {
@@ -621,8 +630,8 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.02);
   border: 1px dashed rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
   transition: all 0.3s;
 }
 .hotline-card:hover {
@@ -694,7 +703,7 @@ onUnmounted(() => {
 
 .location-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   color: var(--text-muted);
   font-size: 12.5px;
@@ -705,14 +714,14 @@ onUnmounted(() => {
   height: 15px;
   flex-shrink: 0;
   color: var(--neon-cyan);
-  margin-top: 2px;
+  margin-top: 0;
   filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.36));
 }
 
 /* ================= 3. BOTTOM FOOTER BAR ================= */
 .bottom-bar {
-  margin-top: 56px;
-  padding-top: 32px;
+  margin-top: 0;
+  padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 .bottom-inner {
@@ -720,7 +729,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 32px;
+  gap: 24px;
 }
 
 .b-left {
@@ -763,7 +772,7 @@ onUnmounted(() => {
 .b-right {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -771,12 +780,13 @@ onUnmounted(() => {
 .payment-suite {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .pay-logo {
   border-radius: 8px;
   width: 48px;
-  height: 30px;
+  height: 32px;
+  flex: 0 0 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1004,7 +1014,7 @@ onUnmounted(() => {
 @media (max-width: 1200px) {
   .directory-grid {
     grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
-    gap: 32px;
+    gap: 28px;
   }
   .newsletter-col {
     grid-column: span 2;
@@ -1046,7 +1056,11 @@ onUnmounted(() => {
 
 @media (max-width: 576px) {
   .footer {
-    padding-top: 60px;
+    padding-top: 40px;
+  }
+  .container {
+    padding-left: 20px;
+    padding-right: 20px;
   }
   .trust-grid {
     grid-template-columns: 1fr;
@@ -1054,7 +1068,8 @@ onUnmounted(() => {
   }
   .directory-grid {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
+    padding-bottom: 24px;
   }
   .brand-hub, .newsletter-col {
     grid-column: span 1;
@@ -1086,6 +1101,7 @@ onUnmounted(() => {
   }
   .payment-suite {
     flex-wrap: wrap;
+    gap: 8px;
   }
   .compliance-suite {
     width: 100%;

@@ -112,9 +112,7 @@
 }
 
 .page:has(.login-box) .social-btn-google,
-.page:has(.login-box) .social-btn-facebook,
-.page:has(> .box .form-container) .social-btn-google,
-.page:has(> .box .form-container) .social-btn-facebook {
+.page:has(> .box .form-container) .social-btn-google {
   border: 1px solid var(--ds-border) !important;
   border-radius: var(--ds-radius-md) !important;
   background: var(--ds-surface) !important;

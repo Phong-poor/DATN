@@ -9,13 +9,16 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * Đại diện tài khoản khách hàng hoặc nhân viên và các quan hệ thuộc tài khoản.
+ */
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
 
     protected $table = 'khachhang';
 
-    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth', 'facebook_id'];
+    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth'];
 
     protected $fillable = [
         'ten',
@@ -27,13 +30,14 @@ class User extends Authenticatable
         'anhdaidien',
         'matkhau',
         'vaitro',
-        'id_facebook',
         'id_google',
         'trangthai',
         'hoat_dong_cuoi_luc',
         'last_active_at',
         'xu',
         'luot_quay',
+        'face_descriptor',
+        'face_registered',
     ];
 
     protected $hidden = [
@@ -117,7 +121,7 @@ class User extends Authenticatable
                 'marketing_quan_ly', 'affiliate_quan_ly', 
                 'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
                 'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
-                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly'
+                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly', 'quan_ly_cham_cong'
             ];
         }
 
@@ -241,16 +245,6 @@ class User extends Authenticatable
         $this->attributes['gioitinh'] = $value;
     }
 
-    public function getFacebookIdAttribute(): ?string
-    {
-        return $this->id_facebook;
-    }
-
-    public function setFacebookIdAttribute($value): void
-    {
-        $this->attributes['id_facebook'] = $value;
-    }
-
     public function getAvatarAttribute(): ?string
     {
         return $this->anhdaidien;
@@ -269,5 +263,10 @@ class User extends Authenticatable
     public function setLastActiveAtAttribute($value): void
     {
         $this->attributes['hoat_dong_cuoi_luc'] = $value;
+    }
+
+    public function chamCongs()
+    {
+        return $this->hasMany(ChamCong::class, 'id_nhanvien');
     }
 }

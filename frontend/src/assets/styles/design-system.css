@@ -9,7 +9,7 @@
   --ds-font-sans: var(--font-sans, 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif);
   --ds-font-heading: var(--font-heading, 'Outfit', 'Plus Jakarta Sans', sans-serif);
 
-  --ds-bg: #f8fafc;
+  --ds-bg: #ffffff;
   --ds-bg-soft: #f1f5f9;
   --ds-surface: #ffffff;
   --ds-surface-raised: #ffffff;
@@ -78,7 +78,7 @@
 }
 
 body {
-  background: var(--ds-bg);
+  background: #ffffff;
   color: var(--ds-text);
 }
 

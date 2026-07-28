@@ -83,24 +83,12 @@ class VongQuayController extends Controller
     {
         $user = $request->user();
 
-        // 1. Kiểm tra số lượt quay và giới hạn 1 lần quay/ngày cho User (Admin không bị giới hạn)
+        // 1. Kiểm tra số lượt quay còn lại của User (Admin không bị giới hạn)
         if ($user->vaitro !== 'admin') {
             if ($user->luot_quay <= 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn đã hết lượt quay. Hãy nhận thêm lượt quay để tiếp tục chơi nhé!',
-                ], 400);
-            }
-
-            $hasSpunToday = LichSuQuay::where('id_khachhang', $user->id)
-                ->where('loai_qua', '!=', 'claim')
-                ->whereDate('created_at', Carbon::today())
-                ->exists();
-
-            if ($hasSpunToday) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Bạn đã quay vòng quay hôm nay rồi. Hãy quay lại vào ngày mai nhé!',
                 ], 400);
             }
         }

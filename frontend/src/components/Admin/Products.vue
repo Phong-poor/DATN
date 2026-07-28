@@ -900,9 +900,9 @@ const buildAttributeGroups = () => {
             label: 'Màu sắc',
             color: 'pink',
             options: colors.value.map((c) => ({
-              label: c.ten,
-              value: c.ten,
-              hex: c.mamau,
+              label: c.ten || c.name,
+              value: c.ten || c.name,
+              hex: c.mamau || c.hex || c.hex_code,
             })),
           },
         ],
@@ -2006,16 +2006,28 @@ const submitForm = async () => {
     resetForm()
     closeModal()
   } catch (error) {
-    console.error(error)
-    swal.error('Lỗi', getErrorMessage(error, isEditMode.value
-      ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
-      : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    if (error.isOfflineQueue) {
+      localStorage.removeItem(`global_form_draft_${window.location.pathname}`)
+      resetForm()
+      closeModal()
+      await swal.info('Chế độ ngoại tuyến', 'Yêu cầu thêm/sửa sản phẩm đã được lưu tạm vào hàng đợi. Hệ thống sẽ tự động gửi lên máy chủ khi có mạng trở lại.')
+    } else {
+      console.error(error)
+      swal.error('Lỗi', getErrorMessage(error, isEditMode.value
+        ? 'Có lỗi xảy ra khi cập nhật sản phẩm'
+        : 'Có lỗi xảy ra khi thêm sản phẩm'))
+    }
   }
+}
+
+const syncSuccessHandler = () => {
+  fetchProducts()
 }
 
 onMounted(() => {
   loadProductsCache()
   fetchProducts()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
   Promise.allSettled([
     fetchParentCategories(),
     fetchCategories(),
@@ -2023,6 +2035,10 @@ onMounted(() => {
     fetchAttributeGroups(),
     fetchColors(),
   ])
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 </script>
 
@@ -5414,6 +5430,8 @@ tbody td {
 }
 
 .tree-search-wrapper .search-icon {
+  position: static;
+  transform: none;
   width: 16px;
   height: 16px;
   color: #94a3b8;

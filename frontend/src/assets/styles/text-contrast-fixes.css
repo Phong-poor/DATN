@@ -105,9 +105,15 @@
 
 /* Laptop listing brand marquee has direct p/h2 children, not section-header markup. */
 .web-layout .lp-brands {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.96)),
-    var(--ds-surface) !important;
+  /*
+   * Keep this full-width section on the same canvas as the laptop page.
+   * A white surface here used to split the body into two visibly different
+   * colour bands; the logo cards remain white to preserve their contrast.
+   */
+  background: var(--ds-bg) !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .web-layout .lp-brands > p {

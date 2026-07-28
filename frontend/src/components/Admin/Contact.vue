@@ -28,42 +28,34 @@
     <div class="stats-row">
       <button type="button" class="stat-card stat-blue stat-card-btn" :class="{ active: !filterStatus && !filterCategory && !searchQuery }" @click="applyContactStatFilter('all')">
         <div class="stat-icon-wrap stat-icon-blue">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <p class="stat-label">TOTAL</p>
-        <p class="stat-sub-label">Tổng liên hệ</p>
+        <p class="stat-label">Tổng liên hệ</p>
         <h2 class="stat-value">{{ contacts.length }}</h2>
       </button>
-     <!-- <div class="stat-card stat-card-gradient">
-        <div class="stat-card-check">
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" /></svg>
-        </div>
-        <p class="stat-tag">URGENT</p>
-        <p class="stat-sub-label" style="color:rgba(255,255,255,0.8)">Mới</p>
-        <h2 class="stat-value" style="color:#fff">{{ newCount }}</h2>
-      </div>-->
+
       <button type="button" class="stat-card stat-orange stat-card-btn" :class="{ active: filterStatus === 'processing' }" @click="applyContactStatFilter('processing')">
         <div class="stat-icon-wrap stat-icon-orange">
-          <svg viewBox="0 0 24 24" fill="none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
+            <polyline points="12 6 12 16 14" />
           </svg>
         </div>
-        <p class="stat-label">IN PROGRESS</p>
-        <p class="stat-sub-label">Chờ sử lý </p>
+        <p class="stat-label">Chờ xử lý</p>
         <h2 class="stat-value">{{ processingCount }}</h2>
       </button>
+
       <button type="button" class="stat-card stat-teal stat-card-btn" :class="{ active: filterStatus === 'resolved' }" @click="applyContactStatFilter('resolved')">
         <div class="stat-icon-wrap stat-icon-green">
-          <svg viewBox="0 0 24 24" fill="none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
-        <p class="stat-label">RESOLVED</p>
-        <p class="stat-sub-label">Đã phản hồi</p>
+        <p class="stat-label">Đã phản hồi</p>
         <h2 class="stat-value">{{ resolvedCount }}</h2>
       </button>
     </div>
@@ -674,14 +666,26 @@ onMounted(fetchContacts)
 .stat-card.stat-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
 .stat-card.stat-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-teal { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
-.stat-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-.stat-icon-wrap svg { width: 24px; height: 24px; stroke-width: 2.2; fill: none; }
-.stat-icon-blue,
-.stat-icon-orange,
-.stat-icon-green { background: rgba(255,255,255,.18); }
-.stat-icon-blue svg,
-.stat-icon-orange svg,
-.stat-icon-green svg { stroke: #fff; }
+.stats-row .stat-icon-wrap {
+  background: transparent !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin-bottom: 8px;
+  border-radius: 0 !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  align-self: flex-start !important;
+}
+.stats-row .stat-icon-wrap svg {
+  width: 26px !important;
+  height: 26px !important;
+  stroke-width: 2.2;
+  fill: none;
+  stroke: #ffffff !important;
+}
 .stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,.88); text-transform: capitalize; }
 .stat-sub-label { font-size: 12px; color: rgba(255,255,255,.92); }
 .stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }

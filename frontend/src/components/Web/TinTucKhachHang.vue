@@ -1763,4 +1763,51 @@ onMounted(async () => {
   color: var(--primary);
   transform: translate(2px, -2px);
 }
+
+/* Compact editorial spacing while keeping the magazine hierarchy. */
+.news-page .news-header {
+  padding-top: 16px;
+}
+
+.news-page .magazine-breadcrumb {
+  margin-bottom: 16px;
+}
+
+.news-page .header-badge {
+  margin-bottom: 6px;
+}
+
+.news-page .news-header h1 {
+  margin-bottom: 8px;
+}
+
+.news-page .header-description {
+  margin-bottom: 20px;
+}
+
+.news-page .tabs button {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.news-page .news-body {
+  padding-top: 28px;
+  padding-bottom: 36px;
+  gap: 32px;
+}
+
+.news-page .news-main {
+  gap: 32px;
+}
+
+@media (max-width: 580px) {
+  .news-page .news-header {
+    padding-top: 12px;
+  }
+
+  .news-page .news-body {
+    padding-top: 22px;
+    padding-bottom: 28px;
+  }
+}
 </style>

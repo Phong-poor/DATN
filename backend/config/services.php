@@ -41,12 +41,6 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/').'/api/auth/google/callback'),
     ],
 
-    'facebook' => [
-        'client_id' => env('FACEBOOK_CLIENT_ID'),
-        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'redirect' => env('FACEBOOK_REDIRECT_URI', rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/').'/api/auth/facebook/callback'),
-    ],
-
     'mapbox' => [
         'key' => env('MAPBOX_API_KEY'),
     ],
