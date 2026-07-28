@@ -85,6 +85,8 @@ export default function NewsListScreen() {
   const [activeCategory, setActiveCategory] = useState('Tất cả');
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
+  const [subscriberEmail, setSubscriberEmail] = useState('');
+  const [subscribeMessage, setSubscribeMessage] = useState('');
   const searchTimer = useRef(null);
 
   const fetchNews = useCallback(async (pageNum = 1, reset = false) => {
@@ -135,6 +137,20 @@ export default function NewsListScreen() {
 
   const handleCategoryPress = (cat) => {
     setActiveCategory(cat);
+  };
+
+  const handleSubscribe = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(subscriberEmail.trim())) {
+      setSubscribeMessage('Vui lòng nhập email hợp lệ.');
+      return;
+    }
+    try {
+      const response = await api.post('/news-subscribe', { email: subscriberEmail.trim() });
+      setSubscribeMessage(response.data?.message || 'Đăng ký nhận tin thành công.');
+      setSubscriberEmail('');
+    } catch (err) {
+      setSubscribeMessage(err.response?.data?.message || 'Không thể đăng ký nhận tin.');
+    }
   };
 
   const renderFooter = () => {
@@ -228,6 +244,26 @@ export default function NewsListScreen() {
           onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={renderEmpty}
+          ListHeaderComponent={(
+            <View style={styles.subscribeCard}>
+              <Text style={styles.subscribeTitle}>Nhận tin công nghệ mới</Text>
+              <View style={styles.subscribeRow}>
+                <TextInput
+                  style={styles.subscribeInput}
+                  value={subscriberEmail}
+                  onChangeText={setSubscriberEmail}
+                  placeholder="Email của bạn"
+                  placeholderTextColor={COLORS.textTertiary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={styles.subscribeButton} onPress={handleSubscribe}>
+                  <Text style={styles.subscribeButtonText}>Đăng ký</Text>
+                </TouchableOpacity>
+              </View>
+              {subscribeMessage ? <Text style={styles.subscribeMessage}>{subscribeMessage}</Text> : null}
+            </View>
+          )}
         />
       )}
     </SafeAreaView>
@@ -266,6 +302,13 @@ const styles = StyleSheet.create({
   activeCategoryBtnText: { color: '#fff', fontWeight: '600' },
 
   listContent: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xxxl },
+  subscribeCard: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.lg },
+  subscribeTitle: { color: COLORS.textPrimary, fontWeight: '800', fontSize: 15, marginBottom: SPACING.md },
+  subscribeRow: { flexDirection: 'row', gap: SPACING.sm },
+  subscribeInput: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, color: COLORS.textPrimary, paddingHorizontal: SPACING.md },
+  subscribeButton: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, justifyContent: 'center', paddingHorizontal: SPACING.md },
+  subscribeButtonText: { color: '#fff', fontWeight: '700' },
+  subscribeMessage: { color: COLORS.textSecondary, fontSize: 12, marginTop: SPACING.sm },
 
   card: {
     backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,

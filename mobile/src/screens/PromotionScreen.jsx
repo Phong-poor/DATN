@@ -133,21 +133,32 @@ export default function PromotionScreen() {
   const [tab, setTab] = useState('public'); // 'public' | 'mine'
   const [publicPromos, setPublicPromos] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
+  const [flashSale, setFlashSale] = useState(null);
+  const [flashProducts, setFlashProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [claiming, setClaiming] = useState({});
 
   const fetchData = useCallback(async () => {
     try {
-      const [pubRes] = await Promise.all([
+      const [pubRes, flashRes] = await Promise.all([
         api.get('/promotions'),
+        api.get('/flash-sale/current'),
       ]);
       setPublicPromos(Array.isArray(pubRes.data) ? pubRes.data : []);
+      if (flashRes.data?.success && flashRes.data?.status === 'active') {
+        setFlashSale(flashRes.data.session);
+        setFlashProducts(flashRes.data.products || []);
+      } else {
+        setFlashSale(null);
+        setFlashProducts([]);
+      }
 
       if (token) {
         try {
           const myRes = await api.get('/user/vouchers');
-          setMyVouchers(Array.isArray(myRes.data) ? myRes.data : []);
+          const vouchers = myRes.data?.vouchers || myRes.data?.data || myRes.data || [];
+          setMyVouchers(Array.isArray(vouchers) ? vouchers : []);
         } catch {
           setMyVouchers([]);
         }
@@ -188,7 +199,11 @@ export default function PromotionScreen() {
 
   const myVoucherIds = new Set(myVouchers.map(v => v.id_voucher || v.id));
 
-  const displayList = tab === 'public' ? publicPromos : myVouchers.map(v => v.voucher || v);
+  const displayList = tab === 'flash'
+    ? flashProducts
+    : tab === 'public'
+    ? publicPromos
+    : myVouchers.map(v => v.promotion || v.voucher || v).filter(Boolean);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -224,6 +239,13 @@ export default function PromotionScreen() {
       {/* Tabs */}
       <View style={styles.tabsRow}>
         <TouchableOpacity
+          style={[styles.tabBtn, tab === 'flash' && styles.tabBtnActive]}
+          onPress={() => setTab('flash')}
+        >
+          <Ionicons name="flash" size={16} color={tab === 'flash' ? '#f59e0b' : COLORS.textTertiary} />
+          <Text style={[styles.tabBtnText, tab === 'flash' && styles.tabBtnTextActive]}>Flash sale</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tabBtn, tab === 'public' && styles.tabBtnActive]}
           onPress={() => setTab('public')}
         >
@@ -252,12 +274,18 @@ export default function PromotionScreen() {
           data={displayList}
           keyExtractor={(item, idx) => String(item.id || item.id_voucher || idx)}
           renderItem={({ item }) => (
-            <VoucherCard
-              promo={item}
-              isMine={myVoucherIds.has(item.id)}
-              claiming={!!claiming[item.id]}
-              onClaim={() => handleClaim(item)}
-            />
+            tab === 'flash' ? (
+              <TouchableOpacity style={styles.flashCard} onPress={() => navigation.navigate('ProductDetail', { productId: item.id_sanpham || item.san_pham?.id_sanpham || item.id })}>
+                <View style={styles.flashIcon}><Ionicons name="flash" size={25} color="#fff" /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.flashName} numberOfLines={2}>{item.tenSP || item.san_pham?.tenSP || item.ten_sanpham}</Text>
+                  <Text style={styles.flashPrice}>{Number(item.gia_flash_sale || item.giaFlashSale || item.gia || 0).toLocaleString('vi-VN')}₫</Text>
+                  <Text style={styles.flashRemaining}>Còn {Math.max(Number(item.so_luong_gioi_han || 0) - Number(item.so_luong_da_ban || 0), 0)} sản phẩm</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <VoucherCard promo={item} isMine={myVoucherIds.has(item.id)} claiming={!!claiming[item.id]} onClaim={() => handleClaim(item)} />
+            )
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -299,6 +327,11 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
   listContent: { padding: SPACING.lg, gap: SPACING.md },
+  flashCard: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: '#f59e0b55', borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.md },
+  flashIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f59e0b', alignItems: 'center', justifyContent: 'center' },
+  flashName: { color: COLORS.textPrimary, fontWeight: '700' },
+  flashPrice: { color: '#ef4444', fontSize: 17, fontWeight: '900', marginTop: 4 },
+  flashRemaining: { color: COLORS.textTertiary, fontSize: 11, marginTop: 3 },
 
   voucherCard: {
     backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, flexDirection: 'row',
