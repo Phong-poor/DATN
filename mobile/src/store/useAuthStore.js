@@ -4,14 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import logger from '../utils/logger';
-
-const getBaseUrl = () => {
-  if (Platform.OS === 'web') return 'http://127.0.0.1:8000/api';
-  if (Platform.OS === 'android') return 'http://10.0.2.2:8000/api';
-  return 'http://127.0.0.1:8000/api';
-};
-
-const API_BASE_URL = getBaseUrl();
+import { API_BASE_URL } from '../config/network';
 
 const useAuthStore = create(
   persist(
@@ -102,7 +95,7 @@ const useAuthStore = create(
 
       checkSession: async () => {
         const token = get().token;
-        if (!token) return;
+        if (!token) return null;
 
         try {
           const response = await axios.get(`${API_BASE_URL}/auth/session`, {
@@ -112,7 +105,9 @@ const useAuthStore = create(
             }
           });
           if (response.data && response.data.user) {
-            set({ user: response.data.user });
+            const sessionUser = response.data.user;
+            set({ user: sessionUser });
+            return sessionUser;
           }
         } catch (error) {
           if (error.response && (error.response.status === 401 || error.response.status === 423)) {
@@ -120,6 +115,8 @@ const useAuthStore = create(
             get().logoutLocal();
           }
         }
+
+        return null;
       },
 
       clearError: () => set({ error: null }),

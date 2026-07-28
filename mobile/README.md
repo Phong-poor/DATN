@@ -55,3 +55,16 @@ npm run ios
 Ứng dụng sử dụng cấu trúc `React Navigation` chuẩn được bọc trong `NavigationContainer` tại file [App.js](file:///d:/USER/Downloads/laragon/www/DATN/mobile/App.js).
 Cấu hình router nằm trong [AppNavigator.jsx](file:///d:/USER/Downloads/laragon/www/DATN/mobile/src/navigation/AppNavigator.jsx).
 Các màn hình nằm trong [screens/](file:///d:/USER/Downloads/laragon/www/DATN/mobile/src/screens).
+
+## Chạy Expo Go trên điện thoại qua Wi-Fi
+
+1. Kết nối máy tính và điện thoại vào cùng mạng Wi-Fi.
+2. Bật Apache và MySQL trong Laragon.
+3. Tạo `.env.local` từ `.env.example`, sau đó thay `YOUR_LAN_IP` bằng IPv4 của máy tính.
+4. Từ thư mục gốc của dự án, chạy script tự nhận IP và khởi động Expo LAN:
+
+```powershell
+.\run-mobile-lan.cmd
+```
+
+Hoặc trong thư mục `mobile`, chạy `npm.cmd run lan`. Mở Expo Go trên điện thoại và quét mã QR. Sau khi đổi `.env.local`, hãy reload hoàn toàn ứng dụng trong Expo Go.

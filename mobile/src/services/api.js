@@ -1,31 +1,8 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
 import useAuthStore from '../store/useAuthStore';
+import { API_BASE_URL, MEDIA_BASE_URL } from '../config/network';
 
-// Determine the base API and Media URL depending on the running platform
-const getBaseUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'http://127.0.0.1:8000/api';
-  }
-  if (Platform.OS === 'android') {
-    // 10.0.2.2 is the IP of the host machine in Android Emulator
-    return 'http://10.0.2.2:8000/api';
-  }
-  return 'http://127.0.0.1:8000/api';
-};
-
-const getMediaUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'http://127.0.0.1:8000';
-  }
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000';
-  }
-  return 'http://127.0.0.1:8000';
-};
-
-export const API_BASE_URL = getBaseUrl();
-export const MEDIA_BASE_URL = getMediaUrl();
+export { API_BASE_URL, MEDIA_BASE_URL };
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -69,10 +46,13 @@ api.interceptors.response.use(
 // Helper function to resolve media URL
 export const getImageUrl = (path) => {
   if (!path) return null;
+
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    if (Platform.OS === 'android') {
-      return path.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
+    const storagePath = path.match(/\/storage\/.*$/i);
+    if (storagePath) {
+      return `${MEDIA_BASE_URL}${storagePath[0]}`;
     }
+
     return path;
   }
   
