@@ -84,7 +84,7 @@ const preloadImage = (src) => {
   image.src = src
 }
 
-export const warmProductImages = (products = [], limit = 28) => {
+export const warmProductImages = (products = [], limit = 8) => {
   if (!Array.isArray(products) || !products.length) return
   idle(() => {
     products.slice(0, limit).forEach((product) => {

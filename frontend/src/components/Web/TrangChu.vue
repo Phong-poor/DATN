@@ -2038,7 +2038,7 @@ onUnmounted(() => {
 .hero-container {
     position: relative;
     z-index: 2;
-    width: min(var(--site-frame-max, 1688px), calc(100% - var(--site-frame-outer, 152px)));
+    width: min(calc(100% - 96px), 1280px);
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -2048,7 +2048,7 @@ onUnmounted(() => {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
     gap: clamp(48px, 6vw, 104px);
-    align-items: center;
+    align-items: start;
     width: 100%;
 }
 .hero-text-block {
@@ -2133,7 +2133,7 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     justify-content: flex-end;
-    align-items: center;
+    align-items: flex-start;
     justify-self: end;
     width: 100%;
 }
@@ -2162,6 +2162,7 @@ onUnmounted(() => {
 
 .hero-product-card {
     padding: 16px;
+    animation: none;
 }
 
 .hero-product-visual {
@@ -2573,6 +2574,24 @@ onUnmounted(() => {
 }
 
 
+
+.section-header :is(h1, h2, h3),
+.ambient-label,
+.tab-pill,
+.interactive-anchor,
+.btn-premium-glow,
+.btn-premium-glass {
+    text-transform: lowercase !important;
+}
+
+.section-header :is(h1, h2, h3)::first-letter,
+.ambient-label::first-letter,
+.tab-pill::first-letter,
+.interactive-anchor::first-letter,
+.btn-premium-glow::first-letter,
+.btn-premium-glass::first-letter {
+    text-transform: uppercase !important;
+}
 
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
 .category-section {
@@ -3882,7 +3901,7 @@ onUnmounted(() => {
 @media (max-width: 1200px) {
     .hero-title { font-size: 42px; }
     .hero-container {
-        width: min(1120px, calc(100% - 40px));
+        width: calc(100% - 64px);
     }
     .hero-content {
         grid-template-columns: minmax(0, 1fr) minmax(360px, 0.84fr);
@@ -4406,6 +4425,12 @@ onUnmounted(() => {
     .combo-home-card {
         flex-basis: 86vw;
         min-width: 86vw;
+    }
+}
+
+@media (max-width: 600px) {
+    .hero-container {
+        width: calc(100% - 32px);
     }
 }
 

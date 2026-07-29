@@ -408,7 +408,7 @@ class ChamCongController extends Controller
         $employeeId = $request->query('employee_id');
         $search = $request->query('search');
         $currentUser = $request->user();
-        $isAdmin = $currentUser && $currentUser->vaitro === 'admin';
+        $isAdmin = $currentUser && $currentUser->vaitro !== 'user';
 
         $query = ChamCong::with('user:id,ten,email,anhdaidien,vaitro');
 
@@ -418,6 +418,12 @@ class ChamCongController extends Controller
             [$year, $monthNumber] = array_map('intval', explode('-', $month));
             $query->whereYear('ngay_cham_cong', $year)
                 ->whereMonth('ngay_cham_cong', $monthNumber);
+        }
+
+        if ($employeeId && (int) $employeeId !== (int) $currentUser->id) {
+            return response()->json([
+                'message' => 'Bạn chỉ được xem chi tiết lương của chính mình.',
+            ], 403);
         }
 
         if (!$isAdmin) {
@@ -435,8 +441,10 @@ class ChamCongController extends Controller
             });
         }
 
-        $salaryQuery = clone $query;
-        $salaryRows = $salaryQuery->get();
+        $attendanceRows = (clone $query)->get();
+        $salaryRows = (clone $query)
+            ->where('id_nhanvien', $currentUser->id)
+            ->get();
         $baseSalaryPerDay = 350000;
         $penaltyPerTenMinutes = 10000;
 
@@ -465,17 +473,21 @@ class ChamCongController extends Controller
             'penalty_per_ten_minutes' => $penaltyPerTenMinutes,
         ]);
         $attendanceSummary = [
-            'present' => $salaryRows->whereNotNull('gio_vao')->pluck('id_nhanvien')->unique()->count(),
-            'late' => $salaryRows->where('di_tre_phut', '>', 0)->count(),
-            'total_work_units' => round((float) $salaryRows->sum('tong_cong'), 2),
-            'total_hours' => round((float) $salaryRows->sum('tong_gio'), 2),
+            'present' => $attendanceRows->whereNotNull('gio_vao')->pluck('id_nhanvien')->unique()->count(),
+            'late' => $attendanceRows->where('di_tre_phut', '>', 0)->count(),
+            'total_work_units' => round((float) $attendanceRows->sum('tong_cong'), 2),
+            'total_hours' => round((float) $attendanceRows->sum('tong_gio'), 2),
         ];
 
         $records = $query->orderBy('ngay_cham_cong', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate((int) $request->query('per_page', 15));
 
-        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes) {
+        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser) {
+            if ((int) $record->id_nhanvien !== (int) $currentUser->id) {
+                return $record;
+            }
+
             $worked = !empty($record->gio_vao);
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
@@ -511,7 +523,7 @@ class ChamCongController extends Controller
      */
     public function adminGetNhanVien(Request $request)
     {
-        abort_unless($request->user()?->vaitro === 'admin', 403, 'Chỉ quản trị viên được xem danh sách nhân viên.');
+        abort_unless($request->user()?->vaitro !== 'user', 403, 'Chỉ nhân viên quản trị được xem danh sách nhân viên.');
 
         $employees = User::where('vaitro', '!=', 'user')
             ->with(['chamCongs' => function ($query) {

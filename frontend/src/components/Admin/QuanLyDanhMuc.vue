@@ -157,7 +157,7 @@ import BulkDeleteToolbar from './ThanhXoaHangLoat.vue';
 
 const user = ref(getUser() || {})
 const hasPermission = (perm) => {
-  if (user.value?.vaitro === 'admin') return true
+  if (user.value?.vaitro && user.value.vaitro !== 'user') return true
   return user.value?.cac_quyen?.includes(perm)
 }
 import { useAdminBulkDelete } from '@/services/adminBulkDelete';

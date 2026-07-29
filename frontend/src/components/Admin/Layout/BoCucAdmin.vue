@@ -296,7 +296,7 @@ const appearance = ref({
 })
 
 const menuConfig = [
-  { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+  { path: '/admin/bang-dieu-khien', label: 'Tổng quan', icon: LayoutDashboard },
   {
     label: 'Thủ kho',
     icon: Package,
@@ -379,7 +379,7 @@ const menuConfig = [
 
 const filteredMenuConfig = computed(() => {
   const userPerms = user.value?.cac_quyen || []
-  const isAdmin = user.value?.vaitro === 'admin'
+  const isAdmin = Boolean(user.value?.vaitro && user.value.vaitro !== 'user')
 
   const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
 
@@ -743,10 +743,12 @@ onMounted(async () => {
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
   window.addEventListener('offline-sync-success', handleSyncSuccess)
   document.documentElement.lang = 'vi'
-  await loadAppearanceSettings()
   hydrateNotifications()
-  await loadNotifications()
-  await fetchLatestUserProfile()
+  await Promise.allSettled([
+    loadAppearanceSettings(),
+    loadNotifications(),
+    fetchLatestUserProfile(),
+  ])
 })
 
 onUnmounted(() => {
@@ -874,6 +876,44 @@ onUnmounted(() => {
     padding: 16px 12px 8px; 
     margin: 0; 
     text-transform: capitalize;
+}
+
+.admin-layout :deep(.item),
+.admin-layout :deep(.submenu-item),
+.admin-layout :deep(.submenu-badge),
+.admin-layout :deep(.admin-topbar-title h2),
+.admin-layout :deep(.card-title),
+.admin-layout :deep(.section-title),
+.admin-layout :deep(.chart-title),
+.admin-layout :deep(.stat-label),
+.admin-layout :deep(.period-tab),
+.admin-layout :deep(.chart-nav-btn),
+.admin-layout :deep(.status-badge),
+.admin-layout :deep(th) {
+    text-transform: lowercase !important;
+}
+.admin-layout :deep(.item)::first-letter,
+.admin-layout :deep(.submenu-item)::first-letter,
+.admin-layout :deep(.submenu-badge)::first-letter,
+.admin-layout :deep(.admin-topbar-title h2)::first-letter,
+.admin-layout :deep(.card-title)::first-letter,
+.admin-layout :deep(.section-title)::first-letter,
+.admin-layout :deep(.chart-title)::first-letter,
+.admin-layout :deep(.stat-label)::first-letter,
+.admin-layout :deep(.period-tab)::first-letter,
+.admin-layout :deep(.chart-nav-btn)::first-letter,
+.admin-layout :deep(.status-badge)::first-letter,
+.admin-layout :deep(th)::first-letter {
+    text-transform: uppercase !important;
+}
+.admin-layout :deep(button:not([data-preserve-case])) {
+    text-transform: capitalize !important;
+}
+.menu-label,
+.menu-text,
+.submenu-text,
+.submenu-badge {
+    text-transform: none !important;
 }
 
 .menu-section { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 16px; }

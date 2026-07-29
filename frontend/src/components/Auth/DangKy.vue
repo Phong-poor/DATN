@@ -414,7 +414,7 @@ const loginGoogle = () => {
 
 .box {
   width: 960px;
-  height: 715px;
+  height: 680px;
   display: grid;
   grid-template-columns: 42% 58%;
   background: white;

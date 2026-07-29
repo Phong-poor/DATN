@@ -111,7 +111,7 @@ class User extends Authenticatable
         if ($this->vaitro === 'user') {
             return [];
         }
-        if ($this->vaitro === 'admin') {
+        if ($this->vaitro !== 'user') {
             return [
                 'san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 
                 'danh_muc_xem', 'danh_muc_sua', 
