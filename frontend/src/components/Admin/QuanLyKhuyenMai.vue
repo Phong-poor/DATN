@@ -143,6 +143,9 @@
                     <p class="promo-name">{{ p.ten }}</p>
 
                     <p class="promo-code">{{ p.code }}</p>
+                    <span :class="['category-badge', `category-${p.danhmuc || 'product'}`]">
+                      {{ categoryLabel(p.danhmuc) }}
+                    </span>
                   </div>
                 </div>
               </td>
@@ -246,7 +249,7 @@
         <p>{{ isEdit ? 'Cập nhật thông tin chương trình ưu đãi' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
       </div>
 
-      <div class="inline-form-body">
+      <form class="inline-form-body" @submit.prevent="savePromo">
 
         <div class="form-row">
           <div class="form-group">
@@ -263,6 +266,9 @@
               @input="autoCode" />
             <p class="err-msg" v-if="errors.ten">{{ errors.ten }}</p>
           </div>
+        </div>
+        <div class="birthday-private-note" v-if="form.danhmuc === 'birthday'">
+          Mã sinh nhật là ưu đãi riêng tư: chỉ xuất hiện trong phân hệ Gửi mã sinh nhật và chỉ khách được cấp mã mới sử dụng được.
         </div>
 
         <div class="form-group">
@@ -300,7 +306,7 @@
         </div>
 
         <!-- Hình thức hiển thị / phát hành -->
-        <div class="form-row">
+        <div class="form-row" v-if="form.danhmuc !== 'birthday'">
           <div class="form-group" style="flex: 1;">
             <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
             <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
@@ -318,7 +324,7 @@
         </div>
 
         <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;"
-          v-if="form.congkhai === 0">
+          v-if="form.danhmuc !== 'birthday' && form.congkhai === 0">
           <div class="form-group">
             <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
             <div class="input-suffix-wrap">
@@ -404,7 +410,7 @@
         <div class="form-group">
           <label class="form-label">Biểu tượng</label>
           <div class="icon-picker">
-            <button v-for="ic in iconOptions" :key="ic.icon" class="icon-option"
+            <button v-for="ic in iconOptions" :key="ic.icon" type="button" class="icon-option"
               :class="{ 'icon-option-active': form.icon === ic.icon }" :style="{ background: ic.bg }"
               @click="form.icon = ic.icon; form.iconBg = ic.bg">{{ ic.icon }}</button>
           </div>
@@ -412,8 +418,8 @@
 
         <!-- Inline footer actions -->
         <div class="inline-form-footer">
-          <button class="btn-cancel" @click="closeModal">Hủy</button>
-          <button class="btn-save" @click="savePromo" :disabled="saving">
+          <button type="button" class="btn-cancel" @click="closeModal">Hủy</button>
+          <button type="submit" class="btn-save" :disabled="saving">
             <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none">
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
@@ -426,7 +432,7 @@
           </button>
         </div>
 
-      </div><!-- end inline-form-body -->
+      </form><!-- end inline-form-body -->
     </template><!-- end promo-form -->
 
   </div>
@@ -587,6 +593,14 @@ function statusLabel(s) {
   return { running: '● Đang chạy', expired: '◌ Hết hạn', open: '● Luôn mở' }[s] || s
 }
 
+function categoryLabel(category) {
+  return {
+    birthday: 'Sinh nhật',
+    freeship: 'Freeship',
+    product: 'Sản phẩm',
+  }[category] || 'Khác'
+}
+
 function autoCode() {
   if (!isEdit.value && form.value.danhmuc !== 'birthday') {
     const base = form.value.ten
@@ -623,6 +637,9 @@ function onCategoryChange() {
     form.value.trangthai = 'open'
     form.value.ngaybatdau = ''
     form.value.ngayketthuc = ''
+    form.value.congkhai = 0
+    form.value.dieu_kien_tang = ''
+    form.value.so_luong_phat = ''
   } else {
     form.value.trangthai = 'running'
   }
@@ -2115,16 +2132,21 @@ select.form-input {
 .inline-form-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
 }
 
 .inline-form-body>.form-group,
 .inline-form-body>.form-row>.form-group {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 20px 22px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  background: transparent;
+  border-radius: 0;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2216,6 +2238,23 @@ select.form-input {
   padding: 16px 18px;
 }
 
+.inline-form-body>.condition-row>.form-group {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .inline-form-body {
+    padding: 18px;
+  }
+
+  .inline-form-body>.form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .inline-form-body>.condition-row.freeship-row {
   background: #f0fdf4;
   border-color: #86efac;
@@ -2228,5 +2267,30 @@ select.form-input {
   padding-top: 20px;
   border-top: 1px solid #e2e8f0;
   margin-top: 8px;
+}
+
+.category-badge {
+  display: inline-flex;
+  margin-top: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.category-birthday { background: #fce7f3; color: #be185d; }
+.category-product { background: #dbeafe; color: #1d4ed8; }
+.category-freeship { background: #dcfce7; color: #15803d; }
+
+.birthday-private-note {
+  padding: 13px 15px;
+  border: 1px solid #f9a8d4;
+  border-radius: 12px;
+  background: #fdf2f8;
+  color: #9d174d;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 </style>

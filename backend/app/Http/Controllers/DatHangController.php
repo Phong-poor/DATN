@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use App\Events\OrderPlaced;
 use App\Events\OrderStatusUpdated;
 use App\Mail\OrderSuccessMail;
-use App\Models\DanhGia;
 use App\Models\BienThe;
+use App\Models\CauHinhXu;
+use App\Models\DanhGia;
 use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
 use App\Models\DiaChi;
 use App\Models\GioHang;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
+use App\Models\XuHistory;
 use App\Services\DemoShipmentService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -396,12 +399,12 @@ class DatHangController extends Controller
                 if ($user) {
                     $user->increment('xu', $order->xu_dung);
 
-                    \App\Models\XuHistory::create([
+                    XuHistory::create([
                         'id_khachhang' => $userId,
                         'so_xu' => $order->xu_dung,
                         'loai_giao_dich' => 'hoan_tra',
                         'id_dathang' => $order->id_dathang,
-                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #'.$order->id_dathang,
                     ]);
                 }
             }
@@ -600,7 +603,7 @@ class DatHangController extends Controller
 
         // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
         $cartVariantIds = $gioHangItems->pluck('id_bienthe')->toArray();
-        $cartVariants = \App\Models\BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
+        $cartVariants = BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
 
         $freeComboOffers = DB::table('bienthe_combo_offers')
             ->join('bienthe', 'bienthe_combo_offers.id_bienthe', '=', 'bienthe.id_bienthe')
@@ -617,6 +620,7 @@ class DatHangController extends Controller
                         }
                     }
                 }
+
                 return false;
             })
             ->filter(function ($offer) {
@@ -696,6 +700,7 @@ class DatHangController extends Controller
         $giamGia = 0;
         $giamGiaShip = 0;
         $promoId = null;
+        $birthdayUserVoucherId = null;
 
         if ($request->filled('promo_code')) {
             $promo = Promotion::where('code', strtoupper($request->promo_code))
@@ -704,16 +709,22 @@ class DatHangController extends Controller
 
             if ($promo) {
                 if ($promo->danhmuc === 'birthday') {
-                    $hasVoucher = UserVoucher::where('id_user', $userId)
+                    $birthdayVoucher = UserVoucher::where('id_user', $userId)
                         ->where('id_voucher', $promo->id)
                         ->where('trang_thai', 0)
-                        ->exists();
-                    if (! $hasVoucher) {
+                        ->whereNull('da_su_dung_luc')
+                        ->where(function ($query) {
+                            $query->whereNull('het_han_luc')->orWhere('het_han_luc', '>=', now());
+                        })
+                        ->latest('ngay_nhan')
+                        ->first();
+                    if (! $birthdayVoucher) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.',
+                            'message' => 'Mã sinh nhật không thuộc tài khoản, đã được sử dụng hoặc đã hết hạn.',
                         ], 400);
                     }
+                    $birthdayUserVoucherId = $birthdayVoucher->id;
                 }
 
                 if ($promo->danhmuc === 'freeship') {
@@ -775,8 +786,8 @@ class DatHangController extends Controller
         // ── Xử lý Xu (Shopee/TikTok Shop Coins) ─────────
         $xuDung = 0;
         $xuNhan = 0;
-        $cauhinhXu = \App\Models\CauHinhXu::first();
-        
+        $cauhinhXu = CauHinhXu::first();
+
         $subtotalAfterPromo = max(0, $tongTienGoc - $giamGia);
         $shippingAfterPromo = max(0, $shippingFee - $giamGiaShip);
 
@@ -800,7 +811,7 @@ class DatHangController extends Controller
                     $subtotalAfterPromo = max(0, $subtotalAfterPromo - $soTienGiamBangXu);
                 }
             }
-            
+
             // Tính tích xu khi đơn hoàn thành (Tạm thời bỏ: đặt bằng 0)
             $xuNhan = 0;
         }
@@ -898,19 +909,30 @@ class DatHangController extends Controller
                 $user = Auth::user();
                 $user->decrement('xu', $xuDung);
 
-                \App\Models\XuHistory::create([
+                XuHistory::create([
                     'id_khachhang' => $userId,
                     'so_xu' => -$xuDung,
                     'loai_giao_dich' => 'su_dung',
                     'id_dathang' => $donHang->id_dathang,
-                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #' . $donHang->id_dathang,
+                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #'.$donHang->id_dathang,
                 ]);
             }
 
             foreach ($gioHangItems as $item) {
+                $variant = BienThe::query()
+                    ->where('id_bienthe', $item->id_bienthe)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $variant || $variant->soluong < $item->soluong) {
+                    throw new \RuntimeException("Sản phẩm {$item->id_bienthe} không còn đủ số lượng trong kho.");
+                }
+
+                $variant->decrement('soluong', $item->soluong);
+
                 $unitPrice = isset($allocatedPrices[$item->id_giohang])
                     ? $allocatedPrices[$item->id_giohang]
-                    : ($item->bienThe?->gia ?? 0);
+                    : $variant->gia;
 
                 $orderDetailData = [
                     'id_dathang' => $donHang->id_dathang,
@@ -938,12 +960,16 @@ class DatHangController extends Controller
             }
             $deleteQuery->delete();
 
-
             // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
             if ($promoId) {
-                UserVoucher::where('id_user', $userId)
-                    ->where('id_voucher', $promoId)
-                    ->update(['trang_thai' => 1]);
+                $voucherQuery = UserVoucher::where('id_user', $userId)->where('id_voucher', $promoId);
+                if ($birthdayUserVoucherId) {
+                    $voucherQuery->whereKey($birthdayUserVoucherId);
+                }
+                $voucherQuery->where('trang_thai', 0)->update([
+                    'trang_thai' => 1,
+                    'da_su_dung_luc' => now(),
+                ]);
             }
 
             // Nếu có dùng thêm mã freeship
@@ -952,7 +978,6 @@ class DatHangController extends Controller
                     ->where('id_voucher', $freeshipPromotionId)
                     ->update(['trang_thai' => 1]);
             }
-
 
             // Increment the usage of applied combo offers
             $appliedOfferIds = [];
@@ -978,16 +1003,16 @@ class DatHangController extends Controller
 
             if (Schema::hasTable('vouchers') && Schema::hasTable('user_vouchers')) {
                 $conditionalPromos = Promotion::where('congkhai', 0)
-                ->where('danhmuc', '!=', 'birthday')
-                ->whereIn('trangthai', ['running', 'open'])
-                ->where(function ($q) {
-                    $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now());
-                })
-                ->where(function ($q) {
-                    $q->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', now());
-                })
-                ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
-                ->get();
+                    ->where('danhmuc', '!=', 'birthday')
+                    ->whereIn('trangthai', ['running', 'open'])
+                    ->where(function ($q) {
+                        $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now());
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', now());
+                    })
+                    ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
+                    ->get();
             }
 
             $grantedVouchers = [];
@@ -1199,7 +1224,7 @@ class DatHangController extends Controller
             ->where('id_khachhang', $userId)
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
-                      ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
+                    ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -1210,12 +1235,12 @@ class DatHangController extends Controller
             ->where('user_id', $userId)
             ->get()
             ->groupBy(function ($item) {
-                return $item->id_dathang . '_' . $item->id_bienthe;
+                return $item->id_dathang.'_'.$item->id_bienthe;
             });
 
         $orders->each(function ($order) use ($reviews) {
             $order->chi_tiets->each(function ($chiTiet) use ($order, $reviews) {
-                $key = $order->id_dathang . '_' . $chiTiet->id_bienthe;
+                $key = $order->id_dathang.'_'.$chiTiet->id_bienthe;
                 $chiTiet->is_reviewed = $reviews->has($key);
             });
         });
@@ -1298,7 +1323,7 @@ class DatHangController extends Controller
         $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
-                      ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
+                    ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -1353,12 +1378,12 @@ class DatHangController extends Controller
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
 
-                        \App\Models\XuHistory::create([
+                        XuHistory::create([
                             'id_khachhang' => $order->id_khachhang,
                             'so_xu' => $order->xu_dung,
                             'loai_giao_dich' => 'hoan_tra',
                             'id_dathang' => $order->id_dathang,
-                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #'.$order->id_dathang,
                         ]);
                     }
                 }
@@ -1391,12 +1416,12 @@ class DatHangController extends Controller
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
 
-                        \App\Models\XuHistory::create([
+                        XuHistory::create([
                             'id_khachhang' => $order->id_khachhang,
                             'so_xu' => $order->xu_dung,
                             'loai_giao_dich' => 'hoan_tra',
                             'id_dathang' => $order->id_dathang,
-                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #' . $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #'.$order->id_dathang,
                         ]);
                     }
                 }
@@ -1745,7 +1770,7 @@ class DatHangController extends Controller
     private function cleanupUnpaidOrders()
     {
         try {
-            $cutoff = \Carbon\Carbon::now()->subMinutes(15);
+            $cutoff = Carbon::now()->subMinutes(15);
             $unpaidOrders = DatHang::whereIn('PTTT', ['vnpay', 'momo', 'SePay', 'SEPAY', 'sepay'])
                 ->where('trangthai', 'pending')
                 ->where('trang_thai_thanh_toan', 'pending')
@@ -1753,7 +1778,7 @@ class DatHangController extends Controller
                 ->get();
 
             foreach ($unpaidOrders as $unpaidOrder) {
-                \Illuminate\Support\Facades\DB::transaction(function () use ($unpaidOrder) {
+                DB::transaction(function () use ($unpaidOrder) {
                     $unpaidOrder->update([
                         'trangthai' => 'cancelled',
                         'lydo' => 'Hết hạn thời gian thanh toán trực tuyến (15 phút)',
@@ -1773,19 +1798,19 @@ class DatHangController extends Controller
                         if ($user) {
                             $user->increment('xu', $unpaidOrder->xu_dung);
 
-                            \App\Models\XuHistory::create([
+                            XuHistory::create([
                                 'id_khachhang' => $unpaidOrder->id_khachhang,
                                 'so_xu' => $unpaidOrder->xu_dung,
                                 'loai_giao_dich' => 'hoan_tra',
                                 'id_dathang' => $unpaidOrder->id_dathang,
-                                'mo_ta' => 'Hoàn xu do đơn hàng #' . $unpaidOrder->id_dathang . ' hết hạn thanh toán',
+                                'mo_ta' => 'Hoàn xu do đơn hàng #'.$unpaidOrder->id_dathang.' hết hạn thanh toán',
                             ]);
                         }
                     }
                 });
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: ' . $e->getMessage());
+            Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: '.$e->getMessage());
         }
     }
 }

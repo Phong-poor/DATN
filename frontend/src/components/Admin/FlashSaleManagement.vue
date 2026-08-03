@@ -396,6 +396,7 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 // Navigation & views
 const currentView = ref('list') // 'list' | 'session-form' | 'add-products'
@@ -651,8 +652,7 @@ const parseCurrency = (val) => {
 
 const getStorageUrl = (path) => {
   if (!path) return 'https://placehold.co/100'
-  if (path.startsWith('http')) return path
-  return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${path}`
+  return storageUrl(path)
 }
 
 // Session statuses helper
