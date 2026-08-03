@@ -8,12 +8,31 @@ use App\Models\UserVoucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Quản lý mã khuyến mãi, kiểm tra điều kiện áp dụng và voucher của người dùng.
  */
 class PromotionController extends Controller
 {
+    private function validateEventCode(Request $request): void
+    {
+        if ($request->input('danhmuc') !== 'event') {
+            return;
+        }
+
+        $eventDate = trim((string) $request->input('ngay_su_kien'));
+        if (! preg_match('/^(\d{2})-(\d{2})$/', $eventDate, $matches)
+            || ! checkdate((int) $matches[2], (int) $matches[1], 2000)) {
+            throw ValidationException::withMessages([
+                'ngay_su_kien' => 'Ngày sự kiện phải hợp lệ theo định dạng DD-MM, ví dụ 02-09.',
+            ]);
+        }
+        if (! preg_match('/^[A-Z0-9_-]+$/', strtoupper(trim((string) $request->input('code'))))) {
+            throw ValidationException::withMessages(['code' => 'Mã KM phải là chữ in hoa không dấu, ví dụ QUOCKHANH.']);
+        }
+    }
+
     // GET /api/user/vouchers — fetch vouchers owned by the user
     public function myVouchers(Request $request)
     {
@@ -50,7 +69,7 @@ class PromotionController extends Controller
                         ->where('danhmuc', '!=', 'event');
                 })->orWhere(function($sub) use ($today) {
                     $sub->where('danhmuc', 'event')
-                        ->where('code', $today);
+                        ->where('ngay_su_kien', $today);
                 });
             })
             ->orderBy('id', 'desc')
@@ -71,13 +90,14 @@ class PromotionController extends Controller
         $query = Promotion::query();
         // Public chỉ thấy is_public = 1
         return response()->json($query->where('congkhai', 1)
+            ->where('danhmuc', '!=', 'birthday')
             ->where(function($q) use ($today) {
                 $q->where(function($sub) {
                     $sub->whereIn('trangthai', ['running', 'open'])
                         ->where('danhmuc', '!=', 'event');
                 })->orWhere(function($sub) use ($today) {
                     $sub->where('danhmuc', 'event')
-                        ->where('code', $today);
+                        ->where('ngay_su_kien', $today);
                 });
             })->get()
         );
@@ -101,7 +121,7 @@ class PromotionController extends Controller
         }
 
         if ($promo->danhmuc === 'event') {
-            if ($promo->code !== now()->format('d-m')) {
+            if ($promo->ngay_su_kien !== now()->format('d-m')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Mã giảm giá sự kiện này chưa đến ngày sử dụng hoặc đã hết hạn.'
@@ -225,7 +245,7 @@ class PromotionController extends Controller
             return response()->json(['success' => false, 'message' => 'Voucher chưa tới thời gian nhận.'], 400);
         }
 
-        if ($promo->danhmuc === 'event' && $promo->code !== now()->format('d-m')) {
+        if ($promo->danhmuc === 'event' && $promo->ngay_su_kien !== now()->format('d-m')) {
             return response()->json(['success' => false, 'message' => 'Chưa đến ngày nhận mã sự kiện này hoặc đã qua ngày nhận.'], 400);
         }
 
@@ -269,6 +289,8 @@ class PromotionController extends Controller
     // POST /api/admin/promotions
     public function store(Request $request)
     {
+        $this->validateEventCode($request);
+
         $request->validate([
             'ten'            => 'required|string|max:255',
             'danhmuc'        => 'required|string|in:product,birthday,freeship,event',
@@ -282,13 +304,16 @@ class PromotionController extends Controller
             'congkhai' => 'boolean',
             'dieu_kien_tang' => 'nullable|numeric|min:0',
             'so_luong_phat' => 'nullable|integer|min:1',
+            'tu_dong_gui' => 'nullable|boolean',
         ]);
 
         $promo = Promotion::create([
             'ten'            => $request->ten,
             'danhmuc'        => $request->danhmuc,
             'code'           => strtoupper($request->code),
-            'loai'           => $request->loai,
+            'ngay_su_kien'   => $request->danhmuc === 'event' ? $request->ngay_su_kien : null,
+            'tu_dong_gui'    => $request->danhmuc === 'event' ? $request->boolean('tu_dong_gui', true) : false,
+            'loai'           => $request->danhmuc === 'birthday' ? 'percent' : $request->loai,
             'giatri'         => $request->giatri,
             'ngaybatdau'     => $request->danhmuc === 'event' ? null : $request->ngaybatdau,
             'ngayketthuc'    => $request->danhmuc === 'event' ? null : $request->ngayketthuc,
@@ -313,6 +338,8 @@ class PromotionController extends Controller
     {
         $promo = Promotion::findOrFail($id);
 
+        $this->validateEventCode($request);
+
         $request->validate([
             'ten'            => 'required|string|max:255',
             'danhmuc'        => 'required|string|in:product,birthday,freeship,event',
@@ -326,13 +353,16 @@ class PromotionController extends Controller
             'congkhai' => 'boolean',
             'dieu_kien_tang' => 'nullable|numeric|min:0',
             'so_luong_phat' => 'nullable|integer|min:1',
+            'tu_dong_gui' => 'nullable|boolean',
         ]);
 
         $promo->update([
             'ten'            => $request->ten,
             'danhmuc'        => $request->danhmuc,
             'code'           => strtoupper($request->code),
-            'loai'           => $request->loai,
+            'ngay_su_kien'   => $request->danhmuc === 'event' ? $request->ngay_su_kien : null,
+            'tu_dong_gui'    => $request->danhmuc === 'event' ? $request->boolean('tu_dong_gui', true) : false,
+            'loai'           => $request->danhmuc === 'birthday' ? 'percent' : $request->loai,
             'giatri'         => $request->giatri,
             'ngaybatdau'     => $request->danhmuc === 'event' ? null : $request->ngaybatdau,
             'ngayketthuc'    => $request->danhmuc === 'event' ? null : $request->ngayketthuc,
@@ -348,6 +378,20 @@ class PromotionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Cập nhật khuyến mãi thành công!',
+            'promotion' => $promo,
+        ]);
+    }
+
+    public function updateAutoSend(Request $request, $id)
+    {
+        $request->validate(['tu_dong_gui' => 'required|boolean']);
+
+        $promo = Promotion::where('danhmuc', 'event')->findOrFail($id);
+        $promo->update(['tu_dong_gui' => $request->boolean('tu_dong_gui')]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $promo->tu_dong_gui ? 'Đã bật tự động gửi Gmail.' : 'Đã tắt tự động gửi Gmail.',
             'promotion' => $promo,
         ]);
     }

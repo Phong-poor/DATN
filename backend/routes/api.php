@@ -352,6 +352,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/promotions', [PromotionController::class, 'index']);
         Route::post('/promotions', [PromotionController::class, 'store']);
         Route::put('/promotions/{id}', [PromotionController::class, 'update']);
+        Route::patch('/promotions/{id}/auto-send', [PromotionController::class, 'updateAutoSend']);
         Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
 
         // ===== ADMIN BIRTHDAY CODES =====

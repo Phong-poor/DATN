@@ -101,12 +101,12 @@
             </svg>
             Lọc
           </button>
-          <button class="btn-primary" @click="openCreate" v-if="currentTab === 'promotions'">
+          <button class="btn-primary" @click="openCreate">
             <svg viewBox="0 0 24 24" fill="none">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Tạo mới
+            {{ currentTab === 'events' ? 'Tạo chiến dịch' : 'Tạo mới' }}
           </button>
         </div>
       </div>
@@ -204,7 +204,11 @@
       <!-- HOLIDAY LIST (EVENTS TAB) -->
       <div class="holiday-list-wrapper" v-if="currentTab === 'events'">
         <div class="holiday-list">
-          <div class="holiday-item" v-for="(h, idx) in upcomingHolidays" :key="idx" :class="{'next-holiday': idx === 0}">
+          <div v-if="loading" class="empty-row">Đang tải chiến dịch...</div>
+          <div v-else-if="upcomingHolidays.length === 0" class="empty-row">
+            Chưa có chiến dịch hoặc sự kiện nào trong cơ sở dữ liệu.
+          </div>
+          <div class="holiday-item" v-for="(h, idx) in upcomingHolidays" :key="h.id" :class="{'next-holiday': idx === 0}">
             <div class="holiday-date-box" :class="{'multi-day': h.endDate}">
               <template v-if="h.endDate">
                 <span class="holiday-day-range">{{ h.date.getDate() }}/{{ h.date.getMonth() + 1 }}</span>
@@ -217,14 +221,14 @@
               </template>
             </div>
             <div class="holiday-info">
-              <p class="holiday-name">{{ h.name }}</p>
+              <p class="holiday-name">{{ eventDisplayName(h) }} {{ h.date.getFullYear() }}</p>
               <div class="holiday-meta" style="display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: #64748b;">
                 <span style="display: flex; align-items: center; gap: 4px;">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   {{ h.formattedDate }}
                 </span>
                 <span style="display: flex; align-items: center; gap: 4px; color: #059669; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 6px; border: 1px dashed #86efac;">
-                  Tên KM: {{ h.promoName }}
+                  Tên KM: {{ eventDisplayName(h) }}
                 </span>
                 <span style="display: flex; align-items: center; gap: 4px; color: #2563eb; font-weight: 700; background: #eff6ff; padding: 2px 8px; border-radius: 6px; border: 1px dashed #bfdbfe;">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
@@ -234,7 +238,26 @@
             </div>
             <div class="holiday-countdown">
               <span v-if="h.daysLeft === 0">Hôm nay</span>
-              <span v-else>Còn {{ h.daysLeft }} ngày</span>
+              <span v-else-if="h.daysLeft > 0">Còn {{ h.daysLeft }} ngày</span>
+              <span v-else>Đã qua</span>
+            </div>
+            <button
+              type="button"
+              class="auto-send-toggle"
+              :class="{ enabled: h.autoSend }"
+              :disabled="h.toggling"
+              @click="toggleEventAutoSend(h)"
+            >
+              <span class="toggle-track"><span class="toggle-knob"></span></span>
+              {{ h.toggling ? 'Đang lưu...' : (h.autoSend ? 'Tự động' : 'Không tự động') }}
+            </button>
+            <div class="holiday-actions actions">
+              <button class="action-btn" @click="openEdit(h.promotion)" title="Sửa chiến dịch">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="action-btn action-delete" @click="deletePromo(h.id)" title="Xóa chiến dịch">
+                <svg viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -271,8 +294,8 @@
           </svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isEdit ? '✏️ Chỉnh sửa khuyến mãi' : '➕ Tạo khuyến mãi mới' }}</h1>
-        <p>{{ isEdit ? 'Cập nhật thông tin chương trình ưu đãi' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
+        <h1>{{ form.danhmuc === 'event' ? (isEdit ? 'Chỉnh sửa chiến dịch' : 'Tạo chiến dịch mới') : (isEdit ? 'Chỉnh sửa khuyến mãi' : 'Tạo khuyến mãi mới') }}</h1>
+        <p>{{ isEdit ? 'Cập nhật thông tin và lưu thay đổi vào cơ sở dữ liệu' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
       </div>
 
       <form class="inline-form-body" @submit.prevent="savePromo">
@@ -290,7 +313,7 @@
           <div class="form-group">
             <label class="form-label">Tên Voucher <span class="req">*</span></label>
             <input class="form-input" :class="{ err: errors.ten }" v-model="form.ten" placeholder="VD: Tết 2026 Sale"
-              @input="autoCode" :readonly="form.danhmuc === 'event'" />
+              @input="autoCode" />
             <p class="err-msg" v-if="errors.ten">{{ errors.ten }}</p>
           </div>
         </div>
@@ -299,17 +322,28 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">{{ form.danhmuc === 'event' ? 'Ngày sự kiện (Code cố định) *' : 'Mã Voucher *' }}</label>
+          <label class="form-label">Mã Voucher *</label>
           <div class="code-input-row">
-            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" :placeholder="form.danhmuc === 'event' ? 'VD: 02-09' : 'VD: TET-2026'"
-              style="text-transform:uppercase" :readonly="form.danhmuc === 'birthday' || form.danhmuc === 'event'" />
+            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" :placeholder="form.danhmuc === 'event' ? 'VD: QUOCKHANH' : 'VD: TET-2026'"
+              style="text-transform:uppercase" :readonly="form.danhmuc === 'birthday'" />
             <button type="button" class="btn-gen-code" @click="generateRandomCode"
               v-if="form.danhmuc !== 'event'"
               :disabled="form.danhmuc === 'birthday'">Tạo ngẫu nhiên</button>
           </div>
           <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
-          <p class="form-hint" v-if="form.danhmuc === 'event'">Tên và Mã sự kiện là cố định. Mã định dạng ngày-tháng (VD: 20-11, 02-09) sẽ tự động kích hoạt hàng năm.</p>
+          <p class="form-hint" v-if="form.danhmuc === 'event'">Mã KM là chữ viết hoa không dấu, ví dụ QUOCKHANH.</p>
           <p class="form-hint" v-else>Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
+        </div>
+        <div class="form-group" v-if="form.danhmuc === 'event'">
+          <label class="form-label">Ngày kích hoạt hằng năm *</label>
+          <input
+            class="form-input"
+            :class="{ err: errors.ngay_su_kien }"
+            type="date"
+            :value="eventDateInputValue(form.ngay_su_kien)"
+            @input="form.ngay_su_kien = inputDateToEventDate($event.target.value)"
+          />
+          <p class="err-msg" v-if="errors.ngay_su_kien">{{ errors.ngay_su_kien }}</p>
         </div>
 
         <div class="form-row" v-if="form.danhmuc !== 'freeship'">
@@ -432,7 +466,7 @@
         <div class="form-group" v-if="form.danhmuc === 'event'">
           <div class="birthday-status-info" style="background: #e0f2fe; border-color: #bae6fd;">
             <span class="birthday-icon" style="background: #3b82f6;">EV</span>
-            <span>Mã sự kiện sẽ tự động <strong>kích hoạt lặp lại hàng năm</strong> dựa vào mã code (ví dụ: 02-09).</span>
+            <span>Sự kiện sẽ tự động <strong>kích hoạt lặp lại hằng năm</strong> theo ngày kích hoạt đã nhập.</span>
           </div>
         </div>
 
@@ -492,81 +526,89 @@ const saving = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
-const showHolidayModal = ref(false)
+function parseEventDate(eventDate) {
+  const value = String(eventDate || '').trim()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
-const upcomingHolidays = computed(() => {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const currentYear = today.getFullYear()
-  const nextYear = currentYear + 1
-  
-  // endDate = ngày cuối nếu sự kiện kéo dài nhiều ngày
-  const allHolidays = [
-    { name: 'Tết Dương Lịch', month: 1, day: 1, type: 'solar' },
-    { name: 'Quốc tế Phụ nữ', month: 3, day: 8, type: 'solar' },
-    // 30/4 và 1/5 gộp thành 1 kỳ nghỉ 2 ngày
-    { name: 'Giải phóng miền Nam & Quốc tế Lao động', month: 4, day: 30, endMonth: 5, endDay: 1, type: 'solar' },
-    { name: 'Quốc tế Thiếu nhi', month: 6, day: 1, type: 'solar' },
-    { name: 'Quốc khánh', month: 9, day: 2, type: 'solar' },
-    { name: 'Phụ nữ Việt Nam', month: 10, day: 20, type: 'solar' },
-    { name: 'Nhà giáo Việt Nam', month: 11, day: 20, type: 'solar' },
-    { name: 'Lễ Giáng Sinh', month: 12, day: 25, type: 'solar' },
-    // Tết Nguyên Đán kéo dài nhiều ngày (nghỉ chính thức ~5 ngày)
-    { name: 'Tết Nguyên Đán', date: '2026-02-17', endDate: '2026-02-21', type: 'fixed' },
-    { name: 'Giỗ Tổ Hùng Vương', date: '2026-04-26', type: 'fixed' },
-    { name: 'Tết Trung Thu', date: '2026-09-25', type: 'fixed' },
-    { name: 'Tết Nguyên Đán', date: '2027-02-06', endDate: '2027-02-10', type: 'fixed' },
-    { name: 'Giỗ Tổ Hùng Vương', date: '2027-04-16', type: 'fixed' },
-    { name: 'Tết Trung Thu', date: '2027-09-15', type: 'fixed' },
-  ]
-
-  const fmtDate = (d) => {
-    const dd = String(d.getDate()).padStart(2, '0')
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const yyyy = d.getFullYear()
-    return { dd, mm, yyyy, str: `${dd}/${mm}/${yyyy}` }
+  // Mã lặp hằng năm: DD-MM.
+  const annualMatch = value.match(/^(\d{2})-(\d{2})$/)
+  if (annualMatch) {
+    const day = Number(annualMatch[1])
+    const month = Number(annualMatch[2])
+    let date = new Date(today.getFullYear(), month - 1, day)
+    if (date < today) date = new Date(today.getFullYear() + 1, month - 1, day)
+    if (date.getDate() === day && date.getMonth() === month - 1) return date
   }
 
-  let upcoming = []
-  
-  allHolidays.forEach(h => {
-    if (h.type === 'solar') {
-      for (const yr of [currentYear, nextYear]) {
-        const d = new Date(yr, h.month - 1, h.day)
-        if (d < today && yr === currentYear) continue
-        const endD = h.endMonth ? new Date(yr, h.endMonth - 1, h.endDay) : null
-        upcoming.push({ name: `${h.name} ${yr}`, date: d, endDate: endD })
+  // Hỗ trợ dữ liệu cũ dạng DDMMYYYY.
+  const fixedMatch = value.match(/^(\d{2})(\d{2})(\d{4})$/)
+  if (fixedMatch) {
+    const day = Number(fixedMatch[1])
+    const month = Number(fixedMatch[2])
+    const year = Number(fixedMatch[3])
+    const date = new Date(year, month - 1, day)
+    if (date.getDate() === day && date.getMonth() === month - 1) return date
+  }
+
+  return null
+}
+
+function eventDisplayName(event) {
+  const rawCode = String(event?.code || '').trim()
+  const source = /^\d{2}-\d{2}$/.test(rawCode) ? event?.name : (rawCode || event?.name)
+  const key = String(source || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/Đ/g, 'D')
+    .replace(/đ/g, 'D')
+    .replace(/\d{2}-\d{2}$/g, '')
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase()
+
+  return {
+    TETDUONGLICH: 'Tết Dương Lịch',
+    TETNGUYENDAN: 'Tết Nguyên Đán',
+    QUOCTEPHUNU: 'Quốc Tế Phụ Nữ',
+    GIOTOHUNGVUONG: 'Giỗ Tổ Hùng Vương',
+    GIAIPHONGMIENNAM: 'Giải Phóng Miền Nam',
+    QUOCTELAODONG: 'Quốc Tế Lao Động',
+    QUOCTETHIEUNHI: 'Quốc Tế Thiếu Nhi',
+    QUOCKHANH: 'Quốc Khánh',
+    TETTRUNGTHU: 'Tết Trung Thu',
+    PHUNUVIETNAM: 'Phụ Nữ Việt Nam',
+    NHAGIAOVIETNAM: 'Nhà Giáo Việt Nam',
+    GIANGSINH: 'Giáng Sinh',
+  }[key] || String(event?.name || 'Sự Kiện')
+}
+
+const upcomingHolidays = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return promos.value
+    .filter(p => p.danhmuc === 'event')
+    .map(p => {
+      const date = parseEventDate(p.ngay_su_kien)
+      const daysLeft = date ? Math.ceil((date - today) / (1000 * 60 * 60 * 24)) : -1
+      return {
+        id: p.id,
+        name: p.ten,
+        code: p.code,
+        date: date || today,
+        endDate: null,
+        daysLeft,
+        formattedDate: date ? formatDate(date) : 'Ngày chưa hợp lệ',
+        autoSend: Boolean(p.tu_dong_gui),
+        toggling: false,
+        promotion: p,
       }
-    } else {
-      const d = new Date(h.date)
-      if (d >= today) {
-        const endD = h.endDate ? new Date(h.endDate) : null
-        upcoming.push({ name: `${h.name} ${d.getFullYear()}`, date: d, endDate: endD })
-      }
-    }
-  })
-
-  upcoming.sort((a, b) => a.date - b.date)
-  
-  return upcoming.slice(0, 12).map(u => {
-    const diffTime = u.date - today
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    const start = fmtDate(u.date)
-    const formattedDate = u.endDate
-      ? `${start.str} — ${fmtDate(u.endDate).str}`
-      : start.str
-
-    const normalizeName = u.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/gi, 'D').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
-
-    return { 
-      ...u, 
-      daysLeft: diffDays < 0 ? 0 : diffDays,
-      formattedDate,
-      promoName: normalizeName,
-      code: `${start.dd}${start.mm}${start.yyyy}`
-    }
-  })
+    })
+    .sort((a, b) => {
+      if (a.daysLeft < 0 && b.daysLeft >= 0) return 1
+      if (b.daysLeft < 0 && a.daysLeft >= 0) return -1
+      return a.date - b.date
+    })
 })
 
 const nextHoliday = computed(() => upcomingHolidays.value.length > 0 ? upcomingHolidays.value[0] : null)
@@ -593,6 +635,26 @@ const showToast = (msg, type = 'success') => {
   setTimeout(() => { toast.value.show = false }, 3000)
 }
 
+async function toggleEventAutoSend(holiday) {
+  if (holiday.toggling) return
+  holiday.toggling = true
+  const nextValue = !holiday.autoSend
+
+  try {
+    await api.patch(`/admin/promotions/${holiday.id}/auto-send`, { tu_dong_gui: nextValue })
+    holiday.autoSend = nextValue
+    holiday.promotion.tu_dong_gui = nextValue
+    const promo = promos.value.find(item => item.id === holiday.id)
+    if (promo) promo.tu_dong_gui = nextValue
+    swal.success(nextValue ? 'Đã bật tự động gửi Gmail!' : 'Đã tắt tự động gửi Gmail!')
+  } catch (error) {
+    console.error(error)
+    swal.error('Lỗi', 'Không thể cập nhật chế độ gửi Gmail.')
+  } finally {
+    holiday.toggling = false
+  }
+}
+
 const statusOptions = [
   { value: 'running', label: 'Đang chạy', color: '#2563eb', bg: '#f0fdf4' },
   { value: 'open', label: 'Luôn mở', color: '#2563eb', bg: '#eff6ff' },
@@ -610,11 +672,11 @@ const iconOptions = [
 ]
 
 const defaultForm = () => ({
-  ten: '', danhmuc: 'product', code: '', loai: 'percent', giatri: '',
+  ten: '', danhmuc: 'product', code: '', ngay_su_kien: '', loai: 'percent', giatri: '',
   ngaybatdau: '', ngayketthuc: '', trangthai: 'running',
   mota: '', icon: 'SALE', iconBg: '#fef3c7',
   loai_dieu_kien: '>=', dieu_kien: '',
-  congkhai: 1, dieu_kien_tang: '', so_luong_phat: ''
+  congkhai: 1, dieu_kien_tang: '', so_luong_phat: '', tu_dong_gui: true
 })
 
 const form = ref(defaultForm())
@@ -740,7 +802,7 @@ function categoryLabel(category) {
 }
 
 function autoCode() {
-  if (!isEdit.value && form.value.danhmuc !== 'birthday' && form.value.danhmuc !== 'event') {
+  if (!isEdit.value && form.value.danhmuc !== 'birthday') {
     const base = form.value.ten
       .toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -749,9 +811,7 @@ function autoCode() {
       .trim().replace(/\s+/g, '-')
       .slice(0, 15)
 
-    if (base) {
-      form.value.code = base + '-' + Math.floor(1000 + Math.random() * 9000)
-    }
+    if (base) form.value.code = form.value.danhmuc === 'event' ? base.replace(/-/g, '') : base + '-' + Math.floor(1000 + Math.random() * 9000)
   }
 }
 
@@ -770,7 +830,7 @@ function onCategoryChange() {
     form.value.giatri = 100
     form.value.trangthai = 'running'
   } else if (form.value.danhmuc === 'birthday') {
-    form.value.loai = 'fixed'
+    form.value.loai = 'percent'
     form.value.code = 'BIRTHDAY'
     form.value.trangthai = 'open'
     form.value.ngaybatdau = ''
@@ -780,6 +840,7 @@ function onCategoryChange() {
     form.value.ngaybatdau = ''
     form.value.ngayketthuc = ''
     form.value.code = ''
+    form.value.ngay_su_kien = ''
   } else {
     form.value.trangthai = 'running'
   }
@@ -810,6 +871,21 @@ function formatDate(d) {
   return `${dd}/${mm}/${yyyy}`
 }
 
+function eventDateInputValue(eventDate) {
+  const match = String(eventDate || '').match(/^(\d{2})-(\d{2})$/)
+  if (!match) return ''
+  const today = new Date()
+  const eventThisYear = new Date(today.getFullYear(), Number(match[2]) - 1, Number(match[1]))
+  eventThisYear.setHours(23, 59, 59, 999)
+  const year = eventThisYear < today ? today.getFullYear() + 1 : today.getFullYear()
+  return `${year}-${match[2]}-${match[1]}`
+}
+
+function inputDateToEventDate(inputDate) {
+  const match = String(inputDate || '').match(/^\d{4}-(\d{2})-(\d{2})$/)
+  return match ? `${match[2]}-${match[1]}` : ''
+}
+
 function formatVND(val) {
   if (!val && val !== 0) return '';
   const numStr = String(val).replace(/\D/g, '');
@@ -827,6 +903,14 @@ function validate() {
   errors.value = {}
   if (!form.value.ten.trim()) errors.value.ten = 'Tên không được để trống.'
   if (!form.value.code.trim()) errors.value.code = 'Mã không được để trống.'
+  if (form.value.danhmuc === 'event') {
+    if (!/^[A-Z0-9_-]+$/.test(form.value.code.trim().toUpperCase())) errors.value.code = 'Mã phải là chữ in hoa không dấu.'
+    const match = form.value.ngay_su_kien.trim().match(/^(\d{2})-(\d{2})$/)
+    const day = match ? Number(match[1]) : 0
+    const month = match ? Number(match[2]) : 0
+    const validDate = match && month >= 1 && month <= 12 && day >= 1 && day <= new Date(2000, month, 0).getDate()
+    if (!validDate) errors.value.ngay_su_kien = 'Nhập ngày hợp lệ theo định dạng DD-MM, ví dụ 02-09.'
+  }
   if (form.value.giatri === '' || form.value.giatri === null)
     errors.value.giatri = 'Vui lòng nhập giá trị.'
   return Object.keys(errors.value).length === 0
@@ -858,7 +942,8 @@ function openCreateFromHoliday(h) {
   // Mã sự kiện: Ngày sự kiện (DD-MM)
   const dd = String(h.date.getDate()).padStart(2, '0')
   const mm = String(h.date.getMonth() + 1).padStart(2, '0')
-  form.value.code = `${dd}-${mm}`
+  form.value.ngay_su_kien = `${dd}-${mm}`
+  autoCode()
   
   errors.value = {}
   currentView.value = 'promo-form'
@@ -879,6 +964,7 @@ function openEdit(p) {
   form.value = {
     ...p,
     danhmuc: p.danhmuc || 'product',
+    loai: p.danhmuc === 'birthday' ? 'percent' : (p.loai || 'percent'),
     ngaybatdau: toInputDate(p.ngaybatdau),
     ngayketthuc: toInputDate(p.ngayketthuc),
     loai_dieu_kien: p.loai_dieu_kien || '>=',
@@ -907,7 +993,9 @@ async function savePromo() {
     ten: form.value.ten,
     danhmuc: form.value.danhmuc,
     code: form.value.code.toUpperCase(),
-    loai: form.value.loai,
+    ngay_su_kien: isEvent ? form.value.ngay_su_kien : null,
+    tu_dong_gui: isEvent ? Boolean(form.value.tu_dong_gui) : false,
+    loai: isBirthday ? 'percent' : form.value.loai,
     giatri: form.value.giatri,
     ngaybatdau: (isBirthday || isEvent) ? null : (form.value.ngaybatdau || null),
     ngayketthuc: (isBirthday || isEvent) ? null : (form.value.ngayketthuc || null),
@@ -924,11 +1012,11 @@ async function savePromo() {
     if (isEdit.value) {
       // PUT /api/admin/promotions/{id} — cần token admin
       await api.put(`/admin/promotions/${editId.value}`, data)
-      swal.success('Cập nhật khuyến mãi thành công!')
+      swal.success(isEvent ? 'Cập nhật chiến dịch thành công!' : 'Cập nhật khuyến mãi thành công!')
     } else {
       // POST /api/admin/promotions — cần token admin
       await api.post('/admin/promotions', data)
-      swal.success('Tạo khuyến mãi thành công!')
+      swal.success(isEvent ? 'Tạo chiến dịch thành công!' : 'Tạo khuyến mãi thành công!')
     }
 
     await fetchPromos()
@@ -944,13 +1032,17 @@ async function savePromo() {
 }
 
 async function deletePromo(id) {
-  const isConfirmed = await swal.confirm('Xác nhận xóa', 'Bạn chắc chắn muốn xóa khuyến mãi này?')
+  const isEvent = currentTab.value === 'events'
+  const isConfirmed = await swal.confirm(
+    'Xác nhận xóa',
+    isEvent ? 'Bạn chắc chắn muốn xóa chiến dịch này khỏi cơ sở dữ liệu?' : 'Bạn chắc chắn muốn xóa khuyến mãi này?'
+  )
   if (!isConfirmed) return
 
   try {
     // DELETE /api/admin/promotions/{id} — cần token admin
     await api.delete(`/admin/promotions/${id}`)
-    swal.success('Xóa khuyến mãi thành công!')
+    swal.success(isEvent ? 'Xóa chiến dịch thành công!' : 'Xóa khuyến mãi thành công!')
     await fetchPromos()
   } catch (err) {
     swal.error('Lỗi', 'Lỗi khi xóa khuyến mãi!')
@@ -1869,6 +1961,14 @@ td {
 .holiday-actions {
   margin-left: 10px;
 }
+
+.auto-send-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 126px; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 20px; background: #f8fafc; color: #64748b; font-size: 12px; font-weight: 700; cursor: pointer; }
+.auto-send-toggle.enabled { background: #ecfdf5; border-color: #86efac; color: #15803d; }
+.auto-send-toggle:disabled { opacity: .65; cursor: wait; }
+.toggle-track { width: 30px; height: 17px; padding: 2px; border-radius: 999px; background: #94a3b8; display: inline-flex; align-items: center; }
+.toggle-knob { width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform .2s ease; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.auto-send-toggle.enabled .toggle-track { background: #22c55e; }
+.auto-send-toggle.enabled .toggle-knob { transform: translateX(13px); }
 
 /* ═══ MODAL ═══ */
 .overlay {

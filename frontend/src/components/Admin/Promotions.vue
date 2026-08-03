@@ -535,7 +535,7 @@ function onCategoryChange() {
      form.value.value = 100
      form.value.status = 'running'
   } else if (form.value.category === 'birthday') {
-     form.value.type = 'fixed'
+     form.value.type = 'percent'
      form.value.code = 'BIRTHDAY'
      form.value.status = 'open'
      form.value.startDate = ''
@@ -624,7 +624,7 @@ function openEdit(p) {
     ...p,
     name: p.ten || '',
     category: p.danhmuc || 'product',
-    type: p.loai || 'percent',
+    type: p.danhmuc === 'birthday' ? 'percent' : (p.loai || 'percent'),
     value: p.giatri || '',
     startDate: toInputDate(p.startDate),
     endDate: toInputDate(p.endDate),
@@ -654,7 +654,7 @@ async function savePromo() {
     ten:            form.value.name,
     danhmuc:        form.value.category,
     code:           form.value.code.toUpperCase(),
-    loai:           form.value.type,
+    loai:           form.value.category === 'birthday' ? 'percent' : form.value.type,
     giatri:         form.value.value,
     ngaybatdau:     isBirthday ? null : (form.value.startDate || null),
     ngayketthuc:    isBirthday ? null : (form.value.endDate || null),
