@@ -15,10 +15,9 @@ import {
   Settings,
   List,
   AlertCircle,
-  Save,
   CheckSquare,
   Square,
-  Play
+  Power
 } from 'lucide-vue-next'
 
 // --- TABS CONFIG ---
@@ -38,7 +37,6 @@ const selectedHistoryStatusFilter = ref('Tất cả')
 const dateFilter = ref(new Date().toISOString().split('T')[0]) // default today
 const isScanning = ref(false)
 const isSendingBulk = ref(false)
-const isRunningAutoNow = ref(false)
 
 // stats values
 const statsTotalToday = ref(0)
@@ -58,6 +56,7 @@ const activeRowsLoading = ref({})
 const autoConfig = ref({
   enabled: true,
   scanTime: '08:30',
+  validDays: 30,
   templateId: 'tpl-bday-default',
   promoCode: '',
   promotionId: null,
@@ -65,11 +64,10 @@ const autoConfig = ref({
   autoRetry: true,
   notifyAdmin: true
 })
+const savedAutoStatus = ref({ enabled: false, scanTime: '08:30' })
 
 const emailTemplates = [
-  { id: 'tpl-bday-default', name: '[Mẫu Mặc Định] Chúc mừng sinh nhật VinaTech Premium' },
-  { id: 'tpl-bday-luxury', name: '[Mẫu Đặc Biệt] Tri ân khách hàng VIP sinh nhật vàng' },
-  { id: 'tpl-bday-simple', name: '[Mẫu Rút Gọn] Quà tặng sinh nhật thành viên mới' }
+  { id: 'tpl-bday-default', name: '[Mẫu mặc định] Chúc mừng sinh nhật NextGen' }
 ]
 
 const availablePromotions = ref([])
@@ -207,12 +205,17 @@ const fetchSettings = async () => {
       autoConfig.value = {
         enabled: !!d.enabled,
         scanTime: d.run_time || '08:30',
+        validDays: Number(d.valid_days || 30),
         templateId: d.email_template_id || 'tpl-bday-default',
         promoCode: d.promotion_code || '',
         promotionId: d.promotion_id || null,
         limitOncePerYear: !!d.send_once_per_year,
         autoRetry: !!d.retry_if_failed,
         notifyAdmin: !!d.notify_admin
+      }
+      savedAutoStatus.value = {
+        enabled: !!d.enabled,
+        scanTime: d.run_time || '08:30'
       }
 
       if (res.data.promotions && Array.isArray(res.data.promotions)) {
@@ -370,11 +373,16 @@ const sendBulk = async () => {
 }
 
 // Save Automatic Configuration
-const saveAutoConfig = async () => {
+const saveAutoConfig = async (silent = false) => {
+  if (!Number.isInteger(autoConfig.value.validDays) || autoConfig.value.validDays < 1 || autoConfig.value.validDays > 365) {
+    swal.error('Thời hạn không hợp lệ', 'Thời hạn mã sinh nhật phải từ 1 đến 365 ngày.')
+    return
+  }
   try {
     const res = await api.post('/admin/birthday-codes/settings', {
       enabled: autoConfig.value.enabled,
       run_time: autoConfig.value.scanTime,
+      valid_days: autoConfig.value.validDays,
       promotion_id: autoConfig.value.promotionId,
       email_template_id: autoConfig.value.templateId,
       send_once_per_year: autoConfig.value.limitOncePerYear,
@@ -382,7 +390,13 @@ const saveAutoConfig = async () => {
       notify_admin: autoConfig.value.notifyAdmin
     })
     if (res.data?.success) {
-      swal.success('Lưu cấu hình', 'Đã lưu thiết lập tự động quét và gửi mã sinh nhật thành công!')
+      savedAutoStatus.value = {
+        enabled: autoConfig.value.enabled,
+        scanTime: autoConfig.value.scanTime
+      }
+      if (!silent) {
+        swal.success('Lưu cấu hình', 'Đã lưu thiết lập tự động quét và gửi mã sinh nhật thành công!')
+      }
     }
   } catch (err) {
     console.error(err)
@@ -390,48 +404,9 @@ const saveAutoConfig = async () => {
   }
 }
 
-// Run Automatic Flow Instantly (For testing)
-const runAutoNow = async () => {
-  if (!autoConfig.value.promotionId) {
-    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trước khi chạy tự động.', 'warning')
-    return
-  }
-
-  const isConfirmed = await swal.confirm(
-    'Xác nhận chạy quét',
-    'Bạn có chắc muốn chạy quét và gửi mã sinh nhật tự động ngay bây giờ không?'
-  )
-  if (!isConfirmed) return
-
-  isRunningAutoNow.value = true
-  try {
-    const res = await api.post('/admin/birthday-codes/run-auto-now', {
-      date: dateFilter.value,
-      force: true,
-      promotion_id: autoConfig.value.promotionId
-    })
-    if (res.data?.success) {
-      const result = res.data.data
-      if (res.data.message === 'Không có khách hàng sinh nhật trong ngày được chọn.') {
-        swal.toast(res.data.message, 'info')
-      } else {
-        swal.success(
-          'Thành công',
-          `Đã quét xong: tìm thấy ${result.total_birthdays} khách sinh nhật, gửi thành công ${result.sent}, lỗi ${result.failed}, bỏ qua ${result.skipped} khách đã nhận mã.`
-        )
-      }
-      await fetchBirthdays()
-      await fetchHistory()
-    } else {
-      swal.error('Lỗi', res.data?.message || 'Không thể chạy tự động.')
-    }
-  } catch (err) {
-    console.error(err)
-    const errorMsg = err.response?.data?.message || err.message || 'Lỗi hệ thống.'
-    swal.error('Lỗi', `Lỗi khi chạy quét tự động: ${errorMsg}`)
-  } finally {
-    isRunningAutoNow.value = false
-  }
+const toggleAutoConfig = async () => {
+  autoConfig.value.enabled = !autoConfig.value.enabled
+  await saveAutoConfig(true)
 }
 
 // Show Error Log Details
@@ -598,9 +573,9 @@ onMounted(async () => {
               </div>
 
               <div class="birthday-promo-select">
-                <span class="filter-label">Mã sinh nhật:</span>
+                <span class="filter-label">Chương trình sinh nhật:</span>
                 <select v-model="autoConfig.promotionId" class="styled-select promo-select">
-                  <option :value="null" disabled>Chọn mã khuyến mãi</option>
+                  <option :value="null" disabled>Chọn chương trình sinh nhật</option>
                   <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
                     {{ promo.name }}
                   </option>
@@ -617,9 +592,14 @@ onMounted(async () => {
                 <RefreshCw :class="['btn-icon', isScanning && 'spin-icon']" />
                 <span>{{ isScanning ? 'Đang quét...' : 'Quét sinh nhật' }}</span>
               </button>
-              <button class="btn-action btn-secondary" @click="runAutoNow" :disabled="isRunningAutoNow">
-                <Play :class="['btn-icon', isRunningAutoNow && 'spin-icon']" />
-                <span>{{ isRunningAutoNow ? 'Đang chạy...' : 'Chạy tự động gửi mã' }}</span>
+              <button
+                class="btn-action auto-status-button"
+                :class="savedAutoStatus.enabled ? 'is-enabled' : 'is-disabled'"
+                @click="activeTab = 'config'"
+                title="Mở cấu hình gửi mã tự động"
+              >
+                <Settings class="btn-icon" />
+                <span>{{ savedAutoStatus.enabled ? `Tự động bật · ${savedAutoStatus.scanTime}` : 'Tự động đang tắt' }}</span>
               </button>
               <button class="btn-action btn-primary" @click="sendBulk" :disabled="isSendingBulk || selectedIds.length === 0">
                 <Send class="btn-icon" />
@@ -895,6 +875,7 @@ onMounted(async () => {
                       id="auto-toggle"
                       v-model="autoConfig.enabled"
                       class="toggle-checkbox"
+                      @change="saveAutoConfig(true)"
                     />
                     <label for="auto-toggle" class="toggle-label"></label>
                   </div>
@@ -908,8 +889,26 @@ onMounted(async () => {
                     v-model="autoConfig.scanTime"
                     class="styled-time-input"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   />
                   <p class="form-help-text">Khuyên dùng: Các giờ sáng sớm để khách hàng nhận mã ngay đầu ngày sinh nhật.</p>
+                </div>
+
+                <div class="form-group">
+                  <label class="bold-label">Thời hạn sử dụng mã sinh nhật</label>
+                  <div class="validity-input-wrap">
+                    <input
+                      v-model.number="autoConfig.validDays"
+                      type="number"
+                      min="1"
+                      max="365"
+                      class="styled-time-input"
+                      :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
+                    />
+                    <strong>ngày kể từ lúc gửi</strong>
+                  </div>
+                  <p class="form-help-text">Mỗi mã được cấp riêng cho một khách hàng, hết hạn sau thời gian trên và chỉ sử dụng được 1 lần.</p>
                 </div>
 
                 <!-- Select Template -->
@@ -919,6 +918,7 @@ onMounted(async () => {
                     v-model="autoConfig.templateId"
                     class="styled-select-full"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   >
                     <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
                       {{ tpl.name }}
@@ -928,11 +928,12 @@ onMounted(async () => {
 
                 <!-- Select Active Birthday Promo Code -->
                 <div class="form-group">
-                  <label class="bold-label">Mã khuyến mãi sinh nhật liên kết</label>
+                  <label class="bold-label">Chương trình khuyến mãi sinh nhật liên kết</label>
                   <select
                     v-model="autoConfig.promotionId"
                     class="styled-select-full"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   >
                     <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
                       {{ promo.name }}
@@ -961,6 +962,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.limitOncePerYear"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Giới hạn chỉ gửi 1 lần / năm / khách hàng</span>
@@ -974,6 +976,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.autoRetry"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Tự động gửi lại nếu xảy ra lỗi kết nối</span>
@@ -987,6 +990,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.notifyAdmin"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Gửi báo cáo tổng hợp cho Admin hằng ngày</span>
@@ -996,24 +1000,17 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- Save button footer inside the card -->
+              <!-- Automatic controls -->
               <div class="config-save-footer" style="display: flex; gap: 12px; width: 100%;">
-                <button 
-                  class="btn-action btn-secondary" 
-                  style="flex: 1; justify-content: center;"
-                  :disabled="isRunningAutoNow" 
-                  @click="runAutoNow"
+                <button
+                  type="button"
+                  class="btn-action auto-config-toggle-button"
+                  :class="autoConfig.enabled ? 'is-enabled' : 'is-disabled'"
+                  :aria-pressed="autoConfig.enabled"
+                  @click="toggleAutoConfig"
                 >
-                  <Play class="btn-icon" />
-                  <span>{{ isRunningAutoNow ? 'Đang chạy...' : 'Chạy quét tự động ngay' }}</span>
-                </button>
-                <button 
-                  class="btn-action btn-primary" 
-                  style="flex: 1; justify-content: center;"
-                  @click="saveAutoConfig"
-                >
-                  <Save class="btn-icon" />
-                  <span>Lưu cấu hình tự động</span>
+                  <Power class="btn-icon" />
+                  <span>{{ autoConfig.enabled ? 'Quét tự động: Đang bật' : 'Quét tự động: Đang tắt' }}</span>
                 </button>
               </div>
             </div>
@@ -1480,6 +1477,50 @@ onMounted(async () => {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.validity-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.validity-input-wrap input { width: 120px; }
+.validity-input-wrap strong { color: #334155; font-size: 12px; }
+
+.auto-status-button {
+  min-width: 166px;
+  justify-content: center;
+  border: 1px solid transparent;
+}
+
+.auto-status-button.is-enabled {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #047857;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, .32);
+}
+
+.auto-status-button.is-enabled:hover:not(:disabled) {
+  background: linear-gradient(135deg, #047857, #065f46);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(5, 150, 105, .4);
+}
+
+.auto-status-button.is-disabled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, .28);
+}
+
+.auto-status-button.is-disabled:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border-color: #991b1b;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, .38);
+}
+
+.auto-status-button .btn-icon { flex: 0 0 auto; }
 
 .btn-primary {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -2166,5 +2207,42 @@ onMounted(async () => {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid #f1f5f9;
+}
+
+.auto-config-toggle-button {
+  flex: 1;
+  justify-content: center;
+  color: #ffffff;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+}
+
+.auto-config-toggle-button.is-enabled {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #047857;
+}
+
+.auto-config-toggle-button.is-enabled:hover {
+  background: linear-gradient(135deg, #047857, #065f46);
+}
+
+.auto-config-toggle-button.is-disabled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #b91c1c;
+}
+
+.auto-config-toggle-button.is-disabled:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+@media (max-width: 1100px) {
+  .config-save-footer {
+    flex-wrap: wrap;
+  }
+
+  .config-save-footer > .btn-action {
+    min-width: 220px;
+  }
 }
 </style>

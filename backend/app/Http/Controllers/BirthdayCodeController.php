@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Promotion;
 use App\Models\BirthdayCouponLog;
-use App\Models\BirthdayCouponSetting;
+use App\Models\Promotion;
+use App\Models\User;
 use App\Services\BirthdayCouponService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class BirthdayCodeController extends Controller
 {
@@ -32,12 +31,15 @@ class BirthdayCodeController extends Controller
 
         // 1. Query users having birthday on this day and month
         $usersQuery = User::whereMonth('ngaysinh', $targetDate->month)
-            ->whereDay('ngaysinh', $targetDate->day);
+            ->whereDay('ngaysinh', $targetDate->day)
+            ->where('vaitro', 'user')
+            ->where('trangthai', '!=', 'locked')
+            ->whereNotNull('email');
 
-        if (!empty($keyword)) {
+        if (! empty($keyword)) {
             $usersQuery->where(function ($q) use ($keyword) {
                 $q->where('ten', 'like', "%{$keyword}%")
-                  ->orWhere('email', 'like', "%{$keyword}%");
+                    ->orWhere('email', 'like', "%{$keyword}%");
             });
         }
 
@@ -74,8 +76,11 @@ class BirthdayCodeController extends Controller
                 'email' => $user->email,
                 'dob' => $user->ngaysinh ? Carbon::parse($user->ngaysinh)->format('d/m/Y') : '—',
                 'mavoucher' => $log->mavoucher ?? $defaultCode,
+                'code' => $log->mavoucher ?? $defaultCode,
                 'id_voucher' => $log->id_voucher ?? ($settings->id_voucher ?? null),
+                'promotion_id' => $log->id_voucher ?? ($settings->id_voucher ?? null),
                 'trangthai' => $userStatus,
+                'status' => $userStatus,
                 'guiluc' => $sentTime,
                 'thongbaoloi' => $errorLog,
             ];
@@ -96,7 +101,7 @@ class BirthdayCodeController extends Controller
                 'sent' => $data->where('trangthai', 'Đã gửi')->count(),
                 'unsent' => $data->where('trangthai', 'Chưa gửi')->count(),
                 'failed' => $data->where('trangthai', 'Gửi lỗi')->count(),
-            ]
+            ],
         ]);
     }
 
@@ -129,21 +134,21 @@ class BirthdayCodeController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:khachhang,id',
-            'id_voucher' => 'nullable|integer|exists:vouchers,id',
+            'promotion_id' => 'nullable|integer|exists:vouchers,id',
             'voucher_code' => 'nullable|string',
         ]);
 
         $userId = $request->input('user_id');
         $user = User::findOrFail($userId);
 
-        $voucherId = $request->input('id_voucher');
+        $voucherId = $request->input('promotion_id');
         if ($voucherId) {
-            $promotion = Promotion::find($voucherId);
+            $promotion = Promotion::where('id', $voucherId)->where('danhmuc', 'birthday')->first();
         } else {
             $promotion = $service->getBirthdayPromotion();
         }
 
-        if (!$promotion) {
+        if (! $promotion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vui lòng chọn mã khuyến mãi sinh nhật trước khi gửi.',
@@ -155,20 +160,20 @@ class BirthdayCodeController extends Controller
         if ($res['status'] === 'skipped') {
             return response()->json([
                 'success' => false,
-                'message' => 'Khách hàng ' . $user->ten . ' đã nhận mã giảm giá sinh nhật trong năm nay!',
+                'message' => 'Khách hàng '.$user->ten.' đã nhận mã giảm giá sinh nhật trong năm nay!',
             ], 422);
         }
 
         if ($res['success']) {
             return response()->json([
                 'success' => true,
-                'message' => 'Gửi email sinh nhật cho khách hàng ' . $user->ten . ' thành công!',
+                'message' => 'Gửi email sinh nhật cho khách hàng '.$user->ten.' thành công!',
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Lỗi khi gửi email: ' . ($res['error'] ?? 'Unknown error'),
+            'message' => 'Lỗi khi gửi email: '.($res['error'] ?? 'Unknown error'),
         ], 500);
     }
 
@@ -183,7 +188,7 @@ class BirthdayCodeController extends Controller
             'user_ids.*' => 'exists:khachhang,id',
             'user_promotions' => 'nullable|array',
             'user_promotions.*.user_id' => 'required|exists:khachhang,id',
-            'user_promotions.*.id_voucher' => 'required|exists:vouchers,id',
+            'user_promotions.*.promotion_id' => 'required|exists:vouchers,id',
         ]);
 
         $results = [
@@ -195,7 +200,7 @@ class BirthdayCodeController extends Controller
         if ($request->has('user_promotions')) {
             foreach ($request->input('user_promotions') as $item) {
                 $user = User::find($item['user_id']);
-                $promotion = Promotion::find($item['id_voucher']);
+                $promotion = Promotion::where('id', $item['promotion_id'])->where('danhmuc', 'birthday')->first();
                 if ($user && $promotion) {
                     $res = $service->sendBirthdayCouponToUser($user, $promotion);
                     $results[$res['status']]++;
@@ -205,7 +210,7 @@ class BirthdayCodeController extends Controller
             }
         } else {
             $promotion = $service->getBirthdayPromotion();
-            if (!$promotion) {
+            if (! $promotion) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vui lòng chọn mã khuyến mãi sinh nhật trước khi gửi.',
@@ -218,7 +223,7 @@ class BirthdayCodeController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Hoàn thành gửi mã sinh nhật! Đã gửi: {$results['sent']}, lỗi: {$results['failed']}, bỏ qua (đã nhận trước đó): {$results['skipped']}",
-            'data' => $results
+            'data' => $results,
         ]);
     }
 
@@ -230,20 +235,20 @@ class BirthdayCodeController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:khachhang,id',
-            'id_voucher' => 'nullable|integer|exists:vouchers,id',
+            'promotion_id' => 'nullable|integer|exists:vouchers,id',
         ]);
 
         $userId = $request->input('user_id');
         $user = User::findOrFail($userId);
 
-        $voucherId = $request->input('id_voucher');
+        $voucherId = $request->input('promotion_id');
         if ($voucherId) {
-            $promotion = Promotion::find($voucherId);
+            $promotion = Promotion::where('id', $voucherId)->where('danhmuc', 'birthday')->first();
         } else {
             $promotion = $service->getBirthdayPromotion();
         }
 
-        if (!$promotion) {
+        if (! $promotion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vui lòng chọn mã khuyến mãi sinh nhật trước khi gửi.',
@@ -255,13 +260,13 @@ class BirthdayCodeController extends Controller
         if ($res['success']) {
             return response()->json([
                 'success' => true,
-                'message' => 'Gửi lại email mã sinh nhật cho khách hàng ' . $user->ten . ' thành công!',
+                'message' => 'Gửi lại email mã sinh nhật cho khách hàng '.$user->ten.' thành công!',
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Gửi lại email thất bại: ' . ($res['error'] ?? 'Unknown error'),
+            'message' => 'Gửi lại email thất bại: '.($res['error'] ?? 'Unknown error'),
         ], 500);
     }
 
@@ -271,10 +276,14 @@ class BirthdayCodeController extends Controller
      */
     public function runAutoNow(Request $request, BirthdayCouponService $service)
     {
+        $request->validate([
+            'date' => ['required', 'date'],
+            'promotion_id' => ['required', 'integer', 'exists:vouchers,id'],
+        ]);
         $date = $request->input('date', Carbon::today()->toDateString());
         $force = $request->boolean('force', true);
 
-        $result = $service->runAutomaticBirthdayCoupons($date, $force);
+        $result = $service->runAutomaticBirthdayCoupons($date, $force, $request->integer('promotion_id'));
 
         if (isset($result['success']) && $result['success'] === false) {
             return response()->json([
@@ -292,7 +301,7 @@ class BirthdayCodeController extends Controller
                     'sent' => 0,
                     'failed' => 0,
                     'skipped' => 0,
-                ]
+                ],
             ]);
         }
 
@@ -304,7 +313,7 @@ class BirthdayCodeController extends Controller
                 'sent' => $result['sent'] ?? 0,
                 'failed' => $result['failed'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
-            ]
+            ],
         ]);
     }
 
@@ -319,13 +328,13 @@ class BirthdayCodeController extends Controller
 
         $query = BirthdayCouponLog::orderBy('id', 'desc');
 
-        if (!empty($keyword)) {
+        if (! empty($keyword)) {
             $query->where(function ($q) use ($keyword) {
                 $q->where('email', 'like', "%{$keyword}%")
-                  ->orWhere('mavoucher', 'like', "%{$keyword}%")
-                  ->orWhereHas('user', function ($uq) use ($keyword) {
-                      $uq->where('ten', 'like', "%{$keyword}%");
-                  });
+                    ->orWhere('mavoucher', 'like', "%{$keyword}%")
+                    ->orWhereHas('user', function ($uq) use ($keyword) {
+                        $uq->where('ten', 'like', "%{$keyword}%");
+                    });
             });
         }
 
@@ -340,9 +349,11 @@ class BirthdayCodeController extends Controller
                 'name' => $log->user ? $log->user->ten : 'N/A',
                 'email' => $log->email,
                 'mavoucher' => $log->mavoucher,
+                'code' => $log->mavoucher,
                 'ngaysinh' => $log->ngaysinh ? Carbon::parse($log->ngaysinh)->format('d/m/Y') : '—',
                 'guiluc' => $log->guiluc ? $log->guiluc->format('d/m/Y H:i') : '—',
                 'trangthai' => $log->trangthai === 'sent' ? 'Đã gửi' : 'Gửi lỗi',
+                'status' => $log->trangthai === 'sent' ? 'Đã gửi' : 'Gửi lỗi',
                 'thongbaoloi' => $log->thongbaoloi ?? '',
             ];
         });
@@ -363,15 +374,28 @@ class BirthdayCodeController extends Controller
         // Load active birthday promotions
         $promotions = Promotion::where('danhmuc', 'birthday')
             ->whereIn('trangthai', ['running', 'open'])
-            ->where(function($q) {
+            ->where(function ($q) {
+                $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now()->toDateString());
+            })
+            ->where(function ($q) {
                 $q->whereNull('ngayketthuc')
-                  ->orWhere('ngayketthuc', '>=', now()->toDateString());
+                    ->orWhere('ngayketthuc', '>=', now()->toDateString());
             })
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $settings,
+            'data' => [
+                'enabled' => (bool) $settings->kichhoat,
+                'run_time' => substr((string) $settings->giochay, 0, 5),
+                'valid_days' => (int) ($settings->thoi_han_ngay ?: 30),
+                'promotion_id' => $settings->id_voucher,
+                'promotion_code' => $settings->mavoucher,
+                'email_template_id' => $settings->id_mau_email,
+                'send_once_per_year' => (bool) $settings->gui_mot_lan_moi_nam,
+                'retry_if_failed' => (bool) $settings->thu_lai_khi_that_bai,
+                'notify_admin' => (bool) $settings->thongbao_admin,
+            ],
             'promotions' => $promotions,
         ]);
     }
@@ -383,33 +407,38 @@ class BirthdayCodeController extends Controller
     public function saveSettingsApi(Request $request, BirthdayCouponService $service)
     {
         $request->validate([
-            'kichhoat' => 'required|boolean',
-            'giochay' => 'required|string',
-            'id_voucher' => 'nullable|integer|exists:vouchers,id',
-            'id_mau_email' => 'nullable|string',
-            'gui_mot_lan_moi_nam' => 'required|boolean',
-            'thu_lai_khi_that_bai' => 'required|boolean',
-            'thongbao_admin' => 'required|boolean',
+            'enabled' => 'required|boolean',
+            'run_time' => 'required|date_format:H:i',
+            'valid_days' => 'required|integer|min:1|max:365',
+            'promotion_id' => 'nullable|integer|exists:vouchers,id',
+            'email_template_id' => 'nullable|string|max:100',
+            'send_once_per_year' => 'required|boolean',
+            'retry_if_failed' => 'required|boolean',
+            'notify_admin' => 'required|boolean',
         ]);
 
         $promoCode = null;
-        if ($request->id_voucher) {
-            $promo = Promotion::find($request->id_voucher);
+        if ($request->promotion_id) {
+            $promo = Promotion::where('id', $request->promotion_id)->where('danhmuc', 'birthday')->first();
             if ($promo) {
                 $promoCode = $promo->code;
             }
         }
+        if ($request->boolean('enabled') && ! $promoCode) {
+            return response()->json(['success' => false, 'message' => 'Mã được chọn không phải mã khuyến mãi sinh nhật hợp lệ.'], 422);
+        }
 
         $settings = $service->getSettings();
         $settings->update([
-            'kichhoat' => $request->kichhoat,
-            'giochay' => $request->giochay,
-            'id_voucher' => $request->id_voucher,
+            'kichhoat' => $request->boolean('enabled'),
+            'giochay' => $request->run_time,
+            'thoi_han_ngay' => $request->integer('valid_days'),
+            'id_voucher' => $request->promotion_id,
             'mavoucher' => $promoCode, // auto sync
-            'id_mau_email' => $request->id_mau_email,
-            'gui_mot_lan_moi_nam' => $request->gui_mot_lan_moi_nam,
-            'thu_lai_khi_that_bai' => $request->thu_lai_khi_that_bai,
-            'thongbao_admin' => $request->thongbao_admin,
+            'id_mau_email' => $request->email_template_id,
+            'gui_mot_lan_moi_nam' => $request->boolean('send_once_per_year'),
+            'thu_lai_khi_that_bai' => $request->boolean('retry_if_failed'),
+            'thongbao_admin' => $request->boolean('notify_admin'),
         ]);
 
         return response()->json([

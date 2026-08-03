@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\CheckoutThrottle;
+use App\Http\Middleware\UpdateAdminActivity;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,16 +21,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(append: [
-            \App\Http\Middleware\UpdateAdminActivity::class,
+            UpdateAdminActivity::class,
         ]);
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
-            'update_admin_activity' => \App\Http\Middleware\UpdateAdminActivity::class,
-            'checkout.throttle' => \App\Http\Middleware\CheckoutThrottle::class,
+            'admin' => AdminMiddleware::class,
+            'update_admin_activity' => UpdateAdminActivity::class,
+            'checkout.throttle' => CheckoutThrottle::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->command('birthdays:send-coupons')->everyMinute();
+        $schedule->command('birthdays:send-coupons')->everyMinute()->withoutOverlapping();
         $schedule->command('orders:sync-demo-shipments')->everyMinute()->withoutOverlapping();
         $schedule->command('orders:expire-pending-payments')->everyMinute()->withoutOverlapping();
         $schedule->command('cart:clean-expired')->hourly();
