@@ -28,6 +28,24 @@ const router = useRouter()
 const route = useRoute()
 
 const rawProductsList = ref([])
+
+watch(rawProductsList, (newList) => {
+  if (newList) {
+    newList.forEach(p => {
+      if (p._randomWeight === undefined) {
+        p._randomWeight = Math.random()
+      }
+      if (Array.isArray(p.bien_thes)) {
+        p.bien_thes.forEach(v => {
+          if (v._randomWeight === undefined) {
+            v._randomWeight = Math.random()
+          }
+        })
+      }
+    })
+  }
+}, { immediate: true })
+
 const isLoading = ref(true)
 const activeLine = ref('all')
 const activeSort = ref('popular')
@@ -231,6 +249,8 @@ const normalizeVariant = (p, variant) => {
   const cpuSpec = specs.find(s => /i[3579][-\s]|ryzen|core ultra|xeon|m[1-4]|celeron|pentium/i.test(s)) || ''
   const ramSpec = specs.find(s => /\d+gb.*ram|ram.*\d+gb|\d+gb(?!.*ssd|.*nvme|.*storage)/i.test(s)) || ''
 
+  const weight = variant?._randomWeight !== undefined ? variant._randomWeight : (p._randomWeight || Math.random())
+
   return {
     id_sanpham: p.id_sanpham,
     id_bienthe: variant?.id_bienthe,
@@ -245,6 +265,7 @@ const normalizeVariant = (p, variant) => {
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
     rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
     reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
+    _randomWeight: weight
   }
 }
 
@@ -354,7 +375,11 @@ const loadProducts = async () => {
   }
 }
 
-const canonicalText = (value) => String(value || '').toLowerCase()
+const canonicalText = (value) => String(value || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
 
 const lineMatcher = (product, line = activeLine.value) => {
   const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
@@ -413,7 +438,7 @@ const filteredProducts = computed(() => {
   if (activeSort.value === 'price_asc') list = list.sort((a, b) => a.gia - b.gia)
   if (activeSort.value === 'newest') list = list.sort((a, b) => b.id_sanpham - a.id_sanpham)
   if (activeSort.value === 'rating') list = list.sort((a, b) => b.rating - a.rating)
-  if (activeSort.value === 'popular') list = list.sort((a, b) => b.reviews - a.reviews)
+  if (activeSort.value === 'popular') list = list.sort((a, b) => a._randomWeight - b._randomWeight)
   return list
 })
 
@@ -559,8 +584,42 @@ const scrollToCatalog = () => {
 
 watch(() => route.fullPath, () => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
+  if (line && activeLinesList.value.some(item => item.key === line)) {
+    activeLine.value = line
+  } else {
+    activeLine.value = 'all'
+  }
   searchQuery.value = route.query.q ? String(route.query.q) : ''
+  
+  if (route.query.brand) {
+    const queryBrand = String(route.query.brand).toLowerCase()
+    const brandsMapping = {
+      asus: 'Asus',
+      apple: 'Apple',
+      lenovo: 'Lenovo',
+      dell: 'Dell',
+      msi: 'MSI',
+      acer: 'Acer',
+      hp: 'HP',
+      gigabyte: 'Gigabyte',
+      lg: 'LG',
+      logitech: 'Logitech',
+      razer: 'Razer',
+      akko: 'Akko',
+      keychron: 'Keychron',
+      dareu: 'DareU',
+      steelseries: 'SteelSeries',
+      hyperx: 'HyperX',
+      samsung: 'Samsung',
+      kingston: 'Kingston',
+      crucial: 'Crucial'
+    }
+    const matched = brandsMapping[queryBrand]
+    selectedBrands.value = matched ? [matched] : [route.query.brand.charAt(0).toUpperCase() + route.query.brand.slice(1)]
+  } else {
+    selectedBrands.value = []
+  }
+  
   if (route.query.scroll === 'catalog') {
     scrollToCatalog()
   }
@@ -581,8 +640,42 @@ watch(filteredProducts, () => {
 
 onMounted(() => {
   const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) activeLine.value = line
+  if (line && activeLinesList.value.some(item => item.key === line)) {
+    activeLine.value = line
+  } else {
+    activeLine.value = 'all'
+  }
   searchQuery.value = route.query.q ? String(route.query.q) : ''
+  
+  if (route.query.brand) {
+    const queryBrand = String(route.query.brand).toLowerCase()
+    const brandsMapping = {
+      asus: 'Asus',
+      apple: 'Apple',
+      lenovo: 'Lenovo',
+      dell: 'Dell',
+      msi: 'MSI',
+      acer: 'Acer',
+      hp: 'HP',
+      gigabyte: 'Gigabyte',
+      lg: 'LG',
+      logitech: 'Logitech',
+      razer: 'Razer',
+      akko: 'Akko',
+      keychron: 'Keychron',
+      dareu: 'DareU',
+      steelseries: 'SteelSeries',
+      hyperx: 'HyperX',
+      samsung: 'Samsung',
+      kingston: 'Kingston',
+      crucial: 'Crucial'
+    }
+    const matched = brandsMapping[queryBrand]
+    selectedBrands.value = matched ? [matched] : [route.query.brand.charAt(0).toUpperCase() + route.query.brand.slice(1)]
+  } else {
+    selectedBrands.value = []
+  }
+  
   loadProducts()
   if (route.query.scroll === 'catalog') {
     scrollToCatalog()

@@ -73,28 +73,28 @@ const megaMenuData = reactive({
       {
         title: 'Dòng laptop', icon: '🎮',
         items: [
-          { label: 'Laptop Gaming RTX', badge: 'HOT', q: 'gaming rtx' },
-          { label: 'MacBook Pro & Air', badge: 'NEW', q: 'macbook apple' },
-          { label: 'Laptop văn phòng', badge: '', q: 'laptop van phong' },
-          { label: 'Laptop học tập', badge: '', q: 'laptop sinh vien' },
+          { label: 'Laptop Gaming RTX', badge: 'HOT', line: 'gaming' },
+          { label: 'MacBook Pro & Air', badge: 'NEW', line: 'macbook' },
+          { label: 'Laptop văn phòng', badge: '', line: 'office' },
+          { label: 'Laptop học tập', badge: '', line: 'student' },
         ]
       },
       {
         title: 'Thương hiệu', icon: '🏷️',
         items: [
-          { label: 'ASUS ROG', badge: '', q: 'ASUS ROG' },
-          { label: 'Apple MacBook', badge: 'PRO', q: 'MacBook' },
-          { label: 'Lenovo Legion', badge: 'HOT', q: 'Lenovo Legion' },
-          { label: 'Dell Gaming', badge: '', q: 'Dell Gaming' },
+          { label: 'ASUS ROG', badge: '', brand: 'Asus', q: 'ROG' },
+          { label: 'Apple MacBook', badge: 'PRO', brand: 'Apple' },
+          { label: 'Lenovo Legion', badge: 'HOT', brand: 'Lenovo', q: 'Legion' },
+          { label: 'Dell Gaming', badge: '', brand: 'Dell', q: 'Gaming' },
         ]
       },
       {
         title: 'Nhu cầu', icon: '💰',
         items: [
           { label: 'Workstation đồ họa', badge: 'PRO', q: 'workstation' },
-          { label: 'Laptop AI PC', badge: 'NEW', q: 'AI PC' },
-          { label: 'Phụ kiện laptop', badge: '', q: 'phu kien laptop' },
-          { label: 'Flagship Premium', badge: 'PRO', q: 'flagship premium' },
+          { label: 'Laptop AI PC', badge: 'NEW', q: 'AI' },
+          { label: 'Phụ kiện laptop', badge: '', line: 'accessory' },
+          { label: 'Flagship Premium', badge: 'PRO', q: 'premium' },
         ]
       },
     ],
@@ -187,19 +187,19 @@ const megaMenuData = reactive({
       {
         title: 'Loại phụ kiện', icon: '🖱️',
         items: [
-          { label: 'Chuột', badge: 'HOT', q: 'Chuột' },
-          { label: 'Bàn phím', badge: 'NEW', q: 'Bàn phím' },
-          { label: 'Tai nghe', badge: '', q: 'Tai nghe' },
-          { label: 'Lót chuột', badge: '', q: 'Lót chuột' },
+          { label: 'Chuột', badge: 'HOT', line: 'mouse' },
+          { label: 'Bàn phím', badge: 'NEW', line: 'keyboard' },
+          { label: 'Tai nghe', badge: '', line: 'headphone' },
+          { label: 'Lót chuột', badge: '', line: 'pad' },
         ]
       },
       {
         title: 'Thương hiệu', icon: '🏷️',
         items: [
-          { label: 'Logitech', badge: '', q: 'Logitech' },
-          { label: 'Razer', badge: 'PRO', q: 'Razer' },
-          { label: 'Akko / DareU', badge: '', q: 'Akko DareU' },
-          { label: 'Corsair / HyperX', badge: '', q: 'Corsair HyperX' },
+          { label: 'Logitech', badge: '', brand: 'Logitech' },
+          { label: 'Razer', badge: 'PRO', brand: 'Razer' },
+          { label: 'Akko / DareU', badge: '', brand: 'Akko' },
+          { label: 'Corsair / HyperX', badge: '', brand: 'HyperX' },
         ]
       },
     ],
@@ -564,10 +564,20 @@ try {
   }
 }
 
-const navToMegaItem = (key, keyword) => {
+const navToMegaItem = (key, item) => {
   activeMegaMenu.value = null
+  
+  // Backward compatibility check
+  const it = typeof item === 'string' ? { q: item } : item
+  
+  const query = {}
+  if (it.line) query.line = it.line
+  if (it.brand) query.brand = it.brand
+  if (it.q) query.q = it.q
+
   if (key === 'sale') {
-    const normalizedKeyword = normalizeIconText(keyword)
+    const qValue = it.q || ''
+    const normalizedKeyword = normalizeIconText(qValue)
     const section = normalizedKeyword.includes('combo')
       ? 'combo-offers'
       : normalizedKeyword.includes('tra gop')
@@ -577,27 +587,27 @@ const navToMegaItem = (key, keyword) => {
           : 'discount-grid'
     router.push({
       path: '/khuyen-mai',
-      query: { ...(keyword ? { q: keyword } : {}), section }
+      query: { ...(qValue ? { q: qValue } : {}), section }
     })
     return
   }
   if (key === 'laptop') {
-    router.push({ path: '/laptop', query: keyword ? { q: keyword } : {} })
+    router.push({ path: '/laptop', query })
     return
   }
   if (key === 'phu-kien') {
-    router.push({ path: '/phu-kien', query: keyword ? { q: keyword } : {} })
+    router.push({ path: '/phu-kien', query })
     return
   }
   if (key === 'gaming') {
-    router.push({ path: '/laptop', query: keyword ? { line: 'gaming', q: keyword } : { line: 'gaming' } })
+    router.push({ path: '/laptop', query: { line: 'gaming', ...query } })
     return
   }
   if (key === 'macbook') {
-    router.push({ path: '/macbook', query: keyword ? { q: keyword } : {} })
+    router.push({ path: '/laptop', query: { line: 'macbook', ...query } })
     return
   }
-  router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key, q: keyword } })
+  router.push({ path: '/laptop', query: { category: menuCategoryMap[key] || key, ...query } })
 }
 
 const mobileMenuTarget = (key) => {
@@ -1037,13 +1047,14 @@ const openLuckyWheelMobile = () => {
           v-for="(menu, key) in visibleMegaMenuData"
           :key="key"
           class="mega-nav-item"
+          @mouseenter="openMega(key)"
           @mouseleave="closeMega"
         >
           <button
             class="nav-btn"
             :class="{ active: activeMegaMenu === key, current: isMenuCurrent(key) }"
             :aria-expanded="activeMegaMenu === key"
-            @click.stop="toggleMega(key)"
+            @click="navToCategory(key)"
           >
             {{ menu.label }}
             <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1088,7 +1099,7 @@ const openLuckyWheelMobile = () => {
                       <a
                         href="#"
                         class="mega-link"
-                        @click.prevent="navToMegaItem(key, it.q)"
+                        @click.prevent="navToMegaItem(key, it)"
                       >
                         <span
                           v-if="megaBrandLogo(it.label)"
