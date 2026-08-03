@@ -20,6 +20,8 @@ class Promotion extends Model
         'ten',
         'danhmuc',
         'code',
+        'ngay_su_kien',
+        'tu_dong_gui',
         'loai',
         'giatri',
         'ngaybatdau',
@@ -31,6 +33,10 @@ class Promotion extends Model
         'congkhai',
         'dieu_kien_tang',
         'so_luong_phat',
+    ];
+
+    protected $casts = [
+        'tu_dong_gui' => 'boolean',
     ];
 
     public $timestamps = false;

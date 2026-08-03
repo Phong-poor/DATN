@@ -422,11 +422,15 @@ const allVouchers = computed(() => {
   }
 
   return list.filter(v => {
-    // 0. Ẩn voucher nhận có điều kiện (is_public = 0)
-    if (v.is_public === 0 || v.is_public === '0' || v.is_public === false) return false
+    // 0. Ẩn voucher không công khai (hỗ trợ cả tên trường cũ và tên trường API hiện tại)
+    if (
+      v.congkhai === 0 || v.congkhai === '0' || v.congkhai === false ||
+      v.is_public === 0 || v.is_public === '0' || v.is_public === false
+    ) return false
 
     // 1. Tuyệt đối không hiện voucher sinh nhật
-    if (v.category === 'birthday') return false
+    const voucherCategory = String(v.danhmuc ?? v.category ?? '').trim().toLowerCase()
+    if (voucherCategory === 'birthday') return false
 
     // 2. Voucher phải còn hạn
     if (!isVoucherValid(v) || !isVoucherStarted(v)) return false

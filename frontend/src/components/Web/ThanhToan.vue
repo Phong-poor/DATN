@@ -658,7 +658,10 @@ const fetchVouchers = async () => {
         if (token) {
             const res = await api.get('/user/vouchers')
             if (res.data && res.data.vouchers) {
-                rawPromos = res.data.vouchers.map(v => v.promotion).filter(Boolean)
+                rawPromos = res.data.vouchers
+                    .filter(v => Number(v.trang_thai) === 0)
+                    .map(v => v.promotion)
+                    .filter(Boolean)
             }
         } else {
             const res = await api.get('/promotions')
@@ -693,7 +696,9 @@ const validPromos = computed(() => {
 })
 
 const discountPromosList = computed(() => validPromos.value.filter(p => {
-    if (p.category !== 'product') return false
+    // Mã sinh nhật không công khai, nhưng được phép hiện tại đây khi
+    // API /user/vouchers xác nhận mã đã được cấp cho chính người dùng.
+    if (p.category !== 'product' && p.category !== 'birthday') return false
     if (p.dieu_kien > 0) {
         const dk = Number(p.dieu_kien)
         if (subtotal.value < dk) return false
@@ -1275,10 +1280,10 @@ const confirmOrder = async () => {
         </form>
       </div>
     </div>
+  </div>
   </Teleport>
 
   <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
-  </div>
 </template>
 
 <style scoped>
