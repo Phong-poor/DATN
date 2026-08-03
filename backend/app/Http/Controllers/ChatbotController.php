@@ -7,18 +7,41 @@ use App\Models\DanhMuc;
 use App\Models\Promotion;
 use App\Models\ThuongHieu;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Phân tích câu hỏi và tạo câu trả lời chatbot từ dữ liệu cửa hàng hoặc OpenAI.
+ */
 class ChatbotController extends Controller
 {
     public function chat(Request $request)
     {
         $request->validate([
             'message' => 'required|string|max:1000',
+            'history' => 'sometimes|array|max:10',
+            'history.*.role' => 'required_with:history|in:user,assistant,bot',
+            'history.*.content' => 'required_with:history|string|max:1000',
         ]);
 
         $userMessage = trim(mb_strtolower($request->input('message')));
 
-        // 1. CHÀO HỎI & FAQ CHÍNH SÁCH / THÔNG TIN LIÊN HỆ
+        // Luồng chính: OpenAI tự tạo câu trả lời.
+        // Nếu thiếu key, timeout hoặc API lỗi, toàn bộ logic nội bộ bên dưới sẽ chạy dự phòng.
+        $aiReply = $this->generateOpenAIReply(
+            $request->input('message'),
+            $request->input('history', [])
+        );
+
+        if ($aiReply !== null) {
+            return response()->json([
+                'reply' => $aiReply,
+                'products' => [],
+                'source' => 'openai',
+            ]);
+        }
+
+        // 1. CHÀO HỎI & FAQ CHÍNH SÁCH / THÔNG TIN LIÊN HỆ (DỰ PHÒNG)
 
         // Chương trình Khuyến mãi / Ưu đãi từ DB
         if ($this->containsAny($userMessage, ['khuyến mãi', 'khuyen mai', 'mã giảm giá', 'giam gia', 'voucher', 'ưu đãi', 'uu dai', 'km', 'promotion', 'coupon'])) {
@@ -496,6 +519,77 @@ class ChatbotController extends Controller
             'reply' => $reply,
             'products' => $variants->values(),
         ]);
+    }
+
+    private function generateOpenAIReply(string $message, array $history = []): ?string
+    {
+        $apiKey = trim((string) config('services.openai.key'));
+        if ($apiKey === '') {
+            return null;
+        }
+
+        $conversation = collect($history)
+            ->take(-10)
+            ->map(fn (array $item) => [
+                'role' => ($item['role'] ?? 'user') === 'bot' ? 'assistant' : ($item['role'] ?? 'user'),
+                'content' => trim((string) ($item['content'] ?? '')),
+            ])
+            ->filter(fn (array $item) => $item['content'] !== '')
+            ->values()
+            ->all();
+
+        $conversation[] = [
+            'role' => 'user',
+            'content' => trim($message),
+        ];
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->acceptJson()
+                ->timeout(max(5, (int) config('services.openai.timeout', 20)))
+                ->post('https://api.openai.com/v1/responses', [
+                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                    'instructions' => implode("\n", [
+                        'Bạn là Mia, trợ lý tư vấn của NextGen Laptop.',
+                        'Luôn trả lời bằng tiếng Việt, thân thiện, rõ ràng và ngắn gọn.',
+                        'Tập trung tư vấn laptop, phụ kiện, cấu hình, mua hàng và hỗ trợ khách hàng.',
+                        'Không tự bịa giá, tồn kho, khuyến mãi, chính sách hoặc thông tin cửa hàng.',
+                        'Nếu thiếu dữ liệu chính xác của cửa hàng, hãy nói rõ và hướng dẫn khách nhắn Admin.',
+                        'Có thể dùng Markdown đơn giản để câu trả lời dễ đọc.',
+                    ]),
+                    'input' => $conversation,
+                    'max_output_tokens' => 500,
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('OpenAI chatbot request failed; using local fallback.', [
+                    'status' => $response->status(),
+                    'error' => $response->json('error.message'),
+                ]);
+                return null;
+            }
+
+            $payload = $response->json();
+            $reply = trim((string) ($payload['output_text'] ?? ''));
+
+            if ($reply === '') {
+                foreach (($payload['output'] ?? []) as $outputItem) {
+                    foreach (($outputItem['content'] ?? []) as $contentItem) {
+                        if (($contentItem['type'] ?? '') === 'output_text') {
+                            $reply .= ($reply === '' ? '' : "\n").($contentItem['text'] ?? '');
+                        }
+                    }
+                }
+                $reply = trim($reply);
+            }
+
+            return $reply !== '' ? $reply : null;
+        } catch (\Throwable $exception) {
+            Log::warning('OpenAI chatbot unavailable; using local fallback.', [
+                'message' => $exception->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     private function containsAny(string $text, array $keywords): bool

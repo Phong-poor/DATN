@@ -25,7 +25,6 @@ class DiaChiController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateAddress($request);
-        $validated['quan_huyen'] = $validated['quan_huyen'] ?? '';
         $userId = $request->user()->id;
 
         if ($this->isDuplicateAddress($userId, $validated)) {
@@ -67,7 +66,6 @@ class DiaChiController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $this->validateAddress($request);
-        $validated['quan_huyen'] = $validated['quan_huyen'] ?? '';
         $address = $this->findUserAddress($request, $id);
 
         if (! $address) {
@@ -177,7 +175,6 @@ class DiaChiController extends Controller
     {
         return $request->validate([
             'tinh_thanhpho' => ['required', 'string', 'max:255'],
-            'quan_huyen' => ['nullable', 'string', 'max:255'],
             'phuong_xa' => ['required', 'string', 'max:255'],
             'diachi_cuthe' => ['required', 'string', 'min:5', 'max:1000'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],

@@ -8,7 +8,7 @@
     --bg-card-dark: #10243D;
     
     --bg-primary-light: #ffffff;
-    --bg-secondary-light: #f6f8fc;
+    --bg-secondary-light: #ffffff;
     --bg-card-light: #ffffff;
     
     --accent-blue: #2563EB;
@@ -2540,6 +2540,51 @@
     cursor: grab;
     -webkit-overflow-scrolling: touch;
     padding: 0 2px 8px;
+}
+
+/* Compact and consistent vertical rhythm across the home page. */
+.premium-theme .section {
+    padding-top: 64px;
+    padding-bottom: 64px;
+}
+
+.premium-theme .section-header {
+    margin-bottom: 32px;
+}
+
+.premium-theme .trust-card {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
+.premium-theme .combos-section,
+.premium-theme .cyber-newsletter-section {
+    padding-top: 56px;
+    padding-bottom: 56px;
+}
+
+@media (max-width: 992px) {
+    .premium-theme .section {
+        padding-top: 52px;
+        padding-bottom: 52px;
+    }
+
+    .premium-theme .section-header {
+        margin-bottom: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .premium-theme .section,
+    .premium-theme .combos-section,
+    .premium-theme .cyber-newsletter-section {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+
+    .premium-theme .section-header {
+        margin-bottom: 24px;
+    }
 }
 
 .combo-carousel-viewport::-webkit-scrollbar {

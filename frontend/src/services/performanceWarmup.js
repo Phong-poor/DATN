@@ -140,9 +140,9 @@ const warmCoreRoutes = () => {
   const user = getUser()
   const role = String(user?.vaitro || user?.role || '').toLowerCase()
   const isStaff = Boolean(getToken() && role && role !== 'user')
-  const webQueue = ['/', '/laptop', '/phu-kien', '/tin-tuc']
+  const webQueue = ['/', '/laptop']
   const adminQueue = isStaff
-    ? ['/admin', '/admin/quan-ly-san-pham', '/admin/quan-ly-don-hang', '/admin/quan-ly-nguoi-dung', '/admin/bien-the', '/admin/quan-ly-banner']
+    ? ['/admin']
     : []
 
   const queue = [...webQueue, ...adminQueue]

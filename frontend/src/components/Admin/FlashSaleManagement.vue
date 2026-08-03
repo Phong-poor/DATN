@@ -29,7 +29,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>STT</th>
               <th>TÊN ĐỢT SALE</th>
               <th>THỜI GIAN BẮT ĐẦU</th>
               <th>THỜI GIAN KẾT THÚC</th>
@@ -39,8 +39,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in sessions" :key="s.id_session">
-              <td>#{{ s.id_session }}</td>
+            <tr v-for="(s, index) in sessions" :key="s.id_session">
+              <td style="font-weight: bold; text-align: center;">{{ index + 1 }}</td>
               <td class="cat-name">{{ s.ten_dot }}</td>
               <td>{{ formatDateTime(s.thoi_gian_bat_dau) }}</td>
               <td>{{ formatDateTime(s.thoi_gian_ket_thuc) }}</td>
@@ -396,6 +396,7 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { storageUrl } from '@/services/urls'
 
 // Navigation & views
 const currentView = ref('list') // 'list' | 'session-form' | 'add-products'
@@ -651,8 +652,7 @@ const parseCurrency = (val) => {
 
 const getStorageUrl = (path) => {
   if (!path) return 'https://placehold.co/100'
-  if (path.startsWith('http')) return path
-  return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${path}`
+  return storageUrl(path)
 }
 
 // Session statuses helper
@@ -1127,10 +1127,26 @@ td {
 
 .action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
+.action-btn.edit-btn {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+.action-btn.edit-btn:hover {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+.action-btn.edit-btn svg {
+  stroke: currentColor !important;
+}
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .select-btn:hover { background: #eff6ff; border-color: #93c5fd; }
 .select-btn:hover svg { stroke: #2563eb; }
+.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+.edit-btn:hover svg { stroke: #2563eb; }
 
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 40px; }
 

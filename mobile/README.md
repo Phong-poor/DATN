@@ -1,74 +1,70 @@
-# Predator Group Mobile
+# 📱 Ứng dụng di động DATN (React Native - Expo)
 
-Flutter app dung chung Laravel API va MySQL cua project. App khong dung SQLite va
-khong can chay Vite/frontend.
+Dự án này là phần ứng dụng di động được xây dựng bằng **React Native** sử dụng **Expo SDK** và **React Navigation**.
 
-## Chay local
+## 🛠 Tech Stack
 
-1. Bat MySQL trong XAMPP.
-2. Tu thu muc goc `DATN`, chay mot lenh:
+| Layer | Technology |
+|---|---|
+| Framework | React Native (Expo) |
+| Navigation | React Navigation (Bottom Tabs) |
+| Language | JavaScript (ES6+) |
+| Target Platforms | Android, iOS, Web (Chrome) |
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\run-mobile-local.ps1
-```
-
-Lenh tren se:
-
-- khoi dong Laravel API o `http://127.0.0.1:8000/api`
-- khoi dong media server o `http://127.0.0.1:8001/storage`
-- dung emulator `DATN_Lite` neu chua co emulator dang chay
-- chay Flutter bang `flutter run --profile` de app muot hon tren may RAM thap
-
-Khi can hot reload:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\run-mobile-local.ps1 -Debug
-```
-
-Neu muon chay thu cong:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\start-mobile-local.ps1
-cd .\mobile
-flutter emulators --launch DATN_Lite
-flutter devices
-flutter run -d emulator-5554
-```
-
-Android emulator goi API qua `http://10.0.2.2:8000/api`. Chrome, Windows va iOS
-simulator goi API qua `http://127.0.0.1:8000/api`. Anh san pham di qua port
-`8001` de khong chan API.
-
-Tai khoan test local:
+## 📁 Cấu trúc thư mục (src/)
 
 ```text
-mobile@local.test
-Password@123
+mobile/src/
+├── components/   # Các component dùng chung
+├── screens/      # Các màn hình chính (Trang chủ, Danh mục, Giỏ hàng, Tài khoản)
+├── navigation/   # Cấu hình định tuyến (AppNavigator)
+├── services/     # Các hàm gọi API (Laravel backend)
+├── store/        # Quản lý state (Redux / Context API)
+└── utils/        # Các hàm tiện ích dùng chung
 ```
 
-Voi dien thoai Android that, truyen IP LAN cua may dang chay Laravel:
+## 🚀 Hướng dẫn chạy dự án
+
+Di chuyển vào thư mục `mobile`:
+```bash
+cd mobile
+```
+
+### 1. Chạy trên trình duyệt Web (Chrome)
+Để xem và phát triển giao diện nhanh chóng trên trình duyệt Web:
+```bash
+npm run web
+```
+Trình duyệt sẽ tự động mở trang `http://localhost:8081`.
+
+### 2. Chạy trên thiết bị Android / Android Emulator
+Khởi chạy Expo CLI:
+```bash
+npm run android
+```
+- Nếu sử dụng thiết bị thật: Cài đặt app **Expo Go** trên điện thoại từ Google Play, quét mã QR hiển thị trong terminal để chạy app.
+- Nếu sử dụng máy ảo: Đảm bảo máy ảo Android đã được khởi chạy trước khi chạy lệnh.
+
+### 3. Chạy trên iOS (Expo Go)
+```bash
+npm run ios
+```
+- Sử dụng ứng dụng **Expo Go** trên iPhone để quét mã QR từ camera.
+
+## 🔗 Liên kết API
+Ứng dụng sử dụng cấu trúc `React Navigation` chuẩn được bọc trong `NavigationContainer` tại file [App.js](file:///d:/USER/Downloads/laragon/www/DATN/mobile/App.js).
+Cấu hình router nằm trong [AppNavigator.jsx](file:///d:/USER/Downloads/laragon/www/DATN/mobile/src/navigation/AppNavigator.jsx).
+Các màn hình nằm trong [screens/](file:///d:/USER/Downloads/laragon/www/DATN/mobile/src/screens).
+
+## Chạy Expo Go trên điện thoại qua Wi-Fi
+
+1. Kết nối máy tính và điện thoại vào cùng mạng Wi-Fi.
+2. Bật Apache và MySQL trong Laragon.
+3. Tạo `.env.local` từ `.env.example`, sau đó thay `YOUR_LAN_IP` bằng IPv4 của máy tính.
+4. Từ thư mục gốc của dự án, chạy script tự nhận IP và khởi động Expo LAN:
 
 ```powershell
-flutter run -d <device-id> --dart-define=API_BASE_URL=http://<LAN-IP>:8000/api --dart-define=ASSET_BASE_URL=http://<LAN-IP>:8001/storage
+.\run-mobile-lan.cmd
 ```
 
-Nguoi dung co the xem trang chu, danh muc, san pham, khuyen mai va tin tuc khi
-chua dang nhap. App chi yeu cau dang nhap khi mo gio hang, thanh toan, don hang,
-yeu thich hoac tai khoan.
-
-## Kiem tra
-
-```powershell
-flutter analyze
-flutter test
-```
-
-## Khi emulator cham hoac bao System UI not responding
-
-May hien RAM khong du rong. Tat bot Chrome, Android Studio, Java/Gradle cu hoac
-app nang, sau do chay lai `run-mobile-local.ps1`. Script da giam RAM Gradle
-xuong 768MB va mac dinh dung `DATN_Lite` thay vi `Pixel_4` vi Pixel_4 Google
-Play image qua nang cho may 8GB RAM.
-
-Neu lan dau cold boot hien popup `System UI isn't responding`, bam `Wait`. Day
-la loi emulator bi thieu RAM host, khong phai crash cua app.
+Hoặc trong thư mục `mobile`, chạy `npm.cmd run lan`. Mở Expo Go trên điện thoại và quét mã QR. Sau khi đổi `.env.local`, hãy reload hoàn toàn ứng dụng trong Expo Go.

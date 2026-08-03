@@ -6,11 +6,23 @@
       `width-${appearance.content_width}`,
       `sidebar-${appearance.sidebar_style}`,
       `anim-${appearance.animation_level}`,
+      sidebarCollapsed && 'sidebar-collapsed',
       adminIntroActive && 'intro-active',
     ]"
     :style="adminVars"
   >
     <aside class="sidebar">
+      <button
+        type="button"
+        class="sidebar-collapse-btn"
+        :aria-label="sidebarCollapsed ? 'Mở rộng thanh quản trị' : 'Thu gọn thanh quản trị'"
+        :title="sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'"
+        @click="toggleSidebar"
+      >
+        <ChevronsRight v-if="sidebarCollapsed" />
+        <ChevronsLeft v-else />
+      </button>
+
       <div class="sidebar-logo">
         <img
           src="/ChatGPT_Image_08_35_43_4_thg_6__2026-removebg-preview.png"
@@ -26,9 +38,8 @@
           <router-link
             v-if="!item.isDropdown"
             :to="item.path"
-            v-slot="{ isActive, isExactActive }"
           >
-            <div :class="['item', (item.path === '/admin' ? isExactActive : isActive) && 'active']">
+            <div :class="['item', isMenuPathActive(item.path) && 'active']">
               <component :is="item.icon" class="item-icon" />
               <span class="menu-text">{{ sentenceCaseLabel(item.label) }}</span>
             </div>
@@ -52,9 +63,8 @@
                 v-for="sub in item.children"
                 :key="sub.path"
                 :to="sub.path"
-                v-slot="{ isActive }"
               >
-                <div :class="['submenu-item', isActive && 'active']">
+                <div :class="['submenu-item', isMenuPathActive(sub.path) && 'active']">
                   <span class="bullet-dot"></span>
                   <span class="submenu-text">{{ sentenceCaseLabel(sub.label) }}</span>
                   <span v-if="sub.badge" translate="no" :class="['submenu-badge', `badge-${sub.badge.toLowerCase().replace(/\s+/g, '-')}`]">
@@ -86,11 +96,22 @@
       </div>
     </aside>
 
-    <main class="main">
+    <main ref="adminMainRef" class="main">
       <section class="admin-topbar">
         <div class="admin-topbar-title">
           <h2>{{ pageTitle }}</h2>
           <p>Quản lý nội dung và điều hành hệ thống</p>
+        </div>
+
+        <div class="attendance-topbar-center">
+          <div class="attendance-topbar-clock">
+            <span>{{ adminClockDate }}</span>
+            <strong>{{ adminClockTime }}</strong>
+          </div>
+          <button type="button" class="topbar-attendance-link" @click="quickAttendanceOpen = true">
+            <Camera />
+            <span>Chấm công</span>
+          </button>
         </div>
 
         <div class="admin-topbar-actions">
@@ -102,17 +123,6 @@
             Trang chủ
           </router-link>
           <div class="topbar-icon-group">
-            <div class="topbar-popover" ref="langMenuRef">
-              <button class="topbar-icon-button" type="button" aria-label="Ngôn ngữ" @click="toggleLangMenu">
-                <span class="icon-flag">{{ localeBadge }}</span>
-              </button>
-              <div v-if="langMenuOpen" class="topbar-dropdown compact-menu">
-                <button class="dropdown-item compact" type="button" :class="{ active: currentLocale === 'vi' }" @click="setLocale('vi')">Tiếng Việt</button>
-                <button class="dropdown-item compact" type="button" :class="{ active: currentLocale === 'en' }" @click="setLocale('en')">English</button>
-              </div>
-            </div>
-
-
             <AdminChatManager />
 
             <div class="topbar-popover" ref="notifyMenuRef">
@@ -125,18 +135,20 @@
                   <b>Thông báo</b>
                   <button class="notify-mark-read" type="button" @click="markAllNotificationsRead">Đánh dấu đã đọc</button>
                 </div>
-                <div v-if="!notifications.some(n => !n.read)" class="notify-empty">Chưa có thông báo mới</div>
-                <button
-                  v-for="item in notifications.filter(n => !n.read)"
-                  :key="item.id"
-                  type="button"
-                  class="notify-item"
-                  :class="{ unread: !item.read }"
-                  @click="openNotification(item)"
-                >
-                  <span class="notify-title">{{ item.title }}</span>
-                  <span class="notify-time">{{ item.time }}</span>
-                </button>
+                <div class="notify-scroll">
+                  <div v-if="!notifications.some(n => !n.read)" class="notify-empty">Chưa có thông báo mới</div>
+                  <button
+                    v-for="item in notifications.filter(n => !n.read)"
+                    :key="item.id"
+                    type="button"
+                    class="notify-item"
+                    :class="{ unread: !item.read }"
+                    @click="openNotification(item)"
+                  >
+                    <span class="notify-title">{{ item.title }}</span>
+                    <span class="notify-time">{{ item.time }}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -169,8 +181,6 @@
               <div class="user-dropdown-list">
                 <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/ho-so-quan-tri')">Hồ sơ của tôi</button>
                 <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/cai-dat-he-thong')">Cài đặt</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/nhat-ky-hoat-dong')">Nhật ký hoạt động</button>
-                <button class="dropdown-item" type="button" @click="navigateUserMenu('/admin/hoa-don')">Thanh toán</button>
               </div>
               <button class="dropdown-item sign-out logout-item" type="button" @click="handleLogout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,22 +195,28 @@
         </div>
       </section>
 
+      <ChamCongNhanhModal
+        v-if="quickAttendanceOpen"
+        @close="quickAttendanceOpen = false"
+        @success="handleQuickAttendanceSuccess"
+      />
+
       <router-view v-slot="{ Component }">
-        <transition name="page-fade">
+        <div :key="routeKey" class="admin-page-shell">
           <component :is="Component" />
-        </transition>
+        </div>
       </router-view>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
 import AdminChatManager from '@/components/Admin/Layout/QuanLyChatAdmin.vue'
+import ChamCongNhanhModal from '@/components/Admin/Layout/ChamCongNhanhModal.vue'
 import { storageUrl } from '@/services/urls'
-import { getLocale, setLocale as setAppLocale } from '@/services/i18n'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import {
@@ -221,25 +237,46 @@ import {
   Gift,
   ChevronDown,
   Coins,
+  Camera,
+  ClipboardCheck,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 
+const refreshCounter = ref(0)
+const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
+const adminMainRef = ref(null)
+
+watch(
+  () => route.path,
+  async () => {
+    await nextTick()
+    adminMainRef.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }
+)
+
 const pageTitle = computed(() => route.meta.title || 'Bảng quản trị')
 const user = ref(getUser() || {})
 const userMenuOpen = ref(false)
-const langMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
+const quickAttendanceOpen = ref(false)
 const adminIntroActive = ref(false)
+const sidebarCollapsed = ref(localStorage.getItem('admin-sidebar-collapsed') === 'true')
 let adminIntroTimer = null
+const adminClock = ref(new Date())
+let adminClockTimer = null
+const adminClockTime = computed(() =>
+  adminClock.value.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+)
+const adminClockDate = computed(() =>
+  adminClock.value.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+)
 
 const userMenuRef = ref(null)
-const langMenuRef = ref(null)
 const notifyMenuRef = ref(null)
-
-const currentLocale = ref(getLocale())
-const localeBadge = computed(() => (currentLocale.value === 'en' ? 'US' : 'VN'))
 
 const sentenceCaseLabel = (value) => {
   const text = String(value || '').trim().replace(/\s+/g, ' ')
@@ -259,7 +296,7 @@ const appearance = ref({
 })
 
 const menuConfig = [
-  { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+  { path: '/admin/bang-dieu-khien', label: 'Tổng quan', icon: LayoutDashboard },
   {
     label: 'Thủ kho',
     icon: Package,
@@ -333,14 +370,16 @@ const menuConfig = [
     children: [
       { path: '/admin/quan-ly-nguoi-dung', label: 'Người dùng', badge: 'ADMIN' },
       { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
+      { path: '/admin/quan-ly-cham-cong', label: 'Quản lý chấm công', badge: 'ADMIN' },
     ]
   },
+  { path: '/admin/cham-cong-camera', label: 'Xác thực nhân viên', icon: Camera },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
 
 const filteredMenuConfig = computed(() => {
   const userPerms = user.value?.cac_quyen || []
-  const isAdmin = user.value?.vaitro === 'admin'
+  const isAdmin = Boolean(user.value?.vaitro && user.value.vaitro !== 'user')
 
   const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
 
@@ -373,6 +412,7 @@ const filteredMenuConfig = computed(() => {
     
     '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
     '/admin/xu': 'xu_quan_ly',
+    '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
   }
 
   return menuConfig.map(item => {
@@ -410,18 +450,34 @@ const dropdownStates = ref({
 })
 
 function toggleDropdown(label) {
+  if (sidebarCollapsed.value) {
+    sidebarCollapsed.value = false
+    localStorage.setItem('admin-sidebar-collapsed', 'false')
+  }
   dropdownStates.value[label] = !dropdownStates.value[label]
+}
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed.value))
+}
+
+function isMenuPathActive(path) {
+  if (path === '/admin') return route.name === 'admin-dashboard'
+  const target = router.resolve(path)
+  if (target.name && route.name) return target.name === route.name
+  return route.path.replace(/\/$/, '') === target.path.replace(/\/$/, '')
 }
 
 function isParentActive(item) {
   if (!item.children) return false
-  return item.children.some(child => route.path === child.path)
+  return item.children.some(child => isMenuPathActive(child.path))
 }
 
 function autoOpenDropdowns() {
   menuConfig.forEach(item => {
     if (item.isDropdown && item.children) {
-      const hasActiveChild = item.children.some(child => route.path === child.path)
+      const hasActiveChild = item.children.some(child => isMenuPathActive(child.path))
       if (hasActiveChild) {
         dropdownStates.value[item.label] = true
       }
@@ -492,7 +548,6 @@ function refreshUser() {
 }
 
 function closeTopMenus() {
-  langMenuOpen.value = false
   notifyMenuOpen.value = false
 }
 
@@ -500,24 +555,11 @@ function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value
 }
 
-function toggleLangMenu() {
-  const next = !langMenuOpen.value
-  closeTopMenus()
-  langMenuOpen.value = next
-}
-
 function toggleNotifyMenu() {
   const next = !notifyMenuOpen.value
   closeTopMenus()
   notifyMenuOpen.value = next
 }
-
-function setLocale(locale) {
-  currentLocale.value = locale
-  setAppLocale(locale)
-  langMenuOpen.value = false
-}
-
 
 function markAllNotificationsRead() {
   notifications.value = notifications.value.map((n) => ({ ...n, read: true }))
@@ -635,7 +677,6 @@ function isInside(refEl, target) {
 function handleClickOutside(event) {
   const target = event.target
   if (userMenuOpen.value && !isInside(userMenuRef, target)) userMenuOpen.value = false
-  if (langMenuOpen.value && !isInside(langMenuRef, target)) langMenuOpen.value = false
   if (notifyMenuOpen.value && !isInside(notifyMenuRef, target)) notifyMenuOpen.value = false
 }
 
@@ -676,7 +717,18 @@ async function fetchLatestUserProfile() {
   }
 }
 
+const handleSyncSuccess = () => {
+  refreshCounter.value++
+}
+
+function handleQuickAttendanceSuccess() {
+  loadNotifications()
+}
+
 onMounted(async () => {
+  adminClockTimer = window.setInterval(() => {
+    adminClock.value = new Date()
+  }, 1000)
   if (sessionStorage.getItem('admin_intro_animation') === '1') {
     sessionStorage.removeItem('admin_intro_animation')
     adminIntroActive.value = true
@@ -689,14 +741,18 @@ onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutside)
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
-  document.documentElement.lang = currentLocale.value
-  await loadAppearanceSettings()
+  window.addEventListener('offline-sync-success', handleSyncSuccess)
+  document.documentElement.lang = 'vi'
   hydrateNotifications()
-  await loadNotifications()
-  await fetchLatestUserProfile()
+  await Promise.allSettled([
+    loadAppearanceSettings(),
+    loadNotifications(),
+    fetchLatestUserProfile(),
+  ])
 })
 
 onUnmounted(() => {
+  if (adminClockTimer) window.clearInterval(adminClockTimer)
   if (adminIntroTimer) {
     clearTimeout(adminIntroTimer)
     adminIntroTimer = null
@@ -705,31 +761,110 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   window.removeEventListener('user-updated', refreshUser)
   window.removeEventListener('admin-settings-updated', handleSettingsUpdated)
+  window.removeEventListener('offline-sync-success', handleSyncSuccess)
 })
 </script>
 
 <style scoped>
 * { box-sizing: border-box; }
-.admin-layout { display: flex; height: 100vh; overflow: hidden; background: #f8fafc; font-family: Inter, sans-serif; }
+.admin-layout { display: flex; height: 100vh; overflow: hidden; background: #eef2f7; font-family: Inter, sans-serif; }
 .admin-layout.dark { background: #0b0f19; }
 .sidebar { 
     width: 260px; 
     min-width: 260px; 
-    background: #081225; 
+    background: #0b0d12; 
     padding: 24px 16px; 
     height: 100vh; 
     overflow: hidden; 
     position: relative; 
     display: flex; 
     flex-direction: column; 
-    border-right: 1px solid rgba(255, 255, 255, 0.04);
+    border-right: 1px solid rgba(125, 211, 252, 0.14);
+    transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+}
+
+.sidebar-collapse-btn {
+    position: absolute;
+    z-index: 3;
+    top: 22px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(96, 165, 250, 0.34);
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.2), rgba(15, 23, 42, 0.92));
+    color: #93c5fd;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.sidebar-collapse-btn:hover {
+    transform: translateY(-1px) scale(1.06);
+    border-color: rgba(96, 165, 250, 0.75);
+    background: linear-gradient(145deg, #2563eb, #1d4ed8);
+    color: #fff;
+    box-shadow: 0 7px 20px rgba(37, 99, 235, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.sidebar-collapse-btn:active {
+    transform: scale(0.94);
+}
+.sidebar-collapse-btn:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 3px;
+}
+.sidebar-collapse-btn svg { width: 17px; height: 17px; stroke-width: 2.3; }
+.sidebar-collapsed .sidebar {
+    width: 76px;
+    min-width: 76px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.sidebar-collapsed .sidebar-collapse-btn {
+    top: 19px;
+    right: 21px;
+}
+.sidebar-collapsed .sidebar-logo {
+    height: 52px;
+    padding: 0 0 20px;
+}
+.sidebar-collapsed .admin-logo-img,
+.sidebar-collapsed .menu-label,
+.sidebar-collapsed .menu-text,
+.sidebar-collapsed .chevron-icon,
+.sidebar-collapsed .submenu,
+.sidebar-collapsed .user-info,
+.sidebar-collapsed .sidebar-logout-btn {
+    display: none;
+}
+.sidebar-collapsed .menu-section {
+    padding-top: 12px;
+}
+.sidebar-collapsed .item {
+    justify-content: center;
+    padding: 11px;
+    gap: 0;
+}
+.sidebar-collapsed .item-icon {
+    width: 20px;
+    height: 20px;
+}
+.sidebar-collapsed .sidebar-user {
+    justify-content: center;
+    padding: 10px;
+}
+.sidebar-collapsed .sidebar-user .user-avatar {
+    width: 34px;
+    min-width: 34px;
 }
 .sidebar-logo { 
     display: flex; 
     align-items: center; 
     justify-content: center; 
     padding: 0 4px 20px; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.12); 
     margin-bottom: 12px; 
 }
 .admin-logo-img { width: 220px; max-width: 100%; height: 74px; object-fit: contain; display: block; filter: drop-shadow(0 8px 18px rgba(0,0,0,.24)); }
@@ -742,6 +877,7 @@ onUnmounted(() => {
     margin: 0; 
     text-transform: capitalize;
 }
+
 .admin-layout :deep(.item),
 .admin-layout :deep(.submenu-item),
 .admin-layout :deep(.submenu-badge),
@@ -753,9 +889,8 @@ onUnmounted(() => {
 .admin-layout :deep(.period-tab),
 .admin-layout :deep(.chart-nav-btn),
 .admin-layout :deep(.status-badge),
-.admin-layout :deep(th),
-.admin-layout :deep(button) {
-  text-transform: lowercase !important;
+.admin-layout :deep(th) {
+    text-transform: lowercase !important;
 }
 .admin-layout :deep(.item)::first-letter,
 .admin-layout :deep(.submenu-item)::first-letter,
@@ -768,16 +903,19 @@ onUnmounted(() => {
 .admin-layout :deep(.period-tab)::first-letter,
 .admin-layout :deep(.chart-nav-btn)::first-letter,
 .admin-layout :deep(.status-badge)::first-letter,
-.admin-layout :deep(th)::first-letter,
-.admin-layout :deep(button)::first-letter {
-  text-transform: uppercase !important;
+.admin-layout :deep(th)::first-letter {
+    text-transform: uppercase !important;
+}
+.admin-layout :deep(button:not([data-preserve-case])) {
+    text-transform: capitalize !important;
 }
 .menu-label,
 .menu-text,
 .submenu-text,
 .submenu-badge {
-  text-transform: none !important;
+    text-transform: none !important;
 }
+
 .menu-section { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 16px; }
 .menu-section { -ms-overflow-style: none; scrollbar-width: none; }
 .menu-section::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -833,7 +971,7 @@ a { text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-left: 18px;
+  padding-left: 12px;
 }
 .dropdown-group.is-open .submenu {
   max-height: 300px;
@@ -842,16 +980,17 @@ a { text-decoration: none; }
   margin-bottom: 4px;
 }
 .submenu-item {
-  padding: 8px 14px;
+  padding: 8px 10px;
   border-radius: 8px;
   color: rgba(248, 250, 252, 0.6);
   font-size: 13px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 36px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .submenu-item:hover {
   background: rgba(255, 255, 255, 0.03);
@@ -920,8 +1059,8 @@ a { text-decoration: none; }
     margin-top: auto; 
     padding: 12px; 
     border-radius: 12px; 
-    background: rgba(255, 255, 255, 0.03); 
-    border: 1px solid rgba(255, 255, 255, 0.05); 
+    background: rgba(255, 255, 255, 0.055); 
+    border: 1px solid rgba(125, 211, 252, 0.13); 
     display: flex; 
     gap: 10px; 
     align-items: center; 
@@ -952,7 +1091,96 @@ a { text-decoration: none; }
     border-color: #ef4444;
 }
 .sidebar-logout-btn svg { width: 14px; height: 14px; }
-.main { flex: 1; padding: 0 32px 32px; height: 100vh; overflow-y: auto; background: #f8fafc; }
+.main {
+    --admin-page-bg: #f4f7fb;
+    --admin-page-space: 24px;
+    --admin-section-gap: 24px;
+    --admin-panel-bg: #ffffff;
+    --admin-panel-border: #e2e8f0;
+    flex: 1;
+    padding: 0 24px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--admin-page-bg);
+    min-width: 0;
+}
+.admin-page-shell {
+    width: 100%;
+    min-height: calc(100vh - 77px);
+    padding: var(--admin-page-space) 0 40px;
+    background: transparent;
+}
+
+/* Every routed admin screen receives spacing and body color from the shell. */
+.admin-page-shell > :deep(.admin),
+.admin-page-shell > :deep(.page),
+.admin-page-shell > :deep(.admin-page),
+.admin-page-shell > :deep(.profile-page),
+.admin-page-shell > :deep(.audit-log-container),
+.admin-page-shell > :deep(.xu-config-page),
+.admin-page-shell > :deep(.settings-v2),
+.admin-page-shell > :deep(.attendance-page),
+.admin-page-shell > :deep(.attendance-admin-page),
+.admin-page-shell > :deep(.combo-management),
+.admin-page-shell > :deep(.roles-management),
+.admin-page-shell > :deep(.admin-vongquay-page),
+.admin-page-shell > :deep(.affiliate-admin) {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    gap: var(--admin-section-gap) !important;
+    background: transparent !important;
+}
+
+/* Keep the primary content rails aligned across legacy admin screens. */
+.admin-page-shell :deep(.page > .topbar),
+.admin-page-shell :deep(.page > .breadcrumb),
+.admin-page-shell :deep(.page > .page-header),
+.admin-page-shell :deep(.page > .stats) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.admin-page-shell :deep(.page > .table-wrap),
+.admin-page-shell :deep(.page > .filter-row),
+.admin-page-shell :deep(.page > .users-bulk-toolbar) {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Variant management used an additional 32px inner rail on every section. */
+.admin-page-shell :deep(.page > .top-tables),
+.admin-page-shell :deep(.page > .tabs),
+.admin-page-shell :deep(.page > .main-layout),
+.admin-page-shell :deep(.page > .bottom-grid) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Trang xác thực dùng hết vùng làm việc khi menu quản trị được thu gọn. */
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .attendance-today),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .dashboard-grid),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .verification-intro),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .enrollment-banner),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .employee-directory),
+.admin-layout.sidebar-collapsed .admin-page-shell :deep(.attendance-page > .history-card) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.admin-page-shell :deep(.dashboard-cluster),
+.admin-page-shell :deep(.workbench-card),
+.admin-page-shell :deep(.table-wrap),
+.admin-page-shell :deep(.filter-row) {
+    border-color: var(--admin-panel-border);
+}
 .admin-topbar { 
     position: sticky; 
     top: 0; 
@@ -960,48 +1188,119 @@ a { text-decoration: none; }
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    gap: 18px; 
-    margin: 0 -32px 24px; 
-    padding: 18px 32px; 
-    width: calc(100% + 64px); 
-    background: #ffffff; 
-    border-bottom: 1px solid rgba(15,23,42,.05); 
-    box-shadow: 0 2px 10px rgba(15,23,42,0.02);
+    gap: 14px; 
+    margin: 0 -24px;
+    padding: 10px 24px;
+    width: calc(100% + 48px);
+    background: #0b0d12; 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
+    border-radius: 0;
+    box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
 }
-.admin-topbar-title h2 { margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; }
-.admin-topbar-title p { margin: 4px 0 0; color: #64748b; font-size: 12.5px; }
-.admin-topbar-actions { display: flex; align-items: center; gap: 10px; }
+.attendance-topbar-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.attendance-topbar-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    pointer-events: none;
+}
+.attendance-topbar-clock span {
+    color: #cbd5e1 !important;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.attendance-topbar-clock strong {
+    margin-top: 1px;
+    color: #ffffff !important;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .04em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 14px rgba(96, 165, 250, .38);
+    -webkit-text-fill-color: #ffffff;
+}
+.topbar-attendance-link {
+    height: 36px;
+    padding: 0 13px;
+    border: 1px solid rgba(96, 165, 250, .48);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none;
+    font-size: 11.5px;
+    font-weight: 750;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(37, 99, 235, .25);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.topbar-attendance-link svg { width: 15px; height: 15px; }
+.topbar-attendance-link:hover {
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 7px 18px rgba(37, 99, 235, .4);
+}
+@media (max-width: 1050px) {
+    .attendance-topbar-clock span { display: none; }
+    .attendance-topbar-clock strong { font-size: 16px; }
+    .attendance-topbar-clock { min-width: 88px; }
+    .topbar-attendance-link span { display: none; }
+    .topbar-attendance-link { width: 36px; padding: 0; }
+}
+@media (max-width: 820px) {
+    .attendance-topbar-center { display: none; }
+}
+.admin-topbar-title h2 { margin: 0; font-size: 19px; font-weight: 700; color: #ffffff; }
+.admin-topbar-title p { margin: 3px 0 0; color: rgba(219, 234, 254, 0.76); font-size: 11.5px; }
+.admin-topbar-actions { display: flex; align-items: center; gap: 8px; }
 .topbar-home-link { 
     display: inline-flex; 
     align-items: center; 
     justify-content: center;
     gap: 6px; 
-    height: 44px; 
-    padding: 0 18px; 
+    height: 38px; 
+    padding: 0 14px; 
     border-radius: 999px; 
-    border: 1px solid rgba(37, 99, 235, 0.2); 
-    background: rgba(37, 99, 235, 0.04); 
-    color: #2563eb; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
+    color: #e0f2fe; 
     text-decoration: none; 
-    font-size: 13px; 
+    font-size: 12px; 
     font-weight: 600; 
     line-height: 1;
     white-space: nowrap;
     transform: translateY(0);
     transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-home-link svg { width: 16px; height: 16px; flex-shrink: 0; }
-.topbar-home-link:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
+.topbar-home-link svg { width: 15px; height: 15px; flex-shrink: 0; }
+.topbar-home-link:hover { background: rgba(37, 99, 235, 0.42); color: #ffffff; border-color: rgba(125, 211, 252, 0.46); box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); transform: translateY(-2px); }
 .topbar-home-link:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.16); }
-.topbar-icon-group { display: flex; align-items: center; gap: 10px; height: 44px; }
+.topbar-icon-group { display: flex; align-items: center; gap: 8px; height: 38px; }
 .topbar-popover { position: relative; display: flex; align-items: center; }
 .topbar-icon-button { 
-    width: 44px; 
-    height: 44px; 
+    width: 38px; 
+    height: 38px; 
     border-radius: 50%; 
-    border: 1px solid rgba(15,23,42,.12); 
-    background: #ffffff; 
-    color: #475569; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
+    color: #e0f2fe; 
     display: grid; 
     place-items: center; 
     cursor: pointer; 
@@ -1011,9 +1310,9 @@ a { text-decoration: none; }
 }
 .topbar-icon-button:hover,
 .topbar-icon-button.active {
-    background: #eef2ff;
-    color: #2563eb;
-    border-color: rgba(37, 99, 235, 0.35);
+    background: rgba(37, 99, 235, 0.42);
+    color: #ffffff;
+    border-color: rgba(125, 211, 252, 0.46);
     box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
     transform: translateY(-2px);
 }
@@ -1024,10 +1323,9 @@ a { text-decoration: none; }
 .topbar-icon-button:hover svg {
     transform: scale(1.08);
 }
-.topbar-icon-button svg { width: 20px; height: 20px; }
+.topbar-icon-button svg { width: 18px; height: 18px; }
 .topbar-icon-button svg { transition: transform 0.18s ease; }
-.icon-flag { font-size: 12px; font-weight: 700; letter-spacing: .4px; line-height: 1; }
-.icon-badge { position: absolute; top: 3px; right: 3px; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
+.icon-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 9px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; border: 2px solid #fff; line-height: 1; animation: topbarBadgePulse 1.45s ease-in-out infinite; transform-origin: center; }
 .topbar-icon-button:hover .icon-badge {
     animation: topbarBadgePop 0.42s ease both, topbarBadgePulse 1.45s ease-in-out 0.42s infinite;
 }
@@ -1043,44 +1341,55 @@ a { text-decoration: none; }
     padding: 8px; 
     z-index: 20; 
 }
-.compact-menu { width: 150px; }
 .apps-dropdown { width: 190px; display: grid; gap: 6px; }
 .notify-menu { width: 320px; }
 .notify-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 4px 4px 8px; border-bottom: 1px solid #edf2f7; }
+.notify-scroll {
+    max-height: min(360px, calc(100vh - 150px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+}
+.notify-scroll::-webkit-scrollbar { width: 6px; }
+.notify-scroll::-webkit-scrollbar-track { background: transparent; }
+.notify-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+.notify-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 .notify-mark-read { border: 0; background: transparent; color: #2563eb; font-size: 12px; cursor: pointer; }
 .notify-empty { color: #64748b; font-size: 13px; padding: 14px 6px; }
 .notify-item { width: 100%; border: 1px solid #eef2f7; background: #fff; border-radius: 10px; padding: 9px 10px; margin-top: 6px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
 .notify-item.unread { border-color: #c7d2fe; background: #eef2ff; }
 .notify-title { font-size: 13px; color: #0f172a; font-weight: 600; }
 .notify-time { font-size: 11px; color: #64748b; }
-.topbar-divider { width: 1px; height: 32px; background: rgba(15,23,42,.08); }
+.topbar-divider { width: 1px; height: 28px; background: rgba(191, 219, 254, 0.22); }
 .topbar-user { position: relative; display: flex; align-items: center; }
 .topbar-user-btn { 
     display: inline-flex; 
     align-items: center; 
-    gap: 10px; 
-    height: 44px;
-    padding: 4px 12px 4px 4px; 
+    gap: 8px; 
+    height: 38px;
+    padding: 3px 10px 3px 3px; 
     border-radius: 999px; 
-    border: 1px solid rgba(15,23,42,.08); 
-    background: #ffffff; 
+    border: 1px solid rgba(191, 219, 254, 0.24); 
+    background: rgba(255, 255, 255, 0.08); 
     cursor: pointer; 
     line-height: 1;
     transform: translateY(0);
     transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
-.topbar-user-btn:hover { background: #f8fafc; border-color: rgba(37, 99, 235, 0.22); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
+.topbar-user-btn:hover { background: rgba(37, 99, 235, 0.42); border-color: rgba(125, 211, 252, 0.46); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
 .topbar-user-btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08); }
-.topbar-user-btn svg { width: 15px; height: 15px; color: #64748b; }
+.topbar-user-btn svg { width: 15px; height: 15px; color: rgba(219, 234, 254, 0.72); }
 .topbar-user-btn .user-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 13px;
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
     flex-shrink: 0;
 }
 .user-meta { display: flex; flex-direction: column; align-items: flex-start; }
-.user-name { font-size: 13.5px; font-weight: 600; color: #0f172a; }
-.user-role { font-size: 11px; color: #64748b; }
+.user-name { font-size: 12.5px; font-weight: 600; color: #ffffff; }
+.user-role { font-size: 10px; color: rgba(219, 234, 254, 0.72); }
 .user-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 240px; padding: 10px; border-radius: 12px; background: #fff; border: 1px solid rgba(15,23,42,.08); box-shadow: 0 12px 30px rgba(15,23,42,.08); z-index: 20; }
 .user-dropdown-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(15,23,42,.08); margin-bottom: 10px; }
 .user-dropdown-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #2563eb); color: #fff; display: grid; place-items: center; overflow: hidden; font-weight: 700; }
@@ -1335,5 +1644,208 @@ a { text-decoration: none; }
   .admin-layout.intro-active .main > :not(.admin-topbar) {
     animation-duration: 0.01ms !important;
   }
+}
+
+.main :deep(.search-box) {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 0 12px !important;
+  width: 280px !important;
+  height: 38px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.main :deep(.search-box:focus-within) {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+  background: #ffffff !important;
+}
+
+.main :deep(.search-box svg) {
+  position: static !important;
+  transform: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  stroke: #64748b !important;
+  color: #64748b !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+  pointer-events: none !important;
+}
+
+.main :deep(.search-box input) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  background: transparent !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.main :deep(.search-box input::placeholder) {
+  color: #94a3b8 !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLOBAL ADMIN PAGINATION DESIGN SYSTEM
+   ════════════════════════════════════════════════════════════ */
+.main :deep(.table-footer),
+.main :deep(.table-pagination),
+.main :deep(.pagination-wrap),
+.main :deep(.pagination-container),
+.main :deep(.pagination-footer) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 32px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.main :deep(.showing),
+.main :deep(.pagination-info),
+.main :deep(.page-info) {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.main :deep(.pagination),
+.main :deep(.pagination-nav),
+.main :deep(.pagination-controls) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.main :deep(.pagination button),
+.main :deep(.pagination .page-btn),
+.main :deep(.pagination-nav button),
+.main :deep(.pagination a),
+.main :deep(.page-link) {
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 8px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  cursor: pointer !important;
+}
+
+.main :deep(.pagination button:hover:not(:disabled)),
+.main :deep(.pagination .page-btn:hover:not(:disabled)),
+.main :deep(.pagination-nav button:hover:not(:disabled)),
+.main :deep(.page-link:hover) {
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  background: #eff6ff !important;
+}
+
+.main :deep(.pagination button.active),
+.main :deep(.pagination .page-btn.active),
+.main :deep(.pagination-nav button.active),
+.main :deep(.page-item.active .page-link) {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+}
+
+.main :deep(.pagination button:disabled),
+.main :deep(.pagination .page-btn:disabled),
+.main :deep(.pagination-nav button:disabled) {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+.main :deep(.pagination .dots),
+.main :deep(.pagination span.dots),
+.main :deep(.page-indicator) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  padding: 0 4px !important;
+}
+
+/* Một kiểu nút xuất báo cáo dùng thống nhất cho toàn bộ trang admin. */
+.main :deep(.admin-report-export) {
+  width: auto !important;
+  min-width: 122px !important;
+  height: 38px !important;
+  padding: 0 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  flex-shrink: 0 !important;
+  border: 1px solid #d7deea !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #172033 !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  cursor: pointer !important;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+
+.main :deep(.admin-report-export svg) {
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px !important;
+  color: #334155 !important;
+  stroke-width: 1.8 !important;
+}
+
+.main :deep(.admin-report-export:hover:not(:disabled)) {
+  color: #2563eb !important;
+  border-color: #93b4f5 !important;
+  background: #f8fbff !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10) !important;
+  transform: translateY(-1px) !important;
+}
+
+.main :deep(.admin-report-export:focus-visible) {
+  outline: 3px solid rgba(37, 99, 235, 0.18) !important;
+  outline-offset: 2px !important;
+}
+
+.main :deep(.admin-report-export:disabled) {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 </style>

@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use App\Events\OrderPlaced;
 use App\Events\OrderStatusUpdated;
 use App\Mail\OrderSuccessMail;
-use App\Models\DanhGia;
 use App\Models\BienThe;
+use App\Models\CauHinhXu;
+use App\Models\DanhGia;
 use App\Models\DatHang;
 use App\Models\DatHangChiTiet;
 use App\Models\DiaChi;
 use App\Models\GioHang;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
+use App\Models\XuHistory;
 use App\Services\DemoShipmentService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +25,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Xử lý đặt hàng, thanh toán, trạng thái giao hàng, hủy và hoàn tiền đơn hàng.
+ */
 class DatHangController extends Controller
 {
     private function isAdminShoppingBlocked(): bool
@@ -173,17 +179,92 @@ class DatHangController extends Controller
         return $shipment;
     }
 
-    private function saveShipment(DatHang $order, array $shipment, string $orderStatus): DatHang
+    private function saveShipment(DatHang $order, array $shipment, string $orderStatus, array $extraUpdates = []): DatHang
     {
         $paymentData = $this->paymentDataWithStatusTime($order, $orderStatus);
         $paymentData['shipping_demo'] = $shipment;
 
-        $order->update([
+        $order->update(array_merge([
             'trangthai' => $orderStatus,
             'du_lieu_thanh_toan' => $paymentData,
-        ]);
+        ], $extraUpdates));
 
         return $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+    }
+
+    private function normalizedFailureReason(?string $reason): string
+    {
+        $reason = trim((string) $reason);
+
+        return $reason !== '' ? $reason : 'Không liên hệ được người nhận';
+    }
+
+    private function isReceiverRefusalReason(string $reason): bool
+    {
+        return str_contains(mb_strtolower($reason, 'UTF-8'), 'từ chối');
+    }
+
+    private function isContactFailureReason(string $reason): bool
+    {
+        $reason = mb_strtolower($reason, 'UTF-8');
+
+        return str_contains($reason, 'không liên hệ')
+            || str_contains($reason, 'không có người nhận')
+            || str_contains($reason, 'hẹn giao lại')
+            || str_contains($reason, 'địa chỉ');
+    }
+
+    private function isPaidTransferOrder(DatHang $order): bool
+    {
+        if (($order->trang_thai_thanh_toan ?? '') !== 'paid') {
+            return false;
+        }
+
+        $method = mb_strtolower((string) ($order->PTTT ?? ''), 'UTF-8');
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $provider = mb_strtolower((string) ($paymentData['provider'] ?? $paymentData['payment_provider'] ?? ''), 'UTF-8');
+
+        return str_contains($method, 'chuyển khoản')
+            || str_contains($method, 'ck')
+            || str_contains($method, 'bank')
+            || str_contains($method, 'vnpay')
+            || str_contains($method, 'momo')
+            || str_contains($provider, 'bank')
+            || str_contains($provider, 'vnpay')
+            || str_contains($provider, 'momo');
+    }
+
+    private function applyReturnAndRefund(DatHang $order, array $shipment, string $reason): array
+    {
+        $now = now();
+        $shipment['return_reason'] = $reason;
+        $shipment['returned_at'] = $now->toDateTimeString();
+
+        $shipment = $this->appendShipmentTimeline(
+            $shipment,
+            'returning',
+            'Đơn hàng được chuyển hoàn về kho: '.$reason,
+            $now
+        );
+
+        $shipment = $this->appendShipmentTimeline(
+            $shipment,
+            'returned',
+            'Kho đã tiếp nhận hàng hoàn. Đơn hàng kết thúc quy trình giao nhận.',
+            $now->copy()->addMinutes(5)
+        );
+
+        $updates = [];
+        if ($this->isPaidTransferOrder($order)) {
+            $shipment['refund_status'] = 'refunded';
+            $shipment['refund_note'] = 'Đã hoàn tiền cho khách vì đơn chuyển khoản không giao thành công.';
+            $updates['trang_thai_thanh_toan'] = 'refunded';
+        } else {
+            $shipment['refund_status'] = 'not_required';
+            $shipment['refund_note'] = 'Không phát sinh hoàn tiền vì đơn COD hoặc chưa thanh toán online.';
+        }
+
+        return [$shipment, $updates];
     }
 
     private function demoShipmentPlan(DatHang $order): array
@@ -271,7 +352,15 @@ class DatHangController extends Controller
 
     private function syncDueDemoShipments(): void
     {
-        app(DemoShipmentService::class)->syncDueShipments();
+        try {
+            app(DemoShipmentService::class)->syncDueShipments();
+        } catch (\Throwable $error) {
+            // Shipment simulation is auxiliary. It must never prevent customers
+            // from viewing their existing orders when the sync temporarily fails.
+            Log::warning('Demo shipment sync failed', [
+                'error' => $error->getMessage(),
+            ]);
+        }
     }
 
     public function cancelOrder(Request $request, $id)
@@ -310,12 +399,12 @@ class DatHangController extends Controller
                 if ($user) {
                     $user->increment('xu', $order->xu_dung);
 
-                    \App\Models\XuHistory::create([
+                    XuHistory::create([
                         'id_khachhang' => $userId,
                         'so_xu' => $order->xu_dung,
                         'loai_giao_dich' => 'hoan_tra',
                         'id_dathang' => $order->id_dathang,
-                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                        'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #'.$order->id_dathang,
                     ]);
                 }
             }
@@ -415,10 +504,10 @@ class DatHangController extends Controller
 
         $request->validate([
             'id_diachi' => 'nullable|integer',
-            'diachi' => 'required_without:id_diachi|string',
-            'PTTT' => 'required|string',
-            'name' => 'required|string',
-            'phone' => 'required|string',
+            'diachi' => 'required_without:id_diachi|string|min:8|max:500',
+            'PTTT' => 'required|string|in:COD,VNPay,MoMo,SePay',
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'-]+$/u'],
+            'phone' => ['required', 'string', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
             'selected_cart_items' => 'nullable|array',
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
             'selected_variants' => 'nullable|array',
@@ -427,6 +516,31 @@ class DatHangController extends Controller
 
         $userId = Auth::id();
         $diaChiGiaoHang = $request->diachi;
+
+        $recentUnpaidOrders = DatHang::where('id_khachhang', $userId)
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->where('trangthai', 'pending')
+            ->whereIn('trang_thai_thanh_toan', ['pending', 'unpaid'])
+            ->count();
+        if ($recentUnpaidOrders >= 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn đang có quá nhiều đơn chưa thanh toán hoặc chưa được xử lý. Vui lòng hoàn tất hoặc hủy đơn cũ.',
+            ], 429);
+        }
+
+        if ($request->PTTT === 'COD') {
+            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
+                ->where('PTTT', 'COD')
+                ->where('trangthai', 'pending')
+                ->exists();
+            if ($hasActiveCodOrder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đã có một đơn COD đang chờ xử lý. Vui lòng hoàn tất hoặc hủy đơn đó trước khi đặt thêm.',
+                ], 409);
+            }
+        }
 
         if ($request->filled('id_diachi')) {
             $diaChi = DiaChi::where('id_user', $userId)
@@ -489,7 +603,7 @@ class DatHangController extends Controller
 
         // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
         $cartVariantIds = $gioHangItems->pluck('id_bienthe')->toArray();
-        $cartVariants = \App\Models\BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
+        $cartVariants = BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
 
         $freeComboOffers = DB::table('bienthe_combo_offers')
             ->join('bienthe', 'bienthe_combo_offers.id_bienthe', '=', 'bienthe.id_bienthe')
@@ -506,6 +620,7 @@ class DatHangController extends Controller
                         }
                     }
                 }
+
                 return false;
             })
             ->filter(function ($offer) {
@@ -585,6 +700,7 @@ class DatHangController extends Controller
         $giamGia = 0;
         $giamGiaShip = 0;
         $promoId = null;
+        $birthdayUserVoucherId = null;
 
         if ($request->filled('promo_code')) {
             $promo = Promotion::where('code', strtoupper($request->promo_code))
@@ -593,16 +709,22 @@ class DatHangController extends Controller
 
             if ($promo) {
                 if ($promo->danhmuc === 'birthday') {
-                    $hasVoucher = UserVoucher::where('id_user', $userId)
+                    $birthdayVoucher = UserVoucher::where('id_user', $userId)
                         ->where('id_voucher', $promo->id)
                         ->where('trang_thai', 0)
-                        ->exists();
-                    if (! $hasVoucher) {
+                        ->whereNull('da_su_dung_luc')
+                        ->where(function ($query) {
+                            $query->whereNull('het_han_luc')->orWhere('het_han_luc', '>=', now());
+                        })
+                        ->latest('ngay_nhan')
+                        ->first();
+                    if (! $birthdayVoucher) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.',
+                            'message' => 'Mã sinh nhật không thuộc tài khoản, đã được sử dụng hoặc đã hết hạn.',
                         ], 400);
                     }
+                    $birthdayUserVoucherId = $birthdayVoucher->id;
                 }
 
                 if ($promo->danhmuc === 'freeship') {
@@ -664,8 +786,8 @@ class DatHangController extends Controller
         // ── Xử lý Xu (Shopee/TikTok Shop Coins) ─────────
         $xuDung = 0;
         $xuNhan = 0;
-        $cauhinhXu = \App\Models\CauHinhXu::first();
-        
+        $cauhinhXu = CauHinhXu::first();
+
         $subtotalAfterPromo = max(0, $tongTienGoc - $giamGia);
         $shippingAfterPromo = max(0, $shippingFee - $giamGiaShip);
 
@@ -689,7 +811,7 @@ class DatHangController extends Controller
                     $subtotalAfterPromo = max(0, $subtotalAfterPromo - $soTienGiamBangXu);
                 }
             }
-            
+
             // Tính tích xu khi đơn hoàn thành (Tạm thời bỏ: đặt bằng 0)
             $xuNhan = 0;
         }
@@ -724,21 +846,22 @@ class DatHangController extends Controller
 
         }
 
+        if ($paymentProvider === 'sepay' && (
+            (string) config('services.sepay.bank') === '' ||
+            (string) config('services.sepay.account_number') === '' ||
+            (string) config('services.sepay.account_name') === '' ||
+            (string) config('services.sepay.webhook_api_key') === ''
+        )) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SePay chưa được cấu hình đầy đủ trong file .env.',
+            ], 422);
+        }
+
         $donHang = null;
 
         try {
             DB::beginTransaction();
-
-            $stockNeeded = $gioHangItems
-                ->groupBy('id_bienthe')
-                ->map(fn ($items) => $items->sum('soluong'));
-
-            foreach ($stockNeeded as $idBienThe => $neededQty) {
-                $bienThe = BienThe::where('id_bienthe', $idBienThe)->lockForUpdate()->first();
-                if (! $bienThe || $bienThe->soluong < $neededQty) {
-                    throw new \Exception("Sản phẩm {$bienThe?->ten_bienthe} không đủ số lượng trong kho.");
-                }
-            }
 
             $orderData = [
                 'id_khachhang' => $userId,
@@ -763,7 +886,7 @@ class DatHangController extends Controller
 
             if ($hasPaymentTracking) {
                 $orderData['nha_cung_cap_thanh_toan'] = $paymentProvider;
-                $orderData['trang_thai_thanh_toan'] = in_array($paymentProvider, ['momo', 'vnpay'], true) ? 'pending' : 'unpaid';
+                $orderData['trang_thai_thanh_toan'] = in_array($paymentProvider, ['momo', 'vnpay', 'sepay'], true) ? 'pending' : 'unpaid';
                 $orderData['du_lieu_thanh_toan'] = [
                     'checkout' => [
                         'promo_id' => $promoId,
@@ -786,19 +909,30 @@ class DatHangController extends Controller
                 $user = Auth::user();
                 $user->decrement('xu', $xuDung);
 
-                \App\Models\XuHistory::create([
+                XuHistory::create([
                     'id_khachhang' => $userId,
                     'so_xu' => -$xuDung,
                     'loai_giao_dich' => 'su_dung',
                     'id_dathang' => $donHang->id_dathang,
-                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #' . $donHang->id_dathang,
+                    'mo_ta' => 'Sử dụng xu thanh toán đơn hàng #'.$donHang->id_dathang,
                 ]);
             }
 
             foreach ($gioHangItems as $item) {
+                $variant = BienThe::query()
+                    ->where('id_bienthe', $item->id_bienthe)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $variant || $variant->soluong < $item->soluong) {
+                    throw new \RuntimeException("Sản phẩm {$item->id_bienthe} không còn đủ số lượng trong kho.");
+                }
+
+                $variant->decrement('soluong', $item->soluong);
+
                 $unitPrice = isset($allocatedPrices[$item->id_giohang])
                     ? $allocatedPrices[$item->id_giohang]
-                    : ($item->bienThe?->gia ?? 0);
+                    : $variant->gia;
 
                 $orderDetailData = [
                     'id_dathang' => $donHang->id_dathang,
@@ -817,32 +951,32 @@ class DatHangController extends Controller
                 DatHangChiTiet::create($orderDetailData);
             }
 
-            foreach ($stockNeeded as $idBienThe => $neededQty) {
-                BienThe::where('id_bienthe', $idBienThe)->decrement('soluong', $neededQty);
+            // Xóa giỏ hàng sau khi đặt hàng thành công (tất cả payment methods)
+            $deleteQuery = GioHang::where('id_khachhang', $userId);
+            if ($selectedCartItems->isNotEmpty()) {
+                $deleteQuery->whereIn('id_giohang', $selectedCartItems->all());
+            } elseif ($selectedVariants->isNotEmpty()) {
+                $deleteQuery->whereIn('id_bienthe', $selectedVariants->all());
+            }
+            $deleteQuery->delete();
+
+            // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
+            if ($promoId) {
+                $voucherQuery = UserVoucher::where('id_user', $userId)->where('id_voucher', $promoId);
+                if ($birthdayUserVoucherId) {
+                    $voucherQuery->whereKey($birthdayUserVoucherId);
+                }
+                $voucherQuery->where('trang_thai', 0)->update([
+                    'trang_thai' => 1,
+                    'da_su_dung_luc' => now(),
+                ]);
             }
 
-            if (! $isMomoPayment) {
-                $deleteQuery = GioHang::where('id_khachhang', $userId);
-                if ($selectedCartItems->isNotEmpty()) {
-                    $deleteQuery->whereIn('id_giohang', $selectedCartItems->all());
-                } elseif ($selectedVariants->isNotEmpty()) {
-                    $deleteQuery->whereIn('id_bienthe', $selectedVariants->all());
-                }
-                $deleteQuery->delete();
-
-                // Cập nhật trạng thái voucher trong hồ sơ user thành "Đã sử dụng"
-                if ($promoId) {
-                    UserVoucher::where('id_user', $userId)
-                        ->where('id_voucher', $promoId)
-                        ->update(['trang_thai' => 1]);
-                }
-
-                // Nếu có dùng thêm mã freeship
-                if ($freeshipPromotionId) {
-                    UserVoucher::where('id_user', $userId)
-                        ->where('id_voucher', $freeshipPromotionId)
-                        ->update(['trang_thai' => 1]);
-                }
+            // Nếu có dùng thêm mã freeship
+            if ($freeshipPromotionId) {
+                UserVoucher::where('id_user', $userId)
+                    ->where('id_voucher', $freeshipPromotionId)
+                    ->update(['trang_thai' => 1]);
             }
 
             // Increment the usage of applied combo offers
@@ -869,16 +1003,16 @@ class DatHangController extends Controller
 
             if (Schema::hasTable('vouchers') && Schema::hasTable('user_vouchers')) {
                 $conditionalPromos = Promotion::where('congkhai', 0)
-                ->where('danhmuc', '!=', 'birthday')
-                ->whereIn('trangthai', ['running', 'open'])
-                ->where(function ($q) {
-                    $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now());
-                })
-                ->where(function ($q) {
-                    $q->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', now());
-                })
-                ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
-                ->get();
+                    ->where('danhmuc', '!=', 'birthday')
+                    ->whereIn('trangthai', ['running', 'open'])
+                    ->where(function ($q) {
+                        $q->whereNull('ngaybatdau')->orWhere('ngaybatdau', '<=', now());
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('ngayketthuc')->orWhere('ngayketthuc', '>=', now());
+                    })
+                    ->where('dieu_kien_tang', '<=', $tongTienSauGiam)
+                    ->get();
             }
 
             $grantedVouchers = [];
@@ -918,7 +1052,7 @@ class DatHangController extends Controller
             Cache::forget('dashboard_data_year');
 
             // MoMo chỉ thông báo đơn mới cho admin sau khi thanh toán thành công.
-            if (! $isMomoPayment) {
+            if (! in_array($paymentProvider, ['momo', 'vnpay', 'sepay'], true)) {
                 broadcast(new OrderPlaced($donHang));
             }
 
@@ -934,11 +1068,33 @@ class DatHangController extends Controller
                 $donHang = $donHang->fresh();
             }
 
+            $sepayPayment = null;
+            if ($paymentProvider === 'sepay') {
+                $bank = (string) config('services.sepay.bank');
+                $account = (string) config('services.sepay.account_number');
+                $paymentCode = (string) config('services.sepay.payment_prefix', 'DH').$donHang->id_dathang;
+                $sepayPayment = [
+                    'order_id' => $donHang->id_dathang,
+                    'amount' => (float) $donHang->tongtien,
+                    'payment_code' => $paymentCode,
+                    'bank' => $bank,
+                    'account_number' => $account,
+                    'account_name' => config('services.sepay.account_name'),
+                    'qr_url' => 'https://vietqr.app/img?'.http_build_query([
+                        'acc' => $account, 'bank' => $bank, 'amount' => (int) round($donHang->tongtien),
+                        'des' => $paymentCode, 'template' => 'compact', 'showinfo' => 'true',
+                        'fullacc' => 'true', 'holder' => config('services.sepay.account_name'),
+                        'store' => config('services.sepay.store_name'),
+                    ]),
+                ];
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Đặt hàng thành công!',
                 'order' => $donHang,
                 'payUrl' => $payUrl,
+                'sepay' => $sepayPayment,
                 'giam_gia' => $giamGia,
                 'granted_vouchers' => $grantedVouchers,
             ]);
@@ -1066,15 +1222,26 @@ class DatHangController extends Controller
         $userId = Auth::id();
         $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
             ->where('id_khachhang', $userId)
+            ->where(function ($query) {
+                $query->whereNotIn('PTTT', ['vnpay', 'momo'])
+                    ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $orders->each(function ($order) use ($userId) {
-            $order->chi_tiets->each(function ($chiTiet) use ($order, $userId) {
-                $chiTiet->is_reviewed = DanhGia::where('id_dathang', $order->id_dathang)
-                    ->where('id_bienthe', $chiTiet->id_bienthe)
-                    ->where('user_id', $userId)
-                    ->exists();
+        // Optimize N+1 query: Fetch all reviews for these orders by this user in a single query
+        $orderIds = $orders->pluck('id_dathang')->toArray();
+        $reviews = DanhGia::whereIn('id_dathang', $orderIds)
+            ->where('user_id', $userId)
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->id_dathang.'_'.$item->id_bienthe;
+            });
+
+        $orders->each(function ($order) use ($reviews) {
+            $order->chi_tiets->each(function ($chiTiet) use ($order, $reviews) {
+                $key = $order->id_dathang.'_'.$chiTiet->id_bienthe;
+                $chiTiet->is_reviewed = $reviews->has($key);
             });
         });
 
@@ -1154,6 +1321,10 @@ class DatHangController extends Controller
         $this->syncDueDemoShipments();
 
         $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
+            ->where(function ($query) {
+                $query->whereNotIn('PTTT', ['vnpay', 'momo'])
+                    ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1207,12 +1378,12 @@ class DatHangController extends Controller
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
 
-                        \App\Models\XuHistory::create([
+                        XuHistory::create([
                             'id_khachhang' => $order->id_khachhang,
                             'so_xu' => $order->xu_dung,
                             'loai_giao_dich' => 'hoan_tra',
                             'id_dathang' => $order->id_dathang,
-                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #' . $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hủy đơn hàng #'.$order->id_dathang,
                         ]);
                     }
                 }
@@ -1245,12 +1416,12 @@ class DatHangController extends Controller
                     if ($user) {
                         $user->increment('xu', $order->xu_dung);
 
-                        \App\Models\XuHistory::create([
+                        XuHistory::create([
                             'id_khachhang' => $order->id_khachhang,
                             'so_xu' => $order->xu_dung,
                             'loai_giao_dich' => 'hoan_tra',
                             'id_dathang' => $order->id_dathang,
-                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #' . $order->id_dathang,
+                            'mo_ta' => 'Hoàn xu đã sử dụng do hoàn tiền đơn hàng #'.$order->id_dathang,
                         ]);
                     }
                 }
@@ -1375,8 +1546,12 @@ class DatHangController extends Controller
         }
     }
 
-    public function markDemoShipmentFailed($id)
+    public function markDemoShipmentFailed(Request $request, $id)
     {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
         $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
         $paymentData = $order->du_lieu_thanh_toan ?? [];
         $shipment = $paymentData['shipping_demo'] ?? null;
@@ -1398,15 +1573,53 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
-            $shipment = $this->appendShipmentTimeline($shipment, 'delivery_failed', 'Shipper giao không thành công, cần liên hệ lại khách hoặc hẹn giao lại.');
-            $order = $this->saveShipment($order, $shipment, 'shipping');
+            $reason = $this->normalizedFailureReason($validated['reason'] ?? null);
+            $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+            $shouldRetry = $this->isContactFailureReason($reason) && ! $this->isReceiverRefusalReason($reason);
+
+            if ($shouldRetry) {
+                $attempts += 1;
+                $shipment['delivery_attempts'] = $attempts;
+            }
+
+            $shipment['failure_reason'] = $reason;
+            $shipment['last_failure_reason'] = $reason;
+            $shipment['failed_at'] = now()->toDateTimeString();
+            $shipment['can_retry'] = $shouldRetry && $attempts < 3;
+
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivery_failed',
+                $shouldRetry
+                    ? "Giao hàng thất bại lần {$attempts}/3: {$reason}."
+                    : 'Giao hàng thất bại: '.$reason
+            );
+
+            $extraUpdates = [];
+            $message = 'Đã ghi nhận giao hàng thất bại.';
+
+            if ($this->isReceiverRefusalReason($reason)) {
+                [$shipment, $extraUpdates] = $this->applyReturnAndRefund($order, $shipment, 'Khách từ chối nhận hàng');
+                $message = $extraUpdates
+                    ? 'Khách từ chối nhận hàng. Đơn đã chuyển hoàn và ghi nhận hoàn tiền.'
+                    : 'Khách từ chối nhận hàng. Đơn đã chuyển hoàn về kho.';
+            } elseif ($shouldRetry && $attempts >= 3) {
+                [$shipment, $extraUpdates] = $this->applyReturnAndRefund($order, $shipment, 'Không giao được sau 3 lần');
+                $message = $extraUpdates
+                    ? 'Đơn đã giao thất bại 3 lần, chuyển hoàn và ghi nhận hoàn tiền.'
+                    : 'Đơn đã giao thất bại 3 lần và được chuyển hoàn về kho.';
+            } elseif ($shouldRetry) {
+                $message = "Đã ghi nhận giao thất bại lần {$attempts}/3. Có thể sắp xếp giao lại.";
+            }
+
+            $order = $this->saveShipment($order, $shipment, 'shipping', $extraUpdates);
 
             DB::commit();
             event(new OrderStatusUpdated($order));
 
             return response()->json([
                 'success' => true,
-                'message' => 'Đã ghi nhận giao hàng thất bại.',
+                'message' => $message,
                 'order' => $order,
             ]);
         } catch (\Exception $e) {
@@ -1415,6 +1628,68 @@ class DatHangController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi khi cập nhật vận chuyển: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function retryDemoShipment($id)
+    {
+        $order = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])->findOrFail($id);
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $shipment = $paymentData['shipping_demo'] ?? null;
+
+        if (empty($shipment['tracking_code'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng chưa có vận đơn demo.',
+            ], 422);
+        }
+
+        if (($shipment['status'] ?? null) !== 'delivery_failed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể giao lại đơn đang giao thất bại.',
+            ], 422);
+        }
+
+        $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+        if ($attempts >= 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn đã giao thất bại 3 lần, không thể giao lại.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $nextAttempt = $attempts + 1;
+            $shipment['failure_reason'] = null;
+            $shipment['can_retry'] = false;
+            $shipment['retrying_at'] = now()->toDateTimeString();
+
+            $shipment = $this->appendShipmentTimeline(
+                $shipment,
+                'delivering',
+                "Cửa hàng đã sắp xếp giao lại lần {$nextAttempt}/3.",
+                now()
+            );
+            $order = $this->saveShipment($order, $shipment, 'shipping');
+
+            DB::commit();
+            event(new OrderStatusUpdated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã sắp xếp giao lại lần {$nextAttempt}/3.",
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi khi cập nhật giao lại: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1480,6 +1755,7 @@ class DatHangController extends Controller
         return match ($method) {
             'MoMo', 'MOMO', 'momo' => 'momo',
             'Ví điện tử', 'VNPAY', 'VNPay', 'vnpay' => 'vnpay',
+            'SePay', 'SEPAY', 'sepay' => 'sepay',
             'COD' => 'cod',
             'Chuyển khoản' => 'bank',
             default => null,
@@ -1489,5 +1765,52 @@ class DatHangController extends Controller
     private function resolveMomoRequestType(?string $provider): string
     {
         return env('MOMO_REQUEST_TYPE', 'payWithMethod') ?: 'payWithMethod';
+    }
+
+    private function cleanupUnpaidOrders()
+    {
+        try {
+            $cutoff = Carbon::now()->subMinutes(15);
+            $unpaidOrders = DatHang::whereIn('PTTT', ['vnpay', 'momo', 'SePay', 'SEPAY', 'sepay'])
+                ->where('trangthai', 'pending')
+                ->where('trang_thai_thanh_toan', 'pending')
+                ->where('created_at', '<', $cutoff)
+                ->get();
+
+            foreach ($unpaidOrders as $unpaidOrder) {
+                DB::transaction(function () use ($unpaidOrder) {
+                    $unpaidOrder->update([
+                        'trangthai' => 'cancelled',
+                        'lydo' => 'Hết hạn thời gian thanh toán trực tuyến (15 phút)',
+                        'trang_thai_thanh_toan' => 'failed',
+                    ]);
+
+                    // Restore stock
+                    foreach ($unpaidOrder->chi_tiets as $chiTiet) {
+                        if ($chiTiet->bienThe) {
+                            $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                        }
+                    }
+
+                    // Restore coins
+                    if ($unpaidOrder->xu_dung > 0) {
+                        $user = $unpaidOrder->user;
+                        if ($user) {
+                            $user->increment('xu', $unpaidOrder->xu_dung);
+
+                            XuHistory::create([
+                                'id_khachhang' => $unpaidOrder->id_khachhang,
+                                'so_xu' => $unpaidOrder->xu_dung,
+                                'loai_giao_dich' => 'hoan_tra',
+                                'id_dathang' => $unpaidOrder->id_dathang,
+                                'mo_ta' => 'Hoàn xu do đơn hàng #'.$unpaidOrder->id_dathang.' hết hạn thanh toán',
+                            ]);
+                        }
+                    }
+                });
+            }
+        } catch (\Exception $e) {
+            Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: '.$e->getMessage());
+        }
     }
 }

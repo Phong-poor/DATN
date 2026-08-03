@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Quản lý đánh giá sản phẩm, duyệt nội dung và phản hồi đánh giá.
+ */
 class DanhGiaController extends Controller
 {
     /**

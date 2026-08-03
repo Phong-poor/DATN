@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện sản phẩm, thông tin bán hàng và các biến thể liên quan.
+ */
 class SanPham extends Model
 {
     protected $table = 'sanpham';

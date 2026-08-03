@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { getUser } from '@/services/auth'
+import { registerOfflineForm, clearFormDraft } from '@/services/offlineSync'
 
 // ─── STATE ───────────────────────────
 const roles = ref([])
@@ -23,6 +24,8 @@ const form = ref({
   mo_ta: '',
   quyen: []
 })
+
+registerOfflineForm(form, 'vai-tro-form')
 
 // ─── PERMISSION SCHEMA ────────────────
 const permissionGroups = [
@@ -92,7 +95,8 @@ const permissionGroups = [
     permissions: [
       { code: 'tai_khoan_quan_ly', name: 'Quản lý tài khoản nhân viên', desc: 'Tạo mới nhân viên, khóa hoặc mở khóa tài khoản nhân viên.' },
       { code: 'vai_tro_quan_ly', name: 'Quản lý vai trò & quyền', desc: 'Được quyền tạo mới, chỉnh sửa quyền hạn các chức vụ trong hệ thống.' },
-      { code: 'nhat_ky_quan_ly', name: 'Xem nhật ký hoạt động', desc: 'Xem lịch sử các thao tác của nhân viên trên hệ thống.' }
+      { code: 'nhat_ky_quan_ly', name: 'Xem nhật ký hoạt động', desc: 'Xem lịch sử các thao tác của nhân viên trên hệ thống.' },
+      { code: 'quan_ly_cham_cong', name: 'Quản lý chấm công', desc: 'Cho phép truy cập trang quản lý chấm công, xem lịch sử chấm công của tất cả nhân viên.' }
     ]
   }
 ]
@@ -113,8 +117,51 @@ const fetchRoles = async () => {
   }
 }
 
+let syncSuccessHandler = null
+
+const handleRestoreTrigger = () => {
+  setTimeout(() => {
+    if (form.value.ten_vaitro || form.value.ma_vaitro) {
+      let isEdit = false
+      try {
+        const parsed = JSON.parse(localStorage.getItem('pending_restore_form'))
+        if (parsed && parsed.method.toLowerCase() === 'put') {
+          isEdit = true
+          const parts = parsed.url.split('/')
+          const id = parts[parts.length - 1]
+          if (id && !isNaN(id)) {
+            editingRoleId.value = parseInt(id)
+          }
+        }
+      } catch (e) {}
+      
+      isEditMode.value = isEdit
+      showModal.value = true
+    }
+  }, 50)
+}
+
 onMounted(() => {
   fetchRoles()
+  
+  // Lắng nghe sự kiện khôi phục yêu cầu để tự động mở Modal
+  window.addEventListener('restore-form-trigger', handleRestoreTrigger)
+  handleRestoreTrigger()
+  
+  // Tải lại danh sách vai trò khi hàng đợi đồng bộ thành công nền
+  syncSuccessHandler = (e) => {
+    if (e.detail?.url && e.detail.url.includes('/admin/vaitro')) {
+      fetchRoles()
+    }
+  }
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('restore-form-trigger', handleRestoreTrigger)
+  if (syncSuccessHandler) {
+    window.removeEventListener('offline-sync-success', syncSuccessHandler)
+  }
 })
 
 // Search
@@ -208,6 +255,7 @@ const submitForm = async () => {
         swal.success('Thành công', 'Cập nhật vai trò thành công')
         await fetchRoles()
         closeModal()
+        clearFormDraft('vai-tro-form')
       }
     } else {
       const res = await api.post('/admin/vaitro', form.value)
@@ -215,10 +263,17 @@ const submitForm = async () => {
         swal.success('Thành công', 'Thêm vai trò mới thành công')
         await fetchRoles()
         closeModal()
+        clearFormDraft('vai-tro-form')
       }
     }
   } catch (err) {
-    formError.value = err.response?.data?.message || 'Có lỗi xảy ra khi lưu vai trò'
+    if (err.isOfflineQueue) {
+      clearFormDraft('vai-tro-form')
+      closeModal()
+      await swal.info('Chế độ ngoại tuyến', 'Đã lưu tạm yêu cầu thay đổi vai trò ngoại tuyến. Dữ liệu sẽ tự động đồng bộ khi có mạng.')
+    } else {
+      formError.value = err.response?.data?.message || 'Có lỗi xảy ra khi lưu vai trò'
+    }
   } finally {
     loading.value = false
   }
@@ -260,9 +315,6 @@ const deleteRole = async (role) => {
         <h1>Quản lý vai trò & quyền hạn</h1>
         <p>Phân chia các quyền hành động chi tiết cho từng vị trí nhân viên quản trị hệ thống DATN 2026</p>
       </div>
-      <button class="add-btn" @click="openAddModal">
-        <span>+</span> Tạo vai trò mới
-      </button>
     </div>
 
     <!-- Search bar -->
@@ -274,6 +326,9 @@ const deleteRole = async (role) => {
         </svg>
         <input v-model="searchQuery" placeholder="Tìm kiếm tên, mã hoặc mô tả chức vụ..." />
       </div>
+      <button class="add-btn" @click="openAddModal">
+        <span>+</span> Tạo vai trò mới
+      </button>
     </div>
 
     <!-- Table content -->
@@ -474,6 +529,9 @@ const deleteRole = async (role) => {
 
 .filter-bar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   background: #ffffff;
   padding: 12px 16px;
   border-radius: 10px;

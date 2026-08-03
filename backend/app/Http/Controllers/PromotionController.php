@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\DatHang;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
-use App\Models\DatHang;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Quản lý mã khuyến mãi, kiểm tra điều kiện áp dụng và voucher của người dùng.
+ */
 class PromotionController extends Controller
 {
     // GET /api/user/vouchers — fetch vouchers owned by the user
@@ -19,7 +24,7 @@ class PromotionController extends Controller
 
         return response()->json([
             'success' => true,
-            'vouchers' => $vouchers
+            'vouchers' => $vouchers,
         ]);
     }
 
@@ -54,16 +59,12 @@ class PromotionController extends Controller
         return response()->json($available);
     }
 
-
     // GET /api/promotions — public & admin
     public function index(Request $request)
     {
-        // Ẩn mã sinh nhật trong mọi trường hợp vì có mục đích riêng
-        $query = Promotion::where('danhmuc', '!=', 'birthday')->orderBy('id', 'desc');
-
         if ($request->is('api/admin/*')) {
-            // Admin thấy tất cả (trừ birthday), bao gồm cả is_public = 0
-            return response()->json($query->get());
+            // Admin quản lý chung nhưng vẫn nhìn thấy rõ các chương trình sinh nhật.
+            return response()->json(Promotion::orderBy('id', 'desc')->get());
         }
         
         $today = now()->format('d-m');
@@ -85,13 +86,13 @@ class PromotionController extends Controller
     public function applyPromo(Request $request)
     {
         $request->validate([
-            'code'     => 'required|string',
+            'code' => 'required|string',
             'subtotal' => 'required|numeric|min:0',
         ]);
 
         $promo = Promotion::where('code', strtoupper($request->code))->first();
 
-        if (!$promo) {
+        if (! $promo) {
             return response()->json([
                 'success' => false,
                 'message' => 'Mã giảm giá không tồn tại.'
@@ -116,20 +117,24 @@ class PromotionController extends Controller
 
         if ($promo->danhmuc === 'birthday') {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bạn cần đăng nhập để sử dụng mã sinh nhật.'
+                    'message' => 'Bạn cần đăng nhập để sử dụng mã sinh nhật.',
                 ], 401);
             }
             $hasVoucher = UserVoucher::where('id_user', $user->id)
                 ->where('id_voucher', $promo->id)
                 ->where('trang_thai', 0)
+                ->whereNull('da_su_dung_luc')
+                ->where(function ($query) {
+                    $query->whereNull('het_han_luc')->orWhere('het_han_luc', '>=', now());
+                })
                 ->exists();
-            if (!$hasVoucher) {
+            if (! $hasVoucher) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.'
+                    'message' => 'Bạn không sở hữu mã sinh nhật này hoặc mã đã được sử dụng.',
                 ], 422);
             }
         }
@@ -138,7 +143,7 @@ class PromotionController extends Controller
         if ($promo->danhmuc !== 'event' && $promo->ngayketthuc && now()->gt($promo->ngayketthuc)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Mã giảm giá đã hết hạn.'
+                'message' => 'Mã giảm giá đã hết hạn.',
             ], 422);
         }
 
@@ -146,7 +151,7 @@ class PromotionController extends Controller
         if ($promo->danhmuc !== 'event' && $promo->ngaybatdau && now()->lt($promo->ngaybatdau)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Mã giảm giá chưa có hiệu lực.'
+                'message' => 'Mã giảm giá chưa có hiệu lực.',
             ], 422);
         }
 
@@ -156,9 +161,10 @@ class PromotionController extends Controller
         if ($promo->dieu_kien && $promo->dieu_kien > 0) {
             if ($subtotal < $promo->dieu_kien) {
                 $type = $promo->category === 'freeship' ? 'miễn phí vận chuyển' : 'này';
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($promo->dieu_kien, 0, ',', '.') . 'đ để sử dụng mã ' . $type . '.'
+                    'message' => 'Đơn hàng chưa đạt giá trị tối thiểu '.number_format($promo->dieu_kien, 0, ',', '.').'đ để sử dụng mã '.$type.'.',
                 ], 422);
             }
         }
@@ -171,19 +177,19 @@ class PromotionController extends Controller
             $message = "Áp dụng mã {$promo->code} – Miễn phí vận chuyển!";
         } elseif ($promo->loai === 'percent') {
             $discount = round($subtotal * $promo->giatri / 100);
-            $message  = "Áp dụng mã {$promo->code} – giảm {$promo->giatri}%!";
+            $message = "Áp dụng mã {$promo->code} – giảm {$promo->giatri}%!";
         } elseif ($promo->loai === 'fixed') {
             $discount = min($promo->giatri, $subtotal);
-            $message  = "Áp dụng mã {$promo->code} – giảm " . number_format($promo->giatri, 0, ',', '.') . "đ!";
+            $message = "Áp dụng mã {$promo->code} – giảm ".number_format($promo->giatri, 0, ',', '.').'đ!';
         } else {
             $message = "Áp dụng mã {$promo->code} thành công!";
         }
 
         return response()->json([
-            'success'    => true,
-            'message'    => $message,
-            'discount'   => $discount,
-            'promotion'  => $promo,
+            'success' => true,
+            'message' => $message,
+            'discount' => $discount,
+            'promotion' => $promo,
         ]);
     }
 
@@ -192,12 +198,12 @@ class PromotionController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'id_voucher' => 'required|exists:vouchers,id'
+            'id_voucher' => 'required|exists:vouchers,id',
         ]);
 
         $promo = Promotion::find($request->id_voucher);
 
-        if (!$promo) {
+        if (! $promo) {
             return response()->json(['success' => false, 'message' => 'Voucher không tồn tại.'], 404);
         }
 
@@ -232,15 +238,16 @@ class PromotionController extends Controller
 
         // Check if user already owns it
         $existing = UserVoucher::where('id_user', $user->id)
-                               ->where('id_voucher', $promo->id)
-                               ->first();
+            ->where('id_voucher', $promo->id)
+            ->first();
 
         if ($existing) {
             if ($existing->trang_thai == 2 || $existing->trang_thai === 'het_han' || $existing->trang_thai === 'expired') {
                 $existing->update([
                     'trang_thai' => 0,
-                    'ngay_nhan' => now()
+                    'ngay_nhan' => now(),
                 ]);
+
                 return response()->json(['success' => true, 'message' => 'Đã nhận lại voucher thành công.']);
             } else {
                 return response()->json(['success' => false, 'message' => 'Bạn đã có voucher này rồi.'], 400);
@@ -252,7 +259,7 @@ class PromotionController extends Controller
             'id_user' => $user->id,
             'id_voucher' => $promo->id,
             'trang_thai' => 0,
-            'ngay_nhan' => now()
+            'ngay_nhan' => now(),
         ]);
 
         return response()->json(['success' => true, 'message' => 'Nhận voucher thành công.']);
@@ -270,10 +277,10 @@ class PromotionController extends Controller
             'ngaybatdau'     => 'nullable|date',
             'ngayketthuc'    => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
-            'dieu_kien'      => 'nullable|numeric|min:0',
-            'congkhai'      => 'boolean',
+            'dieu_kien' => 'nullable|numeric|min:0',
+            'congkhai' => 'boolean',
             'dieu_kien_tang' => 'nullable|numeric|min:0',
-            'so_luong_phat'  => 'nullable|integer|min:1',
+            'so_luong_phat' => 'nullable|integer|min:1',
         ]);
 
         $promo = Promotion::create([
@@ -287,15 +294,15 @@ class PromotionController extends Controller
             'trangthai'      => $request->danhmuc === 'event' ? 'open' : ($request->trangthai ?? 'open'),
             'mota'           => $request->mota,
             'loai_dieu_kien' => $request->danhmuc === 'product' ? $request->loai_dieu_kien : null,
-            'dieu_kien'      => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
-            'congkhai'       => $request->has('congkhai') ? $request->congkhai : 1,
-            'dieu_kien_tang' => $request->dieu_kien_tang,
-            'so_luong_phat'  => $request->so_luong_phat,
+            'dieu_kien' => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
+            'congkhai' => $request->danhmuc === 'birthday' ? 0 : ($request->has('congkhai') ? $request->congkhai : 1),
+            'dieu_kien_tang' => $request->danhmuc === 'birthday' ? null : $request->dieu_kien_tang,
+            'so_luong_phat' => $request->danhmuc === 'birthday' ? null : $request->so_luong_phat,
         ]);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'Tạo khuyến mãi thành công!',
+            'success' => true,
+            'message' => 'Tạo khuyến mãi thành công!',
             'promotion' => $promo,
         ]);
     }
@@ -314,10 +321,10 @@ class PromotionController extends Controller
             'ngaybatdau'     => 'nullable|date',
             'ngayketthuc'    => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
-            'dieu_kien'      => 'nullable|numeric|min:0',
-            'congkhai'       => 'boolean',
+            'dieu_kien' => 'nullable|numeric|min:0',
+            'congkhai' => 'boolean',
             'dieu_kien_tang' => 'nullable|numeric|min:0',
-            'so_luong_phat'  => 'nullable|integer|min:1',
+            'so_luong_phat' => 'nullable|integer|min:1',
         ]);
 
         $promo->update([
@@ -331,15 +338,15 @@ class PromotionController extends Controller
             'trangthai'      => $request->danhmuc === 'event' ? 'open' : ($request->trangthai ?? $promo->trangthai),
             'mota'           => $request->mota,
             'loai_dieu_kien' => $request->danhmuc === 'product' ? $request->loai_dieu_kien : null,
-            'dieu_kien'      => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
-            'congkhai'       => $request->has('congkhai') ? $request->congkhai : 1,
-            'dieu_kien_tang' => $request->dieu_kien_tang,
-            'so_luong_phat'  => $request->so_luong_phat,
+            'dieu_kien' => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
+            'congkhai' => $request->danhmuc === 'birthday' ? 0 : ($request->has('congkhai') ? $request->congkhai : 1),
+            'dieu_kien_tang' => $request->danhmuc === 'birthday' ? null : $request->dieu_kien_tang,
+            'so_luong_phat' => $request->danhmuc === 'birthday' ? null : $request->so_luong_phat,
         ]);
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'Cập nhật khuyến mãi thành công!',
+            'success' => true,
+            'message' => 'Cập nhật khuyến mãi thành công!',
             'promotion' => $promo,
         ]);
     }
@@ -348,28 +355,29 @@ class PromotionController extends Controller
     public function destroy($id)
     {
         try {
-            \Illuminate\Support\Facades\DB::beginTransaction();
+            DB::beginTransaction();
 
             // 1. Xóa các bản ghi liên quan trong bảng khachhang_voucher trước để tránh lỗi khóa ngoại
             UserVoucher::where('id_voucher', $id)->delete();
 
             // 2. Cập nhật các đơn hàng sử dụng mã này thành null để tránh lỗi khóa ngoại mà vẫn giữ được đơn hàng
-            \App\Models\DatHang::where('id_khuyenmai', $id)->update(['id_khuyenmai' => null]);
+            DatHang::where('id_khuyenmai', $id)->update(['id_khuyenmai' => null]);
 
             // 3. Xóa khuyến mãi
             Promotion::destroy($id);
 
-            \Illuminate\Support\Facades\DB::commit();
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Xóa khuyến mãi thành công!'
+                'message' => 'Xóa khuyến mãi thành công!',
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\DB::rollBack();
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra khi xóa khuyến mãi: ' . $e->getMessage()
+                'message' => 'Có lỗi xảy ra khi xóa khuyến mãi: '.$e->getMessage(),
             ], 500);
         }
     }

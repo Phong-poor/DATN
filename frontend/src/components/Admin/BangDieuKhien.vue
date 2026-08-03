@@ -5,7 +5,7 @@ import {
     BarChart3,
     ClipboardList,
     DollarSign,
-    FileSpreadsheet,
+    Download,
     Package,
     PackageCheck,
     ShoppingCart,
@@ -18,7 +18,7 @@ import echo from '@/services/echo'
 
 // State
 const period = ref('all')          // all | week | month | year
-const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v3_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v4_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
 const statusLabels = [
@@ -57,6 +57,7 @@ const createDashboardShell = (selectedPeriod = 'all') => ({
         doanh_thu: { current: '0đ', previous: '0đ', trend: 0 },
         don_hang: { current: 0, previous: 0, trend: 0 },
         khach_hang: { current: 0, previous: 0, trend: 0 },
+        san_pham: { current: 0, previous: 0, trend: 0 },
     },
     nhan_su_hoat_dong: {
         online: 0,
@@ -243,6 +244,17 @@ const stats = computed(() => {
             borderColor: 'transparent',
             labelColor: 'rgba(255,255,255,.88)'
         },
+        {
+            label: 'Tổng đơn hàng',
+            value: normalOrderTotal.value,
+            to: '/admin/quan-ly-don-hang',
+            hint: 'Xem đơn hàng',
+            icon: ShoppingCart,
+            iconBg: 'rgba(255,255,255,.16)',
+            cardBg: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+            borderColor: 'transparent',
+            labelColor: 'rgba(255,255,255,.88)'
+        },
     ]
 })
 
@@ -323,6 +335,43 @@ const orderPipelineRows = computed(() => {
     }))
 })
 
+const paymentDonut = computed(() => {
+    const rows = paymentChartRows.value
+    const total = rows.reduce((sum, item) => sum + item.total, 0)
+    const leader = [...rows].sort((a, b) => b.total - a.total)[0]
+    return {
+        pct: total > 0 ? Math.round(((leader?.total || 0) / total) * 100) : 0,
+        label: leader?.label || 'Chưa có dữ liệu',
+    }
+})
+
+const categoryDonut = computed(() => {
+    const rows = categoryChartRows.value
+    const total = rows.reduce((sum, item) => sum + item.total, 0)
+    const leader = [...rows].sort((a, b) => b.total - a.total)[0]
+    return {
+        pct: total > 0 ? Math.round(((leader?.total || 0) / total) * 100) : 0,
+        label: leader?.label || 'Chưa có dữ liệu',
+    }
+})
+
+const stockDonut = computed(() => {
+    const rows = stockRiskRows.value
+    const average = rows.length
+        ? Math.round(rows.reduce((sum, item) => sum + item.risk, 0) / rows.length)
+        : 0
+    return { pct: average, label: rows.length ? 'Mức cảnh báo' : 'Kho ổn định' }
+})
+
+const orderDonut = computed(() => {
+    const total = normalOrderTotal.value
+    const done = completedOrders.value
+    return {
+        pct: total > 0 ? Math.round((done / total) * 100) : 0,
+        label: 'Đã hoàn thành',
+    }
+})
+
 const trendClass = (value) => {
     const trend = Number(value || 0)
     if (trend > 0) return 'up'
@@ -337,6 +386,33 @@ const trendText = (value) => {
     return '0%'
 }
 
+const numberFromMetric = (value) => {
+    if (typeof value === 'number') return value
+    if (value === null || value === undefined) return 0
+
+    const normalized = String(value)
+        .replace(/[^\d,.-]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.')
+
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : 0
+}
+
+const calcTrendPercent = (current, previous, fallback = 0) => {
+    const fallbackTrend = Number(fallback || 0)
+    if (fallbackTrend !== 0) return fallbackTrend
+
+    const currentValue = numberFromMetric(current)
+    const previousValue = numberFromMetric(previous)
+
+    if (previousValue <= 0) {
+        return currentValue > 0 ? 100 : 0
+    }
+
+    return Number((((currentValue - previousValue) / previousValue) * 100).toFixed(1))
+}
+
 const analysisCards = computed(() => {
     const insight = data.value?.phan_tich || createDashboardShell(period.value).phan_tich
     return [
@@ -344,19 +420,19 @@ const analysisCards = computed(() => {
             label: 'Doanh thu kỳ này',
             value: insight.doanh_thu?.current || '0đ',
             previous: `Kỳ trước: ${insight.doanh_thu?.previous || '0đ'}`,
-            trend: insight.doanh_thu?.trend || 0,
+            trend: calcTrendPercent(insight.doanh_thu?.current, insight.doanh_thu?.previous, insight.doanh_thu?.trend),
         },
         {
             label: 'Đơn hàng kỳ này',
             value: insight.don_hang?.current || 0,
             previous: `Kỳ trước: ${insight.don_hang?.previous || 0} đơn`,
-            trend: insight.don_hang?.trend || 0,
+            trend: calcTrendPercent(insight.don_hang?.current, insight.don_hang?.previous, insight.don_hang?.trend),
         },
         {
             label: 'Khách mới kỳ này',
             value: insight.khach_hang?.current || 0,
             previous: `Kỳ trước: ${insight.khach_hang?.previous || 0} khách`,
-            trend: insight.khach_hang?.trend || 0,
+            trend: calcTrendPercent(insight.khach_hang?.current, insight.khach_hang?.previous, insight.khach_hang?.trend),
         },
         {
             label: 'Giá trị đơn trung bình',
@@ -528,7 +604,9 @@ const formatChartAxisLabel = (rawLabel) => {
 }
 
 const shouldShowChartAxisLabel = (index, total) => {
-    return false
+    if (total <= 8) return true
+    const step = Math.ceil(total / 7)
+    return index === 0 || index === total - 1 || index % step === 0
 }
 
 const withChartAxisLabel = (item, index, total) => ({
@@ -546,6 +624,25 @@ const clearChartHover = () => {
 }
 
 const activeChartPoint = (chart) => hoveredChartPoint.value?.chart === chart ? hoveredChartPoint.value : null
+
+const buildSmoothChartPath = (points, yKey) => {
+    if (!points.length) return ''
+    if (points.length === 1) return `M ${points[0].x} ${points[0][yKey]}`
+
+    return points.reduce((path, point, index) => {
+        if (index === 0) return `M ${point.x} ${point[yKey]}`
+
+        const previous = points[index - 1]
+        const beforePrevious = points[index - 2] || previous
+        const next = points[index + 1] || point
+        const cp1x = previous.x + (point.x - beforePrevious.x) / 6
+        const cp1y = previous[yKey] + (point[yKey] - beforePrevious[yKey]) / 6
+        const cp2x = point.x - (next.x - previous.x) / 6
+        const cp2y = point[yKey] - (next[yKey] - previous[yKey]) / 6
+
+        return `${path} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${point.x} ${point[yKey]}`
+    }, '')
+}
 
 const chartTooltipX = (chart, point) => {
     if (!chart || !point) return 0
@@ -576,6 +673,7 @@ const revenueChart = computed(() => {
     const items = data.value.bieu_do.map((d) => ({
         label: d.label,
         revenue: Number(d.total) || 0,
+        orders: Number(d.orders) || 0,
     }))
     const itemCount = items.length
 
@@ -588,8 +686,7 @@ const revenueChart = computed(() => {
     const innerW = width - left - right
     const innerH = height - top - bottom
     const maxRevenue = Math.max(...items.map((i) => i.revenue), 1)
-    const avgTicket = 2000000
-    const orders = items.map((i) => Math.max(1, Math.round(i.revenue / avgTicket)))
+    const orders = items.map((i) => i.orders)
     const maxOrders = Math.max(...orders, 1)
 
     // Add horizontal padding inside the chart area so the first and last bars do not touch the axes.
@@ -609,14 +706,14 @@ const revenueChart = computed(() => {
         return withChartAxisLabel({ ...item, orders: orders[idx], x, yRevenue, yOrders }, idx, itemCount)
     })
 
-    const line = points.map((p) => `${p.x},${p.yOrders}`).join(' ')
+    const ordersPath = buildSmoothChartPath(points, 'yOrders')
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
         y: top + innerH - ratio * innerH,
         revenueValue: Math.round(maxRevenue * ratio),
         orderValue: Math.round(maxOrders * ratio),
     }))
 
-    return { width, height, left, right, top, innerW, innerH, colWidth, points, line, yTicks }
+    return { width, height, left, right, top, innerW, innerH, colWidth, points, ordersPath, yTicks }
 })
 
 const customerChart = computed(() => {
@@ -700,6 +797,44 @@ const productChart = computed(() => {
     }))
 
     return { width, height, left, right, top, innerW, innerH, colWidth, points, yTicks }
+})
+
+const formatChartMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(moneyToNumber(value))}đ`
+
+const chartSummary = computed(() => {
+    const analysis = data.value?.phan_tich || {}
+
+    if (chartTab.value === 'customers') {
+        const metric = analysis.khach_hang || {}
+        return {
+            primaryLabel: 'Khách hàng mới',
+            primaryValue: `${Number(metric.current || 0).toLocaleString('vi-VN')} người`,
+            secondaryLabel: 'Kỳ trước',
+            secondaryValue: `${Number(metric.previous || 0).toLocaleString('vi-VN')} người`,
+            trend: Number(metric.trend || 0),
+        }
+    }
+
+    if (chartTab.value === 'products') {
+        const metric = analysis.san_pham || {}
+        return {
+            primaryLabel: 'Sản phẩm đã bán',
+            primaryValue: `${Number(metric.current || 0).toLocaleString('vi-VN')} sản phẩm`,
+            secondaryLabel: 'Kỳ trước',
+            secondaryValue: `${Number(metric.previous || 0).toLocaleString('vi-VN')} sản phẩm`,
+            trend: Number(metric.trend || 0),
+        }
+    }
+
+    const revenue = analysis.doanh_thu || {}
+    const orders = analysis.don_hang || {}
+    return {
+        primaryLabel: 'Doanh thu kỳ này',
+        primaryValue: formatChartMoney(revenue.current),
+        secondaryLabel: 'Đơn hàng kỳ này',
+        secondaryValue: `${Number(orders.current || 0).toLocaleString('vi-VN')} đơn`,
+        trend: Number(revenue.trend || 0),
+    }
 })
 
 const moneyToNumber = (value) => {
@@ -995,20 +1130,6 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <h2>Tổng quan hệ thống</h2>
                 <p>Chào mừng trở lại, hôm nay là {{ today }}</p>
             </div>
-            <div class="topbar-right">
-                <button class="export-btn" type="button" @click="exportDashboardExcel">
-                    <FileSpreadsheet aria-hidden="true" />
-                    Xuất Excel
-                </button>
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35" />
-                    </svg>
-                    <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
-                </div>
-                <button class="icon-btn" type="button" @click="fetchDashboard">↻</button>
-            </div>
         </div>
 
         <!-- Subtle background loader only, content remains visible while refreshing -->
@@ -1024,14 +1145,29 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
         <template v-if="data">
 
-            <!-- PERIOD SELECTOR (global) -->
-            <div class="period-bar">
-                <span class="period-bar-label">Kỳ thống kê:</span>
-                <div class="period-tabs">
-                    <button v-for="p in [['all', 'Tất cả'], ['week', 'Tuần này'], ['month', 'Tháng này'], ['year', 'Năm nay']]" :key="p[0]"
-                        :class="['period-tab', { active: period === p[0] }]" @click="period = p[0]">
-                        {{ p[1] }}
+            <div class="dashboard-controls">
+                <!-- PERIOD SELECTOR (global) -->
+                <div class="period-bar">
+                    <span class="period-bar-label">Kỳ thống kê:</span>
+                    <div class="period-tabs">
+                        <button v-for="p in [['all', 'Tất cả'], ['week', 'Tuần này'], ['month', 'Tháng này'], ['year', 'Năm nay']]" :key="p[0]"
+                            :class="['period-tab', { active: period === p[0] }]" @click="period = p[0]">
+                            {{ p[1] }}
+                        </button>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="export-btn admin-report-export" type="button" @click="exportDashboardExcel">
+                        <Download aria-hidden="true" />
+                        Xuất báo cáo
                     </button>
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                        <input v-model="searchQuery" placeholder="Tìm kiếm dữ liệu..." />
+                    </div>
                 </div>
             </div>
 
@@ -1053,8 +1189,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
                                 <component :is="s.icon" aria-hidden="true" />
                             </div>
+                            <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                         </div>
-                        <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                         <b class="stat-value">{{ s.value }}</b>
                         <span class="stat-card-action">{{ s.hint }}</span>
                     </router-link>
@@ -1276,6 +1412,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                         </div>
                     </div>
 
+                    <div class="chart-summary-strip">
+                        <div class="chart-summary-item">
+                            <span>{{ chartSummary.primaryLabel }}</span>
+                            <strong>{{ chartSummary.primaryValue }}</strong>
+                        </div>
+                        <div class="chart-summary-item">
+                            <span>{{ chartSummary.secondaryLabel }}</span>
+                            <strong>{{ chartSummary.secondaryValue }}</strong>
+                        </div>
+                        <div class="chart-summary-trend" :class="{ up: chartSummary.trend > 0, down: chartSummary.trend < 0 }">
+                            <TrendingUp aria-hidden="true" />
+                            <div>
+                                <strong>{{ chartSummary.trend > 0 ? '+' : '' }}{{ chartSummary.trend }}%</strong>
+                                <span>so với kỳ trước</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bar-chart">
                         <!-- CHART 1: SALES & ORDERS -->
                         <div v-if="chartTab === 'sales' && revenueChart" class="revenue-chart-wrap">
@@ -1287,13 +1441,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <defs>
                                     <!-- Gradient for Revenue Bars -->
                                     <linearGradient id="revenueBarGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#2563eb" />
-                                        <stop offset="100%" stop-color="#93c5fd" />
+                                        <stop offset="0%" stop-color="#3b82f6" />
+                                        <stop offset="100%" stop-color="#bfdbfe" />
                                     </linearGradient>
-                                    <!-- Soft Glow Filter for Line Chart -->
-                                    <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2563eb" flood-opacity="0.3" />
-                                    </filter>
                                 </defs>
 
                                 <line v-for="tick in revenueChart.yTicks" :key="`grid-${tick.y}`" :x1="revenueChart.left"
@@ -1312,7 +1462,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </rect>
 
                                 <!-- Orders Line and Points with Glow and Tooltips -->
-                                <polyline :points="revenueChart.line" class="orders-line" />
+                                <path :d="revenueChart.ordersPath" class="orders-line" />
                                 <circle v-for="p in revenueChart.points" :key="`pt-${p.label}`" 
                                     :cx="p.x" :cy="p.yOrders" r="5" 
                                     class="orders-point"
@@ -1322,11 +1472,14 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 </circle>
 
                                 <g v-if="activeChartPoint('sales')" class="chart-hover-tooltip"
-                                    :transform="`translate(${chartTooltipX(revenueChart, activeChartPoint('sales')) - 58} ${chartTooltipY(revenueChart, activeChartPoint('sales'), 'yRevenue') - 34})`">
-                                    <rect width="116" height="48" rx="8" />
-                                    <text x="58" y="18" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('sales').axisLabel }}</text>
-                                    <text x="58" y="35" text-anchor="middle" class="tooltip-value">
+                                    :transform="`translate(${chartTooltipX(revenueChart, activeChartPoint('sales')) - 72} ${chartTooltipY(revenueChart, activeChartPoint('sales'), 'yRevenue') - 48})`">
+                                    <rect width="144" height="64" rx="8" />
+                                    <text x="72" y="17" text-anchor="middle" class="tooltip-date">{{ activeChartPoint('sales').axisLabel }}</text>
+                                    <text x="72" y="36" text-anchor="middle" class="tooltip-value">
                                         {{ new Intl.NumberFormat('vi-VN').format(activeChartPoint('sales').revenue) }}đ
+                                    </text>
+                                    <text x="72" y="53" text-anchor="middle" class="tooltip-secondary">
+                                        {{ activeChartPoint('sales').orders }} đơn hàng
                                     </text>
                                 </g>
 
@@ -1601,6 +1754,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="section-header compact">
                         <span class="section-title">Biểu đồ thanh toán</span>
                     </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${paymentDonut.pct}%` }">
+                            <div><b>{{ paymentDonut.pct }}%</b><span>{{ paymentDonut.label }}</span></div>
+                        </div>
+                    </div>
                     <div class="horizontal-chart">
                         <div v-for="item in paymentChartRows" :key="item.label" class="chart-bar-row">
                             <div class="chart-bar-meta">
@@ -1618,6 +1776,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
                         <span class="section-title">Danh mục bán chạy</span>
+                    </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${categoryDonut.pct}%` }">
+                            <div><b>{{ categoryDonut.pct }}%</b><span>{{ categoryDonut.label }}</span></div>
+                        </div>
                     </div>
                     <div class="horizontal-chart">
                         <div v-for="item in categoryChartRows" :key="item.label" class="chart-bar-row">
@@ -1638,6 +1801,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     <div class="section-header compact">
                         <span class="section-title">Rủi ro tồn kho</span>
                     </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${stockDonut.pct}%` }">
+                            <div><b>{{ stockDonut.pct }}%</b><span>{{ stockDonut.label }}</span></div>
+                        </div>
+                    </div>
                     <div class="horizontal-chart">
                         <div v-for="item in stockRiskRows" :key="item.id" class="chart-bar-row">
                             <div class="chart-bar-meta">
@@ -1655,6 +1823,11 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
                         <span class="section-title">Luồng xử lý đơn</span>
+                    </div>
+                    <div class="mini-donut-summary">
+                        <div class="mini-donut" :style="{ '--donut-value': `${orderDonut.pct}%` }">
+                            <div><b>{{ orderDonut.pct }}%</b><span>{{ orderDonut.label }}</span></div>
+                        </div>
                     </div>
                     <div class="horizontal-chart">
                         <div v-for="item in orderPipelineRows" :key="item.status" class="chart-bar-row">
@@ -1743,10 +1916,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .page {
-    background: #f5f7fb;
-    min-height: 100vh;
+    background: transparent;
+    min-height: calc(100vh - 77px);
     font-family: sans-serif;
-    padding: 0 0 40px;
+    padding: 24px 0 40px;
     position: relative;
 }
 
@@ -1769,7 +1942,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 /* TOPBAR */
 .topbar {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     padding: 20px 28px 16px;
@@ -1854,19 +2027,6 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     border-color: #2563eb;
 }
 
-.icon-btn {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
-}
-
-.icon-btn:hover {
-    background: #e2e8f0;
-}
-
 /* LOADING */
 .loading-wrap {
     display: flex;
@@ -1894,7 +2054,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .dashboard-error {
-    margin: 0 28px 16px;
+    margin: 0 0 16px;
     padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid #fecaca;
@@ -1937,11 +2097,19 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 /* PERIOD BAR */
+.dashboard-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 0 16px;
+}
+
 .period-bar {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 28px 18px;
+    padding: 0;
 }
 
 .period-bar-label {
@@ -1978,12 +2146,12 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 /* STATS */
 .dashboard-cluster {
-    margin: 0 28px 20px;
+    margin: 0 0 20px;
     padding: 20px;
     border-radius: 18px;
     border: 1px solid #e2e8f0;
-    background: rgba(255, 255, 255, 0.72);
-    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.06);
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
 }
 
 .overview-cluster {
@@ -2040,7 +2208,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .performance-layout {
     display: grid;
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    gap: 18px;
+    gap: 16px;
     align-items: stretch;
 }
 
@@ -2054,8 +2222,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 16px !important;
     padding: 0;
 }
 
@@ -2071,6 +2239,46 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.overview-cluster .stat-card {
+    min-width: 0;
+    padding: 14px 18px !important;
+}
+
+.overview-cluster .stat-icon-wrap {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+}
+
+.overview-cluster .stat-icon-wrap svg {
+    width: 19px;
+    height: 19px;
+}
+
+.overview-cluster .stat-top {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.overview-cluster .stat-label {
+    margin: 0;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.overview-cluster .stat-value {
+    max-width: 100%;
+    font-size: clamp(24px, 1.8vw, 31px) !important;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.overview-cluster .stat-card:first-child .stat-value {
+    font-size: clamp(21px, 1.55vw, 27px) !important;
 }
 
 .stat-card-link {
@@ -2361,7 +2569,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .workbench-card {
-    margin: 0 32px 20px;
+    margin: 0 0 20px;
     padding: 16px;
     border-radius: 14px;
     border: 1px solid #dbeafe;
@@ -2753,23 +2961,24 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .charts-row {
     display: grid;
     grid-template-columns: 1fr 300px;
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
     align-items: stretch;
 }
 
 .right-col {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     height: 100%;
 }
 
 .card {
     background: white;
     border-radius: 14px;
-    border: 1px solid #f1f5f9;
-    padding: 18px 20px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
 }
 
 .chart-card {
@@ -2784,6 +2993,85 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+}
+
+.chart-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 1fr)) auto;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.chart-summary-item,
+.chart-summary-trend {
+    min-height: 58px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    background: #f8fafc;
+    padding: 9px 12px;
+}
+
+.chart-summary-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.chart-summary-item span,
+.chart-summary-trend span {
+    color: #64748b;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.chart-summary-item strong {
+    color: #0f172a;
+    font-size: 15px;
+}
+
+.chart-summary-trend {
+    min-width: 145px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+}
+
+.chart-summary-trend svg {
+    width: 20px;
+    height: 20px;
+}
+
+.chart-summary-trend div {
+    display: grid;
+    gap: 2px;
+}
+
+.chart-summary-trend strong {
+    font-size: 13px;
+}
+
+.chart-summary-trend.up {
+    color: #16a34a;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.chart-summary-trend.down {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+@media (max-width: 900px) {
+    .chart-summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .chart-summary-trend {
+        grid-column: 1 / -1;
+    }
 }
 
 .chart-title {
@@ -2919,18 +3207,17 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 .dot.revenue {
-    background: #2563eb;
+    background: #60a5fa;
 }
 
 .dot.orders {
-    background: #2563eb;
+    background: #1e3a8a;
 }
 
 .revenue-bar {
     fill: url(#revenueBarGradient);
-    opacity: 0.88;
-    rx: 6px;
-    filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.15));
+    opacity: 0.9;
+    rx: 5px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
@@ -2938,30 +3225,28 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .revenue-bar:hover {
     opacity: 1;
     fill: #2563eb;
-    filter: drop-shadow(0 6px 15px rgba(37, 99, 235, 0.35));
 }
 
 .orders-line {
     fill: none;
-    stroke: #2563eb;
-    stroke-width: 3.5;
+    stroke: #1e3a8a;
+    stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-    filter: url(#emeraldGlow);
 }
 
 .orders-point {
     fill: #ffffff;
-    stroke: #2563eb;
-    stroke-width: 3;
+    stroke: #1e3a8a;
+    stroke-width: 2.5;
     r: 5;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
 .orders-point:hover {
-    r: 7;
-    fill: #2563eb;
+    r: 6.5;
+    fill: #1e3a8a;
     stroke: #ffffff;
 }
 
@@ -3052,8 +3337,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .operations-row {
     display: grid;
     grid-template-columns: 1.15fr 1fr 0.9fr;
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
 }
 
 .operation-panel {
@@ -3187,8 +3472,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .insight-charts-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    padding: 0 28px 16px;
+    gap: 16px;
+    padding: 0 0 20px;
 }
 
 .insight-chart-card {
@@ -3197,6 +3482,62 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .section-header.compact {
     margin-bottom: 12px;
+}
+
+.chart-hover-tooltip .tooltip-secondary {
+    fill: #cbd5e1;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.mini-donut-summary {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 16px;
+}
+
+.mini-donut {
+    --donut-value: 0%;
+    width: 112px;
+    height: 112px;
+    padding: 14px;
+    border-radius: 50%;
+    background: conic-gradient(#3b82f6 0 var(--donut-value), #ec4899 var(--donut-value) 100%);
+    transform: rotate(-90deg);
+    box-shadow: 0 8px 22px rgba(59, 130, 246, 0.12);
+}
+
+.mini-donut > div {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+    transform: rotate(90deg);
+}
+
+.mini-donut b {
+    color: #0f172a;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.mini-donut span {
+    display: -webkit-box;
+    max-width: 68px;
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 8px;
+    line-height: 1.2;
+    font-weight: 700;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .horizontal-chart {
@@ -3278,8 +3619,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .bottom-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 28px;
+    gap: 16px;
+    padding: 0;
 }
 
 /* ORDERS TABLE */
@@ -3475,7 +3816,7 @@ tbody td {
 /* RESPONSIVE */
 @media (max-width: 1100px) {
     .stats-grid {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
 
     .performance-layout {
@@ -3519,7 +3860,7 @@ tbody td {
 
 @media (max-width: 700px) {
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 
     .topbar {
@@ -3529,19 +3870,37 @@ tbody td {
         padding: 16px;
     }
 
-    .dashboard-cluster,
+    .dashboard-controls {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 0 0 16px;
+    }
+
+    .dashboard-controls .topbar-right {
+        flex-wrap: wrap;
+    }
+
+    .dashboard-controls .search-box {
+        flex: 1 1 190px;
+    }
+
+    .dashboard-controls .search-box input {
+        width: 100%;
+        height: 38px;
+    }
+
     .charts-row,
     .operations-row,
     .insight-charts-row,
-    .bottom-row,
-    .period-bar {
-        padding-left: 16px;
-        padding-right: 16px;
+    .bottom-row {
+        padding-left: 0;
+        padding-right: 0;
     }
 
     .dashboard-cluster {
-        margin-left: 16px;
-        margin-right: 16px;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 16px;
     }
 
     .cluster-head {
@@ -3568,11 +3927,6 @@ tbody td {
     .staff-row em {
         grid-column: 2;
         justify-self: start;
-    }
-
-    .workbench-card {
-        margin-left: 16px;
-        margin-right: 16px;
     }
 
     .ops-grid,

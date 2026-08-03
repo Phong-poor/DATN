@@ -183,7 +183,7 @@ const handleSubmit = async () => {
                   <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" placeholder="example@gmail.com" />
+              <input v-model="email" type="email" placeholder="Example@gmail.com" />
             </div>
           </div>
 

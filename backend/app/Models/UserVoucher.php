@@ -14,6 +14,14 @@ class UserVoucher extends Model
         'id_voucher',
         'trang_thai',
         'ngay_nhan',
+        'het_han_luc',
+        'da_su_dung_luc',
+    ];
+
+    protected $casts = [
+        'ngay_nhan' => 'datetime',
+        'het_han_luc' => 'datetime',
+        'da_su_dung_luc' => 'datetime',
     ];
 
     public $timestamps = false; // Based on the screenshot, it doesn't look like it has created_at/updated_at

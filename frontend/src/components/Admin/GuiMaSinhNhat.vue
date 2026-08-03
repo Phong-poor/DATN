@@ -15,10 +15,9 @@ import {
   Settings,
   List,
   AlertCircle,
-  Save,
   CheckSquare,
   Square,
-  Play
+  Power
 } from 'lucide-vue-next'
 
 // --- TABS CONFIG ---
@@ -38,7 +37,6 @@ const selectedHistoryStatusFilter = ref('Tất cả')
 const dateFilter = ref(new Date().toISOString().split('T')[0]) // default today
 const isScanning = ref(false)
 const isSendingBulk = ref(false)
-const isRunningAutoNow = ref(false)
 
 // stats values
 const statsTotalToday = ref(0)
@@ -58,6 +56,7 @@ const activeRowsLoading = ref({})
 const autoConfig = ref({
   enabled: true,
   scanTime: '08:30',
+  validDays: 30,
   templateId: 'tpl-bday-default',
   promoCode: '',
   promotionId: null,
@@ -65,11 +64,10 @@ const autoConfig = ref({
   autoRetry: true,
   notifyAdmin: true
 })
+const savedAutoStatus = ref({ enabled: false, scanTime: '08:30' })
 
 const emailTemplates = [
-  { id: 'tpl-bday-default', name: '[Mẫu Mặc Định] Chúc mừng sinh nhật VinaTech Premium' },
-  { id: 'tpl-bday-luxury', name: '[Mẫu Đặc Biệt] Tri ân khách hàng VIP sinh nhật vàng' },
-  { id: 'tpl-bday-simple', name: '[Mẫu Rút Gọn] Quà tặng sinh nhật thành viên mới' }
+  { id: 'tpl-bday-default', name: '[Mẫu mặc định] Chúc mừng sinh nhật NextGen' }
 ]
 
 const availablePromotions = ref([])
@@ -207,12 +205,17 @@ const fetchSettings = async () => {
       autoConfig.value = {
         enabled: !!d.enabled,
         scanTime: d.run_time || '08:30',
+        validDays: Number(d.valid_days || 30),
         templateId: d.email_template_id || 'tpl-bday-default',
         promoCode: d.promotion_code || '',
         promotionId: d.promotion_id || null,
         limitOncePerYear: !!d.send_once_per_year,
         autoRetry: !!d.retry_if_failed,
         notifyAdmin: !!d.notify_admin
+      }
+      savedAutoStatus.value = {
+        enabled: !!d.enabled,
+        scanTime: d.run_time || '08:30'
       }
 
       if (res.data.promotions && Array.isArray(res.data.promotions)) {
@@ -370,11 +373,16 @@ const sendBulk = async () => {
 }
 
 // Save Automatic Configuration
-const saveAutoConfig = async () => {
+const saveAutoConfig = async (silent = false) => {
+  if (!Number.isInteger(autoConfig.value.validDays) || autoConfig.value.validDays < 1 || autoConfig.value.validDays > 365) {
+    swal.error('Thời hạn không hợp lệ', 'Thời hạn mã sinh nhật phải từ 1 đến 365 ngày.')
+    return
+  }
   try {
     const res = await api.post('/admin/birthday-codes/settings', {
       enabled: autoConfig.value.enabled,
       run_time: autoConfig.value.scanTime,
+      valid_days: autoConfig.value.validDays,
       promotion_id: autoConfig.value.promotionId,
       email_template_id: autoConfig.value.templateId,
       send_once_per_year: autoConfig.value.limitOncePerYear,
@@ -382,7 +390,13 @@ const saveAutoConfig = async () => {
       notify_admin: autoConfig.value.notifyAdmin
     })
     if (res.data?.success) {
-      swal.success('Lưu cấu hình', 'Đã lưu thiết lập tự động quét và gửi mã sinh nhật thành công!')
+      savedAutoStatus.value = {
+        enabled: autoConfig.value.enabled,
+        scanTime: autoConfig.value.scanTime
+      }
+      if (!silent) {
+        swal.success('Lưu cấu hình', 'Đã lưu thiết lập tự động quét và gửi mã sinh nhật thành công!')
+      }
     }
   } catch (err) {
     console.error(err)
@@ -390,48 +404,9 @@ const saveAutoConfig = async () => {
   }
 }
 
-// Run Automatic Flow Instantly (For testing)
-const runAutoNow = async () => {
-  if (!autoConfig.value.promotionId) {
-    swal.toast('Vui lòng chọn mã khuyến mãi sinh nhật trước khi chạy tự động.', 'warning')
-    return
-  }
-
-  const isConfirmed = await swal.confirm(
-    'Xác nhận chạy quét',
-    'Bạn có chắc muốn chạy quét và gửi mã sinh nhật tự động ngay bây giờ không?'
-  )
-  if (!isConfirmed) return
-
-  isRunningAutoNow.value = true
-  try {
-    const res = await api.post('/admin/birthday-codes/run-auto-now', {
-      date: dateFilter.value,
-      force: true,
-      promotion_id: autoConfig.value.promotionId
-    })
-    if (res.data?.success) {
-      const result = res.data.data
-      if (res.data.message === 'Không có khách hàng sinh nhật trong ngày được chọn.') {
-        swal.toast(res.data.message, 'info')
-      } else {
-        swal.success(
-          'Thành công',
-          `Đã quét xong: tìm thấy ${result.total_birthdays} khách sinh nhật, gửi thành công ${result.sent}, lỗi ${result.failed}, bỏ qua ${result.skipped} khách đã nhận mã.`
-        )
-      }
-      await fetchBirthdays()
-      await fetchHistory()
-    } else {
-      swal.error('Lỗi', res.data?.message || 'Không thể chạy tự động.')
-    }
-  } catch (err) {
-    console.error(err)
-    const errorMsg = err.response?.data?.message || err.message || 'Lỗi hệ thống.'
-    swal.error('Lỗi', `Lỗi khi chạy quét tự động: ${errorMsg}`)
-  } finally {
-    isRunningAutoNow.value = false
-  }
+const toggleAutoConfig = async () => {
+  autoConfig.value.enabled = !autoConfig.value.enabled
+  await saveAutoConfig(true)
 }
 
 // Show Error Log Details
@@ -484,65 +459,65 @@ onMounted(async () => {
     <!-- STATS VIEW -->
     <div class="stats-grid">
       <!-- Card 1 -->
-      <div class="stat-card stat-blue">
-        <div class="stat-icon-wrapper">
-          <Gift class="stat-icon" />
-        </div>
-        <div class="stat-data">
-          <p class="stat-label">SINH NHẬT HÔM NAY</p>
-          <div class="stat-number-row">
-            <h2 class="stat-number">{{ totalToday }}</h2>
-            <span class="stat-trend trend-neutral">Quét lúc {{ autoConfig.scanTime }}</span>
+      <div class="gmsn-stat-card">
+        <span class="gmsn-label">SINH NHẬT HÔM NAY</span>
+        <div class="gmsn-card-body">
+          <div class="gmsn-left-group">
+            <div class="gmsn-icon-box blue">
+              <Gift class="gmsn-icon" />
+            </div>
+            <h2 class="gmsn-number">{{ totalToday }}</h2>
           </div>
+          <span class="gmsn-badge neutral">Quét lúc {{ autoConfig.scanTime }}</span>
         </div>
       </div>
 
       <!-- Card 2 -->
-      <div class="stat-card stat-green">
-        <div class="stat-icon-wrapper">
-          <CheckCircle class="stat-icon" />
-        </div>
-        <div class="stat-data">
-          <p class="stat-label">ĐÃ GỬI THÀNH CÔNG</p>
-          <div class="stat-number-row">
-            <h2 class="stat-number">{{ countSent }}</h2>
-            <span class="stat-trend trend-up" v-if="totalToday > 0">
-              {{ Math.round((countSent / totalToday) * 100) }}% Hoàn tất
-            </span>
-            <span class="stat-trend trend-neutral" v-else>0%</span>
+      <div class="gmsn-stat-card">
+        <span class="gmsn-label">ĐÃ GỬI THÀNH CÔNG</span>
+        <div class="gmsn-card-body">
+          <div class="gmsn-left-group">
+            <div class="gmsn-icon-box green">
+              <CheckCircle class="gmsn-icon" />
+            </div>
+            <h2 class="gmsn-number">{{ countSent }}</h2>
           </div>
+          <span class="gmsn-badge success" v-if="totalToday > 0">
+            {{ Math.round((countSent / totalToday) * 100) }}% Hoàn tất
+          </span>
+          <span class="gmsn-badge neutral" v-else>0% Hoàn tất</span>
         </div>
       </div>
 
       <!-- Card 3 -->
-      <div class="stat-card stat-yellow">
-        <div class="stat-icon-wrapper">
-          <Clock class="stat-icon" />
-        </div>
-        <div class="stat-data">
-          <p class="stat-label">CHƯA GỬI MÃ</p>
-          <div class="stat-number-row">
-            <h2 class="stat-number">{{ countUnsent }}</h2>
-            <span class="stat-trend trend-down" v-if="totalToday > 0">
-              {{ Math.round((countUnsent / totalToday) * 100) }}% Còn lại
-            </span>
-            <span class="stat-trend trend-neutral" v-else>0%</span>
+      <div class="gmsn-stat-card">
+        <span class="gmsn-label">CHƯA GỬI MÃ</span>
+        <div class="gmsn-card-body">
+          <div class="gmsn-left-group">
+            <div class="gmsn-icon-box yellow">
+              <Clock class="gmsn-icon" />
+            </div>
+            <h2 class="gmsn-number">{{ countUnsent }}</h2>
           </div>
+          <span class="gmsn-badge warning" v-if="totalToday > 0">
+            {{ Math.round((countUnsent / totalToday) * 100) }}% Còn lại
+          </span>
+          <span class="gmsn-badge neutral" v-else>0% Còn lại</span>
         </div>
       </div>
 
       <!-- Card 4 -->
-      <div class="stat-card stat-red">
-        <div class="stat-icon-wrapper">
-          <AlertTriangle class="stat-icon" />
-        </div>
-        <div class="stat-data">
-          <p class="stat-label">GỬI EMAIL LỖI</p>
-          <div class="stat-number-row">
-            <h2 class="stat-number">{{ countError }}</h2>
-            <span class="stat-trend trend-danger" v-if="countError > 0">Cần kiểm tra SMTP</span>
-            <span class="stat-trend trend-safe" v-else>Hệ thống an toàn</span>
+      <div class="gmsn-stat-card">
+        <span class="gmsn-label">GỬI EMAIL LỖI</span>
+        <div class="gmsn-card-body">
+          <div class="gmsn-left-group">
+            <div class="gmsn-icon-box red">
+              <AlertTriangle class="gmsn-icon" />
+            </div>
+            <h2 class="gmsn-number">{{ countError }}</h2>
           </div>
+          <span class="gmsn-badge danger" v-if="countError > 0">Cần kiểm tra SMTP</span>
+          <span class="gmsn-badge success" v-else>Hệ thống an toàn</span>
         </div>
       </div>
     </div>
@@ -598,9 +573,9 @@ onMounted(async () => {
               </div>
 
               <div class="birthday-promo-select">
-                <span class="filter-label">Mã sinh nhật:</span>
+                <span class="filter-label">Chương trình sinh nhật:</span>
                 <select v-model="autoConfig.promotionId" class="styled-select promo-select">
-                  <option :value="null" disabled>Chọn mã khuyến mãi</option>
+                  <option :value="null" disabled>Chọn chương trình sinh nhật</option>
                   <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
                     {{ promo.name }}
                   </option>
@@ -617,9 +592,14 @@ onMounted(async () => {
                 <RefreshCw :class="['btn-icon', isScanning && 'spin-icon']" />
                 <span>{{ isScanning ? 'Đang quét...' : 'Quét sinh nhật' }}</span>
               </button>
-              <button class="btn-action btn-secondary" @click="runAutoNow" :disabled="isRunningAutoNow">
-                <Play :class="['btn-icon', isRunningAutoNow && 'spin-icon']" />
-                <span>{{ isRunningAutoNow ? 'Đang chạy...' : 'Chạy tự động gửi mã' }}</span>
+              <button
+                class="btn-action auto-status-button"
+                :class="savedAutoStatus.enabled ? 'is-enabled' : 'is-disabled'"
+                @click="activeTab = 'config'"
+                title="Mở cấu hình gửi mã tự động"
+              >
+                <Settings class="btn-icon" />
+                <span>{{ savedAutoStatus.enabled ? `Tự động bật · ${savedAutoStatus.scanTime}` : 'Tự động đang tắt' }}</span>
               </button>
               <button class="btn-action btn-primary" @click="sendBulk" :disabled="isSendingBulk || selectedIds.length === 0">
                 <Send class="btn-icon" />
@@ -796,13 +776,13 @@ onMounted(async () => {
                   <option value="Gửi lỗi">Gửi thất bại</option>
                 </select>
               </div>
-            </div>
 
-            <div class="action-buttons-group">
-              <button class="btn-action btn-refresh" @click="refreshData">
-                <RefreshCw class="btn-icon" />
-                <span>Tải lại</span>
-              </button>
+              <div class="action-buttons-group history-actions">
+                <button class="btn-action btn-refresh" @click="refreshData">
+                  <RefreshCw class="btn-icon" />
+                  <span>Tải lại</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -895,6 +875,7 @@ onMounted(async () => {
                       id="auto-toggle"
                       v-model="autoConfig.enabled"
                       class="toggle-checkbox"
+                      @change="saveAutoConfig(true)"
                     />
                     <label for="auto-toggle" class="toggle-label"></label>
                   </div>
@@ -908,8 +889,26 @@ onMounted(async () => {
                     v-model="autoConfig.scanTime"
                     class="styled-time-input"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   />
                   <p class="form-help-text">Khuyên dùng: Các giờ sáng sớm để khách hàng nhận mã ngay đầu ngày sinh nhật.</p>
+                </div>
+
+                <div class="form-group">
+                  <label class="bold-label">Thời hạn sử dụng mã sinh nhật</label>
+                  <div class="validity-input-wrap">
+                    <input
+                      v-model.number="autoConfig.validDays"
+                      type="number"
+                      min="1"
+                      max="365"
+                      class="styled-time-input"
+                      :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
+                    />
+                    <strong>ngày kể từ lúc gửi</strong>
+                  </div>
+                  <p class="form-help-text">Mỗi mã được cấp riêng cho một khách hàng, hết hạn sau thời gian trên và chỉ sử dụng được 1 lần.</p>
                 </div>
 
                 <!-- Select Template -->
@@ -919,6 +918,7 @@ onMounted(async () => {
                     v-model="autoConfig.templateId"
                     class="styled-select-full"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   >
                     <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
                       {{ tpl.name }}
@@ -928,11 +928,12 @@ onMounted(async () => {
 
                 <!-- Select Active Birthday Promo Code -->
                 <div class="form-group">
-                  <label class="bold-label">Mã khuyến mãi sinh nhật liên kết</label>
+                  <label class="bold-label">Chương trình khuyến mãi sinh nhật liên kết</label>
                   <select
                     v-model="autoConfig.promotionId"
                     class="styled-select-full"
                     :disabled="!autoConfig.enabled"
+                    @change="saveAutoConfig(true)"
                   >
                     <option v-for="promo in availablePromotions" :key="promo.id" :value="promo.id">
                       {{ promo.name }}
@@ -961,6 +962,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.limitOncePerYear"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Giới hạn chỉ gửi 1 lần / năm / khách hàng</span>
@@ -974,6 +976,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.autoRetry"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Tự động gửi lại nếu xảy ra lỗi kết nối</span>
@@ -987,6 +990,7 @@ onMounted(async () => {
                       type="checkbox"
                       v-model="autoConfig.notifyAdmin"
                       :disabled="!autoConfig.enabled"
+                      @change="saveAutoConfig(true)"
                     />
                     <div class="option-details">
                       <span class="option-title">Gửi báo cáo tổng hợp cho Admin hằng ngày</span>
@@ -996,24 +1000,17 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- Save button footer inside the card -->
+              <!-- Automatic controls -->
               <div class="config-save-footer" style="display: flex; gap: 12px; width: 100%;">
-                <button 
-                  class="btn-action btn-secondary" 
-                  style="flex: 1; justify-content: center;"
-                  :disabled="isRunningAutoNow" 
-                  @click="runAutoNow"
+                <button
+                  type="button"
+                  class="btn-action auto-config-toggle-button"
+                  :class="autoConfig.enabled ? 'is-enabled' : 'is-disabled'"
+                  :aria-pressed="autoConfig.enabled"
+                  @click="toggleAutoConfig"
                 >
-                  <Play class="btn-icon" />
-                  <span>{{ isRunningAutoNow ? 'Đang chạy...' : 'Chạy quét tự động ngay' }}</span>
-                </button>
-                <button 
-                  class="btn-action btn-primary" 
-                  style="flex: 1; justify-content: center;"
-                  @click="saveAutoConfig"
-                >
-                  <Save class="btn-icon" />
-                  <span>Lưu cấu hình tự động</span>
+                  <Power class="btn-icon" />
+                  <span>{{ autoConfig.enabled ? 'Quét tự động: Đang bật' : 'Quét tự động: Đang tắt' }}</span>
                 </button>
               </div>
             </div>
@@ -1040,144 +1037,113 @@ onMounted(async () => {
 /* 4 STATS ROW GRID */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  gap: 16px;
 }
 
-.stat-card {
-  min-height: 136px;
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.gmsn-stat-card {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%) !important;
   border-radius: 16px;
-  padding: 26px 28px;
-  border: 1px solid transparent;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+  padding: 18px 20px;
   display: flex;
-  align-items: center;
-  gap: 18px;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
   position: relative;
   overflow: hidden;
+  border: none !important;
+  transition: all 0.2s ease;
 }
 
-.stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+.gmsn-stat-card::after {
+  content: '';
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  top: -45px;
+  right: -25px;
+  pointer-events: none;
+}
+
+.gmsn-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
+}
+
+.gmsn-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.gmsn-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.gmsn-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gmsn-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
 }
 
-.stat-icon {
-  width: 24px;
-  height: 24px;
+.gmsn-icon {
+  width: 22px;
+  height: 22px;
   stroke-width: 2.2;
 }
 
-/* Stat color theme overrides */
-.stat-blue,
-.stat-green {
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-}
-
-.stat-yellow {
-  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-}
-
-.stat-red {
-  background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
-}
-
-.stat-blue .stat-icon-wrapper {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-.stat-blue::after {
-  content: '';
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
-  top: -54px;
-  right: -28px;
-}
-
-.stat-green .stat-icon-wrapper {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-.stat-green::after {
-  content: '';
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
-  top: -54px;
-  right: -28px;
-}
-
-.stat-yellow .stat-icon-wrapper {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-.stat-yellow::after {
-  content: '';
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
-  top: -54px;
-  right: -28px;
-}
-
-.stat-red .stat-icon-wrapper {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-.stat-red::after {
-  content: '';
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
-  top: -54px;
-  right: -28px;
-}
-
-/* Stat Text Styling */
-.stat-data {
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-label {
-  font-size: 12px;
+.gmsn-number {
+  font-size: 30px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.88);
-  letter-spacing: 0.03em;
-  margin: 0 0 20px 0;
-  text-transform: capitalize;
-}
-
-.stat-number-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.stat-number {
-  font-size: 34px;
-  font-weight: 800;
-  color: #fff;
+  color: #ffffff !important;
   line-height: 1;
   margin: 0;
 }
+
+.gmsn-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.gmsn-badge.neutral { color: #1d4ed8 !important; }
+.gmsn-badge.success { color: #059669 !important; }
+.gmsn-badge.warning { color: #d97706 !important; }
+.gmsn-badge.danger { color: #dc2626 !important; }
 
 .stat-trend {
   font-size: 12px;
@@ -1306,16 +1272,15 @@ onMounted(async () => {
 /* ACTION BAR */
 .action-bar-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
 }
 
 .search-and-filters {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) minmax(250px, 1fr) minmax(320px, 1.5fr);
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -1327,7 +1292,9 @@ onMounted(async () => {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 8px 14px;
-  width: 280px;
+  width: 100%;
+  box-sizing: border-box;
+  grid-column: 1 / -1;
   box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.01);
   transition: border-color 0.2s ease;
 }
@@ -1361,14 +1328,16 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .birthday-promo-select {
-  min-width: 320px;
+  min-width: 0;
 }
 
 .promo-select {
-  width: min(360px, 48vw);
+  width: 100%;
+  min-width: 0;
 }
 
 .filter-label {
@@ -1409,10 +1378,49 @@ onMounted(async () => {
   border-color: #2563eb;
 }
 
+.filter-dropdown-select .styled-select,
+.date-picker-box .styled-date-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .action-buttons-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.history-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1050px) {
+  .search-and-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .birthday-promo-select {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .search-and-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .search-input-box,
+  .birthday-promo-select {
+    grid-column: auto;
+  }
+
+  .filter-dropdown-select,
+  .date-picker-box,
+  .birthday-promo-select {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 /* BUTTONS DESIGN */
@@ -1469,6 +1477,50 @@ onMounted(async () => {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.validity-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.validity-input-wrap input { width: 120px; }
+.validity-input-wrap strong { color: #334155; font-size: 12px; }
+
+.auto-status-button {
+  min-width: 166px;
+  justify-content: center;
+  border: 1px solid transparent;
+}
+
+.auto-status-button.is-enabled {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #047857;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, .32);
+}
+
+.auto-status-button.is-enabled:hover:not(:disabled) {
+  background: linear-gradient(135deg, #047857, #065f46);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(5, 150, 105, .4);
+}
+
+.auto-status-button.is-disabled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, .28);
+}
+
+.auto-status-button.is-disabled:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border-color: #991b1b;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, .38);
+}
+
+.auto-status-button .btn-icon { flex: 0 0 auto; }
 
 .btn-primary {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -2155,5 +2207,42 @@ onMounted(async () => {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid #f1f5f9;
+}
+
+.auto-config-toggle-button {
+  flex: 1;
+  justify-content: center;
+  color: #ffffff;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+}
+
+.auto-config-toggle-button.is-enabled {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #047857;
+}
+
+.auto-config-toggle-button.is-enabled:hover {
+  background: linear-gradient(135deg, #047857, #065f46);
+}
+
+.auto-config-toggle-button.is-disabled {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #b91c1c;
+}
+
+.auto-config-toggle-button.is-disabled:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+@media (max-width: 1100px) {
+  .config-save-footer {
+    flex-wrap: wrap;
+  }
+
+  .config-save-footer > .btn-action {
+    min-width: 220px;
+  }
 }
 </style>

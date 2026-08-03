@@ -16,7 +16,7 @@ return new class extends Migration
         }
 
         Schema::table('giatri_thuoctinh', function (Blueprint $table) {
-            $table->json('danh_muc_ids')->nullable()->after('gia_cong_them');
+            $table->json('danh_muc_ids')->nullable()->after('giatri');
         });
     }
 

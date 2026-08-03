@@ -92,7 +92,7 @@ onUnmounted(() => {
 .web-layout {
   min-height: 100vh;
   background: #f8fafc;
-  padding-top: 108px;
+  padding-top: 128px;
   overflow-x: clip;
 }
 
@@ -122,9 +122,15 @@ onUnmounted(() => {
   opacity: 0;
 }
 
+@media (max-width: 1120px) {
+  .web-layout {
+    padding-top: 72px;
+  }
+}
+
 @media (max-width: 600px) {
   .web-layout {
-    padding-top: 60px;
+    padding-top: 64px;
   }
 
   .web-intro-main.product-detail-gap {

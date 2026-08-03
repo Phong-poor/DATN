@@ -21,6 +21,7 @@ const filterDate = ref('')
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalItems = ref(0)
+const perPage = ref(10)
 
 // Helper to format avatar image URL
 function getAvatarUrl(avatar, name) {
@@ -45,6 +46,7 @@ async function fetchLogs(page = 1) {
       currentPage.value = res.data.data.current_page || 1
       lastPage.value = res.data.data.last_page || 1
       totalItems.value = res.data.data.total || 0
+      perPage.value = res.data.data.per_page || 10
       
       if (res.data.stats) {
         stats.value = res.data.stats
@@ -159,7 +161,7 @@ onMounted(() => {
       <table>
         <thead>
           <tr>
-            <th>ID</th>
+            <th>STT</th>
             <th>KHÁCH HÀNG</th>
             <th>NGÀY ĐIỂM DANH</th>
             <th>SỐ XU NHẬN</th>
@@ -168,8 +170,8 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="log in logs" :key="log.id">
-            <td>#{{ log.id }}</td>
+          <tr v-for="(log, index) in logs" :key="log.id">
+            <td style="font-weight: bold; text-align: center;">{{ (currentPage - 1) * perPage + index + 1 }}</td>
             <td>
               <div class="user-cell">
                 <img :src="getAvatarUrl(log.user?.anhdaidien, log.user?.ten)" class="user-avatar" />

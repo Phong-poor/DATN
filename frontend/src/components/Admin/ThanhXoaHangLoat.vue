@@ -8,6 +8,7 @@
       </div>
     </div>
     <div class="bulk-actions">
+      <slot name="tools" />
       <button class="bulk-btn ghost" :disabled="!selectedCount || loading" @click="$emit('clear')">
         Bỏ chọn
       </button>

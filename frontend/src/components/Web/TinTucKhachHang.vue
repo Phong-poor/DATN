@@ -14,6 +14,10 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 const loading = ref(false)
 const errorMessage = ref('')
+const searchQuery = ref('')
+const sortBy = ref('latest')
+const subscriberEmail = ref('')
+const subscribeMessage = ref('')
 
 const defaultCategories = ['Công nghệ', 'Sự kiện', 'Sản phẩm', 'Nội bộ']
 const placeholderImage = 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80'
@@ -117,6 +121,8 @@ const fetchNews = async (page = 1) => {
   errorMessage.value = ''
   try {
     const params = { scope: 'public', per_page: 6, page }
+    if (searchQuery.value.trim()) params.q = searchQuery.value.trim()
+    params.sort = sortBy.value
     if (selectedCategory.value !== 'Mới nhất') params.danhmuc = selectedCategory.value
     const { data } = await api.get('/news', { params })
     const payload = paginationPayload(data)
@@ -159,6 +165,15 @@ const selectTab = async (tab) => {
   selectedCategory.value = tab
   applyListSeo()
   await fetchNews(1)
+}
+
+const subscribe = async () => {
+  subscribeMessage.value = ''
+  try {
+    const { data } = await api.post('/news-subscribe', { email: subscriberEmail.value })
+    subscribeMessage.value = data.message
+    subscriberEmail.value = ''
+  } catch (error) { subscribeMessage.value = error.response?.data?.message || 'Email chưa hợp lệ.' }
 }
 
 const loadCache = () => {
@@ -244,6 +259,7 @@ onMounted(async () => {
             <span class="tab-indicator"></span>
           </button>
         </nav>
+        <form class="news-search-tools" @submit.prevent="fetchNews(1)"><input v-model="searchQuery" type="search" placeholder="Tìm theo tiêu đề, nội dung hoặc tác giả..." /><select v-model="sortBy" @change="fetchNews(1)"><option value="latest">Mới nhất</option><option value="popular">Đọc nhiều nhất</option></select><button type="submit">Tìm kiếm</button></form>
       </div>
     </div>
 
@@ -572,10 +588,11 @@ onMounted(async () => {
           </ul>
 
           <div class="newsletter-form-wrapper">
-            <input type="email" placeholder="Địa chỉ Email của bạn" class="newsletter-cyber-input" aria-label="Địa chỉ email nhận tin" />
-            <button type="button" class="newsletter-cyber-btn">
+            <input v-model="subscriberEmail" type="email" placeholder="Địa chỉ Email của bạn" class="newsletter-cyber-input" aria-label="Địa chỉ email nhận tin" />
+            <button type="button" class="newsletter-cyber-btn" @click="subscribe">
               THAM GIA NGAY ➜
             </button>
+            <small v-if="subscribeMessage">{{ subscribeMessage }}</small>
           </div>
 
           <span class="privacy-note">Cam kết bảo mật 100% · Hủy đăng ký bất kỳ lúc nào</span>
@@ -1708,6 +1725,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
 }
+.news-search-tools{display:flex;gap:10px;max-width:760px;margin:18px auto 0}.news-search-tools input{flex:1}.news-search-tools input,.news-search-tools select{border:1px solid #dbe3ee;border-radius:10px;padding:11px 13px;background:#fff}.news-search-tools button{border:0;border-radius:10px;padding:0 18px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}@media(max-width:580px){.news-search-tools{flex-direction:column}.news-search-tools button{padding:11px}}
 .trend-item {
   display: flex;
   align-items: center;
@@ -1744,5 +1762,52 @@ onMounted(async () => {
 .trend-item:hover .trend-icon {
   color: var(--primary);
   transform: translate(2px, -2px);
+}
+
+/* Compact editorial spacing while keeping the magazine hierarchy. */
+.news-page .news-header {
+  padding-top: 16px;
+}
+
+.news-page .magazine-breadcrumb {
+  margin-bottom: 16px;
+}
+
+.news-page .header-badge {
+  margin-bottom: 6px;
+}
+
+.news-page .news-header h1 {
+  margin-bottom: 8px;
+}
+
+.news-page .header-description {
+  margin-bottom: 20px;
+}
+
+.news-page .tabs button {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.news-page .news-body {
+  padding-top: 28px;
+  padding-bottom: 36px;
+  gap: 32px;
+}
+
+.news-page .news-main {
+  gap: 32px;
+}
+
+@media (max-width: 580px) {
+  .news-page .news-header {
+    padding-top: 12px;
+  }
+
+  .news-page .news-body {
+    padding-top: 22px;
+    padding-bottom: 28px;
+  }
 }
 </style>

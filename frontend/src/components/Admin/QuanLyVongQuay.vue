@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -198,7 +199,7 @@ onMounted(async () => {
     <!-- STATS & VALIDATION BANNER -->
     <div class="info-row">
       <div class="stat-card" :class="{ 'warning-border': Math.abs(totalWeight - 100) > 0.01 }">
-        <span class="stat-label">TỔNG TỶ LỆ CÁC Ô TRÚNG</span>
+        <div class="stat-label-vongquay">TỔNG TỶ LỆ CÁC Ô TRÚNG</div>
         <h3 class="value" :class="{ 'error-color': Math.abs(totalWeight - 100) > 0.01 }">
           {{ totalWeight.toFixed(2) }}%
         </h3>
@@ -211,10 +212,15 @@ onMounted(async () => {
       <div class="panel list-panel">
         <div class="panel-head" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
           <h3>Cơ Cấu Ô Vòng Quay ({{ slots.length }} Ô)</h3>
-          <button class="btn-primary" @click="openAdd">
-            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Tạo mới
-          </button>
+          <div class="panel-head-actions">
+            <span class="total-weight-badge" :class="{ invalid: Math.abs(totalWeight - 100) > 0.01 }">
+              Tổng tỷ lệ: <b>{{ totalWeight.toFixed(2) }}%</b>
+            </span>
+            <button class="btn-primary" @click="openAdd">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Tạo mới
+            </button>
+          </div>
         </div>
 
         <div v-if="loading" class="spinner-box">
@@ -322,23 +328,15 @@ onMounted(async () => {
           </table>
 
           <!-- Pagination -->
-          <div class="pagination-footer" v-if="historyTotalPages > 1">
-            <button 
-              class="page-btn" 
-              :disabled="historyPage === 1" 
-              @click="fetchHistory(historyPage - 1)"
-            >
-              Trước
-            </button>
-            <span class="page-indicator">Trang {{ historyPage }} / {{ historyTotalPages }}</span>
-            <button 
-              class="page-btn" 
-              :disabled="historyPage === historyTotalPages" 
-              @click="fetchHistory(historyPage + 1)"
-            >
-              Sau
-            </button>
-          </div>
+          <PhanTrangAdmin
+            v-if="historyTotalPages >= 1"
+            v-model:currentPage="historyPage"
+            :total-pages="historyTotalPages"
+            :total-items="history.length"
+            :page-size="10"
+            item-label="lượt quay"
+            @change-page="fetchHistory"
+          />
         </div>
       </div>
     </div>
@@ -494,10 +492,10 @@ onMounted(async () => {
   background: #fffaf0;
 }
 
-.stat-card .stat-label {
+.stat-card .stat-label-vongquay {
   font-size: 10.5px;
   font-weight: 800;
-  color: #0f172a;
+  color: #475569;
   letter-spacing: 1px;
 }
 
@@ -527,6 +525,41 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.panel-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.total-weight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.total-weight-badge b {
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.total-weight-badge.invalid {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.total-weight-badge.invalid b {
+  color: #ef4444;
 }
 
 .panel {

@@ -18,7 +18,7 @@ class AffiliateController extends Controller
             ->where('id_khachhang', $user->id)
             ->first();
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'active' => false,
                 'profile' => null,
@@ -38,7 +38,7 @@ class AffiliateController extends Controller
         return response()->json([
             'active' => $profile->trangthai === 'active',
             'profile' => $profile,
-            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->ma_affiliate,
+            'ref_link' => rtrim(config('app.frontend_url'), '/').'/register?ref='.$profile->ma_affiliate,
             'stats' => [
                 'total_referrals' => AffiliateReferral::where('id_affiliate_khachhang', $user->id)->count(),
                 'pending_commission' => (float) $pending,
@@ -58,7 +58,7 @@ class AffiliateController extends Controller
         $user = $request->user();
         $profile = AffiliateProfile::firstOrNew(['id_khachhang' => $user->id]);
 
-        if (!$profile->exists) {
+        if (! $profile->exists) {
             $profile->ma_affiliate = $this->generateAffiliateCode();
         }
 
@@ -69,7 +69,7 @@ class AffiliateController extends Controller
         return response()->json([
             'message' => 'Kich hoat affiliate thanh cong.',
             'profile' => $profile,
-            'ref_link' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/register?ref=' . $profile->ma_affiliate,
+            'ref_link' => rtrim(config('app.frontend_url'), '/').'/register?ref='.$profile->ma_affiliate,
         ]);
     }
 

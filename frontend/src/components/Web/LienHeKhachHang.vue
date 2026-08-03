@@ -15,8 +15,50 @@ const success = ref(false)
 const loading = ref(false)
 const captchaVisible = ref(false)
 const captchaVerified = ref(false)
+const consultationOpen = ref(false)
+const consultationPhone = ref('')
+const consultationLoading = ref(false)
+const consultationError = ref('')
+const consultationSuccess = ref(false)
 
 const currentFormStep = ref(1)
+
+const openConsultation = () => {
+  consultationPhone.value = phone.value || ''
+  consultationError.value = ''
+  consultationSuccess.value = false
+  consultationOpen.value = true
+}
+
+const closeConsultation = () => {
+  if (consultationLoading.value) return
+  consultationOpen.value = false
+}
+
+const submitConsultation = async () => {
+  if (consultationLoading.value) return
+  const normalizedPhone = consultationPhone.value.replace(/\s+/g, ' ').trim()
+  if (!/^(0|\+84)[0-9\s.-]{8,14}$/.test(normalizedPhone)) {
+    consultationError.value = 'Vui lòng nhập số điện thoại hợp lệ.'
+    return
+  }
+
+  consultationLoading.value = true
+  consultationError.value = ''
+  try {
+    const response = (await api.post('/consultation-requests', {
+      sodienthoai: normalizedPhone,
+    }, { immediateLoader: true })).data
+    if (!response.status) throw new Error(response.message || 'Không thể gửi yêu cầu tư vấn.')
+    consultationSuccess.value = true
+  } catch (err) {
+    consultationError.value = err.response?.data?.message
+      || err.response?.data?.errors?.sodienthoai?.[0]
+      || 'Không thể gửi yêu cầu. Vui lòng thử lại.'
+  } finally {
+    consultationLoading.value = false
+  }
+}
 
 const resetCaptcha = () => {
   captchaVisible.value = false
@@ -201,6 +243,18 @@ const showrooms = ref([
 ])
 
 const selectedShowroom = ref(showrooms.value[0])
+const appointmentOpen = ref(false)
+const appointmentLoading = ref(false)
+const appointmentError = ref('')
+const appointmentSuccess = ref(false)
+const appointmentName = ref('')
+const appointmentPhone = ref('')
+const appointmentEmail = ref('')
+const appointmentDate = ref('')
+const appointmentTime = ref('')
+const appointmentNote = ref('')
+
+const minAppointmentDate = computed(() => new Date().toISOString().slice(0, 10))
 
 const infos = computed(() => [
   { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`, label: 'Địa chỉ', value: selectedShowroom.value.address, color: 'rgba(37, 99, 235, 0.15)' },
@@ -209,14 +263,50 @@ const infos = computed(() => [
   { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, label: 'Giờ mở cửa', value: selectedShowroom.value.worktime, color: 'rgba(245, 158, 11, 0.15)' },
 ])
 
-const bookShowroomVisit = (store) => {
-  subject.value = 'Hợp tác kinh doanh'
-  message.value = `Tôi muốn đăng ký lịch hẹn tư vấn và trải nghiệm phần cứng trực tiếp tại Showroom: ${store.name}.`
-  resetCaptcha()
-  currentFormStep.value = 3 // Jump straight to descriptions
-  const element = document.getElementById('guidedContactForm')
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+const bookShowroomVisit = () => {
+  appointmentName.value = name.value
+  appointmentPhone.value = phone.value
+  appointmentEmail.value = email.value
+  appointmentError.value = ''
+  appointmentSuccess.value = false
+  appointmentOpen.value = true
+}
+
+const closeAppointment = () => {
+  if (appointmentLoading.value) return
+  appointmentOpen.value = false
+}
+
+const submitAppointment = async () => {
+  if (appointmentLoading.value) return
+  if (!appointmentName.value.trim() || !appointmentPhone.value.trim() || !appointmentEmail.value.trim() || !appointmentDate.value || !appointmentTime.value) {
+    appointmentError.value = 'Vui lòng nhập đầy đủ họ tên, số điện thoại, email, ngày và giờ hẹn.'
+    return
+  }
+
+  appointmentLoading.value = true
+  appointmentError.value = ''
+  appointmentSuccess.value = false
+  try {
+    const response = (await api.post('/showroom-appointments', {
+      hoten: appointmentName.value.trim(),
+      email: appointmentEmail.value.trim(),
+      sodienthoai: appointmentPhone.value.trim(),
+      showroom_id: selectedShowroom.value.id,
+      showroom_ten: selectedShowroom.value.name,
+      showroom_diachi: selectedShowroom.value.address,
+      ngay_hen: appointmentDate.value,
+      khung_gio: appointmentTime.value,
+      ghi_chu: appointmentNote.value.trim() || null,
+    }, { immediateLoader: true })).data
+
+    if (!response.status) throw new Error(response.message || 'Không thể gửi lịch hẹn.')
+    appointmentSuccess.value = true
+    appointmentNote.value = ''
+  } catch (err) {
+    appointmentError.value = err.response?.data?.message || err.message || 'Không thể gửi lịch hẹn. Vui lòng thử lại.'
+  } finally {
+    appointmentLoading.value = false
   }
 }
 
@@ -335,7 +425,7 @@ const toggleFaq = (index) => {
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Máy tính dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
         <div class="hero-actions">
-          <a href="#guidedContactForm" class="btn-glow-primary">Đặt Lịch Tư Vấn</a>
+          <button type="button" class="btn-glow-primary" @click="openConsultation">Đặt Lịch Tư Vấn</button>
           <a href="tel:19008888" class="btn-glass">Hotline 1900 8888</a>
         </div>
 
@@ -620,13 +710,12 @@ const toggleFaq = (index) => {
                   <p class="detail-val" :class="{ bold: info.bold }">{{ info.value }}</p>
                 </div>
               </div>
-              
-              <button 
-                type="button" 
-                class="btn-visit-schedule" 
-                @click="bookShowroomVisit(selectedShowroom)"
-              >
-                <svg class="cyber-svg-icon btn-sched-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Đặt Lịch Hẹn Trải Nghiệm Showroom
+            </div>
+
+            <div class="showroom-schedule-action">
+              <button type="button" class="btn-visit-schedule" @click="bookShowroomVisit">
+                <svg class="cyber-svg-icon btn-sched-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Đặt Lịch Hẹn Trải Nghiệm Showroom
               </button>
             </div>
 
@@ -843,6 +932,126 @@ const toggleFaq = (index) => {
       </div>
     </section>
 
+    <Teleport to="body">
+      <Transition name="appointment-pop">
+        <div v-if="consultationOpen" class="appointment-overlay" @click.self="closeConsultation">
+          <section class="consultation-modal" role="dialog" aria-modal="true" aria-labelledby="consultation-title">
+            <button type="button" class="appointment-close" aria-label="Đóng" @click="closeConsultation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+
+            <div class="consultation-heading">
+              <span class="consultation-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </span>
+              <div>
+                <span class="appointment-eyebrow">TƯ VẤN MIỄN PHÍ</span>
+                <h3 id="consultation-title">Để lại số điện thoại</h3>
+                <p>Chuyên viên NextGen sẽ gọi lại hỗ trợ bạn sớm nhất.</p>
+              </div>
+            </div>
+
+            <div v-if="consultationSuccess" class="appointment-success consultation-success">
+              <strong>Đăng ký thành công!</strong>
+              <span>Chúng tôi đã nhận được yêu cầu và sẽ sớm liên hệ với bạn.</span>
+              <button type="button" @click="closeConsultation">Hoàn tất</button>
+            </div>
+
+            <form v-else class="consultation-form" @submit.prevent="submitConsultation">
+              <label for="consultation-phone">Số điện thoại của bạn</label>
+              <div class="consultation-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3"/>
+                </svg>
+                <input id="consultation-phone" v-model="consultationPhone" type="tel" inputmode="tel" autocomplete="tel" autofocus placeholder="Ví dụ: 0901 234 567" />
+              </div>
+              <p v-if="consultationError" class="appointment-error">{{ consultationError }}</p>
+              <button class="appointment-submit" type="submit" :disabled="consultationLoading">
+                {{ consultationLoading ? 'Đang đăng ký...' : 'Đăng ký tư vấn' }}
+              </button>
+              <small>Thông tin của bạn được bảo mật và chỉ dùng để hỗ trợ tư vấn.</small>
+            </form>
+          </section>
+        </div>
+      </Transition>
+
+      <Transition name="appointment-pop">
+        <div v-if="appointmentOpen" class="appointment-overlay" @click.self="closeAppointment">
+          <section class="appointment-modal" role="dialog" aria-modal="true" aria-labelledby="appointment-title">
+            <button type="button" class="appointment-close" aria-label="Đóng" @click="closeAppointment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+
+            <div class="appointment-heading">
+              <span class="appointment-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+              </span>
+              <div>
+                <span class="appointment-eyebrow">ĐĂNG KÝ TRẢI NGHIỆM</span>
+                <h3 id="appointment-title">Đặt lịch hẹn showroom</h3>
+                <p>{{ selectedShowroom.name }}</p>
+              </div>
+            </div>
+
+            <div v-if="appointmentSuccess" class="appointment-success">
+              <strong>Đăng ký thành công!</strong>
+              <span>Chuyên viên NextGen sẽ liên hệ xác nhận lịch hẹn với bạn sớm nhất.</span>
+              <button type="button" @click="closeAppointment">Hoàn tất</button>
+            </div>
+
+            <form v-else class="appointment-form" @submit.prevent="submitAppointment">
+              <div class="appointment-fields two-cols">
+                <label>
+                  <span>Họ và tên *</span>
+                  <input v-model="appointmentName" type="text" autocomplete="name" placeholder="Nhập họ tên của bạn" />
+                </label>
+                <label>
+                  <span>Số điện thoại *</span>
+                  <input v-model="appointmentPhone" type="tel" autocomplete="tel" placeholder="Ví dụ: 0901 234 567" />
+                </label>
+              </div>
+              <div class="appointment-fields">
+                <label>
+                  <span>Email xác nhận *</span>
+                  <input v-model="appointmentEmail" type="email" autocomplete="email" placeholder="Nhập email nhận xác nhận lịch hẹn" />
+                </label>
+              </div>
+              <div class="appointment-fields two-cols">
+                <label>
+                  <span>Ngày trải nghiệm *</span>
+                  <input v-model="appointmentDate" type="date" :min="minAppointmentDate" />
+                </label>
+                <label>
+                  <span>Khung giờ *</span>
+                  <select v-model="appointmentTime">
+                    <option value="" disabled>Chọn khung giờ</option>
+                    <option>08:00 - 10:00</option>
+                    <option>10:00 - 12:00</option>
+                    <option>13:30 - 15:30</option>
+                    <option>15:30 - 17:30</option>
+                  </select>
+                </label>
+              </div>
+              <label class="appointment-note">
+                <span>Nhu cầu hoặc sản phẩm muốn trải nghiệm</span>
+                <textarea v-model="appointmentNote" rows="3" placeholder="Ví dụ: Muốn trải nghiệm laptop gaming RTX 50 Series..."></textarea>
+              </label>
+              <p v-if="appointmentError" class="appointment-error">{{ appointmentError }}</p>
+              <button class="appointment-submit" type="submit" :disabled="appointmentLoading">
+                {{ appointmentLoading ? 'Đang gửi lịch hẹn...' : 'Đăng ký lịch trải nghiệm' }}
+              </button>
+            </form>
+          </section>
+        </div>
+      </Transition>
+    </Teleport>
+
   </div>
 </template>
 
@@ -1048,6 +1257,7 @@ const toggleFaq = (index) => {
 
 /* Premium Buttons */
 .btn-glow-primary {
+  border: 0;
   padding: 13px 26px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
@@ -1056,6 +1266,7 @@ const toggleFaq = (index) => {
   font-size: 13.5px;
   font-weight: 800;
   text-decoration: none;
+  cursor: pointer;
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
   transition: var(--transition);
 }
@@ -1166,8 +1377,8 @@ const toggleFaq = (index) => {
 
 .guided-grid-layout {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 36px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
   align-items: start;
 }
 
@@ -1178,9 +1389,11 @@ const toggleFaq = (index) => {
   border: 1px solid rgba(2,6,23,0.06);
   padding: 32px;
   box-shadow: 0 10px 30px rgba(2,6,23,0.06);
-  min-height: 520px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  height: auto;
+  min-width: 0;
 }
 
 /* Step Bar Node */
@@ -1601,7 +1814,7 @@ const toggleFaq = (index) => {
 }
 /* Form Action Footer */
 .step-actions-footer {
-  margin-top: auto;
+  margin-top: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1720,6 +1933,8 @@ const toggleFaq = (index) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: auto;
+  min-width: 0;
 }
 .showroom-brand-header {
   margin-bottom: 4px;
@@ -1859,10 +2074,280 @@ const toggleFaq = (index) => {
   margin-top: 6px;
   transition: var(--transition);
 }
+.showroom-schedule-action {
+  padding: 10px;
+  border: 1px solid #dbe5f2;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+.showroom-schedule-action .btn-visit-schedule {
+  margin-top: 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border-color: transparent;
+}
 .btn-visit-schedule:hover {
   background: var(--primary);
   color: white;
   box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+:global(.appointment-overlay) {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 8, 23, 0.66);
+  backdrop-filter: blur(5px);
+}
+:global(.appointment-modal) {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 30px;
+  border: 1px solid #dbe5f2;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 30px 80px rgba(2, 8, 23, 0.30);
+}
+
+:global(.consultation-modal) {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 30px;
+  border: 1px solid #dbe5f1;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .28);
+}
+
+:global(.consultation-heading) {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 38px;
+  margin-bottom: 24px;
+}
+
+:global(.consultation-icon) {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  display: grid;
+  place-items: center;
+  color: #2563eb;
+  background: #eff6ff;
+  border-radius: 15px;
+}
+
+:global(.consultation-icon svg) {
+  width: 23px;
+  height: 23px;
+}
+
+:global(.consultation-heading h3) {
+  margin: 3px 0 3px;
+  color: #0f172a;
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+:global(.consultation-heading p) {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:global(.consultation-form) {
+  display: grid;
+  gap: 12px;
+}
+
+:global(.consultation-form > label) {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+:global(.consultation-input) {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+:global(.consultation-input:focus-within) {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+}
+
+:global(.consultation-input svg) {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  color: #64748b;
+}
+
+:global(.consultation-input input) {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #0f172a;
+  background: transparent;
+  font: inherit;
+}
+
+:global(.consultation-form small) {
+  color: #94a3b8;
+  font-size: 10.5px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+:global(.consultation-success) {
+  padding-top: 6px;
+}
+:global(.appointment-close) {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dbe5f2;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #334155;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+:global(.appointment-close svg) {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+:global(.appointment-heading) {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 42px;
+  margin-bottom: 24px;
+}
+:global(.appointment-icon) {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+:global(.appointment-icon svg) { width: 23px; height: 23px; }
+:global(.appointment-eyebrow) {
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+:global(.appointment-heading h3) {
+  margin: 3px 0;
+  font: 800 23px/1.2 'Outfit', sans-serif;
+}
+:global(.appointment-heading p) { margin: 0; color: #64748b; font-size: 13px; }
+:global(.appointment-form) { display: grid; gap: 16px; }
+:global(.appointment-fields) { display: grid; gap: 14px; }
+:global(.appointment-fields.two-cols) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:global(.appointment-form label) { display: grid; gap: 7px; }
+:global(.appointment-form label > span) { color: #334155; font-size: 12px; font-weight: 700; }
+:global(.appointment-form input),
+:global(.appointment-form select),
+:global(.appointment-form textarea) {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 11px 12px;
+  color: #0f172a;
+  font: 500 13px 'Inter', sans-serif;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+:global(.appointment-form input:focus),
+:global(.appointment-form select:focus),
+:global(.appointment-form textarea:focus) {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+}
+:global(.appointment-form textarea) { resize: vertical; min-height: 82px; }
+:global(.appointment-error) {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+}
+:global(.appointment-submit) {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .25);
+}
+:global(.appointment-submit:disabled) { opacity: .65; cursor: wait; }
+:global(.appointment-success) {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px 12px 4px;
+  text-align: center;
+}
+:global(.appointment-success strong) { color: #16a34a; font-size: 21px; }
+:global(.appointment-success span) { max-width: 440px; color: #64748b; font-size: 13px; line-height: 1.6; }
+:global(.appointment-success button) {
+  margin-top: 8px;
+  padding: 11px 28px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+:global(.appointment-pop-enter-active),
+:global(.appointment-pop-leave-active) { transition: opacity .2s ease; }
+:global(.appointment-pop-enter-active .appointment-modal),
+:global(.appointment-pop-leave-active .appointment-modal) { transition: transform .2s ease, opacity .2s ease; }
+:global(.appointment-pop-enter-from),
+:global(.appointment-pop-leave-to) { opacity: 0; }
+:global(.appointment-pop-enter-from .appointment-modal),
+:global(.appointment-pop-leave-to .appointment-modal) { opacity: 0; transform: translateY(14px) scale(.98); }
+
+@media (max-width: 620px) {
+  :global(.appointment-overlay) { padding: 12px; }
+  :global(.appointment-modal) { padding: 24px 18px; border-radius: 16px; }
+  :global(.appointment-fields.two-cols) { grid-template-columns: 1fr; }
+  :global(.appointment-heading h3) { font-size: 20px; }
 }
 
 /* Secondary Maps */
@@ -1870,7 +2355,7 @@ const toggleFaq = (index) => {
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid #cbd5e1;
-  height: 200px;
+  height: 130px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2348,6 +2833,66 @@ const toggleFaq = (index) => {
   transform: translateY(-2px);
 }
 
+/* Compact, consistent vertical rhythm across the contact page. */
+.support-hero {
+  padding-top: 64px;
+  padding-bottom: 56px;
+}
+
+.support-badge {
+  margin-bottom: 14px;
+}
+
+.hero-desc {
+  margin-bottom: 28px;
+}
+
+.hero-actions {
+  margin-bottom: 40px;
+}
+
+.form-section-container {
+  padding-top: 52px;
+  padding-bottom: 52px;
+  scroll-margin-top: 120px;
+}
+
+.section-magazine-title {
+  margin-bottom: 28px;
+}
+
+.guided-grid-layout {
+  gap: 32px;
+}
+
+.experts-section-wrapper,
+.faq-knowledge-center {
+  padding-top: 52px;
+  padding-bottom: 52px;
+}
+
+.experts-grid,
+.faq-controls-row {
+  margin-top: 0;
+}
+
+.experts-grid {
+  gap: 16px;
+}
+
+.tech-trust-banner {
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+
+.faq-controls-row {
+  margin-bottom: 20px;
+}
+
+.faq-accordions-grid {
+  margin-bottom: 28px;
+}
+
 /* ==================== RESPONSIVE RULES ==================== */
 @media (max-width: 1100px) {
   .guided-grid-layout {
@@ -2401,6 +2946,7 @@ const toggleFaq = (index) => {
     flex-direction: column;
     width: 100%;
     gap: 10px;
+    margin-bottom: 32px;
   }
   .btn-glow-primary, .btn-glass {
     width: 100%;
@@ -2418,6 +2964,9 @@ const toggleFaq = (index) => {
   }
   .form-section-container {
     padding: 32px 16px;
+  }
+  .section-magazine-title {
+    margin-bottom: 24px;
   }
   .guided-form-glass-card {
     padding: 20px;
@@ -2483,6 +3032,9 @@ const toggleFaq = (index) => {
   }
   .tech-trust-banner {
     padding: 24px 16px;
+  }
+  .experts-section-wrapper {
+    padding: 40px 16px;
   }
   .partners-marquee-track span {
     font-size: 15px;

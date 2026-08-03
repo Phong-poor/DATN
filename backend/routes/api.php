@@ -30,6 +30,7 @@ use App\Http\Controllers\AffiliateVideoController;
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MomoController;
+use App\Http\Controllers\SepayController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ComboController;
 use App\Http\Controllers\GeocodeController;
@@ -42,9 +43,6 @@ use App\Http\Controllers\Api\AffiliateWalletController;
 use App\Http\Controllers\Api\AffiliateWithdrawalController;
 
 // Geocode routes moved inside auth:sanctum
-Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
-Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebook']);
-
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
@@ -56,22 +54,33 @@ Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
 Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
 Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
+Route::post('/sepay/webhook', [SepayController::class, 'webhook']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::get('/forgot-password/captcha', [ForgotPasswordController::class, 'captcha']);
 Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
+// Mobile-specific forgot password (no captcha required)
+Route::post('/mobile/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtpMobile']);
+Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPasswordMobile']);
+
+
 // ================= LIÊN HỆ (KHÁCH) =================
-Route::get('/contacts', [LienHeController::class, 'index']);
 Route::post('/lien-he', [LienHeController::class, 'store']);
-Route::post('/contacts/{id}/reply', [LienHeController::class, 'reply']);
+Route::post('/consultation-requests', [LienHeController::class, 'storeConsultation']);
+Route::post('/showroom-appointments', [LienHeController::class, 'storeAppointment']);
 
 // ================= KHUYẾN MÃI (PUBLIC) =================
 Route::get('/promotions', [PromotionController::class, 'index']);
 Route::post('/apply-promo', [PromotionController::class, 'applyPromo']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{id}', [NewsController::class, 'show']);
+Route::get('/news-tags', [NewsController::class, 'tags']);
+Route::get('/news-feed.xml', [NewsController::class, 'feed']);
+Route::get('/news-sitemap.xml', [NewsController::class, 'sitemap']);
+Route::post('/news/{id}/track', [NewsController::class, 'track'])->whereNumber('id');
+Route::post('/news-subscribe', [NewsController::class, 'subscribe']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
@@ -144,11 +153,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gio-hang/dem', [GioHangController::class, 'demSoLuong']);
 
     // ===== ĐẶT HÀNG =====
-    Route::post('/checkout', [DatHangController::class, 'checkout']);
+    Route::post('/checkout', [DatHangController::class, 'checkout'])->middleware('checkout.throttle');
     Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
     Route::post('/orders/{id}/payment-notice', [DatHangController::class, 'notifyManualPayment']);
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::get('/orders/{id}/momo-status', [MomoController::class, 'momoQuery']);
+    Route::get('/orders/{id}/sepay-status', [SepayController::class, 'status']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [DatHangController::class, 'refund']);
@@ -179,6 +189,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== ĐIỂM DANH HÀNG NGÀY =====
     Route::get('/diem-danh/status', [App\Http\Controllers\DiemDanhController::class, 'getStatus']);
     Route::post('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'checkIn']);
+
+    // ===== CHẤM CÔNG NHÂN VIÊN =====
+    Route::get('/cham-cong/status', [App\Http\Controllers\ChamCongController::class, 'getStatus']);
+    Route::post('/cham-cong/register-face', [App\Http\Controllers\ChamCongController::class, 'dangKyKhuonMat']);
+    Route::post('/cham-cong/delete-face', [App\Http\Controllers\ChamCongController::class, 'xoaKhuonMat']);
+    Route::post('/cham-cong/check', [App\Http\Controllers\ChamCongController::class, 'checkInCheckOut']);
+    Route::get('/cham-cong/my-history', [App\Http\Controllers\ChamCongController::class, 'getLichSuCaNhan']);
+    Route::get('/cham-cong/leaderboard', [App\Http\Controllers\ChamCongController::class, 'getLeaderboard']);
 
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
@@ -217,50 +235,28 @@ Route::get('/danhmuc-cha/{id}', [DanhMucChaController::class, 'show']);
 Route::get('/danhmuc/parents', [DanhMucController::class, 'getParentCategories']);
 Route::get('/danhmuc/{id_danhmuc}/children', [DanhMucController::class, 'getChildrenCategories']);
 Route::get('/danhmuc/{id_danhmuc}/inherited-attributes', [DanhMucController::class, 'getCategoryWithInheritedAttributes']);
-Route::post('/danhmuc', [DanhMucController::class, 'store']);
 Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
-Route::put('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'update']);
-Route::delete('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'destroy']);
 
 // ================= THƯƠNG HIỆU =================
 Route::get('/thuonghieu', [ThuongHieuController::class, 'index']);
 Route::get('/thuonghieu/by-category/{categoryId}', [ThuongHieuController::class, 'getByCategory']);
-Route::post('/thuonghieu', [ThuongHieuController::class, 'store']);
 Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show']);
-Route::put('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'update']);
-Route::delete('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'destroy']);
 
 
 // Route::post('/register', [UserController::class, 'store']);
-Route::get('/users', [UserController::class, 'index']);
-Route::get('/users/{id}', [UserController::class, 'show']);
-Route::put('/users/{id}', [UserController::class, 'update']);
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
 // ================= THUỘC TÍNH =================
 Route::get('/nhomthuoctinh', [ThuocTinhController::class, 'getNhom']);
-Route::post('/nhomthuoctinh', [ThuocTinhController::class, 'addNhom']);
-Route::put('/nhomthuoctinh/{id}', [ThuocTinhController::class, 'updateNhom']);
-Route::delete('/nhomthuoctinh/{id}', [ThuocTinhController::class, 'deleteNhom']);
 
 Route::get('/thuoctinh', [ThuocTinhController::class, 'getThuocTinh']);
-Route::post('/thuoctinh', [ThuocTinhController::class, 'addThuocTinh']);
-Route::put('/thuoctinh/{id}', [ThuocTinhController::class, 'updateThuocTinh']);
-Route::delete('/thuoctinh/{id}', [ThuocTinhController::class, 'deleteThuocTinh']);
 
 Route::get('/giatrithuoctinh/{id}', [ThuocTinhController::class, 'getGiaTri']);
-Route::post('/giatrithuoctinh', [ThuocTinhController::class, 'addGiaTri']);
-Route::put('/giatrithuoctinh/{id}', [ThuocTinhController::class, 'updateGiaTri']);
-Route::delete('/giatrithuoctinh/{id}', [ThuocTinhController::class, 'deleteGiaTri']);
 
 Route::get('/thuoctinh-all', [ThuocTinhController::class, 'getAll']);
 
 // ================= COLOR =================
 Route::get('/colors', [ColorController::class, 'index']);
-Route::post('/colors', [ColorController::class, 'store']);
 Route::get('/colors/{id}', [ColorController::class, 'show']);
-Route::put('/colors/{id}', [ColorController::class, 'update']);
-Route::delete('/colors/{id}', [ColorController::class, 'destroy']);
 
 // ================= SẢN PHẨM =================
 Route::get('/mobile/home', [SanPhamController::class, 'mobileHome']);
@@ -268,11 +264,8 @@ Route::get('/mobile/home', [SanPhamController::class, 'mobileHome']);
     Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
-Route::post('/sanpham', [SanPhamController::class, 'store']);
 Route::get('/sanpham/{id}', [SanPhamController::class, 'show']);
 Route::get('/sanpham/{id}/reviews', [DanhGiaController::class, 'index']);
-Route::put('/sanpham/{id}', [SanPhamController::class, 'update']);
-Route::delete('/sanpham/{id}', [SanPhamController::class, 'destroy']);
 
 // ================= COMBOS =================
 Route::get('/combos', [ComboController::class, 'index']);
@@ -282,17 +275,11 @@ Route::get('/combos/{id}', [ComboController::class, 'show']);
 Route::get('/bienthe', [BienTheController::class, 'index']);
 Route::get('/bienthe/sanpham/{id_sanpham}', [BienTheController::class, 'getBySanPham']);
 Route::get('/bienthe/{id}', [BienTheController::class, 'show']);
-Route::post('/bienthe', [BienTheController::class, 'store']);
-Route::put('/bienthe/{id}', [BienTheController::class, 'update']);
-Route::delete('/bienthe/{id}', [BienTheController::class, 'destroy']);
 
 // ================= HÌNH ẢNH =================
 Route::get('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'index']);
 Route::get('/bienthe-hinhanh/sanpham/{id_sanpham}', [BienTheHinhAnhController::class, 'getBySanPham']);
 Route::get('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'show']);
-Route::post('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'store']);
-Route::put('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'update']);
-Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
 
 
 // ================= CHATBOT =================
@@ -351,6 +338,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
         Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
         Route::post('/orders/{id}/shipment/fail', [DatHangController::class, 'markDemoShipmentFailed']);
+        Route::post('/orders/{id}/shipment/retry', [DatHangController::class, 'retryDemoShipment']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
@@ -397,6 +385,10 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/news/upload-image', [NewsController::class, 'uploadContentImage']);
         Route::post('/news', [NewsController::class, 'store']);
         Route::put('/news/{id}', [NewsController::class, 'update']);
+        Route::patch('/news/{id}/autosave', [NewsController::class, 'autosave']);
+        Route::get('/news/{id}/preview', [NewsController::class, 'preview']);
+        Route::get('/news/{id}/revisions', [NewsController::class, 'revisions']);
+        Route::post('/news/{id}/revisions/{revisionId}/restore', [NewsController::class, 'restoreRevision']);
         Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
 
@@ -453,6 +445,17 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'adminIndex']);
         Route::get('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminGetSettings']);
         Route::put('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminUpdateSettings']);
+
+        // ===== ADMIN TIME ATTENDANCE =====
+        Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
+        Route::get('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetCaLam']);
+        Route::put('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateCaLam']);
+        Route::get('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetLichLam']);
+        Route::put('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateLichLam']);
+        Route::get('/cham-cong/nhan-vien', [App\Http\Controllers\ChamCongController::class, 'adminGetNhanVien']);
+        Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminDangKyKhuonMat']);
+        Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminXoaKhuonMat']);
+        Route::post('/cham-cong/quick-check', [App\Http\Controllers\ChamCongController::class, 'adminQuickCheck']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);
