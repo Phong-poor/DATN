@@ -698,6 +698,23 @@ onUnmounted(() => {
   vertical-align: middle;
 }
 
+.audit-table th:nth-child(2),
+.audit-table td.col-action {
+  width: 130px;
+  min-width: 130px;
+}
+
+.audit-table th:nth-child(3),
+.audit-table td.col-model {
+  width: 145px;
+  min-width: 145px;
+}
+
+.audit-table td.col-action,
+.audit-table td.col-model {
+  white-space: nowrap;
+}
+
 .log-row {
   transition: background-color 0.2s ease;
 }
@@ -753,7 +770,11 @@ onUnmounted(() => {
   padding: 5px 12px;
   border-radius: 8px;
   text-transform: capitalize;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  white-space: nowrap;
   letter-spacing: 0.5px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
@@ -787,7 +808,11 @@ onUnmounted(() => {
   padding: 5px 12px;
   border-radius: 8px;
   border: 1px solid rgba(226, 232, 240, 0.7);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108px;
+  white-space: nowrap;
   letter-spacing: 0.5px;
 }
 
