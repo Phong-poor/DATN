@@ -208,46 +208,77 @@ const startSpin = async () => {
     swal.warning('Hết lượt quay', 'Hãy nhận thêm lượt quay miễn phí để tiếp tục chơi nhé!')
     return
   }
-  
-  try {
-    const res = await api.post('/vong-quay/quay')
-    if (!res.data?.success) {
-      const msg = res.data?.message
-      if (msg) {
-        swal.info('Thông báo', msg)
-      } else {
-        swal.error('Lỗi', 'Không thể thực hiện quay.')
-      }
-      return
-    }
 
-    const targetIndex = res.data.winningIndex
-    const updatedTickets = res.data.tickets
-    
-    // Update local tickets count immediately
-    tickets.value = updatedTickets
-    localStorage.setItem('vongquay_tickets', updatedTickets.toString())
-    
-    isSpinning.value = true
+  isSpinning.value = true // Set immediately to prevent spam click
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+
+  // Pre-spin parameters
+  let currentSpeed = 0
+  const maxSpeed = 0.25 // Smooth fast rotation speed (rad/frame)
+  const acceleration = 0.01 // Quick acceleration (about 25 frames to reach maxSpeed)
+  
+  let apiCompleted = false
+  let apiFailed = false
+  let targetIndex = null
+  let apiResponseData = null
+
+  // Trigger backend spin API asynchronously
+  api.post('/vong-quay/quay')
+    .then(res => {
+      if (!res.data?.success) {
+        apiFailed = true
+        isSpinning.value = false
+        const msg = res.data?.message
+        if (msg) {
+          swal.info('Thông báo', msg)
+        } else {
+          swal.error('Lỗi', 'Không thể thực hiện quay.')
+        }
+        return
+      }
+
+      targetIndex = res.data.winningIndex
+      apiResponseData = res.data
+
+      // Update local tickets count immediately
+      tickets.value = res.data.tickets
+      localStorage.setItem('vongquay_tickets', res.data.tickets.toString())
+      
+      apiCompleted = true
+    })
+    .catch(e => {
+      apiFailed = true
+      isSpinning.value = false
+      const errMsg = e?.response?.data?.message
+      if (errMsg) {
+        swal.info('Thông báo', errMsg)
+      } else {
+        swal.error('Lỗi', 'Có lỗi xảy ra khi thực hiện quay.')
+      }
+    })
+
+  // Deceleration helper function to slow down smoothly and stop at targetIndex
+  const startDeceleration = (targetIdx, resData) => {
     const numSectors = prizes.value.length
     const sectorAngle = (2 * Math.PI) / numSectors
     
-    const minSpins = 6
     const currentAngleStart = currentAngle.value
-    
-    const baseAngle = 1.5 * Math.PI - (targetIndex + 0.5) * sectorAngle
+    const baseAngle = 1.5 * Math.PI - (targetIdx + 0.5) * sectorAngle
     let diffAngle = baseAngle - (currentAngleStart % (2 * Math.PI))
     if (diffAngle < 0) {
       diffAngle += 2 * Math.PI
     }
     
+    // We want a fast, punchy deceleration. 2 full rotations is perfect (~2.0 seconds stopping phase)
+    const minSpins = 2
     const targetRot = currentAngleStart + minSpins * 2 * Math.PI + diffAngle
-    const duration = 5000
+    const duration = 2000 // 2.0 seconds for stopping animation
     const startTime = performance.now()
     
-    let lastSector = Math.floor((((1.5 * Math.PI - currentAngleStart) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / sectorAngle)
-    
-    const animate = (now) => {
+    const decelAnimate = (now) => {
       const elapsed = now - startTime
       
       if (elapsed >= duration) {
@@ -256,37 +287,49 @@ const startSpin = async () => {
         drawWheel()
         
         // Show result popup
-        handleWinOutput(res.data.prize)
+        handleWinOutput(resData.prize)
         // Refresh local history list from database
         fetchHistory()
         return
       }
       
       const t = elapsed / duration
-      const easeT = 1 - Math.pow(1 - t, 3.5)
+      // Cubic ease-out for a super smooth slowdown
+      const easeT = 1 - Math.pow(1 - t, 3)
       currentAngle.value = currentAngleStart + (targetRot - currentAngleStart) * easeT
       
-      const curAng = currentAngle.value
-      const currentSector = Math.floor((((1.5 * Math.PI - curAng) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / sectorAngle)
-      
-      if (currentSector !== lastSector) {
-        lastSector = currentSector
-      }
-      
       drawWheel()
-      animationFrameId = requestAnimationFrame(animate)
+      animationFrameId = requestAnimationFrame(decelAnimate)
     }
     
-    animationFrameId = requestAnimationFrame(animate)
-    
-  } catch (e) {
-    const errMsg = e?.response?.data?.message
-    if (errMsg) {
-      swal.info('Thông báo', errMsg)
-    } else {
-      swal.error('Lỗi', 'Có lỗi xảy ra khi thực hiện quay.')
-    }
+    animationFrameId = requestAnimationFrame(decelAnimate)
   }
+
+  // Pre-spin loop while waiting for API
+  const preSpinAnimate = (now) => {
+    if (apiFailed) {
+      drawWheel()
+      return
+    }
+
+    if (apiCompleted && targetIndex !== null) {
+      startDeceleration(targetIndex, apiResponseData)
+      return
+    }
+
+    // Accelerate to max speed
+    if (currentSpeed < maxSpeed) {
+      currentSpeed += acceleration
+    } else {
+      currentSpeed = maxSpeed
+    }
+
+    currentAngle.value = (currentAngle.value + currentSpeed) % (2 * Math.PI)
+    drawWheel()
+    animationFrameId = requestAnimationFrame(preSpinAnimate)
+  }
+
+  animationFrameId = requestAnimationFrame(preSpinAnimate)
 }
 
 // Claim daily ticket logic
@@ -373,6 +416,7 @@ onUnmounted(() => {
               
               <!-- Absolute Center Trigger Button -->
               <button 
+                v-show="!isSpinning"
                 class="spin-trigger-btn" 
                 :disabled="isSpinning" 
                 @click="startSpin"
