@@ -1,6 +1,8 @@
 // Dùng đường dẫn tương đối để đi qua Vite proxy (loại bỏ CORS / preflight)
 // Production: set VITE_API_BASE_URL=https://yourdomain.com/api trong .env.production
-const DEFAULT_API_BASE = import.meta.env.DEV ? '/api' : 'http://127.0.0.1:8000/api'
+// Cùng domain là cấu hình deploy mặc định an toàn và gọn nhất.
+// Khi tách API sang domain khác, chỉ cần khai báo VITE_API_BASE_URL.
+const DEFAULT_API_BASE = '/api'
 
 
 

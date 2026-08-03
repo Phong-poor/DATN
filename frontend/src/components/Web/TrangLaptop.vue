@@ -641,7 +641,7 @@ onMounted(() => {
       <h2>Thương Hiệu Nổi Bật</h2>
       <div class="brand-marquee" aria-label="Laptop brand logos">
         <div class="brand-track">
-          <div v-for="sequence in 2" :key="sequence" class="brand-sequence" aria-hidden="true">
+          <div v-for="sequence in 3" :key="sequence" class="brand-sequence" aria-hidden="true">
             <button
               v-for="brand in brandShowcase"
               :key="`${brand.name}-${sequence}`"
@@ -2369,7 +2369,7 @@ onMounted(() => {
 .brand-track {
   width: max-content;
   display: flex;
-  gap: 18px;
+  gap: 0;
   animation: brand-loop 28s linear infinite;
   will-change: transform;
 }
@@ -2377,6 +2377,7 @@ onMounted(() => {
 .brand-sequence {
   display: flex;
   gap: 18px;
+  padding-right: 18px;
   flex: 0 0 auto;
 }
 
@@ -2438,7 +2439,7 @@ onMounted(() => {
   }
 
   to {
-    transform: translateX(calc(-50% - 9px));
+    transform: translateX(-33.333333%);
   }
 }
 

@@ -64,6 +64,21 @@ const employeeForm = ref({
   matkhau: '',
   trangthai: 'active'
 })
+const defaultWorkAssignment = () => ({
+  loai_ca: 'full_day',
+  ngay_bat_dau: new Date().toISOString().slice(0, 10),
+  ngay_ket_thuc: '',
+  thu_lam_viec: [1, 2, 3, 4, 5, 6]
+})
+const workAssignment = ref(defaultWorkAssignment())
+const workAssignmentErrors = ref({})
+const workAssignmentTouched = ref({})
+const weekdays = [
+  { value: 1, label: 'Thứ 2' }, { value: 2, label: 'Thứ 3' },
+  { value: 3, label: 'Thứ 4' }, { value: 4, label: 'Thứ 5' },
+  { value: 5, label: 'Thứ 6' }, { value: 6, label: 'Thứ 7' },
+  { value: 7, label: 'Chủ nhật' }
+]
 const employeeErrors = ref({})
 const employeeTouched = ref({})
 const employees = ref([])
@@ -274,13 +289,53 @@ function validateEmployeeForm() {
     ? ['ten', 'email', 'sodienthoai', 'vaitro']
     : ['ten', 'email', 'sodienthoai', 'vaitro', 'matkhau']
   fields.forEach(validateEmployeeField)
-  return fields.every(field => !employeeErrors.value[field])
+  const scheduleValid = validateWorkAssignment()
+  return scheduleValid && fields.every(field => !employeeErrors.value[field])
+}
+
+function validateWorkAssignmentField(field) {
+  workAssignmentTouched.value[field] = true
+  let message = ''
+  if (field === 'ngay_bat_dau' && !workAssignment.value.ngay_bat_dau) {
+    message = 'Vui lòng chọn ngày bắt đầu làm việc.'
+  }
+  if (field === 'ngay_ket_thuc' && workAssignment.value.ngay_ket_thuc) {
+    if (!workAssignment.value.ngay_bat_dau) message = 'Vui lòng chọn ngày bắt đầu trước.'
+    else if (workAssignment.value.ngay_ket_thuc < workAssignment.value.ngay_bat_dau) {
+      message = 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.'
+    }
+  }
+  if (field === 'thu_lam_viec' && !workAssignment.value.thu_lam_viec.length) {
+    message = 'Vui lòng chọn ít nhất một ngày làm việc.'
+  }
+  workAssignmentErrors.value[field] = message
+  return !message
+}
+
+function validateWorkAssignment() {
+  return ['ngay_bat_dau', 'ngay_ket_thuc', 'thu_lam_viec']
+    .map(validateWorkAssignmentField)
+    .every(Boolean)
+}
+
+function onStartDateChanged() {
+  validateWorkAssignmentField('ngay_bat_dau')
+  if (workAssignment.value.ngay_ket_thuc || workAssignmentTouched.value.ngay_ket_thuc) {
+    validateWorkAssignmentField('ngay_ket_thuc')
+  }
 }
 
 function applyServerValidationErrors(error, target = employeeErrors) {
   const errors = error.response?.data?.errors || {}
   Object.entries(errors).forEach(([field, messages]) => {
-    target.value[field] = Array.isArray(messages) ? messages[0] : String(messages)
+    const message = Array.isArray(messages) ? messages[0] : String(messages)
+    const scheduleField = field.split('.')[0]
+    if (['loai_ca', 'ngay_bat_dau', 'ngay_ket_thuc', 'thu_lam_viec'].includes(scheduleField)) {
+      workAssignmentErrors.value[scheduleField] = message
+      workAssignmentTouched.value[scheduleField] = true
+    } else {
+      target.value[field] = message
+    }
   })
 }
 
@@ -319,6 +374,10 @@ async function createEmployeeAndEnroll() {
     const response = await api.post('/admin/users', payload)
     const created = response.data.user
     createdEmployeeId = created.id
+    await api.put(`/admin/cham-cong/nhan-vien/${created.id}/lich-lam`, {
+      ...workAssignment.value,
+      ngay_ket_thuc: workAssignment.value.ngay_ket_thuc || null
+    })
     await api.post(`/admin/cham-cong/nhan-vien/${created.id}/dang-ky-khuon-mat`, {
       face_descriptor: descriptor
     })
@@ -333,6 +392,9 @@ async function createEmployeeAndEnroll() {
     }
     await router.replace({ name: 'admin-chamcong-camera', query: { enroll: created.id } })
     employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+    workAssignment.value = defaultWorkAssignment()
+    workAssignmentErrors.value = {}
+    workAssignmentTouched.value = {}
     employeeErrors.value = {}
     employeeTouched.value = {}
     await fetchEmployees()
@@ -366,7 +428,7 @@ async function handleUnifiedEmployeeSubmit() {
   await createEmployeeAndEnroll()
 }
 
-function openEditEmployee(employee) {
+async function openEditEmployee(employee) {
   editingEmployee.value = employee
   employeeForm.value = {
     ten: employee.ten || '',
@@ -379,6 +441,22 @@ function openEditEmployee(employee) {
   employeeErrors.value = {}
   employeeTouched.value = {}
   employeeFormError.value = ''
+  workAssignmentErrors.value = {}
+  workAssignmentTouched.value = {}
+  try {
+    const response = await api.get(`/admin/cham-cong/nhan-vien/${employee.id}/lich-lam`, { skipGlobalLoader: true })
+    const assignment = response.data?.data
+    workAssignment.value = assignment ? {
+      loai_ca: assignment.loai_ca,
+      ngay_bat_dau: String(assignment.ngay_bat_dau).slice(0, 10),
+      ngay_ket_thuc: assignment.ngay_ket_thuc ? String(assignment.ngay_ket_thuc).slice(0, 10) : '',
+      thu_lam_viec: assignment.thu_lam_viec || []
+    } : defaultWorkAssignment()
+  } catch (_) {
+    workAssignment.value = defaultWorkAssignment()
+    workAssignmentErrors.value = {}
+    workAssignmentTouched.value = {}
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -389,6 +467,10 @@ async function saveEmployee() {
     const payload = { ...employeeForm.value }
     if (!payload.matkhau) delete payload.matkhau
     await api.put(`/admin/users/${editingEmployee.value.id}`, payload)
+    await api.put(`/admin/cham-cong/nhan-vien/${editingEmployee.value.id}/lich-lam`, {
+      ...workAssignment.value,
+      ngay_ket_thuc: workAssignment.value.ngay_ket_thuc || null
+    })
     await fetchEmployees()
     if (Number(enrollmentTarget.value?.id) === Number(editingEmployee.value.id)) {
       const updated = employees.value.find(item => Number(item.id) === Number(editingEmployee.value.id))
@@ -396,6 +478,7 @@ async function saveEmployee() {
     }
     editingEmployee.value = null
     employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+    workAssignment.value = defaultWorkAssignment()
     employeeErrors.value = {}
     employeeTouched.value = {}
     swal.success('Đã cập nhật', 'Thông tin nhân viên đã được lưu.')
@@ -410,6 +493,9 @@ async function saveEmployee() {
 function cancelEditEmployee() {
   editingEmployee.value = null
   employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+  workAssignment.value = defaultWorkAssignment()
+  workAssignmentErrors.value = {}
+  workAssignmentTouched.value = {}
   employeeErrors.value = {}
   employeeTouched.value = {}
   employeeFormError.value = ''
@@ -1019,6 +1105,53 @@ onUnmounted(() => {
             </select>
           </label>
 
+          <div class="work-assignment-block">
+            <div class="assignment-heading">
+              <strong>Đăng ký lịch làm việc</strong>
+              <small>Áp dụng cho việc chấm công và tính công của nhân viên</small>
+            </div>
+            <label>
+              <span>Ca làm việc *</span>
+              <select v-model="workAssignment.loai_ca" required>
+                <option value="full_day">Cả ngày (ca sáng + ca chiều)</option>
+                <option value="morning">Ca sáng</option>
+                <option value="afternoon">Ca chiều</option>
+              </select>
+            </label>
+            <div class="assignment-date-grid">
+              <label :class="{ invalid: workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau }">
+                <span>Ngày bắt đầu *</span>
+                <input v-model="workAssignment.ngay_bat_dau" type="date"
+                  @change="onStartDateChanged" @blur="validateWorkAssignmentField('ngay_bat_dau')" />
+                <small v-if="workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau">
+                  {{ workAssignmentErrors.ngay_bat_dau }}
+                </small>
+              </label>
+              <label :class="{ invalid: workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc }">
+                <span>Ngày kết thúc</span>
+                <input v-model="workAssignment.ngay_ket_thuc" type="date" :min="workAssignment.ngay_bat_dau"
+                  @change="validateWorkAssignmentField('ngay_ket_thuc')" @blur="validateWorkAssignmentField('ngay_ket_thuc')" />
+                <small v-if="workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc">
+                  {{ workAssignmentErrors.ngay_ket_thuc }}
+                </small>
+                <small v-if="!workAssignment.ngay_ket_thuc" class="optional-note">Để trống nếu chưa xác định</small>
+              </label>
+            </div>
+            <div class="weekday-field">
+              <span>Ngày làm trong tuần *</span>
+              <div class="weekday-options">
+                <label v-for="day in weekdays" :key="day.value" :class="{ selected: workAssignment.thu_lam_viec.includes(day.value) }">
+                  <input v-model="workAssignment.thu_lam_viec" type="checkbox" :value="day.value"
+                    @change="validateWorkAssignmentField('thu_lam_viec')" />
+                  {{ day.label }}
+                </label>
+              </div>
+              <small v-if="workAssignmentTouched.thu_lam_viec && workAssignmentErrors.thu_lam_viec" class="assignment-error">
+                {{ workAssignmentErrors.thu_lam_viec }}
+              </small>
+            </div>
+          </div>
+
           <p v-if="employeeFormError" class="setup-error">{{ employeeFormError }}</p>
 
         </form>
@@ -1416,7 +1549,13 @@ onUnmounted(() => {
 .setup-heading > span { color: #2563eb; font-size: 10px; font-weight: 800; letter-spacing: .09em; }
 .setup-heading h3 { margin: 4px 0 3px; color: #0f172a; font-size: 17px; }
 .setup-heading p { margin: 0; color: #64748b; font-size: 11px; line-height: 1.5; }
-.employee-setup-form { display: grid; gap: 8px; margin-top: 11px; }
+.employee-setup-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 9px 10px;
+  margin-top: 11px;
+}
 .employee-setup-form label { display: grid; gap: 5px; }
 .employee-setup-form label > span { color: #475569; font-size: 10.5px; font-weight: 700; }
 .employee-setup-form input,
@@ -1453,6 +1592,7 @@ onUnmounted(() => {
   line-height: 1.3;
 }
 .setup-error {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 8px 10px;
   border-radius: 8px;
@@ -1658,6 +1798,8 @@ onUnmounted(() => {
 }
 
 @media (max-width: 620px) {
+  .employee-setup-form { grid-template-columns: 1fr; }
+  .employee-setup-form > * { grid-column: 1; }
   .today-schedule { grid-template-columns: 1fr; }
   .enrollment-banner { grid-template-columns: 40px 1fr; }
   .enrollment-banner button { grid-column: 1 / -1; }
@@ -2387,6 +2529,44 @@ onUnmounted(() => {
   font-size: 14px;
   color: #1e293b;
 }
+
+.work-assignment-block {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+.assignment-heading strong,
+.assignment-heading small { display: block; }
+.assignment-heading strong { color: #1d4ed8; font-size: 13px; }
+.assignment-heading small { margin-top: 3px; color: #64748b; font-size: 10px; }
+.assignment-date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.weekday-field { display: grid; gap: 7px; }
+.weekday-field > span { color: #334155; font-size: 11px; font-weight: 700; }
+.weekday-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.weekday-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 10px;
+  cursor: pointer;
+}
+.weekday-options label.selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 750; }
+.weekday-options input { width: 13px; height: 13px; margin: 0; }
+.assignment-error { color: #dc2626 !important; }
+.employee-setup-form label small.optional-note {
+  color: #64748b;
+  font-weight: 500;
+}
+@media (max-width: 640px) { .assignment-date-grid { grid-template-columns: 1fr; } }
 
 .item-role {
   font-size: 11.5px;

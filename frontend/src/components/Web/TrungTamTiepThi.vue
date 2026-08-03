@@ -690,7 +690,7 @@ onMounted(loadAll)
                       
                       <div class="generator-col">
                         <label class="generator-label">Cách 2: Dán đường dẫn trang web bất kỳ</label>
-                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví dụ: /products/12 hoặc http://localhost:5173/products" @input="generateCustomLink" />
+                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví dụ: /products/12 hoặc https://tenmien.com/products" @input="generateCustomLink" />
                       </div>
                     </div>
 

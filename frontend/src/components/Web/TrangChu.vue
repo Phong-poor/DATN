@@ -837,7 +837,7 @@ const handlePrimaryClick = (slide) => {
         return
     }
     if (slide.primary === 'Khám phá ngay') {
-        window.location.href = 'http://localhost:5174'
+        router.push('/san-pham')
     } else {
         router.push('/san-pham')
     }

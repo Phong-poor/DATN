@@ -38,7 +38,7 @@
 
                             <!-- BUTTON -->
                             <div style="text-align:center;margin:30px 0;">
-                                <a href="http://localhost:5173/login"
+                                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/login"
                                    style="background:linear-gradient(135deg,#4f46e5,#7c3aed);
                                           color:#fff;
                                           padding:12px 25px;

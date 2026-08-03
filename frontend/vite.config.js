@@ -1,4 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Inspector from 'vite-plugin-vue-inspector'
@@ -9,11 +11,24 @@ const root = fileURLToPath(new URL('.', import.meta.url))
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, root, '')
   const backendUrl = env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
+  const publicUrl = String(env.VITE_PUBLIC_URL || 'http://localhost:5173').replace(/\/+$/, '')
+
+  const hostingMetadataPlugin = {
+    name: 'hosting-metadata',
+    closeBundle() {
+      for (const file of ['robots.txt', 'sitemap.xml']) {
+        const outputPath = resolve(root, 'dist', file)
+        const content = readFileSync(outputPath, 'utf8').replaceAll('__SITE_URL__', publicUrl)
+        writeFileSync(outputPath, content)
+      }
+    },
+  }
 
   return {
     root,
     plugins: [
       vue(),
+      hostingMetadataPlugin,
       command === 'serve'
         ? Inspector({
             launchEditor: 'code',
