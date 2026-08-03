@@ -78,6 +78,7 @@ class BienTheController extends Controller
 
         Cache::forget('bienthe_all');
         Cache::forget("bienthe_sp_{$request->id_sanpham}");
+        Cache::increment('sanpham_cache_bust');
 
         return response()->json([
             'message' => 'Thêm biến thể thành công.',
@@ -126,6 +127,8 @@ class BienTheController extends Controller
         Cache::forget('bienthe_all');
         Cache::forget("bienthe_sp_{$request->id_sanpham}");
         Cache::forget("bienthe_{$id}");
+        Cache::forget("sanpham_show_{$request->id_sanpham}");
+        Cache::increment('sanpham_cache_bust');
 
         return response()->json([
             'message' => 'Cập nhật biến thể thành công.',

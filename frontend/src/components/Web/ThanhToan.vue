@@ -1275,12 +1275,10 @@ const confirmOrder = async () => {
         </form>
       </div>
     </div>
-  </div>
   </Teleport>
 
   <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
-
-
+  </div>
 </template>
 
 <style scoped>
