@@ -229,7 +229,6 @@ async function fetchPromotionsData() {
     } else if (promoResponse.data && Array.isArray(promoResponse.data)) {
       backendPromotions.value = promoResponse.data
     }
-
     // 2. Load products from API
     const prodResponse = await api.get('/sanpham')
     let rawProducts = []

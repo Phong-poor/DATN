@@ -52,32 +52,45 @@
         </div>
       </transition>
 
-      <!-- STATS ROW -->
-      <div class="stats-row">
-        <div class="stat-card stat-active">
-          <p class="stat-label">ĐANG HOẠT ĐỘNG</p>
-          <h2 class="stat-value">{{ activeCount }}</h2>
-          <p class="stat-sub green">↑ Tổng khuyến mãi: {{ promos.length }}</p>
-        </div>
-        <div class="stat-card stat-budget">
-          <p class="stat-label">TỔNG NGÂN SÁCH SALE</p>
-          <h2 class="stat-value">2.4B <span class="stat-unit">VNĐ</span></h2>
-          <div class="stat-bar">
-            <div class="stat-bar-fill" style="width:72%"></div>
-          </div>
-        </div>
-        <div class="stat-card stat-card-gradient">
-          <p class="stat-card-tag">Chiến dịch tiếp theo</p>
-          <p class="stat-card-desc">Tết Nguyên Đán 2026 sẽ bắt đầu sau <strong>14 ngày nữa</strong>.</p>
-          <button class="stat-card-btn">Xem chi tiết</button>
+      <!-- TABS -->
+      <div class="page-tabs-wrap">
+        <div class="page-tabs">
+          <button class="page-tab" :class="{ active: currentTab === 'promotions' }" @click="currentTab = 'promotions'">Danh sách khuyến mãi</button>
+          <button class="page-tab" :class="{ active: currentTab === 'events' }" @click="currentTab = 'events'">Chiến dịch và sự kiện</button>
         </div>
       </div>
+
+    <!-- STATS ROW -->
+    <div class="stats-row">
+      <div class="stat-card stat-active">
+        <p class="stat-label">ĐANG HOẠT ĐỘNG</p>
+        <h2 class="stat-value">{{ activeCount }}</h2>
+        <p class="stat-sub green">↑ Tổng khuyến mãi: {{ promos.length }}</p>
+      </div>
+      <div class="stat-card stat-budget">
+        <p class="stat-label">TỔNG NGÂN SÁCH SALE</p>
+        <h2 class="stat-value">2.4B <span class="stat-unit">VNĐ</span></h2>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:72%"></div></div>
+      </div>
+      <div class="stat-card stat-card-gradient">
+        <p class="stat-card-tag">Chiến dịch tiếp theo</p>
+        <template v-if="nextHoliday">
+          <p class="stat-card-desc">
+            <strong>{{ nextHoliday.name }}</strong> sẽ bắt đầu sau
+            <strong>{{ nextHoliday.daysLeft === 0 ? 'hôm nay' : nextHoliday.daysLeft + ' ngày nữa' }}</strong>.
+          </p>
+          <p class="stat-card-subdesc">Mã: <span class="stat-code-badge">{{ nextHoliday.code }}</span></p>
+        </template>
+        <p class="stat-card-desc" v-else>Không có sự kiện sắp tới.</p>
+        <button class="stat-card-btn" @click="goToEvents">Xem chi tiết</button>
+      </div>
+    </div>
 
       <!-- LIST HEADER -->
       <div class="list-header">
         <div>
-          <h2 class="list-title">Danh sách Khuyến mãi</h2>
-          <p class="list-sub">Quản lý các chương trình ưu đãi và giảm giá toàn hệ thống.</p>
+          <h2 class="list-title">{{ currentTab === 'promotions' ? 'Danh sách Khuyến mãi' : 'Chiến dịch và sự kiện' }}</h2>
+          <p class="list-sub">{{ currentTab === 'promotions' ? 'Quản lý các chương trình ưu đãi và giảm giá toàn hệ thống.' : 'Quản lý các sự kiện lặp lại hằng năm tự động gửi mã khuyến mãi.' }}</p>
         </div>
         <div class="list-actions">
           <button class="btn-filter">
@@ -88,7 +101,7 @@
             </svg>
             Lọc
           </button>
-          <button class="btn-primary" @click="openCreate">
+          <button class="btn-primary" @click="openCreate" v-if="currentTab === 'promotions'">
             <svg viewBox="0 0 24 24" fill="none">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -98,12 +111,12 @@
         </div>
       </div>
 
-      <BulkDeleteToolbar :selected-count="selectedIds.length" :total-count="filteredPromos.length" label="khuyến mãi"
+      <BulkDeleteToolbar v-if="currentTab === 'promotions'" :selected-count="selectedIds.length" :total-count="filteredPromos.length" label="khuyến mãi"
         :loading="isBulkDeleting" @clear="clearSelection" @delete-selected="removeSelected"
         @delete-all="removeAllFiltered" />
 
       <!-- TABLE -->
-      <div class="table-card">
+      <div class="table-card" v-if="currentTab === 'promotions'">
         <table>
           <thead>
             <tr>
@@ -152,8 +165,8 @@
             <td>
               <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
             </td>
-            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngaybatdau || '—') }}</td>
-            <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.ngayketthuc || '—') }}</td>
+            <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngaybatdau || '—') }}</td>
+            <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngayketthuc || '—') }}</td>
             <td>
               <span :class="['status-badge', p.congkhai == 1 ? 'status-running' : 'status-open']">
                 {{ p.congkhai == 1 ? 'Công khai' : 'Có điều kiện' }}
@@ -179,60 +192,73 @@
       </table>
     </div>
 
-      <PhanTrangAdmin
-        v-model:currentPage="currentPage"
-        :total-pages="totalPages"
-        :total-items="filteredPromos.length"
-        :page-size="pageSize"
-        item-label="khuyến mãi"
-      />
-
-      <!-- BOTTOM CARDS -->
-      <div class="bottom-row">
-        <div class="bottom-card">
-          <div class="bottom-card-header">
-            <h3>Chiến dịch hiệu quả nhất</h3>
-            <button class="icon-btn-sm"><svg viewBox="0 0 24 24" fill="none">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg></button>
-          </div>
-          <div class="rank-list">
-            <div class="rank-item" v-for="(r, i) in topPromos" :key="r.id">
-              <span class="rank-num">#{{ i + 1 }}</span>
-              <div class="rank-bar-wrap">
-                <p class="rank-name">{{ r.ten }}</p>
-                <div class="rank-bar">
-                  <div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#4f46e5' : '#e2e8f0' }">
-                  </div>
-                </div>
-              </div>
-              <span class="rank-roi" :style="{ color: i === 0 ? '#2563eb' : '#3b82f6' }">+{{ r.roi }}% ROI</span>
-            </div>
-          </div>
+      <div class="pagination-row" v-if="currentTab === 'promotions'">
+        <span class="page-info">Hiển thị 1-{{ filteredPromos.length }} trên <strong>{{ promos.length }}</strong> khuyến mãi</span>
+        <div class="pagination">
+          <button class="page-btn">‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">›</button>
         </div>
+      </div>
 
-        <div class="bottom-card bottom-card-gradient">
-          <button class="dist-add-btn">
-            <svg viewBox="0 0 24 24" fill="none">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-          <p class="dist-label">HỆ THỐNG PHÂN PHỐI</p>
-          <h2 class="dist-title">Phủ sóng 100% các kênh bán lẻ</h2>
-          <div class="dist-stats">
-            <div class="dist-stat">
-              <p class="dist-num">85%</p>
-              <p class="dist-sub">TRỰC TUYẾN</p>
+      <!-- HOLIDAY LIST (EVENTS TAB) -->
+      <div class="holiday-list-wrapper" v-if="currentTab === 'events'">
+        <div class="holiday-list">
+          <div class="holiday-item" v-for="(h, idx) in upcomingHolidays" :key="idx" :class="{'next-holiday': idx === 0}">
+            <div class="holiday-date-box" :class="{'multi-day': h.endDate}">
+              <template v-if="h.endDate">
+                <span class="holiday-day-range">{{ h.date.getDate() }}/{{ h.date.getMonth() + 1 }}</span>
+                <span class="holiday-range-sep">—</span>
+                <span class="holiday-day-range">{{ h.endDate.getDate() }}/{{ h.endDate.getMonth() + 1 }}</span>
+              </template>
+              <template v-else>
+                <span class="holiday-day">{{ h.date.getDate() }}</span>
+                <span class="holiday-month">Tháng {{ h.date.getMonth() + 1 }}</span>
+              </template>
             </div>
-            <div class="dist-divider"></div>
-            <div class="dist-stat">
-              <p class="dist-num">15%</p>
-              <p class="dist-sub">CỬA HÀNG</p>
+            <div class="holiday-info">
+              <p class="holiday-name">{{ h.name }}</p>
+              <div class="holiday-meta" style="display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: #64748b;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  {{ h.formattedDate }}
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px; color: #059669; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 6px; border: 1px dashed #86efac;">
+                  Tên KM: {{ h.promoName }}
+                </span>
+                <span style="display: flex; align-items: center; gap: 4px; color: #2563eb; font-weight: 700; background: #eff6ff; padding: 2px 8px; border-radius: 6px; border: 1px dashed #bfdbfe;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  Mã KM: {{ h.code }}
+                </span>
+              </div>
+            </div>
+            <div class="holiday-countdown">
+              <span v-if="h.daysLeft === 0">Hôm nay</span>
+              <span v-else>Còn {{ h.daysLeft }} ngày</span>
             </div>
           </div>
         </div>
       </div>
+
+    <!-- BOTTOM CARDS -->
+    <div class="bottom-row">
+      <div class="bottom-card">
+        <div class="bottom-card-header">
+          <h3>Chiến dịch hiệu quả nhất</h3>
+          <button class="icon-btn-sm"><svg viewBox="0 0 24 24" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+        </div>
+        <div class="rank-list">
+          <div class="rank-item" v-for="(r, i) in topPromos" :key="r.id">
+            <span class="rank-num">#{{ i + 1 }}</span>
+            <div class="rank-bar-wrap">
+              <p class="rank-name">{{ r.ten }}</p>
+              <div class="rank-bar"><div class="rank-fill" :style="{ width: r.roi + '%', background: i === 0 ? '#4f46e5' : '#e2e8f0' }"></div></div>
+            </div>
+            <span class="rank-roi" :style="{ color: i === 0 ? '#2563eb' : '#3b82f6' }">+{{ r.roi }}% ROI</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     </template><!-- end list view -->
 
@@ -254,16 +280,17 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Loại Voucher <span class="req">*</span></label>
-            <select class="form-input" v-model="form.danhmuc" @change="onCategoryChange">
+            <select class="form-input" v-model="form.danhmuc" @change="onCategoryChange" :disabled="isEdit">
               <option value="product">Giảm giá sản phẩm</option>
               <option value="birthday">Mã Sinh nhật</option>
               <option value="freeship">Miễn phí vận chuyển (Freeship)</option>
+              <option value="event">Sự kiện & Ngày lễ</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Tên Voucher <span class="req">*</span></label>
             <input class="form-input" :class="{ err: errors.ten }" v-model="form.ten" placeholder="VD: Tết 2026 Sale"
-              @input="autoCode" />
+              @input="autoCode" :readonly="form.danhmuc === 'event'" />
             <p class="err-msg" v-if="errors.ten">{{ errors.ten }}</p>
           </div>
         </div>
@@ -272,15 +299,17 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Mã Voucher <span class="req">*</span></label>
+          <label class="form-label">{{ form.danhmuc === 'event' ? 'Ngày sự kiện (Code cố định) *' : 'Mã Voucher *' }}</label>
           <div class="code-input-row">
-            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" placeholder="VD: TET-2026"
-              style="text-transform:uppercase" :readonly="form.danhmuc === 'birthday'" />
+            <input class="form-input mono" :class="{ err: errors.code }" v-model="form.code" :placeholder="form.danhmuc === 'event' ? 'VD: 02-09' : 'VD: TET-2026'"
+              style="text-transform:uppercase" :readonly="form.danhmuc === 'birthday' || form.danhmuc === 'event'" />
             <button type="button" class="btn-gen-code" @click="generateRandomCode"
+              v-if="form.danhmuc !== 'event'"
               :disabled="form.danhmuc === 'birthday'">Tạo ngẫu nhiên</button>
           </div>
           <p class="err-msg" v-if="errors.code">{{ errors.code }}</p>
-          <p class="form-hint">Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
+          <p class="form-hint" v-if="form.danhmuc === 'event'">Tên và Mã sự kiện là cố định. Mã định dạng ngày-tháng (VD: 20-11, 02-09) sẽ tự động kích hoạt hàng năm.</p>
+          <p class="form-hint" v-else>Mã sẽ tự động sinh khi bạn gõ tên. Bạn cũng có thể bấm nút Tạo ngẫu nhiên.</p>
         </div>
 
         <div class="form-row" v-if="form.danhmuc !== 'freeship'">
@@ -289,17 +318,17 @@
             <select class="form-input" v-model="form.loai" :disabled="form.danhmuc === 'birthday'">
               <option value="percent">Giảm %</option>
               <option value="fixed">Giảm theo giá tiền</option>
-              <option value="maxprice">Giảm % tối đa</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Giá trị <span class="req">*</span></label>
             <div class="input-suffix-wrap">
-              <input class="form-input" :class="{ err: errors.giatri }" type="text"
+              <input class="form-input" :class="{ err: errors.giatri }" 
+                type="text" 
                 :value="form.loai === 'percent' || form.loai === 'maxprice' ? form.giatri : formatVND(form.giatri)"
                 @input="form.giatri = (form.loai === 'percent' || form.loai === 'maxprice') ? $event.target.value : parseVND($event.target.value)"
                 placeholder="50" />
-              <span class="input-suffix">{{ form.loai === 'percent' || form.loai === 'maxprice' ? '%' : 'VNĐ' }}</span>
+              <span class="input-suffix">{{ form.loai === 'percent' ? '%' : 'VNĐ' }}</span>
             </div>
             <p class="err-msg" v-if="errors.giatri">{{ errors.giatri }}</p>
           </div>
@@ -384,7 +413,7 @@
         </div>
 
         <!-- Ngày bắt đầu & Kết thúc -->
-        <div class="form-row" v-if="form.danhmuc !== 'birthday'">
+        <div class="form-row" v-if="form.danhmuc !== 'birthday' && form.danhmuc !== 'event'">
           <div class="form-group">
             <label class="form-label">Ngày bắt đầu</label>
             <input class="form-input" type="date" v-model="form.ngaybatdau" />
@@ -398,6 +427,12 @@
           <div class="birthday-status-info">
             <span class="birthday-icon">BD</span>
             <span>Mã sinh nhật sẽ <strong>luôn mở</strong> và không có thời hạn.</span>
+          </div>
+        </div>
+        <div class="form-group" v-if="form.danhmuc === 'event'">
+          <div class="birthday-status-info" style="background: #e0f2fe; border-color: #bae6fd;">
+            <span class="birthday-icon" style="background: #3b82f6;">EV</span>
+            <span>Mã sự kiện sẽ tự động <strong>kích hoạt lặp lại hàng năm</strong> dựa vào mã code (ví dụ: 02-09).</span>
           </div>
         </div>
 
@@ -449,13 +484,105 @@ import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const searchQuery = ref('')
 const currentView = ref('list') // 'list' | 'promo-form'
+const currentTab = ref('promotions') // 'promotions' | 'events'
 const isEdit = ref(false)
 const editId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 
-const currentPage = ref(1)
-const pageSize = ref(7)
+const showHolidayModal = ref(false)
+
+const upcomingHolidays = computed(() => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const currentYear = today.getFullYear()
+  const nextYear = currentYear + 1
+  
+  // endDate = ngày cuối nếu sự kiện kéo dài nhiều ngày
+  const allHolidays = [
+    { name: 'Tết Dương Lịch', month: 1, day: 1, type: 'solar' },
+    { name: 'Quốc tế Phụ nữ', month: 3, day: 8, type: 'solar' },
+    // 30/4 và 1/5 gộp thành 1 kỳ nghỉ 2 ngày
+    { name: 'Giải phóng miền Nam & Quốc tế Lao động', month: 4, day: 30, endMonth: 5, endDay: 1, type: 'solar' },
+    { name: 'Quốc tế Thiếu nhi', month: 6, day: 1, type: 'solar' },
+    { name: 'Quốc khánh', month: 9, day: 2, type: 'solar' },
+    { name: 'Phụ nữ Việt Nam', month: 10, day: 20, type: 'solar' },
+    { name: 'Nhà giáo Việt Nam', month: 11, day: 20, type: 'solar' },
+    { name: 'Lễ Giáng Sinh', month: 12, day: 25, type: 'solar' },
+    // Tết Nguyên Đán kéo dài nhiều ngày (nghỉ chính thức ~5 ngày)
+    { name: 'Tết Nguyên Đán', date: '2026-02-17', endDate: '2026-02-21', type: 'fixed' },
+    { name: 'Giỗ Tổ Hùng Vương', date: '2026-04-26', type: 'fixed' },
+    { name: 'Tết Trung Thu', date: '2026-09-25', type: 'fixed' },
+    { name: 'Tết Nguyên Đán', date: '2027-02-06', endDate: '2027-02-10', type: 'fixed' },
+    { name: 'Giỗ Tổ Hùng Vương', date: '2027-04-16', type: 'fixed' },
+    { name: 'Tết Trung Thu', date: '2027-09-15', type: 'fixed' },
+  ]
+
+  const fmtDate = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return { dd, mm, yyyy, str: `${dd}/${mm}/${yyyy}` }
+  }
+
+  let upcoming = []
+  
+  allHolidays.forEach(h => {
+    if (h.type === 'solar') {
+      for (const yr of [currentYear, nextYear]) {
+        const d = new Date(yr, h.month - 1, h.day)
+        if (d < today && yr === currentYear) continue
+        const endD = h.endMonth ? new Date(yr, h.endMonth - 1, h.endDay) : null
+        upcoming.push({ name: `${h.name} ${yr}`, date: d, endDate: endD })
+      }
+    } else {
+      const d = new Date(h.date)
+      if (d >= today) {
+        const endD = h.endDate ? new Date(h.endDate) : null
+        upcoming.push({ name: `${h.name} ${d.getFullYear()}`, date: d, endDate: endD })
+      }
+    }
+  })
+
+  upcoming.sort((a, b) => a.date - b.date)
+  
+  return upcoming.slice(0, 12).map(u => {
+    const diffTime = u.date - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    const start = fmtDate(u.date)
+    const formattedDate = u.endDate
+      ? `${start.str} — ${fmtDate(u.endDate).str}`
+      : start.str
+
+    const normalizeName = u.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/gi, 'D').replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+
+    return { 
+      ...u, 
+      daysLeft: diffDays < 0 ? 0 : diffDays,
+      formattedDate,
+      promoName: normalizeName,
+      code: `${start.dd}${start.mm}${start.yyyy}`
+    }
+  })
+})
+
+const nextHoliday = computed(() => upcomingHolidays.value.length > 0 ? upcomingHolidays.value[0] : null)
+
+function goToEvents() {
+  currentTab.value = 'events'
+  // Scroll xuống khu vực holiday list sau khi Vue render
+  setTimeout(() => {
+    const el = document.querySelector('.holiday-list-wrapper')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Highlight sự kiện đầu tiên (next-holiday)
+    const firstItem = document.querySelector('.holiday-item.next-holiday')
+    if (firstItem) {
+      firstItem.classList.add('holiday-highlight-pulse')
+      setTimeout(() => firstItem.classList.remove('holiday-highlight-pulse'), 2000)
+    }
+  }, 80)
+}
 
 // ── Toast ──────────────────────────────────────
 const toast = ref({ show: false, msg: '', type: 'success' })
@@ -501,6 +628,7 @@ const fetchPromos = async () => {
     const now = new Date()
     promos.value = res.data.map(p => {
       let actualStatus = p.trangthai
+      
       if (actualStatus === 'running' && p.ngayketthuc) {
         const endDate = new Date(p.ngayketthuc)
         endDate.setHours(23, 59, 59, 999)
@@ -543,9 +671,16 @@ onBeforeUnmount(() => {
 
 // ================= COMPUTED =================
 const filteredPromos = computed(() => {
-  if (!searchQuery.value) return promos.value
+  let list = promos.value
+  if (currentTab.value === 'promotions') {
+    list = list.filter(p => p.danhmuc !== 'event')
+  } else {
+    list = list.filter(p => p.danhmuc === 'event')
+  }
+  
+  if (!searchQuery.value) return list
   const q = searchQuery.value.toLowerCase()
-  return promos.value.filter(p =>
+  return list.filter(p =>
     p.ten.toLowerCase().includes(q) ||
     p.code.toLowerCase().includes(q)
   )
@@ -602,7 +737,7 @@ function categoryLabel(category) {
 }
 
 function autoCode() {
-  if (!isEdit.value && form.value.danhmuc !== 'birthday') {
+  if (!isEdit.value && form.value.danhmuc !== 'birthday' && form.value.danhmuc !== 'event') {
     const base = form.value.ten
       .toUpperCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -637,9 +772,11 @@ function onCategoryChange() {
     form.value.trangthai = 'open'
     form.value.ngaybatdau = ''
     form.value.ngayketthuc = ''
-    form.value.congkhai = 0
-    form.value.dieu_kien_tang = ''
-    form.value.so_luong_phat = ''
+  } else if (form.value.danhmuc === 'event') {
+    form.value.trangthai = 'open'
+    form.value.ngaybatdau = ''
+    form.value.ngayketthuc = ''
+    form.value.code = ''
   } else {
     form.value.trangthai = 'running'
   }
@@ -648,15 +785,14 @@ function onCategoryChange() {
 function discountLabel(f) {
   if (f.loai === 'percent') return `Giảm ${f.giatri}%`
   if (f.loai === 'fixed') return `Cố định ${f.giatri}đ`
-  if (f.loai === 'maxprice') return `giảm theo giá tiền  ${f.giatri}%`
   if (f.loai === 'freeship') return `Freeship ${f.giatri}đ`
   return ''
 }
 
 function tagColors(type) {
   return {
-    percent: { tagBg: '#fef3c7', tagColor: '#92400e' },
-    fixed: { tagBg: '#dbeafe', tagColor: '#1e40af' },
+    percent:  { tagBg: '#fef3c7', tagColor: '#92400e' },
+    fixed:    { tagBg: '#dbeafe', tagColor: '#1e40af' },
     maxprice: { tagBg: '#fef9c3', tagColor: '#854d0e' },
     freeship: { tagBg: '#dcfce7', tagColor: '#166534' },
   }[type] || {}
@@ -698,6 +834,29 @@ function openCreate() {
   isEdit.value = false
   editId.value = null
   form.value = defaultForm()
+  if (currentTab.value === 'events') {
+    form.value.danhmuc = 'event'
+    form.value.trangthai = 'open'
+  }
+  errors.value = {}
+  currentView.value = 'promo-form'
+}
+
+function openCreateFromHoliday(h) {
+  isEdit.value = false
+  editId.value = null
+  form.value = defaultForm()
+  form.value.danhmuc = 'event'
+  form.value.trangthai = 'open'
+  
+  // Tên sự kiện: Loại bỏ năm ở cuối (VD: "Quốc khánh 2026" -> "Quốc khánh")
+  form.value.ten = h.name.replace(/\s\d{4}$/, '')
+  
+  // Mã sự kiện: Ngày sự kiện (DD-MM)
+  const dd = String(h.date.getDate()).padStart(2, '0')
+  const mm = String(h.date.getMonth() + 1).padStart(2, '0')
+  form.value.code = `${dd}-${mm}`
+  
   errors.value = {}
   currentView.value = 'promo-form'
 }
@@ -738,17 +897,18 @@ async function savePromo() {
 
   saving.value = true
 
-  // Birthday luôn mở, freeship/product dùng ngày
+  // Birthday và event luôn mở, freeship/product dùng ngày
   const isBirthday = form.value.danhmuc === 'birthday'
+  const isEvent = form.value.danhmuc === 'event'
   const data = {
     ten: form.value.ten,
     danhmuc: form.value.danhmuc,
     code: form.value.code.toUpperCase(),
     loai: form.value.loai,
     giatri: form.value.giatri,
-    ngaybatdau: isBirthday ? null : (form.value.ngaybatdau || null),
-    ngayketthuc: isBirthday ? null : (form.value.ngayketthuc || null),
-    trangthai: isBirthday ? 'open' : 'running',
+    ngaybatdau: (isBirthday || isEvent) ? null : (form.value.ngaybatdau || null),
+    ngayketthuc: (isBirthday || isEvent) ? null : (form.value.ngayketthuc || null),
+    trangthai: (isBirthday || isEvent) ? 'open' : 'running',
     mota: form.value.mota,
     loai_dieu_kien: form.value.danhmuc === 'product' ? (form.value.loai_dieu_kien || '>=') : null,
     dieu_kien: (form.value.danhmuc === 'product' || form.value.danhmuc === 'freeship') ? (form.value.dieu_kien || null) : null,
@@ -811,6 +971,48 @@ async function deletePromo(id) {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* TABS */
+.page-tabs-wrap {
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.page-tabs {
+  display: flex;
+  gap: 30px;
+}
+
+.page-tab {
+  background: none;
+  border: none;
+  padding: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.page-tab:hover {
+  color: #1e293b;
+}
+
+.page-tab.active {
+  color: #2563eb;
+}
+
+.page-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #2563eb;
+  border-radius: 2px 2px 0 0;
 }
 
 /* TOPBAR */
@@ -1173,6 +1375,25 @@ async function deletePromo(id) {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.stat-card-subdesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.stat-code-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
 /* LIST HEADER */
 .list-header {
   display: flex;
@@ -1481,181 +1702,169 @@ td {
 }
 
 /* BOTTOM */
-.bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
+.bottom-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.bottom-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.bottom-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.bottom-card-header h3 { font-size: 14px; font-weight: 700; color: #1e293b; }
+.icon-btn-sm { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-btn-sm svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 2; fill: none; }
+.rank-list { display: flex; flex-direction: column; gap: 12px; }
+.rank-item { display: flex; align-items: center; gap: 10px; }
+.rank-num { font-size: 12px; font-weight: 800; color: #2563eb; width: 24px; flex-shrink: 0; }
+.rank-bar-wrap { flex: 1; }
+.rank-name { font-size: 12.5px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.rank-bar { height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+.rank-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+.rank-roi { font-size: 12px; font-weight: 700; white-space: nowrap; }
 
-.bottom-card {
+/* ═══ HOLIDAY LIST ═══ */
+.holiday-list-wrapper {
   background: #fff;
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
   border: 1px solid #e8edf5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.bottom-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.bottom-card-header h3 {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.icon-btn-sm {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.icon-btn-sm svg {
-  width: 14px;
-  height: 14px;
-  stroke: #64748b;
-  stroke-width: 2;
-  fill: none;
-}
-
-.rank-list {
+.holiday-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-.rank-item {
+.holiday-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
 }
 
-.rank-num {
-  font-size: 12px;
-  font-weight: 800;
-  color: #2563eb;
-  width: 24px;
+.holiday-item:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.next-holiday {
+  background: linear-gradient(to right, #eff6ff, #fff);
+  border-color: #bfdbfe;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+@keyframes holiday-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  50%  { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.holiday-highlight-pulse {
+  animation: holiday-pulse 0.6s ease 3;
+  border-color: #2563eb !important;
+  background: linear-gradient(to right, #dbeafe, #eff6ff) !important;
+}
+
+.holiday-date-box {
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   flex-shrink: 0;
 }
 
-.rank-bar-wrap {
+.next-holiday .holiday-date-box {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.holiday-day {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  color: #1e293b;
+}
+
+.next-holiday .holiday-day {
+  color: #fff;
+}
+
+.holiday-month {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.next-holiday .holiday-month {
+  color: #93c5fd;
+}
+
+.multi-day {
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+}
+
+.holiday-day-range {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.holiday-range-sep {
+  font-size: 10px;
+  color: #94a3b8;
+  margin: 2px 0;
+}
+
+.holiday-info {
   flex: 1;
 }
 
-.rank-name {
-  font-size: 12.5px;
-  font-weight: 600;
+.holiday-name {
+  font-size: 15px;
+  font-weight: 700;
   color: #1e293b;
   margin-bottom: 4px;
 }
 
-.rank-bar {
-  height: 4px;
-  background: #f1f5f9;
-  border-radius: 99px;
-  overflow: hidden;
+.next-holiday .holiday-name {
+  color: #2563eb;
+  font-size: 16px;
 }
 
-.rank-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.6s ease;
+.holiday-full-date {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.rank-roi {
-  font-size: 12px;
+.holiday-countdown {
+  padding: 6px 12px;
+  background: #e2e8f0;
+  color: #475569;
   font-weight: 700;
-  white-space: nowrap;
+  font-size: 12.5px;
+  border-radius: 8px;
 }
 
-.bottom-card-gradient {
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 60%, #93c5fd 100%);
-  border: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
+.next-holiday .holiday-countdown {
+  background: #fef08a;
+  color: #854d0e;
 }
 
-.dist-add-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.dist-add-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: #fff;
-  stroke-width: 2.5;
-  fill: none;
-}
-
-.dist-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.dist-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1.3;
-  margin: 8px 0 16px;
-}
-
-.dist-stats {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.dist-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dist-num {
-  font-size: 28px;
-  font-weight: 800;
-  color: #fff;
-}
-
-.dist-sub {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.dist-divider {
-  width: 1px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.25);
+.holiday-actions {
+  margin-left: 10px;
 }
 
 /* ═══ MODAL ═══ */
@@ -2269,28 +2478,34 @@ select.form-input {
   margin-top: 8px;
 }
 
-.category-badge {
-  display: inline-flex;
-  margin-top: 5px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.category-birthday { background: #fce7f3; color: #be185d; }
-.category-product { background: #dbeafe; color: #1d4ed8; }
-.category-freeship { background: #dcfce7; color: #15803d; }
-
-.birthday-private-note {
-  padding: 13px 15px;
-  border: 1px solid #f9a8d4;
-  border-radius: 12px;
-  background: #fdf2f8;
-  color: #9d174d;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-}
+/* HOLIDAY MODAL */
+.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.holiday-modal { background: #fff; width: 440px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; max-height: 80vh; }
+.holiday-header { padding: 18px 22px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+.holiday-header h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+.close-btn { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; transition: color 0.2s; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+.close-btn:hover { color: #ef4444; }
+.holiday-body { padding: 0; overflow-y: auto; flex: 1; }
+.holiday-list { display: flex; flex-direction: column; }
+.holiday-item { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
+.holiday-item:hover { background: #f8fafc; }
+.holiday-item:last-child { border-bottom: none; }
+.next-holiday { background: #f0fdf4; }
+.next-holiday:hover { background: #dcfce7; }
+.holiday-date-box { background: #e2e8f0; border-radius: 10px; min-width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #475569; }
+.holiday-date-box.multi-day { min-width: 80px; padding: 0 6px; }
+.next-holiday .holiday-date-box { background: #22c55e; color: #fff; }
+.holiday-day { font-size: 20px; font-weight: 800; line-height: 1; margin-bottom: 2px; }
+.holiday-month { font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.holiday-day-range { font-size: 12px; font-weight: 800; line-height: 1.2; }
+.holiday-range-sep { font-size: 10px; opacity: 0.7; line-height: 1; }
+.holiday-info { flex: 1; }
+.holiday-name { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0; }
+.holiday-full-date { font-size: 12px; color: #64748b; margin: 0; }
+.holiday-countdown { font-size: 12px; font-weight: 600; color: #3b82f6; background: #eff6ff; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.next-holiday .holiday-countdown { background: #16a34a; color: #fff; }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active .holiday-modal { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUp { from { transform: translateY(20px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 </style>

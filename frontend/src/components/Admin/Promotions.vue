@@ -183,26 +183,8 @@
           </div>
         </div>
       </div>
-
-      <div class="bottom-card bottom-card-gradient">
-        <button class="dist-add-btn">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <p class="dist-label">HỆ THỐNG PHÂN PHỐI</p>
-        <h2 class="dist-title">Phủ sóng 100% các kênh bán lẻ</h2>
-        <div class="dist-stats">
-          <div class="dist-stat">
-            <p class="dist-num">85%</p>
-            <p class="dist-sub">TRỰC TUYẾN</p>
-          </div>
-          <div class="dist-divider"></div>
-          <div class="dist-stat">
-            <p class="dist-num">15%</p>
-            <p class="dist-sub">CỬA HÀNG</p>
-          </div>
-        </div>
-      </div>
     </div>
+
 
     </template><!-- end list view -->
     
@@ -857,7 +839,7 @@ td { padding: 14px 18px; vertical-align: middle; }
 .page-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
 
 /* BOTTOM */
-.bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.bottom-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .bottom-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8edf5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 .bottom-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .bottom-card-header h3 { font-size: 14px; font-weight: 700; color: #1e293b; }

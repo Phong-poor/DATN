@@ -34,12 +34,25 @@ class PromotionController extends Controller
     public function availableGifts(Request $request)
     {
         $userId = $request->user()->id;
-        $claimedIds = UserVoucher::where('id_user', $userId)->pluck('id_voucher');
+        // Chỉ ẩn các mã người dùng ĐÃ có và CHƯA sử dụng (trang_thai = 0)
+        // Nếu đã dùng hoặc hết hạn thì vẫn cho phép nhận lại khi sự kiện quay vòng
+        $claimedIds = UserVoucher::where('id_user', $userId)
+            ->where('trang_thai', 0)
+            ->pluck('id_voucher');
+        $today = now()->format('d-m');
 
-        $available = Promotion::whereIn('trangthai', ['running', 'open'])
-            ->where('congkhai', 1) // Chỉ trả về voucher công khai
-            ->where('danhmuc', '!=', 'birthday') // Không trả về mã sinh nhật
+        $available = Promotion::where('congkhai', 1)
+            ->where('danhmuc', '!=', 'birthday')
             ->whereNotIn('id', $claimedIds)
+            ->where(function($q) use ($today) {
+                $q->where(function($sub) {
+                    $sub->whereIn('trangthai', ['running', 'open'])
+                        ->where('danhmuc', '!=', 'event');
+                })->orWhere(function($sub) use ($today) {
+                    $sub->where('danhmuc', 'event')
+                        ->where('code', $today);
+                });
+            })
             ->orderBy('id', 'desc')
             ->get();
 
@@ -53,13 +66,19 @@ class PromotionController extends Controller
             // Admin quản lý chung nhưng vẫn nhìn thấy rõ các chương trình sinh nhật.
             return response()->json(Promotion::orderBy('id', 'desc')->get());
         }
-
-        // Mã sinh nhật là quyền lợi riêng được cấp qua email, tuyệt đối không công khai.
-        return response()->json(
-            Promotion::where('danhmuc', '!=', 'birthday')
-                ->where('congkhai', 1)
-                ->orderBy('id', 'desc')
-                ->get()
+        
+        $today = now()->format('d-m');
+        // Public chỉ thấy is_public = 1
+        return response()->json($query->where('congkhai', 1)
+            ->where(function($q) use ($today) {
+                $q->where(function($sub) {
+                    $sub->whereIn('trangthai', ['running', 'open'])
+                        ->where('danhmuc', '!=', 'event');
+                })->orWhere(function($sub) use ($today) {
+                    $sub->where('danhmuc', 'event')
+                        ->where('code', $today);
+                });
+            })->get()
         );
     }
 
@@ -71,15 +90,29 @@ class PromotionController extends Controller
             'subtotal' => 'required|numeric|min:0',
         ]);
 
-        $promo = Promotion::where('code', strtoupper($request->code))
-            ->whereIn('trangthai', ['running', 'open'])
-            ->first();
+        $promo = Promotion::where('code', strtoupper($request->code))->first();
 
         if (! $promo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Mã giảm giá không tồn tại hoặc đã hết hiệu lực.',
+                'message' => 'Mã giảm giá không tồn tại.'
             ], 422);
+        }
+
+        if ($promo->danhmuc === 'event') {
+            if ($promo->code !== now()->format('d-m')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mã giảm giá sự kiện này chưa đến ngày sử dụng hoặc đã hết hạn.'
+                ], 422);
+            }
+        } else {
+            if (!in_array($promo->trangthai, ['running', 'open'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mã giảm giá đã hết hiệu lực.'
+                ], 422);
+            }
         }
 
         if ($promo->danhmuc === 'birthday') {
@@ -107,7 +140,7 @@ class PromotionController extends Controller
         }
 
         // Kiểm tra ngày hết hạn
-        if ($promo->ngayketthuc && now()->gt($promo->ngayketthuc)) {
+        if ($promo->danhmuc !== 'event' && $promo->ngayketthuc && now()->gt($promo->ngayketthuc)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Mã giảm giá đã hết hạn.',
@@ -115,7 +148,7 @@ class PromotionController extends Controller
         }
 
         // Kiểm tra ngày bắt đầu
-        if ($promo->ngaybatdau && now()->lt($promo->ngaybatdau)) {
+        if ($promo->danhmuc !== 'event' && $promo->ngaybatdau && now()->lt($promo->ngaybatdau)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Mã giảm giá chưa có hiệu lực.',
@@ -183,12 +216,16 @@ class PromotionController extends Controller
         }
 
         // Check date
-        if ($promo->ngayketthuc && Carbon::parse($promo->ngayketthuc)->isPast()) {
+        if ($promo->danhmuc !== 'event' && $promo->ngayketthuc && \Carbon\Carbon::parse($promo->ngayketthuc)->isPast()) {
             return response()->json(['success' => false, 'message' => 'Voucher đã hết hạn.'], 400);
         }
 
-        if ($promo->ngaybatdau && Carbon::parse($promo->ngaybatdau)->isFuture()) {
+        if ($promo->danhmuc !== 'event' && $promo->ngaybatdau && \Carbon\Carbon::parse($promo->ngaybatdau)->isFuture()) {
             return response()->json(['success' => false, 'message' => 'Voucher chưa tới thời gian nhận.'], 400);
+        }
+
+        if ($promo->danhmuc === 'event' && $promo->code !== now()->format('d-m')) {
+            return response()->json(['success' => false, 'message' => 'Chưa đến ngày nhận mã sự kiện này hoặc đã qua ngày nhận.'], 400);
         }
 
         // Check so_luong_phat
@@ -232,13 +269,13 @@ class PromotionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'ten' => 'required|string|max:255',
-            'danhmuc' => 'required|string|in:product,birthday,freeship',
-            'code' => 'required|string|max:50|unique:vouchers,code',
-            'loai' => 'required|in:percent,fixed,maxprice',
-            'giatri' => 'required|numeric|min:0',
-            'ngaybatdau' => 'nullable|date',
-            'ngayketthuc' => 'nullable|date',
+            'ten'            => 'required|string|max:255',
+            'danhmuc'        => 'required|string|in:product,birthday,freeship,event',
+            'code'           => 'required|string|max:50|unique:vouchers,code',
+            'loai'           => 'required|in:percent,fixed,maxprice',
+            'giatri'         => 'required|numeric|min:0',
+            'ngaybatdau'     => 'nullable|date',
+            'ngayketthuc'    => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien' => 'nullable|numeric|min:0',
             'congkhai' => 'boolean',
@@ -247,15 +284,15 @@ class PromotionController extends Controller
         ]);
 
         $promo = Promotion::create([
-            'ten' => $request->ten,
-            'danhmuc' => $request->danhmuc,
-            'code' => strtoupper($request->code),
-            'loai' => $request->loai,
-            'giatri' => $request->giatri,
-            'ngaybatdau' => $request->ngaybatdau,
-            'ngayketthuc' => $request->ngayketthuc,
-            'trangthai' => $request->trangthai ?? 'open',
-            'mota' => $request->mota,
+            'ten'            => $request->ten,
+            'danhmuc'        => $request->danhmuc,
+            'code'           => strtoupper($request->code),
+            'loai'           => $request->loai,
+            'giatri'         => $request->giatri,
+            'ngaybatdau'     => $request->danhmuc === 'event' ? null : $request->ngaybatdau,
+            'ngayketthuc'    => $request->danhmuc === 'event' ? null : $request->ngayketthuc,
+            'trangthai'      => $request->danhmuc === 'event' ? 'open' : ($request->trangthai ?? 'open'),
+            'mota'           => $request->mota,
             'loai_dieu_kien' => $request->danhmuc === 'product' ? $request->loai_dieu_kien : null,
             'dieu_kien' => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
             'congkhai' => $request->danhmuc === 'birthday' ? 0 : ($request->has('congkhai') ? $request->congkhai : 1),
@@ -276,13 +313,13 @@ class PromotionController extends Controller
         $promo = Promotion::findOrFail($id);
 
         $request->validate([
-            'ten' => 'required|string|max:255',
-            'danhmuc' => 'required|string|in:product,birthday,freeship',
-            'code' => 'required|string|max:50|unique:vouchers,code,'.$id,
-            'loai' => 'required|in:percent,fixed,maxprice',
-            'giatri' => 'required|numeric|min:0',
-            'ngaybatdau' => 'nullable|date',
-            'ngayketthuc' => 'nullable|date',
+            'ten'            => 'required|string|max:255',
+            'danhmuc'        => 'required|string|in:product,birthday,freeship,event',
+            'code'           => 'required|string|max:50|unique:vouchers,code,' . $id,
+            'loai'           => 'required|in:percent,fixed,maxprice',
+            'giatri'         => 'required|numeric|min:0',
+            'ngaybatdau'     => 'nullable|date',
+            'ngayketthuc'    => 'nullable|date',
             'loai_dieu_kien' => 'nullable|string|max:5',
             'dieu_kien' => 'nullable|numeric|min:0',
             'congkhai' => 'boolean',
@@ -291,15 +328,15 @@ class PromotionController extends Controller
         ]);
 
         $promo->update([
-            'ten' => $request->ten,
-            'danhmuc' => $request->danhmuc,
-            'code' => strtoupper($request->code),
-            'loai' => $request->loai,
-            'giatri' => $request->giatri,
-            'ngaybatdau' => $request->ngaybatdau,
-            'ngayketthuc' => $request->ngayketthuc,
-            'trangthai' => $request->trangthai ?? $promo->trangthai,
-            'mota' => $request->mota,
+            'ten'            => $request->ten,
+            'danhmuc'        => $request->danhmuc,
+            'code'           => strtoupper($request->code),
+            'loai'           => $request->loai,
+            'giatri'         => $request->giatri,
+            'ngaybatdau'     => $request->danhmuc === 'event' ? null : $request->ngaybatdau,
+            'ngayketthuc'    => $request->danhmuc === 'event' ? null : $request->ngayketthuc,
+            'trangthai'      => $request->danhmuc === 'event' ? 'open' : ($request->trangthai ?? $promo->trangthai),
+            'mota'           => $request->mota,
             'loai_dieu_kien' => $request->danhmuc === 'product' ? $request->loai_dieu_kien : null,
             'dieu_kien' => in_array($request->danhmuc, ['product', 'freeship']) ? $request->dieu_kien : null,
             'congkhai' => $request->danhmuc === 'birthday' ? 0 : ($request->has('congkhai') ? $request->congkhai : 1),
