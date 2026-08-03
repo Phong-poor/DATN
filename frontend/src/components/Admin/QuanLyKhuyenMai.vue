@@ -143,7 +143,7 @@
             <tr v-else-if="filteredPromos.length === 0">
               <td colspan="8" class="empty-row">Không tìm thấy chương trình nào.</td>
             </tr>
-            <tr v-else v-for="p in filteredPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
+            <tr v-else v-for="p in paginatedPromos" :key="p.id" :class="{ 'row-selected': selectedIds.includes(p.id) }">
               <td class="select-col">
                 <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleItemSelection(p.id)" />
               </td>
@@ -156,6 +156,9 @@
                     <p class="promo-name">{{ p.ten }}</p>
 
                     <p class="promo-code">{{ p.code }}</p>
+                    <span :class="['category-badge', `category-${p.danhmuc || 'product'}`]">
+                      {{ categoryLabel(p.danhmuc) }}
+                    </span>
                   </div>
                 </div>
               </td>
@@ -272,7 +275,7 @@
         <p>{{ isEdit ? 'Cập nhật thông tin chương trình ưu đãi' : 'Điền đầy đủ thông tin để tạo chương trình mới' }}</p>
       </div>
 
-      <div class="inline-form-body">
+      <form class="inline-form-body" @submit.prevent="savePromo">
 
         <div class="form-row">
           <div class="form-group">
@@ -290,6 +293,9 @@
               @input="autoCode" :readonly="form.danhmuc === 'event'" />
             <p class="err-msg" v-if="errors.ten">{{ errors.ten }}</p>
           </div>
+        </div>
+        <div class="birthday-private-note" v-if="form.danhmuc === 'birthday'">
+          Mã sinh nhật là ưu đãi riêng tư: chỉ xuất hiện trong phân hệ Gửi mã sinh nhật và chỉ khách được cấp mã mới sử dụng được.
         </div>
 
         <div class="form-group">
@@ -329,7 +335,7 @@
         </div>
 
         <!-- Hình thức hiển thị / phát hành -->
-        <div class="form-row">
+        <div class="form-row" v-if="form.danhmuc !== 'birthday'">
           <div class="form-group" style="flex: 1;">
             <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
             <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
@@ -347,7 +353,7 @@
         </div>
 
         <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;"
-          v-if="form.congkhai === 0">
+          v-if="form.danhmuc !== 'birthday' && form.congkhai === 0">
           <div class="form-group">
             <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
             <div class="input-suffix-wrap">
@@ -439,7 +445,7 @@
         <div class="form-group">
           <label class="form-label">Biểu tượng</label>
           <div class="icon-picker">
-            <button v-for="ic in iconOptions" :key="ic.icon" class="icon-option"
+            <button v-for="ic in iconOptions" :key="ic.icon" type="button" class="icon-option"
               :class="{ 'icon-option-active': form.icon === ic.icon }" :style="{ background: ic.bg }"
               @click="form.icon = ic.icon; form.iconBg = ic.bg">{{ ic.icon }}</button>
           </div>
@@ -447,8 +453,8 @@
 
         <!-- Inline footer actions -->
         <div class="inline-form-footer">
-          <button class="btn-cancel" @click="closeModal">Hủy</button>
-          <button class="btn-save" @click="savePromo" :disabled="saving">
+          <button type="button" class="btn-cancel" @click="closeModal">Hủy</button>
+          <button type="submit" class="btn-save" :disabled="saving">
             <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none">
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
@@ -461,18 +467,20 @@
           </button>
         </div>
 
-      </div><!-- end inline-form-body -->
+      </form><!-- end inline-form-body -->
     </template><!-- end promo-form -->
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { registerOfflineForm } from '@/services/offlineSync'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const searchQuery = ref('')
 const currentView = ref('list') // 'list' | 'promo-form'
@@ -608,6 +616,7 @@ const defaultForm = () => ({
 })
 
 const form = ref(defaultForm())
+registerOfflineForm(form, 'quan-ly-khuyen-mai')
 const errors = ref({})
 const promos = ref([])
 
@@ -647,7 +656,18 @@ const fetchPromos = async () => {
   }
 }
 
-onMounted(fetchPromos)
+const syncSuccessHandler = () => {
+  fetchPromos()
+}
+
+onMounted(() => {
+  fetchPromos()
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler)
+})
 
 // ================= COMPUTED =================
 const filteredPromos = computed(() => {
@@ -664,6 +684,13 @@ const filteredPromos = computed(() => {
     p.ten.toLowerCase().includes(q) ||
     p.code.toLowerCase().includes(q)
   )
+})
+
+const totalPages = computed(() => Math.ceil(filteredPromos.value.length / pageSize.value) || 1)
+
+const paginatedPromos = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredPromos.value.slice(start, start + pageSize.value)
 })
 
 const {
@@ -699,6 +726,14 @@ function statusClass(s) {
 
 function statusLabel(s) {
   return { running: '● Đang chạy', expired: '◌ Hết hạn', open: '● Luôn mở' }[s] || s
+}
+
+function categoryLabel(category) {
+  return {
+    birthday: 'Sinh nhật',
+    freeship: 'Freeship',
+    product: 'Sản phẩm',
+  }[category] || 'Khác'
 }
 
 function autoCode() {
@@ -990,30 +1025,41 @@ async function deletePromo(id) {
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  padding: 8px 14px;
-  width: 260px;
+  padding: 0 12px;
+  width: 280px;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .search-box svg {
   width: 15px;
   height: 15px;
-  stroke: #94a3b8;
+  stroke: #64748b;
   stroke-width: 2;
   fill: none;
   flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .search-box input {
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-size: 13px;
-  color: #1e293b;
-  background: transparent;
+  color: #0f172a;
+  background: transparent !important;
   width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 .search-box input::placeholder {
@@ -2295,16 +2341,21 @@ select.form-input {
 .inline-form-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
 }
 
 .inline-form-body>.form-group,
 .inline-form-body>.form-row>.form-group {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #edf0f7;
-  padding: 20px 22px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  background: transparent;
+  border-radius: 0;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2394,6 +2445,23 @@ select.form-input {
   border: 1.5px dashed #a5b4fc;
   border-radius: 14px;
   padding: 16px 18px;
+}
+
+.inline-form-body>.condition-row>.form-group {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .inline-form-body {
+    padding: 18px;
+  }
+
+  .inline-form-body>.form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .inline-form-body>.condition-row.freeship-row {

@@ -106,7 +106,7 @@
           v-for="(conv, index) in activeConversations" 
           :key="conv.id" 
           class="conversation-window-wrapper"
-          :style="{ right: `${80 + index * 340}px` }"
+          :style="{ right: `${24 + index * 340}px` }"
           @mousedown.stop
         >
           <div class="conversation-window">
@@ -600,8 +600,8 @@ onUnmounted(() => {
 }
 
 .topbar-icon-button {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(15,23,42,.12);
   background: #fff;
@@ -628,8 +628,8 @@ onUnmounted(() => {
 }
 
 .topbar-icon-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   transition: transform 0.18s ease;
 }
 
@@ -936,29 +936,29 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 
-.user-name {
+.chat-dropdown .user-name {
   font-size: 15px;
-  font-weight: 500;
-  color: #050505;
+  font-weight: 700;
+  color: #0f172a !important;
 }
 
-.message-time {
+.chat-dropdown .message-time {
   font-size: 12px;
-  color: #65676b;
+  color: #475569 !important;
 }
 
-.last-message {
+.chat-dropdown .last-message {
   margin: 0;
   font-size: 13px;
-  color: #65676b;
+  color: #64748b !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.last-message.unread {
+.chat-dropdown .last-message.unread {
   font-weight: 600;
-  color: #050505;
+  color: #0f172a !important;
 }
 
 .unread-dot {
@@ -983,9 +983,9 @@ onUnmounted(() => {
 
 .conversation-window-wrapper {
   position: fixed;
-  bottom: 0;
+  bottom: 88px;
   width: 330px;
-  height: 480px;
+  height: min(480px, calc(100vh - 190px));
   pointer-events: auto;
   transition: right 0.3s ease;
   z-index: 10051;
@@ -996,7 +996,7 @@ onUnmounted(() => {
   height: 100%;
   min-height: 0;
   background: #fff;
-  border-radius: 8px 8px 0 0;
+  border-radius: 12px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 8px 10px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;

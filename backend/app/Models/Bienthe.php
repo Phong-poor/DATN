@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện một phiên bản sản phẩm theo cấu hình thuộc tính, giá và tồn kho.
+ */
 class BienThe extends Model
 {
     protected $table = 'bienthe';

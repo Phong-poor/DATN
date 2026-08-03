@@ -79,33 +79,6 @@ export default function adminGuard(to, from, next) {
     return next("/");
   }
 
-  if (role !== 'admin') {
-    const cleanPath = to.path.replace(/\/$/, '')
-    
-    // Check if it is a basic path
-    const isBasic = basicPaths.some(path => {
-      if (path === '/admin') return cleanPath === '/admin'
-      return cleanPath === path || cleanPath.startsWith(path + '/')
-    })
-
-    if (!isBasic) {
-      // Find matching required permission
-      let requiredPerm = null
-      for (const [routePath, permission] of Object.entries(pathPermissionMap)) {
-        if (cleanPath === routePath || cleanPath.startsWith(routePath + '/')) {
-          requiredPerm = permission
-          break
-        }
-      }
-
-      if (requiredPerm) {
-        const userPerms = user.cac_quyen || []
-        if (!userPerms.includes(requiredPerm)) {
-          return next(false);
-        }
-      }
-    }
-  }
-
+  // Tất cả vai trò nhân viên (khác user) có toàn quyền vào khu vực quản trị.
   return next();
 }

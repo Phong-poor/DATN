@@ -690,7 +690,7 @@ onMounted(loadAll)
                       
                       <div class="generator-col">
                         <label class="generator-label">Cách 2: Dán đường dẫn trang web bất kỳ</label>
-                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví dụ: /products/12 hoặc http://localhost:5173/products" @input="generateCustomLink" />
+                        <input class="generator-input" v-model="customLinkInput" placeholder="Ví dụ: /products/12 hoặc https://tenmien.com/products" @input="generateCustomLink" />
                       </div>
                     </div>
 
@@ -846,7 +846,7 @@ onMounted(loadAll)
 
                     <label class="input-group">
                       <span>Hoặc dán link video</span>
-                      <input v-model="videoForm.video_url" placeholder="https://youtube.com/shorts/..." />
+                      <input v-model="videoForm.video_url" placeholder="Https://youtube.com/shorts/..." />
                     </label>
 
                     <label class="input-group">
@@ -1040,6 +1040,7 @@ onMounted(loadAll)
   margin: 0;
   padding: 0;
   color: #0f172a;
+  background: #ffffff;
 }
 
 /* Heading Banner */
@@ -1048,25 +1049,25 @@ onMounted(loadAll)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 36px;
+  gap: 32px;
   background: #ffffff;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e2e8f0;
   border-left: none;
   border-right: none;
   border-radius: 0;
-  padding: 42px clamp(24px, 8vw, 150px);
+  padding: 32px max(32px, calc((100vw - 1240px) / 2));
   overflow: hidden;
   color: #0f172a;
-  margin: 0 0 28px;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+  margin: 0 0 24px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 .heading-avatar {
-  width: clamp(128px, 13vw, 180px);
-  height: clamp(128px, 13vw, 180px);
+  width: clamp(120px, 11vw, 160px);
+  height: clamp(120px, 11vw, 160px);
   border-radius: 26px;
   background: #eff6ff;
   border: 2px solid #bfdbfe;
-  box-shadow: 0 18px 38px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
   display: grid;
   place-items: center;
   color: #2563eb;
@@ -1119,17 +1120,17 @@ onMounted(loadAll)
 /* General Layout Elements */
 .container-body {
   min-height: 350px;
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 20px 32px;
+  padding: 0 24px 48px;
 }
 
 .card {
   background: #ffffff;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 /* Loading status */
@@ -1323,8 +1324,8 @@ onMounted(loadAll)
   background: #ffffff;
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid #dbeafe;
-  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
 }
 .tab-btn {
   display: inline-flex;
@@ -1359,11 +1360,11 @@ onMounted(loadAll)
 /* Tab Panel */
 .tab-content-panel {
   background: #ffffff;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  padding: 28px;
+  padding: 24px;
   min-height: 300px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 /* Tab 1: Overview Panel styling */
@@ -1683,6 +1684,28 @@ onMounted(loadAll)
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 520px;
+  max-height: 520px;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.affiliate-video-list::-webkit-scrollbar {
+  width: 8px;
+}
+.affiliate-video-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+.affiliate-video-list::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid #f1f5f9;
+  border-radius: 999px;
+}
+.affiliate-video-list::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 .affiliate-video-row {
   display: grid;
@@ -2076,6 +2099,10 @@ onMounted(loadAll)
 }
 
 @media (max-width: 767px) {
+  .affiliate-video-list {
+    height: 440px;
+    max-height: 440px;
+  }
   .heading-banner {
     align-items: flex-start;
     padding: 30px 20px;

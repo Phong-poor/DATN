@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -101,8 +101,6 @@ const updateUserData = (apiUser) => {
       : user.value.joinDate,
     is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
     id_google: apiUser.id_google || null,
-    is_facebook_account: Boolean(apiUser.is_facebook_account || apiUser.id_facebook),
-    id_facebook: apiUser.id_facebook || null,
   }
 
   if (apiUser.email) {
@@ -112,8 +110,7 @@ const updateUserData = (apiUser) => {
 
 const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
 const isSocialAccount = computed(() => Boolean(
-  user.value?.is_google_account || user.value?.id_google ||
-  user.value?.is_facebook_account || user.value?.id_facebook
+  user.value?.is_google_account || user.value?.id_google
 ))
 const isTabAllowed = (key) => {
   if (key === 'password' && isSocialAccount.value) return false
@@ -1153,6 +1150,20 @@ const shipmentNoteMap = {
 
 const getShipment = (order) => order?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
 const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const getShipmentFailureReason = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.failure_reason) return shipment.failure_reason
+  const failedStep = [...(shipment?.timeline || [])].reverse().find(step => step.status === 'delivery_failed')
+  const note = failedStep?.note || ''
+  if (!note || note.includes('Shipper giao không thành công')) return 'Không liên hệ được người nhận'
+  return note.replace(/^Giao hàng thất bại:\s*/i, '')
+}
+const getShipmentAttempts = (order) => Number(getShipment(order)?.delivery_attempts || 0)
+const getShipmentAttemptText = (order) => {
+  const attempts = getShipmentAttempts(order)
+  return attempts > 0 ? `Đã giao thất bại ${attempts}/3 lần` : ''
+}
+const getShipmentRefundNote = (order) => getShipment(order)?.refund_note || ''
 const canCancelOrder = (order) => {
   if (!['pending', 'confirmed'].includes(order?.status)) return false
 
@@ -1250,6 +1261,13 @@ const getDisplayStatusStyle = (order) => {
 const getOrderStatusSubtext = (order) => {
   const shipment = getShipment(order)
   if (shipment?.tracking_code) {
+    if (shipment.status === 'delivery_failed') {
+      const attemptText = getShipmentAttemptText(order)
+      return `Lý do: ${getShipmentFailureReason(order) || 'Không liên hệ được người nhận'}${attemptText ? ` · ${attemptText}` : ''}`
+    }
+    if (shipment.status === 'returned') {
+      return `${shipment.return_reason || 'Đã hoàn về kho'}${getShipmentRefundNote(order) ? ` · ${getShipmentRefundNote(order)}` : ''}`
+    }
     return `${shipment.tracking_code} · Dự kiến ${shipment.expected_delivery_date || '-'}`
   }
 
@@ -1276,7 +1294,7 @@ const shippingTimelineFor = (order) => {
 
   return timeline.map((step, index) => ({
     label: shipmentLabelMap[step.status] || step.label || step.status,
-    note: shipmentNoteMap[step.status] || step.note || 'Trạng thái vận chuyển đã được cập nhật.',
+    note: step.note || shipmentNoteMap[step.status] || 'Trạng thái vận chuyển đã được cập nhật.',
     date: formatTimelineDate(shouldSpread ? realisticShipmentTime(order, step, index, baseDate) : step.time) || '-',
   }))
 }
@@ -1331,7 +1349,6 @@ const mapInitialPosition = ref(null)
 const defaultAddrForm = () => ({
   id: null,
   province: '',
-  district: '',
   ward: '',
   detail: '',
   fullAddress: '',
@@ -1517,7 +1534,6 @@ const findWardCodeByName = (name) => findAddressCodeByName(wards.value, name)
 const handleProvinceChange = async () => {
   const province = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
   addrForm.value.province = province?.name || ''
-  addrForm.value.district = ''
   addrForm.value.ward = ''
   addrForm.value.fullAddress = addrForm.value.province
   selectedWardCode.value = ''
@@ -1529,7 +1545,6 @@ const handleProvinceChange = async () => {
 const handleWardChange = async () => {
   const ward = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
   addrForm.value.ward = ward?.name || ''
-  addrForm.value.district = ward?.districtName || ''
   addrForm.value.fullAddress = [addrForm.value.province, addrForm.value.ward].filter(Boolean).join(', ')
   mapInitialPosition.value = null
   await prepareMapInitialPosition()
@@ -1588,10 +1603,9 @@ const openMapPicker = async () => {
 const mapAddressFromApi = (addr) => ({
   id: addr.id_diachi,
   province: addr.tinh_thanhpho || '',
-  district: addr.quan_huyen || '',
   ward: addr.phuong_xa || '',
   detail: addr.diachi_cuthe || '',
-  fullAddress: [addr.phuong_xa, addr.quan_huyen, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
+  fullAddress: [addr.phuong_xa, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
   latitude: addr.latitude ?? null,
   longitude: addr.longitude ?? null,
   type: addr.loai_diachi || 'home',
@@ -1600,7 +1614,6 @@ const mapAddressFromApi = (addr) => ({
 
 const mapAddressToApi = () => ({
   tinh_thanhpho: addrForm.value.province || addrForm.value.fullAddress || 'Không xác định',
-  quan_huyen: addrForm.value.district || '',
   phuong_xa: addrForm.value.ward || addrForm.value.fullAddress || 'Không xác định',
   diachi_cuthe: addrForm.value.detail,
   latitude: addrForm.value.latitude,
@@ -1614,11 +1627,9 @@ const applyMapAddress = (address) => {
   const selectedWard = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
 
   addrForm.value.province = selectedProvince?.name || address.province || addrForm.value.province || ''
-  addrForm.value.district = address.district || addrForm.value.district || ''
   addrForm.value.ward = selectedWard?.name || address.ward || addrForm.value.ward || ''
   addrForm.value.fullAddress = [
     addrForm.value.ward,
-    addrForm.value.district,
     addrForm.value.province,
   ].filter((item) => item && item !== 'Không xác định').join(', ') || address.fullAddress || ''
   addrForm.value.latitude = address.latitude ?? addrForm.value.latitude
@@ -1991,6 +2002,17 @@ const promoStatusMap = {
                 <span class="shipping-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
                   {{ getDisplayStatus(selectedOrder) }}
                 </span>
+              </div>
+              <div v-if="getShippingInfo(selectedOrder).status === 'delivery_failed'" class="shipping-failure-box">
+                <span>Lý do giao thất bại</span>
+                <b>{{ getShipmentFailureReason(selectedOrder) || 'Không liên hệ được người nhận' }}</b>
+                <p v-if="getShipmentAttemptText(selectedOrder)">{{ getShipmentAttemptText(selectedOrder) }}. NextGen sẽ hỗ trợ giao lại nếu còn lượt.</p>
+                <p v-else>NextGen sẽ liên hệ lại để hỗ trợ giao lại hoặc cập nhật phương án xử lý phù hợp.</p>
+              </div>
+              <div v-if="getShippingInfo(selectedOrder).status === 'returned'" class="shipping-failure-box is-returned">
+                <span>Đơn đã chuyển hoàn</span>
+                <b>{{ getShippingInfo(selectedOrder).return_reason || 'Đã hoàn về kho' }}</b>
+                <p>{{ getShipmentRefundNote(selectedOrder) || 'Đơn đã kết thúc quy trình giao nhận.' }}</p>
               </div>
               <div class="shipping-info-grid">
                 <div>
@@ -2658,7 +2680,7 @@ const promoStatusMap = {
         <!-- â•â•â•â• TAB: ORDERS â•â•â•â• -->
         <div v-else-if="activeTab === 'orders'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch Sử Đơn Hàng</h1>
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch sử đơn hàng</h1>
           </div>
           
           <div class="category-tabs" style="margin-bottom: 20px;">
@@ -2718,7 +2740,7 @@ const promoStatusMap = {
                     </div>
                   </td>
                   <td>
-                    <div class="customer-shipment-state">
+                    <div class="customer-shipment-state" :class="{ failed: getShipment(order)?.status === 'delivery_failed' }">
                       <span class="status-cell" :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
                         {{ getDisplayStatus(order) }}
                       </span>
@@ -2794,7 +2816,7 @@ const promoStatusMap = {
         <!-- â•â•â•â• TAB: PROMOTIONS â•â•â•â• -->
         <div v-else-if="activeTab === 'promotions'">
           <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
-            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến Mãi</h1>
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến mãi</h1>
             <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
           </div>
 
@@ -2896,7 +2918,7 @@ const promoStatusMap = {
                   <label>Email xác minh</label>
                   <div class="input-wrap">
                     <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
-                    <input type="email" v-model="pwForm.email" placeholder="name@example.com" />
+                    <input type="email" v-model="pwForm.email" placeholder="Name@example.com" />
                   </div>
                   <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
                   <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
@@ -2965,6 +2987,26 @@ const promoStatusMap = {
 </template>
 
 <style scoped>
+.page :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .card-title,
+  .modal-title,
+  .side-btn,
+  .stat-lbl,
+  .info-lbl,
+  .section-title,
+  th,
+  label > span
+) {
+  text-transform: none !important;
+}
+
 
 /* â”€â”€ BASE â”€â”€ */
 .page {
@@ -3657,6 +3699,10 @@ const promoStatusMap = {
   color: #64748b;
   font-weight: 500;
 }
+.customer-shipment-state.failed .customer-tracking {
+  color: #dc2626;
+  font-weight: 800;
+}
 .customer-shipping-card {
   margin: 12px 0 16px;
   padding: 14px;
@@ -3728,6 +3774,45 @@ const promoStatusMap = {
   font-weight: 800;
   white-space: nowrap;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+.shipping-failure-box {
+  margin: 0 0 10px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+}
+.shipping-failure-box span {
+  display: block;
+  color: #ef4444;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.shipping-failure-box b {
+  display: block;
+  color: #991b1b;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.shipping-failure-box p {
+  margin: 6px 0 0;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.shipping-failure-box.is-returned {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+.shipping-failure-box.is-returned span {
+  color: #7c3aed;
+}
+.shipping-failure-box.is-returned b,
+.shipping-failure-box.is-returned p {
+  color: #5b21b6;
 }
 .shipping-info-grid {
   display: grid;
@@ -5326,15 +5411,15 @@ const promoStatusMap = {
 <style scoped>
 /* Light customer account theme */
 .page {
-  background: #f5f7fb;
-  padding: 32px 24px 64px;
+  background: #ffffff;
+  padding: 32px 24px 48px;
   color: #0f172a;
 }
 
 .container {
   max-width: 1240px;
   grid-template-columns: 280px minmax(0, 1fr);
-  gap: 28px;
+  gap: 24px;
 }
 
 .sidebar,
@@ -5343,16 +5428,16 @@ const promoStatusMap = {
 .req-card,
 .tip-card,
 .table-card {
-  background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 54%);
-  border: 1px solid #38bdf8;
-  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.18);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .sidebar {
   border-radius: 16px;
-  top: 18px;
+  top: 24px;
 }
 
 .avatar-section,
@@ -5407,15 +5492,15 @@ const promoStatusMap = {
 .modal-item,
 .review-product-info,
 .captcha-question {
-  background: linear-gradient(180deg, #e0f2fe 0%, #f8fbff 100%);
-  border: 1px solid #7dd3fc;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
 .stat-card:hover,
 .info-row:hover {
-  background: #d0ecff;
-  border-color: #0284c7;
-  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.18);
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
 }
 
 .stat-val {
@@ -5436,7 +5521,7 @@ const promoStatusMap = {
 }
 
 .side-btn:hover {
-  background: #d0ecff;
+  background: #eff6ff;
   color: #0369a1;
 }
 
@@ -5459,7 +5544,7 @@ const promoStatusMap = {
 
 .card {
   border-radius: 16px;
-  padding: 32px;
+  padding: 24px;
 }
 
 .btn-edit {
@@ -6198,11 +6283,18 @@ const promoStatusMap = {
 .attendance-card {
   margin-top: 10px;
 }
+.attendance-card .card-title {
+  font-size: 18px;
+}
+.attendance-card .card-sub {
+  font-size: 13px;
+}
 .attendance-days-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-  margin: 20px 0;
+  grid-template-columns: repeat(7, minmax(88px, 104px));
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0;
 }
 .attendance-day-box {
   display: flex;
@@ -6211,9 +6303,9 @@ const promoStatusMap = {
   justify-content: space-between;
   background: rgba(253, 230, 138, 0.35);
   border: 1px solid rgba(245, 158, 11, 0.25);
-  border-radius: 16px;
-  padding: 16px 8px;
-  min-height: 136px;
+  border-radius: 13px;
+  padding: 10px 6px;
+  min-height: 104px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -6223,7 +6315,7 @@ const promoStatusMap = {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: 13px;
   padding: 1.5px;
   background: linear-gradient(135deg, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -6273,10 +6365,10 @@ const promoStatusMap = {
 }
 
 .day-num {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   color: #1f2937;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
@@ -6284,28 +6376,28 @@ const promoStatusMap = {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 5px;
+  margin-bottom: 7px;
   background: rgba(245, 158, 11, 0.14);
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 999px;
-  padding: 10px 14px;
+  padding: 6px 10px;
   width: fit-content;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(249, 115, 22, 0.08);
 }
 .coin-icon {
-  font-size: 16px;
+  font-size: 13px;
 }
 .xu-val {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
   color: #92400e;
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
   letter-spacing: 0.02em;
 }
 .day-status-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 .icon-success {
   stroke: #10b981;
@@ -6331,9 +6423,9 @@ const promoStatusMap = {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 20px;
+  padding-top: 12px;
 }
 .attendance-streak-info {
   font-size: 14px;
@@ -6349,13 +6441,13 @@ const promoStatusMap = {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 24px;
+  padding: 9px 16px;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);

@@ -14,6 +14,7 @@ class BirthdayCouponSetting extends Model
     protected $fillable = [
         'kichhoat',
         'giochay',
+        'thoi_han_ngay',
         'mavoucher',
         'id_voucher',
         'id_mau_email',
@@ -28,5 +29,6 @@ class BirthdayCouponSetting extends Model
         'thu_lai_khi_that_bai' => 'boolean',
         'thongbao_admin' => 'boolean',
         'id_voucher' => 'integer',
+        'thoi_han_ngay' => 'integer',
     ];
 }

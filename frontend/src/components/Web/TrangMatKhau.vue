@@ -201,7 +201,7 @@ const save = async () => {
                                     <path d="M4 6h16v12H4z" />
                                     <path d="m4 7 8 6 8-6" />
                                 </svg>
-                                <input type="email" v-model="form.email" placeholder="name@example.com" :disabled="otpSent" />
+                                <input type="email" v-model="form.email" placeholder="Name@example.com" :disabled="otpSent" />
                             </div>
                             <span class="err-msg" v-if="errors.email">{{ errors.email }}</span>
                         </div>

@@ -1,21 +1,11 @@
 <template>
   <div class="page">
-    <div class="topbar">
-      <div class="topbar-left">
-        <h2 class="topbar-title">Thương hiệu sản phẩm</h2>
+    <div class="hero">
+      <div class="hero-actions">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
+          <input type="text" placeholder="Tìm kiếm thương hiệu..." v-model="searchQuery"/>
         </div>
-      </div>
-    </div>
-
-    <div class="hero">
-      <div class="hero-text">
-        <h1>Kiến trúc <span class="hero-accent">Hệ sinh thái</span><br/>Laptop</h1>
-        <p>Quản lý và tối ưu hóa các phân khúc sản phẩm dựa trên nhu cầu của khách hàng.</p>
-      </div>
-      <div class="hero-actions">
         <button v-if="hasPermission('thuong_hieu_sua')" class="btn-primary" @click="openCreate">
           <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tạo thương hiệu mới
@@ -40,19 +30,19 @@
             <th class="select-col">
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredBrands.length" @change="toggleCurrentPageSelection" />
             </th>
-            <th>ID</th>
+            <th>STT</th>
             <th>LOGO</th>
             <th>TÊN THƯƠNG HIỆU</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="th in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
+          <tr v-for="(th, index) in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
             <td class="select-col">
               <input type="checkbox" :checked="selectedIds.includes(th.id_thuonghieu)" @change="toggleItemSelection(th.id_thuonghieu)" />
             </td>
-            <td class="cat-name">
-              #{{ th.id_thuonghieu }}
+            <td class="cat-name" style="font-weight: bold;">
+              {{ index + 1 }}
             </td>
             <td>
               <div class="brand-logo-cell">
@@ -157,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { getUser } from '@/services/auth';
 import api from '@/services/api';
 import swal from '@/services/swal';
@@ -167,7 +157,7 @@ import { useAdminBulkDelete } from '@/services/adminBulkDelete';
 
 const user = ref(getUser() || {})
 const hasPermission = (perm) => {
-  if (user.value?.vaitro === 'admin') return true
+  if (user.value?.vaitro && user.value.vaitro !== 'user') return true
   return user.value?.cac_quyen?.includes(perm)
 }
 
@@ -204,7 +194,10 @@ const defaultForm = () => ({
   ten_thuonghieu: '',
   danh_muc_ids: []
 });
+import { registerOfflineForm } from '@/services/offlineSync';
+
 const form = ref(defaultForm());
+registerOfflineForm(form, 'quan-ly-thuong-hieu');
 const logoPreview = ref('');
 const logoFile = ref(null);
 const fileInputRef = ref(null);
@@ -238,9 +231,19 @@ const fetchCategories = async () => {
   }
 };
 
+const syncSuccessHandler = () => {
+  fetchBrands();
+  fetchCategories();
+};
+
 onMounted(() => {
   fetchBrands();
   fetchCategories();
+  window.addEventListener('offline-sync-success', syncSuccessHandler);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('offline-sync-success', syncSuccessHandler);
 });
 
 // Lấy tên danh mục để hiển thị
@@ -367,7 +370,9 @@ const deleteBrand = async (id) => {
 .search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 14px; width: 220px; }
 .search-box svg { width: 15px; height: 15px; stroke: #94a3b8; stroke-width: 2; fill: none; }
 .search-box input { border: none; outline: none; font-size: 13px; color: #1e293b; background: transparent; width: 100%; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.hero { display: flex; align-items: center; justify-content: flex-end; gap: 20px; }
+.hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.hero-actions .search-box { width: 260px; min-height: 40px; }
 .hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1.25; margin-bottom: 12px; }
 .hero-accent { color: #2563eb; }
 .hero-text p { font-size: 13.5px; color: #64748b; line-height: 1.7; }
@@ -408,6 +413,8 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
+.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+.edit-btn:hover svg { stroke: #2563eb; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
 
 /* MODAL CSS */

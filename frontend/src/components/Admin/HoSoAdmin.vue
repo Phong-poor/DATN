@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
 import { getUser, updateUser } from '@/services/auth'
 import { storageUrl } from '@/services/urls'
 import swal from '@/services/swal'
+import { registerOfflineForm, clearFormDraft } from '@/services/offlineSync'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -20,6 +21,8 @@ const form = ref({
   gender: '',
   date_of_birth: '',
 })
+
+registerOfflineForm(form, 'admin-profile')
 
 const avatarUrl = computed(() => {
   if (avatarPreview.value) return avatarPreview.value
@@ -73,7 +76,20 @@ async function saveProfile() {
       window.dispatchEvent(new Event('user-updated'))
     }
     editing.value = false
+    clearFormDraft('admin-profile')
     await swal.success('Thành công', 'Đã cập nhật hồ sơ quản trị.')
+  } catch (err) {
+    if (err.isOfflineQueue) {
+      localUser.value = { ...localUser.value, ...form.value }
+      updateUser(localUser.value)
+      window.dispatchEvent(new Event('user-updated'))
+      editing.value = false
+      clearFormDraft('admin-profile')
+      await swal.info('Chế độ ngoại tuyến', 'Đã lưu tạm các thay đổi ngoại tuyến. Dữ liệu sẽ tự động đồng bộ khi có mạng.')
+    } else {
+      console.error(err)
+      swal.error('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi lưu hồ sơ.')
+    }
   } finally {
     saving.value = false
   }
@@ -126,7 +142,36 @@ async function onAvatarChange(e) {
   }
 }
 
-onMounted(fetchProfile)
+let syncSuccessHandler = null
+
+const handleRestoreTrigger = () => {
+  setTimeout(() => {
+    if (form.value.name) {
+      editing.value = true
+    }
+  }, 50)
+}
+
+onMounted(() => {
+  fetchProfile()
+  
+  window.addEventListener('restore-form-trigger', handleRestoreTrigger)
+  handleRestoreTrigger()
+  
+  syncSuccessHandler = (e) => {
+    if (e.detail?.url === '/admin/account/profile') {
+      fetchProfile()
+    }
+  }
+  window.addEventListener('offline-sync-success', syncSuccessHandler)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('restore-form-trigger', handleRestoreTrigger)
+  if (syncSuccessHandler) {
+    window.removeEventListener('offline-sync-success', syncSuccessHandler)
+  }
+})
 </script>
 
 <template>

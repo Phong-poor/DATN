@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu một mặt hàng hoặc nhóm combo trong giỏ hàng của người dùng.
+ */
 class GioHang extends Model
 {
     protected $table = 'giohang';

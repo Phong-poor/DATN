@@ -58,19 +58,19 @@
             <th class="select-col">
               <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!filteredBrands.length" @change="toggleCurrentPageSelection" />
             </th>
-            <th>ID</th>
+            <th>STT</th>
             <th>LOGO</th>
             <th>TÊN THƯƠNG HIỆU</th>
             <th>THAO TÁC</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="th in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
+          <tr v-for="(th, index) in filteredBrands" :key="th.id_thuonghieu" :class="{ 'row-selected': selectedIds.includes(th.id_thuonghieu) }">
             <td class="select-col">
               <input type="checkbox" :checked="selectedIds.includes(th.id_thuonghieu)" @change="toggleItemSelection(th.id_thuonghieu)" />
             </td>
-            <td class="cat-name">
-              #{{ th.id_thuonghieu }}
+            <td class="cat-name" style="font-weight: bold;">
+              {{ index + 1 }}
             </td>
             <td>
               <div class="brand-logo-cell">
@@ -452,6 +452,8 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
+.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+.edit-btn:hover svg { stroke: #2563eb; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
 
 /* MODAL CSS */

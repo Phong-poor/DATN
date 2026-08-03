@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { clearAuth, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
+import { initOfflineInterceptor, registerSyncSuccessCallback } from './offlineSync'
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -10,6 +11,8 @@ const api = axios.create({
     Accept: 'application/json',
   },
 })
+
+initOfflineInterceptor(api)
 
 const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
@@ -52,7 +55,11 @@ api.interceptors.request.use((config) => {
   }
 
   if (shouldShowGlobalLoader(config)) {
-    window.dispatchEvent(new Event('global-loader-show'))
+    window.dispatchEvent(
+      config.immediateLoader
+        ? new CustomEvent('global-loader-show', { detail: { immediate: true, minDuration: 180 } })
+        : new Event('global-loader-show')
+    )
   }
 
   const token = getToken()
@@ -78,11 +85,28 @@ api.interceptors.response.use(
     if (shouldShowGlobalLoader(response.config)) {
       window.dispatchEvent(new Event('global-loader-hide'))
     }
+    
+    // Xóa bản nháp toàn cục khi lưu/thay đổi dữ liệu thành công
+    const method = response.config?.method?.toLowerCase?.()
+    if (method && method !== 'get') {
+      localStorage.removeItem(`global_form_draft_${window.location.pathname}`)
+    }
+    
     return response
   },
   (error) => {
     if (shouldShowGlobalLoader(error.config)) {
       window.dispatchEvent(new Event('global-loader-hide'))
+    }
+    if (error.isOfflineQueue || error.message === 'OFFLINE_QUEUED') {
+      window.__lastRequestWasOfflineQueued = true
+      return Promise.resolve({
+        status: 202,
+        data: {
+          success: true,
+          message: error.response?.data?.message || 'Bạn đang ngoại tuyến. Dữ liệu đã được lưu tạm và sẽ tự động đồng bộ khi có mạng.'
+        }
+      })
     }
     if (error.response?.status === 423 || error.response?.data?.code === 'ACCOUNT_LOCKED') {
       const message = error.response?.data?.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
@@ -208,5 +232,7 @@ export const stopSessionGuard = () => {
 }
 
 startSessionGuard()
+
+registerSyncSuccessCallback(clearApiGetCache)
 
 export default api

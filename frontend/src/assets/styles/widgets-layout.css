@@ -82,6 +82,7 @@
   color: #f8fafc !important;
   background: transparent !important;
   border-color: transparent !important;
+  text-transform: none !important;
   text-shadow: 0 1px 10px rgba(2, 6, 23, 0.24);
   position: relative;
 }

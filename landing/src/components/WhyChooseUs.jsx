@@ -1,151 +1,106 @@
-import { ChevronRight, Shield, TrendingUp, Zap } from 'lucide-react'
+import { Truck, Shield, RefreshCcw, CreditCard } from 'lucide-react'
 
 export default function WhyChooseUs() {
-  const benefits = [
+  const values = [
     {
-      icon: Zap,
-      title: 'Hiệu năng mạnh mẽ',
-      desc: 'Tối ưu khả năng xử lý để tiết kiệm điện năng nhưng vẫn giữ tốc độ cao trong các tác vụ nặng.'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Tăng tốc công việc sáng tạo',
-      desc: 'Xử lý AI, render và mô phỏng ngay trên máy cá nhân, giảm phụ thuộc vào dịch vụ đám mây.'
+      icon: Truck,
+      title: 'Giao hỏa tốc 2h',
+      desc: 'Giao hàng siêu tốc trong nội thành. Nhận hàng nhanh chóng, tiện lợi.'
     },
     {
       icon: Shield,
-      title: 'Bộ nhớ ổn định',
-      desc: 'Cơ chế kiểm soát lỗi giúp dữ liệu an toàn hơn khi chạy tác vụ dài hoặc nhiều ứng dụng cùng lúc.'
+      title: 'Bảo hành 24 tháng',
+      desc: 'Cam kết bảo hành chính hãng. Đổi mới trong 30 ngày đầu nếu có lỗi.'
+    },
+    {
+      icon: RefreshCcw,
+      title: 'Thu cũ đổi mới',
+      desc: 'Hỗ trợ thu cũ trợ giá khi nâng cấp máy mới. Lên đến 2 triệu đồng.'
+    },
+    {
+      icon: CreditCard,
+      title: 'Trả góp 0% lãi suất',
+      desc: 'Thủ tục nhanh gọn, duyệt hồ sơ chỉ trong 5 phút. Không cần thế chấp.'
     }
   ]
 
   return (
-    <section className="landing-section relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
-      {/* Visual Accent Lights */}
-      <div className="absolute top-1/2 left-10 w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+    <section className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
+      {/* Background effects */}
+      <div className="absolute top-1/2 left-10 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none z-0"></div>
 
       <div className="landing-container">
         
-        {/* Main Content Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-          
-          {/* Left Column: Visual Infographic Chart */}
-          <div className="lg:col-span-6 flex flex-col justify-center">
-            
-            <div className="bg-[#0a1628]/40 border border-white/5 rounded-3xl p-6 sm:p-10 backdrop-blur-md relative overflow-hidden">
-              {/* Technical scan matrix lines */}
-              <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/5 to-transparent h-1/2 pointer-events-none z-0 animate-scan-line"></div>
-              
-              <div className="flex justify-between items-center mb-8 relative z-10">
-                <span className="font-mono text-xs text-cyan-400 tracking-wider font-semibold uppercase">So sánh hiệu năng</span>
-                <span className="text-[10px] font-mono text-slate-500 uppercase">Octane / Neural V4</span>
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16 reveal-hidden reveal-visible">
+          <span className="text-xs font-semibold text-indigo-400 uppercase tracking-widest bg-indigo-950/40 border border-indigo-500/20 px-4 py-2 rounded-full inline-block">
+            Dịch vụ tận tâm
+          </span>
+          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-6 mb-6 tracking-tight">
+            Giá Trị Xứng Tầm <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Thương Hiệu</span>
+          </h2>
+          <p className="text-slate-400 text-lg font-light leading-relaxed">
+            Chúng tôi cam kết mang đến trải nghiệm mua sắm hoàn hảo với dịch vụ chăm sóc khách hàng tận tâm.
+          </p>
+        </div>
+
+        {/* Values Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {values.map((value, i) => {
+            const Icon = value.icon
+            return (
+              <div 
+                key={i} 
+                className="group bg-[#0a1628]/40 border border-white/5 rounded-2xl p-8 hover:border-indigo-500/30 transition-all duration-500 hover:transform hover:-translate-y-2"
+              >
+                {/* Icon */}
+                <div className="w-14 h-14 bg-indigo-950/50 border border-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/20 group-hover:scale-110 transition-all duration-300 mb-6">
+                  <Icon className="w-7 h-7" />
+                </div>
+
+                {/* Content */}
+                <h4 className="font-['Space_Grotesk'] font-bold text-white text-xl mb-3 group-hover:text-indigo-400 transition-colors">
+                  {value.title}
+                </h4>
+                <p className="text-slate-400 text-sm font-light leading-relaxed">
+                  {value.desc}
+                </p>
               </div>
+            )
+          })}
+        </div>
 
-              {/* Diagram comparison bars */}
-              <div className="space-y-6 relative z-10 mb-8">
-                {/* Aether Rig */}
-                <div>
-                  <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-white">Aether Neural Rig</span>
-                    <span className="text-cyan-400 font-mono">420 TFLOPS</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
-                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full w-full rounded-full glow-cyan"></div>
-                  </div>
-                </div>
-
-                {/* Top-tier Custom PC */}
-                <div>
-                  <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-slate-400">Máy trạm cao cấp phổ thông</span>
-                    <span className="text-slate-500 font-mono">110 TFLOPS</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
-                    <div className="bg-slate-700 h-full w-[26%] rounded-full"></div>
-                  </div>
-                </div>
-
-                {/* Cloud Node Instance */}
-                <div>
-                  <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-slate-400">Máy chủ cloud chia sẻ</span>
-                    <span className="text-slate-500 font-mono">145 TFLOPS (độ trễ cao)</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
-                    <div className="bg-slate-700 h-full w-[34%] rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chart Specs Summary */}
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/80 relative z-10">
-                <div className="bg-slate-950/60 border border-white/5 p-4 rounded-xl">
-                  <div className="text-2xl font-extrabold text-cyan-400 font-['Space_Grotesk']">3.8x</div>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Nhanh hơn máy phổ thông</div>
-                </div>
-                <div className="bg-slate-950/60 border border-white/5 p-4 rounded-xl">
-                  <div className="text-2xl font-extrabold text-white font-['Space_Grotesk']">-84%</div>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Giảm độ trễ xử lý</div>
-                </div>
-              </div>
-
+        {/* Trust Indicators */}
+        <div className="mt-16 flex flex-wrap items-center justify-center gap-8 pt-12 border-t border-slate-800/50">
+          <div className="text-center">
+            <div className="text-3xl font-extrabold font-['Space_Grotesk'] text-white mb-2">
+              100<span className="text-indigo-400">%</span>
             </div>
-
+            <div className="text-sm text-slate-500">Hàng chính hãng</div>
           </div>
-
-          {/* Right Column: Key Benefits Text */}
-          <div className="lg:col-span-6 flex flex-col justify-center">
-            
-            <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full w-fit mb-6">
-              Lợi thế kỹ thuật
-            </span>
-            
-            <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-              Giảm độ trễ ngay từ <br/>
-              <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">nền tảng phần cứng</span>
-            </h2>
-            
-            <p className="text-slate-400 text-base font-light leading-relaxed mb-8">
-              Thay vì phụ thuộc hoàn toàn vào cloud, Aether mang lại sức mạnh xử lý trực tiếp tại bàn làm việc của bạn.
-            </p>
-
-            {/* List of benefits */}
-            <div className="space-y-6">
-              {benefits.map((benefit, i) => {
-                const Icon = benefit.icon
-                return (
-                  <div key={i} className="flex gap-4 items-start group">
-                    <div className="w-10 h-10 bg-cyan-950/50 border border-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/10 group-hover:text-white transition-all duration-300 shrink-0">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-['Space_Grotesk'] font-bold text-white text-base mb-1 group-hover:text-cyan-400 transition-colors">
-                        {benefit.title}
-                      </h4>
-                      <p className="text-slate-400 text-sm font-light leading-relaxed">
-                        {benefit.desc}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
+          <div className="text-center">
+            <div className="text-3xl font-extrabold font-['Space_Grotesk'] text-white mb-2">
+              24<span className="text-indigo-400">/7</span>
             </div>
-
-            {/* Call to config redirect */}
-            <a 
-              href="#configurator" 
-              className="flex items-center gap-2 text-cyan-400 font-semibold text-sm hover:text-white transition-colors group mt-10 w-fit"
-            >
-              Cấu hình bộ máy hiệu năng
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
-
+            <div className="text-sm text-slate-500">Hỗ trợ khách hàng</div>
           </div>
-
+          <div className="text-center">
+            <div className="text-3xl font-extrabold font-['Space_Grotesk'] text-white mb-2">
+              30<span className="text-indigo-400">+</span>
+            </div>
+            <div className="text-sm text-slate-500">Chi nhánh toàn quốc</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-extrabold font-['Space_Grotesk'] text-white mb-2">
+              98<span className="text-indigo-400">%</span>
+            </div>
+            <div className="text-sm text-slate-500">Khách hàng hài lòng</div>
+          </div>
         </div>
 
       </div>
     </section>
   )
 }
+

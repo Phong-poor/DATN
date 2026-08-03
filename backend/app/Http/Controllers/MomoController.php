@@ -6,6 +6,7 @@ use App\Events\NewOrderPlaced;
 use App\Models\DatHang;
 use App\Models\GioHang;
 use App\Models\UserVoucher;
+use App\Models\XuHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Tạo giao dịch MoMo, xác minh callback và cập nhật kết quả thanh toán đơn hàng.
+ */
 class MomoController extends Controller
 {
     public function createPaymentUrl(DatHang $order, ?string $requestType = null): string
@@ -29,24 +33,24 @@ class MomoController extends Controller
         $partnerCode = env('MOMO_PARTNER_CODE');
         $accessKey = env('MOMO_ACCESS_KEY');
         $secretKey = env('MOMO_SECRET_KEY');
-        $redirectUrl = env('MOMO_RETURN_URL', rtrim(env('APP_URL'), '/') . '/api/momo/return');
-        $ipnUrl = env('MOMO_IPN_URL', rtrim(env('APP_URL'), '/') . '/api/momo/ipn');
+        $redirectUrl = env('MOMO_RETURN_URL', rtrim(env('APP_URL'), '/').'/api/momo/return');
+        $ipnUrl = env('MOMO_IPN_URL', rtrim(env('APP_URL'), '/').'/api/momo/ipn');
         $amount = (int) round($order->tongtien);
 
         $requestType = $requestType ?: env('MOMO_REQUEST_TYPE', 'payWithMethod');
         $this->assertAmountSupported($amount, $requestType);
-        $requestId = 'DH' . $order->id_dathang . '_' . time();
+        $requestId = 'DH'.$order->id_dathang.'_'.time();
         $orderId = $requestId;
-        $orderInfo = 'Thanh toan don hang #' . $order->id_dathang;
+        $orderInfo = 'Thanh toan don hang #'.$order->id_dathang;
         $extraData = base64_encode(json_encode([
             'order_id' => $order->id_dathang,
             'user_id' => $order->id_khachhang,
         ]));
 
         $rawSignature = "accessKey={$accessKey}&amount={$amount}&extraData={$extraData}"
-            . "&ipnUrl={$ipnUrl}&orderId={$orderId}&orderInfo={$orderInfo}"
-            . "&partnerCode={$partnerCode}&redirectUrl={$redirectUrl}"
-            . "&requestId={$requestId}&requestType={$requestType}";
+            ."&ipnUrl={$ipnUrl}&orderId={$orderId}&orderInfo={$orderInfo}"
+            ."&partnerCode={$partnerCode}&redirectUrl={$redirectUrl}"
+            ."&requestId={$requestId}&requestType={$requestType}";
 
         $payload = [
             'partnerCode' => $partnerCode,
@@ -77,7 +81,7 @@ class MomoController extends Controller
             ->asJson()
             ->post($endpoint, $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('MoMo create payment HTTP error', [
                 'order_id' => $order->id_dathang,
                 'status' => $response->status(),
@@ -116,30 +120,32 @@ class MomoController extends Controller
 
     public function momoReturn(Request $request)
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
         $payload = $request->all();
         $order = $this->findOrderFromPayload($payload);
 
-        if (!$order || !$this->verifyResultSignature($payload)) {
-            return redirect($frontendUrl . '/payment-failed');
+        if (! $order || ! $this->verifyResultSignature($payload)) {
+            return redirect($frontendUrl.'/payment-failed');
         }
 
         if ((int) ($payload['resultCode'] ?? -1) === 0) {
             try {
                 $this->markPaidOrder($order, $payload);
-                return redirect($frontendUrl . '/thank-you?status=success&order_id=' . $order->id_dathang);
+
+                return redirect($frontendUrl.'/thank-you?status=success&order_id='.$order->id_dathang);
             } catch (\Throwable $e) {
                 Log::error('MoMo return confirm failed', [
                     'order_id' => $order->id_dathang,
                     'error' => $e->getMessage(),
                 ]);
-                return redirect($frontendUrl . '/payment-failed');
+
+                return redirect($frontendUrl.'/payment-failed');
             }
         }
 
         $this->markFailedOrder($order, $payload);
 
-        return redirect($frontendUrl . '/payment-failed');
+        return redirect($frontendUrl.'/payment-failed');
     }
 
     public function momoIpn(Request $request)
@@ -147,19 +153,21 @@ class MomoController extends Controller
         $payload = $request->all();
         $order = $this->findOrderFromPayload($payload);
 
-        if (!$order || !$this->verifyResultSignature($payload)) {
+        if (! $order || ! $this->verifyResultSignature($payload)) {
             return response()->json(['resultCode' => 97, 'message' => 'Invalid signature'], 400);
         }
 
         if ((int) ($payload['resultCode'] ?? -1) === 0) {
             try {
                 $this->markPaidOrder($order, $payload);
+
                 return response()->json(['resultCode' => 0, 'message' => 'Confirm Success']);
             } catch (\Throwable $e) {
                 Log::error('MoMo IPN confirm failed', [
                     'order_id' => $order->id_dathang,
                     'error' => $e->getMessage(),
                 ]);
+
                 return response()->json(['resultCode' => 99, 'message' => $e->getMessage()], 400);
             }
         }
@@ -171,7 +179,7 @@ class MomoController extends Controller
 
     public function momoQuery(Request $request, int $id)
     {
-        if (!$this->hasPaymentTracking()) {
+        if (! $this->hasPaymentTracking()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Chưa chạy migration payment tracking cho bảng đơn hàng.',
@@ -182,7 +190,7 @@ class MomoController extends Controller
             ->where('id_khachhang', $request->user()->id)
             ->firstOrFail();
 
-        if ($order->nha_cung_cap_thanh_toan !== 'momo' || !$order->ma_don_hang_thanh_toan) {
+        if ($order->nha_cung_cap_thanh_toan !== 'momo' || ! $order->ma_don_hang_thanh_toan) {
             return response()->json([
                 'success' => false,
                 'message' => 'Đơn hàng này không phải giao dịch MoMo.',
@@ -191,7 +199,7 @@ class MomoController extends Controller
 
         $data = $this->queryPaymentStatus($order);
 
-        if ((int) ($data['resultCode'] ?? -1) === 0 && !empty($data['transId'])) {
+        if ((int) ($data['resultCode'] ?? -1) === 0 && ! empty($data['transId'])) {
             $this->markPaidOrder($order, $data);
         }
 
@@ -210,11 +218,11 @@ class MomoController extends Controller
         $partnerCode = env('MOMO_PARTNER_CODE');
         $accessKey = env('MOMO_ACCESS_KEY');
         $secretKey = env('MOMO_SECRET_KEY');
-        $requestId = 'QUERY_' . $order->id_dathang . '_' . time();
+        $requestId = 'QUERY_'.$order->id_dathang.'_'.time();
         $orderId = $order->ma_don_hang_thanh_toan;
 
         $rawSignature = "accessKey={$accessKey}&orderId={$orderId}"
-            . "&partnerCode={$partnerCode}&requestId={$requestId}";
+            ."&partnerCode={$partnerCode}&requestId={$requestId}";
 
         $payload = [
             'partnerCode' => $partnerCode,
@@ -229,7 +237,7 @@ class MomoController extends Controller
             ->asJson()
             ->post($endpoint, $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \RuntimeException('Không kiểm tra được trạng thái giao dịch MoMo.');
         }
 
@@ -297,13 +305,54 @@ class MomoController extends Controller
         DB::transaction(function () use ($order, $payload) {
             $freshOrder = DatHang::lockForUpdate()->find($order->id_dathang);
 
-            if (!$freshOrder || ($this->hasPaymentTracking() && $freshOrder->trang_thai_thanh_toan === 'paid')) {
+            if (! $freshOrder || ($this->hasPaymentTracking() && $freshOrder->trang_thai_thanh_toan === 'paid')) {
                 return;
+            }
+
+            $freshOrderLoad = DatHang::with('chi_tiets')->find($freshOrder->id_dathang);
+            if ($freshOrderLoad) {
+                // Restore cart items
+                foreach ($freshOrderLoad->chi_tiets as $detail) {
+                    $cartItem = GioHang::where('id_khachhang', $freshOrderLoad->id_khachhang)
+                        ->where('id_bienthe', $detail->id_bienthe)
+                        ->first();
+                    if ($cartItem) {
+                        $cartItem->increment('soluong', $detail->soluong);
+                    } else {
+                        GioHang::create([
+                            'id_khachhang' => $freshOrderLoad->id_khachhang,
+                            'id_bienthe' => $detail->id_bienthe,
+                            'soluong' => $detail->soluong,
+                        ]);
+                    }
+                }
+
+                // Restore stock
+                foreach ($freshOrderLoad->chi_tiets as $chiTiet) {
+                    if ($chiTiet->bienThe) {
+                        $chiTiet->bienThe->increment('soluong', $chiTiet->soluong);
+                    }
+                }
+            }
+
+            // Restore coins
+            if ($freshOrder->xu_dung > 0) {
+                $user = $freshOrder->user;
+                if ($user) {
+                    $user->increment('xu', $freshOrder->xu_dung);
+                    XuHistory::create([
+                        'id_khachhang' => $freshOrder->id_khachhang,
+                        'so_xu' => $freshOrder->xu_dung,
+                        'loai_giao_dich' => 'hoan_tra',
+                        'id_dathang' => $freshOrder->id_dathang,
+                        'mo_ta' => 'Hoàn xu do thanh toán MoMo thất bại đơn hàng #'.$freshOrder->id_dathang,
+                    ]);
+                }
             }
 
             $updateData = [
                 'trangthai' => 'cancelled',
-                'lydo' => 'Thanh toán MoMo thất bại: ' . ($payload['message'] ?? 'Không rõ lý do'),
+                'lydo' => 'Thanh toán MoMo thất bại: '.($payload['message'] ?? 'Không rõ lý do'),
             ];
 
             if ($this->hasPaymentTracking()) {
@@ -330,7 +379,7 @@ class MomoController extends Controller
 
     private function assertConfigured(): void
     {
-        if (!env('MOMO_PARTNER_CODE') || !env('MOMO_ACCESS_KEY') || !env('MOMO_SECRET_KEY')) {
+        if (! env('MOMO_PARTNER_CODE') || ! env('MOMO_ACCESS_KEY') || ! env('MOMO_SECRET_KEY')) {
             throw new \RuntimeException('Thiếu cấu hình MoMo sandbox trong file .env.');
         }
     }
@@ -345,7 +394,7 @@ class MomoController extends Controller
             throw new \RuntimeException('Thẻ Visa/Mastercard/JCB qua MoMo chỉ hỗ trợ số tiền từ 1.000đ đến 10.000.000đ.');
         }
 
-        if (!in_array($requestType, ['payWithATM', 'payWithCC'], true) && ($amount < 1000 || $amount > 50000000)) {
+        if (! in_array($requestType, ['payWithATM', 'payWithCC'], true) && ($amount < 1000 || $amount > 50000000)) {
             throw new \RuntimeException('MoMo chỉ hỗ trợ số tiền từ 1.000đ đến 50.000.000đ.');
         }
     }
@@ -356,23 +405,23 @@ class MomoController extends Controller
         $accessKey = env('MOMO_ACCESS_KEY');
         $signature = $payload['signature'] ?? '';
 
-        if (!$secretKey || !$accessKey || !$signature) {
+        if (! $secretKey || ! $accessKey || ! $signature) {
             return false;
         }
 
-        $rawSignature = 'accessKey=' . $accessKey
-            . '&amount=' . ($payload['amount'] ?? '')
-            . '&extraData=' . ($payload['extraData'] ?? '')
-            . '&message=' . ($payload['message'] ?? '')
-            . '&orderId=' . ($payload['orderId'] ?? '')
-            . '&orderInfo=' . ($payload['orderInfo'] ?? '')
-            . '&orderType=' . ($payload['orderType'] ?? '')
-            . '&partnerCode=' . ($payload['partnerCode'] ?? '')
-            . '&payType=' . ($payload['payType'] ?? '')
-            . '&requestId=' . ($payload['requestId'] ?? '')
-            . '&responseTime=' . ($payload['responseTime'] ?? '')
-            . '&resultCode=' . ($payload['resultCode'] ?? '')
-            . '&transId=' . ($payload['transId'] ?? '');
+        $rawSignature = 'accessKey='.$accessKey
+            .'&amount='.($payload['amount'] ?? '')
+            .'&extraData='.($payload['extraData'] ?? '')
+            .'&message='.($payload['message'] ?? '')
+            .'&orderId='.($payload['orderId'] ?? '')
+            .'&orderInfo='.($payload['orderInfo'] ?? '')
+            .'&orderType='.($payload['orderType'] ?? '')
+            .'&partnerCode='.($payload['partnerCode'] ?? '')
+            .'&payType='.($payload['payType'] ?? '')
+            .'&requestId='.($payload['requestId'] ?? '')
+            .'&responseTime='.($payload['responseTime'] ?? '')
+            .'&resultCode='.($payload['resultCode'] ?? '')
+            .'&transId='.($payload['transId'] ?? '');
 
         $expectedSignature = hash_hmac('sha256', $rawSignature, $secretKey);
 
@@ -383,7 +432,7 @@ class MomoController extends Controller
     {
         $localOrderId = $this->extractLocalOrderId((string) ($payload['orderId'] ?? ''));
 
-        if (!$localOrderId) {
+        if (! $localOrderId) {
             return null;
         }
 

@@ -194,7 +194,7 @@
                             </table>
 
                             <div style="text-align:center;margin-top:26px;">
-                                <a href="http://localhost:5173/profile" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 34px;border-radius:10px;">Theo dõi đơn hàng</a>
+                                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/profile" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 34px;border-radius:10px;">Theo dõi đơn hàng</a>
                             </div>
                         </td>
                     </tr>

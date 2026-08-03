@@ -158,11 +158,6 @@ const loginGoogle = () => {
   window.location.href = `${api.defaults.baseURL}${endpoint}`
 }
 
-const loginFacebook = () => {
-  const refCode = localStorage.getItem('affiliate_ref') || ''
-  const endpoint = refCode ? `/auth/facebook?ref=${encodeURIComponent(refCode)}` : '/auth/facebook'
-  window.location.href = `${api.defaults.baseURL}${endpoint}`
-}
 </script>
 
 <template>
@@ -201,9 +196,6 @@ const loginFacebook = () => {
               Ưu đãi thành viên
             </span>
           </div>
-        </div>
-        <div class="laptop-img-wrapper">
-          <img class="laptop-img" src="/register_laptop.jpg" alt="Predator laptop workspace" />
         </div>
       </div>
 
@@ -246,7 +238,7 @@ const loginFacebook = () => {
                   <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="example@gmail.com" @blur="isTouched.email.value = true" />
+              <input v-model="email" type="email" name="email" autocomplete="email" placeholder="Example@gmail.com" @blur="isTouched.email.value = true" />
             </div>
             <p v-if="emailError" class="field-hint error">{{ emailError }}</p>
           </div>
@@ -342,7 +334,7 @@ const loginFacebook = () => {
           <!-- SUBMIT BUTTON -->
           <button type="submit" class="submit-btn" :disabled="loading">
             <span class="btn-text">
-              {{ loading ? 'Đang tạo tài khoản...' : 'Đăng Ký Ngay' }}
+              {{ loading ? 'Đang tạo tài khoản...' : 'Đăng ký ngay' }}
             </span>
           </button>
         </form>
@@ -350,7 +342,7 @@ const loginFacebook = () => {
         <!-- OR DIVIDER -->
         <div class="or-divider">
           <span class="divider-line"></span>
-          <span class="divider-text">HOẶC</span>
+          <span class="divider-text">Hoặc</span>
           <span class="divider-line"></span>
         </div>
 
@@ -363,13 +355,7 @@ const loginFacebook = () => {
               <path fill="#4285F4" d="M14 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H4.18v2.84C5.99 20.53 9.7 23 14 23z"/>
               <path fill="#34A853" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Google
-          </button>
-          <button @click="loginFacebook" class="social-btn-facebook">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Facebook
+            Đăng nhập bằng Google
           </button>
         </div>
 
@@ -437,19 +423,50 @@ const loginFacebook = () => {
 }
 
 .left-col {
-  background-color: #0d1b2e;
+  background: #0d1b2e;
   color: #ffffff;
   padding: 36px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.left-col::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/register_laptop.jpg') center / cover no-repeat;
+  opacity: 0.76;
+  transform: scale(1.02);
+}
+
+.left-col::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(13, 27, 46, 0.62), rgba(13, 27, 46, 0.42)),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.18));
+  pointer-events: none;
+}
+
+.left-content {
+  position: relative;
+  z-index: 2;
+  max-width: 360px;
 }
 
 .brand-header {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+  z-index: 2;
 }
 
 .brand-title {
@@ -473,12 +490,16 @@ const loginFacebook = () => {
   line-height: 1.5;
   margin-top: 12px;
   margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
 }
 
 .highlight-pills {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .pill {
@@ -500,22 +521,6 @@ const loginFacebook = () => {
   width: 14px;
   height: 14px;
   color: #60a5fa;
-}
-
-.laptop-img-wrapper {
-  margin-top: auto;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.laptop-img {
-  width: 100%;
-  max-width: 320px;
-  height: 180px;
-  border-radius: 12px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-  object-fit: cover;
 }
 
 .right-col {
@@ -769,6 +774,11 @@ const loginFacebook = () => {
   justify-content: center;
   margin-top: 4px;
   transition: background-color 0.2s;
+  text-transform: none !important;
+}
+
+.btn-text {
+  text-transform: none !important;
 }
 
 .submit-btn:hover {
@@ -797,6 +807,7 @@ const loginFacebook = () => {
   font-weight: 600;
   color: #9ca3af;
   padding: 0 10px;
+  text-transform: none !important;
 }
 
 .social-row {
@@ -804,8 +815,7 @@ const loginFacebook = () => {
   gap: 8px;
 }
 
-.social-btn-google,
-.social-btn-facebook {
+.social-btn-google {
   flex: 1;
   height: 32px;
   background-color: #ffffff;
@@ -820,10 +830,10 @@ const loginFacebook = () => {
   justify-content: center;
   gap: 6px;
   transition: background-color 0.2s, border-color 0.2s;
+  text-transform: none !important;
 }
 
-.social-btn-google:hover,
-.social-btn-facebook:hover {
+.social-btn-google:hover {
   background-color: #f0f7ff;
   border-color: #93c5fd;
 }
@@ -840,6 +850,7 @@ const loginFacebook = () => {
   color: #2563eb;
   font-weight: 700;
   cursor: pointer;
+  text-transform: none !important;
 }
 
 .register-link:hover {

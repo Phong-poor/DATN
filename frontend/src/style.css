@@ -149,26 +149,6 @@
   h6,
   button,
   .btn,
-  .nav-link,
-  .menu-link,
-  .dropdown-item,
-  .sidebar-link,
-  .sidebar-title,
-  .ambient-label,
-  .section-label,
-  .section-title,
-  .main-title,
-  .page-title,
-  .card-title,
-  .modal-title,
-  .box-title,
-  .header-title,
-  .empty-title,
-  .summary-title,
-  .benefits-title,
-  .filter-title,
-  .detail-label,
-  .stat-label,
   .stat-card-tag,
   .badge,
   .badge-tag,
@@ -193,26 +173,6 @@
   h6,
   button,
   .btn,
-  .nav-link,
-  .menu-link,
-  .dropdown-item,
-  .sidebar-link,
-  .sidebar-title,
-  .ambient-label,
-  .section-label,
-  .section-title,
-  .main-title,
-  .page-title,
-  .card-title,
-  .modal-title,
-  .box-title,
-  .header-title,
-  .empty-title,
-  .summary-title,
-  .benefits-title,
-  .filter-title,
-  .detail-label,
-  .stat-label,
   .stat-card-tag,
   .badge,
   .badge-tag,
@@ -237,28 +197,6 @@
   pre,
   .logo,
   .sidebar-logo,
-  .product-item-title,
-  .flash-product-name,
-  .product-name,
-  .product-title,
-  .premium-product-title,
-  .product-card-title,
-  .item-name,
-  .item-brand,
-  .brand-sub,
-  .brand-label,
-  .brand-pill,
-  .hero-product-title,
-  .hero-product-brand,
-  .spec-p-badge,
-  .spec-lbl,
-  .spec-val,
-  .spec-tag,
-  .sku,
-  .code,
-  .promo-code,
-  .voucher-code,
-  .coupon-select,
   .order-code,
   .price-current,
   .current-price,
@@ -272,6 +210,15 @@
 ) {
   text-transform: none !important;
 }
+
+.web-layout button:not([data-preserve-case]),
+.web-layout a.btn:not([data-preserve-case]),
+.web-layout a[class*="btn-"]:not([data-preserve-case]),
+.web-layout [role="button"]:not([data-preserve-case]) {
+  text-transform: capitalize !important;
+}
+
+
 
 html,
 body,
@@ -874,32 +821,9 @@ body {
   font-size: 12px;
   font-weight: 800;
   color: var(--tn-primary);
-  text-transform: lowercase;
   letter-spacing: 2px;
   margin-bottom: 8px;
   display: inline-block;
-}
-
-.premium-section-header .section-label,
-.section-header :is(h1, h2, h3),
-.premium-section-header :is(h1, h2, h3),
-.ambient-label,
-.tab-pill,
-.interactive-anchor,
-.btn-premium-glow,
-.btn-premium-glass {
-  text-transform: lowercase !important;
-}
-
-.premium-section-header .section-label::first-letter,
-.section-header :is(h1, h2, h3)::first-letter,
-.premium-section-header :is(h1, h2, h3)::first-letter,
-.ambient-label::first-letter,
-.tab-pill::first-letter,
-.interactive-anchor::first-letter,
-.btn-premium-glow::first-letter,
-.btn-premium-glass::first-letter {
-  text-transform: uppercase !important;
 }
 
 /* Generic Premium Cards */
