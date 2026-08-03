@@ -448,6 +448,10 @@ Route::middleware(['auth:sanctum', 'admin'])
 
         // ===== ADMIN TIME ATTENDANCE =====
         Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
+        Route::get('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetCaLam']);
+        Route::put('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateCaLam']);
+        Route::get('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetLichLam']);
+        Route::put('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateLichLam']);
         Route::get('/cham-cong/nhan-vien', [App\Http\Controllers\ChamCongController::class, 'adminGetNhanVien']);
         Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminDangKyKhuonMat']);
         Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminXoaKhuonMat']);

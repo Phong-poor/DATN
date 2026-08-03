@@ -9,6 +9,7 @@ import { getUser } from '@/services/auth'
 const router = useRouter()
 const currentUser = ref(getUser() || {})
 const isAdmin = computed(() => Boolean(currentUser.value?.vaitro && currentUser.value.vaitro !== 'user'))
+const isSuperAdmin = computed(() => String(currentUser.value?.vaitro || '').toLowerCase() === 'admin')
 const isOwnEmployee = (employeeOrId) => {
   const employeeId = typeof employeeOrId === 'object' ? employeeOrId?.id : employeeOrId
   return Number(employeeId) === Number(currentUser.value?.id)
@@ -119,10 +120,51 @@ function attendanceStatus(log) {
   return { text: 'Đã hoàn tất', className: 'status-complete' }
 }
 
-const workSchedule = {
+const workSchedule = ref({
+  morning_start: '08:00',
+  morning_end: '12:00',
+  afternoon_start: '13:30',
+  afternoon_end: '17:30',
   morning: '08:00 – 12:00',
   break: '12:00 – 13:30',
   afternoon: '13:30 – 17:30'
+})
+const scheduleModalOpen = ref(false)
+const scheduleSaving = ref(false)
+const scheduleForm = ref({})
+
+async function fetchWorkSchedule() {
+  try {
+    const response = await api.get('/admin/cham-cong/ca-lam', { skipGlobalLoader: true })
+    if (response.data?.success) workSchedule.value = response.data.data
+  } catch (error) {
+    console.error('Không thể tải cấu hình ca làm:', error)
+  }
+}
+const canViewEmployeeSalary = employeeOrId => isSuperAdmin.value || isOwnEmployee(employeeOrId)
+
+function openScheduleModal() {
+  scheduleForm.value = {
+    morning_start: workSchedule.value.morning_start,
+    morning_end: workSchedule.value.morning_end,
+    afternoon_start: workSchedule.value.afternoon_start,
+    afternoon_end: workSchedule.value.afternoon_end
+  }
+  scheduleModalOpen.value = true
+}
+
+async function saveWorkSchedule() {
+  scheduleSaving.value = true
+  try {
+    const response = await api.put('/admin/cham-cong/ca-lam', scheduleForm.value)
+    workSchedule.value = response.data.data
+    scheduleModalOpen.value = false
+    swal.success('Đã cập nhật', response.data.message)
+  } catch (error) {
+    swal.error('Không thể cập nhật ca làm', error.response?.data?.message || 'Vui lòng kiểm tra lại thời gian.')
+  } finally {
+    scheduleSaving.value = false
+  }
 }
 
 async function fetchLogs(page = 1) {
@@ -194,7 +236,7 @@ function openFaceEnrollment(employee) {
 }
 
 async function openEmployeeCalendar(employee) {
-  if (!isOwnEmployee(employee)) return
+  if (!canViewEmployeeSalary(employee)) return
   calendarEmployee.value = employee
   calendarMonth.value = new Date().toISOString().slice(0, 7)
   selectedCalendarLog.value = null
@@ -273,6 +315,7 @@ function setViewMode(mode) {
 
 onMounted(() => {
   fetchLogs(1)
+  fetchWorkSchedule()
   if (isAdmin.value) fetchEmployees()
 })
 </script>
@@ -305,7 +348,34 @@ onMounted(() => {
         <div><span>Ca sáng</span><strong>{{ workSchedule.morning }}</strong></div>
         <div><span>Nghỉ trưa</span><strong>{{ workSchedule.break }}</strong></div>
         <div><span>Ca chiều</span><strong>{{ workSchedule.afternoon }}</strong></div>
+        <button v-if="isAdmin" type="button" class="schedule-edit-btn" @click="openScheduleModal">
+          Cập nhật ca làm
+        </button>
       </div>
+    </div>
+
+    <div v-if="scheduleModalOpen" class="schedule-modal-backdrop" @click.self="scheduleModalOpen = false">
+      <form class="schedule-modal" @submit.prevent="saveWorkSchedule">
+        <div class="schedule-modal-header">
+          <div>
+            <h3>Cập nhật ca làm</h3>
+            <p>Thời gian mới sẽ áp dụng cho các lượt chấm công tiếp theo.</p>
+          </div>
+          <button type="button" class="schedule-modal-close" @click="scheduleModalOpen = false">×</button>
+        </div>
+        <div class="schedule-form-grid">
+          <label><span>Bắt đầu ca sáng</span><input v-model="scheduleForm.morning_start" type="time" required /></label>
+          <label><span>Kết thúc ca sáng</span><input v-model="scheduleForm.morning_end" type="time" required /></label>
+          <label><span>Bắt đầu ca chiều</span><input v-model="scheduleForm.afternoon_start" type="time" required /></label>
+          <label><span>Kết thúc ca chiều</span><input v-model="scheduleForm.afternoon_end" type="time" required /></label>
+        </div>
+        <div class="schedule-modal-actions">
+          <button type="button" class="schedule-cancel-btn" @click="scheduleModalOpen = false">Hủy</button>
+          <button type="submit" class="schedule-save-btn" :disabled="scheduleSaving">
+            {{ scheduleSaving ? 'Đang lưu...' : 'Lưu ca làm' }}
+          </button>
+        </div>
+      </form>
     </div>
 
     <div class="stats-grid">
@@ -356,14 +426,14 @@ onMounted(() => {
           v-for="employee in filteredEmployees()"
           :key="employee.id"
           class="employee-card"
-          :class="{ 'salary-accessible': isOwnEmployee(employee), 'salary-locked': !isOwnEmployee(employee) }"
-          :role="isOwnEmployee(employee) ? 'button' : undefined"
-          :tabindex="isOwnEmployee(employee) ? 0 : -1"
-          :title="isOwnEmployee(employee) ? 'Bấm để xem chi tiết lương của bạn' : 'Lương cá nhân được bảo mật'"
+          :class="{ 'salary-accessible': canViewEmployeeSalary(employee), 'salary-locked': !canViewEmployeeSalary(employee) }"
+          :role="canViewEmployeeSalary(employee) ? 'button' : undefined"
+          :tabindex="canViewEmployeeSalary(employee) ? 0 : -1"
+          :title="canViewEmployeeSalary(employee) ? 'Bấm để xem chi tiết công và lương' : 'Lương cá nhân được bảo mật'"
           @click="openEmployeeCalendar(employee)"
           @keydown.enter="openEmployeeCalendar(employee)"
         >
-          <span v-if="!isOwnEmployee(employee)" class="salary-lock-notice" aria-hidden="true">
+          <span v-if="!canViewEmployeeSalary(employee)" class="salary-lock-notice" aria-hidden="true">
             <svg viewBox="0 0 24 24">
               <rect x="5" y="10" width="14" height="10" rx="2" />
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -517,7 +587,7 @@ onMounted(() => {
                 </div>
               </td>
               <td>
-                <div v-if="isOwnEmployee(log.id_nhanvien)" class="payroll-note" :class="{ late: log.tien_phat > 0 }">
+                <div v-if="canViewEmployeeSalary(log.id_nhanvien)" class="payroll-note" :class="{ late: log.tien_phat > 0 }">
                   <strong>{{ log.tien_phat > 0 ? `Trừ ${formatMoney(log.tien_phat)}` : 'Không khấu trừ' }}</strong>
                   <span>{{ log.ghi_chu_luong }}</span>
                 </div>
@@ -977,6 +1047,83 @@ onMounted(() => {
 
 .schedule-slots span { font-size: 11px; color: #64748b; }
 .schedule-slots strong { font-size: 12.5px; color: #1e3a8a; }
+.schedule-edit-btn {
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.schedule-edit-btn:hover { background: #1d4ed8; }
+.schedule-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(3px);
+}
+.schedule-modal {
+  width: min(520px, 100%);
+  padding: 22px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+}
+.schedule-modal-header { display: flex; justify-content: space-between; gap: 20px; }
+.schedule-modal-header h3 { margin: 0; color: #0f172a; font-size: 20px; }
+.schedule-modal-header p { margin: 5px 0 0; color: #64748b; font-size: 12px; }
+.schedule-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 22px;
+  cursor: pointer;
+}
+.schedule-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+.schedule-form-grid label { display: grid; gap: 7px; }
+.schedule-form-grid span { color: #334155; font-size: 12px; font-weight: 700; }
+.schedule-form-grid input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #0f172a;
+  font: inherit;
+  outline: none;
+}
+.schedule-form-grid input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.schedule-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.schedule-modal-actions button { height: 40px; padding: 0 17px; border-radius: 10px; font-weight: 750; cursor: pointer; }
+.schedule-cancel-btn { border: 1px solid #cbd5e1; background: #fff; color: #475569; }
+.schedule-save-btn { border: 0; background: #2563eb; color: #fff; }
+.schedule-save-btn:disabled { cursor: wait; opacity: .65; }
+
+@media (max-width: 1100px) {
+  .schedule-guide { align-items: flex-start; flex-direction: column; }
+  .schedule-slots { width: 100%; flex-wrap: wrap; }
+  .schedule-edit-btn { min-height: 52px; }
+}
+
+@media (max-width: 600px) {
+  .schedule-slots > div { flex: 1 1 120px; }
+  .schedule-edit-btn { width: 100%; }
+  .schedule-form-grid { grid-template-columns: 1fr; }
+}
 
 /* === STATS GRID === */
 .stats-grid {

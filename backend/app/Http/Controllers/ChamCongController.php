@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Models\CauHinhCaLam;
 use App\Models\ChamCong;
-use Illuminate\Support\Facades\Storage;
+use App\Models\LichLamNhanVien;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Xử lý đăng ký khuôn mặt, check-in/check-out và quản lý lịch công nhân viên.
@@ -20,17 +22,22 @@ class ChamCongController extends Controller
     {
         $user = $request->user();
         $today = Carbon::today()->toDateString();
-        
+
         $chamCong = ChamCong::where('id_nhanvien', $user->id)
             ->where('ngay_cham_cong', $today)
             ->first();
 
+        $scheduleError = $this->attendanceScheduleError($user, Carbon::today());
+
         return response()->json([
             'success' => true,
-            'face_registered' => (bool)$user->face_registered,
+            'face_registered' => (bool) $user->face_registered,
             'checked_in' => $chamCong ? ($chamCong->gio_vao !== null) : false,
             'checked_out' => $chamCong ? ($chamCong->gio_ra !== null) : false,
             'today_record' => $chamCong,
+            'attendance_allowed' => $scheduleError === null,
+            'attendance_block_reason' => $scheduleError,
+            'work_assignment' => LichLamNhanVien::where('id_nhanvien', $user->id)->first(),
             'employee' => [
                 'id' => $user->id,
                 'name' => $user->ten,
@@ -39,11 +46,7 @@ class ChamCongController extends Controller
                 'role_name' => $user->ten_vaitro_hienthi,
                 'avatar' => $user->anhdaidien,
             ],
-            'work_schedule' => [
-                'morning' => '08:00 - 12:00',
-                'break' => '12:00 - 13:30',
-                'afternoon' => '13:30 - 17:30',
-            ],
+            'work_schedule' => CauHinhCaLam::current()->toScheduleArray(),
         ]);
     }
 
@@ -64,6 +67,7 @@ class ChamCongController extends Controller
                 'message' => 'Chỉ tài khoản nhân viên mới được đăng ký khuôn mặt chấm công.',
             ], 403);
         }
+
         $user->face_descriptor = json_encode($request->face_descriptor);
         $user->face_registered = true;
         $user->save();
@@ -110,7 +114,7 @@ class ChamCongController extends Controller
             ], 403);
         }
 
-        if (!$user->face_registered || !$user->face_descriptor) {
+        if (! $user->face_registered || ! $user->face_descriptor) {
             return response()->json([
                 'success' => false,
                 'message' => 'Nhân viên chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi chấm công.',
@@ -118,7 +122,7 @@ class ChamCongController extends Controller
         }
 
         $storedDescriptor = json_decode($user->face_descriptor, true);
-        if (!is_array($storedDescriptor) || count($storedDescriptor) !== 128) {
+        if (! is_array($storedDescriptor) || count($storedDescriptor) !== 128) {
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu khuôn mặt đã đăng ký không hợp lệ. Vui lòng đăng ký lại.',
@@ -143,15 +147,25 @@ class ChamCongController extends Controller
         $today = Carbon::today()->toDateString();
         $now = Carbon::now();
         $currentTime = $now->toTimeString();
-        
+
         $chamCong = ChamCong::where('id_nhanvien', $user->id)
             ->where('ngay_cham_cong', $today)
             ->first();
 
+        if (! $chamCong && ($message = $this->attendanceScheduleError($user, $now))) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+
+        // Chỉ kiểm tra khung giờ khi check-in. Một ca đã bắt đầu luôn được check-out,
+        // kể cả nhân viên về muộn hơn giờ kết thúc ca.
+        if (! $chamCong && ($message = $this->checkInTimeError($user, $now))) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+
         $type = $chamCong ? 'checkout' : 'checkin';
         $imagePath = $this->saveBase64Image($request->image, $user->id, $today, $type);
 
-        if (!$imagePath) {
+        if (! $imagePath) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lưu trữ ảnh chụp chấm công!',
@@ -159,19 +173,18 @@ class ChamCongController extends Controller
         }
 
         // 4. Ghi nhận dữ liệu Check-in hoặc Check-out
-        if (!$chamCong) {
+        if (! $chamCong) {
             // == CHECK-IN ==
             $gioVaoPhut = $now->hour * 60 + $now->minute;
             $diTrePhut = 0;
 
-            // Ca sáng mốc là 08:00 (480 phút)
-            // Ca chiều mốc là 13:30 (810 phút)
-            if ($gioVaoPhut <= 12 * 60) {
+            $schedule = $this->scheduleMinutes($user);
+            if ($schedule['shift'] === 'morning' || ($schedule['shift'] === 'full_day' && $gioVaoPhut <= $schedule['morning_end'])) {
                 // Vào ca sáng
-                $diTrePhut = max(0, $gioVaoPhut - 8 * 60);
+                $diTrePhut = max(0, $gioVaoPhut - $schedule['morning_start']);
             } else {
                 // Vào ca chiều
-                $diTrePhut = max(0, $gioVaoPhut - 13.5 * 60);
+                $diTrePhut = max(0, $gioVaoPhut - $schedule['afternoon_start']);
             }
 
             $chamCong = new ChamCong([
@@ -202,26 +215,27 @@ class ChamCongController extends Controller
 
             $gioVaoString = $chamCong->gio_vao;
             $gioVaoCarbon = Carbon::createFromFormat('H:i:s', $gioVaoString);
-            
+
             $gioVaoPhut = $gioVaoCarbon->hour * 60 + $gioVaoCarbon->minute;
             $gioRaPhut = $now->hour * 60 + $now->minute;
 
-            // 1. Tính tổng giờ thực tế làm việc (đã trừ 1.5 tiếng nghỉ trưa 12:00 - 13:30)
+            // Tính giờ thực tế theo cấu hình ca làm hiện hành.
+            $schedule = $this->scheduleMinutes($user);
             $phutSang = 0;
-            $raCaSang = 12 * 60; // 12h00
-            $vaoCaSang = 8 * 60;  // 08h00
+            $raCaSang = $schedule['morning_end'];
+            $vaoCaSang = $schedule['morning_start'];
 
-            if ($gioVaoPhut < $raCaSang) {
+            if ($schedule['shift'] !== 'afternoon' && $gioVaoPhut < $raCaSang) {
                 $diemVaoSang = max($vaoCaSang, $gioVaoPhut);
                 $diemRaSang = min($raCaSang, $gioRaPhut);
                 $phutSang = max(0, $diemRaSang - $diemVaoSang);
             }
 
             $phutChieu = 0;
-            $vaoCaChieu = 13.5 * 60; // 13h30
-            $raCaChieu = 17.5 * 60;  // 17h30
+            $vaoCaChieu = $schedule['afternoon_start'];
+            $raCaChieu = $schedule['afternoon_end'];
 
-            if ($gioRaPhut > $vaoCaChieu) {
+            if ($schedule['shift'] !== 'morning' && $gioRaPhut > $vaoCaChieu) {
                 $diemVaoChieu = max($vaoCaChieu, $gioVaoPhut);
                 $diemRaChieu = min($raCaChieu, $gioRaPhut);
                 $phutChieu = max(0, $diemRaChieu - $diemVaoChieu);
@@ -231,8 +245,8 @@ class ChamCongController extends Controller
             $tongGio = round($tongPhut / 60, 2);
 
             // 2. Tính tổng công (mỗi ca có đi làm/có mặt là được 0.5 công, bất kể về sớm)
-            $congSang = ($gioVaoPhut < 12 * 60) ? 0.5 : 0.0;
-            $congChieu = ($gioRaPhut >= 13.5 * 60) ? 0.5 : 0.0;
+            $congSang = ($schedule['shift'] !== 'afternoon' && $gioVaoPhut < $raCaSang) ? 0.5 : 0.0;
+            $congChieu = ($schedule['shift'] !== 'morning' && $gioRaPhut >= $vaoCaChieu) ? 0.5 : 0.0;
             $tongCong = $congSang + $congChieu;
 
             // Cập nhật bản ghi
@@ -274,7 +288,7 @@ class ChamCongController extends Controller
 
         foreach ($employees as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (!is_array($stored) || count($stored) !== 128) {
+            if (! is_array($stored) || count($stored) !== 128) {
                 continue;
             }
 
@@ -285,7 +299,7 @@ class ChamCongController extends Controller
             }
         }
 
-        if (!$bestEmployee || $bestDistance > 0.55) {
+        if (! $bestEmployee || $bestDistance > 0.55) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không nhận diện được nhân viên. Vui lòng đăng ký hoặc cập nhật khuôn mặt trước.',
@@ -347,17 +361,18 @@ class ChamCongController extends Controller
             ->select('id', 'ten', 'anhdaidien', 'vaitro')
             ->withSum(['chamCongs as total_cong' => function ($query) use ($thang, $nam) {
                 $query->whereYear('ngay_cham_cong', $nam)
-                      ->whereMonth('ngay_cham_cong', $thang);
+                    ->whereMonth('ngay_cham_cong', $thang);
             }], 'tong_cong')
             ->withSum(['chamCongs as total_gio' => function ($query) use ($thang, $nam) {
                 $query->whereYear('ngay_cham_cong', $nam)
-                      ->whereMonth('ngay_cham_cong', $thang);
+                    ->whereMonth('ngay_cham_cong', $thang);
             }], 'tong_gio')
             ->get()
             ->map(function ($item) {
                 // Carbon withSum có thể trả về null nếu không có bản ghi nào
-                $item->total_cong = (float)($item->total_cong ?? 0.0);
-                $item->total_gio = (float)($item->total_gio ?? 0.0);
+                $item->total_cong = (float) ($item->total_cong ?? 0.0);
+                $item->total_gio = (float) ($item->total_gio ?? 0.0);
+
                 return $item;
             })
             // Sắp xếp theo tổng công giảm dần, tổng giờ giảm dần, sau đó theo tên
@@ -368,6 +383,7 @@ class ChamCongController extends Controller
                 if ($a->total_gio !== $b->total_gio) {
                     return $b->total_gio <=> $a->total_gio;
                 }
+
                 return strcmp($a->ten, $b->ten);
             })
             ->values();
@@ -409,6 +425,7 @@ class ChamCongController extends Controller
         $search = $request->query('search');
         $currentUser = $request->user();
         $isAdmin = $currentUser && $currentUser->vaitro !== 'user';
+        $isSuperAdmin = $currentUser && strtolower((string) $currentUser->vaitro) === 'admin';
 
         $query = ChamCong::with('user:id,ten,email,anhdaidien,vaitro');
 
@@ -420,13 +437,13 @@ class ChamCongController extends Controller
                 ->whereMonth('ngay_cham_cong', $monthNumber);
         }
 
-        if ($employeeId && (int) $employeeId !== (int) $currentUser->id) {
+        if ($employeeId && ! $isSuperAdmin && (int) $employeeId !== (int) $currentUser->id) {
             return response()->json([
                 'message' => 'Bạn chỉ được xem chi tiết lương của chính mình.',
             ], 403);
         }
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             // Bảo mật bắt buộc ở server: nhân viên chỉ được xem dữ liệu của chính mình,
             // kể cả khi cố truyền employee_id của người khác trên URL.
             $query->where('id_nhanvien', $currentUser->id);
@@ -437,19 +454,21 @@ class ChamCongController extends Controller
         if ($isAdmin && $search) {
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         $attendanceRows = (clone $query)->get();
-        $salaryRows = (clone $query)
-            ->where('id_nhanvien', $currentUser->id)
-            ->get();
+        $salaryRows = (clone $query);
+        if (! $employeeId) {
+            $salaryRows->where('id_nhanvien', $currentUser->id);
+        }
+        $salaryRows = $salaryRows->get();
         $baseSalaryPerDay = 350000;
         $penaltyPerTenMinutes = 10000;
 
         $payrollSummary = $salaryRows->reduce(function ($summary, ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes) {
-            $worked = !empty($record->gio_vao);
+            $worked = ! empty($record->gio_vao);
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = $worked ? $baseSalaryPerDay : 0;
@@ -461,6 +480,7 @@ class ChamCongController extends Controller
             $summary['gross_salary'] += $grossSalary;
             $summary['total_penalty'] += $penalty;
             $summary['net_salary'] += max(0, $grossSalary - $penalty);
+
             return $summary;
         }, [
             'work_days' => 0,
@@ -483,12 +503,12 @@ class ChamCongController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate((int) $request->query('per_page', 15));
 
-        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser) {
-            if ((int) $record->id_nhanvien !== (int) $currentUser->id) {
+        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser, $isSuperAdmin) {
+            if (! $isSuperAdmin && (int) $record->id_nhanvien !== (int) $currentUser->id) {
                 return $record;
             }
 
-            $worked = !empty($record->gio_vao);
+            $worked = ! empty($record->gio_vao);
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = $worked ? $baseSalaryPerDay : 0;
@@ -499,14 +519,15 @@ class ChamCongController extends Controller
             $record->setAttribute('luong_thuc_nhan', max(0, $grossSalary - $penalty));
             $record->setAttribute(
                 'ghi_chu_luong',
-                !$worked
+                ! $worked
                     ? 'Chưa có lượt check-in nên chưa tính lương ngày.'
                     : ($lateMinutes > 0
                         ? "Đi làm muộn {$lateMinutes} phút = {$penaltyBlocks} mốc 10 phút × "
-                            . number_format($penaltyPerTenMinutes, 0, ',', '.') . 'đ, tổng khấu trừ '
-                            . number_format($penalty, 0, ',', '.') . 'đ.'
+                            .number_format($penaltyPerTenMinutes, 0, ',', '.').'đ, tổng khấu trừ '
+                            .number_format($penalty, 0, ',', '.').'đ.'
                         : 'Đi làm đúng giờ, hưởng đủ lương ngày.')
             );
+
             return $record;
         }));
 
@@ -606,6 +627,153 @@ class ChamCongController extends Controller
             'success' => true,
             'message' => "Đã xóa dữ liệu khuôn mặt của {$employee->ten}.",
         ]);
+    }
+
+    public function adminGetCaLam()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => CauHinhCaLam::current()->toScheduleArray(),
+        ]);
+    }
+
+    public function adminUpdateCaLam(Request $request)
+    {
+        $validated = $request->validate([
+            'morning_start' => ['required', 'date_format:H:i'],
+            'morning_end' => ['required', 'date_format:H:i'],
+            'afternoon_start' => ['required', 'date_format:H:i'],
+            'afternoon_end' => ['required', 'date_format:H:i'],
+        ]);
+
+        $minutes = array_map(fn ($time) => $this->timeToMinutes($time), $validated);
+        if (! ($minutes['morning_start'] < $minutes['morning_end']
+            && $minutes['morning_end'] < $minutes['afternoon_start']
+            && $minutes['afternoon_start'] < $minutes['afternoon_end'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thời gian ca làm phải theo đúng thứ tự: bắt đầu sáng, kết thúc sáng, bắt đầu chiều, kết thúc chiều.',
+            ], 422);
+        }
+
+        $setting = CauHinhCaLam::current();
+        $setting->update([
+            'ca_sang_bat_dau' => $validated['morning_start'],
+            'ca_sang_ket_thuc' => $validated['morning_end'],
+            'ca_chieu_bat_dau' => $validated['afternoon_start'],
+            'ca_chieu_ket_thuc' => $validated['afternoon_end'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật ca làm thành công.',
+            'data' => $setting->fresh()->toScheduleArray(),
+        ]);
+    }
+
+    public function adminGetLichLam(Request $request, $id)
+    {
+        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $schedule = LichLamNhanVien::where('id_nhanvien', $id)->first();
+
+        return response()->json(['success' => true, 'data' => $schedule]);
+    }
+
+    public function adminUpdateLichLam(Request $request, $id)
+    {
+        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $validated = $request->validate([
+            'loai_ca' => ['required', 'in:full_day,morning,afternoon'],
+            'ngay_bat_dau' => ['required', 'date'],
+            'ngay_ket_thuc' => ['nullable', 'date', 'after_or_equal:ngay_bat_dau'],
+            'thu_lam_viec' => ['required', 'array', 'min:1'],
+            'thu_lam_viec.*' => ['integer', 'between:1,7', 'distinct'],
+        ], [
+            'loai_ca.required' => 'Vui lòng chọn ca làm việc.',
+            'loai_ca.in' => 'Ca làm việc không hợp lệ.',
+            'ngay_bat_dau.required' => 'Vui lòng chọn ngày bắt đầu làm việc.',
+            'ngay_bat_dau.date' => 'Ngày bắt đầu không hợp lệ.',
+            'ngay_ket_thuc.date' => 'Ngày kết thúc không hợp lệ.',
+            'ngay_ket_thuc.after_or_equal' => 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.',
+            'thu_lam_viec.required' => 'Vui lòng chọn ít nhất một ngày làm việc.',
+            'thu_lam_viec.min' => 'Vui lòng chọn ít nhất một ngày làm việc.',
+            'thu_lam_viec.*.between' => 'Ngày làm việc đã chọn không hợp lệ.',
+        ]);
+
+        $schedule = LichLamNhanVien::updateOrCreate(
+            ['id_nhanvien' => $id],
+            $validated
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã cập nhật lịch làm việc cho nhân viên.',
+            'data' => $schedule->fresh(),
+        ]);
+    }
+
+    private function attendanceScheduleError(User $user, Carbon $date): ?string
+    {
+        $assignment = LichLamNhanVien::where('id_nhanvien', $user->id)->first();
+        if (! $assignment) {
+            return 'Bạn chưa được đăng ký lịch và ca làm việc. Vui lòng liên hệ quản trị viên.';
+        }
+
+        if ($date->lt($assignment->ngay_bat_dau)) {
+            return 'Chưa đến ngày bắt đầu làm việc của bạn.';
+        }
+        if ($assignment->ngay_ket_thuc && $date->gt($assignment->ngay_ket_thuc)) {
+            return 'Lịch làm việc của bạn đã kết thúc.';
+        }
+        if (! in_array($date->dayOfWeekIso, $assignment->thu_lam_viec ?: [], true)) {
+            return 'Hôm nay không nằm trong lịch làm việc đã đăng ký.';
+        }
+
+        return null;
+    }
+
+    private function checkInTimeError(User $user, Carbon $now): ?string
+    {
+        $schedule = $this->scheduleMinutes($user);
+        [$start, $end] = match ($schedule['shift']) {
+            'morning' => [$schedule['morning_start'], $schedule['morning_end']],
+            'afternoon' => [$schedule['afternoon_start'], $schedule['afternoon_end']],
+            default => [$schedule['morning_start'], $schedule['afternoon_end']],
+        };
+        $current = $now->hour * 60 + $now->minute;
+        $earliest = max(0, $start - 60);
+
+        if ($current < $earliest) {
+            return 'Chưa đến giờ check-in. Bạn chỉ có thể check-in sớm tối đa 60 phút trước khi ca bắt đầu.';
+        }
+        if ($current > $end) {
+            return 'Ca làm việc hôm nay đã kết thúc, không thể check-in.';
+        }
+
+        return null;
+    }
+
+    private function scheduleMinutes(?User $user = null): array
+    {
+        $schedule = CauHinhCaLam::current()->toScheduleArray();
+        $shift = $user
+            ? (LichLamNhanVien::where('id_nhanvien', $user->id)->value('loai_ca') ?: 'full_day')
+            : 'full_day';
+
+        return [
+            'shift' => $shift,
+            'morning_start' => $this->timeToMinutes($schedule['morning_start']),
+            'morning_end' => $this->timeToMinutes($schedule['morning_end']),
+            'afternoon_start' => $this->timeToMinutes($schedule['afternoon_start']),
+            'afternoon_end' => $this->timeToMinutes($schedule['afternoon_end']),
+        ];
+    }
+
+    private function timeToMinutes(string $time): int
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+
+        return $hour * 60 + $minute;
     }
 
     /**
