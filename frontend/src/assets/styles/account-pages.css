@@ -262,8 +262,21 @@
   color: var(--ds-text);
 }
 
-.wishlist-page .page-header,
-.wishlist-page .stat-card,
+.wishlist-page .page-header {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.wishlist-page .stat-card {
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+}
+
 .wishlist-page .product-card,
 .wishlist-page .empty-state,
 .wishlist-page .skeleton-card {

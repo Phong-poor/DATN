@@ -182,6 +182,7 @@ onBeforeUnmount(() => {
 
 const currentPage = ref(1)
 const PER_PAGE = 10
+const pageSize = PER_PAGE
 
 const products = ref([])
 const isProductsFetching = ref(false)
@@ -254,7 +255,14 @@ const closeLowStockModal = () => {
   showLowStockModal.value = false
 }
 
+const updatingLowStockVariantId = ref(null)
+
 const openLowStockVariantsModal = (product) => {
+  if (product && Array.isArray(product.bienThes)) {
+    product.bienThes.forEach(v => {
+      v._addStock = ''
+    })
+  }
   selectedLowStockProduct.value = product
   showLowStockVariantsModal.value = true
 }
@@ -262,6 +270,38 @@ const openLowStockVariantsModal = (product) => {
 const closeLowStockVariantsModal = () => {
   showLowStockVariantsModal.value = false
   selectedLowStockProduct.value = null
+}
+
+const updateLowStockVariant = async (v, product) => {
+  const addQty = Number(v._addStock || 0)
+  if (isNaN(addQty) || addQty <= 0) {
+    swal.warning('Số lượng không hợp lệ', 'Vui lòng nhập số lượng cộng thêm lớn hơn 0')
+    return
+  }
+  const currentQty = Number(v.soluong || 0)
+  const finalQty = currentQty + addQty
+
+  try {
+    const variantId = v.id_bienthe || v.id
+    updatingLowStockVariantId.value = variantId
+    const payload = {
+      id_sanpham: product.id,
+      ten_bienthe: v.ten_bienthe || '',
+      gia: v.gia ?? 0,
+      soluong: finalQty
+    }
+    await api.put(`/admin/bienthe/${variantId}`, payload)
+    v.soluong = finalQty
+    v._addStock = ''
+    invalidateProductCaches(product.id)
+    swal.success('Thành công', `Đã cộng thêm ${addQty} sản phẩm! Số lượng thực tế là ${finalQty}.`)
+    await fetchProducts()
+  } catch (error) {
+    console.error(error)
+    swal.error('Lỗi', getErrorMessage(error, 'Không thể cập nhật số lượng biến thể.'))
+  } finally {
+    updatingLowStockVariantId.value = null
+  }
 }
 
 const totalPages = computed(() =>
@@ -2511,7 +2551,7 @@ onBeforeUnmount(() => {
     <!-- Modal Danh sách biến thể sắp hết hàng -->
     <Teleport to="body">
       <div v-if="showLowStockVariantsModal" class="modal-overlay" @click.self="closeLowStockVariantsModal">
-        <div class="modal">
+        <div class="modal modal-wide" style="max-width: 720px;">
           <div class="modal-header">
             <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
             <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
@@ -2522,14 +2562,42 @@ onBeforeUnmount(() => {
                 <thead>
                   <tr>
                     <th>Tên biến thể</th>
-                    <th>Số lượng</th>
+                    <th style="text-align: center;">SL ban đầu</th>
+                    <th style="text-align: center;">SL cộng thêm</th>
+                    <th style="text-align: center;">SL thực tế</th>
+                    <th style="text-align: center;">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="v in selectedLowStockProduct?.bienThes.filter(v => Number(v.soluong ?? 0) < 10)"
                     :key="v.id_bienthe || v.id">
                     <td><b>{{ v.ten_bienthe || 'Biến thể' }}</b></td>
-                    <td><b style="color: #ef4444;">{{ v.soluong }}</b></td>
+                    <td style="text-align: center;"><b style="color: #ef4444;">{{ v.soluong }}</b></td>
+                    <td style="text-align: center;">
+                      <input 
+                        type="number" 
+                        min="1" 
+                        placeholder="+0"
+                        v-model.number="v._addStock" 
+                        style="width: 90px; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-weight: 600; text-align: center;"
+                        @keyup.enter="updateLowStockVariant(v, selectedLowStockProduct)"
+                      />
+                    </td>
+                    <td style="text-align: center;">
+                      <b style="color: #16a34a; font-size: 14px;">
+                        {{ Number(v.soluong || 0) + (Number(v._addStock) > 0 ? Number(v._addStock) : 0) }}
+                      </b>
+                    </td>
+                    <td style="text-align: center;">
+                      <button 
+                        class="btn-apply-solid" 
+                        style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: #2563eb; color: white; cursor: pointer; font-weight: 600;" 
+                        :disabled="updatingLowStockVariantId === (v.id_bienthe || v.id)"
+                        @click="updateLowStockVariant(v, selectedLowStockProduct)"
+                      >
+                        {{ updatingLowStockVariantId === (v.id_bienthe || v.id) ? 'Đang lưu...' : 'Cập nhật' }}
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
