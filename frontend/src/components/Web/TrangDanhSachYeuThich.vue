@@ -304,17 +304,30 @@ const fetchWishlist = async () => {
   }
 }
 
-const updateQuantity = async (item, change) => {
-  const newQty = item.soluong + change
+let updateTimers = {}
+
+const updateQuantity = (item, change) => {
+  const newQty = (item.soluong || 1) + change
   if (newQty < 1) return
 
-  try {
-    await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: newQty })
-    item.soluong = newQty
-    window.dispatchEvent(new Event('wishlist-updated'))
-  } catch (err) {
-    swal.error('Lỗi', err.response?.data?.message || 'Không thể cập nhật số lượng!')
+  const oldQty = item.soluong
+  item.soluong = newQty
+
+  if (updateTimers[item.id]) {
+    clearTimeout(updateTimers[item.id])
   }
+
+  updateTimers[item.id] = setTimeout(async () => {
+    try {
+      await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: item.soluong })
+      window.dispatchEvent(new Event('wishlist-updated'))
+    } catch (err) {
+      item.soluong = oldQty
+      swal.error('Lỗi', err.response?.data?.message || 'Không thể cập nhật số lượng!')
+    } finally {
+      delete updateTimers[item.id]
+    }
+  }, 250)
 }
 
 const removeItem = async (id) => {
@@ -547,11 +560,11 @@ const onImgError = (e) => {
   background: var(--card-bg);
   border-radius: 20px;
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1.5px solid #cbd5e1;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
   transition: var(--transition);
 }
 .stat-card:hover {

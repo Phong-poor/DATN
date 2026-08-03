@@ -62,12 +62,13 @@ class PromotionController extends Controller
     // GET /api/promotions — public & admin
     public function index(Request $request)
     {
-        if ($request->is('api/admin/*')) {
+        if ($request->is('api/admin/*') || $request->is('admin/*')) {
             // Admin quản lý chung nhưng vẫn nhìn thấy rõ các chương trình sinh nhật.
             return response()->json(Promotion::orderBy('id', 'desc')->get());
         }
         
         $today = now()->format('d-m');
+        $query = Promotion::query();
         // Public chỉ thấy is_public = 1
         return response()->json($query->where('congkhai', 1)
             ->where(function($q) use ($today) {

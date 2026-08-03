@@ -489,6 +489,8 @@ const isEdit = ref(false)
 const editId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const showHolidayModal = ref(false)
 
@@ -626,7 +628,8 @@ const fetchPromos = async () => {
   try {
     const res = await api.get('/admin/promotions')
     const now = new Date()
-    promos.value = res.data.map(p => {
+    const rawList = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : [])
+    promos.value = rawList.map(p => {
       let actualStatus = p.trangthai
       
       if (actualStatus === 'running' && p.ngayketthuc) {
