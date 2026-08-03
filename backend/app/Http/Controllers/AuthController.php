@@ -6,6 +6,7 @@ use App\Mail\RegisterSuccessMail;
 use App\Models\AffiliateProfile;
 use App\Models\AffiliateReferral;
 use App\Models\User;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -28,10 +29,10 @@ class AuthController extends Controller
 
     private function frontendUrl(string $path, array $query = []): string
     {
-        $url = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . $path;
+        $url = rtrim(config('app.frontend_url'), '/').$path;
 
-        if (!empty($query)) {
-            $url .= '?' . http_build_query($query);
+        if (! empty($query)) {
+            $url .= '?'.http_build_query($query);
         }
 
         return $url;
@@ -39,19 +40,19 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        if (!$request->filled('ten') && $request->filled('name')) {
+        if (! $request->filled('ten') && $request->filled('name')) {
             $request->merge([
                 'ten' => $request->input('name'),
             ]);
         }
 
-        if (!$request->filled('sodienthoai') && $request->filled('phone')) {
+        if (! $request->filled('sodienthoai') && $request->filled('phone')) {
             $request->merge([
                 'sodienthoai' => $request->input('phone'),
             ]);
         }
 
-        if (!$request->filled('matkhau') && $request->filled('password')) {
+        if (! $request->filled('matkhau') && $request->filled('password')) {
             $request->merge([
                 'matkhau' => $request->input('password'),
                 'matkhau_confirmation' => $request->input('password_confirmation'),
@@ -101,14 +102,15 @@ class AuthController extends Controller
                 'matkhau' => $validated['matkhau'],
             ]);
 
-            if (!empty($validated['referral_code'])) {
+            if (! empty($validated['referral_code'])) {
                 $refCode = strtoupper($validated['referral_code']);
                 $profile = AffiliateProfile::where('ma_affiliate', $refCode)
                     ->where('trangthai', 'active')
                     ->first();
 
-                if (!$profile) {
+                if (! $profile) {
                     DB::rollBack();
+
                     return response()->json([
                         'message' => 'Mã giới thiệu không hợp lệ hoặc đã ngừng hoạt động.',
                     ], 422);
@@ -129,6 +131,7 @@ class AuthController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'message' => 'Đăng ký thất bại. Vui lòng thử lại.',
                 'error' => $e->getMessage(),
@@ -139,7 +142,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Đăng ký thành công! Email xác nhận đã được gửi.',
-            'user' => $user
+            'user' => $user,
         ], 201);
     }
 
@@ -149,7 +152,7 @@ class AuthController extends Controller
             $request->merge(['email' => trim($request->input('email'))]);
         }
 
-        if (!$request->filled('matkhau') && $request->filled('password')) {
+        if (! $request->filled('matkhau') && $request->filled('password')) {
             $request->merge(['matkhau' => $request->input('password')]);
         }
 
@@ -165,9 +168,9 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['matkhau'], $user->matkhau)) {
+        if (! $user || ! Hash::check($validated['matkhau'], $user->matkhau)) {
             return response()->json([
-                'message' => 'Email hoặc mật khẩu không đúng.'
+                'message' => 'Email hoặc mật khẩu không đúng.',
             ], 401);
         }
 
@@ -178,14 +181,14 @@ class AuthController extends Controller
             ], 423);
         }
 
-        $tokenName = !empty($validated['remember']) ? 'remember_token' : 'session_token';
+        $tokenName = ! empty($validated['remember']) ? 'remember_token' : 'session_token';
         $token = $this->issueSingleSessionToken($user, $tokenName);
 
         return response()->json([
             'message' => 'Đăng nhập thành công.',
             'token' => $token,
             'remember' => (bool) ($validated['remember'] ?? false),
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -228,20 +231,21 @@ class AuthController extends Controller
                     <div style='text-align: left; background: #f1f5f9; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; color: #334155; margin-bottom: 24px;'>
                         GOOGLE_CLIENT_ID=your_client_id<br>
                         GOOGLE_CLIENT_SECRET=your_client_secret<br>
-                        GOOGLE_REDIRECT_URI=" . e((string) config('services.google.redirect')) . "
+                        GOOGLE_REDIRECT_URI=".e((string) config('services.google.redirect'))."
                     </div>
-                    <a href='" . env('FRONTEND_URL', 'http://localhost:5173') . "/login' class='btn'>Quay lại trang Đăng nhập</a>
+                    <a href='".rtrim(config('app.frontend_url'), '/')."/login' class='btn'>Quay lại trang Đăng nhập</a>
                 </div>
             </body>
             </html>
             ";
+
             return response($html, 400)->header('Content-Type', 'text/html; charset=utf-8');
         }
 
         $driver = Socialite::driver('google')->stateless();
         if ($request->boolean('mobile')) {
             $mobileRedirect = (string) $request->query('mobile_redirect', 'nexzen://auth');
-            if (!str_starts_with($mobileRedirect, 'nexzen://') && !str_starts_with($mobileRedirect, 'exp://')) {
+            if (! str_starts_with($mobileRedirect, 'nexzen://') && ! str_starts_with($mobileRedirect, 'exp://')) {
                 $mobileRedirect = 'nexzen://auth';
             }
             $encodedRedirect = rtrim(strtr(base64_encode($mobileRedirect), '+/', '-_'), '=');
@@ -249,6 +253,7 @@ class AuthController extends Controller
         } elseif ($request->has('ref')) {
             $driver->with(['state' => $request->query('ref')]);
         }
+
         return $driver->redirect();
     }
 
@@ -261,17 +266,18 @@ class AuthController extends Controller
         $mobileRedirect = $encodedRedirect
             ? base64_decode(strtr($encodedRedirect, '-_', '+/').str_repeat('=', (4 - strlen($encodedRedirect) % 4) % 4))
             : 'nexzen://auth';
-        if (!is_string($mobileRedirect) || (!str_starts_with($mobileRedirect, 'nexzen://') && !str_starts_with($mobileRedirect, 'exp://'))) {
+        if (! is_string($mobileRedirect) || (! str_starts_with($mobileRedirect, 'nexzen://') && ! str_starts_with($mobileRedirect, 'exp://'))) {
             $mobileRedirect = 'nexzen://auth';
         }
         try {
             $driver = Socialite::driver('google')->stateless();
             if (app()->environment('local')) {
-                $driver->setHttpClient(new \GuzzleHttp\Client(['verify' => false]));
+                $driver->setHttpClient(new Client(['verify' => false]));
             }
             $googleUser = $driver->user();
         } catch (\Throwable $e) {
             Log::warning('Google OAuth callback failed', ['message' => $e->getMessage()]);
+
             return $isMobile ? redirect($mobileRedirect.'?error=google_callback_failed') : redirect($this->frontendUrl('/login', ['social_error' => 'google_callback_failed']));
         }
 
@@ -279,24 +285,24 @@ class AuthController extends Controller
         $googleEmail = $googleUser->getEmail();
 
         $user = User::where('id_google', $googleId)->first();
-        if (!$user && $googleEmail) {
+        if (! $user && $googleEmail) {
             $user = User::where('email', $googleEmail)->first();
         }
 
         DB::beginTransaction();
         try {
-            if (!$user) {
+            if (! $user) {
                 $user = User::create([
                     'ten' => $googleUser->getName(),
                     'email' => $googleEmail,
                     'matkhau' => Str::random(16),
                     'id_google' => $googleId,
-                    'vaitro' => 'user'
+                    'vaitro' => 'user',
                 ]);
 
                 // Record referral code if present in the state parameter
                 $refCode = $isMobile ? ($mobileState[2] ?? '') : $oauthState;
-                if (!empty($refCode)) {
+                if (! empty($refCode)) {
                     $refCode = strtoupper($refCode);
                     $profile = AffiliateProfile::where('ma_affiliate', $refCode)
                         ->where('trangthai', 'active')
@@ -314,7 +320,7 @@ class AuthController extends Controller
                     }
                 }
             } else {
-                if (!$user->id_google) {
+                if (! $user->id_google) {
                     $user->id_google = $googleId;
                     $user->save();
                 }
@@ -322,10 +328,11 @@ class AuthController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return $isMobile ? redirect($mobileRedirect.'?error=google_create_failed') : redirect($this->frontendUrl('/login', ['social_error' => 'google_create_failed']));
         }
 
-        if (!$user) {
+        if (! $user) {
             return $isMobile ? redirect($mobileRedirect.'?error=google_user_not_found') : redirect($this->frontendUrl('/login', ['social_error' => 'google_user_not_found']));
         }
 
@@ -333,10 +340,10 @@ class AuthController extends Controller
         if ($isMobile) {
             return redirect($mobileRedirect.'?'.http_build_query(['token' => $token, 'provider' => 'google']));
         }
+
         return redirect($this->frontendUrl('/login-success', [
             'token' => $token,
             'provider' => 'google',
         ]));
     }
-
 }
