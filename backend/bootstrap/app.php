@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('birthdays:send-coupons')->everyMinute();
+        $schedule->command('orders:sync-demo-shipments')->everyMinute()->withoutOverlapping();
         $schedule->command('cart:clean-expired')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions) {

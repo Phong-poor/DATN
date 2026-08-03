@@ -12,7 +12,7 @@ import ComboSelectionModal from './HopThoaiChonCombo.vue'
 const route = useRoute()
 const isLoading = ref(false)
 const router = useRouter()
-const DETAIL_CACHE_VERSION = 'detail-complete-v4'
+const DETAIL_CACHE_VERSION = 'detail-complete-v5'
 
 // ===================== STATE COMBO =====================
 const combos = ref([])
@@ -114,6 +114,20 @@ const formatDate = (dateStr) => {
 
 
 // ===================== HELPERS BIẾN THỂ =====================
+const reviewDisplay = (review) => {
+    const fallbackComment = 'Sản phẩm hoạt động cực tốt, cấu hình cực mạnh, màn hình siêu nét đúng như mô tả của website.'
+    const raw = String(review?.binhluan || '').trim()
+    const parts = raw ? raw.split(/\n{2,}/).map(part => part.trim()).filter(Boolean) : []
+    const comment = parts[0] || fallbackComment
+    let reply = parts.slice(1).join('\n\n').trim()
+
+    if (!reply && review?.trangthai === 'approved' && Number(review?.danhgia || 0) >= 4) {
+        reply = 'Cảm ơn bạn đã tin tưởng và đánh giá tích cực. Chúng tôi rất vui khi sản phẩm mang lại trải nghiệm tốt cho bạn.'
+    }
+
+    return { comment, reply }
+}
+
 const getVariantAttributes = (variant) => {
     let attr = variant?.thuoc_tinh || variant?.attributes;
     if (!attr && variant?.thuoc_tinh_json) {
@@ -454,203 +468,33 @@ const prevThumbs = () => {
     }
 }
 
-// ===================== AUTO SLIDER =====================
-let autoSlideInterval = null
+// ===================== MANUAL GALLERY =====================
+const syncThumbWindow = (image) => {
+    const index = allImages.value.indexOf(image)
+    if (index === -1) return
 
-const startAutoSlide = () => {
-    stopAutoSlide()
-    autoSlideInterval = setInterval(() => {
-        if (allImages.value.length > 1) {
-            const currentIndex = allImages.value.indexOf(selectedImage.value)
-            const nextIndex = (currentIndex + 1) % allImages.value.length
-            selectedImage.value = allImages.value[nextIndex]
-
-            // Sync thumb slider
-            if (nextIndex >= thumbIndex.value + thumbLimit || nextIndex < thumbIndex.value) {
-                thumbIndex.value = Math.min(nextIndex, Math.max(0, allImages.value.length - thumbLimit))
-            }
-        }
-    }, 2000)
-}
-
-const stopAutoSlide = () => {
-    if (autoSlideInterval) {
-        clearInterval(autoSlideInterval)
-        autoSlideInterval = null
+    if (index >= thumbIndex.value + thumbLimit || index < thumbIndex.value) {
+        thumbIndex.value = Math.min(index, Math.max(0, allImages.value.length - thumbLimit))
     }
 }
 
-// ===================== 3D PRODUCT VIEWER LOGIC =====================
-const active3DIndex = ref(0)
-const target3DIndex = ref(0)
-const isHovering3D = ref(false)
-const tiltX = ref(0)
-const tiltY = ref(0)
-const targetTiltX = ref(0)
-const targetTiltY = ref(0)
-const current3DRatio = ref(0)
-const target3DRatio = ref(0)
-
-const tiltStyle = computed(() => {
-    if (tiltX.value === 0 && tiltY.value === 0) {
-        return {
-            transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-            transition: 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)'
-        }
-    }
-    return {
-        transform: `perspective(1200px) rotateX(${tiltY.value}deg) rotateY(${tiltX.value}deg) scale3d(1.03, 1.03, 1.03)`,
-        transition: 'transform 0.18s ease-out'
-    }
-})
-
-const activeShowcaseImage = computed(() => {
-    if (isHovering3D.value && allImages.value.length > 0) {
-        return allImages.value[active3DIndex.value] || selectedImage.value
-    }
-    return selectedImage.value
-})
-
-let rotationAnimationFrame = null
-let tiltAnimationFrame = null
-
-const startTiltSmoothing = () => {
-    if (tiltAnimationFrame) return
-
-    const animate = () => {
-        const smoothness = 0.07
-        tiltX.value += (targetTiltX.value - tiltX.value) * smoothness
-        tiltY.value += (targetTiltY.value - tiltY.value) * smoothness
-
-        if (
-            Math.abs(targetTiltX.value - tiltX.value) < 0.02 &&
-            Math.abs(targetTiltY.value - tiltY.value) < 0.02
-        ) {
-            tiltX.value = targetTiltX.value
-            tiltY.value = targetTiltY.value
-        }
-
-        if (isHovering3D.value || tiltX.value !== 0 || tiltY.value !== 0) {
-            tiltAnimationFrame = requestAnimationFrame(animate)
-        } else {
-            tiltAnimationFrame = null
-        }
-    }
-
-    tiltAnimationFrame = requestAnimationFrame(animate)
+const selectGalleryImage = (image) => {
+    selectedImage.value = image
+    syncThumbWindow(image)
 }
 
-const stopTiltSmoothing = () => {
-    if (tiltAnimationFrame) {
-        cancelAnimationFrame(tiltAnimationFrame)
-        tiltAnimationFrame = null
-    }
+const showPrevImage = () => {
+    if (allImages.value.length <= 1) return
+    const currentIndex = allImages.value.indexOf(selectedImage.value)
+    const nextIndex = (currentIndex - 1 + allImages.value.length) % allImages.value.length
+    selectGalleryImage(allImages.value[nextIndex])
 }
 
-const startRotationLoop = () => {
-    if (rotationAnimationFrame) return
-
-    const animate = () => {
-        const total = allImages.value.length
-        if (total <= 1) {
-            rotationAnimationFrame = null
-            return
-        }
-
-        const ratioDiff = target3DRatio.value - current3DRatio.value
-        if (Math.abs(ratioDiff) > 0.001) {
-            current3DRatio.value += ratioDiff * 0.018
-        } else {
-            current3DRatio.value = target3DRatio.value
-        }
-
-        const frameIndex = Math.round(current3DRatio.value * (total - 1))
-        active3DIndex.value = Math.max(0, Math.min(frameIndex, total - 1))
-
-        if (isHovering3D.value || current3DRatio.value !== target3DRatio.value) {
-            rotationAnimationFrame = requestAnimationFrame(animate)
-        } else {
-            rotationAnimationFrame = null
-        }
-    }
-
-    rotationAnimationFrame = requestAnimationFrame(animate)
-}
-
-const stopRotationLoop = () => {
-    if (rotationAnimationFrame) {
-        cancelAnimationFrame(rotationAnimationFrame)
-        rotationAnimationFrame = null
-    }
-}
-
-const handleMouseMove = (e) => {
-    const el = e.currentTarget
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    
-    stopAutoSlide()
-    isHovering3D.value = true
-    
-    const ratioX = (e.clientX - rect.left) / rect.width
-    const ratioY = (e.clientY - rect.top) / rect.height
-    
-    if (allImages.value.length > 0) {
-        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
-    }
-    
-    startRotationLoop()
-    
-    const maxTiltX = 5
-    const maxTiltY = 4
-    
-    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
-    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
-    startTiltSmoothing()
-}
-
-const handleTouchMove = (e) => {
-    const touch = e.touches[0]
-    const el = e.currentTarget
-    if (!el || !touch) return
-    const rect = el.getBoundingClientRect()
-    
-    stopAutoSlide()
-    isHovering3D.value = true
-    
-    const ratioX = (touch.clientX - rect.left) / rect.width
-    const ratioY = (touch.clientY - rect.top) / rect.height
-    
-    if (allImages.value.length > 0) {
-        target3DRatio.value = Math.max(0, Math.min(ratioX, 1))
-    }
-    
-    startRotationLoop()
-    
-    const maxTiltX = 5
-    const maxTiltY = 4
-    
-    targetTiltX.value = (ratioX - 0.5) * maxTiltX * 2
-    targetTiltY.value = -(ratioY - 0.5) * maxTiltY * 2
-    startTiltSmoothing()
-}
-
-const resetTilt = () => {
-    isHovering3D.value = false
-    stopRotationLoop()
-    targetTiltX.value = 0
-    targetTiltY.value = 0
-    startTiltSmoothing()
-    
-    const idx = allImages.value.indexOf(selectedImage.value)
-    const targetIdx = idx !== -1 ? idx : 0
-    const targetRatio = allImages.value.length > 1 ? targetIdx / (allImages.value.length - 1) : 0
-    target3DIndex.value = targetIdx
-    active3DIndex.value = targetIdx
-    current3DRatio.value = targetRatio
-    target3DRatio.value = targetRatio
-    
-    startAutoSlide()
+const showNextImage = () => {
+    if (allImages.value.length <= 1) return
+    const currentIndex = allImages.value.indexOf(selectedImage.value)
+    const nextIndex = (currentIndex + 1) % allImages.value.length
+    selectGalleryImage(allImages.value[nextIndex])
 }
 
 // ===================== FETCH SẢN PHẨM =====================
@@ -958,15 +802,11 @@ onMounted(() => {
     showStickyBar.value = false
     window.scrollTo(0, 0)
     loadPageData()
-    startAutoSlide()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
     document.addEventListener('click', closeAllDropdowns)
 })
 
 onUnmounted(() => {
-    stopAutoSlide()
-    stopRotationLoop()
-    stopTiltSmoothing()
     window.removeEventListener('scroll', handleScrollSticky)
     document.removeEventListener('click', closeAllDropdowns)
 })
@@ -1552,12 +1392,7 @@ const handleSelectVariantById = (idBienThe) => {
                 <div class="detail-hero-grid">
                     <!-- GALLERY COLUMN (Left) -->
                     <div class="gallery-column">
-                        <div class="main-image-viewport"
-                             :class="{ 'is-3d-active': isHovering3D }"
-                             @mousemove="handleMouseMove"
-                             @mouseleave="resetTilt"
-                             @touchmove="handleTouchMove"
-                             @touchend="resetTilt">
+                        <div class="main-image-viewport">
                             <div class="neon-glow-backdrop"></div>
 
                             <!-- Badges Overlay -->
@@ -1567,29 +1402,29 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
 
 
-                            <img :src="activeShowcaseImage" :alt="product.tenSP" class="main-showcase-image" :style="tiltStyle" />
+                            <img :src="selectedImage" :alt="product.tenSP" class="main-showcase-image" />
 
                             <div v-if="selectedVariant && selectedVariant.soluong === 0" class="premium-out-of-stock-badge">
                                 HẾT HÀNG
                             </div>
 
                             <!-- Navigation Arrows -->
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) - 1 + allImages.length) % allImages.length]" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
+                            <button v-if="allImages.length > 1" @click="showPrevImage" class="gallery-nav-arrow arrow-left" aria-label="Ảnh trước">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
-                            <button v-if="!isHovering3D" @click="selectedImage = allImages[(allImages.indexOf(selectedImage) + 1) % allImages.length]" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
+                            <button v-if="allImages.length > 1" @click="showNextImage" class="gallery-nav-arrow arrow-right" aria-label="Ảnh sau">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
 
                             <!-- Slide Indicator Dots -->
-                            <div class="slide-dots" v-if="!isHovering3D">
+                            <div class="slide-dots" v-if="allImages.length > 1">
                                 <span v-for="(img, idx) in allImages" :key="idx"
                                       :class="['dot', { active: selectedImage === img }]"
-                                      @click="selectedImage = img"></span>
+                                      @click="selectGalleryImage(img)"></span>
                             </div>
 
                         </div>
@@ -1605,7 +1440,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="premium-thumbs-scroll">
                                 <div v-for="(img, i) in visibleThumbs" :key="i"
                                      :class="['thumb-card', { active: selectedImage === img }]"
-                                     @click="selectedImage = img; startAutoSlide ? startAutoSlide() : null">
+                                     @click="selectGalleryImage(img)">
                                     <img :src="img" alt="Thumbnail" />
                                 </div>
 
@@ -2406,7 +2241,11 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
                         <div class="card-body-text">
-                            <p class="comment-p">"{{ review.binhluan || 'Sản phẩm hoạt động cực tốt, cấu hình cực mạnh, màn hình siêu nét đúng như mô tả của website.' }}"</p>
+                            <p class="comment-p">"{{ reviewDisplay(review).comment }}"</p>
+                            <div v-if="reviewDisplay(review).reply" class="shop-reply-box">
+                                <div class="shop-reply-label">Phản hồi</div>
+                                <p>{{ reviewDisplay(review).reply }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2934,7 +2773,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: #64748B;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     display: block;
     margin-bottom: 6px;
@@ -3411,7 +3250,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 1px;
     display: block;
     margin-bottom: 2px;
@@ -3821,7 +3660,7 @@ const handleSelectVariantById = (idBienThe) => {
     color: var(--primary);
     display: block;
     margin-bottom: 8px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 .section-main-title {
     font-family: var(--font-heading);
@@ -3929,7 +3768,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 10px;
     font-weight: 800;
     color: #64748b;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 1.2px;
     margin: 0 0 2px 0;
     border-bottom: 1.5px solid #e2e8f0;
@@ -3965,7 +3804,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 8.5px;
     font-weight: 750;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 
@@ -3989,7 +3828,7 @@ const handleSelectVariantById = (idBienThe) => {
     padding: 1px 3px;
     border-radius: 3px;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .spec-badge.hot {
@@ -4125,7 +3964,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-family: var(--font-heading);
     font-size: 11px;
     font-weight: 800;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.6px;
     padding: 12px 16px;
     border-bottom: 1px solid #e2e8f0;
@@ -4232,7 +4071,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 11px;
     font-weight: 700;
     color: var(--text-secondary);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 .spec-card-content .value {
@@ -4522,10 +4361,14 @@ const handleSelectVariantById = (idBienThe) => {
     margin: 12px 0;
 }
 .overall-stars {
-    color: var(--accent);
+    color: #fbbf24;
     font-size: 18px;
     letter-spacing: 2px;
     margin-bottom: 12px;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.42);
+}
+.dashboard-star {
+    color: #fbbf24;
 }
 .overall-total-count {
     font-size: 12.5px;
@@ -4559,7 +4402,8 @@ const handleSelectVariantById = (idBienThe) => {
 .stars-label {
     font-size: 12px;
     font-weight: 700;
-    color: #cbd5e1;
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
 }
 .meter-track {
     height: 6px;
@@ -4659,8 +4503,9 @@ const handleSelectVariantById = (idBienThe) => {
     margin-top: 2px;
 }
 .review-badge-stars {
-    color: var(--accent);
+    color: #fbbf24;
     letter-spacing: 1px;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.38);
 }
 .comment-p {
     font-size: 14px;
@@ -4668,6 +4513,33 @@ const handleSelectVariantById = (idBienThe) => {
     color: #dbe6f5;
     margin: 0;
     font-style: italic;
+}
+
+.shop-reply-box {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(147, 197, 253, 0.62);
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+}
+
+.shop-reply-label {
+    margin-bottom: 6px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: capitalize;
+    letter-spacing: .5px;
+}
+
+.shop-reply-box p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #f8fafc;
+    font-weight: 600;
 }
 
 .empty-reviews-state {
@@ -4866,7 +4738,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-weight: 600;
     color: #64748b;
     background: transparent;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 .price-side .price-tag {
     font-family: var(--font-heading);
@@ -5031,7 +4903,7 @@ const handleSelectVariantById = (idBienThe) => {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
-    text-transform: uppercase;
+    text-transform: capitalize;
     margin-bottom: 16px;
 }
 .picker-list-wrapper {
@@ -5923,25 +5795,21 @@ const handleSelectVariantById = (idBienThe) => {
 
 }
 
-/* ==================== PREMIUM 3D VIEW PORT STYLE ==================== */
+/* ==================== MANUAL IMAGE VIEW PORT STYLE ==================== */
 .main-image-viewport {
     position: relative;
-    transform-style: preserve-3d;
-    perspective: 1200px;
-    transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
     border: 2px solid transparent;
 }
 
-.main-image-viewport.is-3d-active {
+.main-image-viewport:hover {
     border-color: rgba(37, 99, 235, 0.4);
     box-shadow: 0 15px 35px rgba(37, 99, 235, 0.15), inset 0 0 20px rgba(37, 99, 235, 0.05);
 }
 
-/* 3D Showcase Image transitions */
+/* Product image zooms only on hover. Image changes stay manual via arrows, dots, and thumbnails. */
 .main-showcase-image {
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    transition: transform 1.4s cubic-bezier(0.1, 0.8, 0.2, 1);
+    transition: transform 0.35s ease;
 }
 
 /* 3D Indicator Badge */

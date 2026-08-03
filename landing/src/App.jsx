@@ -57,7 +57,7 @@ export default function App() {
           </div>
 
           <div className="text-[10px] text-cyan-500 uppercase tracking-widest animate-pulse">
-            Calibrating cryo-thermal parameters...
+            Đang khởi tạo cấu hình hiệu năng...
           </div>
         </div>
       </div>

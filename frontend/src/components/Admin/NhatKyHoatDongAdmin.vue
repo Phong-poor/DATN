@@ -752,7 +752,7 @@ onUnmounted(() => {
   font-weight: 800;
   padding: 5px 12px;
   border-radius: 8px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   display: inline-block;
   letter-spacing: 0.5px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);

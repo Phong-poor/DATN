@@ -467,7 +467,7 @@ const onImgError = (e) => {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 6px;
   font-family: 'Outfit', sans-serif;
@@ -724,7 +724,7 @@ const onImgError = (e) => {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   padding: 4px 8px;
   border-radius: 20px;
   z-index: 3;
@@ -819,7 +819,7 @@ const onImgError = (e) => {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 1.2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 4px;
 }

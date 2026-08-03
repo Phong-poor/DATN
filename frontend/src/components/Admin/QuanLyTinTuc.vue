@@ -787,7 +787,7 @@ onMounted(async () => {
 .stat-card.stat-green { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
 .stat-card.stat-purple { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); }
 .stat-card.stat-amber { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
-.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card p { font-size: 12px; font-weight: 800; color: rgba(255,255,255,.88); letter-spacing: 0.03em; margin: 0 0 20px; text-transform: capitalize; }
 .stat-card b { font-size: 34px; line-height: 1; font-weight: 800; color: #fff; }
 .stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .stat-icon svg { width: 24px; height: 24px; }
@@ -927,7 +927,7 @@ table { width: 100%; border-collapse: collapse; }
 .stats { display: grid; gap: 20px; grid-template-columns: repeat(4,minmax(220px,1fr)); padding: 0 32px 20px; }
 .stat-card { align-items: center; border: 1px solid transparent; border-radius: 16px; display: flex; justify-content: space-between; min-height: 136px; overflow: hidden; padding: 26px 28px; position: relative; box-shadow: 0 12px 26px rgba(15,23,42,.12); color: #fff; }
 .stat-card::after { content: ''; position: absolute; width: 150px; height: 150px; border-radius: 999px; right: -28px; top: -54px; background: rgba(255,255,255,.13); pointer-events: none; }
-.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: uppercase; }
+.stat-card p { color: rgba(255,255,255,.88); font-size: 12px; font-weight: 800; letter-spacing: .03em; margin: 0 0 20px; text-transform: capitalize; }
 .stat-card b { color: #fff; font-size: 34px; line-height: 1; font-weight: 800; }
 .stat-icon { align-items: center; border-radius: 14px; display: flex; height: 48px; justify-content: center; width: 48px; }
 .stat-icon svg { height: 24px; width: 24px; }

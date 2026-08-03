@@ -630,11 +630,13 @@ onUnmounted(() => {
 .page {
     min-height: 100vh;
     background: #0d1b2e;
-    padding: 32px 30px;
+    padding-block-start: var(--section-padding-mobile);
+    padding-block-end: var(--section-padding-mobile);
+    padding-inline: var(--container-padding-desktop);
 }
 
-.container {
-    max-width: 860px;
+.site-container {
+    max-width: var(--container-max-width);
     margin: auto;
 }
 
@@ -658,18 +660,18 @@ onUnmounted(() => {
 /* TABS */
 .tabs {
     display: flex;
-    gap: 6px;
+    gap: var(--space-2);
     background: #111f35;
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     padding: 6px;
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
     flex-wrap: wrap;
 }
 
 .tab {
     padding: 8px 16px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     border: none;
     background: transparent;
     font-size: 13px;
@@ -733,7 +735,7 @@ onUnmounted(() => {
 
 .order-card {
     background: #111f35;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255,255,255,0.07);
     overflow: hidden;
 }
@@ -742,7 +744,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: var(--space-3) var(--container-padding-desktop);
     border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -784,7 +786,7 @@ onUnmounted(() => {
 .order-item img {
     width: 52px;
     height: 52px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     object-fit: cover;
     border: 1px solid rgba(255,255,255,0.07);
     flex-shrink: 0;
@@ -842,7 +844,7 @@ onUnmounted(() => {
 
 .btn-detail, .btn-reorder, .btn-cancel {
     padding: 8px 18px;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -908,7 +910,7 @@ onUnmounted(() => {
 
 .modal {
     background: #111f35;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     width: 100%;
     max-width: 560px;
     max-height: 90vh;
@@ -975,7 +977,7 @@ onUnmounted(() => {
     font-size: 13px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     margin: 0 0 12px;
 }
@@ -986,14 +988,14 @@ onUnmounted(() => {
     gap: 12px;
     padding: 10px;
     background: #0d1b2e;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     margin-bottom: 8px;
 }
 
 .modal-item img {
     width: 52px;
     height: 52px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     object-fit: cover;
     border: 1px solid rgba(255,255,255,0.07);
 }

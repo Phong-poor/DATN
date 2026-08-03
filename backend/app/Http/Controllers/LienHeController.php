@@ -10,19 +10,27 @@ class LienHeController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
+        $payload = [
+            'hoten' => $request->input('hoten', $request->input('name')),
+            'email' => $request->input('email'),
+            'sodienthoai' => $request->input('sodienthoai', $request->input('phone')),
+            'noidung' => $request->input('noidung', $request->input('message')),
+            'danhmuc' => $request->input('danhmuc', $request->input('subject')),
+        ];
+
+        validator($payload, [
             'hoten' => 'required|string|max:100',
             'email' => 'required|email|max:100',
             'sodienthoai' => 'nullable|string|max:20',
             'noidung' => 'required|string|max:2000',
             'danhmuc' => 'nullable|string'
-        ]);
+        ])->validate();
 
         $contact = LienHe::create([
-            'hoten' => $request->hoten,
-            'email' => $request->email,
-            'sodienthoai' => $request->sodienthoai,
-            'noidung' => $request->noidung,
+            'hoten' => $payload['hoten'],
+            'email' => $payload['email'],
+            'sodienthoai' => $payload['sodienthoai'],
+            'noidung' => $payload['noidung'],
             'danhmuc' => $request->danhmuc ?? 'Tư vấn',
             'trangthai' => 'new'
         ]);

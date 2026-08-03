@@ -776,7 +776,7 @@ async function deletePromo(id) {
 .stat-card.stat-budget .stat-unit { color: #dbeafe; }
 .stat-card.stat-budget .stat-bar { background: rgba(255, 255, 255, 0.22); }
 .stat-card.stat-budget .stat-bar-fill { background: linear-gradient(90deg, #bfdbfe, #ffffff); }
-.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255, 255, 255, 0.88); text-transform: uppercase; }
+.stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255, 255, 255, 0.88); text-transform: capitalize; }
 .stat-value { font-size: 34px; line-height: 1; font-weight: 800; color: #0f172a; }
 .stat-unit { font-size: 14px; font-weight: 600; color: #64748b; }
 .stat-sub { font-size: 12px; color: #64748b; }
@@ -784,7 +784,7 @@ async function deletePromo(id) {
 .stat-bar { height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
 .stat-bar-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 99px; }
 .stat-card-gradient { background: linear-gradient(135deg, #0f2747 0%, #1e3a5f 55%, #0f172a 100%); border: none; justify-content: center; }
-.stat-card-tag { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,0.7); text-transform: uppercase; }
+.stat-card-tag { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,0.7); text-transform: capitalize; }
 .stat-card-desc { font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.6; }
 .stat-card-desc strong { color: #fff; }
 .stat-card-btn { align-self: flex-start; padding: 7px 16px; border-radius: 20px; border: none; background: rgba(255,255,255,0.2); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); transition: background 0.2s; }
@@ -997,7 +997,7 @@ select.form-input { cursor: pointer; }
   font-weight: 700;
   color: #6b7280;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .inline-form-body .form-input {

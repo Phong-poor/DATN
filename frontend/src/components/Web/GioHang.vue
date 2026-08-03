@@ -47,26 +47,24 @@ const freeshipCoupon = ref('')
 const freeshipDiscount = ref(0)
 const appliedFreeshipPromo = ref(null)
 
-// L?y di?u ki?n t?i thi?u t? promotion freeship được ch?n (d?ng computed)
+
 const freeshipMinOrder = computed(() => {
-    // N?u dang p m freeship th l?y dieu_kien c?a m d
+   
     if (appliedFreeshipPromo.value && appliedFreeshipPromo.value.dieu_kien > 0) {
         return appliedFreeshipPromo.value.dieu_kien
     }
-    // N?u dang ch?n m t? select (chua apply) th l?y dieu_kien c?a m d
     if (freeshipCoupon.value) {
         const p = freeshipPromosList.value.find(p => p.code === freeshipCoupon.value)
         if (p && p.dieu_kien > 0) return p.dieu_kien
     }
-    // N?u chua ch?n m no, l?y dieu_kien nh? nh?t trong danh sch freeship
     const withCondition = freeshipPromosList.value.filter(p => p.dieu_kien > 0)
     if (withCondition.length > 0) {
         return Math.min(...withCondition.map(p => p.dieu_kien))
     }
-    return 0 // Khng c di?u ki?n = mi?n ph ship t?t c? don
+    return 0 
 })
 
-// L?y di?u ki?n ring cho t?ng m freeship (dng khi ch?n m c? th?)
+
 const getFreeshipMinOrder = (promo) => {
     if (!promo) return 0
     return promo.dieu_kien > 0 ? promo.dieu_kien : 0
@@ -189,25 +187,23 @@ const capNhatSoLuong = async (item, delta) => {
         return
     }
 
-    // C?p nh?t state g?c trong cart.value d? kch ho?t tnh ton l?i subtotal/total
+  
     const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
     if (originalItem) {
         originalItem.soluong = soLuongMoi
         originalItem.thanh_tien = originalItem.gia * soLuongMoi
     }
     
-    // C?p nh?t b?n sao (item) d? fallback
     item.soluong = soLuongMoi
     item.thanh_tien = item.gia * soLuongMoi
 
-    // Tnh l?i discount n?u d p m
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)
-
+    // gọi api
     try {
         await api.put(`/gio-hang/cap-nhat/${item.id_giohang}`, { soluong: soLuongMoi })
     } catch (err) {
-        hienThiThongBao('error', err.response?.data?.message || 'L?i c?p nh?t s? lu?ng!')
+        hienThiThongBao('error', err.response?.data?.message || 'Lỗi khi cập nhật số lượng!')
         fetchGioHang()
     }
 }
@@ -513,7 +509,7 @@ onMounted(() => {
         <div class="cart-page-header">
           <div class="header-top-row">
             <div class="header-title-area">
-              <div class="header-eyebrow">🎯 NextGen Laptop Store</div>
+              <div class="header-eyebrow">NextGen Laptop Store</div>
               <h1 class="header-title">Giỏ hàng của bạn
                 <span class="item-count-badge">{{ cart.length }} sản phẩm</span>
               </h1>
@@ -676,7 +672,7 @@ onMounted(() => {
             <div class="combo-item-group" :class="{ 'combo-gift-group': entry.gia_combo === 0 }" v-else>
               <!-- Banner qu t?ng VIP (ch? hi?n khi l uu di mi?n ph) -->
               <div v-if="entry.gia_combo === 0" class="gift-offer-banner">
-                <span class="gift-offer-icon">🎁</span>
+                <span class="gift-offer-icon"></span>
                 <div class="gift-offer-text">
                   <strong>Quà Tặng Đặc Quyền VIP</strong>
                   <span>Miễn phí hoàn toàn - Kèm theo đơn hàng của bạn</span>
@@ -791,19 +787,6 @@ onMounted(() => {
           </div>
 
           <!-- COUPON SELECTORS -->
-          <div class="coupon-section">
-            <div class="coupon-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              Mã giảm giá
-            </div>
-            <select v-model="coupon" @change="apDungMaTuSelect" class="coupon-select">
-              <option value="">Không dùng mã</option>
-              <option v-for="p in discountPromosList" :key="p.code" :value="p.code">
-                {{ p.name }} - {{ p.type === 'percent' ? `Giảm ${p.value}%` : `Giảm ${formatPrice(p.value)}` }}
-              </option>
-            </select>
-          </div>
-
           <div class="coupon-section" v-if="freeshipPromosList.length > 0">
             <div class="coupon-label green">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -988,7 +971,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 6px;
 }
@@ -1251,7 +1234,7 @@ onMounted(() => {
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 1.4px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: var(--primary);
   margin-bottom: 4px;
 }
@@ -1424,7 +1407,7 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: 6px;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-left: 4px;
 }
 .freeship-label {
@@ -1760,7 +1743,7 @@ onMounted(() => {
     font-weight: 800;
     padding: 4px 10px;
     border-radius: 20px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 

@@ -703,7 +703,7 @@ th {
   color: #94a3b8;
   letter-spacing: 0.6px;
   text-align: left;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 tbody tr {
@@ -983,7 +983,7 @@ td {
   font-weight: 700;
   letter-spacing: 0.8px;
   color: #64748b;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .form-row {
@@ -1133,7 +1133,7 @@ td {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: .08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-bottom: 10px;
 }
 

@@ -485,7 +485,7 @@ onUnmounted(() => {
 .col-title {
   font-size: 13.5px;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.08em;
   color: var(--text-primary);
   margin-bottom: 24px;
@@ -900,7 +900,7 @@ onUnmounted(() => {
 .gov-small {
   font-size: 7.5px;
   font-weight: 800;
-  text-transform: uppercase;
+  text-transform: capitalize;
   color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.04em;
 }

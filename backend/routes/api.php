@@ -38,6 +38,8 @@ use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
 use App\Http\Controllers\VaiTroController;
 use App\Http\Controllers\VongQuayController;
+use App\Http\Controllers\Api\AffiliateWalletController;
+use App\Http\Controllers\Api\AffiliateWithdrawalController;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/facebook', [AuthController::class, 'redirectFacebook']);
@@ -185,6 +187,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
+    Route::get('/affiliate/wallet', [AffiliateWalletController::class, 'show']);
+    Route::get('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'index']);
+    Route::post('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'store']);
     Route::get('/affiliate/videos', [AffiliateVideoController::class, 'myVideos']);
     Route::post('/affiliate/videos', [AffiliateVideoController::class, 'store']);
     Route::post('/affiliate/videos/{id}', [AffiliateVideoController::class, 'update']);
@@ -342,6 +347,10 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
+        Route::post('/orders/shipment/sync-demo', [DatHangController::class, 'syncDemoShipments']);
+        Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
+        Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
+        Route::post('/orders/{id}/shipment/fail', [DatHangController::class, 'markDemoShipmentFailed']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
@@ -396,6 +405,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/reviews/ai-status', [DanhGiaController::class, 'getAiStatus']);
         Route::post('/reviews/ai-status', [DanhGiaController::class, 'toggleAiStatus']);
         Route::get('/reviews', [DanhGiaController::class, 'adminIndex']);
+        Route::post('/reviews/auto-moderate', [DanhGiaController::class, 'autoModeratePending']);
         Route::put('/reviews/bulk-status', [DanhGiaController::class, 'bulkUpdateStatus']);
         Route::put('/reviews/{id}/status', [DanhGiaController::class, 'updateStatus']);
         Route::delete('/reviews/{id}', [DanhGiaController::class, 'destroy']);

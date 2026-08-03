@@ -2642,7 +2642,7 @@ onMounted(() => {
   font-weight: 700;
   color: #6b7280;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin-bottom: 4px;
 }
 
@@ -2935,7 +2935,7 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.88);
   font-weight: 800;
   letter-spacing: .03em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   margin: 0 0 20px;
 }
 

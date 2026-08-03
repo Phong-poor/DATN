@@ -124,9 +124,14 @@ const getCategoryTarget = (category) => {
     return `/san-pham?cat=${category.id_danhmuc}`
 }
 
-const mapProducts = (rawProducts) => {
-    const productVariants = rawProducts.map(p => {
-        if (!p.bien_thes || p.bien_thes.length === 0) {
+const mapProducts = (rawProducts = []) => {
+    const list = Array.isArray(rawProducts) ? rawProducts : []
+    const productVariants = list.map(p => {
+        const variants = Array.isArray(p?.bien_thes)
+            ? p.bien_thes
+            : (Array.isArray(p?.bienThes) ? p.bienThes : [])
+
+        if (variants.length === 0) {
             return [{
                 id: p.id_sanpham,
                 key_id: String(p.id_sanpham),
@@ -148,7 +153,7 @@ const mapProducts = (rawProducts) => {
             }];
         }
 
-        return p.bien_thes.map(bt => {
+        return variants.map(bt => {
             let ram = '', cpu = '', gpu = '', screen = '', color = '';
             let attributes = [];
             try { 
@@ -263,6 +268,7 @@ const isPlayableVideoSrc = (src = '') => {
 const affiliateVideoSrc = (video = {}) => storageUrl(video.video_src || video.video_url || video.video_path)
 const affiliateThumbnailSrc = (video = {}) => storageUrl(video.thumbnail_src || video.thumbnail_path || video.product?.hinhanh || '')
 const viewedAffiliateVideoIds = new Set()
+const audibleAffiliateVideoIds = ref(new Set())
 
 const getYoutubeId = (url = '') => {
     const value = String(url || '').trim()
@@ -285,12 +291,12 @@ const getYoutubeId = (url = '') => {
 
 const externalVideoUrl = (video = {}) => video.video_url || video.video_src || video.video_path || ''
 
-const affiliateVideoEmbedSrc = (video = {}, autoplay = false) => {
+const affiliateVideoEmbedSrc = (video = {}, autoplay = false, audible = false) => {
     const id = getYoutubeId(externalVideoUrl(video))
     if (!id) return ''
 
     const params = new URLSearchParams({
-        controls: '1',
+        controls: '0',
         fs: '1',
         rel: '0',
         modestbranding: '1',
@@ -299,7 +305,7 @@ const affiliateVideoEmbedSrc = (video = {}, autoplay = false) => {
 
     if (autoplay) {
         params.set('autoplay', '1')
-        params.set('mute', '1')
+        params.set('mute', audible ? '0' : '1')
     }
 
     return `https://www.youtube.com/embed/${id}?${params.toString()}`
@@ -321,6 +327,20 @@ const pauseAffiliateVideoPreview = (event) => {
     const media = event.currentTarget?.querySelector?.('video')
     if (!media) return
     media.pause()
+}
+
+const enableAffiliateVideoSound = (event, video = {}) => {
+    if (video.id) {
+        const next = new Set(audibleAffiliateVideoIds.value)
+        next.add(video.id)
+        audibleAffiliateVideoIds.value = next
+    }
+
+    const media = event.currentTarget?.querySelector?.('video')
+    if (!media) return
+    media.muted = false
+    media.volume = 1
+    media.play().catch(() => {})
 }
 
 const scrollAffiliateVideos = (direction = 1) => {
@@ -427,18 +447,27 @@ const mapApiBannerToSlide = (banner = {}) => ({
     productFeature: banner.product_feature || banner.dactinh_sanpham || 'RTX 40-Series',
 })
 
+const cachedArray = (value) => Array.isArray(value) ? value : null
+
 const loadCache = () => {
     try {
         const cached = localStorage.getItem('premium_home_cache')
         if (cached) {
             const parsed = JSON.parse(cached)
-            if (parsed.featuredProducts) featuredProducts.value = parsed.featuredProducts
-            if (parsed.featuredAccessories) featuredAccessories.value = parsed.featuredAccessories
-            if (parsed.categories && parsed.categories.length) categories.value = parsed.categories
-            if (parsed.latestNews) latestNews.value = parsed.latestNews
-            if (parsed.bannerSlides) bannerSlides.value = parsed.bannerSlides
-            if (parsed.affiliateVideos) {
-                affiliateVideos.value = parsed.affiliateVideos
+            const cachedProducts = cachedArray(parsed.featuredProducts)
+            const cachedAccessories = cachedArray(parsed.featuredAccessories)
+            const cachedCategories = cachedArray(parsed.categories)
+            const cachedNews = cachedArray(parsed.latestNews)
+            const cachedBanners = cachedArray(parsed.bannerSlides)
+            const cachedVideos = cachedArray(parsed.affiliateVideos)
+
+            if (cachedProducts) featuredProducts.value = cachedProducts
+            if (cachedAccessories) featuredAccessories.value = cachedAccessories
+            if (cachedCategories?.length) categories.value = cachedCategories
+            if (cachedNews) latestNews.value = cachedNews
+            if (cachedBanners) bannerSlides.value = cachedBanners
+            if (cachedVideos) {
+                affiliateVideos.value = cachedVideos
                 primeAffiliateVideoSlider()
             }
         }
@@ -528,10 +557,10 @@ onMounted(async () => {
 // Tab sliders and tabs logic
 const activeCategoryTab = ref('all')
 const filteredFeaturedProducts = computed(() => {
-    if (!featuredProducts.value) return []
-    if (activeCategoryTab.value === 'all') return featuredProducts.value
+    const products = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
+    if (activeCategoryTab.value === 'all') return products
     
-    return featuredProducts.value.filter(p => {
+    return products.filter(p => {
         const name = (p.fullName || p.name || '').toLowerCase();
         const brand = (p.brandName || '').toLowerCase();
         const cat = (p.category || '').toLowerCase();
@@ -689,17 +718,22 @@ const startCountdown = () => {
 }
 
 const flashSaleProducts = computed(() => {
-    if (!featuredProducts.value) return []
+    const products = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
     // Lọc các sản phẩm có giảm giá (oldPriceNum > priceNum) làm sản phẩm Flash Sale
-    return featuredProducts.value.filter(p => p.oldPriceNum > p.priceNum).slice(0, 4)
+    return products.filter(p => p.oldPriceNum > p.priceNum).slice(0, 4)
 })
 
 const current = ref(0)
-const slides = computed(() => bannerSlides.value.length ? bannerSlides.value : defaultSlides)
+const slides = computed(() => {
+    const list = Array.isArray(bannerSlides.value) ? bannerSlides.value : []
+    return list.length ? list : defaultSlides
+})
 const activeSlide = computed(() => slides.value[current.value] || slides.value[0] || {})
 const heroProductFallbackImage = '/hero_3d_laptop.png'
 const activeHeroProduct = computed(() => {
-    const products = allHomeProducts.value.length ? allHomeProducts.value : (featuredProducts.value || [])
+    const allProducts = Array.isArray(allHomeProducts.value) ? allHomeProducts.value : []
+    const featured = Array.isArray(featuredProducts.value) ? featuredProducts.value : []
+    const products = allProducts.length ? allProducts : featured
     if (!products.length) return null
     const slideProductId = activeSlide.value?.productId
     if (slideProductId) {
@@ -1015,6 +1049,7 @@ onUnmounted(() => {
                             :class="{ 'is-playing-embed': affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id }"
                             @mouseenter="playAffiliateVideoPreview($event, video)"
                             @mouseleave="pauseAffiliateVideoPreview"
+                            @click="enableAffiliateVideoSound($event, video)"
                         >
                             <video
                                 v-if="isPlayableVideoSrc(affiliateVideoSrc(video))"
@@ -1028,16 +1063,21 @@ onUnmounted(() => {
                             <iframe
                                 v-else-if="affiliateVideoEmbedSrc(video) && hoveredAffiliateVideoId === video.id"
                                 class="affiliate-video-embed"
-                                :src="affiliateVideoEmbedSrc(video, true)"
+                                :src="affiliateVideoEmbedSrc(video, true, audibleAffiliateVideoIds.has(video.id))"
                                 :title="video.title || video.tieu_de"
                                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                                 allowfullscreen
                             ></iframe>
                             <img v-else :src="affiliateThumbnailSrc(video) || getCategoryFallbackImage(video.product?.tenSP)" :alt="video.title" />
+                            <button
+                                v-if="hoveredAffiliateVideoId === video.id && !audibleAffiliateVideoIds.has(video.id)"
+                                class="affiliate-sound-toggle"
+                                type="button"
+                                @click.stop="enableAffiliateVideoSound($event, video)"
+                            >
+                                Bật tiếng
+                            </button>
                             <div class="affiliate-video-scrim"></div>
-                            <div class="affiliate-play-mark">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
                             <div class="affiliate-video-content">
                                 <span class="affiliate-video-badge">Affiliate Video</span>
                                 <h3>{{ video.title || video.tieu_de }}</h3>
@@ -1554,7 +1594,7 @@ onUnmounted(() => {
     font-size: 11px;
     font-weight: 600;
     color: var(--tn-text-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.8px;
     margin: 0;
 }
@@ -1766,7 +1806,7 @@ onUnmounted(() => {
     font-weight: 800;
     color: #ffffff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
 }
 .flash-sale-tag {
@@ -1908,7 +1948,7 @@ onUnmounted(() => {
 .hero-container {
     position: relative;
     z-index: 2;
-    width: min(1280px, calc(100% - 32px));
+    width: min(var(--site-frame-max, 1688px), calc(100% - var(--site-frame-outer, 152px)));
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -1916,12 +1956,14 @@ onUnmounted(() => {
 }
 .hero-content {
     display: grid;
-    grid-template-columns: 1.08fr 0.92fr;
-    gap: 42px;
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+    gap: clamp(48px, 6vw, 104px);
     align-items: center;
+    width: 100%;
 }
 .hero-text-block {
-    max-width: 640px;
+    max-width: 720px;
+    justify-self: start;
 }
 .hero-badge {
     display: inline-flex;
@@ -2000,8 +2042,10 @@ onUnmounted(() => {
 .hero-device-wrapper {
     position: relative;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
+    justify-self: end;
+    width: 100%;
 }
 .glow-orb {
     position: absolute;
@@ -2023,7 +2067,7 @@ onUnmounted(() => {
     background: rgba(11, 19, 32, 0.82);
     backdrop-filter: blur(16px);
     animation: slow-floating 8s ease-in-out infinite;
-    width: min(100%, 410px);
+    width: min(100%, 510px);
 }
 
 .hero-product-card {
@@ -2087,7 +2131,7 @@ onUnmounted(() => {
     color: #3b82f6 !important;
     font-size: 10px;
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: .08em;
     display: block;
     -webkit-text-fill-color: currentColor;
@@ -2228,7 +2272,7 @@ onUnmounted(() => {
     font-size: 8px;
     color: #f97316;
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     line-height: 1.2;
 }
@@ -2271,7 +2315,7 @@ onUnmounted(() => {
 .hero-product-bottom-row .float-bottom .badge-text span {
     font-size: 8px;
     color: #94a3b8;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     line-height: 1.2;
     display: block;
@@ -2363,7 +2407,7 @@ onUnmounted(() => {
     color: #cbd5e1;
     font-weight: 700;
     margin: 0;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
 }
 
@@ -2417,6 +2461,24 @@ onUnmounted(() => {
     line-height: 1.7;
     color: var(--col-muted);
     margin: 0;
+}
+
+.section-header :is(h1, h2, h3),
+.ambient-label,
+.tab-pill,
+.interactive-anchor,
+.btn-premium-glow,
+.btn-premium-glass {
+    text-transform: lowercase !important;
+}
+
+.section-header :is(h1, h2, h3)::first-letter,
+.ambient-label::first-letter,
+.tab-pill::first-letter,
+.interactive-anchor::first-letter,
+.btn-premium-glow::first-letter,
+.btn-premium-glass::first-letter {
+    text-transform: uppercase !important;
 }
 
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */
@@ -2526,6 +2588,29 @@ onUnmounted(() => {
     z-index: 5;
     pointer-events: auto;
 }
+.affiliate-sound-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 9;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(15, 23, 42, 0.78);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.26);
+    transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.affiliate-sound-toggle:hover {
+    background: #2563eb;
+    border-color: #60a5fa;
+    transform: translateY(-1px);
+}
 .affiliate-video-scrim {
     position: absolute;
     inset: 0;
@@ -2606,7 +2691,7 @@ onUnmounted(() => {
     background: rgba(37,99,235,0.92);
     font-size: 10px;
     font-weight: 900;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: .08em;
     margin-bottom: 12px;
 }
@@ -2935,7 +3020,7 @@ onUnmounted(() => {
     font-size: 11px;
     font-weight: 800;
     color: var(--col-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.1em;
     margin-bottom: 6px;
 }
@@ -3121,7 +3206,7 @@ onUnmounted(() => {
     color: #60a5fa;
     font-weight: 700;
     font-size: 13px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.05em;
     transition: all 0.3s;
 }
@@ -3702,6 +3787,16 @@ onUnmounted(() => {
 /* ─── RESPONSIVE OVERRIDES ─── */
 @media (max-width: 1200px) {
     .hero-title { font-size: 42px; }
+    .hero-container {
+        width: min(1120px, calc(100% - 40px));
+    }
+    .hero-content {
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.84fr);
+        gap: 40px;
+    }
+    .device-showcase-card {
+        width: min(100%, 430px);
+    }
     .category-cards-grid,
     .premium-products-grid,
     .reviews-editorial-grid {
@@ -3747,6 +3842,10 @@ onUnmounted(() => {
     }
     .hero-text-block { max-width: 100%; text-align: center; }
     .hero-badge, .hero-buttons, .hero-trust-indicators { justify-content: center; }
+    .hero-device-wrapper {
+        justify-content: center;
+        justify-self: center;
+    }
     .device-showcase-card {
         width: min(100%, 380px);
     }
@@ -4138,7 +4237,7 @@ onUnmounted(() => {
     font-size: 9px;
     font-weight: 600;
     color: var(--tn-text-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
 }
 

@@ -1331,7 +1331,7 @@ td {
   font-size: 13px;
   font-weight: 700;
   color: #475569;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -1593,7 +1593,7 @@ td {
   font-size: 10px;
   font-weight: 700;
   color: #2563eb;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .prod-card-title {

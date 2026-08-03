@@ -112,8 +112,9 @@ class DanhGiaTest extends TestCase
         $this->assertEquals('approved', $danhGia->trangthai);
         $this->assertEquals(5, $danhGia->danhgia);
 
-        // Kiểm tra xem bình luận đã được đính kèm câu trả lời của Trợ lý AI
-        $this->assertStringContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
+        // Kiểm tra xem bình luận đã được đính kèm câu trả lời cảm ơn, không kèm nhãn trợ lý.
+        $this->assertStringContainsString('Cảm ơn', $danhGia->binhluan);
+        $this->assertStringNotContainsString('Trợ lý AI', $danhGia->binhluan);
         $this->assertStringContainsString('Sản phẩm dùng cực kỳ tuyệt vời và mượt mà', $danhGia->binhluan);
     }
 
@@ -142,8 +143,8 @@ class DanhGiaTest extends TestCase
         // Trạng thái tự động ẩn (spam)
         $this->assertEquals('spam', $danhGia->trangthai);
 
-        // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
-        $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
+        // Không được đính kèm phản hồi cảm ơn tự động
+        $this->assertStringNotContainsString('Cảm ơn', $danhGia->binhluan);
     }
 
     /**
@@ -170,8 +171,8 @@ class DanhGiaTest extends TestCase
         $this->assertNotNull($danhGia);
         $this->assertEquals('pending', $danhGia->trangthai);
 
-        // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
-        $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
+        // Không được đính kèm phản hồi cảm ơn tự động
+        $this->assertStringNotContainsString('Cảm ơn', $danhGia->binhluan);
     }
 
     /**
@@ -202,8 +203,8 @@ class DanhGiaTest extends TestCase
         // Trạng thái giữ nguyên là pending (chờ duyệt)
         $this->assertEquals('pending', $danhGia->trangthai);
 
-        // Không được đính kèm phản hồi cảm ơn của Trợ lý AI
-        $this->assertStringNotContainsString('Trợ lý AI VinaTech', $danhGia->binhluan);
+        // Không được đính kèm phản hồi cảm ơn tự động
+        $this->assertStringNotContainsString('Cảm ơn', $danhGia->binhluan);
     }
 
     /**

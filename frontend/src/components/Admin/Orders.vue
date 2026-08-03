@@ -1140,7 +1140,7 @@ tbody td { padding: 14px 12px; font-size: 13px; color: #334155; vertical-align: 
     font-weight: 700;
     padding: 4px 8px;
     border-radius: 6px;
-    text-transform: uppercase;
+    text-transform: capitalize;
     white-space: nowrap;
     transition: all 0.2s ease;
 }
@@ -1248,7 +1248,7 @@ tbody td { padding: 14px 12px; font-size: 13px; color: #334155; vertical-align: 
 
 .section-title {
     font-size: 11px; font-weight: 700; color: #94a3b8;
-    letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 4px;
+    letter-spacing: 0.1em; text-transform: capitalize; padding-bottom: 4px;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -1332,7 +1332,7 @@ tbody td { padding: 14px 12px; font-size: 13px; color: #334155; vertical-align: 
     font-size: 11px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
     display: flex;
     align-items: center;

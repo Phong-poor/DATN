@@ -3,23 +3,23 @@ import setupImg from '../assets/setup_gallery.png'
 
 export default function SetupGallery() {
   return (
-    <section id="gallery" className="relative py-28 bg-[#071120]/40 overflow-hidden border-t border-slate-900">
+    <section id="gallery" className="landing-section relative py-28 bg-[#071120]/40 overflow-hidden border-t border-slate-900">
       {/* Glow Effects in Background */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Section Header */}
-        <div className="max-w-3xl mb-16 reveal-hidden reveal-visible">
+        <div className="landing-header mb-16 reveal-hidden reveal-visible">
           <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full">
-            Premium Workspaces
+            Không gian làm việc cao cấp
           </span>
           <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mt-4 mb-6 tracking-tight">
-            The Digital Sanctum of <br/>
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-white bg-clip-text text-transparent">Elite Creators</span>
+            Góc máy chuyên nghiệp cho <br/>
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-white bg-clip-text text-transparent">nhà sáng tạo hiện đại</span>
           </h2>
           <p className="text-slate-400 text-lg font-light leading-relaxed">
-            See how top-tier neural developers, virtual production studios, and mechanical engineers deploy the Aether neural rig to optimize their workflows.
+            Khám phá cách các nhà sáng tạo, kỹ sư và studio dựng hình sử dụng Aether để tăng tốc quy trình làm việc.
           </p>
         </div>
 
@@ -33,7 +33,7 @@ export default function SetupGallery() {
             
             <img 
               src={setupImg} 
-              alt="Elite Creative Setup" 
+              alt="Góc máy sáng tạo cao cấp" 
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
             
@@ -42,13 +42,13 @@ export default function SetupGallery() {
               <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-6 backdrop-blur-md max-w-lg transition-transform duration-300 group-hover:translate-y-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-                  <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Featured Workspace #42</span>
+                  <span className="font-mono text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Góc máy nổi bật #42</span>
                 </div>
                 <h3 className="font-['Space_Grotesk'] text-xl sm:text-2xl font-bold text-white mb-2">
-                  VFX & Neural Simulation Deck
+                  Góc dựng VFX & mô phỏng AI
                 </h3>
                 <p className="text-slate-300 text-xs sm:text-sm font-light leading-relaxed">
-                  Deployed at Synthetix Labs, this custom Aether workstation integrates 4x Neural Cores and cryo-liquid thermal cycles to run real-time fluid solvers without frame dropping.
+                  Trạm máy Aether tùy chỉnh hỗ trợ render, mô phỏng và xử lý đồ họa thời gian thực với độ ổn định cao.
                 </p>
               </div>
             </div>
@@ -63,12 +63,12 @@ export default function SetupGallery() {
                 <div className="w-10 h-10 bg-cyan-950/50 border border-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 mb-4">
                   <Monitor className="w-5 h-5" />
                 </div>
-                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Dual Ultra-Link Interface</h4>
+                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Kết nối đa màn hình</h4>
                 <p className="text-slate-400 text-xs sm:text-sm font-light leading-relaxed">
-                  Support up to three 8K optical-link display terminals running at a synchronized 144Hz latency-free pipeline rate.
+                  Hỗ trợ nhiều màn hình độ phân giải cao, phù hợp cho thiết kế, dựng phim và giám sát dữ liệu.
                 </p>
               </div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Optical Interconnect Ready</div>
+              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Sẵn sàng kết nối tốc độ cao</div>
             </div>
 
             {/* Card 2 */}
@@ -77,12 +77,12 @@ export default function SetupGallery() {
                 <div className="w-10 h-10 bg-blue-950/50 border border-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-4">
                   <Cpu className="w-5 h-5" />
                 </div>
-                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Cryogenic Thermal Grid</h4>
+                <h4 className="font-['Space_Grotesk'] text-lg font-bold text-white mb-2">Hệ thống tản nhiệt tối ưu</h4>
                 <p className="text-slate-400 text-xs sm:text-sm font-light leading-relaxed">
-                  Fully integrated custom loop structures run through modular deck ports, cooling high-speed chips in silent equilibrium.
+                  Cấu trúc làm mát tích hợp giúp các linh kiện hiệu năng cao vận hành êm và ổn định.
                 </p>
               </div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Fluorochemical Cycle Integration</div>
+              <div className="font-mono text-[10px] text-slate-500 uppercase mt-4">Tích hợp chu trình làm mát</div>
             </div>
 
           </div>

@@ -74,8 +74,15 @@
       </div>
       <div class="stat-card stat-card-gradient">
         <p class="stat-card-tag">Chiến dịch tiếp theo</p>
-        <p class="stat-card-desc">Tết Nguyên Đán 2026 sẽ bắt đầu sau <strong>14 ngày nữa</strong>.</p>
-        <button class="stat-card-btn">Xem chi tiết</button>
+        <template v-if="nextHoliday">
+          <p class="stat-card-desc">
+            <strong>{{ nextHoliday.name }}</strong> sẽ bắt đầu sau
+            <strong>{{ nextHoliday.daysLeft === 0 ? 'hôm nay' : nextHoliday.daysLeft + ' ngày nữa' }}</strong>.
+          </p>
+          <p class="stat-card-subdesc">Mã: <span class="stat-code-badge">{{ nextHoliday.code }}</span></p>
+        </template>
+        <p class="stat-card-desc" v-else>Không có sự kiện sắp tới.</p>
+        <button class="stat-card-btn" @click="goToEvents">Xem chi tiết</button>
       </div>
     </div>
 
@@ -554,6 +561,21 @@ const upcomingHolidays = computed(() => {
 
 const nextHoliday = computed(() => upcomingHolidays.value.length > 0 ? upcomingHolidays.value[0] : null)
 
+function goToEvents() {
+  currentTab.value = 'events'
+  // Scroll xuống khu vực holiday list sau khi Vue render
+  setTimeout(() => {
+    const el = document.querySelector('.holiday-list-wrapper')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Highlight sự kiện đầu tiên (next-holiday)
+    const firstItem = document.querySelector('.holiday-item.next-holiday')
+    if (firstItem) {
+      firstItem.classList.add('holiday-highlight-pulse')
+      setTimeout(() => firstItem.classList.remove('holiday-highlight-pulse'), 2000)
+    }
+  }, 80)
+}
+
 // ── Toast ──────────────────────────────────────
 const toast = ref({ show: false, msg: '', type: 'success' })
 const showToast = (msg, type = 'success') => {
@@ -597,6 +619,7 @@ const fetchPromos = async () => {
     const now = new Date()
     promos.value = res.data.map(p => {
       let actualStatus = p.trangthai
+      
       if (actualStatus === 'running' && p.ngayketthuc) {
         const endDate = new Date(p.ngayketthuc)
         endDate.setHours(23, 59, 59, 999)
@@ -1224,7 +1247,7 @@ async function deletePromo(id) {
   font-weight: 800;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.88);
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .stat-value {
@@ -1275,7 +1298,7 @@ async function deletePromo(id) {
   font-weight: 800;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .stat-card-desc {
@@ -1304,6 +1327,25 @@ async function deletePromo(id) {
 
 .stat-card-btn:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.stat-card-subdesc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.stat-code-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* LIST HEADER */
@@ -1665,6 +1707,18 @@ td {
   background: linear-gradient(to right, #eff6ff, #fff);
   border-color: #bfdbfe;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+@keyframes holiday-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  50%  { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.holiday-highlight-pulse {
+  animation: holiday-pulse 0.6s ease 3;
+  border-color: #2563eb !important;
+  background: linear-gradient(to right, #dbeafe, #eff6ff) !important;
 }
 
 .holiday-date-box {
@@ -2267,7 +2321,7 @@ select.form-input {
   font-weight: 700;
   color: #6b7280;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .inline-form-body .form-input {

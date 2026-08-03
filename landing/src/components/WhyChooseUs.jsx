@@ -4,28 +4,28 @@ export default function WhyChooseUs() {
   const benefits = [
     {
       icon: Zap,
-      title: 'Topological Power Core',
-      desc: 'Achieves a remarkable 99.8% energy-to-operation efficiency matrix, saving substantial power draw in large-scale deployments.'
+      title: 'Hiệu năng mạnh mẽ',
+      desc: 'Tối ưu khả năng xử lý để tiết kiệm điện năng nhưng vẫn giữ tốc độ cao trong các tác vụ nặng.'
     },
     {
       icon: TrendingUp,
-      title: 'Accelerated Model Iteration',
-      desc: 'Bypass standard cloud compute latency entirely. Train and run generative neural structures locally in absolute confidence.'
+      title: 'Tăng tốc công việc sáng tạo',
+      desc: 'Xử lý AI, render và mô phỏng ngay trên máy cá nhân, giảm phụ thuộc vào dịch vụ đám mây.'
     },
     {
       icon: Shield,
-      title: 'Super-ECC Memory Integrity',
-      desc: 'Integrated quantum parity systems scan individual storage blocks to correct electromagnetic interference errors seamlessly.'
+      title: 'Bộ nhớ ổn định',
+      desc: 'Cơ chế kiểm soát lỗi giúp dữ liệu an toàn hơn khi chạy tác vụ dài hoặc nhiều ứng dụng cùng lúc.'
     }
   ]
 
   return (
-    <section className="relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
+    <section className="landing-section relative py-28 bg-[#020817] overflow-hidden border-t border-slate-900">
       {/* Visual Accent Lights */}
       <div className="absolute top-1/2 left-10 w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none z-0"></div>
 
-      <div className="w-[92%] max-w-7xl mx-auto relative z-10">
+      <div className="landing-container">
         
         {/* Main Content Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -38,7 +38,7 @@ export default function WhyChooseUs() {
               <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/5 to-transparent h-1/2 pointer-events-none z-0 animate-scan-line"></div>
               
               <div className="flex justify-between items-center mb-8 relative z-10">
-                <span className="font-mono text-xs text-cyan-400 tracking-wider font-semibold uppercase">Performance Index Benchmark</span>
+                <span className="font-mono text-xs text-cyan-400 tracking-wider font-semibold uppercase">So sánh hiệu năng</span>
                 <span className="text-[10px] font-mono text-slate-500 uppercase">Octane / Neural V4</span>
               </div>
 
@@ -47,7 +47,7 @@ export default function WhyChooseUs() {
                 {/* Aether Rig */}
                 <div>
                   <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-white">Aether Neural Rig (Local Cryo)</span>
+                    <span className="text-white">Aether Neural Rig</span>
                     <span className="text-cyan-400 font-mono">420 TFLOPS</span>
                   </div>
                   <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
@@ -58,7 +58,7 @@ export default function WhyChooseUs() {
                 {/* Top-tier Custom PC */}
                 <div>
                   <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-slate-400">Standard High-End Workstation</span>
+                    <span className="text-slate-400">Máy trạm cao cấp phổ thông</span>
                     <span className="text-slate-500 font-mono">110 TFLOPS</span>
                   </div>
                   <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
@@ -69,8 +69,8 @@ export default function WhyChooseUs() {
                 {/* Cloud Node Instance */}
                 <div>
                   <div className="flex justify-between text-sm font-semibold mb-2">
-                    <span className="text-slate-400">AWS p4d Cloud Instance (Shared)</span>
-                    <span className="text-slate-500 font-mono">145 TFLOPS (high latency)</span>
+                    <span className="text-slate-400">Máy chủ cloud chia sẻ</span>
+                    <span className="text-slate-500 font-mono">145 TFLOPS (độ trễ cao)</span>
                   </div>
                   <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-white/5">
                     <div className="bg-slate-700 h-full w-[34%] rounded-full"></div>
@@ -82,11 +82,11 @@ export default function WhyChooseUs() {
               <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/80 relative z-10">
                 <div className="bg-slate-950/60 border border-white/5 p-4 rounded-xl">
                   <div className="text-2xl font-extrabold text-cyan-400 font-['Space_Grotesk']">3.8x</div>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Speed Increase vs Standard PC</div>
+                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Nhanh hơn máy phổ thông</div>
                 </div>
                 <div className="bg-slate-950/60 border border-white/5 p-4 rounded-xl">
                   <div className="text-2xl font-extrabold text-white font-['Space_Grotesk']">-84%</div>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Latency Reduction rate</div>
+                  <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase tracking-wider">Giảm độ trễ xử lý</div>
                 </div>
               </div>
 
@@ -98,16 +98,16 @@ export default function WhyChooseUs() {
           <div className="lg:col-span-6 flex flex-col justify-center">
             
             <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/40 border border-cyan-500/10 px-3 py-1.5 rounded-full w-fit mb-6">
-              Engineering Advantages
+              Lợi thế kỹ thuật
             </span>
             
             <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-              Bypass Physical Latency <br/>
-              <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">At the Hardware Layer</span>
+              Giảm độ trễ ngay từ <br/>
+              <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">nền tảng phần cứng</span>
             </h2>
             
             <p className="text-slate-400 text-base font-light leading-relaxed mb-8">
-              Relying on cloud clusters slows development speed. Aether places super-ecc local memory pipelines directly at your fingertips.
+              Thay vì phụ thuộc hoàn toàn vào cloud, Aether mang lại sức mạnh xử lý trực tiếp tại bàn làm việc của bạn.
             </p>
 
             {/* List of benefits */}
@@ -137,7 +137,7 @@ export default function WhyChooseUs() {
               href="#configurator" 
               className="flex items-center gap-2 text-cyan-400 font-semibold text-sm hover:text-white transition-colors group mt-10 w-fit"
             >
-              Configure benchmark setup
+              Cấu hình bộ máy hiệu năng
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </a>
 
