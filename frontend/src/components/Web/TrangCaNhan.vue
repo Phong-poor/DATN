@@ -1470,6 +1470,18 @@ const selectSuggestion = (item) => {
   addrForm.value.longitude = lng
 }
 
+const handleDetailBlur = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const handleDetailKeydown = (e) => {
+  if (e.key === 'Escape') {
+    showSuggestions.value = false
+  }
+}
+
 const normalizeApiList = (data, keys = []) => {
   if (Array.isArray(data)) return data
 
@@ -1601,8 +1613,8 @@ const openMapPicker = async () => {
     return
   }
 
-  mapInitialPosition.value = await geocodeSelectedArea()
   showMapPicker.value = true
+  mapInitialPosition.value = await geocodeSelectedArea()
 }
 
 
@@ -2440,7 +2452,7 @@ const promoStatusMap = {
               </div>
               <div class="form-group form-full" style="position: relative;">
                 <label>Địa chỉ chi tiết</label>
-                <input v-model="addrForm.detail" @input="handleDetailInput" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
+                <input v-model="addrForm.detail" @input="handleDetailInput" @blur="handleDetailBlur" @keydown="handleDetailKeydown" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
                 <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm gợi ý...</small>
                 <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning }}</small>
                 
