@@ -1567,10 +1567,10 @@ const removeRow = (globalIndex) => {
 
 // ===== BASE / RULE =====
 const formatCurrency = (val) => {
-  if (!val) return ''
-  const num = String(val).replace(/\D/g, '')
-  if (!num) return ''
-  return Number(num).toLocaleString('vi-VN')
+  if (val === '' || val === null || val === undefined) return ''
+  const num = Math.round(Number(val))
+  if (isNaN(num)) return ''
+  return num.toLocaleString('vi-VN')
 }
 
 const parseCurrency = (val) => {
@@ -2220,7 +2220,10 @@ onBeforeUnmount(() => {
               <small>PNG, JPG, WEBP - t&#7889;i &#273;a 5MB</small>
             </label>
             <div v-else class="img-preview-wrap">
-              <button class="img-remove-btn" @click="removeImg">X&#243;a</button>
+              <div class="img-action-buttons">
+                <button type="button" class="img-change-btn" @click="triggerFileInput">Thay đổi ảnh</button>
+                <button type="button" class="img-remove-btn" @click="removeImg">Xóa</button>
+              </div>
               <img :src="imgPreview" class="img-preview" alt="Ảnh sản phẩm" />
             </div>
             <p v-if="fieldErrors.img" class="field-error">{{ fieldErrors.img }}</p>
@@ -3600,6 +3603,27 @@ tbody td {
 .img-change:hover {
   border-color: #2563eb;
   color: #2563eb;
+}
+
+.img-action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.img-change-btn {
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.img-change-btn:hover {
+  background: #dbeafe;
 }
 
 .img-remove-btn {

@@ -331,6 +331,12 @@
   background: var(--ds-primary-hover) !important;
 }
 
+.checkout-page .right {
+  position: sticky !important;
+  top: 140px !important;
+  align-self: flex-start !important;
+}
+
 @media (max-width: 992px) {
   .checkout-page > .container {
     flex-direction: column;
@@ -340,5 +346,6 @@
   .checkout-page .right {
     width: 100% !important;
     flex-basis: auto !important;
+    position: static !important;
   }
 }
