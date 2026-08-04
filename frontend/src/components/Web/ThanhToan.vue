@@ -1166,8 +1166,6 @@ const confirmOrder = async () => {
             <span v-if="isSubmitting">⏳ Đang xử lý...</span>
             <span v-else>Xác nhận đặt hàng</span>
           </button>
-
-          <p class="secure">🔒 Giao dịch được bảo mật 256-bit</p>
         </div>
 
       </div>
