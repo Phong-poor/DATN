@@ -333,7 +333,17 @@ const selectSuggestion = (item) => {
     addressForm.value.longitude = lng
 }
 
+const handleDetailKeydown = (e) => {
+    if (e.key === 'Escape') {
+        showSuggestions.value = false
+    }
+}
+
 const handleDetailBlur = async () => {
+    setTimeout(() => {
+        showSuggestions.value = false
+    }, 200)
+
     if (!addressForm.value.diachi_cuthe || addressForm.value.diachi_cuthe.trim().length < 3) return
     if (locatingSelectedArea.value) return // Tránh double request
     
@@ -372,8 +382,8 @@ const openMapPicker = async () => {
         return
     }
 
-    mapInitialPosition.value = await geocodeSelectedArea()
     showMapPicker.value = true
+    mapInitialPosition.value = await geocodeSelectedArea()
 }
 
 const applyMapAddress = (address) => {
@@ -1237,7 +1247,7 @@ const confirmOrder = async () => {
           </div>
           <div class="form-group form-full" style="position: relative;">
             <label>Địa chỉ chi tiết</label>
-            <input v-model="addressForm.diachi_cuthe" @input="handleDetailInput" @blur="handleDetailBlur" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
+            <input v-model="addressForm.diachi_cuthe" @input="handleDetailInput" @blur="handleDetailBlur" @keydown="handleDetailKeydown" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
             <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm gợi ý...</small>
             <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning }}</small>
             

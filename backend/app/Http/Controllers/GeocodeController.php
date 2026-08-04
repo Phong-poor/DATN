@@ -14,6 +14,60 @@ class GeocodeController extends Controller
         return trim(preg_replace('/\s+/', ' ', mb_strtolower($q)));
     }
 
+    private function sanitizeQueryForMap($q)
+    {
+        if (! $q) {
+            return '';
+        }
+        $cleaned = preg_replace('/\b(phuong|xa|tinh|thanh pho|tp\.|tp|thi xa|quan|huyen)\b/iu', '', $q);
+
+        return trim(preg_replace('/\s+/', ' ', $cleaned));
+    }
+
+    private function isStrictWardMatch($item, $reqWard, $reqProvince = null, $userQuery = null)
+    {
+        if (empty($reqWard)) {
+            return true;
+        }
+
+        $cleanReqWard = $this->sanitizeQueryForMap($reqWard);
+        if (! $cleanReqWard || mb_strlen($cleanReqWard) < 2) {
+            return true;
+        }
+
+        $normReqWard = $this->normalizeQuery($cleanReqWard);
+
+        if (! empty($item['ward'])) {
+            $cleanItemWard = $this->sanitizeQueryForMap($item['ward']);
+            $normItemWard = $this->normalizeQuery($cleanItemWard ?: $item['ward']);
+
+            if (stripos($normItemWard, $normReqWard) !== false || stripos($normReqWard, $normItemWard) !== false) {
+                return true;
+            }
+        }
+
+        $subtitle = $this->normalizeQuery(($item['subtitle'] ?? '').' '.($item['display_name'] ?? ''));
+        if (! empty($subtitle) && stripos($subtitle, $normReqWard) !== false) {
+            return true;
+        }
+
+        if (! empty($userQuery) && ! empty($item['title'])) {
+            $normTitle = $this->normalizeQuery($item['title']);
+            $normUserQ = $this->normalizeQuery($userQuery);
+            $cleanUserQ = trim(preg_replace('/^\d+\s*/', '', $normUserQ));
+
+            if (mb_strlen($cleanUserQ) >= 4 && (stripos($normTitle, $cleanUserQ) !== false || stripos($cleanUserQ, $normTitle) !== false)) {
+                return true;
+            }
+        }
+
+        if (! empty($item['ward'])) {
+            return false;
+        }
+
+        return true;
+    }
+
     private function getProviders()
     {
         return [
@@ -95,209 +149,253 @@ class GeocodeController extends Controller
         $queryHash = md5($normalizedQuery.'|'.$reqProvince.'|'.$reqWard);
         $cacheKey = "address:suggestions:{$queryHash}";
 
-        $result = Cache::remember($cacheKey, now()->addDays(7), function () use ($normalizedQuery, $queryHash, $reqProvince, $reqWard, $q) {
-            $limit = 5;
+        $cachedResult = Cache::get($cacheKey);
+        if ($cachedResult && is_array($cachedResult) && count($cachedResult) > 0) {
+            return response()->json($cachedResult);
+        }
 
-            foreach ($this->getProviders() as $p) {
-                if (! $p['key']) {
-                    continue;
-                }
-                $provider = $p['name'];
+        $limit = 5;
+        $mappedFinal = [];
 
-                try {
-                    $response = null;
-                    if ($provider === 'mapbox') {
-                        $response = Http::withoutVerifying()->timeout(5)->get('https://api.mapbox.com/geocoding/v5/mapbox.places/'.urlencode($normalizedQuery).'.json', [
-                            'access_token' => $p['key'],
-                            'country' => 'vn',
-                            'limit' => $limit,
-                            'types' => 'address,poi',
-                        ]);
-                    } elseif ($provider === 'tomtom') {
-                        $response = Http::withoutVerifying()->timeout(5)->get('https://api.tomtom.com/search/2/geocode/'.urlencode($normalizedQuery).'.json', [
-                            'key' => $p['key'],
-                            'countrySet' => 'VN',
-                            'limit' => $limit,
-                        ]);
-                    } elseif ($provider === 'here') {
-                        $response = Http::withoutVerifying()->timeout(5)->get('https://geocode.search.hereapi.com/v1/geocode', [
-                            'q' => $normalizedQuery,
-                            'apiKey' => $p['key'],
-                            'in' => 'countryCode:VNM',
-                            'limit' => $limit,
-                        ]);
-                    } elseif ($provider === 'nominatim') {
-                        $response = Http::withoutVerifying()->timeout(15)->withHeaders([
-                            'User-Agent' => 'DATN-App/1.0 (contact@example.com)',
-                        ])->get('https://nominatim.openstreetmap.org/search', [
-                            'format' => 'jsonv2',
-                            'limit' => $limit,
-                            'countrycodes' => 'vn',
-                            'addressdetails' => 1,
-                            'q' => $normalizedQuery,
-                        ]);
-                    }
+        foreach ($this->getProviders() as $p) {
+            if (! $p['key']) {
+                continue;
+            }
+            $provider = $p['name'];
 
-                    if ($response && $response->successful()) {
-                        $mapped = [];
-                        if ($provider === 'mapbox') {
-                            $features = $response->json('features') ?? [];
-                            $mapped = collect($features)->map(function ($f) use ($provider) {
-                                [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $f);
+            try {
+                $response = null;
+                $cleanQuery = $this->sanitizeQueryForMap($normalizedQuery);
+                $queryToSend = $cleanQuery ?: $normalizedQuery;
 
-                                return [
-                                    'id' => (string) ($f['id'] ?? uniqid()),
-                                    'provider' => $provider,
-                                    'title' => $f['text'] ?? null,
-                                    'subtitle' => str_replace(($f['text'] ?? '').', ', '', $f['place_name'] ?? '') ?: null,
-                                    'display_name' => $f['place_name'] ?? null,
-                                    'lat' => $f['center'][1] ?? null,
-                                    'lng' => $f['center'][0] ?? null,
-                                    'province' => $province,
-                                    'district' => $district,
-                                    'ward' => $ward,
-                                    'raw' => $f,
-                                ];
-                            })->toArray();
-                        } elseif ($provider === 'tomtom') {
-                            $results = $response->json('results') ?? [];
-                            $mapped = collect($results)->map(function ($r) use ($provider) {
-                                [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $r);
-                                $addr = $r['address'] ?? [];
-                                $freeform = $addr['freeformAddress'] ?? $addr['streetName'] ?? $addr['municipality'] ?? $addr['countrySubdivisionName'] ?? null;
+                if ($provider === 'mapbox') {
+                    $response = Http::withoutVerifying()->timeout(5)->get('https://api.mapbox.com/geocoding/v5/mapbox.places/'.urlencode($queryToSend).'.json', [
+                        'access_token' => $p['key'],
+                        'country' => 'vn',
+                        'limit' => $limit,
+                        'types' => 'address,poi',
+                    ]);
+                } elseif ($provider === 'tomtom') {
+                    $response = Http::withoutVerifying()->timeout(5)->get('https://api.tomtom.com/search/2/search/'.urlencode($queryToSend).'.json', [
+                        'key' => $p['key'],
+                        'countrySet' => 'VN',
+                        'language' => 'vi-VN',
+                        'typeahead' => 'true',
+                        'idxSet' => 'PAD,Addr,Str,POI',
+                        'limit' => $limit,
+                    ]);
 
-                                $titleParts = [];
-                                if (! empty($addr['streetNumber'])) {
-                                    $titleParts[] = $addr['streetNumber'];
-                                }
-                                if (! empty($addr['streetName'])) {
-                                    $titleParts[] = $addr['streetName'];
-                                }
-                                $title = ! empty($titleParts) ? implode(' ', $titleParts) : $freeform;
-
-                                $subtitleParts = [];
-                                if (! empty($addr['municipalitySubdivision'])) {
-                                    $subtitleParts[] = $addr['municipalitySubdivision'];
-                                }
-                                if (! empty($addr['municipality'])) {
-                                    $subtitleParts[] = $addr['municipality'];
-                                }
-                                if (! empty($addr['countrySubdivisionName'])) {
-                                    $subtitleParts[] = $addr['countrySubdivisionName'];
-                                }
-                                if (! empty($addr['country'])) {
-                                    $subtitleParts[] = $addr['country'];
-                                }
-                                $subtitle = ! empty($subtitleParts) ? implode(', ', array_unique($subtitleParts)) : $freeform;
-
-                                return [
-                                    'id' => (string) ($r['id'] ?? uniqid()),
-                                    'provider' => $provider,
-                                    'title' => $title,
-                                    'subtitle' => $subtitle,
-                                    'display_name' => $title.', '.$subtitle,
-                                    'lat' => $r['position']['lat'] ?? null,
-                                    'lng' => $r['position']['lon'] ?? null,
-                                    'province' => $province,
-                                    'district' => $district,
-                                    'ward' => $ward,
-                                    'raw' => $r,
-                                ];
-                            })->toArray();
-                        } elseif ($provider === 'here') {
-                            $items = $response->json('items') ?? [];
-                            $mapped = collect($items)->map(function ($i) use ($provider) {
-                                [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $i);
-                                $title = explode(',', $i['title'] ?? '')[0] ?? null;
-
-                                return [
-                                    'id' => (string) ($i['id'] ?? uniqid()),
-                                    'provider' => $provider,
-                                    'title' => $title,
-                                    'subtitle' => $i['title'] ?? null,
-                                    'display_name' => $i['title'] ?? null,
-                                    'lat' => $i['position']['lat'] ?? null,
-                                    'lng' => $i['position']['lng'] ?? null,
-                                    'province' => $province,
-                                    'district' => $district,
-                                    'ward' => $ward,
-                                    'raw' => $i,
-                                ];
-                            })->toArray();
-                        } elseif ($provider === 'nominatim') {
-                            $data = $response->json() ?? [];
-                            $mapped = collect($data)->map(function ($d) use ($provider) {
-                                [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $d);
-                                $title = $d['name'] ?: (explode(',', $d['display_name'] ?? '')[0] ?? null);
-
-                                return [
-                                    'id' => (string) ($d['place_id'] ?? uniqid()),
-                                    'provider' => $provider,
-                                    'title' => $title,
-                                    'subtitle' => $d['display_name'] ?? null,
-                                    'display_name' => $d['display_name'] ?? null,
-                                    'lat' => is_numeric($d['lat'] ?? null) ? (float) $d['lat'] : null,
-                                    'lng' => is_numeric($d['lon'] ?? null) ? (float) $d['lon'] : null,
-                                    'province' => $province,
-                                    'district' => $district,
-                                    'ward' => $ward,
-                                    'raw' => $d,
-                                ];
-                            })->toArray();
-                        }
-
-                        if (count($mapped) > 0) {
-                            $mapped = collect($mapped)->filter(function ($item) {
-                                return (! empty($item['title']) || ! empty($item['display_name'])) && ! empty($item['lat']) && ! empty($item['lng']);
-                            })->map(function ($item) use ($reqProvince, $reqWard, $q) {
-                                $score = 0;
-                                if (isset($item['raw']['address']['streetNumber'])) {
-                                    $score += 1;
-                                }
-                                if (isset($item['raw']['address']['streetName'])) {
-                                    $score += 1;
-                                }
-
-                                if (! empty($reqProvince) && ! empty($item['province'])) {
-                                    if (stripos($this->normalizeQuery($item['province']), $this->normalizeQuery($reqProvince)) !== false ||
-                                        stripos($this->normalizeQuery($reqProvince), $this->normalizeQuery($item['province'])) !== false) {
-                                        $score += 2;
-                                    }
-                                }
-
-                                if (! empty($reqWard) && ! empty($item['ward'])) {
-                                    if (stripos($this->normalizeQuery($item['ward']), $this->normalizeQuery($reqWard)) !== false ||
-                                        stripos($this->normalizeQuery($reqWard), $this->normalizeQuery($item['ward'])) !== false) {
-                                        $score += 2;
-                                    }
-                                }
-
-                                $fullText = ($item['title'] ?? '').' '.($item['subtitle'] ?? '').' '.($item['display_name'] ?? '');
-                                if (stripos($this->normalizeQuery($fullText), $this->normalizeQuery($q)) !== false) {
-                                    $score += 1;
-                                }
-
-                                $item['score'] = $score;
-
-                                return $item;
-                            })->sortByDesc('score')->values()->toArray();
-
-                            if (count($mapped) > 0) {
-                                return $mapped;
+                    // Fallback thử rút gọn query bỏ phường/xã nếu kết quả đầy đủ rỗng
+                    if (! $response || ! $response->successful() || count($response->json('results') ?? []) === 0) {
+                        $parts = array_map('trim', explode(',', $q));
+                        if (count($parts) > 2) {
+                            $detail = $parts[0];
+                            $province = end($parts);
+                            if (stripos($province, 'Việt Nam') !== false && count($parts) > 2) {
+                                $province = $parts[count($parts) - 2];
+                            }
+                            $fallbackQueryToSend = $this->sanitizeQueryForMap($detail.', '.$province);
+                            if ($fallbackQueryToSend) {
+                                $response = Http::withoutVerifying()->timeout(5)->get('https://api.tomtom.com/search/2/search/'.urlencode($fallbackQueryToSend).'.json', [
+                                    'key' => $p['key'],
+                                    'countrySet' => 'VN',
+                                    'language' => 'vi-VN',
+                                    'typeahead' => 'true',
+                                    'idxSet' => 'PAD,Addr,Str,POI',
+                                    'limit' => $limit,
+                                ]);
                             }
                         }
-                    } else {
-                        $this->safeLogWarning('geocode', $provider, $response ? $response->status() : null, 'HTTP error', $queryHash);
                     }
-                } catch (\Throwable $e) {
-                    $this->safeLogWarning('geocode', $provider, null, 'Exception occurred: '.$e->getMessage(), $queryHash);
+                } elseif ($provider === 'here') {
+                    $response = Http::withoutVerifying()->timeout(5)->get('https://geocode.search.hereapi.com/v1/geocode', [
+                        'q' => $queryToSend,
+                        'apiKey' => $p['key'],
+                        'in' => 'countryCode:VNM',
+                        'limit' => $limit,
+                    ]);
+                } elseif ($provider === 'nominatim') {
+                    $response = Http::withoutVerifying()->timeout(15)->withHeaders([
+                        'User-Agent' => 'DATN-App/1.0 (contact@example.com)',
+                    ])->get('https://nominatim.openstreetmap.org/search', [
+                        'format' => 'jsonv2',
+                        'limit' => $limit,
+                        'countrycodes' => 'vn',
+                        'addressdetails' => 1,
+                        'q' => $queryToSend,
+                    ]);
                 }
+
+                if ($response && $response->successful()) {
+                    $mapped = [];
+                    if ($provider === 'mapbox') {
+                        $features = $response->json('features') ?? [];
+                        $mapped = collect($features)->map(function ($f) use ($provider) {
+                            [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $f);
+
+                            return [
+                                'id' => (string) ($f['id'] ?? uniqid()),
+                                'provider' => $provider,
+                                'title' => $f['text'] ?? null,
+                                'subtitle' => str_replace(($f['text'] ?? '').', ', '', $f['place_name'] ?? '') ?: null,
+                                'display_name' => $f['place_name'] ?? null,
+                                'lat' => $f['center'][1] ?? null,
+                                'lng' => $f['center'][0] ?? null,
+                                'province' => $province,
+                                'district' => $district,
+                                'ward' => $ward,
+                                'raw' => $f,
+                            ];
+                        })->toArray();
+                    } elseif ($provider === 'tomtom') {
+                        $results = $response->json('results') ?? [];
+                        $mapped = collect($results)->map(function ($r) use ($provider) {
+                            [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $r);
+                            $addr = $r['address'] ?? [];
+                            $freeform = $addr['freeformAddress'] ?? $addr['streetName'] ?? $addr['municipality'] ?? $addr['countrySubdivisionName'] ?? null;
+
+                            $titleParts = [];
+                            if (! empty($addr['streetNumber'])) {
+                                $titleParts[] = $addr['streetNumber'];
+                            }
+                            if (! empty($addr['streetName'])) {
+                                $titleParts[] = $addr['streetName'];
+                            }
+                            $title = ! empty($titleParts) ? implode(' ', $titleParts) : ($r['poi']['name'] ?? $freeform);
+
+                            $subtitleParts = [];
+                            if (! empty($addr['municipalitySubdivision'])) {
+                                $subtitleParts[] = $addr['municipalitySubdivision'];
+                            }
+                            if (! empty($addr['municipality'])) {
+                                $subtitleParts[] = $addr['municipality'];
+                            }
+                            if (! empty($addr['countrySubdivisionName'])) {
+                                $subtitleParts[] = $addr['countrySubdivisionName'];
+                            }
+                            if (! empty($addr['country'])) {
+                                $subtitleParts[] = $addr['country'];
+                            }
+                            $subtitle = ! empty($subtitleParts) ? implode(', ', array_unique($subtitleParts)) : $freeform;
+
+                            return [
+                                'id' => (string) ($r['id'] ?? uniqid()),
+                                'provider' => $provider,
+                                'title' => $title,
+                                'subtitle' => $subtitle,
+                                'display_name' => $title.', '.$subtitle,
+                                'lat' => $r['position']['lat'] ?? null,
+                                'lng' => $r['position']['lon'] ?? null,
+                                'province' => $province,
+                                'district' => $district,
+                                'ward' => $ward,
+                                'raw' => $r,
+                            ];
+                        })->toArray();
+                    } elseif ($provider === 'here') {
+                        $items = $response->json('items') ?? [];
+                        $mapped = collect($items)->map(function ($i) use ($provider) {
+                            [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $i);
+                            $title = explode(',', $i['title'] ?? '')[0] ?? null;
+
+                            return [
+                                'id' => (string) ($i['id'] ?? uniqid()),
+                                'provider' => $provider,
+                                'title' => $title,
+                                'subtitle' => $i['title'] ?? null,
+                                'display_name' => $i['title'] ?? null,
+                                'lat' => $i['position']['lat'] ?? null,
+                                'lng' => $i['position']['lng'] ?? null,
+                                'province' => $province,
+                                'district' => $district,
+                                'ward' => $ward,
+                                'raw' => $i,
+                            ];
+                        })->toArray();
+                    } elseif ($provider === 'nominatim') {
+                        $data = $response->json() ?? [];
+                        $mapped = collect($data)->map(function ($d) use ($provider) {
+                            [$province, $district, $ward] = $this->parseProvinceDistrictWard($provider, $d);
+                            $title = $d['name'] ?: (explode(',', $d['display_name'] ?? '')[0] ?? null);
+
+                            return [
+                                'id' => (string) ($d['place_id'] ?? uniqid()),
+                                'provider' => $provider,
+                                'title' => $title,
+                                'subtitle' => $d['display_name'] ?? null,
+                                'display_name' => $d['display_name'] ?? null,
+                                'lat' => is_numeric($d['lat'] ?? null) ? (float) $d['lat'] : null,
+                                'lng' => is_numeric($d['lon'] ?? null) ? (float) $d['lon'] : null,
+                                'province' => $province,
+                                'district' => $district,
+                                'ward' => $ward,
+                                'raw' => $d,
+                            ];
+                        })->toArray();
+                    }
+
+                    if (count($mapped) > 0) {
+                        $mappedFinal = collect($mapped)->filter(function ($item) use ($reqWard, $reqProvince, $q) {
+                            if (empty($item['title']) && empty($item['display_name'])) {
+                                return false;
+                            }
+                            if (empty($item['lat']) || empty($item['lng'])) {
+                                return false;
+                            }
+
+                            return $this->isStrictWardMatch($item, $reqWard, $reqProvince, $q);
+                        })->map(function ($item) use ($reqProvince, $reqWard, $q) {
+                            $score = 0;
+                            if (isset($item['raw']['address']['streetNumber'])) {
+                                $score += 1;
+                            }
+                            if (isset($item['raw']['address']['streetName'])) {
+                                $score += 1;
+                            }
+
+                            if (! empty($reqProvince) && ! empty($item['province'])) {
+                                if (stripos($this->normalizeQuery($item['province']), $this->normalizeQuery($reqProvince)) !== false ||
+                                    stripos($this->normalizeQuery($reqProvince), $this->normalizeQuery($item['province'])) !== false) {
+                                    $score += 2;
+                                }
+                            }
+
+                            if (! empty($reqWard) && ! empty($item['ward'])) {
+                                if (stripos($this->normalizeQuery($item['ward']), $this->normalizeQuery($reqWard)) !== false ||
+                                    stripos($this->normalizeQuery($reqWard), $this->normalizeQuery($item['ward'])) !== false) {
+                                    $score += 2;
+                                }
+                            }
+
+                            $fullText = ($item['title'] ?? '').' '.($item['subtitle'] ?? '').' '.($item['display_name'] ?? '');
+                            if (stripos($this->normalizeQuery($fullText), $this->normalizeQuery($q)) !== false) {
+                                $score += 1;
+                            }
+
+                            $item['score'] = $score;
+
+                            return $item;
+                        })->sortByDesc('score')->values()->toArray();
+
+                        if (count($mappedFinal) > 0) {
+                            $mappedFinal = collect($mappedFinal)->unique(function ($item) {
+                                return mb_strtolower(($item['title'] ?? '').'|'.($item['subtitle'] ?? ''));
+                            })->values()->toArray();
+
+                            Cache::put($cacheKey, $mappedFinal, now()->addDays(7));
+
+                            return response()->json($mappedFinal);
+                        }
+                    }
+                } else {
+                    $this->safeLogWarning('geocode', $provider, $response ? $response->status() : null, 'HTTP error', $queryHash);
+                }
+            } catch (\Throwable $e) {
+                $this->safeLogWarning('geocode', $provider, null, 'Exception occurred: '.$e->getMessage(), $queryHash);
             }
+        }
 
-            return [];
-        });
-
-        return response()->json(is_array($result) ? $result : []);
+        return response()->json([]);
     }
 
     public function geocode(Request $request)
@@ -340,11 +438,16 @@ class GeocodeController extends Controller
 
         $runTomTomGeocode = function ($searchQuery) use ($tomtomKey) {
             try {
-                $response = Http::withoutVerifying()->timeout(2)->get('https://api.tomtom.com/search/2/geocode/'.urlencode($searchQuery).'.json', [
+                $cleanQuery = $this->sanitizeQueryForMap($searchQuery);
+                $queryToSend = $cleanQuery ?: $searchQuery;
+
+                $response = Http::withoutVerifying()->timeout(3)->get('https://api.tomtom.com/search/2/search/'.urlencode($queryToSend).'.json', [
                     'key' => $tomtomKey,
                     'countrySet' => 'VN',
                     'limit' => 1,
                     'language' => 'vi-VN',
+                    'typeahead' => 'true',
+                    'idxSet' => 'PAD,Addr,Str,POI',
                 ]);
 
                 if ($response && $response->successful()) {
@@ -359,7 +462,7 @@ class GeocodeController extends Controller
                             'success' => true,
                             'provider' => 'tomtom',
                             'source' => 'tomtom',
-                            'display_name' => $freeform,
+                            'display_name' => $r['poi']['name'] ?? $freeform,
                             'lat' => $r['position']['lat'] ?? null,
                             'lng' => $r['position']['lon'] ?? null,
                             'province' => $province,
@@ -380,7 +483,7 @@ class GeocodeController extends Controller
             return null;
         };
 
-        // Lần 1: Thử với query đầy đủ
+        // Lần 1: Thử với query đầy đủ đã làm sạch
         $resObj = $runTomTomGeocode($normalizedQuery);
         if ($resObj) {
             $resObj['accuracy_level'] = 'exact';
@@ -390,19 +493,40 @@ class GeocodeController extends Controller
             return response()->json($resObj);
         }
 
-        // Lần 2: Fallback rút gọn query (cắt bỏ phần đầu tiên trước dấu phẩy)
-        $parts = explode(',', $q);
-        if (count($parts) > 1) {
-            array_shift($parts); // Vứt bỏ phần chi tiết số nhà/ngõ
-            $fallbackQuery = trim(implode(',', $parts));
-            $fallbackQuery = $this->normalizeQuery($fallbackQuery);
+        // Lần 2: Smart Fallback (Giữ địa chỉ chi tiết + Tỉnh thành, loại bỏ phần phường/xã gây nhiễu)
+        $parts = array_map('trim', explode(',', $q));
+        if (count($parts) > 2) {
+            $detail = $parts[0];
+            $province = end($parts);
+            if (stripos($province, 'Việt Nam') !== false && count($parts) > 2) {
+                $province = $parts[count($parts) - 2];
+            }
 
-            if ($fallbackQuery && mb_strlen($fallbackQuery) > 3) {
-                $resObj = $runTomTomGeocode($fallbackQuery);
+            $smartFallbackQuery = $this->normalizeQuery($detail.', '.$province);
+            if ($smartFallbackQuery && mb_strlen($smartFallbackQuery) > 3) {
+                $resObj = $runTomTomGeocode($smartFallbackQuery);
                 if ($resObj) {
                     $resObj['accuracy_level'] = 'approximate';
-                    $resObj['message'] = 'Không tìm thấy vị trí cụ thể, đã chuyển về khu vực lân cận.';
+                    $resObj['message'] = 'Đã tìm thấy địa chỉ theo khu vực tỉnh/thành phố.';
                     Cache::put($cacheKey, $resObj, now()->addDays(7));
+
+                    return response()->json($resObj);
+                }
+            }
+        }
+
+        // Lần 3: Fallback rút gọn về Tỉnh/Thành
+        if (count($parts) > 1) {
+            $lastPart = end($parts);
+            if (stripos($lastPart, 'Việt Nam') !== false && count($parts) > 1) {
+                $lastPart = $parts[count($parts) - 2];
+            }
+
+            if ($lastPart && mb_strlen($lastPart) > 2) {
+                $resObj = $runTomTomGeocode($lastPart);
+                if ($resObj) {
+                    $resObj['accuracy_level'] = 'approximate';
+                    $resObj['message'] = 'Đã ghim ở khu vực tỉnh/thành phố.';
 
                     return response()->json($resObj);
                 }

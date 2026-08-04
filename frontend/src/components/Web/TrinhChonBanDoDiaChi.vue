@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import { reverseGeocodeLocation as fetchReverseGeocode } from '@/services/geocode'
@@ -176,6 +176,42 @@ const reverseGeocodeLocation = async () => {
   }
 }
 
+const locatingGPS = ref(false)
+
+const useCurrentBrowserLocation = () => {
+  if (!navigator.geolocation) {
+    errorMessage.value = 'Trình duyệt của bạn không hỗ trợ định vị GPS.'
+    return
+  }
+
+  locatingGPS.value = true
+  errorMessage.value = ''
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      try {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        setMarker({ lat, lng }, 17)
+        await reverseGeocodeLocation()
+      } catch (err) {
+        console.error('Lỗi định vị vị trí:', err)
+      } finally {
+        locatingGPS.value = false
+      }
+    },
+    (error) => {
+      locatingGPS.value = false
+      if (error.code === error.PERMISSION_DENIED) {
+        errorMessage.value = 'Vui lòng cho phép trình duyệt truy cập vị trí GPS.'
+      } else {
+        errorMessage.value = 'Không thể lấy vị trí hiện tại. Vui lòng kiểm tra GPS.'
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  )
+}
+
 watch(() => props.modelValue, (visible) => {
   if (visible) initMap()
 })
@@ -214,6 +250,9 @@ onBeforeUnmount(() => {
       <p v-if="errorMessage" class="map-error">{{ errorMessage }}</p>
     </div>
     <div class="map-picker-footer inline-footer">
+      <button type="button" class="map-secondary" :disabled="locatingGPS || geocoding || loadingMap" @click="useCurrentBrowserLocation">
+       {{ locatingGPS ? 'Đang định vị...' : 'Vị trí hiện tại' }}
+      </button>
       <button type="button" class="map-secondary" :disabled="geocoding || loadingMap" @click="reverseGeocodeLocation">
         {{ geocoding ? 'Đang tải...' : 'Lấy địa chỉ từ vị trí này' }}
       </button>
@@ -222,43 +261,48 @@ onBeforeUnmount(() => {
       </button>
     </div>
   </div>
-  <div v-else-if="modelValue" class="map-picker-backdrop" @click.self="close">
-    <div class="map-picker-modal">
-      <div class="map-picker-header">
-        <div>
-          <h3>Chọn vị trí giao hàng</h3>
-          <p>Click bản đồ hoặc kéo ghim để chọn đúng vị trí</p>
+  <Teleport to="body">
+    <div v-if="!inline && modelValue" class="map-picker-backdrop" @click.self="close">
+      <div class="map-picker-modal">
+        <div class="map-picker-header">
+          <div>
+            <h3>Chọn vị trí giao hàng</h3>
+            <p>Click bản đồ hoặc kéo ghim để chọn đúng vị trí</p>
+          </div>
+          <button type="button" class="map-picker-close" @click="close">×</button>
         </div>
-        <button type="button" class="map-picker-close" @click="close">×</button>
-      </div>
 
-      <div class="map-picker-body">
-        <div v-if="loadingMap" class="map-loading">Đang tải bản đồ...</div>
-        <div ref="mapEl" class="map-picker-canvas"></div>
-        <div class="map-helper" :class="{'map-warning': warningMessage}">
-          <span>{{ warningMessage || 'Vui lòng ghim địa chỉ chính xác để giao hàng thuận tiện hơn.' }}</span>
+        <div class="map-picker-body">
+          <div v-if="loadingMap" class="map-loading">Đang tải bản đồ...</div>
+          <div ref="mapEl" class="map-picker-canvas"></div>
+          <div class="map-helper" :class="{'map-warning': warningMessage}">
+            <span>{{ warningMessage || 'Vui lòng ghim địa chỉ chính xác để giao hàng thuận tiện hơn.' }}</span>
+          </div>
+          <p v-if="errorMessage" class="map-error">{{ errorMessage }}</p>
         </div>
-        <p v-if="errorMessage" class="map-error">{{ errorMessage }}</p>
-      </div>
 
-      <div class="map-picker-footer">
-        <div class="map-footer-actions">
-          <button type="button" class="map-secondary" @click="close">Trở lại</button>
-          <button type="button" class="map-secondary" :disabled="geocoding || loadingMap" @click="reverseGeocodeLocation">
-            {{ geocoding ? 'Đang tải...' : 'Lấy địa chỉ từ vị trí này' }}
-          </button>
-          <button type="button" class="map-primary" :disabled="loadingMap" @click="confirmLocation">
-            Xác nhận vị trí
-          </button>
+        <div class="map-picker-footer">
+          <div class="map-footer-actions">
+            <button type="button" class="map-secondary" @click="close">Trở lại</button>
+            <button type="button" class="map-secondary" :disabled="locatingGPS || geocoding || loadingMap" @click="useCurrentBrowserLocation">
+             {{ locatingGPS ? 'Đang định vị...' : 'Vị trí hiện tại' }}
+            </button>
+            <button type="button" class="map-secondary" :disabled="geocoding || loadingMap" @click="reverseGeocodeLocation">
+              {{ geocoding ? 'Đang tải...' : 'Lấy địa chỉ từ vị trí này' }}
+            </button>
+            <button type="button" class="map-primary" :disabled="loadingMap" @click="confirmLocation">
+              Xác nhận vị trí
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
 
-.map-picker-backdrop { position:fixed; inset:0; z-index:9030; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; }
+.map-picker-backdrop { position:fixed; inset:0; z-index:99999 !important; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; }
 .map-picker-inline { width:100%; border: 1px solid rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; background: #111f35; }
 .map-picker-modal { width:min(760px,100%); background: #111f35; border-radius:18px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.28); }
 .map-picker-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:20px 22px 12px; }
