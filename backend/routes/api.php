@@ -1,52 +1,58 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DatHangController;
-use App\Http\Controllers\VnpayController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\DanhMucController;
-use App\Http\Controllers\DanhMucChaController;
-use App\Http\Controllers\ThuongHieuController;
-use App\Http\Controllers\ThuocTinhController;
-use App\Http\Controllers\ColorController;
-use App\Http\Controllers\SanPhamController;
-use App\Http\Controllers\BienTheController;
-use App\Http\Controllers\BienTheHinhAnhController;
-use App\Http\Controllers\GioHangController;
-use App\Http\Controllers\YeuThichController;
-use App\Http\Controllers\ForgotPasswordController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LienHeController;
-use App\Http\Controllers\DanhGiaController;
-use App\Http\Controllers\ChatbotController;
-use App\Http\Controllers\PromotionController;
-use App\Http\Controllers\NewsController;
-use App\Http\Controllers\DiaChiController;
-use App\Http\Controllers\SanPhamDaXemController;
-use App\Http\Controllers\AffiliateController;
-use App\Http\Controllers\AdminAffiliateController;
-use App\Http\Controllers\AffiliateVideoController;
 use App\Http\Controllers\AdminAccountController;
-use App\Http\Controllers\ChatController;
-use App\Http\Controllers\MomoController;
-use App\Http\Controllers\SepayController;
-use App\Http\Controllers\BannerController;
-use App\Http\Controllers\ComboController;
-use App\Http\Controllers\GeocodeController;
-use App\Http\Controllers\BirthdayCodeController;
-use App\Http\Controllers\FlashSaleController;
-use App\Http\Controllers\FlashSaleWebController;
-use App\Http\Controllers\VaiTroController;
-use App\Http\Controllers\VongQuayController;
+use App\Http\Controllers\AdminAffiliateController;
+use App\Http\Controllers\AdminTwoFactorController;
+use App\Http\Controllers\AffiliateController;
+use App\Http\Controllers\AffiliateVideoController;
 use App\Http\Controllers\Api\AffiliateWalletController;
 use App\Http\Controllers\Api\AffiliateWithdrawalController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BannerController;
+use App\Http\Controllers\BienTheController;
+use App\Http\Controllers\BienTheHinhAnhController;
+use App\Http\Controllers\BirthdayCodeController;
+use App\Http\Controllers\ChamCongController;
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ColorController;
+use App\Http\Controllers\ComboController;
+use App\Http\Controllers\DanhGiaController;
+use App\Http\Controllers\DanhMucChaController;
+use App\Http\Controllers\DanhMucController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DatHangController;
+use App\Http\Controllers\DiaChiController;
+use App\Http\Controllers\DiemDanhController;
+use App\Http\Controllers\FlashSaleController;
+use App\Http\Controllers\FlashSaleWebController;
+use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\GioHangController;
+use App\Http\Controllers\LienHeController;
+use App\Http\Controllers\MomoController;
+use App\Http\Controllers\NewsController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\SanPhamController;
+use App\Http\Controllers\SanPhamDaXemController;
+use App\Http\Controllers\SepayController;
+use App\Http\Controllers\ThuocTinhController;
+use App\Http\Controllers\ThuongHieuController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\VaiTroController;
+use App\Http\Controllers\VnpayController;
+use App\Http\Controllers\VongQuayController;
+use App\Http\Controllers\XuController;
+use App\Http\Controllers\YeuThichController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // Geocode routes moved inside auth:sanctum
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/two-factor/challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
 
 // ================= QUÊN MẬT KHẨU =================
@@ -64,7 +70,6 @@ Route::post('/forgot-password/reset-password', [ForgotPasswordController::class,
 // Mobile-specific forgot password (no captcha required)
 Route::post('/mobile/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtpMobile']);
 Route::post('/mobile/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPasswordMobile']);
-
 
 // ================= LIÊN HỆ (KHÁCH) =================
 Route::post('/lien-he', [LienHeController::class, 'store']);
@@ -91,7 +96,7 @@ Route::get('/chat/attachments/{filename}', [ChatController::class, 'serveAttachm
 
 // ================= USER LOGIN =================
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/auth/session', function (\Illuminate\Http\Request $request) {
+    Route::get('/auth/session', function (Request $request) {
         $user = $request->user();
 
         if ($user && $user->trangthai === 'locked') {
@@ -104,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json([
             'authenticated' => true,
             'user' => $user ? array_merge($user->toArray(), [
-                'is_google_account' => !empty($user->id_google),
+                'is_google_account' => ! empty($user->id_google),
             ]) : null,
         ]);
     });
@@ -117,7 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/user/profile', [UserController::class, 'profile']);
-    Route::post('/user/heartbeat', function (\Illuminate\Http\Request $request) {
+    Route::post('/user/heartbeat', function (Request $request) {
         $request->user()->forceFill([
             'hoat_dong_cuoi_luc' => now(),
         ])->saveQuietly();
@@ -170,7 +175,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/yeu-thich/xoa/{id}', [YeuThichController::class, 'xoa']);
 
     // ===== ĐÁNH GIÁ =====
-    Route::post('/danh-gia', [App\Http\Controllers\DanhGiaController::class, 'store']);
+    Route::post('/danh-gia', [DanhGiaController::class, 'store']);
 
     // ===== VOUCHER CỦA TÔI =====
     Route::get('/user/vouchers', [PromotionController::class, 'myVouchers']);
@@ -182,21 +187,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sanpham-daxem', [SanPhamDaXemController::class, 'index']);
 
     // ===== HỆ THỐNG XU =====
-    Route::get('/xu/balance', [App\Http\Controllers\XuController::class, 'getBalance']);
-    Route::get('/xu/history', [App\Http\Controllers\XuController::class, 'getHistory']);
-    Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getPublicSettings']);
+    Route::get('/xu/balance', [XuController::class, 'getBalance']);
+    Route::get('/xu/history', [XuController::class, 'getHistory']);
+    Route::get('/xu/settings', [XuController::class, 'getPublicSettings']);
 
     // ===== ĐIỂM DANH HÀNG NGÀY =====
-    Route::get('/diem-danh/status', [App\Http\Controllers\DiemDanhController::class, 'getStatus']);
-    Route::post('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'checkIn']);
+    Route::get('/diem-danh/status', [DiemDanhController::class, 'getStatus']);
+    Route::post('/diem-danh', [DiemDanhController::class, 'checkIn']);
 
     // ===== CHẤM CÔNG NHÂN VIÊN =====
-    Route::get('/cham-cong/status', [App\Http\Controllers\ChamCongController::class, 'getStatus']);
-    Route::post('/cham-cong/register-face', [App\Http\Controllers\ChamCongController::class, 'dangKyKhuonMat']);
-    Route::post('/cham-cong/delete-face', [App\Http\Controllers\ChamCongController::class, 'xoaKhuonMat']);
-    Route::post('/cham-cong/check', [App\Http\Controllers\ChamCongController::class, 'checkInCheckOut']);
-    Route::get('/cham-cong/my-history', [App\Http\Controllers\ChamCongController::class, 'getLichSuCaNhan']);
-    Route::get('/cham-cong/leaderboard', [App\Http\Controllers\ChamCongController::class, 'getLeaderboard']);
+    Route::get('/cham-cong/status', [ChamCongController::class, 'getStatus']);
+    Route::post('/cham-cong/register-face', [ChamCongController::class, 'dangKyKhuonMat']);
+    Route::post('/cham-cong/delete-face', [ChamCongController::class, 'xoaKhuonMat']);
+    Route::post('/cham-cong/check', [ChamCongController::class, 'checkInCheckOut']);
+    Route::get('/cham-cong/my-history', [ChamCongController::class, 'getLichSuCaNhan']);
+    Route::get('/cham-cong/leaderboard', [ChamCongController::class, 'getLeaderboard']);
 
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
@@ -226,7 +231,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vong-quay/nhan-luot', [VongQuayController::class, 'nhanLuotHangNgay']);
 });
 
-
 Route::get('/danhmuc', [DanhMucController::class, 'index']);
 Route::get('/affiliate-videos/public', [AffiliateVideoController::class, 'publicIndex']);
 Route::post('/affiliate-videos/{id}/track', [AffiliateVideoController::class, 'track']);
@@ -241,7 +245,6 @@ Route::get('/danhmuc/{id_danhmuc}', [DanhMucController::class, 'show']);
 Route::get('/thuonghieu', [ThuongHieuController::class, 'index']);
 Route::get('/thuonghieu/by-category/{categoryId}', [ThuongHieuController::class, 'getByCategory']);
 Route::get('/thuonghieu/{id_thuonghieu}', [ThuongHieuController::class, 'show']);
-
 
 // Route::post('/register', [UserController::class, 'store']);
 
@@ -260,8 +263,8 @@ Route::get('/colors/{id}', [ColorController::class, 'show']);
 
 // ================= SẢN PHẨM =================
 Route::get('/mobile/home', [SanPhamController::class, 'mobileHome']);
-    Route::get('/sanpham/init', [SanPhamController::class, 'init']);
-    Route::get('/sanpham/search', [SanPhamController::class, 'search']);
+Route::get('/sanpham/init', [SanPhamController::class, 'init']);
+Route::get('/sanpham/search', [SanPhamController::class, 'search']);
 Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOptions']);
 Route::get('/sanpham', [SanPhamController::class, 'index']);
 Route::get('/sanpham/{id}', [SanPhamController::class, 'show']);
@@ -280,7 +283,6 @@ Route::get('/bienthe/{id}', [BienTheController::class, 'show']);
 Route::get('/bienthe-hinhanh', [BienTheHinhAnhController::class, 'index']);
 Route::get('/bienthe-hinhanh/sanpham/{id_sanpham}', [BienTheHinhAnhController::class, 'getBySanPham']);
 Route::get('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'show']);
-
 
 // ================= CHATBOT =================
 Route::post('/chat', [ChatbotController::class, 'chat']);
@@ -392,8 +394,6 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/news/{id}/revisions/{revisionId}/restore', [NewsController::class, 'restoreRevision']);
         Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
-
-
         // ===== ADMIN REVIEWS =====
         Route::get('/reviews/ai-status', [DanhGiaController::class, 'getAiStatus']);
         Route::post('/reviews/ai-status', [DanhGiaController::class, 'toggleAiStatus']);
@@ -420,6 +420,11 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/account/billing', [AdminAccountController::class, 'billing']);
         Route::get('/account/settings', [AdminAccountController::class, 'settings']);
         Route::put('/account/settings', [AdminAccountController::class, 'updateSettings']);
+        Route::get('/account/two-factor', [AdminTwoFactorController::class, 'status']);
+        Route::post('/account/two-factor/enable', [AdminTwoFactorController::class, 'enable'])->middleware('throttle:5,1');
+        Route::post('/account/two-factor/confirm', [AdminTwoFactorController::class, 'confirm'])->middleware('throttle:5,1');
+        Route::post('/account/two-factor/recovery-codes', [AdminTwoFactorController::class, 'recoveryCodes'])->middleware('throttle:3,1');
+        Route::delete('/account/two-factor', [AdminTwoFactorController::class, 'disable'])->middleware('throttle:5,1');
 
         // ===== ADMIN CHAT =====
         Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
@@ -439,24 +444,24 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/flash-sales/{id}/products/{productId}', [FlashSaleController::class, 'removeProduct']);
 
         // ===== ADMIN COIN SETTINGS =====
-        Route::get('/xu/settings', [App\Http\Controllers\XuController::class, 'getAdminSettings']);
-        Route::put('/xu/settings', [App\Http\Controllers\XuController::class, 'updateAdminSettings']);
+        Route::get('/xu/settings', [XuController::class, 'getAdminSettings']);
+        Route::put('/xu/settings', [XuController::class, 'updateAdminSettings']);
 
         // ===== ADMIN DAILY CHECK-IN =====
-        Route::get('/diem-danh', [App\Http\Controllers\DiemDanhController::class, 'adminIndex']);
-        Route::get('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminGetSettings']);
-        Route::put('/diem-danh/cauhinh', [App\Http\Controllers\DiemDanhController::class, 'adminUpdateSettings']);
+        Route::get('/diem-danh', [DiemDanhController::class, 'adminIndex']);
+        Route::get('/diem-danh/cauhinh', [DiemDanhController::class, 'adminGetSettings']);
+        Route::put('/diem-danh/cauhinh', [DiemDanhController::class, 'adminUpdateSettings']);
 
         // ===== ADMIN TIME ATTENDANCE =====
-        Route::get('/quan-ly-cham-cong', [App\Http\Controllers\ChamCongController::class, 'adminGetLichSu']);
-        Route::get('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetCaLam']);
-        Route::put('/cham-cong/ca-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateCaLam']);
-        Route::get('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminGetLichLam']);
-        Route::put('/cham-cong/nhan-vien/{id}/lich-lam', [App\Http\Controllers\ChamCongController::class, 'adminUpdateLichLam']);
-        Route::get('/cham-cong/nhan-vien', [App\Http\Controllers\ChamCongController::class, 'adminGetNhanVien']);
-        Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminDangKyKhuonMat']);
-        Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [App\Http\Controllers\ChamCongController::class, 'adminXoaKhuonMat']);
-        Route::post('/cham-cong/quick-check', [App\Http\Controllers\ChamCongController::class, 'adminQuickCheck']);
+        Route::get('/quan-ly-cham-cong', [ChamCongController::class, 'adminGetLichSu']);
+        Route::get('/cham-cong/ca-lam', [ChamCongController::class, 'adminGetCaLam']);
+        Route::put('/cham-cong/ca-lam', [ChamCongController::class, 'adminUpdateCaLam']);
+        Route::get('/cham-cong/nhan-vien/{id}/lich-lam', [ChamCongController::class, 'adminGetLichLam']);
+        Route::put('/cham-cong/nhan-vien/{id}/lich-lam', [ChamCongController::class, 'adminUpdateLichLam']);
+        Route::get('/cham-cong/nhan-vien', [ChamCongController::class, 'adminGetNhanVien']);
+        Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [ChamCongController::class, 'adminDangKyKhuonMat']);
+        Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [ChamCongController::class, 'adminXoaKhuonMat']);
+        Route::post('/cham-cong/quick-check', [ChamCongController::class, 'adminQuickCheck']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);
@@ -465,4 +470,4 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/vong-quay/{id}', [VongQuayController::class, 'adminDestroy']);
         Route::get('/vong-quay/lich-su', [VongQuayController::class, 'adminHistory']);
 
-});
+    });

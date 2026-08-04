@@ -33,6 +33,7 @@ const Login = () => import('../components/Auth/DangNhap.vue')
 const Register = () => import('../components/Auth/DangKy.vue')
 const ForgotPassword = () => import('../components/Auth/QuenMatKhau.vue')
 const OtpVerify = () => import('../components/Auth/XacThucOtp.vue')
+const TwoFactorVerify = () => import('../components/Auth/XacThuc2FA.vue')
 const ResetPassword = () => import('../components/Auth/DatLaiMatKhau.vue')
 
 const AdminLayout = () => import('../components/Admin/Layout/BoCucAdmin.vue')
@@ -119,6 +120,7 @@ const routes = [
   { path: '/dang-ky', alias: ['/register'], name: 'register', component: Register },
   { path: '/quen-mat-khau', alias: ['/forgot-password'], name: 'forgot-password', component: ForgotPassword },
   { path: '/xac-thuc-otp', alias: ['/otp-verify'], name: 'otp-verify', component: OtpVerify },
+  { path: '/xac-thuc-2fa', alias: ['/two-factor-challenge'], name: 'two-factor-challenge', component: TwoFactorVerify },
   { path: '/dat-lai-mat-khau', alias: ['/reset-password', '/reset_password'], name: 'reset-password', component: ResetPassword },
   { path: '/dang-nhap-thanh-cong', alias: ['/login-success'], name: 'login-success', component: LoginSuccess },
 

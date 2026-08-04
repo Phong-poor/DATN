@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatAuthMessage } from '@/services/authMessages'
@@ -24,6 +24,8 @@ const acceptTerms = ref(false)
 const showPassword = ref(false)
 const showConfirm = ref(false)
 const loading = ref(false)
+const policyModalOpen = ref(false)
+const policyGateMessage = ref('')
 
 const modal = ref({ show: false, type: 'error', title: '', message: '', onConfirm: null })
 
@@ -48,6 +50,36 @@ const closeModal = () => {
   modal.value.show = false
   if (cb) cb()
 }
+
+const openPolicyModal = () => {
+  if (!validateBeforePolicy()) return
+  policyGateMessage.value = ''
+  policyModalOpen.value = true
+}
+
+const closePolicyModal = () => {
+  policyModalOpen.value = false
+}
+
+const acceptPolicy = () => {
+  acceptTerms.value = true
+  closePolicyModal()
+}
+
+const handleTermsCheckbox = () => {
+  if (acceptTerms.value) {
+    acceptTerms.value = false
+    return
+  }
+  openPolicyModal('terms')
+}
+
+const handlePolicyKeydown = (event) => {
+  if (event.key === 'Escape' && policyModalOpen.value) closePolicyModal()
+}
+
+onMounted(() => window.addEventListener('keydown', handlePolicyKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', handlePolicyKeydown))
 
 const router = useRouter()
 const referralCode = ref('')
@@ -87,6 +119,28 @@ const passwordRequirements = computed(() => getPasswordRequirements(password.val
 
 const touchAll = () => {
   Object.values(isTouched).forEach(t => { t.value = true })
+}
+
+const validateBeforePolicy = () => {
+  isTouched.name.value = true
+  isTouched.email.value = true
+  isTouched.password.value = true
+  isTouched.confirm.value = true
+
+  const fields = [
+    { valid: Boolean(name.value.trim()), selector: 'input[name="name"]' },
+    { valid: Boolean(email.value) && !validateEmail(email.value), selector: 'input[name="email"]' },
+    { valid: Boolean(password.value) && !validateStrongPassword(password.value), selector: 'input[name="new-password"]' },
+    { valid: Boolean(confirm.value) && !validatePasswordConfirmation(password.value, confirm.value), selector: 'input[name="new-password-confirm"]' },
+  ]
+  const firstInvalid = fields.find(field => !field.valid)
+
+  if (!firstInvalid) return true
+
+  acceptTerms.value = false
+  policyGateMessage.value = 'Vui lòng nhập đầy đủ và hợp lệ các thông tin bên trên trước khi xem và đồng ý chính sách.'
+  nextTick(() => document.querySelector(firstInvalid.selector)?.focus())
+  return false
 }
 
 const handleRegister = async () => {
@@ -328,10 +382,16 @@ const loginGoogle = () => {
 
           <!-- TERMS CHECKBOX -->
           <div class="options-row">
-            <label class="remember-checkbox-label">
-              <input type="checkbox" v-model="acceptTerms" />
-              <span class="terms-text">Tôi đồng ý với <strong>Điều khoản & Chính sách bảo mật</strong></span>
-            </label>
+            <div class="remember-checkbox-label">
+              <input type="checkbox" :checked="acceptTerms" aria-label="Đồng ý điều khoản và chính sách bảo mật" @click.prevent="handleTermsCheckbox" />
+              <span class="terms-text">
+                Tôi đồng ý với
+                <button type="button" class="policy-inline-link" @click="openPolicyModal('terms')">Điều khoản</button>
+                &
+                <button type="button" class="policy-inline-link" @click="openPolicyModal('privacy')">Chính sách bảo mật</button>
+              </span>
+            </div>
+            <p v-if="policyGateMessage" class="policy-gate-message" role="alert">{{ policyGateMessage }}</p>
           </div>
 
           <!-- SUBMIT BUTTON -->
@@ -369,6 +429,54 @@ const loginGoogle = () => {
 
       </div>
     </div>
+
+    <Transition name="policy-modal">
+      <div v-if="policyModalOpen" class="policy-overlay" role="presentation" @click.self="closePolicyModal">
+        <section class="policy-dialog" role="dialog" aria-modal="true" aria-labelledby="policy-dialog-title">
+          <header class="policy-header">
+            <div class="policy-brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
+            <div>
+              <span class="policy-eyebrow">NEXTGEN · TRUNG TÂM PHÁP LÝ</span>
+              <h2 id="policy-dialog-title">Điều khoản và quyền riêng tư</h2>
+              <p>Cập nhật lần cuối: 03/08/2026</p>
+            </div>
+            <button type="button" class="policy-close" aria-label="Đóng cửa sổ chính sách" @click="closePolicyModal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+          </header>
+
+          <div class="policy-body">
+            <div class="policy-intro">
+              Bằng việc tạo tài khoản, bạn xác nhận đã đọc và đồng ý với các nội dung sau:
+            </div>
+            <div class="policy-content compact">
+              <article><span>01</span><div><h3>Thông tin tài khoản</h3><p>Cung cấp thông tin chính xác, tự bảo mật mật khẩu và chịu trách nhiệm cho hoạt động từ tài khoản.</p></div></article>
+              <article><span>02</span><div><h3>Mua hàng và thanh toán</h3><p>Giá, ưu đãi, tồn kho và giao dịch được xác nhận tại thời điểm đặt hàng.</p></div></article>
+              <article><span>03</span><div><h3>Sử dụng hợp lệ</h3><p>Không gian lận, phát tán mã độc, truy cập trái phép hoặc xâm phạm dữ liệu người khác.</p></div></article>
+              <article><span>04</span><div><h3>Dữ liệu được thu thập</h3><p>Gồm thông tin tài khoản, liên hệ, giao hàng, giao dịch và dữ liệu kỹ thuật cần thiết.</p></div></article>
+              <article><span>05</span><div><h3>Bảo mật và chia sẻ</h3><p>NextGen không bán dữ liệu cá nhân; chỉ chia sẻ khi phục vụ thanh toán, vận chuyển hoặc theo yêu cầu pháp luật.</p></div></article>
+              <article><span>06</span><div><h3>Quyền của bạn</h3><p>Bạn có thể yêu cầu xem, cập nhật hoặc đề nghị xử lý dữ liệu cá nhân qua bộ phận hỗ trợ.</p></div></article>
+            </div>
+          </div>
+
+          <footer class="policy-footer">
+            <p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Bằng việc đồng ý, bạn xác nhận đã đọc cả hai nội dung chính sách.</p>
+            <div>
+              <button type="button" class="policy-secondary" @click="closePolicyModal">Để sau</button>
+              <button type="button" class="policy-accept" @click="acceptPolicy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
+                Tôi đã đọc và đồng ý
+              </button>
+            </div>
+          </footer>
+        </section>
+      </div>
+    </Transition>
 
     <!-- MODAL -->
     <Transition name="modal">
@@ -718,9 +826,18 @@ const loginGoogle = () => {
 
 .options-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
   font-size: 12.5px;
   margin-top: 2px;
+}
+
+.policy-gate-message {
+  margin: 5px 0 0 20px;
+  color: #dc2626;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .remember-checkbox-label {
@@ -745,6 +862,127 @@ const loginGoogle = () => {
 
 .terms-text strong {
   font-weight: 700;
+}
+
+.policy-inline-link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(37, 99, 235, .35);
+  text-underline-offset: 2px;
+}
+.policy-inline-link:hover { color: #1e40af; text-decoration-color: currentColor; }
+
+.policy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 22% 18%, rgba(37, 99, 235, .18), transparent 32%), rgba(2, 6, 23, .76);
+  backdrop-filter: blur(12px) saturate(115%);
+}
+.policy-dialog {
+  width: min(520px, 100%);
+  max-height: min(590px, calc(100vh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(191, 219, 254, .55);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 32px 90px rgba(2, 6, 23, .46), 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.policy-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 18px 16px;
+  color: #fff;
+  background: radial-gradient(circle at 92% 0%, rgba(96, 165, 250, .24), transparent 42%), linear-gradient(135deg, #081226 0%, #13275d 62%, #1d4ed8 145%);
+}
+.policy-brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(147, 197, 253, .3);
+  border-radius: 12px;
+  color: #7dd3fc;
+  background: rgba(37, 99, 235, .22);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .16), 0 8px 22px rgba(2, 132, 199, .14);
+}
+.policy-brand-mark svg { width: 21px; height: 21px; }
+.policy-eyebrow { display: block; margin-bottom: 3px; color: #93c5fd; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+.policy-header h2 { margin: 0; color: #fff; font-size: 17px; font-weight: 800; line-height: 1.2; letter-spacing: -.02em; }
+.policy-header p { margin: 3px 0 0; color: #cbd5e1; font-size: 9.5px; }
+.policy-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .08);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+.policy-close { transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+.policy-close:hover { transform: rotate(4deg); border-color: rgba(255, 255, 255, .32); background: rgba(255, 255, 255, .16); color: #fff; }
+.policy-close svg { width: 16px; height: 16px; }
+.policy-body { min-height: 0; overflow-y: auto; padding: 14px 16px 15px; background: linear-gradient(180deg, #f8fbff 0%, #fff 28%); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.policy-content { display: grid; gap: 7px; margin-top: 9px; }
+.policy-intro { position: relative; padding: 10px 12px 10px 15px; overflow: hidden; border: 1px solid #bfdbfe; border-radius: 11px; background: linear-gradient(135deg, #eff6ff, #f8fbff); color: #1e3a8a; font-size: 10.5px; font-weight: 550; line-height: 1.45; }
+.policy-intro::before { position: absolute; inset: 0 auto 0 0; width: 3px; content: ""; background: linear-gradient(#38bdf8, #2563eb); }
+.policy-intro.privacy { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
+.policy-content article { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 11px; background: rgba(255, 255, 255, .94); box-shadow: 0 2px 7px rgba(15, 23, 42, .025); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.policy-content article:hover { transform: translateY(-1px); border-color: #bfdbfe; box-shadow: 0 7px 18px rgba(37, 99, 235, .07); }
+.policy-content article > span { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #dbeafe; border-radius: 9px; background: linear-gradient(145deg, #eff6ff, #eef2ff); color: #2563eb; font-size: 8.5px; font-weight: 850; box-shadow: inset 0 1px #fff; }
+.policy-content h3 { margin: 0 0 2px; color: #0f172a; font-size: 11px; font-weight: 800; letter-spacing: -.01em; }
+.policy-content article p { margin: 0; color: #64748b; font-size: 9.5px; line-height: 1.38; }
+.policy-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff, #f8fafc); }
+.policy-footer > p { max-width: 240px; display: flex; gap: 6px; align-items: flex-start; margin: 0; color: #64748b; font-size: 8.5px; line-height: 1.35; }
+.policy-footer > p svg { flex: 0 0 auto; width: 14px; height: 14px; color: #2563eb; }
+.policy-footer > div { display: flex; gap: 9px; }
+.policy-secondary,
+.policy-accept { height: 34px; padding: 0 11px; border-radius: 9px; font-size: 9.5px; font-weight: 750; cursor: pointer; }
+.policy-secondary { border: 1px solid #cbd5e1; background: #fff; color: #475569; }
+.policy-secondary { transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.policy-secondary:hover { transform: translateY(-1px); border-color: #94a3b8; background: #f1f5f9; }
+.policy-accept { display: inline-flex; align-items: center; gap: 7px; border: 0; background: linear-gradient(135deg, #3182f6, #1d4ed8); color: #fff; box-shadow: 0 8px 20px rgba(37, 99, 235, .28); transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.policy-accept:hover { transform: translateY(-1px); filter: brightness(1.04); box-shadow: 0 11px 24px rgba(37, 99, 235, .34); }
+.policy-secondary:focus-visible, .policy-accept:focus-visible, .policy-close:focus-visible { outline: 3px solid rgba(96, 165, 250, .45); outline-offset: 2px; }
+.policy-accept svg { width: 15px; height: 15px; }
+.policy-modal-enter-active,
+.policy-modal-leave-active { transition: opacity .22s ease; }
+.policy-modal-enter-active .policy-dialog,
+.policy-modal-leave-active .policy-dialog { transition: transform .22s ease, opacity .22s ease; }
+.policy-modal-enter-from,
+.policy-modal-leave-to { opacity: 0; }
+.policy-modal-enter-from .policy-dialog,
+.policy-modal-leave-to .policy-dialog { opacity: 0; transform: translateY(16px) scale(.97); }
+
+@media (max-width: 640px) {
+  .policy-overlay { padding: 10px; }
+  .policy-dialog { max-height: calc(100vh - 20px); border-radius: 18px; }
+  .policy-header { grid-template-columns: 40px minmax(0, 1fr) 34px; gap: 10px; padding: 17px 15px 14px; }
+  .policy-brand-mark { width: 40px; height: 40px; border-radius: 12px; }
+  .policy-header h2 { font-size: 17px; }
+  .policy-body { padding: 14px; }
+  .policy-footer { align-items: stretch; flex-direction: column; padding: 13px 14px; }
+  .policy-footer > p { max-width: none; }
+  .policy-footer > div { display: grid; grid-template-columns: .7fr 1.3fr; }
+  .policy-secondary, .policy-accept { justify-content: center; padding: 0 9px; }
 }
 
 .submit-btn {

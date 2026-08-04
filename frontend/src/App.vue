@@ -36,7 +36,7 @@ let toggleAdminChatHandler = null
 let openLuckyWheelHandler = null
 
 const showChatbot = computed(() => {
-  const hiddenRouteNames = ['login', 'register', 'forgot-password', 'otp-verify', 'reset-password', 'login-success']
+  const hiddenRouteNames = ['login', 'register', 'forgot-password', 'otp-verify', 'two-factor-challenge', 'reset-password', 'login-success']
   if (route.name && hiddenRouteNames.includes(route.name)) return false
   if (route.path && route.path.startsWith('/admin')) return false
   return true
