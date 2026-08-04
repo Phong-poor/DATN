@@ -24,6 +24,7 @@ class PromotionVisibilityTest extends TestCase
             $table->string('danhmuc');
             $table->string('code')->unique();
             $table->string('ngay_su_kien', 5)->nullable();
+            $table->boolean('tu_dong_gui')->default(true);
             $table->string('loai');
             $table->decimal('giatri', 15, 2)->default(0);
             $table->dateTime('ngaybatdau')->nullable();

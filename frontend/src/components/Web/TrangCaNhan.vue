@@ -89,9 +89,10 @@ const updateUserData = (apiUser) => {
   user.value = {
     ...user.value,
     ...apiUser,
-    phone: apiUser.phone || '',
-    birthday: apiUser.date_of_birth || '',
-    gender: apiUser.gender || '',
+    name: apiUser.name || apiUser.ten || user.value.name,
+    phone: apiUser.phone ?? apiUser.sodienthoai ?? '',
+    birthday: apiUser.date_of_birth ?? apiUser.ngaysinh ?? '',
+    gender: apiUser.gender ?? apiUser.gioitinh ?? '',
     avatar: apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || user.value.avatar,
     updated_at: apiUser.updated_at || user.value.updated_at,
     xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
@@ -1053,16 +1054,21 @@ const saveProfile = async () => {
     )
 
     updateUserData(res.data.user || res.data)
+    await loadUser()
     updateUser(user.value)
     window.dispatchEvent(new Event('user-updated'))
 
     editing.value = false
     isFormDirty.value = false
-    showToast('Cập nhật thành công!')
+    selectedAvatarFile.value = null
+    await swal.success('Cập nhật thành công')
 
   } catch (error) {
     console.error('Lỗi API:', error.response?.data)
-    showToast(error.response?.data?.message || 'Lỗi cập nhật!')
+    const validationMessage = error.response?.data?.errors
+      ? Object.values(error.response.data.errors)?.[0]?.[0]
+      : null
+    await swal.error('Không thể cập nhật', validationMessage || error.response?.data?.message || 'Vui lòng kiểm tra thông tin và thử lại.')
   } finally {
     savingProfile.value = false
   }

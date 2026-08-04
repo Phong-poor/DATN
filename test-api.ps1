@@ -16,48 +16,48 @@ try {
     $response = Invoke-WebRequest -Uri $apiUrl -Method GET -TimeoutSec 5 -ErrorAction Stop
     
     if ($response.StatusCode -eq 200) {
-        Write-Host "✅ Backend đang chạy và API hoạt động tốt!" -ForegroundColor Green
-        Write-Host "📊 Status Code: $($response.StatusCode)" -ForegroundColor Green
+        Write-Host "Backend đang chạy và API hoạt động tốt!" -ForegroundColor Green
+        Write-Host "Status Code: $($response.StatusCode)" -ForegroundColor Green
         
         # Parse JSON response
         $data = $response.Content | ConvertFrom-Json
         $productCount = $data.products.Count
         $categoryCount = $data.categories.Count
         
-        Write-Host "📦 Số sản phẩm: $productCount" -ForegroundColor Green
-        Write-Host "📁 Số danh mục: $categoryCount" -ForegroundColor Green
+        Write-Host "Số sản phẩm: $productCount" -ForegroundColor Green
+        Write-Host "Số danh mục: $categoryCount" -ForegroundColor Green
         Write-Host ""
-        Write-Host "✅ MOBILE APP SẼ HOẠT ĐỘNG BÌNH THƯỜNG!" -ForegroundColor Green
+        Write-Host "MOBILE APP SẼ HOẠT ĐỘNG BÌNH THƯỜNG!" -ForegroundColor Green
         
         # Hiển thị mẫu dữ liệu
         Write-Host ""
-        Write-Host "📄 Mẫu dữ liệu trả về:" -ForegroundColor Cyan
+        Write-Host "Mẫu dữ liệu trả về:" -ForegroundColor Cyan
         Write-Host $response.Content.Substring(0, [Math]::Min(500, $response.Content.Length)) -ForegroundColor Gray
         
         exit 0
     }
     elseif ($response.StatusCode -eq 204) {
-        Write-Host "⚠️  API trả về 204 No Content - Database có thể trống!" -ForegroundColor Yellow
-        Write-Host "💡 Hướng dẫn: Kiểm tra database có dữ liệu không" -ForegroundColor Yellow
+        Write-Host "API trả về 204 No Content - Database có thể trống!" -ForegroundColor Yellow
+        Write-Host "Hướng dẫn: Kiểm tra database có dữ liệu không" -ForegroundColor Yellow
     }
     else {
-        Write-Host "⚠️  API trả về status code: $($response.StatusCode)" -ForegroundColor Yellow
+        Write-Host "API trả về status code: $($response.StatusCode)" -ForegroundColor Yellow
     }
 }
 catch {
-    Write-Host "❌ Backend KHÔNG chạy hoặc không kết nối được!" -ForegroundColor Red
-    Write-Host "📝 Lỗi: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Backend KHÔNG chạy hoặc không kết nối được!" -ForegroundColor Red
+    Write-Host "Lỗi: $($_.Exception.Message)" -ForegroundColor Red
 }
 
 Write-Host ""
 Write-Host "[2/5] Kiểm tra thư mục backend..." -ForegroundColor Yellow
 
 if (-Not (Test-Path $backendPath)) {
-    Write-Host "❌ Không tìm thấy thư mục backend: $backendPath" -ForegroundColor Red
+    Write-Host "Không tìm thấy thư mục backend: $backendPath" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✅ Tìm thấy thư mục backend" -ForegroundColor Green
+Write-Host "Tìm thấy thư mục backend" -ForegroundColor Green
 
 # Bước 2: Clear cache
 Write-Host ""

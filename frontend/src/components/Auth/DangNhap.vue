@@ -332,6 +332,12 @@ const handleLogin = async () => {
     const user = res.data.user
     const token = res.data.token
 
+    if (res.data.two_factor_required && res.data.challenge_token) {
+      sessionStorage.setItem('admin_2fa_challenge', res.data.challenge_token)
+      await router.push({ name: 'two-factor-challenge' })
+      return
+    }
+
     if (!token) {
       showModal('error', 'Lỗi', 'Máy chủ không trả về token đăng nhập.')
       return

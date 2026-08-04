@@ -114,7 +114,7 @@ class BirthdayCouponService
     /**
      * Send coupon to a single user
      */
-    public function sendBirthdayCouponToUser($user, $promotion, $force = false)
+    public function sendBirthdayCouponToUser($user, $promotion, $force = false, $ignoreRetryLimits = false)
     {
         if (! filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'status' => 'failed', 'error' => 'Địa chỉ email khách hàng không hợp lệ.'];
@@ -132,13 +132,13 @@ class BirthdayCouponService
         }
 
         try {
-            return $this->sendBirthdayCouponUnlocked($user, $promotion, $force);
+            return $this->sendBirthdayCouponUnlocked($user, $promotion, $force, $ignoreRetryLimits);
         } finally {
             $lock->release();
         }
     }
 
-    private function sendBirthdayCouponUnlocked($user, $promotion, $force = false)
+    private function sendBirthdayCouponUnlocked($user, $promotion, $force = false, $ignoreRetryLimits = false)
     {
         $settings = $this->getSettings();
 
@@ -160,13 +160,23 @@ class BirthdayCouponService
             }
         }
 
-        if (! $force) {
+        if (! $force && ! $ignoreRetryLimits) {
             $failedAttempts = BirthdayCouponLog::where('id_khachhang', $user->id)
                 ->where('trangthai', 'failed')
                 ->whereDate('created_at', today())
                 ->count();
             if ((! $settings->thu_lai_khi_that_bai && $failedAttempts > 0) || $failedAttempts >= 3) {
                 return ['success' => false, 'status' => 'skipped', 'message' => 'Đã đạt giới hạn thử gửi lại hôm nay.'];
+            }
+            if ($settings->thu_lai_khi_that_bai && $failedAttempts > 0) {
+                $lastFailedAt = BirthdayCouponLog::where('id_khachhang', $user->id)
+                    ->where('trangthai', 'failed')
+                    ->whereDate('created_at', today())
+                    ->latest('created_at')
+                    ->value('created_at');
+                if ($lastFailedAt && Carbon::parse($lastFailedAt)->gt(now()->subMinutes(30))) {
+                    return ['success' => false, 'status' => 'skipped', 'message' => 'Chưa đến thời điểm thử gửi lại sau 30 phút.'];
+                }
             }
         }
 
@@ -299,6 +309,7 @@ class BirthdayCouponService
             ];
         }
 
+        $isScheduledMinute = (bool) $force;
         if (! $force) {
             $currentTime = Carbon::now()->format('H:i');
             $runTime = substr((string) $settings->giochay, 0, 5);
@@ -310,6 +321,7 @@ class BirthdayCouponService
                     'reason' => 'Time mismatch',
                 ];
             }
+            $isScheduledMinute = $currentTime === $runTime;
         }
 
         $promotion = $promotionId
@@ -334,13 +346,16 @@ class BirthdayCouponService
         $skippedCount = 0;
 
         foreach ($users as $user) {
-            $res = $this->sendBirthdayCouponToUser($user, $promotion);
+            // Đúng phút đã đặt: cho phép thử lại các lỗi cũ một lần. Giới hạn
+            // một email thành công/năm vẫn được giữ vì $force luôn là false.
+            $res = $this->sendBirthdayCouponToUser($user, $promotion, false, $isScheduledMinute);
             if ($res['status'] === 'sent') {
                 $sentCount++;
             } elseif ($res['status'] === 'failed') {
                 $failCount++;
             } elseif ($res['status'] === 'skipped') {
                 $skippedCount++;
+                Log::info("Skipping user {$user->email}: ".($res['message'] ?? 'Skipped by birthday rules'));
             }
         }
 

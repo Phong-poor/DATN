@@ -1,0 +1,88 @@
+/* Shared hover treatment for cancel/abort actions. */
+:is(
+  button.btn-cancel,
+  button.cancel-btn,
+  button.confirm-cancel,
+  button.schedule-cancel-btn,
+  button.cancel-edit-button,
+  button.edit-btn.cancel,
+  button.swal2-cancel
+) {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease !important;
+}
+
+:is(
+  button.btn-cancel,
+  button.cancel-btn,
+  button.confirm-cancel,
+  button.schedule-cancel-btn,
+  button.cancel-edit-button,
+  button.edit-btn.cancel,
+  button.swal2-cancel
+):not(:disabled):hover {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.34) !important;
+  transform: translateY(-1px) !important;
+}
+
+:is(
+  button.btn-cancel,
+  button.cancel-btn,
+  button.confirm-cancel,
+  button.schedule-cancel-btn,
+  button.cancel-edit-button,
+  button.edit-btn.cancel,
+  button.swal2-cancel
+):not(:disabled):hover :is(svg, path, line, polyline) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+:is(
+  button.btn-cancel,
+  button.cancel-btn,
+  button.confirm-cancel,
+  button.schedule-cancel-btn,
+  button.cancel-edit-button,
+  button.edit-btn.cancel,
+  button.swal2-cancel
+):focus-visible {
+  outline: 3px solid rgba(220, 38, 38, 0.28) !important;
+  outline-offset: 2px;
+}
+
+:is(
+  button.btn-cancel,
+  button.cancel-btn,
+  button.confirm-cancel,
+  button.schedule-cancel-btn,
+  button.cancel-edit-button,
+  button.edit-btn.cancel,
+  button.swal2-cancel
+):not(:disabled):active {
+  background: #b91c1c !important;
+  border-color: #991b1b !important;
+  color: #ffffff !important;
+  transform: translateY(0) scale(0.98) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    button.btn-cancel,
+    button.cancel-btn,
+    button.confirm-cancel,
+    button.schedule-cancel-btn,
+    button.cancel-edit-button,
+    button.edit-btn.cancel,
+    button.swal2-cancel
+  ) {
+    transition: none !important;
+  }
+}

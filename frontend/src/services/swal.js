@@ -126,7 +126,12 @@ const swal = {
     })
   },
 
-  async confirm(title, text = '', confirmButtonText = 'Đồng ý', cancelButtonText = 'Hủy') {
+  async confirm(title, text = '', confirmButtonText = 'Đồng ý', cancelButtonText = 'Hủy', options = {}) {
+    const customClass = {
+      ...commonConfig.customClass,
+      ...options.customClass,
+    }
+
     const result = await Swal.fire({
       ...iconConfig('question'),
       title,
@@ -135,6 +140,8 @@ const swal = {
       confirmButtonText,
       cancelButtonText,
       ...commonConfig,
+      ...options,
+      customClass,
     })
 
     return result.isConfirmed

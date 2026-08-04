@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\BirthdayCouponService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BirthdayCodeController extends Controller
 {
@@ -66,7 +67,7 @@ class BirthdayCodeController extends Controller
                 } elseif ($log->trangthai === 'failed') {
                     $userStatus = 'Gửi lỗi';
                 }
-                $sentTime = $log->guiluc ? $log->guiluc->format('d/m/Y H:i') : '—';
+                $sentTime = $log->guiluc ? $log->guiluc->format('d/m/Y H:i:s') : '—';
                 $errorLog = $log->thongbaoloi ?? '';
             }
 
@@ -82,6 +83,7 @@ class BirthdayCodeController extends Controller
                 'trangthai' => $userStatus,
                 'status' => $userStatus,
                 'guiluc' => $sentTime,
+                'sent_time' => $sentTime,
                 'thongbaoloi' => $errorLog,
             ];
         });
@@ -155,12 +157,14 @@ class BirthdayCodeController extends Controller
             ], 422);
         }
 
-        $res = $service->sendBirthdayCouponToUser($user, $promotion);
+        // Thao tác chủ động của Admin được phép gửi lại ngay. Luồng tự động vẫn
+        // giữ giới hạn một lần/năm và thời gian chờ retry để chống spam.
+        $res = $service->sendBirthdayCouponToUser($user, $promotion, true);
 
         if ($res['status'] === 'skipped') {
             return response()->json([
                 'success' => false,
-                'message' => 'Khách hàng '.$user->ten.' đã nhận mã giảm giá sinh nhật trong năm nay!',
+                'message' => $res['message'] ?? 'Email đang được xử lý, vui lòng thử lại sau.',
             ], 422);
         }
 
@@ -371,6 +375,9 @@ class BirthdayCodeController extends Controller
     public function getSettingsApi(BirthdayCouponService $service)
     {
         $settings = $service->getSettings();
+        $schedulerLastRun = Cache::get('birthday-scheduler:last-run');
+        $schedulerHealthy = $schedulerLastRun
+            && Carbon::parse($schedulerLastRun)->greaterThanOrEqualTo(now()->subMinutes(2));
         // Load active birthday promotions
         $promotions = Promotion::where('danhmuc', 'birthday')
             ->whereIn('trangthai', ['running', 'open'])
@@ -387,7 +394,7 @@ class BirthdayCodeController extends Controller
             'success' => true,
             'data' => [
                 'enabled' => (bool) $settings->kichhoat,
-                'run_time' => substr((string) $settings->giochay, 0, 5),
+                'run_time' => substr((string) $settings->giochay, 0, 8),
                 'valid_days' => (int) ($settings->thoi_han_ngay ?: 30),
                 'promotion_id' => $settings->id_voucher,
                 'promotion_code' => $settings->mavoucher,
@@ -395,6 +402,8 @@ class BirthdayCodeController extends Controller
                 'send_once_per_year' => (bool) $settings->gui_mot_lan_moi_nam,
                 'retry_if_failed' => (bool) $settings->thu_lai_khi_that_bai,
                 'notify_admin' => (bool) $settings->thongbao_admin,
+                'scheduler_last_run' => $schedulerLastRun,
+                'scheduler_healthy' => (bool) $schedulerHealthy,
             ],
             'promotions' => $promotions,
         ]);
@@ -408,7 +417,7 @@ class BirthdayCodeController extends Controller
     {
         $request->validate([
             'enabled' => 'required|boolean',
-            'run_time' => 'required|date_format:H:i',
+            'run_time' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/'],
             'valid_days' => 'required|integer|min:1|max:365',
             'promotion_id' => 'nullable|integer|exists:vouchers,id',
             'email_template_id' => 'nullable|string|max:100',
@@ -431,7 +440,7 @@ class BirthdayCodeController extends Controller
         $settings = $service->getSettings();
         $settings->update([
             'kichhoat' => $request->boolean('enabled'),
-            'giochay' => $request->run_time,
+            'giochay' => strlen($request->run_time) === 5 ? $request->run_time.':00' : $request->run_time,
             'thoi_han_ngay' => $request->integer('valid_days'),
             'id_voucher' => $request->promotion_id,
             'mavoucher' => $promoCode, // auto sync

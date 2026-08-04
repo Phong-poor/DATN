@@ -1119,22 +1119,23 @@ onUnmounted(() => {
               </select>
             </label>
             <div class="assignment-date-grid">
-              <label :class="{ invalid: workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau }">
+              <label class="assignment-date-field" :class="{ invalid: workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau }">
                 <span>Ngày bắt đầu *</span>
                 <input v-model="workAssignment.ngay_bat_dau" type="date"
                   @change="onStartDateChanged" @blur="validateWorkAssignmentField('ngay_bat_dau')" />
-                <small v-if="workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau">
+                <small v-if="workAssignmentTouched.ngay_bat_dau && workAssignmentErrors.ngay_bat_dau" class="assignment-field-feedback">
                   {{ workAssignmentErrors.ngay_bat_dau }}
                 </small>
+                <small v-else class="assignment-field-feedback feedback-placeholder" aria-hidden="true">&nbsp;</small>
               </label>
-              <label :class="{ invalid: workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc }">
+              <label class="assignment-date-field" :class="{ invalid: workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc }">
                 <span>Ngày kết thúc</span>
                 <input v-model="workAssignment.ngay_ket_thuc" type="date" :min="workAssignment.ngay_bat_dau"
                   @change="validateWorkAssignmentField('ngay_ket_thuc')" @blur="validateWorkAssignmentField('ngay_ket_thuc')" />
-                <small v-if="workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc">
+                <small v-if="workAssignmentTouched.ngay_ket_thuc && workAssignmentErrors.ngay_ket_thuc" class="assignment-field-feedback">
                   {{ workAssignmentErrors.ngay_ket_thuc }}
                 </small>
-                <small v-if="!workAssignment.ngay_ket_thuc" class="optional-note">Để trống nếu chưa xác định</small>
+                <small v-else class="optional-note assignment-field-feedback">Để trống nếu chưa xác định</small>
               </label>
             </div>
             <div class="weekday-field">
@@ -1259,10 +1260,29 @@ onUnmounted(() => {
           <h3>Danh sách nhân viên</h3>
           <p>Sửa hồ sơ, đổi vai trò hoặc quản lý dữ liệu khuôn mặt tại một nơi.</p>
         </div>
-        <label class="employee-search">
-          <span aria-hidden="true">⌕</span>
-          <input v-model="employeeSearch" placeholder="Tìm theo tên, email, số điện thoại..." />
-        </label>
+        <div class="employee-search" role="search">
+          <svg class="employee-search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
+          <input
+            v-model="employeeSearch"
+            type="search"
+            aria-label="Tìm kiếm nhân viên"
+            placeholder="Tìm theo tên, email, số điện thoại..."
+          />
+          <button
+            v-if="employeeSearch"
+            type="button"
+            class="employee-search-clear"
+            aria-label="Xóa nội dung tìm kiếm"
+            @click="employeeSearch = ''"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m7 7 10 10M17 7 7 17" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div v-if="employeesLoading" class="directory-empty">Đang tải danh sách nhân viên...</div>
@@ -1530,11 +1550,20 @@ onUnmounted(() => {
   box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
 }
 .verification-grid > .chamcong-card {
+  align-self: stretch;
   padding: 0 16px 0 0;
   border: 0;
   border-right: 1px solid #e2e8f0;
   border-radius: 0;
   box-shadow: none;
+}
+
+.verification-grid > .camera-card .camera-wrapper {
+  margin-top: auto;
+}
+
+.verification-grid > .camera-card .camera-actions {
+  margin-bottom: auto;
 }
 
 .employee-setup-card {
@@ -1699,17 +1728,77 @@ onUnmounted(() => {
 .directory-heading h3 { margin: 3px 0 2px; color: #0f172a; font-size: 17px; }
 .directory-heading p { margin: 0; color: #64748b; font-size: 10.5px; }
 .employee-search {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 7px;
-  width: min(340px, 100%);
-  height: 38px;
-  padding: 0 11px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
+  gap: 10px;
+  width: min(390px, 100%);
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid #d7e0ec;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
   color: #64748b;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .05), inset 0 1px 0 rgba(255, 255, 255, .9);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
-.employee-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #0f172a; font-size: 11px; }
+.employee-search:hover {
+  border-color: #b7c6dc;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .07);
+}
+.employee-search:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, .12), 0 5px 16px rgba(37, 99, 235, .09);
+  transform: translateY(-1px);
+}
+.employee-search-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+.employee-search:focus-within .employee-search-icon { color: #2563eb; }
+.employee-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.employee-search input::placeholder { color: #94a3b8; font-weight: 400; }
+.employee-search input::-webkit-search-cancel-button { display: none; }
+.employee-search-clear {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #64748b;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.employee-search-clear:hover { background: #dbeafe; color: #1d4ed8; }
+.employee-search-clear svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
 .directory-empty { padding: 34px 16px; text-align: center; color: #64748b; font-size: 12px; }
 .employee-table-wrap { width: 100%; overflow-x: auto; }
 .employee-table { width: 100%; border-collapse: collapse; min-width: 940px; }
@@ -1791,6 +1880,8 @@ onUnmounted(() => {
     border-right: 0;
     border-bottom: 1px solid #e2e8f0;
   }
+  .verification-grid > .camera-card .camera-wrapper { margin-top: 0; }
+  .verification-grid > .camera-card .camera-actions { margin-bottom: 8px; }
   .employee-setup-card { padding: 16px 0 0; }
   .unified-submit-area { align-items: stretch; flex-direction: column; }
   .unified-submit-area .create-employee-button { width: 100%; min-width: 0; }
@@ -1815,6 +1906,20 @@ onUnmounted(() => {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025);
   overflow: hidden;
   padding: 14px;
+}
+
+.camera-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.camera-card > .card-header {
+  width: 100%;
+}
+
+.camera-card > .chamcong-stats-grid {
+  width: 100%;
 }
 
 .card-header {
@@ -1842,6 +1947,7 @@ onUnmounted(() => {
 
 /* === CARD CAMERA === */
 .camera-wrapper {
+  width: 100%;
   background: #000000;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
@@ -2150,6 +2256,7 @@ onUnmounted(() => {
 
 /* === CAMERA ACTIONS === */
 .camera-actions {
+  width: 100%;
   max-width: 390px;
   margin: 0 auto 8px;
   text-align: center;
@@ -2543,7 +2650,27 @@ onUnmounted(() => {
 .assignment-heading small { display: block; }
 .assignment-heading strong { color: #1d4ed8; font-size: 13px; }
 .assignment-heading small { margin-top: 3px; color: #64748b; font-size: 10px; }
-.assignment-date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.assignment-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+.assignment-date-field {
+  grid-template-rows: 16px 37px 15px;
+  align-content: start;
+}
+.assignment-date-field > span,
+.assignment-date-field > input { align-self: stretch; }
+.assignment-field-feedback {
+  display: block;
+  min-height: 15px;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.feedback-placeholder { visibility: hidden; }
 .weekday-field { display: grid; gap: 7px; }
 .weekday-field > span { color: #334155; font-size: 11px; font-weight: 700; }
 .weekday-options { display: flex; flex-wrap: wrap; gap: 6px; }

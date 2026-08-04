@@ -242,22 +242,6 @@
             </div>
           </div>
 
-          <div class="banner-preview">
-            <div class="preview-copy">
-              <span>{{ form.chudenho || 'PREMIUM LAPTOP STORE 2026' }}</span>
-              <h4>{{ form.tieude || 'Sức Mạnh Hội Tụ' }}</h4>
-              <strong>{{ form.noibat || form.phude || 'Sự Tinh Tế Chuyên Sâu' }}</strong>
-              <p>{{ form.mota || form.phude || 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ.' }}</p>
-            </div>
-            <div class="preview-product">
-              <img :src="selectedProduct?.image || '/hero_3d_laptop.png'" alt="preview product" />
-              <div>
-                <b>{{ selectedProduct?.name || 'Chọn sản phẩm thật' }}</b>
-                <small>{{ selectedProduct ? formatPrice(selectedProduct.price) : 'Nút Thanh toán ngay sẽ lấy sản phẩm này' }}</small>
-                <button type="button">Thanh toán ngay</button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
@@ -1109,102 +1093,6 @@ td {
 
 .toggle-btn.tg-yellow .tdot {
   background: #dc2626;
-}
-
-.banner-preview {
-  display: grid;
-  grid-template-columns: 1fr 1.05fr;
-  gap: 16px;
-  align-items: center;
-  padding: 18px;
-  border-radius: 18px;
-  background:
-    linear-gradient(90deg, rgba(2, 6, 23, 0.82), rgba(15, 23, 42, 0.58)),
-    url('/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png') center/cover;
-  color: #fff;
-  min-height: 210px;
-  overflow: hidden;
-}
-
-.preview-copy span {
-  display: inline-flex;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.35);
-  color: #38bdf8;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: capitalize;
-  margin-bottom: 10px;
-}
-
-.preview-copy h4 {
-  margin: 0;
-  color: #fff;
-  font-size: 24px;
-  line-height: 1.05;
-  font-weight: 900;
-}
-
-.preview-copy strong {
-  display: block;
-  color: #3b82f6;
-  font-size: 22px;
-  line-height: 1.1;
-  margin-top: 2px;
-}
-
-.preview-copy p {
-  margin: 10px 0 0;
-  color: #cbd5e1;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.preview-product {
-  position: relative;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 16px;
-  padding: 12px;
-  color: #0f172a;
-  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.25);
-}
-
-.preview-product img {
-  width: 100%;
-  height: 118px;
-  object-fit: contain;
-  background: #f8fafc;
-  border-radius: 12px;
-}
-
-.preview-product b,
-.preview-product small {
-  display: block;
-}
-
-.preview-product b {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-.preview-product small {
-  margin-top: 2px;
-  color: #ef4444;
-  font-weight: 800;
-}
-
-.preview-product button {
-  margin-top: 8px;
-  width: 100%;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff;
-  height: 34px;
-  font-weight: 800;
 }
 
 .modal-footer {

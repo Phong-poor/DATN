@@ -854,12 +854,16 @@ onMounted(async () => {
                 <div class="form-group">
                   <label class="bold-label">Khung giờ quét tự động</label>
                   <input
-                    type="time"
+                    type="text"
                     v-model="autoConfig.scanTime"
                     class="styled-time-input"
+                    inputmode="numeric"
+                    maxlength="8"
+                    placeholder="HH:mm:ss"
+                    aria-label="Giờ quét tự động theo định dạng 24 giờ"
                     :disabled="!autoConfig.enabled"
                   />
-                  <p class="form-help-text">Khuyên dùng: Các giờ sáng sớm để khách hàng nhận mã ngay đầu ngày sinh nhật.</p>
+                  <p class="form-help-text">Định dạng 24 giờ: từ 00:00:00 đến 23:59:59. Ví dụ 13:30:00.</p>
                 </div>
 
                 <!-- Select Template -->
@@ -1276,7 +1280,7 @@ onMounted(async () => {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
-  padding: 8px 14px;
+  padding: 8px 10px;
   width: 280px;
   box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.01);
   transition: border-color 0.2s ease;
@@ -1934,7 +1938,8 @@ onMounted(async () => {
   font-size: 14px;
   color: #1e293b;
   outline: none;
-  width: 100px;
+  width: 160px;
+  box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
 

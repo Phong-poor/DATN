@@ -681,7 +681,13 @@ function handleClickOutside(event) {
 }
 
 async function handleLogout() {
-  const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống quản trị?')
+  const isConfirmed = await swal.confirm(
+    'Xác nhận đăng xuất',
+    'Bạn có chắc chắn muốn thoát khỏi hệ thống quản trị?',
+    'Đồng ý',
+    'Hủy',
+    { customClass: { popup: 'swal2-custom-popup logout-confirm-popup' } },
+  )
   if (!isConfirmed) return
   userMenuOpen.value = false
   api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
