@@ -421,7 +421,7 @@ const toggleFaq = (index) => {
           <svg class="cyber-svg-icon badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
           NEXTGEN GLOBAL SUPPORT
         </span>
-        <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ.</span></h1>
+        <h1>Trò chuyện cùng <br /><span class="highlight-text">Chuyên Gia Công Nghệ</span></h1>
         <p class="hero-desc">Bàn giải pháp phần cứng tối tân, tối ưu hóa AI PC local, Máy tính dựng phim chuyên nghiệp và giải pháp hệ thống doanh nghiệp.</p>
         
         <div class="hero-actions">
@@ -1238,7 +1238,50 @@ const toggleFaq = (index) => {
   color: #ffffff !important;
 }
 .highlight-text {
+  display: inline-block;
   color: var(--secondary);
+  background: linear-gradient(90deg, #38bdf8 0%, #60a5fa 42%, #a78bfa 72%, #38bdf8 100%);
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, .24));
+  white-space: nowrap;
+  will-change: clip-path, opacity, background-position;
+  animation:
+    technologyTextReveal 4.8s cubic-bezier(.22, .7, .25, 1) infinite,
+    technologyTextGlow 2.2s linear infinite;
+}
+
+@keyframes technologyTextReveal {
+  0%, 8% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    transform: translateY(8px);
+  }
+  42%, 82% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+  94%, 100% {
+    opacity: 0;
+    clip-path: inset(0 0 0 100%);
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes technologyTextGlow {
+  to { background-position: -220% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .highlight-text {
+    animation: none;
+    clip-path: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 .hero-desc {
   font-size: 15px;
