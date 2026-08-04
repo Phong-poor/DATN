@@ -123,8 +123,6 @@
             Trang chủ
           </router-link>
           <div class="topbar-icon-group">
-            <AdminChatManager />
-
             <div class="topbar-popover" ref="notifyMenuRef">
               <button class="topbar-icon-button" type="button" aria-label="Thông báo" @click="toggleNotifyMenu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
@@ -214,7 +212,6 @@
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser } from '@/services/auth'
-import AdminChatManager from '@/components/Admin/Layout/QuanLyChatAdmin.vue'
 import ChamCongNhanhModal from '@/components/Admin/Layout/ChamCongNhanhModal.vue'
 import { storageUrl } from '@/services/urls'
 import api from '@/services/api'
@@ -361,6 +358,7 @@ const menuConfig = [
     isDropdown: true,
     children: [
       { path: '/admin/quan-ly-lien-he', label: 'Liên hệ', badge: 'TƯ VẤN' },
+      { path: '/admin/quan-ly-chat', label: 'Tin nhắn', badge: 'TƯ VẤN' },
     ]
   },
   {
