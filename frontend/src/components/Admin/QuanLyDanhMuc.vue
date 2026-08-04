@@ -462,10 +462,10 @@ td { padding: 16px 20px; vertical-align: middle; }
 .modal-icon-edit svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; }
 .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
 .modal-subtitle { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-.modal-close { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.modal-close:hover { background: #fee2e2; border-color: #fca5a5; }
+.modal-close { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.modal-close:hover { background: #dc2626; border-color: #b91c1c; box-shadow: 0 8px 18px rgba(220, 38, 38, .32); transform: translateY(-1px) scale(1.04); }
 .modal-close svg { width: 15px; height: 15px; stroke: #64748b; stroke-width: 2; }
-.modal-close:hover svg { stroke: #ef4444; }
+.modal-close:hover svg { stroke: #ffffff; }
 .modal-body { padding: 22px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-label { font-size: 13px; font-weight: 600; color: #374151; }

@@ -1,0 +1,133 @@
+/*
+ * Shared close-button interaction.
+ * Keep each component's resting appearance, but make every close action
+ * unmistakable on hover across admin and customer-facing dialogs.
+ */
+:is(
+  button.modal-close,
+  button.modal-close-btn,
+  button.close-modal-btn,
+  button.close-btn,
+  button.btn-close,
+  button.popup-close,
+  button.dialog-close,
+  button.close-button,
+  button.chat-close-btn,
+  button.close-btn-header,
+  button.search-close-btn,
+  button.schedule-modal-close,
+  button[aria-label^='Đóng'],
+  button[title='Đóng']
+) {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease !important;
+}
+
+:is(
+  button.modal-close,
+  button.modal-close-btn,
+  button.close-modal-btn,
+  button.close-btn,
+  button.btn-close,
+  button.popup-close,
+  button.dialog-close,
+  button.close-button,
+  button.chat-close-btn,
+  button.close-btn-header,
+  button.search-close-btn,
+  button.schedule-modal-close,
+  button[aria-label^='Đóng'],
+  button[title='Đóng']
+):hover {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.38) !important;
+  transform: translateY(-1px) scale(1.05) !important;
+}
+
+:is(
+  button.modal-close,
+  button.modal-close-btn,
+  button.close-modal-btn,
+  button.close-btn,
+  button.btn-close,
+  button.popup-close,
+  button.dialog-close,
+  button.close-button,
+  button.chat-close-btn,
+  button.close-btn-header,
+  button.search-close-btn,
+  button.schedule-modal-close,
+  button[aria-label^='Đóng'],
+  button[title='Đóng']
+):hover :is(svg, path, line, polyline) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+:is(
+  button.modal-close,
+  button.modal-close-btn,
+  button.close-modal-btn,
+  button.close-btn,
+  button.btn-close,
+  button.popup-close,
+  button.dialog-close,
+  button.close-button,
+  button.chat-close-btn,
+  button.close-btn-header,
+  button.search-close-btn,
+  button.schedule-modal-close,
+  button[aria-label^='Đóng'],
+  button[title='Đóng']
+):focus-visible {
+  outline: 3px solid rgba(220, 38, 38, 0.3) !important;
+  outline-offset: 2px;
+}
+
+:is(
+  button.modal-close,
+  button.modal-close-btn,
+  button.close-modal-btn,
+  button.close-btn,
+  button.btn-close,
+  button.popup-close,
+  button.dialog-close,
+  button.close-button,
+  button.chat-close-btn,
+  button.close-btn-header,
+  button.search-close-btn,
+  button.schedule-modal-close,
+  button[aria-label^='Đóng'],
+  button[title='Đóng']
+):active {
+  background: #b91c1c !important;
+  border-color: #991b1b !important;
+  transform: translateY(0) scale(0.97) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    button.modal-close,
+    button.modal-close-btn,
+    button.close-modal-btn,
+    button.close-btn,
+    button.btn-close,
+    button.popup-close,
+    button.dialog-close,
+    button.close-button,
+    button.chat-close-btn,
+    button.close-btn-header,
+    button.search-close-btn,
+    button.schedule-modal-close,
+    button[aria-label^='Đóng'],
+    button[title='Đóng']
+  ) {
+    transition: none !important;
+  }
+}

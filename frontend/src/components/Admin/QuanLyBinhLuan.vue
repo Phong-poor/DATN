@@ -712,6 +712,7 @@ onUnmounted(() => {
     border-radius: 16px;
     box-shadow: 0 2px 16px rgba(0, 0, 0, .06);
     overflow: hidden;
+    min-width: 0;
 }
 
 .table-header {
@@ -758,30 +759,31 @@ onUnmounted(() => {
 
 /* Table */
 .table-wrap {
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    min-width: 920px;
+    min-width: 0;
 }
 
-th:nth-child(1) { width: 27%; }
-th:nth-child(2) { width: 23%; }
+th:nth-child(1) { width: 21%; }
+th:nth-child(2) { width: 21%; }
 th:nth-child(3) { width: 9%; }
-th:nth-child(4) { width: 12%; }
-th:nth-child(5) { width: 9%; }
-th:nth-child(6) { width: 9%; }
-th:nth-child(7) { width: 11%; }
+th:nth-child(4) { width: 19%; }
+th:nth-child(5) { width: 8%; }
+th:nth-child(6) { width: 10%; }
+th:nth-child(7) { width: 12%; }
 
 thead tr {
     background: #f8fafc;
 }
 
 th {
-    padding: 10px 12px;
+    padding: 14px 14px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .6px;
@@ -791,7 +793,7 @@ th {
 }
 
 td {
-    padding: 14px 12px;
+    padding: 18px 14px;
     vertical-align: middle;
     min-width: 0;
 }
@@ -853,11 +855,13 @@ td {
 .customer-email {
     font-size: 11.5px;
     color: #94a3b8;
-    display: block;
+    display: -webkit-box;
     max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.45;
 }
 
 /* Product */
@@ -894,7 +898,7 @@ td {
 .review-text {
     font-size: 12.5px;
     color: #475569;
-    max-width: 280px;
+    max-width: none;
     line-height: 1.5;
     /* Hiển thị tối đa 2 dòng và thêm dấu 3 chấm */
     display: -webkit-box;
@@ -946,8 +950,9 @@ td {
 .action-btns {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .action-btn {
@@ -1317,7 +1322,23 @@ td {
 }
 
 /* -- Responsive -- */
+@media (max-width: 1180px) {
+    .table-wrap {
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #94a3b8 #e2e8f0;
+    }
+
+    .table-wrap table {
+        min-width: 1080px;
+    }
+}
+
 @media (max-width: 600px) {
+    .page {
+        padding: 20px 14px 36px;
+    }
+
     .bottom-row {
         grid-template-columns: 1fr;
     }

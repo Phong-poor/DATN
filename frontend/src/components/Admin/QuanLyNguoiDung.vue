@@ -1386,23 +1386,42 @@ const submitEdit = async () => {
 
 .btn-filter,
 .btn-export {
-    display: flex;
+    width: 172px !important;
+    min-width: 172px !important;
+    height: 38px !important;
+    padding: 0 13px !important;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 12px !important;
+    border: 1px solid #d7deea !important;
     background: white;
     font-size: 13px;
-    color: #334155;
+    line-height: 1;
+    font-weight: 700;
+    color: #172033;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: border-color .18s ease, color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.btn-filter:hover,
-.btn-export:hover {
-    border-color: #2563eb;
-    color: #2563eb;
+.btn-filter svg,
+.btn-export svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px;
+    stroke-width: 1.8;
+}
+
+.btn-filter:hover:not(:disabled),
+.btn-export:hover:not(:disabled) {
+    border-color: #93b4f5 !important;
+    background: #f8fbff !important;
+    color: #2563eb !important;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, .1) !important;
+    transform: translateY(-1px);
 }
 
 .btn-export:disabled {
@@ -2253,6 +2272,12 @@ tbody td {
 }
 
 @media (max-width: 640px) {
+    .filter-bottom-actions .btn-filter,
+    .filter-bottom-actions .btn-export {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
     .stats {
         padding: 0 16px 16px;
         grid-template-columns: 1fr 1fr;
