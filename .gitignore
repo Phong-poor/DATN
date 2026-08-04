@@ -1,1 +1,4 @@
 .history/
+
+# Cấu hình môi trường chỉ dùng cục bộ, không đưa lên repository.
+backend/environment/

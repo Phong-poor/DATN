@@ -1,4 +1,4 @@
-const SITE_NAME = 'VinaTech'
+const SITE_NAME = 'NextGen Laptop'
 const DEFAULT_DESCRIPTION =
   'Tin tức công nghệ, tư vấn chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.'
 
