@@ -998,12 +998,13 @@ const confirmOrder = async () => {
 
             <label class="pay-item" :class="{ active: payment === 'sepay' }">
               <input type="radio" value="sepay" v-model="payment" />
+              <div class="radio"></div>
               <div class="pay-logo">
                 <div class="sepay-mark">SePay</div>
               </div>
-              <div class="pay-info">
-                <b>Chuyển khoản ngân hàng qua SePay</b>
-                <p>Quét VietQR và tự động xác nhận giao dịch tiền thật</p>
+              <div class="pay-text">
+                <b>Chuyển khoản ngân hàng qua SePay (VietQR)</b>
+                <p>Quét mã VietQR và tự động xác nhận giao dịch tiền thật</p>
               </div>
             </label>
 
@@ -1891,6 +1892,21 @@ textarea {
   height: 100%;
   display: block;
   object-fit: contain;
+}
+
+.sepay-mark {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
 }
 
 /* RIGHT */
