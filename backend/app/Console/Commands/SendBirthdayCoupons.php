@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\BirthdayCouponService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class SendBirthdayCoupons extends Command
 {
@@ -22,6 +23,7 @@ class SendBirthdayCoupons extends Command
      */
     public function handle(BirthdayCouponService $service): int
     {
+        Cache::put('birthday-scheduler:last-run', now()->toIso8601String(), now()->addDays(2));
         $forced = $this->option('force') ?? false;
         $result = $service->runAutomaticBirthdayCoupons(null, $forced);
 
