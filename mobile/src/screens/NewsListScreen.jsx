@@ -79,6 +79,7 @@ export default function NewsListScreen() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -91,6 +92,7 @@ export default function NewsListScreen() {
 
   const fetchNews = useCallback(async (pageNum = 1, reset = false) => {
     try {
+      if (pageNum === 1) setLoadError('');
       const params = { per_page: 10, scope: 'public', page: pageNum };
       if (activeCategory !== 'Tất cả') params.danhmuc = activeCategory;
       if (search.trim()) params.q = search.trim();
@@ -107,9 +109,17 @@ export default function NewsListScreen() {
         setArticles(prev => [...prev, ...(Array.isArray(data) ? data : [])]);
       }
     } catch (err) {
-      // silently fail
+      if (pageNum === 1) {
+        setLoadError(err.response?.data?.message || 'Không thể tải bài viết. Vui lòng kiểm tra kết nối và thử lại.');
+        if (reset) setArticles([]);
+      }
     }
   }, [activeCategory, search]);
+
+  const retryLoad = () => {
+    setLoading(true);
+    fetchNews(1, true).finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -206,6 +216,7 @@ export default function NewsListScreen() {
       <FlatList
         data={CATEGORIES}
         horizontal
+        style={styles.categoryScroller}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item}
         contentContainerStyle={styles.categoryList}
@@ -226,6 +237,14 @@ export default function NewsListScreen() {
         <View style={styles.centerLoader}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Đang tải tin tức...</Text>
+        </View>
+      ) : loadError && articles.length === 0 ? (
+        <View style={styles.centerLoader}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.textTertiary} />
+          <Text style={styles.errorText}>{loadError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={retryLoad}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -291,11 +310,13 @@ const styles = StyleSheet.create({
   searchIcon: { marginRight: SPACING.sm },
   searchInput: { flex: 1, paddingVertical: SPACING.md, color: COLORS.textPrimary, fontSize: 14 },
 
-  categoryList: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, gap: SPACING.sm },
+  categoryScroller: { flexGrow: 0, flexShrink: 0, height: 64 },
+  categoryList: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
   categoryBtn: {
     paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full, backgroundColor: COLORS.surface,
     borderWidth: 1, borderColor: COLORS.border,
+    alignSelf: 'center',
   },
   activeCategoryBtn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   categoryBtnText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
@@ -337,6 +358,9 @@ const styles = StyleSheet.create({
 
   centerLoader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING.md },
   loadingText: { color: COLORS.textTertiary, fontSize: 14 },
+  errorText: { color: COLORS.textSecondary, fontSize: 14, lineHeight: 20, textAlign: 'center', paddingHorizontal: SPACING.xl },
+  retryButton: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm },
+  retryButtonText: { color: '#fff', fontWeight: '700' },
   footerLoader: { paddingVertical: SPACING.xl, alignItems: 'center' },
 
   emptyContainer: { paddingTop: 80, alignItems: 'center', gap: SPACING.md },
