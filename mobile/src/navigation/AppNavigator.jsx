@@ -37,6 +37,19 @@ const TAB_ICONS = {
   'Tài khoản': ['person', 'person-outline'],
 };
 
+function LuckyWheelIcon() {
+  return (
+    <View style={styles.wheelIcon}>
+      <View style={[styles.wheelSpoke, { transform: [{ rotate: '0deg' }] }]} />
+      <View style={[styles.wheelSpoke, { transform: [{ rotate: '45deg' }] }]} />
+      <View style={[styles.wheelSpoke, { transform: [{ rotate: '90deg' }] }]} />
+      <View style={[styles.wheelSpoke, { transform: [{ rotate: '135deg' }] }]} />
+      <View style={styles.wheelHub} />
+      <View style={styles.wheelPointer} />
+    </View>
+  );
+}
+
 function MainTabs({ navigation }) {
   return (
     <View style={styles.mainTabsContainer}>
@@ -94,7 +107,7 @@ function MainTabs({ navigation }) {
         accessibilityLabel="Mở vòng quay may mắn"
         onPress={() => navigation.navigate('LuckyWheel')}
       >
-        <Ionicons name="gift" size={29} color="#ffffff" />
+        <LuckyWheelIcon />
       </TouchableOpacity>
     </View>
   );
@@ -133,7 +146,7 @@ const styles = StyleSheet.create({
   },
   luckyWheelButton: {
     position: 'absolute',
-    right: 8,
+    left: 12,
     bottom: 160,
     width: 58,
     height: 58,
@@ -149,5 +162,43 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
     zIndex: 1000,
+  },
+  wheelIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
+  wheelSpoke: {
+    position: 'absolute',
+    width: 27,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#ffffff',
+  },
+  wheelHub: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#fbbf24',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    zIndex: 2,
+  },
+  wheelPointer: {
+    position: 'absolute',
+    top: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#fbbf24',
   },
 });
