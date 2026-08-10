@@ -224,6 +224,20 @@ async function fetchEnrollmentTarget() {
       avatar: target.anhdaidien,
       role_name: target.ten_vaitro
     }
+
+    // Hồ sơ có sẵn phải tải cả lịch đã gán; trước đây màn hình chỉ hiện lịch mặc định
+    // nên quản trị viên tưởng đã lưu, trong khi backend chưa có bản ghi lịch làm việc.
+    const scheduleResponse = await api.get(
+      `/admin/cham-cong/nhan-vien/${employeeId}/lich-lam`,
+      { skipGlobalLoader: true, cache: false }
+    )
+    const assignment = scheduleResponse.data?.data
+    workAssignment.value = assignment ? {
+      loai_ca: assignment.loai_ca || 'full_day',
+      ngay_bat_dau: String(assignment.ngay_bat_dau || '').slice(0, 10),
+      ngay_ket_thuc: assignment.ngay_ket_thuc ? String(assignment.ngay_ket_thuc).slice(0, 10) : '',
+      thu_lam_viec: (assignment.thu_lam_viec || []).map(Number)
+    } : defaultWorkAssignment()
   } catch (error) {
     swal.error('Không tải được hồ sơ', error.response?.data?.message || 'Vui lòng thử lại.')
   }
@@ -730,6 +744,10 @@ async function detectFaceDescriptor() {
 }
 
 async function registerCurrentFace() {
+  if (isEnrollmentMode.value && !validateWorkAssignment()) {
+    await swal.warning('Chưa thể hoàn tất', 'Vui lòng kiểm tra ca làm, ngày bắt đầu và các ngày làm việc trong tuần.')
+    return
+  }
   isRegisteringFace.value = true
   try {
     await pauseFaceMonitoring()
@@ -740,19 +758,31 @@ async function registerCurrentFace() {
       return
     }
     if (isEnrollmentMode.value) {
+      await api.put(`/admin/cham-cong/nhan-vien/${enrollmentTarget.value.id}/lich-lam`, {
+        ...workAssignment.value,
+        thu_lam_viec: workAssignment.value.thu_lam_viec.map(Number),
+        ngay_ket_thuc: workAssignment.value.ngay_ket_thuc || null
+      }, { bypassOffline: true })
       await api.post(`/admin/cham-cong/nhan-vien/${enrollmentTarget.value.id}/dang-ky-khuon-mat`, {
         face_descriptor: descriptor
-      })
+      }, { bypassOffline: true })
       enrollmentTarget.value.face_registered = true
       await fetchEmployees()
-      swal.success('Đăng ký thành công', `Khuôn mặt đã được liên kết với hồ sơ ${enrollmentTarget.value.name}.`)
+      await swal.success(
+        'Hoàn tất thiết lập chấm công',
+        `Đã lưu lịch làm việc và khuôn mặt cho ${enrollmentTarget.value.name}. Nhân viên có thể chấm công theo lịch vừa gán.`
+      )
     } else {
       await api.post('/cham-cong/register-face', { face_descriptor: descriptor })
       await fetchStatus()
       swal.success('Đăng ký thành công', 'Khuôn mặt đã được liên kết với hồ sơ nhân viên của bạn.')
     }
   } catch (error) {
-    swal.error('Đăng ký thất bại', error.response?.data?.message || 'Không thể đăng ký khuôn mặt.')
+    applyServerValidationErrors(error)
+    const validationMessage = error.response?.data?.errors
+      ? Object.values(error.response.data.errors).flat()[0]
+      : null
+    await swal.error('Thiết lập chưa thành công', validationMessage || error.response?.data?.message || 'Không thể lưu lịch làm việc hoặc khuôn mặt.')
   } finally {
     isRegisteringFace.value = false
     if (faceapi?.nets?.tinyFaceDetector?.isLoaded) startFaceMonitoring()
@@ -830,6 +860,7 @@ function captureWebcamImage() {
 
 // Thực hiện chấm công (Check-in / Check-out)
 async function handleCheckInOut() {
+  if (isProcessing.value) return
   isProcessing.value = true
   try {
     await pauseFaceMonitoring()
@@ -856,11 +887,14 @@ async function handleCheckInOut() {
     const res = await api.post('/cham-cong/check', {
       image: base64Image,
       face_descriptor: faceDescriptor
-    })
+    }, { bypassOffline: true })
 
     if (res.data.success) {
       const typeText = res.data.type === 'checkin' ? 'Check-in' : 'Check-out'
-      await swal.success('Chấm công thành công', `${typeText} lúc ${formatTime(res.data.record.gio_vao || res.data.record.gio_ra)} thành công!`)
+      await swal.success(
+        'Chấm công thành công',
+        `${typeText} lúc ${formatTime(res.data.record.gio_vao || res.data.record.gio_ra)} thành công!${res.data.warning ? ` ${res.data.warning}` : ''}`
+      )
       await fetchStatus()
       await fetchMyHistory()
       await fetchLeaderboard()
@@ -1170,7 +1204,7 @@ onUnmounted(() => {
             {{ editingEmployee
               ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
               : isEnrollmentMode && !hasEmployeeDraft
-              ? `Khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
+              ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
               : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
           </span>
         </div>
@@ -1187,7 +1221,7 @@ onUnmounted(() => {
             ? 'Đang xác thực và lưu dữ liệu...'
             : editingEmployee
               ? 'Lưu thay đổi'
-              : (isEnrollmentMode && !hasEmployeeDraft ? 'Cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
+              : (isEnrollmentMode && !hasEmployeeDraft ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
         </button>
       </div>
 
@@ -1295,6 +1329,7 @@ onUnmounted(() => {
               <th>Liên hệ</th>
               <th>Vai trò</th>
               <th>Khuôn mặt</th>
+              <th>Lịch làm</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
@@ -1312,6 +1347,11 @@ onUnmounted(() => {
               <td>
                 <span class="face-pill" :class="{ registered: employee.face_registered }">
                   {{ employee.face_registered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
+                </span>
+              </td>
+              <td>
+                <span class="face-pill" :class="{ registered: employee.schedule_registered }">
+                  {{ employee.schedule_registered ? 'Đã gán lịch' : 'Chưa gán lịch' }}
                 </span>
               </td>
               <td><span class="status-pill" :class="{ locked: employee.trangthai !== 'active' }">{{ employee.trangthai === 'active' ? 'Đang làm việc' : 'Đã khóa' }}</span></td>
@@ -1413,18 +1453,22 @@ onUnmounted(() => {
 
 .enrollment-banner {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 20px;
+  width: 100%;
+  min-height: 104px;
+  padding: 20px 24px;
+  box-sizing: border-box;
   border: 1px solid #bfdbfe;
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, .08);
 }
 
 .enrollment-icon {
-  width: 46px;
-  height: 46px;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
   border-radius: 12px;
@@ -1434,15 +1478,17 @@ onUnmounted(() => {
   font-weight: 800;
 }
 
-.enrollment-banner span { color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
-.enrollment-banner strong { display: block; color: #0f172a; font-size: 18px; margin-top: 2px; }
-.enrollment-banner p { margin: 2px 0 0; color: #64748b; font-size: 12px; }
+.enrollment-banner span { color: #2563eb; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+.enrollment-banner strong { display: block; color: #0f172a; font-size: 22px; margin-top: 4px; }
+.enrollment-banner p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
 .enrollment-banner button {
   border: 1px solid #bfdbfe;
   border-radius: 10px;
   background: #fff;
   color: #1d4ed8;
-  padding: 10px 14px;
+  min-height: 48px;
+  padding: 11px 20px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1892,7 +1938,9 @@ onUnmounted(() => {
   .employee-setup-form { grid-template-columns: 1fr; }
   .employee-setup-form > * { grid-column: 1; }
   .today-schedule { grid-template-columns: 1fr; }
-  .enrollment-banner { grid-template-columns: 40px 1fr; }
+  .enrollment-banner { grid-template-columns: 44px 1fr; gap: 12px; min-height: 0; padding: 16px; }
+  .enrollment-icon { width: 44px; height: 44px; font-size: 24px; }
+  .enrollment-banner strong { font-size: 18px; }
   .enrollment-banner button { grid-column: 1 / -1; }
   .directory-heading { align-items: stretch; flex-direction: column; }
   .employee-search { width: 100%; }

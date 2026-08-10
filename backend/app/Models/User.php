@@ -269,4 +269,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ChamCong::class, 'id_nhanvien');
     }
+
+    public function lichLamNhanVien()
+    {
+        return $this->hasOne(LichLamNhanVien::class, 'id_nhanvien');
+    }
 }
