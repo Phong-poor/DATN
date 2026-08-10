@@ -6,6 +6,8 @@
       `width-${appearance.content_width}`,
       `sidebar-${appearance.sidebar_style}`,
       `anim-${appearance.animation_level}`,
+      `theme-${adminTheme}`,
+      adminTheme === 'dark' && 'dark',
       sidebarCollapsed && 'sidebar-collapsed',
       adminIntroActive && 'intro-active',
     ]"
@@ -123,6 +125,21 @@
             Trang chủ
           </router-link>
           <div class="topbar-icon-group">
+            <button
+              class="topbar-icon-button theme-toggle-button"
+              type="button"
+              :aria-label="adminTheme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'"
+              :title="adminTheme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'"
+              @click="toggleAdminTheme"
+            >
+              <svg v-if="adminTheme === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </button>
             <div class="topbar-popover" ref="notifyMenuRef">
               <button class="topbar-icon-button" type="button" aria-label="Thông báo" @click="toggleNotifyMenu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
@@ -260,6 +277,12 @@ const user = ref(getUser() || {})
 const userMenuOpen = ref(false)
 const notifyMenuOpen = ref(false)
 const quickAttendanceOpen = ref(false)
+const storedAdminTheme = localStorage.getItem('admin-theme')
+const adminTheme = ref(
+  storedAdminTheme === 'dark' || storedAdminTheme === 'light'
+    ? storedAdminTheme
+    : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+)
 const adminIntroActive = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('admin-sidebar-collapsed') === 'true')
 let adminIntroTimer = null
@@ -271,6 +294,17 @@ const adminClockTime = computed(() =>
 const adminClockDate = computed(() =>
   adminClock.value.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
 )
+
+function applyAdminTheme(theme) {
+  document.documentElement.dataset.adminTheme = theme
+  document.documentElement.style.colorScheme = theme
+}
+
+function toggleAdminTheme() {
+  adminTheme.value = adminTheme.value === 'dark' ? 'light' : 'dark'
+  localStorage.setItem('admin-theme', adminTheme.value)
+  applyAdminTheme(adminTheme.value)
+}
 
 const userMenuRef = ref(null)
 const notifyMenuRef = ref(null)
@@ -730,6 +764,7 @@ function handleQuickAttendanceSuccess() {
 }
 
 onMounted(async () => {
+  applyAdminTheme(adminTheme.value)
   adminClockTimer = window.setInterval(() => {
     adminClock.value = new Date()
   }, 1000)
@@ -756,6 +791,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  delete document.documentElement.dataset.adminTheme
+  document.documentElement.style.colorScheme = ''
   if (adminClockTimer) window.clearInterval(adminClockTimer)
   if (adminIntroTimer) {
     clearTimeout(adminIntroTimer)
@@ -1851,5 +1888,606 @@ a { text-decoration: none; }
   cursor: not-allowed !important;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Native dark theme overrides for controls standardized by this layout. */
+.admin-layout.theme-dark .main :deep(.search-box) {
+  border-color: #454b54 !important;
+  background: #171a1f !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.search-box:focus-within) {
+  border-color: #5b8def !important;
+  background: #171a1f !important;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.14) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.search-box svg) {
+  color: #929eae !important;
+  stroke: #929eae !important;
+}
+
+.admin-layout.theme-dark .main :deep(.search-box input) {
+  color: #e8edf4 !important;
+  background: transparent !important;
+}
+
+.admin-layout.theme-dark .main :deep(.search-box input::placeholder) {
+  color: #7f8a99 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-report-export) {
+  border-color: #454c56 !important;
+  background: #20242a !important;
+  color: #e5eaf1 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-report-export svg) {
+  color: #b6c0cd !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-report-export:hover:not(:disabled)) {
+  border-color: #5b8def !important;
+  background: #282e37 !important;
+  color: #8fb6ff !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+.admin-layout.theme-dark .main :deep(td > span:not(.status-badge):not(.badge):not(.role-badge):not(.discount-tag):not([class*='badge']):not([class*='pill']):not([class*='tag']):not([class*='chip']):not([class*='status'])),
+.admin-layout.theme-dark .main :deep(.price),
+.admin-layout.theme-dark .main :deep(.combo-product-stack span),
+.admin-layout.theme-dark .main :deep(.combo-product-stack small),
+.admin-layout.theme-dark .main :deep(.day-label),
+.admin-layout.theme-dark .main :deep(.mo-ta-text),
+.admin-layout.theme-dark .main :deep(.chat-sidebar-pane .user-name),
+.admin-layout.theme-dark .main :deep(.field > span),
+.admin-layout.theme-dark .main :deep(.weekday-field > span),
+.admin-layout.theme-dark .main :deep(.employee-setup-form label > span),
+.admin-layout.theme-dark .main :deep(.payroll-filter label) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.stat-card-btn),
+.admin-layout.theme-dark .main :deep(.stat-card-btn span),
+.admin-layout.theme-dark .main :deep(.stat-card-btn strong),
+.admin-layout.theme-dark .main :deep(.stat-card-btn small) {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.badge-up) {
+  background: #123b2b !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.badge-down) {
+  background: #442126 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .main :deep(.badge-neutral) {
+  background: #2a3038 !important;
+  color: #b7c1ce !important;
+}
+
+.admin-layout.theme-dark .main :deep(.status-active),
+.admin-layout.theme-dark .main :deep(.badge-success),
+.admin-layout.theme-dark .main :deep(.badge-success-outline) {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.text-purple) {
+  color: #b69cff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.profile-stats > div),
+.admin-layout.theme-dark .main :deep(.tool-summary) {
+  border-color: #383e46 !important;
+  background: #181b20 !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.profile-stats span),
+.admin-layout.theme-dark .main :deep(.tool-summary span) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.profile-stats strong),
+.admin-layout.theme-dark .main :deep(.tool-summary strong) {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.stock-cell span),
+.admin-layout.theme-dark .main :deep(.payroll-filters label > span) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.tab-btn span),
+.admin-layout.theme-dark .main :deep(.tab-btn strong),
+.admin-layout.theme-dark .main :deep(.tab span),
+.admin-layout.theme-dark .main :deep(.parent-tab-btn span) {
+  color: inherit !important;
+}
+
+.admin-layout.theme-dark .main :deep(.tabs .tab-btn.active) {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.tabs .tab-btn.active span) {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.publisher-row .money),
+.admin-layout.theme-dark .main :deep(.money),
+.admin-layout.theme-dark .main :deep(.positive) {
+  color: #8fb6ff !important;
+}
+
+/* Nút thao tác trong bảng: tránh ô trắng gắt trên nền tối và phân biệt rõ chức năng. */
+.admin-layout.theme-dark .main :deep(.actions .action-btn),
+.admin-layout.theme-dark .main :deep(.action-buttons .action-btn),
+.admin-layout.theme-dark .main :deep(.action-btns .action-btn),
+.admin-layout.theme-dark .main :deep(td .act-btn),
+.admin-layout.theme-dark .main :deep(td .icon-btn),
+.admin-layout.theme-dark .main :deep(td .edit-btn) {
+  border: 1px solid #36557f !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.actions .action-btn svg),
+.admin-layout.theme-dark .main :deep(.action-buttons .action-btn svg),
+.admin-layout.theme-dark .main :deep(.action-btns .action-btn svg),
+.admin-layout.theme-dark .main :deep(td .act-btn svg),
+.admin-layout.theme-dark .main :deep(td .icon-btn svg),
+.admin-layout.theme-dark .main :deep(td .edit-btn svg) {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+.admin-layout.theme-dark .main :deep(.actions .edit-btn:hover),
+.admin-layout.theme-dark .main :deep(.action-buttons .edit-btn:hover),
+.admin-layout.theme-dark .main :deep(td .act-btn:hover),
+.admin-layout.theme-dark .main :deep(td .icon-btn:hover),
+.admin-layout.theme-dark .main :deep(td .edit-btn:hover) {
+  border-color: #6ea0ff !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28) !important;
+  transform: translateY(-1px);
+}
+
+.admin-layout.theme-dark .main :deep(.action-delete),
+.admin-layout.theme-dark .main :deep(.delete-btn),
+.admin-layout.theme-dark .main :deep(.btn-delete),
+.admin-layout.theme-dark .main :deep(.act-btn.danger),
+.admin-layout.theme-dark .main :deep(.action-btn.danger),
+.admin-layout.theme-dark .main :deep(.action-btn.delete),
+.admin-layout.theme-dark .main :deep(.color-del-btn),
+.admin-layout.theme-dark .main :deep(.btn-row-del),
+.admin-layout.theme-dark .main :deep(.multi-preview-remove),
+.admin-layout.theme-dark .main :deep(button[title*='Xóa']),
+.admin-layout.theme-dark .main :deep(button[title*='Xoá']),
+.admin-layout.theme-dark .main :deep(button[aria-label*='Xóa']),
+.admin-layout.theme-dark .main :deep(button[aria-label*='Xoá']) {
+  border-color: #70343b !important;
+  background: #321d22 !important;
+  color: #ff8e98 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.action-delete:hover),
+.admin-layout.theme-dark .main :deep(.delete-btn:hover),
+.admin-layout.theme-dark .main :deep(.btn-delete:hover),
+.admin-layout.theme-dark .main :deep(.act-btn.danger:hover),
+.admin-layout.theme-dark .main :deep(.action-btn.danger:hover),
+.admin-layout.theme-dark .main :deep(.action-btn.delete:hover),
+.admin-layout.theme-dark .main :deep(.color-del-btn:hover),
+.admin-layout.theme-dark .main :deep(.btn-row-del:hover),
+.admin-layout.theme-dark .main :deep(.multi-preview-remove:hover),
+.admin-layout.theme-dark .main :deep(button[title*='Xóa']:hover),
+.admin-layout.theme-dark .main :deep(button[title*='Xoá']:hover),
+.admin-layout.theme-dark .main :deep(button[aria-label*='Xóa']:hover),
+.admin-layout.theme-dark .main :deep(button[aria-label*='Xoá']:hover) {
+  border-color: #ef5b68 !important;
+  background: #c93645 !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.action-email) {
+  border-color: #276046 !important;
+  background: #173326 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.action-email:hover) {
+  border-color: #35b777 !important;
+  background: #168653 !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(button:disabled) {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Quy ước toàn admin: Xem/Sửa = xanh, Xóa = đỏ (kể cả nút chỉ có icon). */
+.admin-layout.theme-light .main :deep(button[title^='Xem']),
+.admin-layout.theme-light .main :deep(a[title^='Xem']),
+.admin-layout.theme-light .main :deep(button[title^='Sửa']),
+.admin-layout.theme-light .main :deep(a[title^='Sửa']),
+.admin-layout.theme-light .main :deep(button[title^='Chỉnh']),
+.admin-layout.theme-light .main :deep(a[title^='Chỉnh']),
+.admin-layout.theme-light .main :deep(.actions .edit-btn),
+.admin-layout.theme-light .main :deep(.action-buttons .edit-btn),
+.admin-layout.theme-light .main :deep(.btn-edit) {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+.admin-layout.theme-light .main :deep(button[title^='Xem']:hover),
+.admin-layout.theme-light .main :deep(a[title^='Xem']:hover),
+.admin-layout.theme-light .main :deep(button[title^='Sửa']:hover),
+.admin-layout.theme-light .main :deep(a[title^='Sửa']:hover),
+.admin-layout.theme-light .main :deep(button[title^='Chỉnh']:hover),
+.admin-layout.theme-light .main :deep(a[title^='Chỉnh']:hover),
+.admin-layout.theme-light .main :deep(.actions .edit-btn:hover),
+.admin-layout.theme-light .main :deep(.action-buttons .edit-btn:hover),
+.admin-layout.theme-light .main :deep(.btn-edit:hover) {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(button[title^='Xem']),
+.admin-layout.theme-dark .main :deep(a[title^='Xem']),
+.admin-layout.theme-dark .main :deep(button[title^='Sửa']),
+.admin-layout.theme-dark .main :deep(a[title^='Sửa']),
+.admin-layout.theme-dark .main :deep(button[title^='Chỉnh']),
+.admin-layout.theme-dark .main :deep(a[title^='Chỉnh']),
+.admin-layout.theme-dark .main :deep(.btn-edit) {
+  border-color: #36557f !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .main :deep(button[title^='Xem']:hover),
+.admin-layout.theme-dark .main :deep(a[title^='Xem']:hover),
+.admin-layout.theme-dark .main :deep(button[title^='Sửa']:hover),
+.admin-layout.theme-dark .main :deep(a[title^='Sửa']:hover),
+.admin-layout.theme-dark .main :deep(button[title^='Chỉnh']:hover),
+.admin-layout.theme-dark .main :deep(a[title^='Chỉnh']:hover),
+.admin-layout.theme-dark .main :deep(.btn-edit:hover) {
+  border-color: #6ea0ff !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-light .main :deep(.action-delete),
+.admin-layout.theme-light .main :deep(.delete-btn),
+.admin-layout.theme-light .main :deep(.btn-delete),
+.admin-layout.theme-light .main :deep(.act-btn.danger),
+.admin-layout.theme-light .main :deep(.action-btn.danger),
+.admin-layout.theme-light .main :deep(.action-btn.delete),
+.admin-layout.theme-light .main :deep(.color-del-btn),
+.admin-layout.theme-light .main :deep(.btn-row-del),
+.admin-layout.theme-light .main :deep(.multi-preview-remove),
+.admin-layout.theme-light .main :deep(button[title*='Xóa']),
+.admin-layout.theme-light .main :deep(button[title*='Xoá']) {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #dc2626 !important;
+}
+
+.admin-layout.theme-light .main :deep(.action-delete:hover),
+.admin-layout.theme-light .main :deep(.delete-btn:hover),
+.admin-layout.theme-light .main :deep(.btn-delete:hover),
+.admin-layout.theme-light .main :deep(.act-btn.danger:hover),
+.admin-layout.theme-light .main :deep(.action-btn.danger:hover),
+.admin-layout.theme-light .main :deep(.action-btn.delete:hover),
+.admin-layout.theme-light .main :deep(.color-del-btn:hover),
+.admin-layout.theme-light .main :deep(.btn-row-del:hover),
+.admin-layout.theme-light .main :deep(.multi-preview-remove:hover),
+.admin-layout.theme-light .main :deep(button[title*='Xóa']:hover),
+.admin-layout.theme-light .main :deep(button[title*='Xoá']:hover) {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.admin-layout .main :deep(button[title^='Xem'] svg),
+.admin-layout .main :deep(a[title^='Xem'] svg),
+.admin-layout .main :deep(button[title^='Sửa'] svg),
+.admin-layout .main :deep(a[title^='Sửa'] svg),
+.admin-layout .main :deep(button[title^='Chỉnh'] svg),
+.admin-layout .main :deep(a[title^='Chỉnh'] svg),
+.admin-layout .main :deep(button[title*='Xóa'] svg),
+.admin-layout .main :deep(button[title*='Xoá'] svg),
+.admin-layout .main :deep(.btn-edit svg),
+.admin-layout .main :deep(.btn-delete svg),
+.admin-layout .main :deep(.danger svg) {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+/* Đặt cuối cùng để thắng CSS cục bộ của cột Thao tác trên từng trang. */
+.admin-layout.theme-dark .main :deep(.actions .action-delete),
+.admin-layout.theme-dark .main :deep(.actions .delete-btn),
+.admin-layout.theme-dark .main :deep(.actions .btn-delete),
+.admin-layout.theme-dark .main :deep(.actions .danger),
+.admin-layout.theme-dark .main :deep(.action-buttons .action-delete),
+.admin-layout.theme-dark .main :deep(.action-buttons .delete-btn),
+.admin-layout.theme-dark .main :deep(.action-buttons .btn-delete),
+.admin-layout.theme-dark .main :deep(.action-buttons .danger),
+.admin-layout.theme-dark .main :deep(.action-btns .action-delete),
+.admin-layout.theme-dark .main :deep(.action-btns .delete-btn),
+.admin-layout.theme-dark .main :deep(.action-btns .btn-delete),
+.admin-layout.theme-dark .main :deep(.action-btns .danger),
+.admin-layout.theme-dark .main :deep(td button[title*='Xóa']),
+.admin-layout.theme-dark .main :deep(td button[title*='Xoá']) {
+  border-color: #70343b !important;
+  background: #321d22 !important;
+  color: #ff8e98 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.actions .action-delete:hover),
+.admin-layout.theme-dark .main :deep(.actions .delete-btn:hover),
+.admin-layout.theme-dark .main :deep(.actions .btn-delete:hover),
+.admin-layout.theme-dark .main :deep(.actions .danger:hover),
+.admin-layout.theme-dark .main :deep(.action-buttons .action-delete:hover),
+.admin-layout.theme-dark .main :deep(.action-buttons .delete-btn:hover),
+.admin-layout.theme-dark .main :deep(.action-buttons .btn-delete:hover),
+.admin-layout.theme-dark .main :deep(.action-buttons .danger:hover),
+.admin-layout.theme-dark .main :deep(.action-btns .action-delete:hover),
+.admin-layout.theme-dark .main :deep(.action-btns .delete-btn:hover),
+.admin-layout.theme-dark .main :deep(.action-btns .btn-delete:hover),
+.admin-layout.theme-dark .main :deep(.action-btns .danger:hover),
+.admin-layout.theme-dark .main :deep(td button[title*='Xóa']:hover),
+.admin-layout.theme-dark .main :deep(td button[title*='Xoá']:hover) {
+  border-color: #ef5b68 !important;
+  background: #c93645 !important;
+  color: #ffffff !important;
+}
+
+/* Khuyến mãi: bảo đảm chữ rõ trên nền badge và nút của thẻ gradient. */
+.admin-layout .main :deep(.discount-tag.discount-percent),
+.admin-layout .main :deep(.discount-tag.discount-maxprice) {
+  border: 1px solid #f4cf67 !important;
+  background: #fff3bf !important;
+  color: #713b08 !important;
+}
+
+.admin-layout .main :deep(.discount-tag.discount-fixed) {
+  border: 1px solid #93c5fd !important;
+  background: #dbeafe !important;
+  color: #1e3a8a !important;
+}
+
+.admin-layout .main :deep(.discount-tag.discount-freeship) {
+  border: 1px solid #86efac !important;
+  background: #dcfce7 !important;
+  color: #14532d !important;
+}
+
+.admin-layout.theme-dark .main :deep(.stat-card-gradient .stat-card-btn) {
+  border: 1px solid #ffffff !important;
+  background: #ffffff !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.stat-card-gradient .stat-card-btn:hover) {
+  border-color: #bfdbfe !important;
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.admin-layout.theme-dark .main :deep(td .discount-tag.discount-percent),
+.admin-layout.theme-dark .main :deep(td .discount-tag.discount-maxprice) {
+  color: #713b08 !important;
+}
+
+.admin-layout.theme-dark .main :deep(td .discount-tag.discount-fixed) {
+  color: #1e3a8a !important;
+}
+
+.admin-layout.theme-dark .main :deep(td .discount-tag.discount-freeship) {
+  color: #14532d !important;
+}
+
+/* Bảng dữ liệu tối đồng nhất: loại bỏ các hàng trắng làm chữ phụ bị chìm. */
+.admin-layout.theme-dark .main :deep(.table-card),
+.admin-layout.theme-dark .main :deep(.table-wrap),
+.admin-layout.theme-dark .main :deep(.table-container),
+.admin-layout.theme-dark .main :deep(.orders-card table),
+.admin-layout.theme-dark .main :deep(table) {
+  border-color: #373d45 !important;
+  background: #14171b !important;
+}
+
+.admin-layout.theme-dark .main :deep(thead tr),
+.admin-layout.theme-dark .main :deep(thead th) {
+  border-color: #3b424b !important;
+  background: #20242a !important;
+  color: #b8c2cf !important;
+}
+
+.admin-layout.theme-dark .main :deep(tbody tr) {
+  border-color: #30363e !important;
+  background: #15181c !important;
+}
+
+.admin-layout.theme-dark .main :deep(tbody tr:hover) {
+  background: #1d2228 !important;
+}
+
+.admin-layout.theme-dark .main :deep(tbody tr.row-selected),
+.admin-layout.theme-dark .main :deep(tbody tr.selected) {
+  background: #172842 !important;
+}
+
+.admin-layout.theme-dark .main :deep(td),
+.admin-layout.theme-dark .main :deep(td small),
+.admin-layout.theme-dark .main :deep(td .date-text),
+.admin-layout.theme-dark .main :deep(td .showing-count) {
+  border-color: #30363e !important;
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(td strong),
+.admin-layout.theme-dark .main :deep(td b),
+.admin-layout.theme-dark .main :deep(td .promo-name),
+.admin-layout.theme-dark .main :deep(td .product-name) {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.product-item),
+.admin-layout.theme-dark .main :deep(.order-item),
+.admin-layout.theme-dark .main :deep(.staff-row) {
+  border-color: #363d46 !important;
+  background: #171b20 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.product-item span),
+.admin-layout.theme-dark .main :deep(.order-item small),
+.admin-layout.theme-dark .main :deep(.staff-row small),
+.admin-layout.theme-dark .main :deep(.time-badge),
+.admin-layout.theme-dark .main :deep(.showing-count),
+.admin-layout.theme-dark .main :deep(.user-agent),
+.admin-layout.theme-dark .main :deep(.empty-text) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.chip-ok) {
+  border-color: #86efac !important;
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.status-badge.pending) {
+  border-color: #fde68a !important;
+  background: #fef3c7 !important;
+  color: #854d0e !important;
+}
+
+.admin-layout.theme-dark .main :deep(.badge.badge-success) {
+  border-color: #86efac !important;
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.moderation-tool h4),
+.admin-layout.theme-dark .main :deep(.ai-ready h4),
+.admin-layout.theme-dark .main :deep(.tool-card-head h4) {
+  color: #f1f5f9 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.banner-btn.warning.active) {
+  border-color: #ff806e !important;
+  background: #c93f32 !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.bottom-row .banner-card .banner-btn.warning.active) {
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.variant-name),
+.admin-layout.theme-dark .main :deep(td .name),
+.admin-layout.theme-dark .main :deep(.slot-info .name) {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.nav-link),
+.admin-layout.theme-dark .main :deep(.publisher-main span),
+.admin-layout.theme-dark .main :deep(.xu-config-page label span) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.tab-count) {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.status-badge:not([class*='status-'])) {
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .main :deep(td .status-badge:not([class*='status-'])) {
+  border-color: #36557f !important;
+  background: #1b2736 !important;
+  color: #9fc0ff !important;
+}
+
+/* Nhật ký hoạt động: chip chi tiết thay đổi phải rõ trên nền bảng tối. */
+.admin-layout.theme-dark .main :deep(.audit-table .log-desc) {
+  color: #b8c2cf !important;
+}
+
+.admin-layout.theme-dark .main :deep(.audit-table .log-desc .highlight-text) {
+  border: 1px solid #405a7c !important;
+  background: #263448 !important;
+  color: #dbeafe !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  overflow-wrap: anywhere;
+}
+
+.admin-layout.theme-dark .main :deep(.audit-table .log-desc .arrow-indicator) {
+  color: #60a5fa !important;
+  text-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.audit-table .model-badge),
+.admin-layout.theme-dark .main :deep(.audit-table .ip-address) {
+  border-color: #455161 !important;
+  background: #252c35 !important;
+  color: #d9e2ee !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule) {
+  border-color: #414a56 !important;
+  background: #20252c !important;
+  color: #eef2f7 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule:hover) {
+  border-color: #5b8def !important;
+  background: #282f38 !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule.online) {
+  border-color: #2f7655 !important;
+  background: #193529 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule.online:hover) {
+  border-color: #49a979 !important;
+  background: #214535 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-name) {
+  color: #f1f5f9 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-email),
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule .last-seen) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-status-text.online) {
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-status-text.offline) {
+  color: #aeb8c6 !important;
 }
 </style>

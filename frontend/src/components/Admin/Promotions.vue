@@ -127,7 +127,7 @@
               </div>
             </td>
             <td>
-              <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount }}</span>
+              <span :class="['discount-tag', `discount-${p.loai || 'percent'}`]" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount }}</span>
             </td>
             <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.startDate || '—') }}</td>
             <td class="date-cell">{{ p.danhmuc === 'birthday' ? '—' : (p.endDate || '—') }}</td>

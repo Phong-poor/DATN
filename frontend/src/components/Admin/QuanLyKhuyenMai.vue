@@ -163,7 +163,7 @@
                 </div>
               </td>
             <td>
-              <span class="discount-tag" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
+              <span :class="['discount-tag', `discount-${p.loai || 'percent'}`]" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
             </td>
             <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngaybatdau || '—') }}</td>
             <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngayketthuc || '—') }}</td>
