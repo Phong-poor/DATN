@@ -363,7 +363,7 @@ const handleLogin = async () => {
       const duration = 30 * Math.pow(2, lockCount.value)
       lockUntil.value = Date.now() + duration * 1000
       localStorage.setItem('login_lock_until', lockUntil.value)
-      
+
       // Increment lock count for next exponential lock
       lockCount.value += 1
       localStorage.setItem('login_lock_count', lockCount.value)
@@ -379,7 +379,8 @@ const handleLogin = async () => {
 <template>
   <div class="page">
 
-    <div class="login-box" :class="{ 'admin-opening': adminOpening, 'web-opening': webOpening, 'social-opening': socialOpening }">
+    <div class="login-box"
+      :class="{ 'admin-opening': adminOpening, 'web-opening': webOpening, 'social-opening': socialOpening }">
 
       <!-- LEFT (Dark Column) -->
       <div class="left-col">
@@ -402,8 +403,10 @@ const handleLogin = async () => {
       <!-- RIGHT (White Column) -->
       <div class="right-col">
         <div class="tab-header">
-          <span class="tab-btn active" @click="!adminOpening && !webOpening && !socialOpening && router.push('/login')">Đăng nhập</span>
-          <span class="tab-btn" @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Đăng ký</span>
+          <span class="tab-btn active"
+            @click="!adminOpening && !webOpening && !socialOpening && router.push('/login')">Đăng nhập</span>
+          <span class="tab-btn" @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Đăng
+            ký</span>
         </div>
 
         <div class="welcome-box">
@@ -417,13 +420,15 @@ const handleLogin = async () => {
           <div class="form-group">
             <label class="input-label">Địa chỉ Email</label>
             <div class="input-wrapper">
-               <span class="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="3"/>
-                  <path d="M2 7l10 7 10-7"/>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" name="username" autocomplete="username" placeholder="Example@vinatech.vn" />
+              <input v-model="email" type="email" name="username" autocomplete="username"
+                placeholder="Example@vinatech.vn" />
             </div>
           </div>
 
@@ -432,18 +437,22 @@ const handleLogin = async () => {
             <label class="input-label">Mật khẩu</label>
             <div class="input-wrapper" :class="{ 'error': passwordError }">
               <span class="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </span>
-              <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password" autocomplete="current-password" placeholder="••••••••" />
+              <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
+                autocomplete="current-password" placeholder="••••••••" />
               <button class="eye-toggle-btn" @click="showPassword = !showPassword" type="button">
-                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                   <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                   <line x1="1" y1="1" x2="23" y2="23" />
@@ -459,15 +468,19 @@ const handleLogin = async () => {
               <input type="checkbox" v-model="remember" />
               <span>Ghi nhớ đăng nhập</span>
             </label>
-            <a class="forgot-link" @click="!adminOpening && !webOpening && !socialOpening && router.push('/forgot-password')">Quên mật khẩu?</a>
+            <a class="forgot-link"
+              @click="!adminOpening && !webOpening && !socialOpening && router.push('/forgot-password')">Quên mật
+              khẩu?</a>
           </div>
 
           <!-- SUBMIT BUTTON -->
-          <button type="submit" class="submit-btn" :disabled="loading || adminOpening || webOpening || socialOpening || secondsRemaining > 0">
+          <button type="submit" class="submit-btn"
+            :disabled="loading || adminOpening || webOpening || socialOpening || secondsRemaining > 0">
             <span class="btn-text">
               {{ secondsRemaining > 0 ? `Thử lại sau ${secondsRemaining}s` : (adminOpening ? 'Đang mở trang quản trị...' : (webOpening ? 'Đang mở trang chủ...' : (socialOpening ? 'Đang kết nối...' : (loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay')))) }}
             </span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
@@ -483,12 +496,17 @@ const handleLogin = async () => {
 
         <!-- SOCIAL BUTTONS -->
         <div class="social-row">
-          <button @click="loginGoogle" class="social-btn-google" :disabled="adminOpening || webOpening || socialOpening">
+          <button @click="loginGoogle" class="social-btn-google"
+            :disabled="adminOpening || webOpening || socialOpening">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.5 5.5 0 0 1 8.5 13a5.5 5.5 0 0 1 5.49-5.518c1.378 0 2.635.534 3.58 1.405l3.12-3.12C18.815 3.97 16.536 3 14 3a10 10 0 0 0-10 10 10 0 0 0 10 10c5.522 0 10-4.478 10-10 0-.693-.06-1.37-.176-2.029l-7.584.314z"/>
-              <path fill="#FBBC05" d="M4 13a10 10 0 0 0 .18 1.88l3.66-2.84C7.71 11.43 7.6 10.73 7.6 10s.11-1.43.24-2.04L4.18 5.12A10 10 0 0 0 4 13z"/>
-              <path fill="#4285F4" d="M14 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H4.18v2.84C5.99 20.53 9.7 23 14 23z"/>
-              <path fill="#34A853" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              <path fill="#EA4335"
+                d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.5 5.5 0 0 1 8.5 13a5.5 5.5 0 0 1 5.49-5.518c1.378 0 2.635.534 3.58 1.405l3.12-3.12C18.815 3.97 16.536 3 14 3a10 10 0 0 0-10 10 10 0 0 0 10 10c5.522 0 10-4.478 10-10 0-.693-.06-1.37-.176-2.029l-7.584.314z" />
+              <path fill="#FBBC05"
+                d="M4 13a10 10 0 0 0 .18 1.88l3.66-2.84C7.71 11.43 7.6 10.73 7.6 10s.11-1.43.24-2.04L4.18 5.12A10 10 0 0 0 4 13z" />
+              <path fill="#4285F4"
+                d="M14 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H4.18v2.84C5.99 20.53 9.7 23 14 23z" />
+              <path fill="#34A853"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
             Đăng nhập bằng Google
           </button>
@@ -496,7 +514,8 @@ const handleLogin = async () => {
 
         <!-- FOOTER REGISTER LINK -->
         <p class="footer-register">
-          Bạn chưa có tài khoản? <span class="register-link" @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Tạo tài khoản mới</span>
+          Bạn chưa có tài khoản? <span class="register-link"
+            @click="!adminOpening && !webOpening && !socialOpening && router.push('/register')">Tạo tài khoản mới</span>
         </p>
 
       </div>
@@ -1012,10 +1031,25 @@ const handleLogin = async () => {
 }
 
 @keyframes loginShellFade {
-  0% { transform: scale(1); opacity: 1; }
-  48% { transform: scale(1.01); opacity: 1; }
-  78% { transform: scale(1.025); opacity: 0.42; }
-  100% { transform: scale(1.035); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  48% {
+    transform: scale(1.01);
+    opacity: 1;
+  }
+
+  78% {
+    transform: scale(1.025);
+    opacity: 0.42;
+  }
+
+  100% {
+    transform: scale(1.035);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1024,7 +1058,10 @@ const handleLogin = async () => {
     width: 95%;
     height: auto;
   }
-  .left-col { display: none; }
+
+  .left-col {
+    display: none;
+  }
 
   .login-box.admin-opening .right-col,
   .login-box.web-opening .right-col,
@@ -1034,6 +1071,7 @@ const handleLogin = async () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .login-box,
   .left-col,
   .right-col {
@@ -1043,7 +1081,9 @@ const handleLogin = async () => {
 }
 
 @media (max-width: 480px) {
-  .right-col { padding: 24px 20px; }
+  .right-col {
+    padding: 24px 20px;
+  }
 }
 
 /* MODAL */
@@ -1076,8 +1116,15 @@ const handleLogin = async () => {
   margin: 0 auto 16px;
 }
 
-.modal-card.error .modal-icon { background: #fee2e2; color: #ef4444; }
-.modal-card.success .modal-icon { background: #dbeafe; color: #2563eb; }
+.modal-card.error .modal-icon {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.modal-card.success .modal-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
 
 .modal-title {
   font-size: 18px;
@@ -1104,19 +1151,37 @@ const handleLogin = async () => {
   transition: opacity 0.2s;
 }
 
-.modal-btn.error { background-color: #dc2626; color: white; }
-.modal-btn.success { background-color: #1e40af; color: white; }
-.modal-btn:hover { opacity: 0.88; }
+.modal-btn.error {
+  background-color: #dc2626;
+  color: white;
+}
+
+.modal-btn.success {
+  background-color: #1e40af;
+  color: white;
+}
+
+.modal-btn:hover {
+  opacity: 0.88;
+}
 
 .modal-enter-active,
-.modal-leave-active { transition: opacity 0.25s ease; }
+.modal-leave-active {
+  transition: opacity 0.25s ease;
+}
 
 .modal-enter-active .modal-card,
-.modal-leave-active .modal-card { transition: transform 0.25s ease; }
+.modal-leave-active .modal-card {
+  transition: transform 0.25s ease;
+}
 
 .modal-enter-from,
-.modal-leave-to { opacity: 0; }
+.modal-leave-to {
+  opacity: 0;
+}
 
 .modal-enter-from .modal-card,
-.modal-leave-to .modal-card { transform: scale(0.92) translateY(10px); }
+.modal-leave-to .modal-card {
+  transform: scale(0.92) translateY(10px);
+}
 </style>

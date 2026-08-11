@@ -149,46 +149,20 @@
   h6,
   button,
   .btn,
-  .stat-card-tag,
+  a.btn,
+  a[class*="btn-"],
+  [role="button"],
+  .pill,
+  .tab-pill,
   .badge,
   .badge-tag,
   .status-badge,
-  .pill,
-  .tab-pill,
   .role-name-badge,
-  .voucher-section-title,
-  .interactive-anchor,
-  th,
-  label > span
-) {
-  text-transform: lowercase !important;
-}
-
-:where(body) :where(
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  button,
-  .btn,
   .stat-card-tag,
-  .badge,
-  .badge-tag,
-  .status-badge,
-  .pill,
-  .tab-pill,
-  .role-name-badge,
   .voucher-section-title,
   .interactive-anchor,
   th,
-  label > span
-)::first-letter {
-  text-transform: uppercase !important;
-}
-
-:where(body) :where(
+  label,
   input,
   textarea,
   select,
@@ -208,14 +182,23 @@
   .sidebar-name,
   .reviewer-name
 ) {
-  text-transform: none !important;
+  text-transform: none;
 }
 
-.web-layout button:not([data-preserve-case]),
-.web-layout a.btn:not([data-preserve-case]),
-.web-layout a[class*="btn-"]:not([data-preserve-case]),
-.web-layout [role="button"]:not([data-preserve-case]) {
-  text-transform: capitalize !important;
+/* Ensure button text is always natural case without forced capitalize or uppercase on all words */
+button,
+.btn,
+a.btn,
+a[class*="btn-"],
+[role="button"],
+input[type="button"],
+input[type="submit"],
+.act-btn,
+.stat-card-btn,
+.btn-filter,
+.btn-export,
+.btn-new-user {
+  text-transform: none !important;
 }
 
 

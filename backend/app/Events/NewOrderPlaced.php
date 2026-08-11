@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Models\DatHang;
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
@@ -24,6 +25,7 @@ class NewOrderPlaced implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
+            new Channel('admin-orders'),
             new PrivateChannel('admin.orders'),
         ];
     }

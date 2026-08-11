@@ -33,3 +33,5 @@ Schedule::command('attendance:mark-missing-checkouts')
     ->dailyAt('00:05')
     ->timezone('Asia/Ho_Chi_Minh')
     ->withoutOverlapping();
+Schedule::command('birthdays:send-coupons')->everyMinute();
+

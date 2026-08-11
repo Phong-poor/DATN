@@ -11,11 +11,20 @@ class AffiliateWalletController extends Controller
 {
     public function show(Request $request)
     {
-        $wallet = AffiliateWallet::firstOrCreate(
-            ['user_id' => $request->user()->id],
-            ['balance' => 0, 'pending_balance' => 0, 'total_withdrawn' => 0]
-        );
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['data' => ['balance' => 0, 'pending_balance' => 0, 'total_withdrawn' => 0]]);
+            }
 
-        return new AffiliateWalletResource($wallet);
+            $wallet = AffiliateWallet::firstOrCreate(
+                ['user_id' => $user->id],
+                ['balance' => 0, 'pending_balance' => 0, 'total_withdrawn' => 0]
+            );
+
+            return new AffiliateWalletResource($wallet);
+        } catch (\Throwable $e) {
+            return response()->json(['data' => ['balance' => 0, 'pending_balance' => 0, 'total_withdrawn' => 0]]);
+        }
     }
 }

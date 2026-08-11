@@ -3,7 +3,6 @@ import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, RADIUS, TYPOGRAPHY, SPACING } from '../utils/theme';
 import { useNavigation } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
 import useWishlistStore from '../store/useWishlistStore';
 import useCartStore from '../store/useCartStore';
 import { getImageUrl } from '../services/api';
@@ -79,8 +78,7 @@ export default function WishlistScreen() {
             style={styles.addCartBtn} 
             onPress={() => handleAddToCart(item)}
           >
-            <Feather name="shopping-cart" size={18} color={COLORS.white} />
-            <Text style={styles.addCartText}>Thêm vào giỏ</Text>
+            <Text style={styles.addCartText}>🛒 Thêm vào giỏ</Text>
           </TouchableOpacity>
         </View>
 
@@ -207,9 +205,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     borderRadius: RADIUS.md,
     alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   quantityBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },

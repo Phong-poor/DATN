@@ -30,7 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->command('birthdays:send-coupons')->everyMinute()->withoutOverlapping();
+        $schedule->command('birthdays:send-coupons')->everyMinute();
         $schedule->command('events:send-vouchers')
             ->everyMinute()
             ->timezone('Asia/Ho_Chi_Minh')

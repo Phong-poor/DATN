@@ -71,7 +71,7 @@ const roleValueMapFixed = computed(() => {
 })
 
 const staffRoles = computed(() => {
-    return Object.values(roleLabelMapFixed.value).filter(lbl => lbl !== 'KHÁCH HÀNG')
+    return Object.values(roleLabelMapFixed.value).filter(lbl => lbl !== 'KHÁCH HÀNG' && lbl !== 'ADMIN' && lbl !== 'QUẢN TRỊ VIÊN')
 })
 
 const mapRoleLabel = (role) => roleLabelMapFixed.value[String(role || '').toLowerCase()] || 'KHÁCH HÀNG'
@@ -424,7 +424,7 @@ const removeUser = (id) => {
 
 // ─── CREATE ──────────────────────────
 const defaultForm = () => ({
-    name: '', email: '', phone: '', role: 'KHÁCH HÀNG',
+    name: '', email: '', phone: '', role: staffRoles.value[0] || 'THỦ KHO',
     status: 'Hoạt động', password: ''
 })
 
@@ -674,10 +674,13 @@ const submitEdit = async () => {
                         </td>
                         <td class="col-actions">
                             <div class="actions">
-                                <!-- Sửa -->
-                                <button class="act-btn" title="Chỉnh sửa" @click="openEditModal(u)">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round">
+                                <!-- Xem / Sửa -->
+                                <button class="act-btn" :title="u.role === 'KHÁCH HÀNG' ? 'Xem chi tiết' : 'Chỉnh sửa'" @click="openEditModal(u)">
+                                    <svg v-if="u.role === 'KHÁCH HÀNG'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
@@ -775,7 +778,7 @@ const submitEdit = async () => {
                             </div>
                             <div class="form-group">
                                 <label>EMAIL <span class="req">*</span></label>
-                                <input v-model="form.email" type="email" placeholder="VD: user@vinatech.com" />
+                                <input v-model="form.email" type="email" placeholder="VD: user@gmail.com" />
                             </div>
                         </div>
                         <div class="form-row">
@@ -792,7 +795,6 @@ const submitEdit = async () => {
                             <div class="form-group">
                                 <label>VAI TRÒ</label>
                                 <select v-model="form.role">
-                                    <option>KHÁCH HÀNG</option>
                                     <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
@@ -867,13 +869,13 @@ const submitEdit = async () => {
             </Transition>
         </Teleport>
 
-        <!-- ─── MODAL CHỈNH SỬA ─── -->
+        <!-- ─── MODAL CHỈNH SỬA / XEM CHI TIẾT ─── -->
         <Teleport to="body">
             <div v-if="showEditModal" class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
                         <div class="modal-title-wrap">
-                            <h3>Chỉnh sửa người dùng</h3>
+                            <h3>{{ editingUser?.role === 'KHÁCH HÀNG' ? 'Chi tiết khách hàng' : 'Chỉnh sửa người dùng' }}</h3>
                             <span class="modal-sub">ID: #{{ editingUser?.id }}</span>
                         </div>
                         <button class="modal-close" @click="closeEditModal">×</button>
@@ -882,11 +884,17 @@ const submitEdit = async () => {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>VAI TRÒ / PHÂN QUYỀN</label>
-                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id"
-                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
-                                    <option>KHÁCH HÀNG</option>
-                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
+                                <select v-model="editForm.role" :disabled="editingUser?.role === 'KHÁCH HÀNG' || editingUser?.id === currentUser?.id"
+                                    :title="editingUser?.role === 'KHÁCH HÀNG' ? 'Không thể tự phân quyền khách hàng thành nhân viên' : (editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : '')">
+                                    <option v-if="editForm.role === 'KHÁCH HÀNG'">KHÁCH HÀNG</option>
+                                    <option v-if="editForm.role === 'ADMIN' || editForm.role === 'QUẢN TRỊ VIÊN'">{{ editForm.role }}</option>
+                                    <template v-if="editingUser?.role !== 'KHÁCH HÀNG'">
+                                        <option v-for="r in staffRoles" :key="r">{{ r }}</option>
+                                    </template>
                                 </select>
+                                <small v-if="editingUser?.role === 'KHÁCH HÀNG'" class="role-hint-text">
+                                    ℹ️ Khách hàng không thể nâng cấp lên Nhân viên từ đây. Để thêm Nhân viên mới, vui lòng dùng nút "Thêm người dùng" ở tab Admin.
+                                </small>
                             </div>
                             <div class="form-group">
                                 <label>TRẠNG THÁI</label>
@@ -2313,5 +2321,16 @@ tbody td {
     .form-row {
         grid-template-columns: 1fr;
     }
+}
+.role-hint-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.45;
+    background: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-left: 3px solid #3b82f6;
 }
 </style>

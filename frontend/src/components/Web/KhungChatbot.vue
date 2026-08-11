@@ -1575,13 +1575,29 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
-  padding-bottom: 2px;
+  padding-bottom: 6px;
   overflow-x: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 .quick-suggestions::-webkit-scrollbar {
-  display: none;
+  height: 4px;
+  display: block;
+}
+
+.quick-suggestions::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.quick-suggestions::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.quick-suggestions::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .quick-suggestion-chip {
@@ -1630,12 +1646,16 @@ onUnmounted(() => {
 
 .input-form input {
   flex: 1;
-  border: none;
-  background: transparent;
+  border: none !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   font-size: 14px;
-  outline: none;
   color: #1e293b !important;
   font-weight: 600;
+  padding: 4px 0 !important;
 }
 
 .input-form input::placeholder {

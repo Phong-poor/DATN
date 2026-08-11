@@ -7,7 +7,7 @@ import { getToken, getUser } from '@/services/auth'
 import { isFormDirty } from '@/services/unsavedChanges'
 import { onUnmounted } from 'vue'
 import swal from '@/services/swal'
-import { normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl, backendBaseUrl } from '@/services/urls'
 
 const activeTab = ref('all')
 const pageMode = ref('orders')
@@ -136,11 +136,11 @@ const refundProofUrl = ref(null)
 const refundSelectedItems = ref([])
 
 const handleProofUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-        refundProof.value = file
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+        refundProof.value = files.length === 1 ? files[0] : files
         if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-        refundProofUrl.value = URL.createObjectURL(file)
+        refundProofUrl.value = URL.createObjectURL(files[0])
     } else {
         refundProof.value = null
         if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
@@ -167,7 +167,7 @@ const confirmRefund = async () => {
         swal.warning('Thông báo', 'Vui lòng nhập lý do hoàn trả.')
         return
     }
-    if (!refundProof.value) {
+    if (!refundProof.value || (Array.isArray(refundProof.value) && refundProof.value.length === 0)) {
         swal.warning('Thông báo', 'Vui lòng tải lên ảnh/video bằng chứng.')
         return
     }
@@ -176,7 +176,11 @@ const confirmRefund = async () => {
     try {
         const formData = new FormData()
         formData.append('lydo', refundReason.value)
-        formData.append('proof', refundProof.value)
+        if (Array.isArray(refundProof.value)) {
+            refundProof.value.forEach(f => formData.append('proofs[]', f))
+        } else {
+            formData.append('proof', refundProof.value)
+        }
         refundSelectedItems.value.forEach(id => {
             formData.append('item_ids[]', id)
         })
@@ -251,6 +255,12 @@ const fetchOrders = async () => {
         const res = await api.get('/orders')
         if (res.data.success) {
             orders.value = res.data.orders
+            if (selectedOrder.value) {
+                const fresh = orders.value.find(o => (o.id_dathang || o.id) === (selectedOrder.value.id_dathang || selectedOrder.value.id))
+                if (fresh) {
+                    selectedOrder.value = { ...fresh }
+                }
+            }
         }
     } catch (err) {
         console.error('Lỗi lấy đơn hàng:', err)
@@ -274,7 +284,17 @@ const filtered = computed(() => {
     }
 })
 
-const openDetail = (order) => { selectedOrder.value = order }
+const openDetail = async (order) => {
+    selectedOrder.value = { ...order }
+    const id = order.id_dathang || order.id
+    if (!id) return
+    try {
+        const res = await api.get(`/orders/${id}`)
+        if (res.data && res.data.order) {
+            selectedOrder.value = { ...res.data.order }
+        }
+    } catch (e) { }
+}
 const closeDetail = () => { selectedOrder.value = null }
 
 const getFullProductName = (item) => {
@@ -299,26 +319,175 @@ const getProductImage = (item) => {
     return productImageUrl(sp, variant, 'https://placehold.co/200')
 }
 
+const getRefundModalItems = (order) => {
+    if (!order) return []
+    const items = order.chi_tiets || order.items || order.chiTiets || []
+    const status = String(order.trangthai || order.status || '')
+    if (!status.startsWith('refund')) {
+        return items
+    }
+    const filtered = items.filter(i => i.is_refund == 1 || i.is_refund === true || i.hoantien == 1 || i.hoantien === true)
+    return filtered.length > 0 ? filtered : items
+}
+
+const isRefundItem = (item) => {
+    return item?.is_refund == 1 || item?.is_refund === true || item?.hoantien == 1 || item?.hoantien === true
+}
+
+const getRefundProofFiles = (order) => {
+    if (!order) return []
+
+    if (typeof order === 'string') {
+        const trimmed = order.trim()
+        if (!trimmed) return []
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                return getRefundProofFiles(parsed)
+            } catch (e) { }
+        }
+        if (trimmed.includes(',')) {
+            return trimmed.split(',').map(s => s.trim()).filter(Boolean)
+        }
+        return [trimmed]
+    }
+
+    if (Array.isArray(order)) {
+        return order.flatMap(item => getRefundProofFiles(item)).filter(Boolean)
+    }
+
+    if (typeof order === 'object') {
+        const raw = order.raw || order
+        let payData = raw.du_lieu_thanh_toan || raw.payment_data
+        if (typeof payData === 'string') {
+            try { payData = JSON.parse(payData) } catch (e) { }
+        }
+
+        const candidate = raw.minh_chung_hoan_tien
+            || raw.refund_proof
+            || raw.refund_proofs
+            || raw.minh_chung
+            || raw.proof
+            || raw.proofs
+            || payData?.minh_chung_hoan_tien
+            || payData?.refund_proof
+            || payData?.refund_proofs
+
+        if (candidate && candidate !== order && candidate !== raw) {
+            return getRefundProofFiles(candidate)
+        }
+    }
+
+    return []
+}
+
+const uploadRefundProof = async (event, order) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+    const id = order.id_dathang || order.id
+    if (!id) return
+
+    const formData = new FormData()
+    for (let i = 0; i < files.length; i++) {
+        formData.append('proofs[]', files[i])
+    }
+
+    try {
+        swal.loading('Đang tải lên tệp bằng chứng...')
+        const res = await api.post(`/donhang/${id}/refund-proof`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        swal.closeLoading()
+        if (res.data && res.data.success) {
+            swal.success('Tải lên bằng chứng thành công!')
+            if (res.data.order) {
+                const updated = res.data.order
+                const proofVal = updated.minh_chung_hoan_tien || updated.refund_proof
+                order.minh_chung_hoan_tien = proofVal
+                order.refund_proof = proofVal
+                if (selectedOrder.value) {
+                    selectedOrder.value = {
+                        ...selectedOrder.value,
+                        minh_chung_hoan_tien: proofVal,
+                        refund_proof: proofVal
+                    }
+                }
+            }
+            await fetchOrders()
+        } else {
+            swal.error(res.data?.message || 'Không thể tải lên tệp.')
+        }
+    } catch (err) {
+        swal.closeLoading()
+        swal.error('Lỗi khi tải lên tệp bằng chứng.')
+    }
+}
+
+const getProofMediaUrl = (file) => {
+    if (!file) return ''
+    if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+        return file
+    }
+    const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+    return storageUrl(cleanPath)
+}
+
+const getProofProxyUrl = (file) => {
+    if (!file) return ''
+    if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+        return file
+    }
+    const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+    return `${backendBaseUrl}/api/refund-file?path=${encodeURIComponent(cleanPath)}`
+}
+
+const isImageFile = (file) => {
+    if (!file) return false
+    const f = String(file).toLowerCase().trim()
+    return /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(f)
+}
+
+const isVideoFile = (file) => {
+    if (!file) return false
+    const f = String(file).toLowerCase().trim()
+    if (isImageFile(file)) return false
+    return /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v|quicktime)$/i.test(f)
+        || f.includes('screen recording')
+        || f.startsWith('refund_proofs/')
+        || f.startsWith('refunds/')
+        || !f.includes('.')
+}
+
 onMounted(() => {
     fetchOrders()
     
     const user = getUser()
 
-    if (getToken() && user && (user.id || user.id_user)) {
-        const userId = user.id || user.id_user
+    if (user && (user.id || user.id_khachhang || user.id_user)) {
+        const userId = user.id || user.id_khachhang || user.id_user
         
-        echo.private(`user.${userId}`)
-            .listen('.order.status.updated', (e) => {
-                // Cập nhật mảng orders
-                const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
-                if (index !== -1) {
-                    orders.value[index].trangthai = e.trangthai
-                    // Cập nhật modal chi tiết nếu đang mở đúng đơn đó
-                    if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
-                        selectedOrder.value.trangthai = e.trangthai
-                    }
+        let isFetching = false
+        const handleStatusUpdate = async (data) => {
+            if (data && data.id_dathang) {
+                const idx = orders.value.findIndex(o => Number(o.id_dathang) === Number(data.id_dathang))
+                if (idx !== -1 && data.trangthai) {
+                    orders.value[idx].trangthai = data.trangthai
                 }
-            })
+            }
+            if (isFetching) return
+            isFetching = true
+            try {
+                await fetchOrders()
+            } finally {
+                setTimeout(() => { isFetching = false }, 1000)
+            }
+        }
+
+        if (getToken()) {
+            try { echo.private(`user.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) {}
+        }
+        try { echo.channel(`user-orders.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) {}
+        try { echo.channel('admin-orders').listen('.order.status.updated', handleStatusUpdate) } catch (e) {}
     }
 })
 
@@ -386,7 +555,7 @@ onUnmounted(() => {
                         
                         <div class="mb-3">
                             <label class="form-label" style="font-size: 13px; font-weight: 600;">Hình ảnh / Video bằng chứng</label>
-                            <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
+                            <input type="file" multiple @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
                             <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
                             
                             <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
@@ -431,11 +600,51 @@ onUnmounted(() => {
                             {{ statusMap[selectedOrder.trangthai].label }}
                         </div>
 
-                        <!-- Cancellation info if cancelled -->
-                        <div v-if="(selectedOrder.trangthai === 'cancelled' || selectedOrder.trangthai.startsWith('refund')) && selectedOrder.lydo" class="alert py-2 px-3 mb-4" :class="{'alert-danger': selectedOrder.trangthai === 'cancelled', 'alert-warning': selectedOrder.trangthai !== 'cancelled'}" style="font-size: 13px;">
-                            <strong>Lý do:</strong> {{ selectedOrder.lydo }}
-                            <div v-if="selectedOrder.refund_proof" class="mt-2">
-                                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
+                        <!-- Cancellation info if cancelled or refund -->
+                        <div v-if="selectedOrder.trangthai === 'cancelled' || selectedOrder.trangthai?.startsWith('refund') || getRefundProofFiles(selectedOrder).length > 0" style="margin-bottom: 18px; font-size: 14px; color: #1e293b; line-height: 1.5;">
+                            <div style="margin-bottom: 8px;">
+                                <strong style="color: #0f172a; font-weight: 700;">Lý do:</strong> <span style="color: #334155;">{{ selectedOrder.lydo || 'Khách hàng không nhập lý do' }}</span>
+                            </div>
+
+                            <!-- Ảnh / Video bằng chứng nằm ở ngay dưới lý do -->
+                            <div v-if="getRefundProofFiles(selectedOrder).length > 0" class="proof-media-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 10px;">
+                                <div v-for="(file, pIdx) in getRefundProofFiles(selectedOrder)" :key="pIdx" class="proof-media-item" style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                                    <template v-if="isImageFile(file)">
+                                        <a :href="getProofMediaUrl(file)" target="_blank" title="Bấm để xem ảnh phóng to" style="display: block; text-align: center; background: #f8fafc;">
+                                            <img :src="getProofMediaUrl(file)" @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng" style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                                        </a>
+                                    </template>
+                                    <template v-else-if="isVideoFile(file)">
+                                        <video controls style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;" preload="metadata">
+                                            <source :src="getProofMediaUrl(file)" />
+                                            <source :src="getProofProxyUrl(file)" />
+                                            Trình duyệt không hỗ trợ xem video.
+                                        </video>
+                                    </template>
+                                    <template v-else>
+                                        <div style="padding: 20px 10px; text-align: center;">
+                                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                                <polyline points="13 2 13 9 20 9"></polyline>
+                                            </svg>
+                                            <a :href="getProofProxyUrl(file)" target="_blank" style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải file bằng chứng #{{ pIdx + 1 }}</a>
+                                        </div>
+                                    </template>
+                                    <a :href="getProofProxyUrl(file)" target="_blank" style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                                        🔍 Mở tệp gốc / Tải về
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Nếu đơn chưa có tệp bằng chứng -> Hiện nút bấm tải lên ngay dưới lý do -->
+                            <div v-else style="margin-top: 10px; padding: 12px 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; color: #475569;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span>📁 <strong>Bằng chứng:</strong> Chưa có tệp đính kèm</span>
+                                    <label style="margin: 0; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.2);">
+                                        <span>📤 Tải lên ảnh / video</span>
+                                        <input type="file" multiple accept="image/*,video/*" @change="uploadRefundProof($event, selectedOrder)" style="display: none;" />
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -452,17 +661,32 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
-                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
-                <div class="timeline refund-timeline">
-                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
-                    <div class="tl-col">
-                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+              <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
+              <div class="refund-timeline-vertical" v-if="refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
+                <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                  <span>🔄</span> Quá trình hoàn trả
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
+                  <div v-for="(step, i) in refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                    <!-- Vertical line -->
+                    <div v-if="i < refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
+                    
+                    <!-- Dot icon -->
+                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
+                      <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
                     </div>
-                    <div class="tl-content">
-                      <p class="tl-label refund-label">{{ step.label }}</p>
-                      <p class="tl-date">{{ step.date || '—' }}</p>
+
+                    <!-- Label and Date -->
+                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
+                      <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                        {{ step.label }}
+                      </div>
+                      <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                        {{ step.date || '—' }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -471,12 +695,12 @@ onUnmounted(() => {
 <!-- Products -->
                         <div class="modal-section">
                             <h3 class="section-title">Sản phẩm</h3>
-                            <div class="modal-item" v-for="item in (selectedOrder.chi_tiets || []).filter(i => !selectedOrder.trangthai?.startsWith('refund') || i.is_refund == 1)" :key="item.id_dathang_chi_tiet">
+                            <div class="modal-item" v-for="item in getRefundModalItems(selectedOrder)" :key="item.id_dathang_chi_tiet || item.id_bienthe">
                                 <img :src="getProductImage(item)" alt="product" />
                                 <div class="modal-item-info">
                                     <p class="modal-item-name">
                                         {{ getFullProductName(item) }}
-                                        <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                                        <span v-if="isRefundItem(item)" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                                     </p>
                                     <p class="modal-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                     <p class="modal-item-qty">Số lượng: {{ item.soluong }}</p>
@@ -485,14 +709,15 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <div class="modal-breakdown" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top:10px; margin-bottom:10px; font-size:13px; color:#cbd5e1; display:flex; flex-direction:column; gap:5px; box-sizing:border-box;" v-if="selectedOrder.xu_dung > 0">
+                        <div class="modal-breakdown" style="border-top: none; padding-top:10px; margin-bottom:10px; font-size:13px; color:#cbd5e1; display:flex; flex-direction:column; gap:5px; box-sizing:border-box;" v-if="selectedOrder.xu_dung > 0">
                             <div class="d-flex justify-content-between">
                                 <span>Sử dụng xu:</span>
                                 <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ formatPrice(selectedOrder.xu_dung) }})</span>
                             </div>
                         </div>
 
-                        <div class="modal-total">
+                        <!-- Thành tiền / Tổng cộng (Bỏ thanh ngang và bỏ viền ngoài) -->
+                        <div class="modal-total" style="border-top: none; border: none; background: transparent; padding: 10px 0 0; box-shadow: none;">
                             <span>Tổng cộng</span>
                             <span class="total-val">{{ formatPrice(selectedOrder.tongtien) }}</span>
                         </div>
@@ -1189,7 +1414,7 @@ onUnmounted(() => {
 .tl-content { padding: 0 10px; }
 .tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
-.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
+.refund-timeline-wrap { background: transparent; padding: 0; border: none; border-radius: 0; }
 .refund-dot { border-color: #fdba74; }
 .refund-label { color: #c2410c; }
 

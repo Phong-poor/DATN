@@ -264,12 +264,16 @@ const submit = () => {
 .composer-input-wrap input {
   flex: 1;
   min-width: 0;
-  border: none;
-  background: transparent;
-  outline: none;
+  border: none !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   font-size: 14px;
   color: #0f172a;
   font-weight: 600;
+  padding: 4px 0 !important;
 }
 
 .composer-input-wrap input::placeholder {

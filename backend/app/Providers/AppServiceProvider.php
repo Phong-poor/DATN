@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (str_starts_with(config('app.url'), 'https://') || request()->header('X-Forwarded-Proto') === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         $this->configureDefaults();
         $this->registerAuditLogListeners();
     }
@@ -113,15 +117,19 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        \App\Models\AdminActivityLog::create([
-            'id_khachhang' => $user->id,
-            'hanhdong' => $actionText,
-            'tenmodel' => $friendlyName,
-            'id_doituong' => $targetId,
-            'mota' => $description,
-            'diachi_ip' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        try {
+            \App\Models\AdminActivityLog::create([
+                'id_khachhang' => $user->id,
+                'hanhdong' => $actionText,
+                'tenmodel' => $friendlyName,
+                'id_doituong' => $targetId,
+                'mota' => $description,
+                'diachi_ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        } catch (\Throwable $e) {
+            // Bỏ qua lỗi ghi log để không bao giờ làm gián đoạn thao tác Thêm/Sửa/Xóa chính
+        }
     }
 
     /**

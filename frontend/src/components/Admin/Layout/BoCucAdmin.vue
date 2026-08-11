@@ -438,6 +438,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/quan-ly-banner': 'banner_quan_ly',
     
     '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
+    '/admin/quan-ly-chat': 'chat_quan_ly',
     
     '/admin/quan-ly-nguoi-dung': 'tai_khoan_quan_ly',
     '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',
@@ -927,28 +928,18 @@ onUnmounted(() => {
 .admin-layout :deep(.section-title),
 .admin-layout :deep(.chart-title),
 .admin-layout :deep(.stat-label),
+.admin-layout :deep(.stat-card p),
+.admin-layout :deep(.stat-card span),
+.admin-layout :deep(.stat-info p),
+.admin-layout :deep(.stat-info span),
 .admin-layout :deep(.period-tab),
 .admin-layout :deep(.chart-nav-btn),
 .admin-layout :deep(.status-badge),
-.admin-layout :deep(th) {
-    text-transform: lowercase !important;
-}
-.admin-layout :deep(.item)::first-letter,
-.admin-layout :deep(.submenu-item)::first-letter,
-.admin-layout :deep(.submenu-badge)::first-letter,
-.admin-layout :deep(.admin-topbar-title h2)::first-letter,
-.admin-layout :deep(.card-title)::first-letter,
-.admin-layout :deep(.section-title)::first-letter,
-.admin-layout :deep(.chart-title)::first-letter,
-.admin-layout :deep(.stat-label)::first-letter,
-.admin-layout :deep(.period-tab)::first-letter,
-.admin-layout :deep(.chart-nav-btn)::first-letter,
-.admin-layout :deep(.status-badge)::first-letter,
-.admin-layout :deep(th)::first-letter {
-    text-transform: uppercase !important;
-}
-.admin-layout :deep(button:not([data-preserve-case])) {
-    text-transform: capitalize !important;
+.admin-layout :deep(.badge),
+.admin-layout :deep(th),
+.admin-layout :deep(td),
+.admin-layout :deep(button) {
+    text-transform: none !important;
 }
 .menu-label,
 .menu-text,
@@ -1840,6 +1831,7 @@ a { text-decoration: none; }
 
 /* Một kiểu nút xuất báo cáo dùng thống nhất cho toàn bộ trang admin. */
 .main :deep(.admin-report-export) {
+  text-transform: none !important;
   width: auto !important;
   min-width: 122px !important;
   height: 38px !important;

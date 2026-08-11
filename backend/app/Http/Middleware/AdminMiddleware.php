@@ -137,6 +137,10 @@ class AdminMiddleware
                   $path === '/api/admin/contacts' || str_starts_with($path, '/api/admin/contacts/')) {
             $requiredPermission = 'lien_he_quan_ly';
         }
+        elseif ($path === '/api/admin/chat' || str_starts_with($path, '/api/admin/chat/') ||
+                  $path === '/api/admin/conversations' || str_starts_with($path, '/api/admin/conversations/')) {
+            $requiredPermission = 'chat_quan_ly';
+        }
         
         // 13. QUẢN LÝ TÀI KHOẢN (users)
         elseif ($path === '/api/admin/users' || str_starts_with($path, '/api/admin/users/')) {

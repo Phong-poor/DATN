@@ -4,8 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
-import { productImageUrl, comboImageUrl, imageFallbackUrl } from '@/services/urls'
+import { productImageUrl, comboImageUrl, imageFallbackUrl, storageUrl } from '@/services/urls'
 import { getToken } from '@/services/auth'
+import { isWishlisted, findWishlistItem, fetchWishlistState, wishlistItems } from '@/services/wishlistStore'
+import { mapNewsPosts } from '@/services/newsMapper'
 import { prefetchProductDetail, prefetchProductsPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
 import {
   Tag,
@@ -190,11 +192,43 @@ const comboDetailsList = [
   }
 ]
 
-const magazineArticles = [
-  { id: 1, category: 'Tin khuyến mãi', title: 'Đại tiệc siêu sale công nghệ: Săn voucher 1 Triệu độc quyền NextGen Group', excerpt: 'Chi tiết lịch săn mã giảm giá và cách tối ưu hóa giỏ hàng để nhận ưu đãi lên tới 35% cho các dòng máy gaming flagship.', date: '03/06/2026', img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80' },
-  { id: 2, category: 'Đánh giá công nghệ', title: 'Acer NextGen Helios Neo 16 có thực sự bá chủ phân khúc dưới 40 Triệu?', excerpt: 'Đánh giá chi tiết hiệu năng thực tế, nhiệt độ tỏa ra khi chơi game nặng và thời lượng pin thực tế của dòng Helios Neo 2026.', date: '01/06/2026', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&q=80' },
-  { id: 3, category: 'Xu hướng phần cứng', title: 'Kiến trúc GPU Blackwell RTX 5090 hứa hẹn bước nhảy vọt như thế nào?', excerpt: 'Tổng hợp tất cả thông số rò rỉ, mức tiêu thụ điện năng dự kiến và hiệu năng Ray Tracing thế hệ mới của card đồ họa khủng nhất năm.', date: '29/05/2026', img: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&q=80' }
+const realNewsArticles = ref([])
+
+const defaultMagazineArticles = [
+  { id: 1, category: 'Tin khuyến mãi', title: 'Đại tiệc siêu sale công nghệ: Săn voucher 1 Triệu độc quyền NextGen Group', excerpt: 'Chi tiết lịch săn mã giảm giá và cách tối ưu hóa giỏ hàng để nhận ưu đãi lên tới 35% cho các dòng máy gaming flagship.', views: 5200, date: '03/06/2026', img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80' },
+  { id: 2, category: 'Đánh giá công nghệ', title: 'Acer NextGen Helios Neo 16 có thực sự bá chủ phân khúc dưới 40 Triệu?', excerpt: 'Đánh giá chi tiết hiệu năng thực tế, nhiệt độ tỏa ra khi chơi game nặng và thời lượng pin thực tế của dòng Helios Neo 2026.', views: 3800, date: '01/06/2026', img: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=500&q=80' },
+  { id: 3, category: 'Xu hướng phần cứng', title: 'Kiến trúc GPU Blackwell RTX 5090 hứa hẹn bước nhảy vọt như thế nào?', excerpt: 'Tổng hợp tất cả thông số rò rỉ, mức tiêu thụ điện năng dự kiến và hiệu năng Ray Tracing thế hệ mới của card đồ họa khủng nhất năm.', views: 2900, date: '29/05/2026', img: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&q=80' },
+  { id: 4, category: 'Công nghệ', title: 'Bảo quản pin laptop đúng cách: sạc, nhiệt độ và thói quen sử dụng', excerpt: 'Cẩm nang kéo dài tuổi thọ pin laptop, hạn chế chai pin tối đa khi sử dụng hàng ngày.', views: 2400, date: '25/05/2026', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500&q=80' },
+  { id: 5, category: 'Sản phẩm', title: 'Cách chọn laptop đồ họa cho designer: màn hình, RAM và GPU cần biết', excerpt: 'Hướng dẫn chọn mua laptop đồ họa chuyên nghiệp cho thiết kế 2D, 3D, dựng phim và render.', views: 1900, date: '20/05/2026', img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&q=80' }
 ]
+
+const magazineArticles = computed(() => {
+  const source = realNewsArticles.value.length > 0 ? realNewsArticles.value : defaultMagazineArticles
+  
+  // Sort descending by views (lượt xem)
+  const sorted = [...source].sort((a, b) => Number(b.views || b.luotxem || 0) - Number(a.views || a.luotxem || 0))
+
+  return sorted.slice(0, 5).map(item => {
+    let imageSrc = item.image || item.thumbnail || item.hinhanh || item.img || ''
+    if (imageSrc && !imageSrc.startsWith('http')) imageSrc = storageUrl(imageSrc)
+    if (!imageSrc) imageSrc = 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80'
+    return {
+      id: item.id || item.slug || Math.random(),
+      title: item.title || item.tieude || '',
+      category: item.category || item.danhmuc || 'Tin tức',
+      excerpt: item.excerpt || item.summary || item.tomtat || '',
+      views: Number(item.views || item.luotxem || 0),
+      date: item.published_at || item.dang_luc || item.created_at || item.date || '',
+      img: imageSrc
+    }
+  })
+})
+
+const goToNewsDetail = (id) => {
+  if (id) {
+    router.push(`/tin-tuc/${id}`)
+  }
+}
 
 const scrollToPromotionSection = () => {
   const sectionId = String(route.query.section || '')
@@ -325,6 +359,17 @@ async function fetchPromotionsData() {
       }
     } catch (comboErr) {
       console.error('Lỗi khi tải danh sách combos:', comboErr)
+    }
+
+    // Load news articles dynamically from API
+    try {
+      const newsRes = await api.get('/news', { params: { scope: 'public', per_page: 6 } })
+      const items = newsRes.data?.data || newsRes.data?.items || newsRes.data?.posts || (Array.isArray(newsRes.data) ? newsRes.data : [])
+      if (Array.isArray(items) && items.length > 0) {
+        realNewsArticles.value = mapNewsPosts(items)
+      }
+    } catch (newsErr) {
+      console.error('Lỗi khi tải tin tức:', newsErr)
     }
 
     // 4. Load current flash sale session from API
@@ -638,18 +683,28 @@ const toggleWishlist = async (product) => {
   const token = getToken()
   if (!token) {
     swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để lưu sản phẩm yêu thích!')
-    router.push('/login')
+    router.push('/dang-nhap')
     return
   }
 
   try {
+    const existing = findWishlistItem(product)
+    if (existing) {
+      await api.delete(`/yeu-thich/xoa/${existing.id}`)
+      await fetchWishlistState()
+      window.dispatchEvent(new Event('wishlist-updated'))
+      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      return
+    }
+
     const variantId = product.id_bienthe || product.id
     await api.post('/yeu-thich/them', {
       id_bienthe: variantId,
       soluong: 1
     })
-    swal.success('Yêu thích', 'Đã thêm vào danh sách yêu thích!')
+    await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
+    swal.success('Yêu thích', 'Đã thêm vào danh sách yêu thích!')
   } catch (err) {
     console.error('Lỗi yêu thích:', err)
     swal.error('Thông báo', err.response?.data?.message || 'Đã xảy ra sự cố.')
@@ -895,7 +950,7 @@ const initScrollReveal = () => {
             Danh Mục Khuyến Mãi
           </span>
           <h2>SĂN ƯU ĐÃI THEO NHU CẦU</h2>
-          <p class="section-sub">Những dòng laptop hiệu năng cao, linh kiện chất lượng nhất đang được áp dụng mức giá cực sốc.</p>
+          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những dòng laptop hiệu năng cao, linh kiện chất lượng nhất đang được áp dụng mức giá cực sốc.</p>
         </div>
 
         <div class="categories-bento-grid scroll-reveal reveal-stagger">
@@ -1069,7 +1124,7 @@ const initScrollReveal = () => {
             Voucher Center
           </span>
           <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
-          <p class="section-sub">Nhấn <strong>Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
         </div>
 
         <div v-if="allVouchers.length === 0" style="text-align:center; padding: 40px 0; color: #94a3b8; font-size: 15px;">
@@ -1155,7 +1210,7 @@ const initScrollReveal = () => {
             Combo Độc Quyền
           </span>
           <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
-          <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
+          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
         <div class="combos-bento-layout scroll-reveal reveal-stagger" v-if="combos && combos.length">
@@ -1215,7 +1270,7 @@ const initScrollReveal = () => {
             Danh Sách Ưu Đãi
           </span>
           <h2>SẢN PHẨM KHUYẾN MÃI NỔI BẬT</h2>
-          <p class="section-sub">Tất cả dòng máy chính hãng cao cấp từ ASUS, Apple, Dell, Lenovo và MSI đều đang sale chạm đáy.</p>
+          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Tất cả dòng máy chính hãng cao cấp từ ASUS, Apple, Dell, Lenovo và MSI đều đang sale chạm đáy.</p>
         </div>
 
         <div class="filter-bar-navigation scroll-reveal reveal-fade-up">
@@ -1245,8 +1300,17 @@ const initScrollReveal = () => {
               <div class="badge-percent-overlay" v-if="getDiscountPercent(prod) > 0">
                 -{{ getDiscountPercent(prod) }}%
               </div>
-              <button class="wishlist-fav-btn" @click.stop="toggleWishlist(prod)">
-                <Heart class="fav-icon" />
+              <button
+                class="wishlist-fav-btn"
+                :class="{ 'is-wishlisted': isWishlisted(prod) }"
+                :title="isWishlisted(prod) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                @click.stop="toggleWishlist(prod)"
+              >
+                <Heart
+                  class="fav-icon"
+                  :fill="isWishlisted(prod) ? '#ef4444' : 'none'"
+                  :stroke="isWishlisted(prod) ? '#ef4444' : '#ef4444'"
+                />
               </button>
             </div>
 
@@ -1302,12 +1366,12 @@ const initScrollReveal = () => {
             <Sparkles class="pill-icon" />
             Tech Insights Magazine
           </span>
-          <h2>TIN TỨC CÔNG NGHỆ & MẸO SĂN SALE</h2>
-          <p class="section-sub">Những bài đánh giá chuyên sâu và cẩm nang bổ ích giúp bạn lựa chọn thiết bị phù hợp nhất.</p>
+          <h2>TIN TỨC CÔNG NGHỆ</h2>
+          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những bài đánh giá chuyên sâu và cẩm nang bổ ích giúp bạn lựa chọn thiết bị phù hợp nhất.</p>
         </div>
 
         <div class="magazine-layout-grid scroll-reveal reveal-stagger">
-          <article class="magazine-main-article">
+          <article class="magazine-main-article" v-if="magazineArticles[0]" @click="goToNewsDetail(magazineArticles[0].id)">
             <div class="main-art-visual">
               <img :src="magazineArticles[0].img" :alt="magazineArticles[0].title" />
               <span class="art-badge-tag">{{ magazineArticles[0].category }}</span>
@@ -1315,25 +1379,33 @@ const initScrollReveal = () => {
             <div class="main-art-info">
               <h3>{{ magazineArticles[0].title }}</h3>
               <p>{{ magazineArticles[0].excerpt }}</p>
-              <span class="art-deep-link">
-                Xem chi tiết bài viết
-                <ArrowRight class="art-arrow-icon" />
-              </span>
+              <div class="art-meta-bottom">
+                <RouterLink :to="`/tin-tuc/${magazineArticles[0].id}`" class="art-deep-link" @click.stop>
+                  Xem chi tiết bài viết
+                  <ArrowRight class="art-arrow-icon" />
+                </RouterLink>
+                <span class="art-views-badge" v-if="magazineArticles[0].views > 0">
+                  👁 {{ magazineArticles[0].views.toLocaleString() }} lượt xem
+                </span>
+              </div>
             </div>
           </article>
 
           <div class="magazine-secondary-column">
-            <article v-for="n in magazineArticles.slice(1)" :key="n.id" class="magazine-mini-article">
+            <article v-for="n in magazineArticles.slice(1, 5)" :key="n.id" class="magazine-mini-article" @click="goToNewsDetail(n.id)">
               <div class="mini-art-thumb">
                 <img :src="n.img" :alt="n.title" />
               </div>
               <div class="mini-art-info">
-                <span class="mini-tag">{{ n.category }}</span>
+                <div class="mini-tag-row">
+                  <span class="mini-tag">{{ n.category }}</span>
+                  <span class="mini-views-count" v-if="n.views > 0">👁 {{ n.views.toLocaleString() }}</span>
+                </div>
                 <h3>{{ n.title }}</h3>
-                <span class="mini-art-link">
+                <RouterLink :to="`/tin-tuc/${n.id}`" class="mini-art-link" @click.stop>
                   Đọc tiếp
                   <ArrowRight class="mini-arrow-icon" />
-                </span>
+                </RouterLink>
               </div>
             </article>
           </div>
@@ -1349,7 +1421,7 @@ const initScrollReveal = () => {
           <div class="newsletter-layout">
             <div class="newsletter-headline">
               <h2>KHÔNG BỎ LỠ CƠ HỘI NÀO!</h2>
-              <p>Để lại email của bạn, chúng tôi sẽ gửi trực tiếp các chương trình khuyến mãi độc quyền và các mã giảm giá cá nhân sớm nhất.</p>
+              <p style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Để lại email của bạn, chúng tôi sẽ gửi trực tiếp các chương trình khuyến mãi độc quyền và các mã giảm giá cá nhân sớm nhất.</p>
             </div>
 
             <div class="newsletter-form-group">
@@ -1359,6 +1431,7 @@ const initScrollReveal = () => {
                   type="email"
                   placeholder="Nhập email của bạn..."
                   required
+                  style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: transparent !important; border: none !important; outline: none !important;"
                 />
                 <button type="submit" class="btn-newsletter-submit">
                   Đăng ký ngay
@@ -1439,9 +1512,10 @@ const initScrollReveal = () => {
 }
 
 .section-sub {
-  font-size: 15px;
+  font-size: 15.5px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: #cbd5e1 !important;
+  font-weight: 500;
 }
 
 .ambient-label {
@@ -3137,6 +3211,9 @@ const initScrollReveal = () => {
   font-weight: 800;
   line-height: 1.35;
   margin: 0 0 10px 0;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
 .main-art-info p {
@@ -3168,14 +3245,16 @@ const initScrollReveal = () => {
 .magazine-secondary-column {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  height: 100%;
+  justify-content: space-between;
 }
 
 .magazine-mini-article {
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 16px;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
   background: #081529;
   border: 1px solid var(--border-glass);
   cursor: pointer;
@@ -3189,8 +3268,8 @@ const initScrollReveal = () => {
 }
 
 .mini-art-thumb {
-  width: 100px;
-  height: 100px;
+  width: 78px;
+  height: 78px;
   border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
@@ -3215,12 +3294,40 @@ const initScrollReveal = () => {
   flex-grow: 1;
 }
 
+.mini-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 3px;
+}
+
 .mini-tag {
   font-size: 9.5px;
   font-weight: 700;
   color: var(--accent);
   text-transform: capitalize;
-  margin-bottom: 6px;
+  margin-bottom: 0;
+}
+
+.mini-views-count {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.art-meta-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.art-views-badge {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .mini-art-info h3 {
@@ -3233,6 +3340,8 @@ const initScrollReveal = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   height: 40px;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .mini-art-link {

@@ -2,30 +2,30 @@
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Swal from 'sweetalert2'
-  
+
 import api from '../../services/api'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
-import { productImageUrl, storageUrl } from '@/services/urls'
+import { productImageUrl, storageUrl, backendBaseUrl } from '@/services/urls'
 import BulkDeleteToolbar from './ThanhXoaHangLoat.vue'
 import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 import PhanTrangAdmin from './PhanTrangAdmin.vue'
 
 const getOrderItemImage = (item) => {
-  const bt = item?.bien_the || item?.bienThe
-  const sp = bt?.san_pham || bt?.sanPham
-  return productImageUrl(sp, bt, 'https://placehold.co/60')
+    const bt = item?.bien_the || item?.bienThe
+    const sp = bt?.san_pham || bt?.sanPham
+    return productImageUrl(sp, bt, 'https://placehold.co/60')
 }
 
 const getOrderItemName = (item) => {
-  const bt = item?.bien_the || item?.bienThe
-  const sp = bt?.san_pham || bt?.sanPham
-  return sp?.tenSP || 'Sản phẩm'
+    const bt = item?.bien_the || item?.bienThe
+    const sp = bt?.san_pham || bt?.sanPham
+    return sp?.tenSP || 'Sản phẩm'
 }
 
 const getOrderItemVariant = (item) => {
-  const bt = item?.bien_the || item?.bienThe
-  return parseAttr(bt?.thuoc_tinh_json)
+    const bt = item?.bien_the || item?.bienThe
+    return parseAttr(bt?.thuoc_tinh_json)
 }
 
 const activeTab = ref('Tất cả')
@@ -217,11 +217,11 @@ const getAllowedStatuses = (current) => {
 const getNextStatus = (current) => {
     let idx = statusSequence.indexOf(current)
     if (idx !== -1 && idx < statusSequence.length - 1) return statusSequence[idx + 1]
-    
+
     const returnSequence = ['refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
     idx = returnSequence.indexOf(current)
     if (idx !== -1 && idx < returnSequence.length - 1) return returnSequence[idx + 1]
-    
+
     return current
 }
 
@@ -460,25 +460,25 @@ onMounted(() => {
     fetchOrders()
     autoRefreshTimer = window.setInterval(() => {
         fetchOrders()
-    }, 20000)
+    }, 4000)
     document.addEventListener('click', closeDateDropdown)
     window.addEventListener('offline-sync-success', syncSuccessHandler)
 
-    echo.channel('admin-orders')
-        .listen('.order.placed', (e) => {
-            const newOrder = mapOrder(e.order)
-
-            orders.value.unshift(newOrder)
-
-            swal.toast(`Có đơn hàng mới từ ${newOrder.name}!`, 'info')
-            
-            try {
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3')
-                audio.play()
-            } catch (err) {
-                console.warn('Order notification audio could not be played')
-            }
-        })
+    try {
+        echo.channel('admin-orders')
+            .listen('.order.placed', (e) => {
+                const newOrder = mapOrder(e.order)
+                const exists = orders.value.some(o => o.id_backend === newOrder.id_backend)
+                if (!exists) {
+                    orders.value.unshift(newOrder)
+                    swal.toast(`Có đơn hàng mới từ ${newOrder.name}!`, 'info')
+                }
+            })
+            .listen('.order.created', () => { fetchOrders() })
+            .listen('.order.updated', () => { fetchOrders() })
+    } catch (err) {
+        console.warn('Echo channel setup error:', err)
+    }
 })
 
 onUnmounted(() => {
@@ -520,21 +520,21 @@ const availableMonths = computed(() => {
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
         const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === activeTab.value)
-        
+
         let matchTab = false;
         if (pageMode.value === 'orders') {
-            matchTab = activeTab.value === 'Tất cả' 
-                ? !o.status.startsWith('refund') 
+            matchTab = activeTab.value === 'Tất cả'
+                ? !o.status.startsWith('refund')
                 : o.status === activeStatusKey
         } else {
             matchTab = activeTab.value === 'Tất cả'
                 ? o.status.startsWith('refund')
                 : o.status === activeStatusKey
         }
-        
+
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
+
         const d = new Date(o.raw.created_at)
         const my = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
         const matchDate = selectedMonthYear.value === 'Tất cả' || my === selectedMonthYear.value
@@ -640,6 +640,89 @@ const getPaymentStatusStyle = (order) => {
     return { background: map.bg, color: map.color }
 }
 
+const isBankTransferUnpaid = (order) => {
+    if (!order) return false
+    const pttt = String(order.raw?.PTTT || '').toLowerCase().trim()
+    const isBankTransfer = ['chuyen_khoan', 'chuyenkhoan', 'bank_transfer', 'sepay', 'vnpay', 'momo', 'chuyển khoản', 'chuyen khoản', 'bank'].some(m => pttt.includes(m))
+    const paymentStatus = getPaymentStatus(order)
+    return isBankTransfer && paymentStatus === 'unpaid'
+}
+
+const getRefundProofFiles = (proofOrRaw) => {
+    if (!proofOrRaw) return []
+    let target = proofOrRaw
+    if (typeof proofOrRaw === 'object' && !Array.isArray(proofOrRaw)) {
+        target = proofOrRaw.raw || proofOrRaw
+        const proof = target.refund_proof || target.minh_chung_hoan_tien || target.du_lieu_thanh_toan?.refund_proof || target.du_lieu_thanh_toan?.minh_chung_hoan_tien
+        return getRefundProofFiles(proof)
+    }
+    if (Array.isArray(target)) return target
+    if (typeof target === 'string') {
+        const trimmed = target.trim()
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed)
+                if (Array.isArray(parsed)) return parsed
+            } catch (e) { }
+        }
+        if (trimmed.includes(',')) {
+            return trimmed.split(',').map(s => s.trim()).filter(Boolean)
+        }
+        return [trimmed]
+    }
+    return []
+}
+
+const getProofMediaUrl = (file) => {
+    if (!file) return ''
+    if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+        return file
+    }
+    const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+    return storageUrl(cleanPath)
+}
+
+const getProofProxyUrl = (file) => {
+    if (!file) return ''
+    if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+        return file
+    }
+    const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+    return `${backendBaseUrl}/api/refund-file?path=${encodeURIComponent(cleanPath)}`
+}
+
+const isImageFile = (file) => {
+    if (!file) return false
+    const f = String(file).toLowerCase().trim()
+    return /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(f)
+}
+
+const isVideoFile = (file) => {
+    if (!file) return false
+    const f = String(file).toLowerCase().trim()
+    return /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v|quicktime)$/i.test(f) || f.startsWith('refunds/') || f.includes('.m') || !f.includes('.')
+}
+
+const markPaymentAsPaid = async (order) => {
+    if (!order) return
+    const ok = await swal.confirm('Xác nhận thanh toán', `Xác nhận đơn hàng #${order.id} đã nhận tiền chuyển khoản thành công?`)
+    if (!ok) return
+
+    try {
+        const res = await api.put(`/admin/orders/${order.id_backend}/payment-status`, { trang_thai_thanh_toan: 'paid' })
+        if (res.data.success) {
+            swal.success('Thành công', 'Đã xác nhận thanh toán đơn hàng!')
+            if (res.data.order) {
+                syncOrderFromApi(res.data.order)
+            } else {
+                fetchOrders()
+            }
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái thanh toán')
+    }
+}
+
 async function exportExcel() {
     const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
@@ -700,10 +783,12 @@ async function exportExcel() {
         <!-- CATEGORY TABS -->
         <div class="category-tabs" style="margin-bottom: 20px;">
             <div class="category-tab-list">
-                <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
+                <button :class="['cat-tab', { active: pageMode === 'orders' }]"
+                    @click="pageMode = 'orders'; activeTab = 'Tất cả'">
                     Đơn mua hàng
                 </button>
-                <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
+                <button :class="['cat-tab', { active: pageMode === 'refunds' }]"
+                    @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
                     Đơn hoàn trả
                 </button>
             </div>
@@ -717,14 +802,15 @@ async function exportExcel() {
             </button>
         </div>
 
-      
-        
+
+
         <!-- FILTER -->
         <div class="filter-wrap">
             <div class="search-row">
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
                     </svg>
                     <input v-model="searchQuery" placeholder="Tìm kiếm mã đơn hàng, khách hàng..." />
                 </div>
@@ -732,30 +818,30 @@ async function exportExcel() {
 
             <div class="filter-actions-row">
                 <div class="tabs">
-                    <button
-                        v-for="tab in currentTabs" :key="tab"
-                        class="tab" :class="{ active: activeTab === tab }"
-                        @click="changeTab(tab)"
-                    >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
+                    <button v-for="tab in currentTabs" :key="tab" class="tab" :class="{ active: activeTab === tab }"
+                        @click="changeTab(tab)">{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{
+                            getTabCount(tab) }}</span></button>
                 </div>
 
                 <div class="date-filter-wrap">
                     <div class="custom-dropdown date-filter-dropdown">
                         <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
-                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
                             <span>{{ selectedMonthYear || 'Tất cả' }}</span>
-                            <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
                         </div>
                         <transition name="fade-slide">
                             <ul v-if="isOpenDateDropdown" class="dropdown-menu">
-                                <li v-for="m in availableMonths" :key="m"
-                                    :class="{ active: selectedMonthYear === m }"
+                                <li v-for="m in availableMonths" :key="m" :class="{ active: selectedMonthYear === m }"
                                     @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
                                     {{ m }}
                                 </li>
@@ -767,27 +853,17 @@ async function exportExcel() {
         </div>
 
         <!-- TABLE -->
-        <BulkDeleteToolbar
-            :selected-count="selectedIds.length"
-            :total-count="filteredOrders.length"
-            label="đơn hàng"
-            :loading="isBulkDeleting"
-            @clear="clearSelection"
-            @delete-selected="removeSelected"
-            @delete-all="removeAllFiltered"
-        />
+        <BulkDeleteToolbar :selected-count="selectedIds.length" :total-count="filteredOrders.length" label="đơn hàng"
+            :loading="isBulkDeleting" @clear="clearSelection" @delete-selected="removeSelected"
+            @delete-all="removeAllFiltered" />
 
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
                         <th class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="allCurrentPageSelected"
-                                :disabled="!paginatedOrders.length"
-                                @change="toggleCurrentPageSelection"
-                            />
+                            <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedOrders.length"
+                                @change="toggleCurrentPageSelection" />
                         </th>
                         <th>Mã đơn hàng</th>
                         <th>Khách hàng</th>
@@ -802,14 +878,12 @@ async function exportExcel() {
                     <tr v-if="paginatedOrders.length === 0">
                         <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
-                    <tr v-for="(o, i) in paginatedOrders" :key="o.id" :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
+                    <tr v-for="(o, i) in paginatedOrders" :key="o.id"
+                        :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
 
                         <td class="select-col">
-                            <input
-                                type="checkbox"
-                                :checked="selectedIds.includes(o.id_backend)"
-                                @change="toggleItemSelection(o.id_backend)"
-                            />
+                            <input type="checkbox" :checked="selectedIds.includes(o.id_backend)"
+                                @change="toggleItemSelection(o.id_backend)" />
                         </td>
 
                         <td>
@@ -832,7 +906,8 @@ async function exportExcel() {
 
                         <td>
                             <div class="status-stack">
-                                <span class="status-pill" :style="hasShipment(o) ? getShipmentStatusStyle(o) : getStatusStyle(o.status)">
+                                <span class="status-pill"
+                                    :style="hasShipment(o) ? getShipmentStatusStyle(o) : getStatusStyle(o.status)">
                                     {{ getDisplayStatusLabel(o) }}
                                 </span>
                                 <span v-if="hasShipment(o)" class="tracking-code">
@@ -842,8 +917,10 @@ async function exportExcel() {
                                     Lý do: {{ getShipmentFailureReason(o) || 'Không liên hệ được người nhận' }}
                                     <small v-if="getShipmentAttemptText(o)">{{ getShipmentAttemptText(o) }}</small>
                                 </span>
-                                <span v-if="getShipment(o)?.status === 'returned' && getShipment(o)?.return_reason" class="return-note">
-                                    {{ getShipment(o).return_reason }}<small v-if="getShipmentRefundNote(o)">{{ getShipmentRefundNote(o) }}</small>
+                                <span v-if="getShipment(o)?.status === 'returned' && getShipment(o)?.return_reason"
+                                    class="return-note">
+                                    {{ getShipment(o).return_reason }}<small v-if="getShipmentRefundNote(o)">{{
+                                        getShipmentRefundNote(o) }}</small>
                                 </span>
                             </div>
                         </td>
@@ -857,86 +934,92 @@ async function exportExcel() {
                         <td>
                             <div class="actions">
                                 <button class="act-btn" @click="openViewDetail(o)" title="Xem chi tiết">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                    </svg>
-                                </button>
-                                
-                                <button v-if="canCreateShipment(o)"
-                                        class="act-btn logistics"
-                                        @click="createShipment(o)"
-                                        title="Tạo vận đơn demo">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 7h11v9H3z"/>
-                                        <path d="M14 10h4l3 3v3h-7z"/>
-                                        <circle cx="7" cy="18" r="2"/>
-                                        <circle cx="18" cy="18" r="2"/>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
                                     </svg>
                                 </button>
 
-                                <button v-if="canAdvanceShipment(o)"
-                                        class="act-btn logistics"
-                                        @click="advanceShipment(o)"
-                                        title="Cập nhật bước vận chuyển tiếp theo">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                <button v-if="canCreateShipment(o)" class="act-btn logistics" @click="createShipment(o)"
+                                    title="Tạo vận đơn demo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 7h11v9H3z" />
+                                        <path d="M14 10h4l3 3v3h-7z" />
+                                        <circle cx="7" cy="18" r="2" />
+                                        <circle cx="18" cy="18" r="2" />
                                     </svg>
                                 </button>
 
-                                <button v-if="canFailShipment(o)"
-                                        class="act-btn danger"
-                                        @click="failShipment(o)"
-                                        title="Ghi nhận giao thất bại">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M12 9v4"/>
-                                        <path d="M12 17h.01"/>
-                                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <button v-if="canAdvanceShipment(o)" class="act-btn logistics"
+                                    @click="advanceShipment(o)" title="Cập nhật bước vận chuyển tiếp theo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
                                     </svg>
                                 </button>
 
-                                <button v-if="canRetryShipment(o)"
-                                        class="act-btn retry"
-                                        @click="retryShipment(o)"
-                                        :title="`Giao lại lần ${getShipmentAttempts(o) + 1}/3`">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21 12a9 9 0 1 1-3-6.7"/>
-                                        <path d="M21 3v6h-6"/>
+                                <button v-if="canFailShipment(o)" class="act-btn danger" @click="failShipment(o)"
+                                    title="Ghi nhận giao thất bại">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M12 9v4" />
+                                        <path d="M12 17h.01" />
+                                        <path
+                                            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                                     </svg>
                                 </button>
 
-                                <button v-if="!hasShipment(o) && !terminalStatuses.includes(o.status) && o.status !== 'refund_pending'"
-                                        class="act-btn" style="color: #2563eb;"
-                                        @click="confirmUpdateStatus(o.id_backend, o.status)" 
-                                        title="Chuyển trạng thái tiếp theo">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                <button v-if="canRetryShipment(o)" class="act-btn retry" @click="retryShipment(o)"
+                                    :title="`Giao lại lần ${getShipmentAttempts(o) + 1}/3`">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 12a9 9 0 1 1-3-6.7" />
+                                        <path d="M21 3v6h-6" />
                                     </svg>
-                                </button>
-
-                                <!-- Nút xử lý hoàn trả -->
-                                <button v-if="o.status === 'refund_pending'" 
-                                        class="act-btn" style="color: #2563eb;"
-                                        @click="confirmApproveRefund(o.id_backend)" 
-                                        title="Chấp nhận hoàn trả">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                </button>
-
-                                <button v-if="o.status === 'refund_pending'" 
-                                        class="act-btn" style="color: #dc2626;"
-                                        @click="confirmRejectRefund(o.id_backend)" 
-                                        title="Từ chối hoàn trả">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
 
                                 <button
-                                    class="act-btn danger"
-                                    @click="deleteOrder(o.id_backend)"
-                                    title="Xóa đơn hàng"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                        <path d="M3 6h18"/>
-                                        <path d="M8 6V4h8v2"/>
-                                        <path d="M19 6l-1 14H6L5 6"/>
+                                    v-if="!hasShipment(o) && !terminalStatuses.includes(o.status) && o.status !== 'refund_pending' && !isBankTransferUnpaid(o)"
+                                    class="act-btn" style="color: #2563eb;"
+                                    @click="confirmUpdateStatus(o.id_backend, o.status)"
+                                    title="Chuyển trạng thái tiếp theo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                <span v-else-if="isBankTransferUnpaid(o)" class="unpaid-notice-pill"
+                                    style="font-size: 11px; color: #dc2626; background: #fee2e2; padding: 3px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;"
+                                    title="Cần xác nhận đã thanh toán trong chi tiết đơn hàng trước khi chuyển trạng thái">
+                                    Chờ xác nhận TT
+                                </span>
+
+                                <!-- Nút xử lý hoàn trả -->
+                                <button v-if="o.status === 'refund_pending'" class="act-btn" style="color: #2563eb;"
+                                    @click="confirmApproveRefund(o.id_backend)" title="Chấp nhận hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                </button>
+
+                                <button v-if="o.status === 'refund_pending'" class="act-btn" style="color: #dc2626;"
+                                    @click="confirmRejectRefund(o.id_backend)" title="Từ chối hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+
+                                <button class="act-btn danger" @click="deleteOrder(o.id_backend)" title="Xóa đơn hàng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M8 6V4h8v2" />
+                                        <path d="M19 6l-1 14H6L5 6" />
                                     </svg>
                                 </button>
                             </div>
@@ -949,17 +1032,12 @@ async function exportExcel() {
 
         <!-- FOOTER -->
         <div class="don-hang-footer-row">
-            <PhanTrangAdmin
-                v-model:currentPage="currentPage"
-                :total-pages="totalPages"
-                :total-items="filteredOrders.length"
-                :page-size="itemsPerPage"
-                item-label="đơn hàng"
-            />
+            <PhanTrangAdmin v-model:currentPage="currentPage" :total-pages="totalPages"
+                :total-items="filteredOrders.length" :page-size="itemsPerPage" item-label="đơn hàng" />
             <div class="revenue-chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                    <polyline points="17 6 23 6 23 12"/>
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                    <polyline points="17 6 23 6 23 12" />
                 </svg>
                 <div>
                     <span>Tổng doanh thu</span>
@@ -1002,15 +1080,27 @@ async function exportExcel() {
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Thanh toán</span>
-                                    <span class="info-value" style="text-transform: uppercase;">{{ viewOrder.raw.PTTT }}</span>
+                                    <span class="info-value" style="text-transform: uppercase;">{{ viewOrder.raw.PTTT
+                                        }}</span>
                                 </div>
-                                <div class="info-item">
+                                <div class="info-item" style="grid-column: span 2;">
                                     <span class="info-label">Trạng thái thanh toán</span>
-                                    <span class="info-value">
-                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder)" style="padding: 2px 8px; font-size: 0.85em; border-radius: 4px;">
+                                    <div class="info-value"
+                                        style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 14px; min-height: 42px;">
+                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder)"
+                                            style="padding: 4px 12px; font-size: 0.85em; border-radius: 6px; font-weight: 600;">
                                             {{ getPaymentStatusLabel(viewOrder) }}
                                         </span>
-                                    </span>
+                                        <button v-if="isBankTransferUnpaid(viewOrder)" class="btn-confirm-payment"
+                                            @click="markPaymentAsPaid(viewOrder)"
+                                            style="padding: 6px 16px; background: #16a34a; color: #ffffff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(22,163,74,0.2); transition: background 0.2s;">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                                stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                            Xác nhận đã thanh toán
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1024,18 +1114,23 @@ async function exportExcel() {
                                         <strong>{{ getShipment(viewOrder).tracking_code }}</strong>
                                     </div>
                                     <span class="status-pill" :style="getShipmentStatusStyle(viewOrder)">
-                                        {{ getShipmentStatusLabel(getShipment(viewOrder).status, getShipment(viewOrder).status_label) }}
+                                        {{ getShipmentStatusLabel(getShipment(viewOrder).status,
+                                        getShipment(viewOrder).status_label) }}
                                     </span>
                                 </div>
-                                <div v-if="getShipment(viewOrder).status === 'delivery_failed'" class="shipment-failure-box">
+                                <div v-if="getShipment(viewOrder).status === 'delivery_failed'"
+                                    class="shipment-failure-box">
                                     <span>Lý do giao thất bại</span>
                                     <b>{{ getShipmentFailureReason(viewOrder) || 'Không liên hệ được người nhận' }}</b>
-                                    <p v-if="getShipmentAttemptText(viewOrder)">{{ getShipmentAttemptText(viewOrder) }}. Tối đa 3 lần trước khi chuyển hoàn.</p>
+                                    <p v-if="getShipmentAttemptText(viewOrder)">{{ getShipmentAttemptText(viewOrder) }}.
+                                        Tối đa 3 lần trước khi chuyển hoàn.</p>
                                 </div>
-                                <div v-if="getShipment(viewOrder).status === 'returned'" class="shipment-failure-box is-returned">
+                                <div v-if="getShipment(viewOrder).status === 'returned'"
+                                    class="shipment-failure-box is-returned">
                                     <span>Đơn đã chuyển hoàn</span>
                                     <b>{{ getShipment(viewOrder).return_reason || 'Đã hoàn về kho' }}</b>
-                                    <p v-if="getShipmentRefundNote(viewOrder)">{{ getShipmentRefundNote(viewOrder) }}</p>
+                                    <p v-if="getShipmentRefundNote(viewOrder)">{{ getShipmentRefundNote(viewOrder) }}
+                                    </p>
                                 </div>
                                 <div class="shipment-grid">
                                     <div>
@@ -1060,7 +1155,9 @@ async function exportExcel() {
                                     </div>
                                     <div>
                                         <span>Đồng bộ cuối</span>
-                                        <b>{{ getShipment(viewOrder).last_sync_at ? new Date(getShipment(viewOrder).last_sync_at).toLocaleString('vi-VN') : '-' }}</b>
+                                        <b>{{ getShipment(viewOrder).last_sync_at ? new
+                                            Date(getShipment(viewOrder).last_sync_at).toLocaleString('vi-VN') : '-'
+                                            }}</b>
                                     </div>
                                 </div>
                                 <div class="shipment-events">
@@ -1076,76 +1173,133 @@ async function exportExcel() {
                             </div>
                             <div v-else class="shipment-empty">
                                 <b>Chưa tạo vận đơn</b>
-                                <p>Hệ thống sẽ tạo mã tracking demo và mô phỏng các bước lấy hàng, giao hàng, hoàn tất.</p>
-                                <button v-if="canCreateShipment(viewOrder)" class="btn-export" @click="createShipment(viewOrder)">
+                                <p>Hệ thống sẽ tạo mã tracking demo và mô phỏng các bước lấy hàng, giao hàng, hoàn tất.
+                                </p>
+                                <button v-if="canCreateShipment(viewOrder)" class="btn-export"
+                                    @click="createShipment(viewOrder)">
                                     Tạo vận đơn ngay
                                 </button>
                             </div>
                         </div>
 
                         <!-- Lý do hủy đơn hoặc hoàn trả -->
-                        <div v-if="['cancelled', 'refund_pending', 'refunded'].includes(viewOrder.status)" class="detail-section">
-                            <div class="section-title" :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}</div>
-                            <div class="cancel-reason-box" style="margin-bottom: 10px;">
+                        <div v-if="viewOrder.status === 'cancelled' || viewOrder.status.startsWith('refund')"
+                            class="detail-section">
+                            <div class="section-title"
+                                :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">
+                                Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}
+                            </div>
+                            <div class="cancel-reason-box"
+                                style="margin-bottom: 12px; background: #fff7ed; border: 1px dashed #f97316; padding: 12px 16px; border-radius: 8px; font-size: 14px; color: #c2410c; line-height: 1.5;">
                                 {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
-                            <div v-if="viewOrder.raw.refund_proof" class="cancel-reason-box" style="margin-top: 10px;">
-                                <strong>Bằng chứng hoàn trả:</strong>
-                                <div class="proof-preview" style="margin-top: 8px;">
-                                    <template v-if="viewOrder.raw.refund_proof.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
-                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" title="Nhấn để xem ảnh lớn">
-                                            <img :src="storageUrl(viewOrder.raw.refund_proof)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
+                            <div class="cancel-reason-box"
+                                style="margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px;">
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                                    <strong style="color: #334155; font-size: 14px;">
+                                        📷 Bằng chứng ảnh / video hoàn trả
+                                        <span v-if="getRefundProofFiles(viewOrder.raw).length > 0"
+                                            style="color: #2563eb;">
+                                            ({{ getRefundProofFiles(viewOrder.raw).length }} tệp)
+                                        </span>
+                                    </strong>
+                                </div>
+
+                                <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid"
+                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 8px;">
+                                    <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx"
+                                        class="proof-media-item"
+                                        style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                                        <template v-if="isImageFile(file)">
+                                            <a :href="getProofMediaUrl(file)" target="_blank"
+                                                title="Bấm để xem ảnh phóng to"
+                                                style="display: block; text-align: center; background: #f1f5f9;">
+                                                <img :src="getProofMediaUrl(file)"
+                                                    @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng"
+                                                    style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                                            </a>
+                                        </template>
+                                        <template v-else-if="isVideoFile(file)">
+                                            <video controls
+                                                style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;"
+                                                preload="metadata">
+                                                <source :src="getProofMediaUrl(file)" />
+                                                <source :src="getProofProxyUrl(file)" />
+                                                Trình duyệt không hỗ trợ xem video.
+                                            </video>
+                                        </template>
+                                        <template v-else>
+                                            <div style="padding: 20px 10px; text-align: center;">
+                                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
+                                                    stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                                                    <path
+                                                        d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z">
+                                                    </path>
+                                                    <polyline points="13 2 13 9 20 9"></polyline>
+                                                </svg>
+                                                <a :href="getProofProxyUrl(file)" target="_blank"
+                                                    style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải
+                                                    file bằng chứng #{{ pIdx + 1 }}</a>
+                                            </div>
+                                        </template>
+                                        <a :href="getProofProxyUrl(file)" target="_blank"
+                                            style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                                            🔍 Mở tệp gốc / Tải về
                                         </a>
-                                    </template>
-                                    <template v-else-if="viewOrder.raw.refund_proof.match(/\.(mp4|mov|avi|wmv)$/i)">
-                                        <video :src="storageUrl(viewOrder.raw.refund_proof)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
-                                    </template>
-                                    <template v-else>
-                                        <a :href="storageUrl(viewOrder.raw.refund_proof)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
-                                    </template>
+                                    </div>
+                                </div>
+
+                                <div v-else
+                                    style="padding: 14px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; text-align: center; color: #64748b; font-size: 13px;">
+                                    ⚠️ Đơn hàng này chưa có tệp ảnh/video bằng chứng từ khách hàng.
                                 </div>
                             </div>
                         </div>
 
-                        
-              <div class="timeline" v-if="orderSteps">
-                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
-                  <div class="tl-col">
-                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
-                  </div>
-                  <div class="tl-content">
-                    <p class="tl-label">{{ step.label }}</p>
-                    <p class="tl-date">{{ step.date || '-' }}</p>
-                  </div>
-                </div>
-              </div>
+                        <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
+                        <div class="refund-timeline-vertical" v-if="refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
+                            <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                                <span>🔄</span> Quá trình hoàn trả
+                            </h3>
+                            <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
+                                <div v-for="(step, i) in refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                                    <!-- Vertical line -->
+                                    <div v-if="i < refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
+                                    
+                                    <!-- Dot icon -->
+                                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
+                                        <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
+                                    </div>
 
-              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
-                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
-                <div class="timeline refund-timeline">
-                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
-                    <div class="tl-col">
-                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
-                    </div>
-                    <div class="tl-content">
-                      <p class="tl-label refund-label">{{ step.label }}</p>
-                      <p class="tl-date">{{ step.date || '-' }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                                    <!-- Label and Date -->
+                                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
+                                        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                                            {{ step.label }}
+                                        </div>
+                                        <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                                            {{ step.date || '—' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-<div class="detail-section">
+                        <div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
-                                <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
+                                <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])"
+                                    :key="item.id_chitiet" class="order-item">
                                     <img :src="getOrderItemImage(item)" class="item-img" />
                                     <div class="item-info">
                                         <p class="item-name">
                                             {{ getOrderItemName(item) }}
-                                            <span v-if="item.is_refund == 1" style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã chọn hoàn trả</span>
+                                            <span v-if="item.is_refund == 1"
+                                                style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã
+                                                chọn hoàn trả</span>
                                         </p>
                                         <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
@@ -1178,7 +1332,9 @@ async function exportExcel() {
 </template>
 
 <style scoped>
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 .page {
     padding: 24px 20px;
@@ -1189,57 +1345,133 @@ async function exportExcel() {
 
 /* BREADCRUMB */
 .breadcrumb {
-    font-size: 12px; color: #94a3b8; margin-bottom: 10px;
-    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
-.sep { color: #cbd5e1; }
-.active-crumb { color: #2563eb; font-weight: 500; }
+
+.sep {
+    color: #cbd5e1;
+}
+
+.active-crumb {
+    color: #2563eb;
+    font-weight: 500;
+}
 
 /* TOP */
 .top {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
 }
-.top h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em; }
-.top-actions { display: flex; gap: 10px; }
+
+.top h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.top-actions {
+    display: flex;
+    gap: 10px;
+}
 
 .btn-export {
-    display: flex; align-items: center; gap: 7px;
-    padding: 10px 18px; border-radius: 10px; border: 1px solid #e2e8f0;
-    background: white; font-size: 13px; font-weight: 600; color: #334155;
-    cursor: pointer; transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-.btn-export svg { width: 15px; height: 15px; }
-.btn-export:hover { border-color: #2563eb; color: #2563eb; }
+
+.btn-export svg {
+    width: 15px;
+    height: 15px;
+}
+
+.btn-export:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
 
 .btn-create {
-    padding: 10px 20px; border-radius: 10px; border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
     background: linear-gradient(135deg, #2563eb, #2563eb);
-    color: white; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.2s, transform 0.2s;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
 }
-.btn-create:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-create:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
 
 /* FILTER */
 .filter-wrap {
-    background: white; border-radius: 14px; border: 1px solid #e2e8f0;
-    padding: 16px 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px;
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
-.search-row { display: block; width: 100%; }
+
+.search-row {
+    display: block;
+    width: 100%;
+}
+
 .search-box {
-    position: relative; width: 100%;
+    position: relative;
+    width: 100%;
 }
+
 .search-box svg {
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 15px; height: 15px; color: #94a3b8; pointer-events: none;
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: #94a3b8;
+    pointer-events: none;
 }
+
 .search-box input {
-    width: 100%; padding: 9px 14px 9px 36px; border-radius: 8px;
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    border-radius: 8px;
     box-sizing: border-box;
-    border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;
-    outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
     background: #ffffff;
 }
+
 .search-box input:focus {
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
@@ -1251,25 +1483,43 @@ async function exportExcel() {
     justify-content: space-between;
     gap: 12px;
 }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tab {
-    padding: 8px 14px; border-radius: 8px; border: 1px solid #dbe4f0;
-    background: #ffffff; font-size: 13px; font-weight: 600;
-    color: #64748b; cursor: pointer; transition: all 0.2s; white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-    display: flex; align-items: center; gap: 6px;
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
 }
+
+.tab {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #dbe4f0;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .tab:hover {
     background: #f8fafc;
     border-color: #93c5fd;
     color: #1e3a8a;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
+
 .tab:focus-visible {
     outline: none;
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
+
 .tab.active {
     background: #2563eb;
     border-color: #1d4ed8;
@@ -1286,6 +1536,7 @@ async function exportExcel() {
     font-weight: 600;
     line-height: 1;
 }
+
 .tab.active .tab-count {
     background: rgba(255, 255, 255, 0.2);
     color: white;
@@ -1306,7 +1557,8 @@ async function exportExcel() {
     gap: 10px;
     padding: 9px 16px;
     border-radius: 12px;
-    border: 1.5px solid #3b82f6; /* Premium brand blue outline */
+    border: 1.5px solid #3b82f6;
+    /* Premium brand blue outline */
     background: white;
     font-size: 13px;
     font-weight: 600;
@@ -1318,7 +1570,7 @@ async function exportExcel() {
 
 .dropdown-trigger:hover {
     border-color: #2563eb;
-    box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
 }
 
 .dropdown-trigger .calendar-icon {
@@ -1406,35 +1658,114 @@ async function exportExcel() {
 }
 
 /* TABLE */
-.table-wrap { background: white; border-radius: 14px; border: 1px solid #f1f5f9; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-table { width: 100%; border-collapse: collapse; }
-thead tr { background: #f8fafc; }
+.table-wrap {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead tr {
+    background: #f8fafc;
+}
+
 thead th {
-    padding: 12px 10px; font-size: 11px; font-weight: 700;
-    color: #94a3b8; text-align: left; letter-spacing: 0.06em;
+    padding: 12px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-align: left;
+    letter-spacing: 0.06em;
     border-bottom: 1px solid #f1f5f9;
     white-space: nowrap;
 }
-tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: #fafbff; }
-tbody tr.row-selected { background: #eff6ff; }
-tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: middle; }
-.empty { text-align: center; color: #94a3b8; padding: 50px !important; }
 
-.select-col { width: 44px; text-align: center; }
-.select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
-.select-col input:disabled { cursor: not-allowed; opacity: 0.45; }
-
-.order-id { color: #2563eb; font-weight: 700; font-size: 13px; white-space: nowrap; }
-
-.customer-cell { display: flex; align-items: center; gap: 12px; }
-.avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; flex-shrink: 0;
+tbody tr {
+    border-bottom: 1px solid #f8fafc;
+    transition: background 0.15s;
 }
-.customer-cell b { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background: #fafbff;
+}
+
+tbody tr.row-selected {
+    background: #eff6ff;
+}
+
+tbody td {
+    padding: 12px 10px;
+    font-size: 13px;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.empty {
+    text-align: center;
+    color: #94a3b8;
+    padding: 50px !important;
+}
+
+.select-col {
+    width: 44px;
+    text-align: center;
+}
+
+.select-col input {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.select-col input:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.order-id {
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.customer-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.customer-cell b {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+
 .customer-cell span {
     font-size: 11px;
     color: #94a3b8;
@@ -1445,13 +1776,29 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     display: block;
 }
 
-.date-cell { color: #64748b; white-space: nowrap; }
-.total { font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; }
+.date-cell {
+    color: #64748b;
+    white-space: nowrap;
+}
 
-.status-pill, .status-select {
-    display: inline-block; font-size: 11px; font-weight: 600;
-    padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
-    border: none; outline: none; cursor: pointer;
+.total {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.status-pill,
+.status-select {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+    border: none;
+    outline: none;
+    cursor: pointer;
     white-space: nowrap;
 }
 
@@ -1479,6 +1826,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     font-weight: 800;
     line-height: 1.35;
 }
+
 .failure-reason small,
 .return-note small {
     display: block;
@@ -1487,6 +1835,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     font-size: 11px;
     font-weight: 700;
 }
+
 .return-note {
     max-width: 200px;
     font-size: 12px;
@@ -1494,6 +1843,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     font-weight: 800;
     line-height: 1.35;
 }
+
 .status-select {
     appearance: none;
     padding-right: 24px;
@@ -1503,19 +1853,65 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     background-size: 12px;
 }
 
-.actions { display: flex; gap: 4px; }
-.act-btn {
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
-    background: white; cursor: pointer; display: flex;
-    align-items: center; justify-content: center; color: #64748b; transition: all 0.2s;
+.actions {
+    display: flex;
+    gap: 4px;
 }
-.act-btn svg { width: 13px; height: 13px; }
-.act-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #2563eb; }
-.act-btn.logistics { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
-.act-btn.logistics:hover { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; }
-.act-btn.retry { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
-.act-btn.retry:hover { background: #dcfce7; border-color: #86efac; color: #15803d; }
-.act-btn.danger:hover { background: #fee2e2; border-color: #fecaca; color: #ef4444; }
+
+.act-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.act-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+.act-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #2563eb;
+}
+
+.act-btn.logistics {
+    color: #2563eb;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+.act-btn.logistics:hover {
+    background: #dbeafe;
+    border-color: #60a5fa;
+    color: #1d4ed8;
+}
+
+.act-btn.retry {
+    color: #16a34a;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.act-btn.retry:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.act-btn.danger:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #ef4444;
+}
 
 /* FOOTER */
 .don-hang-footer-row {
@@ -1528,121 +1924,312 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
 }
 
 .revenue-chip {
-    display: flex; align-items: center; gap: 10px;
-    background: white; border: 1px solid #e2e8f0;
-    padding: 8px 16px; border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 12px;
     margin-left: auto;
     margin-right: 32px;
 }
-.revenue-chip svg { width: 20px; height: 20px; color: #2563eb; }
-.revenue-chip span { font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.06em; display: block; }
-.revenue-chip b { font-size: 16px; font-weight: 700; color: #2563eb; }
+
+.revenue-chip svg {
+    width: 20px;
+    height: 20px;
+    color: #2563eb;
+}
+
+.revenue-chip span {
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.06em;
+    display: block;
+}
+
+.revenue-chip b {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2563eb;
+}
 
 /* ===== MODAL ===== */
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(15,23,42,0.55);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; padding: 20px;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
 }
+
 .modal {
-    background: white; border-radius: 16px; width: 100%; max-width: 580px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.18);
-    animation: modalIn 0.22s cubic-bezier(.22,1,.36,1);
-    max-height: 90vh; overflow-y: auto;
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+    animation: modalIn 0.22s cubic-bezier(.22, 1, .36, 1);
+    max-height: 90vh;
+    overflow-y: auto;
 }
+
 @keyframes modalIn {
-    from { opacity: 0; transform: translateY(16px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .modal-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    padding: 20px 24px 16px; border-bottom: 1px solid #f1f5f9;
-    position: sticky; top: 0; background: white; z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
 }
-.modal-sub { font-size: 12px; color: #94a3b8; margin: 0 0 4px; }
-.modal-sub b { color: #2563eb; }
-.modal-header h3 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 0; }
-.modal-close {
-    background: none; border: none; font-size: 22px;
-    color: #94a3b8; cursor: pointer; padding: 0; transition: color 0.2s; line-height: 1;
-}
-.modal-close:hover { color: #0f172a; }
 
-.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.modal-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 0 0 4px;
+}
+
+.modal-sub b {
+    color: #2563eb;
+}
+
+.modal-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #0f172a;
+}
+
+.modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
 
 .section-title {
-    font-size: 11px; font-weight: 700; color: #94a3b8;
-    letter-spacing: 0.1em; text-transform: capitalize; padding-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.1em;
+    text-transform: capitalize;
+    padding-bottom: 4px;
     border-bottom: 1px solid #f1f5f9;
 }
 
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 12px; font-weight: 600; color: #475569; }
-.req { color: #ef4444; }
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.req {
+    color: #ef4444;
+}
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-    padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;
-    font-size: 13px; color: #0f172a; outline: none;
-    transition: border-color 0.2s; background: #fff; font-family: sans-serif;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fff;
+    font-family: sans-serif;
 }
-.form-group textarea { resize: vertical; }
+
+.form-group textarea {
+    resize: vertical;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .form-error {
-    font-size: 12px; color: #ef4444; background: #fef2f2;
-    border: 1px solid #fecaca; padding: 9px 12px; border-radius: 8px; margin: 0;
+    font-size: 12px;
+    color: #ef4444;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 9px 12px;
+    border-radius: 8px;
+    margin: 0;
 }
 
 .modal-footer {
-    display: flex; justify-content: flex-end; gap: 10px;
-    padding: 16px 24px 20px; border-top: 1px solid #f1f5f9;
-    position: sticky; bottom: 0; background: white;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #f1f5f9;
+    position: sticky;
+    bottom: 0;
+    background: white;
 }
+
 .btn-cancel {
-    padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0;
-    background: white; font-size: 13px; font-weight: 600; color: #475569;
-    cursor: pointer; transition: all 0.2s;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-.btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.btn-cancel:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
 .btn-submit {
-    padding: 10px 22px; border-radius: 8px; border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
     background: linear-gradient(135deg, #2563eb, #2563eb);
-    color: white; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.2s, transform 0.2s;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
 }
-.btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-submit:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-    .page { padding: 20px 16px; }
-    .category-tabs { align-items: stretch; flex-direction: column; gap: 8px; }
-    .category-tab-list { overflow-x: auto; }
-    .category-tabs > .btn-export { align-self: flex-end; margin-bottom: 8px; }
-    .search-row { flex-direction: column; align-items: stretch; }
-    .filter-actions-row { align-items: stretch; flex-direction: column; }
-    .tabs { overflow-x: auto; }
-    .table-wrap { overflow-x: auto; }
-    table { min-width: 700px; }
-    .form-row { grid-template-columns: 1fr; }
-    .table-footer { flex-direction: column; align-items: flex-start; }
+    .page {
+        padding: 20px 16px;
+    }
+
+    .category-tabs {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .category-tab-list {
+        overflow-x: auto;
+    }
+
+    .category-tabs>.btn-export {
+        align-self: flex-end;
+        margin-bottom: 8px;
+    }
+
+    .search-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-actions-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .tabs {
+        overflow-x: auto;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 700px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .table-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 /* ORDER DETAIL */
-.detail-modal { max-width: 650px; }
-.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 24px; }
-.scrollable::-webkit-scrollbar { width: 6px; }
-.scrollable::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.detail-modal {
+    max-width: 650px;
+}
 
-.detail-section { margin-bottom: 24px; }
+.scrollable {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 24px;
+}
+
+.scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.detail-section {
+    margin-bottom: 24px;
+}
+
 .info-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1652,11 +2239,13 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     border-radius: 14px;
     border: 1px solid #e2e8f0;
 }
+
 .info-item {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
+
 .info-label {
     font-size: 11px;
     font-weight: 700;
@@ -1667,6 +2256,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     align-items: center;
     gap: 6px;
 }
+
 .info-value {
     font-size: 13px;
     font-weight: 600;
@@ -1764,7 +2354,7 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     margin-bottom: 16px;
 }
 
-.shipment-grid > div {
+.shipment-grid>div {
     background: white;
     border: 1px solid #edf2f7;
     border-radius: 10px;
@@ -1835,33 +2425,112 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
     gap: 8px;
 }
 
-.shipment-empty b { color: #0f172a; }
-.shipment-empty p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.5; }
+.shipment-empty b {
+    color: #0f172a;
+}
 
-.items-list { display: flex; flex-direction: column; gap: 12px; }
+.shipment-empty p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .order-item {
-    display: flex; align-items: center; gap: 16px; padding: 14px;
-    background: white; border: 1px solid #edf2f7; border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 14px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
 }
-.order-item:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-.item-img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid #edf2f7; background: #f8fafc; }
-.item-info { flex: 1; }
-.item-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
-.item-variant { font-size: 12px; color: #64748b; margin: 0; }
-.item-price-qty { text-align: right; }
-.iq-price { display: block; font-size: 14px; font-weight: 700; color: #2563eb; }
-.iq-qty { font-size: 12px; color: #94a3b8; font-weight: 600; }
+
+.order-item:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.item-img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #edf2f7;
+    background: #f8fafc;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px;
+}
+
+.item-variant {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+
+.item-price-qty {
+    text-align: right;
+}
+
+.iq-price {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.iq-qty {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+}
 
 .order-summary-box {
-    margin-top: 14px; padding: 16px 20px; background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-    border-radius: 14px; border: 1px solid #bae6fd; display: flex; justify-content: flex-end;
+    margin-top: 14px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border-radius: 14px;
+    border: 1px solid #bae6fd;
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
 }
-.sum-row { display: flex; align-items: baseline; gap: 12px; }
-.sum-row span { font-size: 13px; color: #0369a1; font-weight: 600; }
-.final-total { font-size: 20px; font-weight: 800; color: #0369a1; }
+
+.sum-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.sum-row span {
+    font-size: 13px;
+    color: #0369a1;
+    font-weight: 600;
+}
+
+.final-total {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0369a1;
+}
 
 .cancel-reason-box {
     margin-top: 8px;
@@ -1881,29 +2550,144 @@ tbody td { padding: 12px 10px; font-size: 13px; color: #334155; vertical-align: 
 
 
 <style scoped>
-.category-tabs { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.category-tab-list { display: flex; align-items: flex-end; gap: 12px; }
-.category-tabs > .btn-export { flex-shrink: 0; margin-bottom: 8px; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #2563eb; }
-.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.category-tabs {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: -4px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0;
+}
+
+.category-tab-list {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.category-tabs>.btn-export {
+    flex-shrink: 0;
+    margin-bottom: 8px;
+}
+
+.cat-tab {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.cat-tab:hover {
+    color: #2563eb;
+}
+
+.cat-tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
 </style>
 
 <style scoped>
-.timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
-.tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
-.tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
+.timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 0 10px;
+}
 
-.tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: white; }
+.tl-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    position: relative;
+}
 
-.tl-dot svg { width: 16px; height: 16px; }
-.tl-item.done .tl-dot { background: #2563eb; border-color: #2563eb; }
-.tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
-.tl-line.done { background: #2563eb; }
-.tl-content { padding: 0 10px; }
-.tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
-.tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
-.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
-.refund-dot { border-color: #fdba74; }
-.refund-label { color: #c2410c; }
+.tl-col {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.tl-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2.5px solid #cbd5e1;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 13px;
+    color: white;
+}
+
+.tl-dot svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tl-item.done .tl-dot {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.tl-line {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 100%;
+    height: 3px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+
+.tl-line.done {
+    background: #2563eb;
+}
+
+.tl-content {
+    padding: 0 10px;
+}
+
+.tl-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 4px;
+}
+
+.tl-date {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.refund-timeline-wrap {
+    background: #fff7ed;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px dashed #fdba74;
+}
+
+.refund-dot {
+    border-color: #fdba74;
+}
+
+.refund-label {
+    color: #c2410c;
+}
 </style>

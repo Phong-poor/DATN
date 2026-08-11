@@ -79,7 +79,7 @@ const roleReverseMap = {
 }
 
 const staffRoles = computed(() => {
-    return Object.keys(roleReverseMap).filter(role => role !== 'KHÁCH HÀNG')
+    return Object.keys(roleReverseMap).filter(role => role !== 'KHÁCH HÀNG' && role !== 'ADMIN' && role !== 'QUẢN TRỊ VIÊN')
 })
 
 const mapRoleFromDB = (r) => roleMap[r?.toLowerCase()] || 'KHÁCH HÀNG'
@@ -716,7 +716,7 @@ const submitEdit = async () => {
                             </div>
                             <div class="form-group">
                                 <label>EMAIL <span class="req">*</span></label>
-                                <input v-model="form.email" type="email" placeholder="VD: user@vinatech.com" />
+                                <input v-model="form.email" type="email" placeholder="VD: user@gmail.com" />
                             </div>
                         </div>
                         <div class="form-row">

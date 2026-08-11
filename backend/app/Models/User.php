@@ -120,7 +120,7 @@ class User extends Authenticatable
                 'don_hang_xem', 'don_hang_sua', 'hoa_don_xem', 
                 'marketing_quan_ly', 'affiliate_quan_ly', 
                 'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
-                'lien_he_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
+                'lien_he_quan_ly', 'chat_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
                 'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly', 'quan_ly_cham_cong'
             ];
         }
@@ -136,7 +136,7 @@ class User extends Authenticatable
             'marketing' => ['marketing_quan_ly'],
             'affiliate_manager' => ['affiliate_quan_ly'],
             'editor' => ['tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly'],
-            'support' => ['lien_he_quan_ly'],
+            'support' => ['lien_he_quan_ly', 'chat_quan_ly'],
             'accountant' => ['don_hang_xem', 'hoa_don_xem'],
         ];
 

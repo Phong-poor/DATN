@@ -559,10 +559,7 @@ async function submit() {
 }
 
 .strength-requirements {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  margin-top: 4px;
+  display: none;
 }
 
 .strength-requirements span {

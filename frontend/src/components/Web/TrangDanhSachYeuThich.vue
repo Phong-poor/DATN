@@ -291,6 +291,7 @@ const fetchWishlist = async () => {
 
       return {
         ...item,
+        soluong: parseInt(item.soluong || 1, 10),
         fullName,
         processedSpecs: specs,
         brandName: p.thuong_hieu?.ten_thuonghieu || '',
@@ -307,10 +308,12 @@ const fetchWishlist = async () => {
 let updateTimers = {}
 
 const updateQuantity = (item, change) => {
-  const newQty = (item.soluong || 1) + change
+  const currentQty = parseInt(item.soluong || 1, 10)
+  const changeNum = parseInt(change, 10)
+  const newQty = currentQty + changeNum
   if (newQty < 1) return
 
-  const oldQty = item.soluong
+  const oldQty = currentQty
   item.soluong = newQty
 
   if (updateTimers[item.id]) {
@@ -319,7 +322,7 @@ const updateQuantity = (item, change) => {
 
   updateTimers[item.id] = setTimeout(async () => {
     try {
-      await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: item.soluong })
+      await api.put(`/yeu-thich/cap-nhat/${item.id}`, { soluong: newQty })
       window.dispatchEvent(new Event('wishlist-updated'))
     } catch (err) {
       item.soluong = oldQty

@@ -20,6 +20,7 @@ import {
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
+import { isWishlisted, findWishlistItem, fetchWishlistState, wishlistItems } from '@/services/wishlistStore'
 import { getPrefetchedProductsData, prefetchProductDetail, prefetchProductsPage, primeProductDetailFromCard } from '@/services/productsPrefetch'
 import { handleImageFallback, productImageUrl } from '@/services/urls'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
@@ -476,7 +477,29 @@ const flagshipProducts = computed(() => {
   const list = isAccessoryPage.value 
     ? products.value.filter(isProductAccessory) 
     : products.value.filter(isProductLaptop)
-  return list.slice().sort((a, b) => b.gia - a.gia).slice(0, 5)
+  
+  const sorted = list.slice().sort((a, b) => b.gia - a.gia)
+  const uniqueProducts = []
+  const seenProductIds = new Set()
+
+  for (const item of sorted) {
+    if (!seenProductIds.has(item.id_sanpham)) {
+      seenProductIds.add(item.id_sanpham)
+      uniqueProducts.push(item)
+    }
+    if (uniqueProducts.length >= 5) break
+  }
+
+  if (uniqueProducts.length < 5) {
+    for (const item of sorted) {
+      if (!uniqueProducts.includes(item)) {
+        uniqueProducts.push(item)
+      }
+      if (uniqueProducts.length >= 5) break
+    }
+  }
+
+  return uniqueProducts
 })
 const accessoryProducts = computed(() => products.value.filter(p => isProductAccessory(p)).slice(0, 10))
 
@@ -564,8 +587,19 @@ const addToWishlist = async (product) => {
 
   try {
     const variantId = await resolveVariantId(product)
+    const existing = findWishlistItem(product) || (variantId && wishlistItems.value.find(i => Number(i.id_bienthe || i.bienthe?.id_bienthe) === Number(variantId)))
+
+    if (existing) {
+      await api.delete(`/yeu-thich/xoa/${existing.id}`)
+      await fetchWishlistState()
+      window.dispatchEvent(new Event('wishlist-updated'))
+      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      return
+    }
+
     if (!variantId) throw new Error('Sản phẩm chưa có biến thể.')
     await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
+    await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
     swal.success('Đã thêm yêu thích', 'Sản phẩm đã được lưu vào danh sách yêu thích.')
   } catch (error) {
@@ -758,7 +792,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="flagship-row">
-        <article v-for="product in flagshipProducts" :key="product.id_sanpham" class="flag-card" @click="viewDetail(product)">
+        <article v-for="product in flagshipProducts" :key="product.id_bienthe || product.id_sanpham" class="flag-card" @click="viewDetail(product)">
           <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="specs">
@@ -879,8 +913,17 @@ onMounted(() => {
                 <span>Freeship 2H</span>
                 <span>BH 24T</span>
               </div>
-              <button class="hover-action-btn wishlist-btn" title="Yêu thích" @click.stop="addToWishlist(product)">
-                <Heart />
+              <button
+                class="hover-action-btn wishlist-btn"
+                :class="{ 'is-wishlisted': isWishlisted(product) }"
+                :title="isWishlisted(product) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                @click.stop="addToWishlist(product)"
+              >
+                <Heart
+                  :fill="isWishlisted(product) ? '#ef4444' : 'none'"
+                  :stroke="isWishlisted(product) ? '#ef4444' : '#ef4444'"
+                  class="heart-svg-icon"
+                />
               </button>
               <div class="product-actions">
                 <button class="hover-action-btn cart-btn" title="Thêm giỏ hàng" @click.stop="addToCart(product)">
@@ -999,12 +1042,9 @@ onMounted(() => {
         </p>
 
         <div class="lp-showroom-list">
-          <div v-for="item in showroomHighlights" :key="item.text" class="lp-showroom-item">
-            <span v-html="item.icon"></span>
-            <div>
-              <strong>{{ item.text }}</strong>
-              <p>{{ item.desc }}</p>
-            </div>
+          <div v-for="item in showroomHighlights" :key="item.desc" class="lp-showroom-item">
+            <span class="showroom-icon-wrap" v-html="item.icon"></span>
+            <span class="showroom-item-text">{{ item.desc }}</span>
           </div>
         </div>
 
@@ -2337,40 +2377,36 @@ onMounted(() => {
 }
 
 .lp-showroom-item {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+  display: flex;
+  align-items: center;
+  gap: 11px;
 }
 
-.lp-showroom-item > span {
-  width: 32px;
-  height: 32px;
+.lp-showroom-item > .showroom-icon-wrap {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #38bdf8;
+  color: #0284c7;
   background: rgba(56, 189, 248, 0.12);
 }
 
 .lp-showroom-item svg {
-  width: 17px;
-  height: 17px;
+  width: 14px;
+  height: 14px;
 }
 
-.lp-showroom-item strong {
-  display: block;
-  margin-bottom: 3px;
-  color: #ffffff;
-  font-size: 15px;
-}
-
-.lp-showroom-item p {
-  margin: 0;
-  color: #94a3b8;
+.lp-showroom-item > .showroom-item-text {
+  flex: 1;
+  min-width: 0;
+  color: #475569;
   font-size: 14px;
-  line-height: 1.45;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .lp-showroom-btn {
@@ -3015,6 +3051,19 @@ onMounted(() => {
 .wishlist-btn {
   background: rgba(255, 255, 255, 0.95);
   color: #ef4444;
+}
+
+.wishlist-btn.is-wishlisted {
+  background: #ffffff !important;
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.3) !important;
+}
+
+.wishlist-btn.is-wishlisted svg,
+.wishlist-btn.is-wishlisted .heart-svg-icon {
+  fill: #ef4444 !important;
+  stroke: #ef4444 !important;
+  color: #ef4444 !important;
 }
 
 .wishlist-btn:hover {

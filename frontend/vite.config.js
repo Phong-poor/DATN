@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -18,8 +18,10 @@ export default defineConfig(({ mode, command }) => {
     closeBundle() {
       for (const file of ['robots.txt', 'sitemap.xml']) {
         const outputPath = resolve(root, 'dist', file)
-        const content = readFileSync(outputPath, 'utf8').replaceAll('__SITE_URL__', publicUrl)
-        writeFileSync(outputPath, content)
+        if (existsSync(outputPath)) {
+          const content = readFileSync(outputPath, 'utf8').replaceAll('__SITE_URL__', publicUrl)
+          writeFileSync(outputPath, content)
+        }
       }
     },
   }

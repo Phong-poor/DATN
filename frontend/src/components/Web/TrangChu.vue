@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getToken } from '@/services/auth'
+import { isWishlisted, findWishlistItem, fetchWishlistState, wishlistItems } from '@/services/wishlistStore'
 
 import api from '../../services/api'
 import swal from '@/services/swal'
@@ -534,13 +535,18 @@ onMounted(async () => {
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
         const [newsRes, productsBundle, bannersRes, affiliateVideoRes] = await Promise.all([
-            api.get('/news', { params: { scope: 'public', per_page: 4 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
+            api.get('/news', { params: { scope: 'public', per_page: 6 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
             prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; }),
             api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; })
         ])
 
-        latestNews.value = (newsRes.data?.data || []).map(mapNewsPost)
+        const fetchedNews = (newsRes.data?.data || newsRes.data?.items || []).map(mapNewsPost)
+        latestNews.value = fetchedNews
+
+        const goToNewsDetail = (id) => {
+            if (id) router.push(`/tin-tuc/${id}`)
+        }
         
         const rawProducts = productsBundle?.productsRaw || []
         const allProducts = mapProducts(rawProducts)
@@ -611,16 +617,26 @@ const themVaoYeuThich = async (product) => {
         return
     }
 
-    const variantId = product.key_id || product.id_bienthe
-    if (!variantId) {
-        swal.error('Lỗi', 'Không tìm thấy cấu hình phù hợp. Vui lòng thử lại sau!')
-        return
-    }
-
     try {
+        const existing = findWishlistItem(product)
+        if (existing) {
+            await api.delete(`/yeu-thich/xoa/${existing.id}`)
+            await fetchWishlistState()
+            window.dispatchEvent(new Event('wishlist-updated'))
+            swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+            return
+        }
+
+        const variantId = product.key_id || product.id_bienthe || product.id
+        if (!variantId) {
+            swal.error('Lỗi', 'Không tìm thấy cấu hình phù hợp. Vui lòng thử lại sau!')
+            return
+        }
+
         await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
-        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        await fetchWishlistState()
         window.dispatchEvent(new Event('wishlist-updated'))
+        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Không thể thực hiện tác vụ.')
     }
@@ -1242,8 +1258,15 @@ onUnmounted(() => {
                             </div>
                             <img :src="p.img" :alt="p.fullName" class="product-main-img" loading="lazy" @error="handleImgError($event, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" />
                             
-                            <button class="action-circle-btn wishlist-corner-btn" @click.stop="themVaoYeuThich(p)" title="Thêm vào yêu thích">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                            <button
+                                class="action-circle-btn wishlist-corner-btn"
+                                :class="{ 'is-wishlisted': isWishlisted(p) }"
+                                :title="isWishlisted(p) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                                @click.stop="themVaoYeuThich(p)"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" :fill="isWishlisted(p) ? '#ef4444' : 'none'" viewBox="0 0 24 24" :stroke="isWishlisted(p) ? '#ef4444' : 'currentColor'">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
                             </button>
 
                             <!-- Hover Quick Menu -->
@@ -1411,8 +1434,8 @@ onUnmounted(() => {
             <div class="grid-container">
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
-                        <span class="ambient-label">KNOWLEDGE BASE</span>
-                        <h2>Tech Insights Magazine</h2>
+                        <span class="ambient-label">KIẾN THỨC CÔNG NGHỆ</span>
+                        <h2>Tin Tức & Góc Công Nghệ</h2>
                         <p>Phân tích chuyên sâu về kiến trúc phần cứng, đánh giá hiệu năng đồ họa và định cấu hình máy trạm tối ưu.</p>
                     </div>
                     <RouterLink to="/tin-tuc" class="magazine-explore-btn">Xem tất cả bài viết ➔</RouterLink>
@@ -1420,7 +1443,7 @@ onUnmounted(() => {
 
                 <div class="magazine-layout-grid scroll-reveal reveal-stagger">
                     <!-- Featured Article -->
-                    <article class="magazine-main-article" v-if="latestNews.length > 0">
+                    <article class="magazine-main-article" v-if="latestNews.length > 0" @click="goToNewsDetail(latestNews[0].id)">
                         <div class="main-art-visual">
                             <img :src="newsImageUrl(latestNews[0].image)" :alt="latestNews[0].title" @error="handleImgError($event, newsPlaceholderImage)" />
                             <span class="art-badge-tag">{{ latestNews[0].category || 'Nổi bật' }}</span>
@@ -1428,20 +1451,20 @@ onUnmounted(() => {
                         <div class="main-art-info">
                             <h3>{{ latestNews[0].title }}</h3>
                             <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
-                            <RouterLink :to="`/tin-tuc/${latestNews[0].id}`" class="art-deep-link">Xem chi tiết bài viết ➔</RouterLink>
+                            <RouterLink :to="`/tin-tuc/${latestNews[0].id}`" class="art-deep-link" @click.stop>Xem chi tiết bài viết ➔</RouterLink>
                         </div>
                     </article>
 
                     <!-- Secondary articles list -->
                     <div class="magazine-secondary-column" v-if="latestNews.length > 1">
-                        <article class="magazine-mini-article" v-for="n in latestNews.slice(1, 4)" :key="n.id">
+                        <article class="magazine-mini-article" v-for="n in latestNews.slice(1, 5)" :key="n.id" @click="goToNewsDetail(n.id)">
                             <div class="mini-art-thumb">
                                 <img :src="newsImageUrl(n.image)" :alt="n.title" @error="handleImgError($event, newsPlaceholderImage)" />
                             </div>
                             <div class="mini-art-info">
                                 <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
                                 <h3>{{ n.title }}</h3>
-                                <RouterLink :to="`/tin-tuc/${n.id}`">Đọc bài viết ➔</RouterLink>
+                                <RouterLink :to="`/tin-tuc/${n.id}`" @click.stop>Đọc bài viết ➔</RouterLink>
                             </div>
                         </article>
                     </div>
@@ -1997,10 +2020,11 @@ onUnmounted(() => {
 .hero-viewport {
     background-color: #0B1220;
     position: relative;
-    min-height: calc(100vh - 150px);
+    height: calc(100vh - 120px);
+    min-height: 680px;
     display: flex;
     align-items: center;
-    padding: 72px 0 56px;
+    padding: 48px 0;
     overflow: hidden;
     color: #ffffff;
 }
@@ -2040,16 +2064,19 @@ onUnmounted(() => {
     z-index: 2;
     width: min(calc(100% - 96px), 1280px);
     margin: 0 auto;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
 }
 .hero-content {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
     gap: clamp(48px, 6vw, 104px);
-    align-items: start;
+    align-items: center;
     width: 100%;
+    min-height: 460px;
+    height: 460px;
 }
 .hero-text-block {
     max-width: 720px;
@@ -2581,16 +2608,7 @@ onUnmounted(() => {
 .interactive-anchor,
 .btn-premium-glow,
 .btn-premium-glass {
-    text-transform: lowercase !important;
-}
-
-.section-header :is(h1, h2, h3)::first-letter,
-.ambient-label::first-letter,
-.tab-pill::first-letter,
-.interactive-anchor::first-letter,
-.btn-premium-glow::first-letter,
-.btn-premium-glass::first-letter {
-    text-transform: uppercase !important;
+    text-transform: none !important;
 }
 
 /* ─── 3. PRODUCT CATEGORIES (Light Theme Conversion) ─── */

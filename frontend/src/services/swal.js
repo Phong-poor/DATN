@@ -100,10 +100,16 @@ const swal = {
         showConfirmButton: false,
       })
     }
+
+    let cleanText = String(text || '')
+    if (cleanText.includes('SQLSTATE') || cleanText.includes('Unknown column') || cleanText.includes('PDOException') || cleanText.includes('Syntax error')) {
+      cleanText = 'Hệ thống đang bận hoặc có sự cố xử lý dữ liệu. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.'
+    }
+
     return Swal.fire({
       ...iconConfig('error'),
       title,
-      text,
+      text: cleanText,
       ...commonConfig,
     })
   },
@@ -156,6 +162,27 @@ const swal = {
       showConfirmButton: true,
       confirmButtonText: 'OK',
     })
+  },
+
+  loading(title = 'Đang xử lý...') {
+    return Swal.fire({
+      title,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading()
+      },
+      ...commonConfig,
+    })
+  },
+
+  closeLoading() {
+    Swal.close()
+  },
+
+  close() {
+    Swal.close()
   },
 }
 

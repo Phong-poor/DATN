@@ -109,22 +109,19 @@ class ChatController extends Controller
 
         $conversationId = $request->id_cuoc_tro_chuyen;
 
-        if (!$conversationId) {
+        if ($user->vaitro === 'user') {
+            // Khách hàng thông thường luôn gửi tin nhắn vào cuộc trò chuyện của chính mình
             $conversation = Conversation::firstOrCreate(['id_khachhang' => $user->id]);
             $conversationId = $conversation->id;
         } else {
-            $conversation = Conversation::find($conversationId);
-            if (!$conversation) {
-                if ($user->vaitro !== 'user') {
-                    abort(404);
-                }
+            // Admin / Nhân viên hỗ trợ có thể gửi vào cuộc trò chuyện chỉ định
+            if ($conversationId) {
+                $conversation = Conversation::find($conversationId);
+            }
+            if (!isset($conversation) || !$conversation) {
                 $conversation = Conversation::firstOrCreate(['id_khachhang' => $user->id]);
                 $conversationId = $conversation->id;
             }
-        }
-
-        if ($user->vaitro === 'user' && $conversation->id_khachhang !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $attachments = array_values(array_filter($request->input('attachments_base64', [])));

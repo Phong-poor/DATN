@@ -228,7 +228,7 @@ export default function HomeScreen({ navigation }) {
         const nextIndex = (activeBannerIndex + 1) % banners.length;
         setActiveBannerIndex(nextIndex);
         bannerScrollRef.current?.scrollTo({
-          x: nextIndex * containerWidth,
+          x: nextIndex * SCREEN_WIDTH,
           animated: true
         });
       }, 5000);
@@ -263,7 +263,7 @@ export default function HomeScreen({ navigation }) {
         clearTimeout(restartTimeout);
       }
     };
-  }, [activeBannerIndex, banners, containerWidth]);
+  }, [activeBannerIndex, banners]);
 
   // Memoize filtered products to avoid recalculating on every render
   const filteredProducts = useMemo(() => {
@@ -379,8 +379,6 @@ export default function HomeScreen({ navigation }) {
               ref={bannerScrollRef}
               horizontal
               pagingEnabled
-              snapToInterval={containerWidth}
-              decelerationRate="fast"
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={handleBannerScroll}
               style={styles.bannerCarousel}

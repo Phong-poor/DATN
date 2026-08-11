@@ -713,10 +713,7 @@ const loginGoogle = () => {
 }
 
 .strength-requirements {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px 8px;
-  margin-top: 2px;
+  display: none;
 }
 
 .strength-requirements span {
