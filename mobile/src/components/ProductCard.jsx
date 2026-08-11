@@ -1,7 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
 import { getImageUrl } from '../services/api';
 import useCartStore from '../store/useCartStore';
 import useWishlistStore from '../store/useWishlistStore';
@@ -97,9 +96,8 @@ function ProductCard({ product, onPress, style }) {
 
         <View style={styles.footer}>
           <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit>{formattedPrice}</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart} accessibilityLabel="Thêm vào giỏ hàng">
-            <Feather name="shopping-cart" size={18} color={COLORS.white} />
-            <Feather name="plus" size={14} color={COLORS.white} />
+          <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart}>
+            <Text style={styles.addBtnText}>🛒 +</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -224,10 +222,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.md,
     borderRadius: RADIUS.md,
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
+  },
+  addBtnText: {
+    color: COLORS.white,
+    ...TYPOGRAPHY.labelSmall,
+    fontWeight: '700',
   },
 });

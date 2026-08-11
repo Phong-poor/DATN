@@ -5,7 +5,7 @@
    ============================================================ */
 
 .web-layout :is(
-  .section,
+  .section:not(.promotions-shell *),
   .product-section,
   .category-section,
   .ecosystem-section,
@@ -21,7 +21,6 @@
   .featured-brands-section,
   .news-section,
   .contact-section,
-  .promotions-section,
   .affiliate-center,
   .profile-page,
   .orders-page,
@@ -34,7 +33,7 @@
 }
 
 .web-layout :is(
-  .section,
+  .section:not(.promotions-shell *),
   .product-section,
   .category-section,
   .ecosystem-section,
@@ -55,7 +54,7 @@
 }
 
 .web-layout :is(
-  .section,
+  .section:not(.promotions-shell *),
   .product-section,
   .category-section,
   .ecosystem-section,
@@ -78,7 +77,7 @@
 }
 
 .web-layout :is(
-  .section,
+  .section:not(.promotions-shell *),
   .product-section,
   .category-section,
   .ecosystem-section,
@@ -232,15 +231,151 @@
   letter-spacing: 0 !important;
 }
 
-.web-layout .promotions-shell .section-header .section-sub {
-  color: #cbd5e1 !important;
-  -webkit-text-fill-color: #cbd5e1 !important;
-  text-shadow: none !important;
-  font-weight: 600 !important;
-}
-
-.web-layout .promotions-shell .section-header .section-sub strong {
+.web-layout .promotions-shell .section .section-header p,
+.web-layout .promotions-shell .section-header .section-sub,
+.promotions-shell .section .section-header p,
+.promotions-shell .section-header .section-sub,
+.promotions-shell p.section-sub {
   color: #e2e8f0 !important;
   -webkit-text-fill-color: #e2e8f0 !important;
+  text-shadow: none !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .promotions-shell .section .section-header p strong,
+.web-layout .promotions-shell .section-header .section-sub strong,
+.promotions-shell .section-header .section-sub strong {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
   font-weight: 800 !important;
+}
+
+.web-layout .promotions-shell .section-header h2,
+.promotions-shell .section-header h2 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  font-weight: 900 !important;
+}
+
+.web-layout .promotions-shell :is(.combo-details, .magazine-main-article, .magazine-mini-article, .newsletter-headline, .voucher-body) p,
+.promotions-shell :is(.combo-details, .magazine-main-article, .magazine-mini-article, .newsletter-headline, .voucher-body) p {
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .promotions-shell :is(.magazine-main-article, .magazine-mini-article) h3,
+.promotions-shell :is(.magazine-main-article, .magazine-mini-article) h3,
+.promotions-shell .magazine-main-article .main-art-info h3,
+.promotions-shell .magazine-mini-article .mini-art-info h3 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+}
+
+/* Home Page Magazine News Section Light Card Contrast Fixes */
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article),
+.magazine-news-section :is(.magazine-main-article, .magazine-mini-article) {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04) !important;
+}
+
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article) h3,
+.magazine-news-section .main-art-info h3,
+.magazine-news-section .mini-art-info h3 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background: none !important;
+  text-shadow: none !important;
+}
+
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article) p,
+.magazine-news-section .main-art-info p {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .magazine-news-section :is(.art-deep-link, .mini-art-info a, .magazine-explore-btn),
+.magazine-news-section :is(.art-deep-link, .mini-art-info a, .magazine-explore-btn) {
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+.web-layout .promotions-shell :is(.magazine-main-article, .magazine-mini-article) :is(.art-deep-link, .mini-art-link),
+.promotions-shell :is(.magazine-main-article, .magazine-mini-article) :is(.art-deep-link, .mini-art-link) {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+}
+
+/* ============================================================
+   GLOBAL DOUBLE-BORDER FIX FOR ALL INPUT FIELDS ACROSS ALL PAGES
+   Removes inner borders when an input is inside a border container.
+   ============================================================ */
+.newsletter-interactive-form input,
+.newsletter-form-group input,
+.input-glow-group input,
+.promotions-shell .newsletter-interactive-form input,
+.promotions-shell input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #3b82f6 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.input-wrapper input,
+.input-group input,
+.search-box input,
+.search-wrapper input,
+.form-input-wrapper input,
+.field-wrapper input,
+.news-search-tools input,
+.employee-search input,
+.confirm-code input,
+.input-wrapper input:focus,
+.search-box input:focus {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #2563eb !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.newsletter-interactive-form input::placeholder,
+.newsletter-form-group input::placeholder,
+.promotions-shell input::placeholder,
+.input-glow-group input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+  opacity: 0.7 !important;
+}
+
+.input-wrapper input::placeholder,
+.input-group input::placeholder,
+.search-box input::placeholder,
+.search-wrapper input::placeholder,
+.form-input-wrapper input::placeholder,
+.field-wrapper input::placeholder,
+.news-search-tools input::placeholder,
+.employee-search input::placeholder,
+.confirm-code input::placeholder,
+input::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
 }

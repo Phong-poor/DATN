@@ -42,8 +42,6 @@ class News extends Model
         'ghim' => 'boolean',
     ];
 
-    protected $with = ['tags'];
-
     public function tags()
     {
         return $this->belongsToMany(NewsTag::class, 'news_tag', 'news_id', 'tag_id');

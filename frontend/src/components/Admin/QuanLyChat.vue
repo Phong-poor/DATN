@@ -84,7 +84,7 @@
               <span v-if="conv.unread_count > 0" class="unread-badge"></span>
             </div>
 
-            <div v-if="conversations.length === 0" class="empty-list-state">
+            <div v-if="filteredConversations.length === 0" class="empty-list-state">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>
@@ -257,10 +257,27 @@ const user = getUser();
 const authUserId = computed(() => user?.id);
 const isOwnMessage = (msg) => Number(msg?.id_nguoigui ?? msg?.sender_id) === Number(authUserId.value);
 
+const validConversations = computed(() => {
+  return (conversations.value || []).filter(c => {
+    if (!c.user) return false;
+
+    // 1. Loại bỏ tài khoản Admin đang đăng nhập
+    if (Number(c.user.id) === Number(authUserId.value)) return false;
+
+    // 2. Loại bỏ các tài khoản Admin / Quản trị viên
+    const roleStr = String(c.user.vaitro || c.user.role || '').toLowerCase();
+    if (roleStr === 'admin' || roleStr === 'administrator' || roleStr === 'quản trị viên') return false;
+
+    return true;
+  });
+});
+
 const filteredConversations = computed(() => {
-  if (!searchQuery.value) return conversations.value;
-  return conversations.value.filter(c =>
-    (c.user.name || c.user.email).toLowerCase().includes(searchQuery.value.toLowerCase())
+  const list = validConversations.value;
+  if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
+  return list.filter(c =>
+    (c.user.name || c.user.email || '').toLowerCase().includes(q)
   );
 });
 

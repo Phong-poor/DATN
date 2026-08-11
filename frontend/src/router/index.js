@@ -233,7 +233,7 @@ router.beforeEach((to, from, next) => {
         '/admin/banners': 'banner_quan_ly',
         '/admin/quan-ly-lien-he': 'lien_he_quan_ly',
         '/admin/contacts': 'lien_he_quan_ly',
-        '/admin/quan-ly-chat': 'lien_he_quan_ly',
+        '/admin/quan-ly-chat': 'chat_quan_ly',
         '/admin/quan-ly-nguoi-dung': 'tai_khoan_quan_ly',
         '/admin/users': 'tai_khoan_quan_ly',
         '/admin/quan-ly-vai-tro': 'vai_tro_quan_ly',

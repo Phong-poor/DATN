@@ -37,19 +37,35 @@ const activeEllipsisKey = ref(null) // 'left-ellipsis' | 'right-ellipsis' | null
 const jumpInputValue = ref('')
 const jumpInputRef = ref(null)
 
+const actualTotalItems = computed(() => {
+  const raw = props.totalItems
+  if (raw && typeof raw === 'object' && 'value' in raw) {
+    return Number(raw.value) || 0
+  }
+  return Number(raw) || 0
+})
+
+const actualPageSize = computed(() => {
+  const raw = props.pageSize
+  if (raw && typeof raw === 'object' && 'value' in raw) {
+    return Number(raw.value) || 10
+  }
+  return Number(raw) || 10
+})
+
 const fromItem = computed(() => {
-  if (!props.totalItems || props.totalItems === 0) return 0
-  return (props.currentPage - 1) * props.pageSize + 1
+  if (!actualTotalItems.value || actualTotalItems.value === 0) return 0
+  return (props.currentPage - 1) * actualPageSize.value + 1
 })
 
 const toItem = computed(() => {
-  if (!props.totalItems || props.totalItems === 0) return 0
-  return Math.min(props.currentPage * props.pageSize, props.totalItems)
+  if (!actualTotalItems.value || actualTotalItems.value === 0) return 0
+  return Math.min(props.currentPage * actualPageSize.value, actualTotalItems.value)
 })
 
 const computedShowingText = computed(() => {
   if (props.showingText) return props.showingText
-  return `Hiển thị ${fromItem.value} – ${toItem.value} của ${props.totalItems} ${props.itemLabel}`
+  return `Hiển thị ${fromItem.value} – ${toItem.value} của ${actualTotalItems.value} ${props.itemLabel}`
 })
 
 // ─── ALGORITHM HIỂN THỊ CÁC TRANG ───

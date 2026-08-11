@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\XuHistory;
 use App\Models\CauHinhXu;
-use Illuminate\Support\Facades\Auth;
 
 class XuController extends Controller
 {
@@ -15,10 +14,18 @@ class XuController extends Controller
      */
     public function getBalance(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'xu' => $request->user()->xu ?? 0
-        ]);
+        try {
+            $user = $request->user();
+            return response()->json([
+                'success' => true,
+                'xu' => $user ? ($user->xu ?? 0) : 0
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => true,
+                'xu' => 0
+            ]);
+        }
     }
 
     /**
@@ -26,34 +33,67 @@ class XuController extends Controller
      */
     public function getHistory(Request $request)
     {
-        $lichSu = XuHistory::where('id_khachhang', $request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'current_page' => 1,
+                        'data' => [],
+                        'total' => 0,
+                    ]
+                ]);
+            }
 
-        return response()->json([
-            'success' => true,
-            'data' => $lichSu
-        ]);
+            $lichSu = XuHistory::where('id_khachhang', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'data' => $lichSu
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'current_page' => 1,
+                    'data' => [],
+                    'total' => 0,
+                ]
+            ]);
+        }
     }
-
-
 
     /**
      * Lấy cấu hình Xu hiện tại (dành cho phía Client/Checkout)
      */
     public function getPublicSettings()
     {
-        $cauhinh = CauHinhXu::first() ?? CauHinhXu::create([
-            'ti_le_quy_doi' => 1,
-            'ti_le_tich_luy' => 1.00,
-            'phan_tram_giam_toi_da' => 50,
-            'trang_thai' => true
-        ]);
+        try {
+            $cauhinh = CauHinhXu::first() ?? CauHinhXu::create([
+                'ti_le_quy_doi' => 1,
+                'ti_le_tich_luy' => 1.00,
+                'phan_tram_giam_toi_da' => 50,
+                'trang_thai' => true
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'settings' => $cauhinh
-        ]);
+            return response()->json([
+                'success' => true,
+                'settings' => $cauhinh
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => true,
+                'settings' => [
+                    'ti_le_quy_doi' => 1,
+                    'ti_le_tich_luy' => 1.00,
+                    'phan_tram_giam_toi_da' => 50,
+                    'trang_thai' => true
+                ]
+            ]);
+        }
     }
 
     /**
@@ -61,17 +101,24 @@ class XuController extends Controller
      */
     public function getAdminSettings()
     {
-        $cauhinh = CauHinhXu::first() ?? CauHinhXu::create([
-            'ti_le_quy_doi' => 1,
-            'ti_le_tich_luy' => 1.00,
-            'phan_tram_giam_toi_da' => 50,
-            'trang_thai' => true
-        ]);
+        try {
+            $cauhinh = CauHinhXu::first() ?? CauHinhXu::create([
+                'ti_le_quy_doi' => 1,
+                'ti_le_tich_luy' => 1.00,
+                'phan_tram_giam_toi_da' => 50,
+                'trang_thai' => true
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'settings' => $cauhinh
-        ]);
+            return response()->json([
+                'success' => true,
+                'settings' => $cauhinh
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi tải cấu hình xu admin.'
+            ], 500);
+        }
     }
 
     /**
@@ -79,43 +126,52 @@ class XuController extends Controller
      */
     public function updateAdminSettings(Request $request)
     {
-        $request->validate([
-            'ti_le_quy_doi' => 'required|integer|min:1',
-            'ti_le_tich_luy' => 'required|numeric|min:0|max:100',
-            'phan_tram_giam_toi_da' => 'required|integer|min:0|max:100',
-            'trang_thai' => 'required|boolean',
-        ], [
-            'ti_le_quy_doi.required' => 'Vui lòng nhập tỷ lệ quy đổi.',
-            'ti_le_quy_doi.integer' => 'Tỷ lệ quy đổi phải là số nguyên.',
-            'ti_le_quy_doi.min' => 'Tỷ lệ quy đổi tối thiểu là 1đ/xu.',
-            'ti_le_tich_luy.required' => 'Vui lòng nhập tỷ lệ tích lũy.',
-            'ti_le_tich_luy.numeric' => 'Tỷ lệ tích lũy phải là số.',
-            'ti_le_tich_luy.min' => 'Tỷ lệ tích lũy tối thiểu là 0%.',
-            'ti_le_tich_luy.max' => 'Tỷ lệ tích lũy tối đa là 100%.',
-            'phan_tram_giam_toi_da.required' => 'Vui lòng nhập phần trăm giảm tối đa.',
-            'phan_tram_giam_toi_da.integer' => 'Phần trăm giảm tối đa phải là số nguyên.',
-            'phan_tram_giam_toi_da.min' => 'Phần trăm tối thiểu là 0%.',
-            'phan_tram_giam_toi_da.max' => 'Phần trăm tối đa là 100%.',
-            'trang_thai.required' => 'Vui lòng chọn trạng thái kích hoạt.',
-        ]);
+        try {
+            $request->validate([
+                'ti_le_quy_doi' => 'required|integer|min:1',
+                'ti_le_tich_luy' => 'required|numeric|min:0|max:100',
+                'phan_tram_giam_toi_da' => 'required|integer|min:0|max:100',
+                'trang_thai' => 'required|boolean',
+            ], [
+                'ti_le_quy_doi.required' => 'Vui lòng nhập tỷ lệ quy đổi.',
+                'ti_le_quy_doi.integer' => 'Tỷ lệ quy đổi phải là số nguyên.',
+                'ti_le_quy_doi.min' => 'Tỷ lệ quy đổi tối thiểu là 1đ/xu.',
+                'ti_le_tich_luy.required' => 'Vui lòng nhập tỷ lệ tích lũy.',
+                'ti_le_tich_luy.numeric' => 'Tỷ lệ tích lũy phải là số.',
+                'ti_le_tich_luy.min' => 'Tỷ lệ tích lũy tối thiểu là 0%.',
+                'ti_le_tich_luy.max' => 'Tỷ lệ tích lũy tối đa là 100%.',
+                'phan_tram_giam_toi_da.required' => 'Vui lòng nhập phần trăm giảm tối đa.',
+                'phan_tram_giam_toi_da.integer' => 'Phần trăm giảm tối đa phải là số nguyên.',
+                'phan_tram_giam_toi_da.min' => 'Phần trăm tối thiểu là 0%.',
+                'phan_tram_giam_toi_da.max' => 'Phần trăm tối đa là 100%.',
+                'trang_thai.required' => 'Vui lòng chọn trạng thái kích hoạt.',
+            ]);
 
-        $cauhinh = CauHinhXu::first();
-        if (!$cauhinh) {
-            $cauhinh = new CauHinhXu();
+            $cauhinh = CauHinhXu::first();
+            if (!$cauhinh) {
+                $cauhinh = new CauHinhXu();
+            }
+
+            $cauhinh->fill([
+                'ti_le_quy_doi' => $request->ti_le_quy_doi,
+                'ti_le_tich_luy' => $request->ti_le_tich_luy,
+                'phan_tram_giam_toi_da' => $request->phan_tram_giam_toi_da,
+                'trang_thai' => $request->trang_thai,
+            ]);
+            $cauhinh->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật cấu hình hệ thống xu thành công!',
+                'settings' => $cauhinh
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi cập nhật cấu hình xu.'
+            ], 500);
         }
-
-        $cauhinh->fill([
-            'ti_le_quy_doi' => $request->ti_le_quy_doi,
-            'ti_le_tich_luy' => $request->ti_le_tich_luy,
-            'phan_tram_giam_toi_da' => $request->phan_tram_giam_toi_da,
-            'trang_thai' => $request->trang_thai,
-        ]);
-        $cauhinh->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật cấu hình hệ thống xu thành công!',
-            'settings' => $cauhinh
-        ]);
     }
 }

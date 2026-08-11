@@ -178,35 +178,34 @@ class ThuocTinhController extends Controller
     // lấy full data (phù hợp render 1 lần bên Vue)
     public function getAll()
     {
-        $data = Cache::remember('thuoctinh_getall', 120, function () {
-            $nhoms = NhomThuocTinh::with([
-                'thuocTinhs.giatriThuocTinhs',
-            ])->get();
+        Cache::forget('thuoctinh_getall');
+        $nhoms = NhomThuocTinh::with([
+            'thuocTinhs.giatriThuocTinhs',
+        ])->get();
 
-            return $nhoms->map(function ($group) {
-                return [
-                    'id_nhom' => $group->id_nhom,
-                    'ten_nhom' => $group->ten_nhom,
-                    'danh_muc_ids' => $group->danh_muc_ids,
-                    'thuoc_tinhs' => $group->thuocTinhs->map(function ($attr) {
-                        return [
-                            'id_thuoctinh' => $attr->id_thuoctinh,
-                            'ten_thuoctinh' => $attr->ten_thuoctinh,
-                            'trangthai' => $attr->trangthai ?? 1,
-                            'giatri_thuoc_tinhs' => $attr->giatriThuocTinhs->map(function ($gt) {
-                                return [
-                                    'id_giatri' => $gt->id_giatri,
-                                    'giatri' => $gt->giatri,
-                                    'gia_cong_them' => $gt->gia_cong_them ?? 0,
-                                    'trangthai' => $gt->trangthai ?? 1,
-                                    'danh_muc_ids' => $gt->danh_muc_ids,
-                                ];
-                            })->values(),
-                        ];
-                    })->values(),
-                ];
-            })->values();
-        });
+        $data = $nhoms->map(function ($group) {
+            return [
+                'id_nhom' => $group->id_nhom,
+                'ten_nhom' => $group->ten_nhom,
+                'danh_muc_ids' => $group->danh_muc_ids,
+                'thuoc_tinhs' => $group->thuocTinhs->map(function ($attr) {
+                    return [
+                        'id_thuoctinh' => $attr->id_thuoctinh,
+                        'ten_thuoctinh' => $attr->ten_thuoctinh,
+                        'trangthai' => $attr->trangthai ?? 1,
+                        'giatri_thuoc_tinhs' => $attr->giatriThuocTinhs->map(function ($gt) {
+                            return [
+                                'id_giatri' => $gt->id_giatri,
+                                'giatri' => $gt->giatri,
+                                'gia_cong_them' => $gt->gia_cong_them ?? 0,
+                                'trangthai' => $gt->trangthai ?? 1,
+                                'danh_muc_ids' => $gt->danh_muc_ids,
+                            ];
+                        })->values(),
+                    ];
+                })->values(),
+            ];
+        })->values();
 
         return response()->json($data);
     }

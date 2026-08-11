@@ -8,7 +8,7 @@ import { isFormDirty } from '@/services/unsavedChanges'
 import echo from '@/services/echo'
 import swal from '@/services/swal'
 import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
-import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
+import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion, backendBaseUrl } from '@/services/urls'
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
@@ -162,13 +162,13 @@ const handleAvatarUpload = async (event) => {
   try {
     const formData = new FormData()
     formData.append('avatar', file)
-    
+
     const avatarRes = await api.post('/user/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     })
-    
+
     if (avatarRes.data.user) {
       updateUserData({
         ...avatarRes.data.user,
@@ -370,7 +370,7 @@ const fetchOrders = async () => {
           xu_dung: order.xu_dung || 0,
           items: (order.chi_tiets || []).map(item => {
             let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
-            
+
             if (item.bien_the && item.bien_the.thuoc_tinh_json) {
               try {
                 const thuocTinhs = typeof item.bien_the.thuoc_tinh_json === 'string'
@@ -380,7 +380,7 @@ const fetchOrders = async () => {
                 if (Array.isArray(thuocTinhs) && thuocTinhs.length > 0) {
                   const colorAttr = thuocTinhs.find(t => t.ten_thuoctinh.toLowerCase().includes('màu') || t.ten_thuoctinh.toLowerCase().includes('color'))
                   const otherAttrs = thuocTinhs.filter(t => !t.ten_thuoctinh.toLowerCase().includes('màu') && !t.ten_thuoctinh.toLowerCase().includes('color')).map(t => t.giatri).join(' - ')
-                  
+
                   if (colorAttr) {
                     fullName += ` - ${colorAttr.giatri}`
                   }
@@ -391,7 +391,7 @@ const fetchOrders = async () => {
                   fullName += ` (${item.bien_the.ten_bienthe})`
                 }
               } catch (e) {
-                 if (item.bien_the.ten_bienthe) fullName += ` (${item.bien_the.ten_bienthe})`
+                if (item.bien_the.ten_bienthe) fullName += ` (${item.bien_the.ten_bienthe})`
               }
             } else if (item.bien_the && item.bien_the.ten_bienthe) {
               fullName += ` (${item.bien_the.ten_bienthe})`
@@ -494,55 +494,55 @@ const handleProofUpload = (e) => {
 }
 
 const openRefundModal = (order) => {
-    orderToRefund.value = order
-    refundReason.value = ''
-    refundProof.value = null
-    if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
-    refundProofUrl.value = null
-    refundSelectedItems.value = []
-    showRefundModal.value = true
+  orderToRefund.value = order
+  refundReason.value = ''
+  refundProof.value = null
+  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+  refundProofUrl.value = null
+  refundSelectedItems.value = []
+  showRefundModal.value = true
 }
 
 const confirmRefund = async () => {
-    if (refundSelectedItems.value.length === 0) {
-        showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
-        return
-    }
-    if (!refundReason.value.trim()) {
-        showToast('Vui lòng nhập lý do hoàn trả.')
-        return
-    }
-    if (!refundProof.value) {
-        showToast('Vui lòng tải lên ảnh/video bằng chứng.')
-        return
-    }
+  if (refundSelectedItems.value.length === 0) {
+    showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
+    return
+  }
+  if (!refundReason.value.trim()) {
+    showToast('Vui lòng nhập lý do hoàn trả.')
+    return
+  }
+  if (!refundProof.value) {
+    showToast('Vui lòng tải lên ảnh/video bằng chứng.')
+    return
+  }
 
-    isSubmitting.value = true
-    try {
-        const formData = new FormData()
-        formData.append('lydo', refundReason.value)
-        formData.append('proof', refundProof.value)
-        refundSelectedItems.value.forEach(id => {
-            formData.append('item_ids[]', id)
-        })
+  isSubmitting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('lydo', refundReason.value)
+    formData.append('proof', refundProof.value)
+    refundSelectedItems.value.forEach(id => {
+      formData.append('item_ids[]', id)
+    })
 
-        const res = await api.post(`/orders/${orderToRefund.value.id_dathang}/refund`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
+    const res = await api.post(`/orders/${orderToRefund.value.id_dathang}/refund`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 
-        if (res.data.success) {
-            showToast('Đã gửi yêu cầu hoàn trả!')
-            showRefundModal.value = false
-            await fetchOrders()
-            if (selectedOrder.value && selectedOrder.value.id_dathang === orderToRefund.value.id_dathang) {
-                selectedOrder.value = null
-            }
-        }
-    } catch (err) {
-        showToast(err.response?.data?.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
-    } finally {
-        isSubmitting.value = false
+    if (res.data.success) {
+      showToast('Đã gửi yêu cầu hoàn trả!')
+      showRefundModal.value = false
+      await fetchOrders()
+      if (selectedOrder.value && selectedOrder.value.id_dathang === orderToRefund.value.id_dathang) {
+        selectedOrder.value = null
+      }
     }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const closeRefundModal = async () => {
@@ -565,12 +565,151 @@ const closeRefundModal = async () => {
   refundSelectedItems.value = []
 }
 
+const getRefundModalItems = (order) => {
+  if (!order) return []
+  const items = order.items || order.chi_tiets || order.chiTiets || []
+  const status = String(order.status || order.trangthai || '')
+  if (!status.startsWith('refund')) {
+    return items
+  }
+  const filtered = items.filter(i => i.is_refund == 1 || i.is_refund === true || i.hoantien == 1 || i.hoantien === true)
+  return filtered.length > 0 ? filtered : items
+}
+
+const isRefundItem = (item) => {
+  return item?.is_refund == 1 || item?.is_refund === true || item?.hoantien == 1 || item?.hoantien === true
+}
+
+const getRefundProofFiles = (order) => {
+  if (!order) return []
+
+  if (typeof order === 'string') {
+    const trimmed = order.trim()
+    if (!trimmed) return []
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        return getRefundProofFiles(parsed)
+      } catch (e) { }
+    }
+    if (trimmed.includes(',')) {
+      return trimmed.split(',').map(s => s.trim()).filter(Boolean)
+    }
+    return [trimmed]
+  }
+
+  if (Array.isArray(order)) {
+    return order.flatMap(item => getRefundProofFiles(item)).filter(Boolean)
+  }
+
+  if (typeof order === 'object') {
+    const raw = order.raw || order
+    let payData = raw.du_lieu_thanh_toan || raw.payment_data
+    if (typeof payData === 'string') {
+      try { payData = JSON.parse(payData) } catch (e) { }
+    }
+
+    const candidate = raw.minh_chung_hoan_tien
+      || raw.refund_proof
+      || raw.refund_proofs
+      || raw.minh_chung
+      || raw.proof
+      || raw.proofs
+      || payData?.minh_chung_hoan_tien
+      || payData?.refund_proof
+      || payData?.refund_proofs
+
+    if (candidate && candidate !== order && candidate !== raw) {
+      return getRefundProofFiles(candidate)
+    }
+  }
+
+  return []
+}
+
+const uploadRefundProof = async (event, order) => {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+  const id = order.id_dathang || order.id
+  if (!id) return
+
+  const formData = new FormData()
+  for (let i = 0; i < files.length; i++) {
+    formData.append('proofs[]', files[i])
+  }
+
+  try {
+    swal.loading('Đang tải lên tệp bằng chứng...')
+    const res = await api.post(`/donhang/${id}/refund-proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    swal.closeLoading()
+    if (res.data && res.data.success) {
+      swal.success('Tải lên bằng chứng thành công!')
+      if (res.data.order) {
+        const updated = res.data.order
+        const proofVal = updated.minh_chung_hoan_tien || updated.refund_proof
+        order.minh_chung_hoan_tien = proofVal
+        order.refund_proof = proofVal
+        if (selectedOrder.value) {
+          selectedOrder.value = {
+            ...selectedOrder.value,
+            minh_chung_hoan_tien: proofVal,
+            refund_proof: proofVal
+          }
+        }
+      }
+      await fetchOrders()
+    } else {
+      swal.error(res.data?.message || 'Không thể tải lên tệp.')
+    }
+  } catch (err) {
+    swal.closeLoading()
+    swal.error('Lỗi khi tải lên tệp bằng chứng.')
+  }
+}
+
+const getProofMediaUrl = (file) => {
+  if (!file) return ''
+  if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+    return file
+  }
+  const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+  return storageUrl(cleanPath)
+}
+
+const getProofProxyUrl = (file) => {
+  if (!file) return ''
+  if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+    return file
+  }
+  const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+  return `${backendBaseUrl}/api/refund-file?path=${encodeURIComponent(cleanPath)}`
+}
+
+const isImageFile = (file) => {
+  if (!file) return false
+  const f = String(file).toLowerCase().trim()
+  return /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(f)
+}
+
+const isVideoFile = (file) => {
+  if (!file) return false
+  const f = String(file).toLowerCase().trim()
+  if (isImageFile(file)) return false
+  return /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v|quicktime)$/i.test(f)
+    || f.includes('screen recording')
+    || f.startsWith('refund_proofs/')
+    || f.startsWith('refunds/')
+    || !f.includes('.')
+}
+
 const isRefundable = (order) => {
-    if (order.trangthai !== 'done') return false;
-    const updated = new Date(order.updated_at).getTime();
-    const now = new Date().getTime();
-    const diffHours = (now - updated) / (1000 * 60 * 60);
-    return diffHours <= 42;
+  if (order.trangthai !== 'done') return false;
+  const updated = new Date(order.updated_at).getTime();
+  const now = new Date().getTime();
+  const diffHours = (now - updated) / (1000 * 60 * 60);
+  return diffHours <= 42;
 }
 
 const handleReorder = async (order) => {
@@ -618,13 +757,13 @@ const submitReview = async () => {
     if (res.data.success) {
       showToast('Cảm ơn bạn đã đánh giá sản phẩm! ❤️')
       showReviewModal.value = false
-      
+
       // Cập nhật trạng thái item ngay lập tức trong UI
       if (selectedOrder.value) {
         const item = selectedOrder.value.items.find(i => i.id_bienthe === reviewForm.value.id_bienthe)
         if (item) item.is_reviewed = true
       }
-      
+
       // Táº£i láº¡i toÃ n bá»™ đơn hàng để cập nhật danh sách chính
       await fetchOrders()
     }
@@ -663,48 +802,32 @@ onMounted(() => {
   fetchAttendanceStatus()
 
   const userData = getUser()
-  if (getToken() && userData && (userData.id || userData.id_user)) {
-    const userId = userData.id || userData.id_user
-    
-    echo.private(`user.${userId}`)
-      .listen('.order.status.updated', (e) => {
-        const index = orders.value.findIndex(o => o.id_dathang === e.id_dathang)
-        if (index !== -1) {
-          orders.value[index].trangthai = e.trangthai
-          // Map to frontend status keys if needed
-          let statusKey = 'pending'
-          if (e.trangthai === 'confirmed') statusKey = 'confirmed'
-          if (e.trangthai === 'shipping') statusKey = 'shipping'
-          if (e.trangthai === 'done' || e.trangthai === 'completed') statusKey = 'done'
-          if (e.trangthai === 'refund_pending') statusKey = 'refund_pending'
-          if (e.trangthai === 'refund_pickup') statusKey = 'refund_pickup'
-          if (e.trangthai === 'refund_delivering') statusKey = 'refund_delivering'
-          if (e.trangthai === 'refund_received') statusKey = 'refund_received'
-          if (e.trangthai === 'refunded') statusKey = 'refunded'
-          if (e.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
-          if (e.trangthai === 'cancelled') statusKey = 'cancelled'
-          orders.value[index].status = statusKey
-          orders.value[index].updated_at = e.updated_at || new Date().toISOString()
-          orders.value[index].du_lieu_thanh_toan = {
-            ...(orders.value[index].du_lieu_thanh_toan || {}),
-            status_history: e.status_history || {
-              ...orders.value[index].du_lieu_thanh_toan?.status_history,
-              [e.trangthai]: orders.value[index].updated_at,
-            },
-          }
-          orders.value[index].steps = buildOrderSteps(orders.value[index], statusKey)
-          orders.value[index].refundSteps = buildRefundSteps(orders.value[index], statusKey)
+  if (userData && (userData.id || userData.id_khachhang || userData.id_user)) {
+    const userId = userData.id || userData.id_khachhang || userData.id_user
 
-          if (selectedOrder.value && selectedOrder.value.id_dathang === e.id_dathang) {
-            selectedOrder.value.trangthai = e.trangthai
-            selectedOrder.value.status = statusKey
-            selectedOrder.value.updated_at = orders.value[index].updated_at
-            selectedOrder.value.du_lieu_thanh_toan = orders.value[index].du_lieu_thanh_toan
-            selectedOrder.value.steps = orders.value[index].steps
-            selectedOrder.value.refundSteps = orders.value[index].refundSteps
-          }
+    let isFetching = false
+    const handleStatusUpdate = async (data) => {
+      if (data && data.id_dathang) {
+        const idx = orders.value.findIndex(o => Number(o.id_dathang) === Number(data.id_dathang))
+        if (idx !== -1 && data.trangthai) {
+          orders.value[idx].trangthai = data.trangthai
+          orders.value[idx].status = data.trangthai
         }
-      })
+      }
+      if (isFetching) return
+      isFetching = true
+      try {
+        await fetchOrders()
+      } finally {
+        setTimeout(() => { isFetching = false }, 1000)
+      }
+    }
+
+    if (getToken()) {
+      try { echo.private(`user.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
+    }
+    try { echo.channel(`user-orders.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
+    try { echo.channel('admin-orders').listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
   }
 })
 
@@ -746,13 +869,13 @@ const fetchAttendanceStatus = async () => {
 
 const handleCheckIn = async () => {
   if (attendanceData.value.checked_today || checkingIn.value) return
-  
+
   checkingIn.value = true
   try {
     const res = await api.post('/diem-danh')
     if (res.data.success) {
       swal.success('Thành công!', res.data.message || 'Bạn đã điểm danh thành công!')
-      
+
       // Cập nhật số xu của user hiển thị trên giao diện
       if (res.data.total_xu !== undefined) {
         user.value.xu = res.data.total_xu
@@ -764,7 +887,7 @@ const handleCheckIn = async () => {
         }
         window.dispatchEvent(new Event('user-updated'))
       }
-      
+
       // Load lại trạng thái điểm danh mới
       await fetchAttendanceStatus()
     }
@@ -805,7 +928,7 @@ const fetchXuHistory = async (page) => {
 }
 
 const startEdit = () => {
-  profileForm.value = { 
+  profileForm.value = {
     ...user.value,
   }
   if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
@@ -974,9 +1097,9 @@ const requestOtpForPassword = async () => {
     showToast('Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     if (error.response?.status === 422) {
-       profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
+      profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
     } else {
-       showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
+      showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
     }
   } finally {
     sendingProfileOtp.value = false
@@ -1381,43 +1504,43 @@ let searchRequestId = 0
 const handleDetailInput = () => {
   showSuggestions.value = false
   detailWarning.value = ''
-  
+
   if (searchDetailTimeout) clearTimeout(searchDetailTimeout)
   if (currentSearchController) {
     currentSearchController.abort()
   }
-  
+
   const detailLength = addrForm.value.detail ? addrForm.value.detail.trim().length : 0;
   if (detailLength < 3) {
     addressSuggestions.value = []
     searchingDetail.value = false
     return
   }
-  
+
   searchDetailTimeout = setTimeout(async () => {
     searchingDetail.value = true
     const controller = new AbortController()
     currentSearchController = controller
     searchRequestId++
     const currentReqId = searchRequestId
-    
+
     try {
       const parts = [addrForm.value.detail, addrForm.value.ward, addrForm.value.district, addrForm.value.province]
         .filter(item => item && item !== 'Không xác định')
       const query = [...parts, 'Việt Nam'].join(', ')
-      
+
       const data = await searchSuggestions(query, controller.signal, {
         province: addrForm.value.province !== 'Không xác định' ? addrForm.value.province : '',
         ward: addrForm.value.ward !== 'Không xác định' ? addrForm.value.ward : ''
       })
-      
+
       if (controller.signal.aborted || currentReqId !== searchRequestId) return;
-      
+
       let validResults = [];
       if (data && data.length > 0) {
         validResults = data.filter(item => (item.title || item.display_name || item.subtitle) && item.lat && item.lng);
       }
-      
+
       if (validResults.length > 0) {
         addressSuggestions.value = validResults
         showSuggestions.value = true
@@ -1426,12 +1549,12 @@ const handleDetailInput = () => {
         addressSuggestions.value = []
         showSuggestions.value = false
         detailWarning.value = 'Không tìm thấy địa chỉ cụ thể, bản đồ sẽ ghim ở khu vực gần nhất.'
-        
+
         // Cố gắng tìm vị trí fallback (Phường/Quận) và ghim bản đồ
         const fallbackRes = await geocodeWithFallback(
-          addrForm.value.detail, 
-          addrForm.value.ward, 
-          addrForm.value.district, 
+          addrForm.value.detail,
+          addrForm.value.ward,
+          addrForm.value.district,
           addrForm.value.province
         )
         if (fallbackRes && fallbackRes.lat && fallbackRes.lng && currentReqId === searchRequestId) {
@@ -1458,7 +1581,7 @@ const handleDetailInput = () => {
 const selectSuggestion = (item) => {
   showSuggestions.value = false
   detailWarning.value = ''
-  
+
   if (item.title || item.display_name) {
     addrForm.value.detail = item.title || item.display_name
   }
@@ -1587,11 +1710,11 @@ const geocodeSelectedArea = async () => {
   try {
     const res = await geocodeWithFallback('', addrForm.value.ward, addrForm.value.district, addrForm.value.province)
     if (res && res.lat && res.lng) {
-      return { 
-        lat: Number(res.lat), 
+      return {
+        lat: Number(res.lat),
         lng: Number(res.lng),
         geojson: res.geojson,
-        boundingbox: res.boundingbox 
+        boundingbox: res.boundingbox
       }
     }
     return null
@@ -1965,7 +2088,7 @@ const totalPromoPages = computed(() =>
 
 const promoStatusMap = {
   0: { label: 'Chưa sử dụng', color: '#2563eb', bg: '#dcfce7' },
-  1: { label: 'Đã sử dụng',   color: '#94a3b8', bg: '#f1f5f9' },
+  1: { label: 'Đã sử dụng', color: '#94a3b8', bg: '#f1f5f9' },
   expired: { label: 'Hết hạn', color: '#dc2626', bg: '#fee2e2' },
 }
 </script>
@@ -1976,7 +2099,10 @@ const promoStatusMap = {
     <!-- Global toast -->
     <transition name="toast">
       <div class="toast" v-if="toast.show">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
         {{ toast.msg }}
       </div>
     </transition>
@@ -1984,509 +2110,656 @@ const promoStatusMap = {
     <!-- Order detail modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="selectedOrder" @click.self="selectedOrder = null">
-        <div class="modal">
-          <div class="modal-head">
-            <div>
-              <h2 class="modal-title">Chi tiết đơn hàng</h2>
-              <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
+        <div class="overlay" v-if="selectedOrder" @click.self="selectedOrder = null">
+          <div class="modal">
+            <div class="modal-head">
+              <div>
+                <h2 class="modal-title">Chi tiết đơn hàng</h2>
+                <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
+              </div>
+              <button class="close-btn" @click="selectedOrder = null">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button class="close-btn" @click="selectedOrder = null">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="modal-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
-              {{ getDisplayStatus(selectedOrder) }}
-            </div>
+            <div class="modal-body">
+              <div class="modal-status"
+                :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                {{ getDisplayStatus(selectedOrder) }}
+              </div>
 
-            <div v-if="canShowShippingPanel(selectedOrder)" class="customer-shipping-card">
-              <div class="shipping-card-head">
-                <div class="shipping-title-row">
-                  <div class="shipping-icon">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M3 7h11v9H3z"/>
-                      <path d="M14 10h4l3 3v3h-7z"/>
-                      <circle cx="7" cy="18" r="2"/>
-                      <circle cx="18" cy="18" r="2"/>
-                    </svg>
+              <div v-if="canShowShippingPanel(selectedOrder)" class="customer-shipping-card">
+                <div class="shipping-card-head">
+                  <div class="shipping-title-row">
+                    <div class="shipping-icon">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M3 7h11v9H3z" />
+                        <path d="M14 10h4l3 3v3h-7z" />
+                        <circle cx="7" cy="18" r="2" />
+                        <circle cx="18" cy="18" r="2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="shipping-kicker">Theo dõi vận chuyển</p>
+                      <h3>{{ getShippingInfo(selectedOrder).provider || 'NextGen Express' }}</h3>
+                      <span>{{ getShippingInfo(selectedOrder).tracking_code }}</span>
+                    </div>
+                  </div>
+                  <span class="shipping-status"
+                    :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                    {{ getDisplayStatus(selectedOrder) }}
+                  </span>
+                </div>
+                <div v-if="getShippingInfo(selectedOrder).status === 'delivery_failed'" class="shipping-failure-box">
+                  <span>Lý do giao thất bại</span>
+                  <b>{{ getShipmentFailureReason(selectedOrder) || 'Không liên hệ được người nhận' }}</b>
+                  <p v-if="getShipmentAttemptText(selectedOrder)">{{ getShipmentAttemptText(selectedOrder) }}. NextGen
+                    sẽ hỗ trợ giao lại nếu còn lượt.</p>
+                  <p v-else>NextGen sẽ liên hệ lại để hỗ trợ giao lại hoặc cập nhật phương án xử lý phù hợp.</p>
+                </div>
+                <div v-if="getShippingInfo(selectedOrder).status === 'returned'"
+                  class="shipping-failure-box is-returned">
+                  <span>Đơn đã chuyển hoàn</span>
+                  <b>{{ getShippingInfo(selectedOrder).return_reason || 'Đã hoàn về kho' }}</b>
+                  <p>{{ getShipmentRefundNote(selectedOrder) || 'Đơn đã kết thúc quy trình giao nhận.' }}</p>
+                </div>
+                <div class="shipping-info-grid">
+                  <div>
+                    <span>Dự kiến giao</span>
+                    <b>{{ getShippingInfo(selectedOrder).expected_delivery_date || '-' }}</b>
                   </div>
                   <div>
-                    <p class="shipping-kicker">Theo dõi vận chuyển</p>
-                    <h3>{{ getShippingInfo(selectedOrder).provider || 'NextGen Express' }}</h3>
-                    <span>{{ getShippingInfo(selectedOrder).tracking_code }}</span>
+                    <span>Khu vực</span>
+                    <b>{{ getShippingInfo(selectedOrder).service_area || 'Tiêu chuẩn' }}</b>
+                  </div>
+                  <div>
+                    <span>Gói giao</span>
+                    <b>{{ getShippingInfo(selectedOrder).service_level || 'Giao tiêu chuẩn' }}</b>
+                  </div>
+                  <div>
+                    <span>Thu hộ COD</span>
+                    <b>{{ new Intl.NumberFormat('vi-VN').format(getShippingInfo(selectedOrder).cod_amount || 0) }}đ</b>
                   </div>
                 </div>
-                <span class="shipping-status" :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
-                  {{ getDisplayStatus(selectedOrder) }}
-                </span>
-              </div>
-              <div v-if="getShippingInfo(selectedOrder).status === 'delivery_failed'" class="shipping-failure-box">
-                <span>Lý do giao thất bại</span>
-                <b>{{ getShipmentFailureReason(selectedOrder) || 'Không liên hệ được người nhận' }}</b>
-                <p v-if="getShipmentAttemptText(selectedOrder)">{{ getShipmentAttemptText(selectedOrder) }}. NextGen sẽ hỗ trợ giao lại nếu còn lượt.</p>
-                <p v-else>NextGen sẽ liên hệ lại để hỗ trợ giao lại hoặc cập nhật phương án xử lý phù hợp.</p>
-              </div>
-              <div v-if="getShippingInfo(selectedOrder).status === 'returned'" class="shipping-failure-box is-returned">
-                <span>Đơn đã chuyển hoàn</span>
-                <b>{{ getShippingInfo(selectedOrder).return_reason || 'Đã hoàn về kho' }}</b>
-                <p>{{ getShipmentRefundNote(selectedOrder) || 'Đơn đã kết thúc quy trình giao nhận.' }}</p>
-              </div>
-              <div class="shipping-info-grid">
-                <div>
-                  <span>Dự kiến giao</span>
-                  <b>{{ getShippingInfo(selectedOrder).expected_delivery_date || '-' }}</b>
-                </div>
-                <div>
-                  <span>Khu vực</span>
-                  <b>{{ getShippingInfo(selectedOrder).service_area || 'Tiêu chuẩn' }}</b>
-                </div>
-                <div>
-                  <span>Gói giao</span>
-                  <b>{{ getShippingInfo(selectedOrder).service_level || 'Giao tiêu chuẩn' }}</b>
-                </div>
-                <div>
-                  <span>Thu hộ COD</span>
-                  <b>{{ new Intl.NumberFormat('vi-VN').format(getShippingInfo(selectedOrder).cod_amount || 0) }}đ</b>
-                </div>
-              </div>
-              <div class="shipping-events">
-                <div class="shipping-events-head">
-                  <span>Lịch trình đơn hàng</span>
-                  <b>{{ shippingTimelineFor(selectedOrder).length }} cập nhật</b>
-                </div>
-                <div class="shipping-events-rail">
-                  <div v-for="(event, idx) in shippingTimelineFor(selectedOrder)" :key="idx" class="shipping-event">
-                    <span></span>
-                    <div>
-                      <b>{{ event.label }}</b>
-                      <p>{{ event.note }}</p>
-                      <small>{{ event.date }}</small>
+                <div class="shipping-events">
+                  <div class="shipping-events-head">
+                    <span>Lịch trình đơn hàng</span>
+                    <b>{{ shippingTimelineFor(selectedOrder).length }} cập nhật</b>
+                  </div>
+                  <div class="shipping-events-rail">
+                    <div v-for="(event, idx) in shippingTimelineFor(selectedOrder)" :key="idx" class="shipping-event">
+                      <span></span>
+                      <div>
+                        <b>{{ event.label }}</b>
+                        <p>{{ event.note }}</p>
+                        <small>{{ event.date }}</small>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div v-if="(selectedOrder.status === 'cancelled' || selectedOrder.status === 'refund_pending' || selectedOrder.status === 'refunded') && selectedOrder.lydo" class="alert mb-4" :class="{'alert-danger': selectedOrder.status === 'cancelled', 'alert-warning': selectedOrder.status !== 'cancelled'}" style="font-size: 13px; padding: 12px; border-radius: 10px;">
-              <strong>Lý do:</strong> {{ selectedOrder.lydo }}
-              <div v-if="selectedOrder.refund_proof" class="mt-2">
-                <strong>Bằng chứng:</strong> <a :href="storageUrl(selectedOrder.refund_proof)" target="_blank">Xem file đính kèm</a>
-              </div>
-            </div>
-
-            <div class="timeline" v-if="selectedOrder.steps && !canShowShippingPanel(selectedOrder) && !selectedOrder.status.startsWith('refund')">
-              <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
-                <div class="tl-col">
-                  <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-                  <div class="tl-line" v-if="i < selectedOrder.steps.length - 1" :class="{ done: step.done }"></div>
+              <!-- Cancellation info if cancelled or refund -->
+              <div
+                v-if="selectedOrder.status === 'cancelled' || selectedOrder.status?.startsWith('refund') || getRefundProofFiles(selectedOrder).length > 0"
+                style="margin-bottom: 18px; font-size: 14px; color: #1e293b; line-height: 1.5;">
+                <div style="margin-bottom: 8px;">
+                  <strong style="color: #0f172a; font-weight: 700;">Lý do:</strong> <span style="color: #334155;">{{
+                    selectedOrder.lydo || 'Khách hàng không nhập lý do' }}</span>
                 </div>
-                <div class="tl-content">
-                  <p class="tl-label">{{ step.label }}</p>
-                  <p class="tl-date">{{ step.date || '—' }}</p>
+
+                <!-- Ảnh / Video bằng chứng nằm ở ngay dưới lý do -->
+                <div v-if="getRefundProofFiles(selectedOrder).length > 0" class="proof-media-grid"
+                  style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 10px;">
+                  <div v-for="(file, pIdx) in getRefundProofFiles(selectedOrder)" :key="pIdx" class="proof-media-item"
+                    style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                    <template v-if="isImageFile(file)">
+                      <a :href="getProofMediaUrl(file)" target="_blank" title="Bấm để xem ảnh phóng to"
+                        style="display: block; text-align: center; background: #f8fafc;">
+                        <img :src="getProofMediaUrl(file)" @error="$event.target.src = getProofProxyUrl(file)"
+                          alt="Bằng chứng" style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                      </a>
+                    </template>
+                    <template v-else-if="isVideoFile(file)">
+                      <video controls
+                        style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;"
+                        preload="metadata">
+                        <source :src="getProofMediaUrl(file)" />
+                        <source :src="getProofProxyUrl(file)" />
+                        Trình duyệt không hỗ trợ xem video.
+                      </video>
+                    </template>
+                    <template v-else>
+                      <div style="padding: 20px 10px; text-align: center;">
+                        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                          <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <a :href="getProofProxyUrl(file)" target="_blank"
+                          style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải file bằng chứng #{{ pIdx + 1 }}</a>
+                      </div>
+                    </template>
+                    <a :href="getProofProxyUrl(file)" target="_blank"
+                      style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                      🔍 Mở tệp gốc / Tải về
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Nếu đơn chưa có tệp bằng chứng -> Hiện nút bấm tải lên ngay dưới lý do -->
+                <div v-else style="margin-top: 10px; padding: 12px 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; color: #475569;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span>📁 <strong>Bằng chứng:</strong> Chưa có tệp đính kèm</span>
+                    <label style="margin: 0; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.2);">
+                      <span>📤 Tải lên ảnh / video</span>
+                      <input type="file" multiple accept="image/*,video/*" @change="uploadRefundProof($event, selectedOrder)" style="display: none;" />
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="refund-timeline-wrap" v-if="selectedOrder.refundSteps" style="margin-top: 15px;">
-              <h3 class="section-title" style="color: #f97316;">Quá trình hoàn trả</h3>
-              <div class="timeline refund-timeline">
-                <div class="tl-item" v-for="(step, i) in selectedOrder.refundSteps" :key="'r'+i" :class="{ done: step.done }">
+              <div class="timeline"
+                v-if="selectedOrder.steps && !canShowShippingPanel(selectedOrder) && !selectedOrder.status.startsWith('refund')">
+                <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
                   <div class="tl-col">
-                    <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="tl-line refund-line" v-if="i < selectedOrder.refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg></div>
+                    <div class="tl-line" v-if="i < selectedOrder.steps.length - 1" :class="{ done: step.done }"></div>
                   </div>
                   <div class="tl-content">
-                    <p class="tl-label refund-label">{{ step.label }}</p>
+                    <p class="tl-label">{{ step.label }}</p>
                     <p class="tl-date">{{ step.date || '—' }}</p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <h3 class="section-title">Sản phẩm</h3>
-            <div class="modal-item" v-for="item in selectedOrder.items.filter(i => !selectedOrder.status.startsWith('refund') || i.is_refund == 1)" :key="item.id_bienthe">
-              <img :src="item.img" :alt="item.name" />
-              <div class="modal-item-info">
-                <p class="modal-item-name">
-                  {{ item.name }}
-                  <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
-                </p>
-                <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
-              </div>
-              <div class="modal-item-right" style="text-align: right;">
-                <p class="modal-item-price">{{ item.price }}</p>
-                <button v-if="selectedOrder.status === 'done' && !item.is_reviewed" 
-                  class="btn-review-small" @click="openReviewModal(selectedOrder, item)">Đánh giá</button>
-                <span v-else-if="item.is_reviewed" class="reviewed-tag">Đã đánh giá</span>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <div class="modal-btns">
-                <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)"
-                  class="btn-modal-huy"
-                  :class="{ 'is-hidden': !canCancelOrder(selectedOrder) }"
-                  :disabled="!canCancelOrder(selectedOrder)"
-                  @click="openCancelModal(selectedOrder)">Hủy đơn</button>
-                <button v-if="isRefundable(selectedOrder)"
-                  class="btn-modal-hoantra" @click="openRefundModal(selectedOrder)">Hoàn trả</button>
-                <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
-                  class="btn-modal-mua" @click="handleReorder(selectedOrder)">Mua lại</button>
-              </div>
-              
-              <div class="modal-total-wrap" style="width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
-                <div class="modal-breakdown" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top:10px; width: 100%; font-size: 13px; color: #94a3b8;" v-if="selectedOrder.xu_dung > 0 || selectedOrder.giam_gia > 0">
-                  <div class="d-flex justify-content-between mb-1" v-if="selectedOrder.giam_gia > 0" style="display: flex; justify-content: space-between; width: 100%;">
-                    <span>Giảm giá voucher:</span>
-                    <span style="color:#ef4444;">-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.giam_gia) }}đ</span>
-                  </div>
-                  <div class="d-flex justify-content-between" v-if="selectedOrder.xu_dung > 0" style="display: flex; justify-content: space-between; width: 100%;">
-                    <span>Sử dụng xu:</span>
-                    <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.xu_dung) }}đ)</span>
+              <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
+              <div class="refund-timeline-vertical" v-if="selectedOrder.refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
+                <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                  <span>🔄</span> Quá trình hoàn trả
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
+                  <div v-for="(step, i) in selectedOrder.refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                    <!-- Vertical line -->
+                    <div v-if="i < selectedOrder.refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
+                    
+                    <!-- Dot icon -->
+                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
+                      <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
+                    </div>
+
+                    <!-- Label and Date -->
+                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
+                      <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                        {{ step.label }}
+                      </div>
+                      <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                        {{ step.date || '—' }}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; width: 100%; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top:8px;">
-                  <span class="total-label">Thành tiền</span>
-                  <span class="total-value" style="font-size: 18px; color: #2563eb;">{{ selectedOrder.total }}</span>
+              </div>
+
+              <h3 class="section-title">Sản phẩm</h3>
+              <div class="modal-item" v-for="item in getRefundModalItems(selectedOrder)"
+                :key="item.id_bienthe || item.id_dathang_chi_tiet">
+                <img :src="item.img" :alt="item.name" />
+                <div class="modal-item-info">
+                  <p class="modal-item-name">
+                    {{ item.name }}
+                    <span v-if="isRefundItem(item)"
+                      style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã
+                      hoàn trả</span>
+                  </p>
+                  <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
+                </div>
+                <div class="modal-item-right" style="text-align: right;">
+                  <p class="modal-item-price">{{ item.price }}</p>
+                  <button v-if="selectedOrder.status === 'done' && !item.is_reviewed" class="btn-review-small"
+                    @click="openReviewModal(selectedOrder, item)">Đánh giá</button>
+                  <span v-else-if="item.is_reviewed" class="reviewed-tag">Đã đánh giá</span>
+                </div>
+              </div>
+              <div class="modal-footer" style="display: flex; flex-direction: column; gap: 14px; padding-top: 16px; border-top: none; width: 100%;">
+                <!-- Total price breakdown -->
+                <div class="modal-total-wrap" style="width: 100%; display: flex; flex-direction: column; gap: 6px;">
+                  <div class="modal-breakdown" style="border-top: none; padding-top: 0; width: 100%; font-size: 13px; color: #94a3b8;" v-if="selectedOrder.xu_dung > 0 || selectedOrder.giam_gia > 0">
+                    <div class="d-flex justify-content-between mb-1" v-if="selectedOrder.giam_gia > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                      <span>Giảm giá voucher:</span>
+                      <span style="color:#ef4444;">-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.giam_gia) }}đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between" v-if="selectedOrder.xu_dung > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                      <span>Sử dụng xu:</span>
+                      <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.xu_dung) }}đ)</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-weight: 700; border: none; background: transparent; padding: 4px 0;">
+                    <span class="total-label" style="font-size: 15px; color: #475569;">Thành tiền:</span>
+                    <span class="total-value" style="font-size: 20px; font-weight: 800; color: #2563eb;">{{ selectedOrder.total }}</span>
+                  </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="modal-btns" style="width: 100%; display: flex; gap: 10px;">
+                  <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" class="btn-modal-huy"
+                    :class="{ 'is-hidden': !canCancelOrder(selectedOrder) }" :disabled="!canCancelOrder(selectedOrder)"
+                    @click="openCancelModal(selectedOrder)" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">Hủy đơn</button>
+                  <button v-if="isRefundable(selectedOrder)" class="btn-modal-hoantra"
+                    @click="openRefundModal(selectedOrder)" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">Hoàn trả</button>
+                  <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
+                    class="btn-modal-mua" @click="handleReorder(selectedOrder)" style="flex: 1; width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border: none; cursor: pointer;">Mua lại</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <!-- Cancellation Modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Lý do hủy đơn</h2>
-            <button class="close-btn" no-guard @click="closeCancelModal">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao tác này không thể hoàn tác.</p>
-            <textarea v-model="cancelReason" class="cancel-textarea" placeholder="Nhập lý do hủy tại đây..." rows="3"></textarea>
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+        <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal" style="z-index: 9005;">
+          <div class="modal mini-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Lý do hủy đơn</h2>
+              <button class="close-btn" no-guard @click="closeCancelModal">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
-              <button class="btn-cancel" no-guard @click="closeCancelModal">Quay lại</button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao
+                tác
+                này không thể hoàn tác.</p>
+              <textarea v-model="cancelReason" class="cancel-textarea" placeholder="Nhập lý do hủy tại đây..."
+                rows="3"></textarea>
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+                <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
+                  {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+                </button>
+                <button class="btn-cancel" no-guard @click="closeCancelModal">Quay lại</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <!-- Xu History Modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
-        <div class="modal" style="max-width: 550px;">
-          <div class="modal-head">
-            <div>
-              <h2 class="modal-title">Lịch sử giao dịch Xu</h2>
-              <p class="modal-id" style="color: #64748b; font-size: 12px; margin-top: 2px;">Theo dõi các giao dịch sử dụng và hoàn trả xu của bạn</p>
-            </div>
-            <button class="close-btn" @click="showXuHistoryModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body" style="padding-top: 10px;">
-            <div v-if="xuHistoryLoading" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
-              <p class="mt-2 text-muted" style="font-size: 13px;">Đang tải lịch sử giao dịch...</p>
-            </div>
-            <div v-else-if="xuHistoryList.length === 0" class="text-center py-4" style="color: #64748b;">
-              <p style="font-size: 14px; margin: 0;">Bạn chưa có giao dịch xài xu nào.</p>
-            </div>
-            <div v-else>
-              <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
-                <table class="table table-hover" style="font-size: 13px; margin: 0;">
-                  <thead>
-                    <tr style="border-bottom: 2px solid #e2e8f0;">
-                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Thời gian</th>
-                      <th style="font-weight: 600; color: #475569; padding: 10px 8px; text-align: right;">Số xu</th>
-                      <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Chi tiết giao dịch</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in xuHistoryList" :key="item.id_lichsu" style="border-bottom: 1px solid #f1f5f9; align-items: center;">
-                      <td style="padding: 10px 8px; color: #64748b;">
-                        {{ new Date(item.created_at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }}
-                      </td>
-                      <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;" :style="item.so_xu > 0 ? 'color: #2563eb;' : 'color: #ef4444;'">
-                        {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
-                      </td>
-                      <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
-                        {{ item.mo_ta }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+        <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
+          <div class="modal" style="max-width: 550px;">
+            <div class="modal-head">
+              <div>
+                <h2 class="modal-title">Lịch sử giao dịch Xu</h2>
+                <p class="modal-id" style="color: #64748b; font-size: 12px; margin-top: 2px;">Theo dõi các giao dịch sử
+                  dụng
+                  và hoàn trả xu của bạn</p>
               </div>
-              
-              <!-- Pagination -->
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top: 1px solid #e2e8f0; font-size: 12px;" v-if="xuHistoryTotalPages > 1">
-                <span class="text-muted">Trang {{ xuHistoryPage }}/{{ xuHistoryTotalPages }}</span>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === 1" @click="fetchXuHistory(xuHistoryPage - 1)">
-                    ‹ Trước
-                  </button>
-                  <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === xuHistoryTotalPages" @click="fetchXuHistory(xuHistoryPage + 1)">
-                    Sau ›
-                  </button>
+              <button class="close-btn" @click="showXuHistoryModal = false">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding-top: 10px;">
+              <div v-if="xuHistoryLoading" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
+                <p class="mt-2 text-muted" style="font-size: 13px;">Đang tải lịch sử giao dịch...</p>
+              </div>
+              <div v-else-if="xuHistoryList.length === 0" class="text-center py-4" style="color: #64748b;">
+                <p style="font-size: 14px; margin: 0;">Bạn chưa có giao dịch xài xu nào.</p>
+              </div>
+              <div v-else>
+                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                  <table class="table table-hover" style="font-size: 13px; margin: 0;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #e2e8f0;">
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Thời gian</th>
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px; text-align: right;">Số xu</th>
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Chi tiết giao dịch</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in xuHistoryList" :key="item.id_lichsu"
+                        style="border-bottom: 1px solid #f1f5f9; align-items: center;">
+                        <td style="padding: 10px 8px; color: #64748b;">
+                          {{ new Date(item.created_at).toLocaleString('vi-VN', {
+                            dateStyle: 'short', timeStyle: 'short'
+                          })
+                          }}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;"
+                          :style="item.so_xu > 0 ? 'color: #2563eb;' : 'color: #ef4444;'">
+                          {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
+                        </td>
+                        <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
+                          {{ item.mo_ta }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2"
+                  style="border-top: 1px solid #e2e8f0; font-size: 12px;" v-if="xuHistoryTotalPages > 1">
+                  <span class="text-muted">Trang {{ xuHistoryPage }}/{{ xuHistoryTotalPages }}</span>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === 1"
+                      @click="fetchXuHistory(xuHistoryPage - 1)">
+                      ‹ Trước
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2"
+                      :disabled="xuHistoryPage === xuHistoryTotalPages" @click="fetchXuHistory(xuHistoryPage + 1)">
+                      Sau ›
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <!-- Profile OTP Modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false" style="z-index: 9020;">
-        <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="width: 56px; height: 56px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-              <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false"
+          style="z-index: 9020;">
+          <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div
+                style="width: 56px; height: 56px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
+              <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được
+                gửi
+                đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để
+                hoàn
+                tất việc đổi mật khẩu.</p>
             </div>
-            <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
-            <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được gửi đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để hoàn tất việc đổi mật khẩu.</p>
-          </div>
 
-          <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-            <input 
-              v-for="(val, idx) in 6" :key="idx"
-              type="text" 
-              maxlength="1"
-              :ref="el => profileOtpInputRefs[idx] = el"
-              v-model="profileOtpCode[idx]"
-              @input="handleProfileOtpInput(idx, $event)"
-              @keydown="handleProfileOtpKeydown(idx, $event)"
-              @paste.prevent="handleProfileOtpInput(idx, { target: { value: $event.clipboardData.getData('text') } })"
-              style="width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: 700; border: 2px solid #e2e8f0; border-radius: 10px; transition: border-color 0.2s;"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#e2e8f0'"
-            />
-          </div>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+              <input v-for="(val, idx) in 6" :key="idx" type="text" maxlength="1"
+                :ref="el => profileOtpInputRefs[idx] = el" v-model="profileOtpCode[idx]"
+                @input="handleProfileOtpInput(idx, $event)" @keydown="handleProfileOtpKeydown(idx, $event)"
+                @paste.prevent="handleProfileOtpInput(idx, { target: { value: $event.clipboardData.getData('text') } })"
+                style="width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: 700; border: 2px solid #e2e8f0; border-radius: 10px; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" />
+            </div>
 
-          <div v-if="profilePwErrors.otp" style="color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; font-weight: 500;">
-            {{ profilePwErrors.otp }}
-          </div>
+            <div v-if="profilePwErrors.otp"
+              style="color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; font-weight: 500;">
+              {{ profilePwErrors.otp }}
+            </div>
 
-          <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px;">
-            <svg style="width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{ Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
-          </div>
+            <div
+              style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px;">
+              <svg style="width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{
+                Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
+            </div>
 
-          <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6" style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'" :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
-            {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
-          </button>
-
-          <div style="text-align: center; font-size: 13.5px;">
-            <span style="color: #64748b;">Chưa nhận được mã?</span>
-            <button @click="resendProfileOtp" :disabled="profileOtpResendCooldown > 0 || sendingProfileOtp" style="background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; margin-left: 6px; transition: opacity 0.2s;" :style="profileOtpResendCooldown > 0 || sendingProfileOtp ? 'color: #94a3b8; cursor: not-allowed;' : ''" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-              {{ sendingProfileOtp ? 'Đang gửi...' : (profileOtpResendCooldown > 0 ? `Gửi lại (${profileOtpResendCooldown}s)` : 'Gửi lại mã') }}
+            <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6"
+              style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;"
+              onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'"
+              :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+              {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
             </button>
+
+            <div style="text-align: center; font-size: 13.5px;">
+              <span style="color: #64748b;">Chưa nhận được mã?</span>
+              <button @click="resendProfileOtp" :disabled="profileOtpResendCooldown > 0 || sendingProfileOtp"
+                style="background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; margin-left: 6px; transition: opacity 0.2s;"
+                :style="profileOtpResendCooldown > 0 || sendingProfileOtp ? 'color: #94a3b8; cursor: not-allowed;' : ''"
+                onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                {{ sendingProfileOtp ? 'Đang gửi...' : (profileOtpResendCooldown > 0 ? `Gửi lại
+                (${profileOtpResendCooldown}s)` : 'Gửi lại mã') }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <!-- Refund Modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal" style="z-index: 9005;">
-        <div class="modal mini-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Yêu cầu hoàn trả</h2>
-            <button class="close-btn" no-guard @click="closeRefundModal">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
+        <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal" style="z-index: 9005;">
+          <div class="modal mini-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Yêu cầu hoàn trả</h2>
+              <button class="close-btn" no-guard @click="closeRefundModal">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
                 <div class="refund-items-list">
-                    <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card" :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
-                        <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
-                            <img :src="item.img" class="refund-product-img" :alt="item.name">
-                            <div class="refund-product-info">
-                                <div class="refund-product-name">{{ item.name }}</div>
-                                <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
-                            </div>
-                            <div class="refund-product-side">
-                                <div class="refund-product-price">{{ item.price }}</div>
-                                <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' : 'Chọn' }}</span>
-                            </div>
-                            <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems">
-                        </label>
-                    </div>
+                  <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card"
+                    :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                    <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
+                      <img :src="item.img" class="refund-product-img" :alt="item.name">
+                      <div class="refund-product-info">
+                        <div class="refund-product-name">{{ item.name }}</div>
+                        <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
+                      </div>
+                      <div class="refund-product-side">
+                        <div class="refund-product-price">{{ item.price }}</div>
+                        <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' :
+                          'Chọn' }}</span>
+                      </div>
+                      <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe"
+                        :value="item.id_bienthe" v-model="refundSelectedItems">
+                    </label>
+                  </div>
                 </div>
-            </div>
-            <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
-            <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..." rows="3"></textarea>
-            
-            <div class="mb-3">
-                <label class="form-label" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng chứng</label>
-                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
-                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
-                
-                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
-                    <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                    <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
-                </div>
-            </div>
+              </div>
+              <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
+              <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..."
+                rows="3"></textarea>
 
-            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
-              <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting" style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-              </button>
-              <button class="btn-cancel" no-guard @click="closeRefundModal">Quay lại</button>
+              <div class="mb-3">
+                <label class="form-label"
+                  style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng
+                  chứng</label>
+                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa
+                  20MB)</small>
+
+                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
+                  <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl"
+                    alt="Bằng chứng"
+                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                  <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls
+                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+                <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting"
+                  style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                  {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
+                </button>
+                <button class="btn-cancel" no-guard @click="closeRefundModal">Quay lại</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <!-- Review Modal -->
     <Teleport to="body">
       <transition name="fade">
-      <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
-        <div class="modal review-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">Đánh giá sản phẩm</h2>
-            <button class="close-btn" @click="showReviewModal = false">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="review-product-info">
-              <p class="review-product-name">{{ reviewForm.productName }}</p>
-            </div>
-
-            <div class="rating-selector">
-              <span class="rating-label">Chất lượng sản phẩm</span>
-              <div class="stars-input">
-                <button 
-                  v-for="i in 5" 
-                  :key="i" 
-                  class="star-btn" 
-                  :class="{ filled: i <= (hoverRating || reviewForm.rating) }"
-                  @mouseenter="hoverRating = i"
-                  @mouseleave="hoverRating = 0"
-                  @click="reviewForm.rating = i"
-                  type="button"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </button>
-                <span class="rating-text" v-if="reviewForm.rating">
-                  {{ ['Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][reviewForm.rating - 1] }}
-                </span>
-              </div>
-            </div>
-
-            <div class="form-group mb-0">
-              <label>Bình luận</label>
-              <textarea 
-                v-model="reviewForm.comment" 
-                class="form-control" 
-                placeholder="Hãy chia sẻ trải nghiệm của bạn về sản phẩm nhé..." 
-                rows="4"
-              ></textarea>
-            </div>
-
-            <div class="modal-footer pt-4" style="border:none; padding-bottom:0;">
-              <button class="btn-save w-100" @click="submitReview" :disabled="isSubmittingReview">
-                {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+        <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
+          <div class="modal review-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Đánh giá sản phẩm</h2>
+              <button class="close-btn" @click="showReviewModal = false">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
+            </div>
+            <div class="modal-body">
+              <div class="review-product-info" style="background: #f1f5f9; padding: 14px 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <p class="review-product-name" style="font-weight: 700; font-size: 14.5px; color: #0f172a; line-height: 1.5; margin: 0;">{{ reviewForm.productName }}</p>
+              </div>
+
+              <div class="rating-selector">
+                <span class="rating-label" style="display: block; font-size: 14px; color: #334155; margin-bottom: 12px; font-weight: 700;">Chất lượng sản phẩm</span>
+                <div class="stars-input">
+                  <button v-for="i in 5" :key="i" class="star-btn"
+                    :class="{ filled: i <= (hoverRating || reviewForm.rating) }" @mouseenter="hoverRating = i"
+                    @mouseleave="hoverRating = 0" @click="reviewForm.rating = i" type="button">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </button>
+                  <span class="rating-text" v-if="reviewForm.rating" style="margin-left: 12px; font-size: 14px; font-weight: 700; color: #d97706;">
+                    {{ ['Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][reviewForm.rating - 1] }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group mb-0">
+                <label style="display: block; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Bình luận</label>
+                <textarea v-model="reviewForm.comment" class="form-control"
+                  placeholder="Hãy chia sẻ trải nghiệm của bạn về sản phẩm nhé..." rows="4"
+                  style="width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; line-height: 1.5; outline: none; box-sizing: border-box; resize: vertical; min-height: 110px;"></textarea>
+              </div>
+
+              <div class="modal-footer pt-4" style="border:none; padding-bottom:0;">
+                <button class="btn-save w-100" @click="submitReview" :disabled="isSubmittingReview"
+                  style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border: none; border-radius: 10px; padding: 12px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+                  {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <Teleport to="body">
       <transition name="fade">
         <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
-        <div class="modal address-modal">
-          <div class="modal-head">
-            <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
-            <button class="close-btn" no-guard @click="cancelAddr">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <form @submit.prevent="saveAddr" class="address-modal-form">
-              <div class="form-group form-full">
-                <div class="region-picker-row">
-                  <div class="region-picker-field">
-                    <label>Tỉnh/Thành phố</label>
-                    <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required @change="handleProvinceChange">
-                      <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố' }}</option>
-                      <option v-for="province in provinces" :key="province.code" :value="province.code">{{ province.name }}</option>
-                    </select>
-                  </div>
-                  <div class="region-picker-field">
-                    <label>Phường/Xã</label>
-                    <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required @change="handleWardChange">
-                      <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}</option>
-                      <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div class="form-group form-full" style="position: relative;">
-                <label>Địa chỉ chi tiết</label>
-                <input v-model="addrForm.detail" @input="handleDetailInput" @blur="handleDetailBlur" @keydown="handleDetailKeydown" type="text" placeholder="Số nhà, tên đường..." required autocomplete="off" />
-                <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm gợi ý...</small>
-                <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning }}</small>
-                
-                <div v-if="showSuggestions && addressSuggestions.length > 0" class="suggestions-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1050; max-height: 250px; overflow-y: auto; margin-top: 4px;">
-                  <div v-for="(item, idx) in addressSuggestions" :key="idx" @click="selectSuggestion(item)" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <strong style="font-size: 13px; color: #334155; display: block; margin-bottom: 2px;">{{ item.title || item.display_name || item.subtitle }}</strong>
-                    <span style="font-size: 11px; color: #64748b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.subtitle || item.display_name }}</span>
+          <div class="modal address-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+              <button class="close-btn" no-guard @click="cancelAddr">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form @submit.prevent="saveAddr" class="address-modal-form">
+                <div class="form-group form-full">
+                  <div class="region-picker-row">
+                    <div class="region-picker-field">
+                      <label>Tỉnh/Thành phố</label>
+                      <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required
+                        @change="handleProvinceChange">
+                        <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố'
+                          }}
+                        </option>
+                        <option v-for="province in provinces" :key="province.code" :value="province.code">{{
+                          province.name
+                          }}</option>
+                      </select>
+                    </div>
+                    <div class="region-picker-field">
+                      <label>Phường/Xã</label>
+                      <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required
+                        @change="handleWardChange">
+                        <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}
+                        </option>
+                        <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="form-group form-full">
-                <label>Vị trí giao hàng</label>
-                <div class="inline-map-field">
-                  <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress" @open="openMapPicker" />
-                  <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
-                  <small v-else-if="addrForm.fullAddress">{{ addrForm.fullAddress }}</small>
+                <div class="form-group form-full" style="position: relative;">
+                  <label>Địa chỉ chi tiết</label>
+                  <input v-model="addrForm.detail" @input="handleDetailInput" @blur="handleDetailBlur"
+                    @keydown="handleDetailKeydown" type="text" placeholder="Số nhà, tên đường..." required
+                    autocomplete="off" />
+                  <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm
+                    gợi
+                    ý...</small>
+                  <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning
+                    }}</small>
+
+                  <div v-if="showSuggestions && addressSuggestions.length > 0" class="suggestions-dropdown"
+                    style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1050; max-height: 250px; overflow-y: auto; margin-top: 4px;">
+                    <div v-for="(item, idx) in addressSuggestions" :key="idx" @click="selectSuggestion(item)"
+                      style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;"
+                      onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                      <strong style="font-size: 13px; color: #334155; display: block; margin-bottom: 2px;">{{ item.title
+                        ||
+                        item.display_name || item.subtitle }}</strong>
+                      <span
+                        style="font-size: 11px; color: #64748b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
+                          item.subtitle || item.display_name }}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="form-group"><label>Loại địa chỉ</label><select v-model="addrForm.type" required><option value="home">Nhà riêng</option><option value="company">Công ty</option></select></div>
-              <div class="form-group form-full">
-                <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa chỉ mặc định</span></label>
-              </div>
-              <div class="form-actions form-full address-modal-actions">
-                <button type="button" class="btn-cancel" no-guard @click="cancelAddr">Hủy</button>
-                <button type="submit" class="btn-save" :disabled="savingAddr">
-                  <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
-                </button>
-              </div>
-            </form>
+                <div class="form-group form-full">
+                  <label>Vị trí giao hàng</label>
+                  <div class="inline-map-field">
+                    <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress"
+                      @open="openMapPicker" />
+                    <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
+                    <small v-else-if="addrForm.fullAddress">{{ addrForm.fullAddress }}</small>
+                  </div>
+                </div>
+                <div class="form-group"><label>Loại địa chỉ</label><select v-model="addrForm.type" required>
+                    <option value="home">Nhà riêng</option>
+                    <option value="company">Công ty</option>
+                  </select></div>
+                <div class="form-group form-full">
+                  <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa
+                      chỉ
+                      mặc định</span></label>
+                </div>
+                <div class="form-actions form-full address-modal-actions">
+                  <button type="button" class="btn-cancel" no-guard @click="cancelAddr">Hủy</button>
+                  <button type="submit" class="btn-save" :disabled="savingAddr">
+                    <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
     </Teleport>
 
     <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
@@ -2496,23 +2769,25 @@ const promoStatusMap = {
       <!-- â”€â”€ SIDEBAR â”€â”€ -->
       <aside class="sidebar">
         <!-- Input ẩn cho avatar upload -->
-        <input 
-          type="file" 
-          ref="fileInput" 
-          class="d-none" 
-          style="display:none"
-          accept="image/jpeg, image/png"
-          @change="handleAvatarUpload" 
-        />
+        <input type="file" ref="fileInput" class="d-none" style="display:none" accept="image/jpeg, image/png"
+          @change="handleAvatarUpload" />
         <div class="avatar-section">
           <div class="avatar-sidebar-container">
-            <div class="avatar-circle" @click="triggerAvatarUpload" style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
+            <div class="avatar-circle" @click="triggerAvatarUpload"
+              style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
               <img :src="formAvatarUrl" :alt="user.name" class="profile-avatar" />
-              <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
-                <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <div v-if="isUploadingAvatar" class="avatar-hover-overlay"
+                style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                <svg class="spin" viewBox="0 0 24 24" fill="none"
+                  style="width:24px;height:24px;animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
               </div>
-              <div v-else class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
-                <i class="fas fa-camera"></i> <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">Đổi ảnh</span>
+              <div v-else class="avatar-hover-overlay"
+                style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff;"
+                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <i class="fas fa-camera"></i> <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">Đổi
+                  ảnh</span>
               </div>
             </div>
           </div>
@@ -2523,9 +2798,18 @@ const promoStatusMap = {
 
         <div class="stat-grid">
           <div class="stat-card" v-for="s in stats" :key="s.label">
-            <svg v-if="s.icon==='orders'" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>
-            <svg v-else-if="s.icon==='heart'" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <svg v-else viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <svg v-if="s.icon === 'orders'" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <svg v-else-if="s.icon === 'heart'" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
             <span class="stat-val">{{ s.value }}</span>
             <span class="stat-lbl">{{ s.label }}</span>
           </div>
@@ -2533,24 +2817,38 @@ const promoStatusMap = {
 
         <!-- NAV BUTTONS -->
         <nav class="side-nav">
-          <button
-            v-for="tab in filteredTabs" :key="tab.key"
-            class="side-btn"
-            :class="{ active: activeTab === tab.key }"
-            @click="changeTab(tab.key)"
-          >
+          <button v-for="tab in filteredTabs" :key="tab.key" class="side-btn" :class="{ active: activeTab === tab.key }"
+            @click="changeTab(tab.key)">
             <!-- person -->
-            <svg v-if="tab.icon==='person'" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <svg v-if="tab.icon === 'person'" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
             <!-- orders -->
-            <svg v-else-if="tab.icon==='orders'" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            <svg v-else-if="tab.icon === 'orders'" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+            </svg>
             <!-- map -->
-            <svg v-else-if="tab.icon==='map'" viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <svg v-else-if="tab.icon === 'map'" viewBox="0 0 24 24" fill="none">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
             <!-- tag (promotions) -->
-            <svg v-else-if="tab.icon==='tag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <svg v-else-if="tab.icon === 'tag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
             <!-- lock -->
-            <svg v-else viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
             <span>{{ tab.label }}</span>
-            <svg class="arrow" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6"/></svg>
+            <svg class="arrow" viewBox="0 0 24 24" fill="none">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </button>
         </nav>
       </aside>
@@ -2569,41 +2867,61 @@ const promoStatusMap = {
                 <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
               </div>
               <button v-if="!editing" class="btn-edit" @click="startEdit">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
                 Chỉnh sửa
               </button>
             </div>
             <div v-if="!editing" class="info-grid">
-              <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val" :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val"
+                  :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
               <div class="info-row">
                 <span class="info-lbl">Xu tích lũy</span>
                 <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
-                  <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN') }} Xu</b>
-                  <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal" style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
-                    <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN')
+                    }}
+                    Xu</b>
+                  <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal"
+                    style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                    <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Lịch sử
                   </button>
                 </span>
               </div>
-              <div class="info-row"><span class="info-lbl">Email</span><span class="info-val" :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
-              <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val" :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
-              <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val" :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Email</span><span class="info-val"
+                  :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val"
+                  :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val"
+                  :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
               <div class="info-row">
                 <span class="info-lbl">Giới tính</span>
                 <span class="info-val" :class="{ 'not-set': !user.gender }">
-                  {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female', 'Nữ'].includes(user.gender) ? 'Nữ' : 'Khác') : 'Chưa cập nhật' }}
+                  {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female',
+                    'Nữ'].includes(user.gender) ?
+                  'Nữ' : 'Khác') : 'Chưa cập nhật' }}
                 </span>
               </div>
             </div>
             <form v-else class="edit-form" @submit.prevent="saveProfile">
-              <div class="form-avatar-section" @click="triggerAvatarUpload" role="button" tabindex="0" @keydown.enter.prevent="triggerAvatarUpload" @keydown.space.prevent="triggerAvatarUpload">
+              <div class="form-avatar-section" @click="triggerAvatarUpload" role="button" tabindex="0"
+                @keydown.enter.prevent="triggerAvatarUpload" @keydown.space.prevent="triggerAvatarUpload">
                 <div class="form-avatar-dashed-border">
                   <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
                     <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
-                    <div v-if="isUploadingAvatar" class="avatar-hover-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
-                      <svg class="spin" viewBox="0 0 24 24" fill="none" style="width:24px;height:24px;animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <div v-if="isUploadingAvatar" class="avatar-hover-overlay"
+                      style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                      <svg class="spin" viewBox="0 0 24 24" fill="none"
+                        style="width:24px;height:24px;animation: spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" />
+                      </svg>
                     </div>
                     <div v-else class="form-avatar-plus-overlay">
                       <i class="fas fa-plus"></i>
@@ -2613,11 +2931,14 @@ const promoStatusMap = {
                 <p class="form-avatar-upload-text">Tải ảnh lên</p>
               </div>
 
-              <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required /></div>
-              <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required /></div>
+              <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required />
+              </div>
+              <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required />
+              </div>
               <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
               <div class="form-row">
-                <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" /></div>
+                <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" />
+                </div>
                 <div class="form-group">
                   <label>Giới tính</label>
                   <select v-model="profileForm.gender">
@@ -2631,7 +2952,9 @@ const promoStatusMap = {
               <div class="form-actions">
                 <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
                 <button type="submit" class="btn-save" :disabled="savingProfile">
-                  <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
                   {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
                 </button>
               </div>
@@ -2657,14 +2980,22 @@ const promoStatusMap = {
                   <span class="xu-val">+{{ d.xu }}</span>
                 </div>
                 <div class="day-status-icon">
-                  <svg v-if="d.status === 'checked'" class="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="d.status === 'checked'" class="icon-success" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <svg v-else-if="d.status === 'current'" class="icon-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                  <svg v-else-if="d.status === 'current'" class="icon-current" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 12v10H4V12" />
+                    <path d="M2 7h20v5H2z" />
+                    <path d="M12 22V7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
                   </svg>
-                  <svg v-else class="icon-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  <svg v-else class="icon-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </div>
               </div>
@@ -2672,22 +3003,24 @@ const promoStatusMap = {
 
             <div class="attendance-footer">
               <div class="attendance-streak-info">
-                <span>Chuỗi điểm danh hiện tại: <strong>{{ attendanceData.current_streak }} ngày</strong> liên tục</span>
+                <span>Chuỗi điểm danh hiện tại: <strong>{{ attendanceData.current_streak }} ngày</strong> liên
+                  tục</span>
               </div>
-              <button 
-                class="btn-checkin" 
-                :disabled="attendanceData.checked_today || checkingIn"
-                @click="handleCheckIn"
-              >
-                <svg v-if="checkingIn" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 18px; height: 18px; margin-right: 6px; animation: spin 1s linear infinite;">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              <button class="btn-checkin" :disabled="attendanceData.checked_today || checkingIn" @click="handleCheckIn">
+                <svg v-if="checkingIn" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5"
+                  style="width: 18px; height: 18px; margin-right: 6px; animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
-                <svg v-else-if="attendanceData.checked_today" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
-                  <polyline points="20 6 9 17 4 12"/>
+                <svg v-else-if="attendanceData.checked_today" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                  style="width: 18px; height: 18px; margin-right: 6px;">
+                  <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
-                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-                  <path d="m9 12 2 2 4-4"/>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                  <path d="m9 12 2 2 4-4" />
                 </svg>
                 <span>{{ attendanceData.checked_today ? 'Hôm nay đã điểm danh' : 'Điểm danh ngay' }}</span>
               </button>
@@ -2697,26 +3030,32 @@ const promoStatusMap = {
 
         <!-- â•â•â•â• TAB: ORDERS â•â•â•â• -->
         <div v-else-if="activeTab === 'orders'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+          <div class="page-header-inline"
+            style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch sử đơn hàng</h1>
           </div>
-          
+
           <div class="category-tabs" style="margin-bottom: 20px;">
-            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'" style="position: relative;">
+            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'"
+              style="position: relative;">
               Đơn mua hàng
-              <span class="badge-cart-like">{{ orders.filter(o => !o.status.startsWith('refund')).length }}</span>
+              <span class="badge-cart-like">{{orders.filter(o => !o.status.startsWith('refund')).length}}</span>
             </button>
-            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]" @click="orderMode = 'hoantra'; orderTab = 'all'" style="position: relative;">
+            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]"
+              @click="orderMode = 'hoantra'; orderTab = 'all'" style="position: relative;">
               Đơn hoàn trả
-              <span class="badge-cart-like">{{ orders.filter(o => o.status.startsWith('refund')).length }}</span>
+              <span class="badge-cart-like">{{orders.filter(o => o.status.startsWith('refund')).length}}</span>
             </button>
           </div>
 
           <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
             <div class="order-tabs" style="margin-bottom: 0;">
-              <button v-for="t in (orderMode === 'mua' ? orderTabs_mua : [{key: 'all', label: 'Tất cả'}, ...orderTabs_hoantra])" :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
+              <button
+                v-for="t in (orderMode === 'mua' ? orderTabs_mua : [{ key: 'all', label: 'Tất cả' }, ...orderTabs_hoantra])"
+                :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
                 {{ t.label }}
-                <span class="otab-count" v-if="t.key !== 'all'">{{ orders.filter(o => o.status === t.key).length }}</span>
+                <span class="otab-count" v-if="t.key !== 'all'">{{orders.filter(o => o.status === t.key).length
+                  }}</span>
               </button>
             </div>
           </div>
@@ -2737,9 +3076,10 @@ const promoStatusMap = {
                   <td colspan="5" class="empty-state-cell">
                     <div class="empty-state-container">
                       <div class="empty-icon-wrapper">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon-custom">
-                          <rect x="2" y="3" width="20" height="14" rx="2"/>
-                          <path d="M8 21h8M12 17v4"/>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                          class="empty-icon-custom">
+                          <rect x="2" y="3" width="20" height="14" rx="2" />
+                          <path d="M8 21h8M12 17v4" />
                         </svg>
                       </div>
                       <h3 class="empty-state-title">Bạn chưa có đơn hàng nào</h3>
@@ -2749,17 +3089,22 @@ const promoStatusMap = {
                   </td>
                 </tr>
                 <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
-                  <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span></td>
+                  <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0')
+                      }}</span>
+                  </td>
                   <td>{{ order.date }}</td>
                   <td>
                     <div style="font-weight: 600;">{{ order.total }}</div>
-                    <div v-if="order.xu_dung > 0" style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
+                    <div v-if="order.xu_dung > 0"
+                      style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
                       Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
                     </div>
                   </td>
                   <td>
-                    <div class="customer-shipment-state" :class="{ failed: getShipment(order)?.status === 'delivery_failed' }">
-                      <span class="status-cell" :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
+                    <div class="customer-shipment-state"
+                      :class="{ failed: getShipment(order)?.status === 'delivery_failed' }">
+                      <span class="status-cell"
+                        :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
                         {{ getDisplayStatus(order) }}
                       </span>
                       <span class="customer-tracking" :class="{ muted: !hasShipment(order) }">
@@ -2770,28 +3115,28 @@ const promoStatusMap = {
                   <td>
                     <div class="btn-group">
                       <button class="order-action-btn btn-xem" @click="selectedOrder = order">Xem</button>
-                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)" class="order-action-btn btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
-                      <button
-                        v-if="['pending', 'confirmed'].includes(order.status)"
-                        class="order-action-btn btn-huy-don"
-                        :class="{ 'is-hidden': !canCancelOrder(order) }"
-                        :disabled="!canCancelOrder(order)"
-                        @click="openCancelModal(order)"
-                      >Hủy đơn</button>
-                      <button v-if="isRefundable(order)" class="order-action-btn btn-hoan-tra" @click="openRefundModal(order)">Hoàn trả</button>
+                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)"
+                        class="order-action-btn btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button v-if="['pending', 'confirmed'].includes(order.status)"
+                        class="order-action-btn btn-huy-don" :class="{ 'is-hidden': !canCancelOrder(order) }"
+                        :disabled="!canCancelOrder(order)" @click="openCancelModal(order)">Hủy đơn</button>
+                      <button v-if="isRefundable(order)" class="order-action-btn btn-hoan-tra"
+                        @click="openRefundModal(order)">Hoàn trả</button>
                     </div>
-                    
+
                   </td>
                 </tr>
               </tbody>
             </table>
 
             <div class="pagination-footer" v-if="totalPages > 1">
-              <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage * itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
+              <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage *
+                itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
               <div class="pagination">
                 <button class="p-arrow" :disabled="currentPage === 1" @click="currentPage--">‹ Trước</button>
                 <div class="p-nums">
-                  <button v-for="p in totalPages" :key="p" class="p-num" :class="{ active: currentPage === p }" @click="currentPage = p">{{ p }}</button>
+                  <button v-for="p in totalPages" :key="p" class="p-num" :class="{ active: currentPage === p }"
+                    @click="currentPage = p">{{ p }}</button>
                 </div>
                 <button class="p-arrow" :disabled="currentPage === totalPages" @click="currentPage++">Sau ›</button>
               </div>
@@ -2802,9 +3147,14 @@ const promoStatusMap = {
         <!-- â•â•â•â• TAB: ADDRESS â•â•â•â• -->
         <div v-else-if="activeTab === 'address'">
           <div class="page-header-inline" style="display:flex;align-items:flex-start;justify-content:space-between;">
-            <div><h1 class="card-title">Địa chỉ của tôi</h1><p class="card-sub">Quản lý địa chỉ giao hàng</p></div>
+            <div>
+              <h1 class="card-title">Địa chỉ của tôi</h1>
+              <p class="card-sub">Quản lý địa chỉ giao hàng</p>
+            </div>
             <button class="btn-add" @click="openAddAddr">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14"/></svg>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               Thêm địa chỉ
             </button>
           </div>
@@ -2813,19 +3163,38 @@ const promoStatusMap = {
               <p>Đang tải địa chỉ...</p>
             </div>
             <div v-else-if="addresses.length === 0" class="empty">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
               <p>Chưa có địa chỉ nào</p>
             </div>
-            <div class="addr-card" v-for="(addr, i) in addresses" :key="addr.id" :class="{ 'is-default': addr.isDefault }">
+            <div class="addr-card" v-for="(addr, i) in addresses" :key="addr.id"
+              :class="{ 'is-default': addr.isDefault }">
               <div class="addr-head">
-                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name" style="line-height: 1.4; word-break: break-word;">{{ [addr.detail, addr.ward, addr.district, addr.province].filter(v => v && v !== 'Không xác định').join(', ') }}</span></div>
+                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name"
+                    style="line-height: 1.4; word-break: break-word;">{{[addr.detail, addr.ward, addr.district,
+                    addr.province].filter(v => v && v !== 'Không xác định').join(', ') }}</span></div>
                 <span class="default-badge" v-if="addr.isDefault">Mặc định</span>
               </div>
-              <p class="addr-full" style="color: #64748b; font-weight: 500; margin-top: 4px;">{{ addr.type === 'company' ? 'Công ty' : 'Nhà riêng' }}</p>
+              <p class="addr-full" style="color: #64748b; font-weight: 500; margin-top: 4px;">{{ addr.type === 'company'
+                ?
+                'Công ty' : 'Nhà riêng' }}</p>
               <div class="addr-actions">
-                <button class="addr-btn" @click="openEditAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Chỉnh sửa</button>
-                <button class="addr-btn addr-btn-default" v-if="!addr.isDefault" @click="setDefaultAddr(i)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Đặt mặc định</button>
-                <button class="addr-btn addr-btn-delete" @click="removeAddr(i)"><svg viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>Xóa</button>
+                <button class="addr-btn" @click="openEditAddr(i)"><svg viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>Chỉnh sửa</button>
+                <button class="addr-btn addr-btn-default" v-if="!addr.isDefault" @click="setDefaultAddr(i)"><svg
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>Đặt mặc định</button>
+                <button class="addr-btn addr-btn-delete" @click="removeAddr(i)"><svg viewBox="0 0 24 24" fill="none">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+                  </svg>Xóa</button>
               </div>
             </div>
           </div>
@@ -2833,7 +3202,8 @@ const promoStatusMap = {
 
         <!-- â•â•â•â• TAB: PROMOTIONS â•â•â•â• -->
         <div v-else-if="activeTab === 'promotions'">
-          <div class="page-header-inline" style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+          <div class="page-header-inline"
+            style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
             <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến mãi</h1>
             <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
           </div>
@@ -2846,7 +3216,7 @@ const promoStatusMap = {
                   <th>MÃ</th>
                   <th>LOẠI</th>
                   <th>GIÁ TRỊ</th>
-                  <th>THỜI GIAN HẾT HẠN  </th>
+                  <th>THỜI GIAN HẾT HẠN </th>
                   <th>TRẠNG THÁI</th>
                 </tr>
               </thead>
@@ -2854,9 +3224,10 @@ const promoStatusMap = {
                 <tr v-if="promotions.length === 0">
                   <td colspan="6" class="empty-state-cell">
                     <div class="empty-msg">
-                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                        <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5"/>
+                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon" stroke="#cbd5e1" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5" />
                       </svg>
                       <p>Không có khuyến mãi nào</p>
                     </div>
@@ -2874,19 +3245,21 @@ const promoStatusMap = {
                       : new Intl.NumberFormat('vi-VN').format(item.promotion?.giatri || 0) + 'đ' }}
                   </td>
                   <td style="font-size:13px; color: #64748b;">
-                    <span v-if="item.promotion?.ngayketthuc">{{ new Date(item.promotion?.ngayketthuc).toLocaleDateString('vi-VN') }}</span>
+                    <span v-if="item.promotion?.ngayketthuc">{{ new
+                      Date(item.promotion?.ngayketthuc).toLocaleDateString('vi-VN') }}</span>
                     <span v-else>Không giới hạn</span>
                   </td>
                   <td>
-                    <span v-if="item.promotion?.ngayketthuc && new Date(item.promotion?.ngayketthuc) < new Date()" :style="{
-                      color: promoStatusMap.expired.color,
-                      background: promoStatusMap.expired.bg,
-                      padding: '4px 12px',
-                      borderRadius: '99px',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      display: 'inline-block'
-                    }">
+                    <span v-if="item.promotion?.ngayketthuc && new Date(item.promotion?.ngayketthuc) < new Date()"
+                      :style="{
+                        color: promoStatusMap.expired.color,
+                        background: promoStatusMap.expired.bg,
+                        padding: '4px 12px',
+                        borderRadius: '99px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        display: 'inline-block'
+                      }">
                       {{ promoStatusMap.expired.label }}
                     </span>
                     <span v-else :style="{
@@ -2915,9 +3288,7 @@ const promoStatusMap = {
               <div class="pagination">
                 <button class="p-arrow" :disabled="promoPage === 1" @click="promoPage--">‹ Trước</button>
                 <div class="p-nums">
-                  <button
-                    v-for="p in totalPromoPages" :key="p"
-                    class="p-num" :class="{ active: promoPage === p }"
+                  <button v-for="p in totalPromoPages" :key="p" class="p-num" :class="{ active: promoPage === p }"
                     @click="promoPage = p">{{ p }}</button>
                 </div>
                 <button class="p-arrow" :disabled="promoPage === totalPromoPages" @click="promoPage++">Sau ›</button>
@@ -2928,14 +3299,20 @@ const promoStatusMap = {
 
         <!-- â•â•â•â• TAB: PASSWORD â•â•â•â• -->
         <div v-else-if="activeTab === 'password'">
-          <div class="page-header-inline"><h1 class="card-title">Đổi mật khẩu</h1><p class="card-sub">Cập nhật mật khẩu để bảo mật tài khoản</p></div>
+          <div class="page-header-inline">
+            <h1 class="card-title">Đổi mật khẩu</h1>
+            <p class="card-sub">Cập nhật mật khẩu để bảo mật tài khoản</p>
+          </div>
           <div class="pw-layout">
             <div class="card">
               <form @submit.prevent="savePw" class="form">
                 <div class="form-group" :class="{ error: pwErrors.email }">
                   <label>Email xác minh</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 6h16v12H4z" />
+                      <path d="m4 7 8 6 8-6" />
+                    </svg>
                     <input type="email" v-model="pwForm.email" placeholder="Name@example.com" />
                   </div>
                   <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
@@ -2944,14 +3321,25 @@ const promoStatusMap = {
                 <div class="form-group" :class="{ error: pwErrors.newPass }">
                   <label>Mật khẩu mới</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <input :type="showPw.newPass ? 'text' : 'password'" v-model="pwForm.newPass" placeholder="••••••••" />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input :type="showPw.newPass ? 'text' : 'password'" v-model="pwForm.newPass"
+                      placeholder="••••••••" />
                     <button type="button" class="eye-btn" @click="showPw.newPass = !showPw.newPass">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
                   </div>
                   <div class="strength-bar" v-if="pwForm.newPass">
-                    <div class="strength-track"><div class="strength-fill" :style="{ width: (pwStrength/4*100)+'%', background: pwStrengthColor }"></div></div>
+                    <div class="strength-track">
+                      <div class="strength-fill"
+                        :style="{ width: (pwStrength / 4 * 100) + '%', background: pwStrengthColor }">
+                      </div>
+                    </div>
                     <span class="strength-label" :style="{ color: pwStrengthColor }">{{ pwStrengthLabel }}</span>
                   </div>
                   <span class="err-msg" v-if="pwErrors.newPass">{{ pwErrors.newPass }}</span>
@@ -2959,16 +3347,25 @@ const promoStatusMap = {
                 <div class="form-group" :class="{ error: pwErrors.confirm }">
                   <label>Xác nhận mật khẩu mới</label>
                   <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <input :type="showPw.confirm ? 'text' : 'password'" v-model="pwForm.confirm" placeholder="••••••••" />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input :type="showPw.confirm ? 'text' : 'password'" v-model="pwForm.confirm"
+                      placeholder="••••••••" />
                     <button type="button" class="eye-btn" @click="showPw.confirm = !showPw.confirm">
-                      <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
                   </div>
                   <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
                 </div>
                 <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
-                  <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
                   {{ savingPw ? 'Đang gửi OTP...' : 'Tiếp tục' }}
                 </button>
               </form>
@@ -2978,14 +3375,22 @@ const promoStatusMap = {
                 <h3 class="req-title">Yêu cầu mật khẩu</h3>
                 <ul class="req-list">
                   <li v-for="req in pwRequirements" :key="req.label" :class="{ ok: req.ok }">
-                    <svg v-if="req.ok" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/></svg>
+                    <svg v-if="req.ok" viewBox="0 0 24 24" fill="none">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
                     {{ req.label }}
                   </li>
                 </ul>
               </div>
               <div class="tip-card">
-                <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+                <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4" />
+                    <path d="M12 16h.01" />
+                  </svg></div>
                 <div>
                   <h4 class="tip-title">Mẹo bảo mật</h4>
                   <ul class="tip-list">
@@ -3005,8 +3410,7 @@ const promoStatusMap = {
 </template>
 
 <style scoped>
-.page :is(
-  h1,
+.page :is(h1,
   h2,
   h3,
   h4,
@@ -3020,8 +3424,7 @@ const promoStatusMap = {
   .info-lbl,
   .section-title,
   th,
-  label > span
-) {
+  label > span) {
   text-transform: none !important;
 }
 
@@ -3033,6 +3436,7 @@ const promoStatusMap = {
   padding: 30px 24px;
   font-family: 'Inter', system-ui, sans-serif;
 }
+
 .container {
   max-width: 1080px;
   margin: auto;
@@ -3054,16 +3458,19 @@ const promoStatusMap = {
   top: 20px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
 }
+
 .avatar-section {
   padding: 26px 20px 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 .avatar-sidebar-container {
   width: 84px;
   height: 84px;
   margin: 0 auto 14px;
 }
+
 .avatar-circle {
   width: 100%;
   height: 100%;
@@ -3074,14 +3481,17 @@ const promoStatusMap = {
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.35);
   transition: transform 0.3s ease;
 }
+
 .avatar-circle:hover {
   transform: scale(1.03);
 }
+
 .profile-avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .avatar-hover-overlay {
   position: absolute;
   inset: 0;
@@ -3094,10 +3504,12 @@ const promoStatusMap = {
   transition: opacity 0.25s ease;
   color: #ffffff;
 }
+
 .avatar-hover-overlay i {
   font-size: 16px;
   margin-bottom: 4px;
 }
+
 .sidebar-name {
   font-size: 17px;
   font-weight: 800;
@@ -3105,6 +3517,7 @@ const promoStatusMap = {
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
+
 .sidebar-badge {
   display: inline-block;
   font-size: 11px;
@@ -3117,6 +3530,7 @@ const promoStatusMap = {
   text-transform: capitalize;
   letter-spacing: 0.5px;
 }
+
 .sidebar-join {
   font-size: 12px;
   color: #64748b;
@@ -3133,6 +3547,7 @@ const promoStatusMap = {
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 .stat-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -3146,12 +3561,14 @@ const promoStatusMap = {
   transition: all 0.25s ease;
   cursor: pointer;
 }
+
 .stat-card:hover {
   background: rgba(56, 189, 248, 0.08);
   border-color: rgba(56, 189, 248, 0.25);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
 .stat-card svg {
   width: 16px;
   height: 16px;
@@ -3160,15 +3577,18 @@ const promoStatusMap = {
   fill: none;
   transition: all 0.25s ease;
 }
+
 .stat-card:hover svg {
   stroke: #3b82f6;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
+
 .stat-val {
   font-size: 14px;
   font-weight: 700;
   color: #ffffff;
 }
+
 .stat-lbl {
   font-size: 10px;
   color: #94a3b8;
@@ -3183,6 +3603,7 @@ const promoStatusMap = {
   flex-direction: column;
   gap: 4px;
 }
+
 .side-btn {
   width: 100%;
   display: flex;
@@ -3199,6 +3620,7 @@ const promoStatusMap = {
   text-align: left;
   transition: all 0.2s ease;
 }
+
 .side-btn svg:not(.arrow) {
   width: 17px;
   height: 17px;
@@ -3208,9 +3630,11 @@ const promoStatusMap = {
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
+
 .side-btn span {
   flex: 1;
 }
+
 .side-btn .arrow {
   width: 14px;
   height: 14px;
@@ -3222,17 +3646,21 @@ const promoStatusMap = {
   transform: translateX(-4px);
   transition: all 0.2s ease;
 }
+
 .side-btn:hover {
   background: rgba(255, 255, 255, 0.03);
   color: #ffffff;
 }
+
 .side-btn:hover svg:not(.arrow) {
   stroke: #38bdf8;
 }
+
 .side-btn:hover .arrow {
   opacity: 1;
   transform: translateX(0);
 }
+
 .side-btn.active {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.12));
   border: 1px solid rgba(56, 189, 248, 0.15);
@@ -3240,10 +3668,12 @@ const promoStatusMap = {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   font-weight: 700;
 }
+
 .side-btn.active svg:not(.arrow) {
   stroke: #3b82f6;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.35));
 }
+
 .side-btn.active .arrow {
   opacity: 1;
   stroke: #3b82f6;
@@ -3254,6 +3684,7 @@ const promoStatusMap = {
 .main {
   min-width: 0;
 }
+
 .card {
   background: rgba(17, 31, 53, 0.65);
   backdrop-filter: blur(16px);
@@ -3263,9 +3694,11 @@ const promoStatusMap = {
   padding: 22px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
 }
+
 .page-header-inline {
   margin-bottom: 24px;
 }
+
 .card-title {
   font-size: 20px;
   font-weight: 800;
@@ -3273,11 +3706,13 @@ const promoStatusMap = {
   margin: 0 0 6px;
   letter-spacing: -0.3px;
 }
+
 .card-sub {
   font-size: 13px;
   color: #64748b;
   margin: 0;
 }
+
 .card-header {
   display: flex;
   align-items: flex-start;
@@ -3301,12 +3736,14 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.25s ease;
 }
+
 .btn-edit:hover {
   background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
   border-color: transparent;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
+
 .btn-edit svg {
   width: 14px;
   height: 14px;
@@ -3314,12 +3751,14 @@ const promoStatusMap = {
   stroke-width: 2.5;
   fill: none;
 }
+
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   padding-top: 2px;
 }
+
 .info-row {
   display: flex;
   flex-direction: column;
@@ -3332,10 +3771,12 @@ const promoStatusMap = {
   border-radius: 12px;
   transition: all 0.2s ease;
 }
+
 .info-row:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(56, 189, 248, 0.15);
 }
+
 .info-lbl {
   font-size: 10px;
   color: #64748b;
@@ -3343,11 +3784,13 @@ const promoStatusMap = {
   text-transform: capitalize;
   letter-spacing: 0.8px;
 }
+
 .info-val {
   font-size: 13px;
   color: #e2e8f0;
   font-weight: 600;
 }
+
 .info-val.not-set {
   color: #64748b;
   font-style: italic;
@@ -3355,7 +3798,8 @@ const promoStatusMap = {
 }
 
 /* FORMS */
-.edit-form, .form {
+.edit-form,
+.form {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -3369,6 +3813,7 @@ const promoStatusMap = {
   gap: 10px;
   margin-bottom: 20px;
 }
+
 .form-avatar-dashed-border {
   width: 110px;
   height: 110px;
@@ -3381,10 +3826,12 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
 }
+
 .form-avatar-dashed-border:hover {
   border-color: #38bdf8;
   transform: scale(1.02);
 }
+
 .form-avatar-circle {
   width: 100%;
   height: 100%;
@@ -3393,11 +3840,13 @@ const promoStatusMap = {
   position: relative;
   background: rgba(13, 27, 46, 0.4);
 }
+
 .form-avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .form-avatar-plus-overlay {
   position: absolute;
   inset: 0;
@@ -3409,35 +3858,44 @@ const promoStatusMap = {
   opacity: 0;
   transition: opacity 0.25s ease;
 }
+
 .form-avatar-circle:hover .form-avatar-plus-overlay {
   opacity: 1;
 }
+
 .form-avatar-upload-text {
   font-size: 13px;
   font-weight: 600;
   color: #94a3b8;
   margin: 0;
 }
-.form-row, .form-grid {
+
+.form-row,
+.form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+
 .form-full {
   grid-column: 1 / -1;
 }
+
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+
 .form-group label {
   font-size: 12.5px;
   font-weight: 600;
   color: #94a3b8;
   letter-spacing: 0.2px;
 }
-.form-group input, .form-group select {
+
+.form-group input,
+.form-group select {
   padding: 10px 14px;
   border: 1.5px solid rgba(255, 255, 255, 0.12);
   border-radius: 11px;
@@ -3447,26 +3905,34 @@ const promoStatusMap = {
   transition: all 0.2s ease;
   background: rgba(13, 27, 46, 0.5);
 }
-.form-group input:disabled, .form-group select:disabled {
+
+.form-group input:disabled,
+.form-group select:disabled {
   opacity: 0.5;
   color: #64748b !important;
   cursor: not-allowed;
 }
+
 .form-group select option {
   background-color: #0f1c2e;
   color: #e2e8f0;
 }
+
 .form-group select option:disabled {
   color: #64748b;
 }
-.form-group input:focus, .form-group select:focus {
+
+.form-group input:focus,
+.form-group select:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background: rgba(13, 27, 46, 0.8);
 }
+
 .form-group.error input {
   border-color: #ef4444;
 }
+
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -3477,12 +3943,14 @@ const promoStatusMap = {
   font-weight: 600;
   user-select: none;
 }
+
 .checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
   accent-color: #38bdf8;
   cursor: pointer;
 }
+
 .form-actions {
   display: flex;
   gap: 12px;
@@ -3490,6 +3958,7 @@ const promoStatusMap = {
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 .btn-cancel {
   padding: 9px 19px;
   border-radius: 11px;
@@ -3501,11 +3970,13 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-cancel:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.15);
 }
+
 .btn-save {
   display: flex;
   align-items: center;
@@ -3522,15 +3993,18 @@ const promoStatusMap = {
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
+
 .btn-save:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
 }
+
 .btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
+
 .spin {
   width: 16px;
   height: 16px;
@@ -3539,9 +4013,13 @@ const promoStatusMap = {
   fill: none;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 .err-msg {
   font-size: 12px;
   color: #ef4444;
@@ -3564,6 +4042,7 @@ const promoStatusMap = {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 0;
 }
+
 .cat-tab {
   background: transparent;
   border: none;
@@ -3578,13 +4057,16 @@ const promoStatusMap = {
   display: flex;
   align-items: center;
 }
+
 .cat-tab:hover {
   color: #38bdf8;
 }
+
 .cat-tab.active {
   color: #3b82f6;
   border-bottom-color: #3b82f6;
 }
+
 .badge-cart-like {
   background-color: #f43f5e;
   color: #ffffff;
@@ -3610,6 +4092,7 @@ const promoStatusMap = {
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
+
 .order-tab {
   padding: 8px 16px;
   border-radius: 12px;
@@ -3624,16 +4107,19 @@ const promoStatusMap = {
   align-items: center;
   gap: 6px;
 }
+
 .order-tab:hover {
   background: rgba(255, 255, 255, 0.02);
   color: #ffffff;
 }
+
 .order-tab.active {
   background: #0284c7;
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
+
 .otab-count {
   background: rgba(255, 255, 255, 0.15);
   padding: 1.5px 6px;
@@ -3641,6 +4127,7 @@ const promoStatusMap = {
   font-size: 10px;
   font-weight: 700;
 }
+
 .order-tab.active .otab-count {
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
@@ -3654,12 +4141,14 @@ const promoStatusMap = {
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
+
 .order-data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   font-size: 13.5px;
 }
+
 .order-data-table th {
   background: rgba(255, 255, 255, 0.02);
   padding: 16px 20px;
@@ -3670,25 +4159,31 @@ const promoStatusMap = {
   letter-spacing: 0.8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .order-data-table td {
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   color: #cbd5e1;
   vertical-align: middle;
 }
+
 .order-row {
   transition: all 0.2s ease;
 }
+
 .order-row:hover {
   background: rgba(255, 255, 255, 0.015);
 }
+
 .id-col {
   font-weight: 700;
 }
+
 .order-id {
   color: #38bdf8;
   text-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
 }
+
 .status-cell {
   display: inline-block;
   font-size: 11px;
@@ -3700,12 +4195,14 @@ const promoStatusMap = {
   text-transform: capitalize;
   letter-spacing: 0.5px;
 }
+
 .customer-shipment-state {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
 }
+
 .customer-tracking {
   max-width: 230px;
   color: #94a3b8;
@@ -3713,14 +4210,17 @@ const promoStatusMap = {
   font-weight: 600;
   line-height: 1.35;
 }
+
 .customer-tracking.muted {
   color: #64748b;
   font-weight: 500;
 }
+
 .customer-shipment-state.failed .customer-tracking {
   color: #dc2626;
   font-weight: 800;
 }
+
 .customer-shipping-card {
   margin: 12px 0 16px;
   padding: 14px;
@@ -3732,6 +4232,7 @@ const promoStatusMap = {
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
   overflow: hidden;
 }
+
 .shipping-card-head {
   display: flex;
   justify-content: space-between;
@@ -3739,12 +4240,14 @@ const promoStatusMap = {
   gap: 12px;
   margin-bottom: 10px;
 }
+
 .shipping-title-row {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
 }
+
 .shipping-icon {
   width: 36px;
   height: 36px;
@@ -3756,6 +4259,7 @@ const promoStatusMap = {
   border: 1px solid #bae6fd;
   flex-shrink: 0;
 }
+
 .shipping-icon svg {
   width: 20px;
   height: 20px;
@@ -3764,6 +4268,7 @@ const promoStatusMap = {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
 .shipping-kicker {
   margin: 0 0 3px;
   color: #0284c7;
@@ -3772,12 +4277,14 @@ const promoStatusMap = {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
 .shipping-card-head h3 {
   margin: 0 0 2px;
   color: #0f172a;
   font-size: 15px;
   line-height: 1.2;
 }
+
 .shipping-card-head span:not(.shipping-status) {
   display: block;
   color: #64748b;
@@ -3785,6 +4292,7 @@ const promoStatusMap = {
   font-weight: 800;
   letter-spacing: 0.02em;
 }
+
 .shipping-status {
   padding: 6px 11px;
   border-radius: 999px;
@@ -3793,6 +4301,7 @@ const promoStatusMap = {
   white-space: nowrap;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
+
 .shipping-failure-box {
   margin: 0 0 10px;
   padding: 11px 13px;
@@ -3800,6 +4309,7 @@ const promoStatusMap = {
   border: 1px solid #fecaca;
   background: #fff1f2;
 }
+
 .shipping-failure-box span {
   display: block;
   color: #ef4444;
@@ -3809,36 +4319,43 @@ const promoStatusMap = {
   text-transform: uppercase;
   margin-bottom: 4px;
 }
+
 .shipping-failure-box b {
   display: block;
   color: #991b1b;
   font-size: 13.5px;
   line-height: 1.35;
 }
+
 .shipping-failure-box p {
   margin: 6px 0 0;
   color: #7f1d1d;
   font-size: 12px;
   line-height: 1.45;
 }
+
 .shipping-failure-box.is-returned {
   border-color: #ddd6fe;
   background: #f5f3ff;
 }
+
 .shipping-failure-box.is-returned span {
   color: #7c3aed;
 }
+
 .shipping-failure-box.is-returned b,
 .shipping-failure-box.is-returned p {
   color: #5b21b6;
 }
+
 .shipping-info-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 10px;
 }
-.shipping-info-grid > div {
+
+.shipping-info-grid>div {
   border: 1px solid #dbeafe;
   border-radius: 12px;
   padding: 9px 10px;
@@ -3846,6 +4363,7 @@ const promoStatusMap = {
   min-height: 52px;
   min-width: 0;
 }
+
 .shipping-info-grid span {
   display: block;
   color: #64748b;
@@ -3853,6 +4371,7 @@ const promoStatusMap = {
   font-weight: 800;
   margin-bottom: 4px;
 }
+
 .shipping-info-grid b {
   color: #0f172a;
   display: block;
@@ -3862,6 +4381,7 @@ const promoStatusMap = {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .shipping-events {
   display: flex;
   flex-direction: column;
@@ -3872,6 +4392,7 @@ const promoStatusMap = {
   background: #ffffff;
   overflow: hidden;
 }
+
 .shipping-events-head {
   display: flex;
   justify-content: space-between;
@@ -3880,16 +4401,19 @@ const promoStatusMap = {
   padding-bottom: 7px;
   border-bottom: 1px solid #e2e8f0;
 }
+
 .shipping-events-head span {
   color: #0f172a;
   font-size: 13px;
   font-weight: 900;
 }
+
 .shipping-events-head b {
   color: #0284c7;
   font-size: 11px;
   font-weight: 900;
 }
+
 .shipping-events-rail {
   display: flex;
   flex-direction: column;
@@ -3901,17 +4425,21 @@ const promoStatusMap = {
   scrollbar-width: thin;
   scrollbar-color: #93c5fd #eff6ff;
 }
+
 .shipping-events-rail::-webkit-scrollbar {
   width: 6px;
 }
+
 .shipping-events-rail::-webkit-scrollbar-track {
   background: #eff6ff;
   border-radius: 999px;
 }
+
 .shipping-events-rail::-webkit-scrollbar-thumb {
   background: #93c5fd;
   border-radius: 999px;
 }
+
 .shipping-event {
   display: grid;
   grid-template-columns: 24px 1fr;
@@ -3923,6 +4451,7 @@ const promoStatusMap = {
   background: linear-gradient(180deg, #ffffff, #f8fbff);
   min-height: 82px;
 }
+
 .shipping-event:not(:last-child)::after {
   content: "";
   position: absolute;
@@ -3932,7 +4461,8 @@ const promoStatusMap = {
   width: 2px;
   background: #bae6fd;
 }
-.shipping-event > span {
+
+.shipping-event>span {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -3942,6 +4472,7 @@ const promoStatusMap = {
   z-index: 1;
   box-shadow: 0 6px 14px rgba(14, 165, 233, 0.22);
 }
+
 .shipping-event b {
   color: #0f172a;
   font-size: 12.5px;
@@ -3949,22 +4480,26 @@ const promoStatusMap = {
   display: block;
   margin-bottom: 4px;
 }
+
 .shipping-event p {
   margin: 3px 0;
   color: #475569;
   font-size: 12px;
   line-height: 1.35;
 }
+
 .shipping-event small {
   color: #64748b;
   font-size: 10.5px;
   font-weight: 800;
 }
+
 @media (max-width: 640px) {
   .shipping-card-head {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .shipping-info-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3978,6 +4513,7 @@ const promoStatusMap = {
   flex-wrap: wrap;
   min-width: 240px;
 }
+
 .order-action-btn {
   min-width: 66px;
   height: 30px;
@@ -3996,9 +4532,11 @@ const promoStatusMap = {
   box-shadow: 0 5px 12px rgba(15, 23, 42, 0.05);
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
+
 .order-action-btn:hover {
   transform: translateY(-1px);
 }
+
 .order-action-btn.is-hidden,
 .btn-modal-huy.is-hidden {
   opacity: 0.45;
@@ -4006,43 +4544,52 @@ const promoStatusMap = {
   cursor: not-allowed;
   box-shadow: none;
 }
+
 .order-action-btn.is-hidden:hover,
 .btn-modal-huy.is-hidden:hover {
   transform: none;
   cursor: not-allowed;
 }
+
 .btn-xem {
   background: linear-gradient(135deg, #0284c7, #38bdf8);
   color: #ffffff;
   border-color: transparent;
 }
+
 .btn-xem:hover {
   box-shadow: 0 12px 24px rgba(14, 165, 233, 0.24);
 }
+
 .btn-hoan-tra {
   background: #fff7ed;
   color: #ea580c;
   border-color: #fed7aa;
 }
+
 .btn-hoan-tra:hover {
   background: #f97316;
   color: #ffffff;
   border-color: #f97316;
   box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
 }
+
 .btn-mua-lai {
   background: linear-gradient(135deg, #16a34a, #22c55e);
   color: #ffffff;
   border-color: transparent;
 }
+
 .btn-mua-lai:hover {
   box-shadow: 0 12px 24px rgba(34, 197, 94, 0.24);
 }
+
 .btn-huy-don {
   background: #fff7f7;
   color: #dc2626;
   border-color: #fecaca;
 }
+
 .btn-huy-don:hover {
   background: #ef4444;
   color: #ffffff;
@@ -4060,16 +4607,19 @@ const promoStatusMap = {
   gap: 12px;
   background: rgba(255, 255, 255, 0.01);
 }
+
 .pagination-info {
   font-size: 13px;
   color: #64748b;
   margin: 0;
 }
+
 .pagination {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .p-arrow {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -4081,18 +4631,22 @@ const promoStatusMap = {
   font-size: 13px;
   transition: all 0.2s ease;
 }
+
 .p-arrow:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
+
 .p-arrow:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
 .p-nums {
   display: flex;
   gap: 6px;
 }
+
 .p-num {
   width: 32px;
   height: 32px;
@@ -4107,16 +4661,19 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .p-num:hover:not(.active) {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
+
 .p-num.active {
   background: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
   font-weight: 700;
 }
+
 .empty-state-cell {
   padding: 0;
 }
@@ -4130,6 +4687,7 @@ const promoStatusMap = {
   padding: 64px 24px;
   text-align: center;
 }
+
 .empty-icon-wrapper {
   width: 80px;
   height: 80px;
@@ -4143,10 +4701,12 @@ const promoStatusMap = {
   color: #3b82f6;
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
 }
+
 .empty-icon-custom {
   width: 36px;
   height: 36px;
 }
+
 .empty-state-title {
   font-size: 18px;
   font-weight: 800;
@@ -4154,6 +4714,7 @@ const promoStatusMap = {
   margin: 0 0 8px;
   letter-spacing: -0.2px;
 }
+
 .empty-state-desc {
   font-size: 13.5px;
   color: #64748b;
@@ -4161,6 +4722,7 @@ const promoStatusMap = {
   margin: 0 0 24px;
   line-height: 1.5;
 }
+
 .btn-shop-now {
   display: inline-flex;
   align-items: center;
@@ -4175,6 +4737,7 @@ const promoStatusMap = {
   transition: all 0.25s ease;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
+
 .btn-shop-now:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
@@ -4195,10 +4758,12 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-add:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
+
 .btn-add svg {
   width: 15px;
   height: 15px;
@@ -4206,12 +4771,14 @@ const promoStatusMap = {
   stroke-width: 2.5;
   fill: none;
 }
+
 .addr-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin-top: 16px;
 }
+
 .addr-card {
   background: rgba(255, 255, 255, 0.02);
   border-radius: 18px;
@@ -4219,25 +4786,30 @@ const promoStatusMap = {
   padding: 20px 24px;
   transition: all 0.25s ease;
 }
+
 .addr-card.is-default {
   border-color: rgba(56, 189, 248, 0.3);
   background: rgba(56, 189, 248, 0.02);
 }
+
 .addr-card:hover {
   border-color: rgba(56, 189, 248, 0.2);
   background: rgba(255, 255, 255, 0.03);
 }
+
 .addr-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
 }
+
 .addr-name {
   font-size: 14.5px;
   font-weight: 700;
   color: #1e293b;
 }
+
 .default-badge {
   font-size: 11px;
   font-weight: 700;
@@ -4247,12 +4819,14 @@ const promoStatusMap = {
   padding: 3px 10px;
   border-radius: 99px;
 }
+
 .addr-full {
   font-size: 13.5px;
   color: #94a3b8;
   margin: 0 0 16px;
   line-height: 1.5;
 }
+
 .addr-actions {
   display: flex;
   gap: 8px;
@@ -4260,6 +4834,7 @@ const promoStatusMap = {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 14px;
 }
+
 .addr-btn {
   display: flex;
   align-items: center;
@@ -4274,6 +4849,7 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .addr-btn svg {
   width: 13px;
   height: 13px;
@@ -4281,26 +4857,31 @@ const promoStatusMap = {
   stroke-width: 2.2;
   fill: none;
 }
+
 .addr-btn:hover {
   background: #f8fafc;
   color: #0f172a;
   border-color: #cbd5e1;
 }
+
 .addr-btn-default {
   border-color: #dbeafe;
   color: #2563eb;
   background: #eff6ff;
 }
+
 .addr-btn-default:hover {
   background: #dbeafe;
   color: #1d4ed8;
   border-color: #bfdbfe;
 }
+
 .addr-btn-delete {
   border-color: #fee2e2;
   color: #ef4444;
   background: #fff5f5;
 }
+
 .addr-btn-delete:hover {
   background: #fee2e2;
   color: #dc2626;
@@ -4314,11 +4895,13 @@ const promoStatusMap = {
   gap: 24px;
   align-items: start;
 }
+
 .input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 .input-icon {
   position: absolute;
   left: 14px;
@@ -4329,6 +4912,7 @@ const promoStatusMap = {
   fill: none;
   pointer-events: none;
 }
+
 .input-wrap input {
   width: 100%;
   padding: 11px 44px 11px 40px;
@@ -4341,17 +4925,21 @@ const promoStatusMap = {
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
+
 .input-wrap input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background: rgba(13, 27, 46, 0.8);
 }
+
 .form-group.error .input-wrap input {
   border-color: #ef4444;
 }
+
 .form-group.error .captcha-input {
   border-color: #ef4444;
 }
+
 .eye-btn {
   position: absolute;
   right: 12px;
@@ -4364,6 +4952,7 @@ const promoStatusMap = {
   align-items: center;
   justify-content: center;
 }
+
 .eye-btn svg {
   width: 16px;
   height: 16px;
@@ -4371,11 +4960,13 @@ const promoStatusMap = {
   stroke-width: 2;
   fill: none;
 }
+
 .captcha-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .captcha-question {
   flex: 1;
   min-height: 42px;
@@ -4390,6 +4981,7 @@ const promoStatusMap = {
   font-weight: 800;
   letter-spacing: 0.5px;
 }
+
 .captcha-refresh {
   width: 42px;
   height: 42px;
@@ -4404,14 +4996,17 @@ const promoStatusMap = {
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
+
 .captcha-refresh:hover:not(:disabled) {
   background: rgba(56, 189, 248, 0.12);
   color: #3b82f6;
 }
+
 .captcha-refresh:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .captcha-refresh svg {
   width: 18px;
   height: 18px;
@@ -4419,6 +5014,7 @@ const promoStatusMap = {
   stroke-width: 2;
   fill: none;
 }
+
 .captcha-input {
   width: 100%;
   margin-top: 8px;
@@ -4432,17 +5028,20 @@ const promoStatusMap = {
   box-sizing: border-box;
   transition: all 0.2s ease;
 }
+
 .captcha-input:focus {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background: rgba(13, 27, 46, 0.8);
 }
+
 .strength-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 4px;
 }
+
 .strength-track {
   flex: 1;
   height: 5px;
@@ -4450,17 +5049,20 @@ const promoStatusMap = {
   border-radius: 99px;
   overflow: hidden;
 }
+
 .strength-fill {
   height: 100%;
   border-radius: 99px;
   transition: width 0.3s ease, background 0.3s ease;
 }
+
 .strength-label {
   font-size: 12px;
   font-weight: 700;
   min-width: 72px;
   text-align: right;
 }
+
 .req-card {
   background: rgba(255, 255, 255, 0.02);
   border-radius: 18px;
@@ -4468,6 +5070,7 @@ const promoStatusMap = {
   padding: 20px;
   margin-bottom: 16px;
 }
+
 .req-title {
   font-size: 12px;
   font-weight: 700;
@@ -4476,6 +5079,7 @@ const promoStatusMap = {
   letter-spacing: 0.8px;
   margin: 0 0 14px;
 }
+
 .req-list {
   list-style: none;
   padding: 0;
@@ -4484,6 +5088,7 @@ const promoStatusMap = {
   flex-direction: column;
   gap: 10px;
 }
+
 .req-list li {
   display: flex;
   align-items: center;
@@ -4493,6 +5098,7 @@ const promoStatusMap = {
   font-weight: 600;
   transition: color 0.2s ease;
 }
+
 .req-list li svg {
   width: 16px;
   height: 16px;
@@ -4502,12 +5108,15 @@ const promoStatusMap = {
   flex-shrink: 0;
   transition: stroke 0.2s ease;
 }
+
 .req-list li.ok {
   color: #2563eb;
 }
+
 .req-list li.ok svg {
   stroke: #2563eb;
 }
+
 .tip-card {
   background: rgba(56, 189, 248, 0.03);
   border: 1px solid rgba(56, 189, 248, 0.15);
@@ -4516,6 +5125,7 @@ const promoStatusMap = {
   display: flex;
   gap: 12px;
 }
+
 .tip-icon svg {
   width: 20px;
   height: 20px;
@@ -4523,12 +5133,14 @@ const promoStatusMap = {
   stroke-width: 2;
   fill: none;
 }
+
 .tip-title {
   font-size: 13px;
   font-weight: 700;
   color: #38bdf8;
   margin: 0 0 8px;
 }
+
 .tip-list {
   list-style: none;
   padding: 0;
@@ -4537,6 +5149,7 @@ const promoStatusMap = {
   flex-direction: column;
   gap: 6px;
 }
+
 .tip-list li {
   font-size: 12px;
   color: #64748b;
@@ -4544,6 +5157,7 @@ const promoStatusMap = {
   position: relative;
   font-weight: 500;
 }
+
 .tip-list li::before {
   content: 'â€¢';
   position: absolute;
@@ -4571,6 +5185,7 @@ const promoStatusMap = {
   padding: 48px 0;
   color: #64748b;
 }
+
 .empty svg {
   width: 44px;
   height: 44px;
@@ -4579,6 +5194,7 @@ const promoStatusMap = {
   fill: none;
   margin-bottom: 10px;
 }
+
 .empty p {
   font-size: 14px;
 }
@@ -4596,6 +5212,7 @@ const promoStatusMap = {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+
 .modal {
   background: #0f1c30;
   border: 1px solid rgba(56, 189, 248, 0.15);
@@ -4606,12 +5223,14 @@ const promoStatusMap = {
   max-height: 88vh;
   overflow-y: auto;
 }
+
 .modal-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   padding: 24px 28px 0;
 }
+
 .modal-title {
   font-size: 18px;
   font-weight: 800;
@@ -4619,11 +5238,13 @@ const promoStatusMap = {
   margin: 0 0 4px;
   letter-spacing: -0.2px;
 }
+
 .modal-id {
   font-size: 12.5px;
   color: #64748b;
   margin: 0;
 }
+
 .close-btn {
   width: 32px;
   height: 32px;
@@ -4637,19 +5258,23 @@ const promoStatusMap = {
   color: #94a3b8;
   transition: all 0.2s ease;
 }
+
 .close-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
+
 .close-btn svg {
   width: 14px;
   height: 14px;
   stroke: currentColor;
   stroke-width: 2.5;
 }
+
 .modal-body {
   padding: 20px 28px 28px;
 }
+
 .modal-status {
   display: inline-block;
   font-size: 11px;
@@ -4666,23 +5291,28 @@ const promoStatusMap = {
 .address-modal {
   max-width: 720px;
 }
+
 .address-modal-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
 .address-modal-form .form-group {
   margin: 0;
 }
+
 .address-modal-form input,
 .address-modal-form select {
   width: 100%;
   box-sizing: border-box;
 }
+
 .address-modal-actions {
   justify-content: flex-end;
   margin-top: 12px;
 }
+
 .btn-modal-mua {
   background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
   color: #ffffff;
@@ -4694,9 +5324,11 @@ const promoStatusMap = {
   font-size: 14px;
   transition: all 0.2s ease;
 }
+
 .btn-modal-mua:hover {
   box-shadow: 0 0 15px rgba(5, 150, 105, 0.35);
 }
+
 .btn-modal-hoantra {
   background: transparent;
   color: #f97316;
@@ -4708,23 +5340,27 @@ const promoStatusMap = {
   font-size: 14px;
   transition: all 0.2s ease;
 }
+
 .btn-modal-hoantra:hover {
   background: #f97316;
   color: #ffffff;
   border-color: transparent;
   box-shadow: 0 0 15px rgba(249, 115, 22, 0.35);
 }
+
 .region-picker-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
 .region-picker-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
+
 .inline-map-field small {
   display: block;
   margin-top: 6px;
@@ -4738,10 +5374,12 @@ const promoStatusMap = {
   flex-direction: column;
   margin-bottom: 24px;
 }
+
 .tl-item {
   display: flex;
   gap: 16px;
 }
+
 .tl-col {
   display: flex;
   flex-direction: column;
@@ -4749,6 +5387,7 @@ const promoStatusMap = {
   flex-shrink: 0;
   width: 24px;
 }
+
 .tl-dot {
   width: 24px;
   height: 24px;
@@ -4761,11 +5400,13 @@ const promoStatusMap = {
   flex-shrink: 0;
   transition: all 0.25s ease;
 }
+
 .tl-item.done .tl-dot {
   background: #38bdf8;
   border-color: #38bdf8;
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
 }
+
 .tl-dot svg {
   width: 12px;
   height: 12px;
@@ -4773,6 +5414,7 @@ const promoStatusMap = {
   stroke-width: 3;
   fill: none;
 }
+
 .tl-line {
   width: 2px;
   flex: 1;
@@ -4780,24 +5422,29 @@ const promoStatusMap = {
   background: rgba(255, 255, 255, 0.12);
   margin: 2px 0;
 }
+
 .tl-line.done {
   background: #38bdf8;
 }
+
 .tl-content {
   padding-bottom: 20px;
   flex: 1;
 }
+
 .tl-label {
   font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
   margin: 2px 0;
 }
+
 .tl-date {
   font-size: 11px;
   color: #64748b;
   margin: 0;
 }
+
 .section-title {
   font-size: 11px;
   font-weight: 700;
@@ -4806,6 +5453,7 @@ const promoStatusMap = {
   letter-spacing: 0.8px;
   margin: 0 0 12px;
 }
+
 .modal-item {
   display: flex;
   align-items: center;
@@ -4816,6 +5464,7 @@ const promoStatusMap = {
   border-radius: 16px;
   margin-bottom: 10px;
 }
+
 .modal-item img {
   width: 52px;
   height: 52px;
@@ -4824,10 +5473,12 @@ const promoStatusMap = {
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
+
 .modal-item-info {
   flex: 1;
   min-width: 0;
 }
+
 .modal-item-name {
   font-size: 13.5px;
   font-weight: 600;
@@ -4837,16 +5488,19 @@ const promoStatusMap = {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .modal-item-qty {
   font-size: 12px;
   color: #64748b;
   margin: 0;
 }
+
 .modal-item-price {
   font-size: 14px;
   font-weight: 700;
   color: #38bdf8;
 }
+
 .modal-footer {
   display: flex;
   justify-content: space-between;
@@ -4855,10 +5509,12 @@ const promoStatusMap = {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin-top: 16px;
 }
+
 .modal-btns {
   display: flex;
   gap: 12px;
 }
+
 .btn-modal-huy {
   background: transparent;
   border: 1.5px solid rgba(239, 68, 68, 0.5);
@@ -4870,17 +5526,20 @@ const promoStatusMap = {
   font-size: 13.5px;
   transition: all 0.2s ease;
 }
+
 .btn-modal-huy:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: transparent;
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
 }
+
 .modal-total-wrap {
   text-align: right;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .total-label {
   font-size: 12px;
   color: #64748b;
@@ -4888,6 +5547,7 @@ const promoStatusMap = {
   text-transform: capitalize;
   letter-spacing: 0.5px;
 }
+
 .total-value {
   font-size: 20px;
   font-weight: 800;
@@ -4913,6 +5573,7 @@ const promoStatusMap = {
   font-weight: 600;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
+
 .toast svg {
   width: 18px;
   height: 18px;
@@ -4934,11 +5595,13 @@ const promoStatusMap = {
   margin-top: 6px;
   transition: all 0.2s ease;
 }
+
 .btn-review-small:hover {
   background: #38bdf8;
   color: #ffffff;
   border-color: transparent;
 }
+
 .reviewed-tag {
   display: inline-block;
   font-size: 11px;
@@ -4950,6 +5613,7 @@ const promoStatusMap = {
   font-weight: 700;
   margin-top: 6px;
 }
+
 .review-modal {
   max-width: 480px !important;
 }
@@ -5065,74 +5729,109 @@ const promoStatusMap = {
 }
 
 .review-product-info {
-  background: rgba(13, 27, 46, 0.5);
-  padding: 14px;
+  background: #f1f5f9;
+  padding: 14px 16px;
   border-radius: 12px;
   margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid #e2e8f0;
 }
+
 .review-product-name {
   font-weight: 700;
   font-size: 14.5px;
-  color: #ffffff;
+  color: #0f172a;
+  line-height: 1.5;
   margin: 0;
 }
+
 .rating-selector {
   margin-bottom: 24px;
   text-align: center;
 }
+
 .rating-label {
   display: block;
-  font-size: 13.5px;
-  color: #94a3b8;
+  font-size: 14px;
+  color: #334155;
   margin-bottom: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
+
 .stars-input {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
+
 .star-btn {
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
   transition: all 0.2s ease;
 }
+
 .star-btn svg {
   width: 32px;
   height: 32px;
 }
+
 .star-btn.filled {
   color: #fbbf24;
   transform: scale(1.15);
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
 }
+
 .rating-text {
   margin-left: 12px;
   font-size: 14px;
   font-weight: 700;
-  color: #fbbf24;
+  color: #d97706;
   min-width: 100px;
   text-align: left;
 }
+
 .w-100 {
   width: 100%;
 }
 
 /* Animations and transitions */
-.toast-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.4, 0.64, 1); }
-.toast-leave-active { transition: all 0.2s ease; }
-.toast-enter-from { opacity: 0; transform: translateY(-12px); }
-.toast-leave-to { opacity: 0; transform: translateY(-8px); }
-.fade-enter-active { transition: opacity 0.2s; }
-.fade-leave-active { transition: opacity 0.15s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.toast-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
 
-.d-none { display: none; }
+.toast-leave-active {
+  transition: all 0.2s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.fade-enter-active {
+  transition: opacity 0.2s;
+}
+
+.fade-leave-active {
+  transition: opacity 0.15s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.d-none {
+  display: none;
+}
 
 /* ===================== RESPONSIVE STYLES ===================== */
 @media (max-width: 1024px) {
@@ -5140,6 +5839,7 @@ const promoStatusMap = {
     grid-template-columns: 1fr;
     gap: 24px;
   }
+
   .sidebar {
     position: static;
   }
@@ -5149,21 +5849,27 @@ const promoStatusMap = {
   .page {
     padding: 24px 16px;
   }
+
   .card {
     padding: 24px 20px;
   }
-  .form-row, .form-grid {
+
+  .form-row,
+  .form-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
   .pw-layout {
     grid-template-columns: 1fr;
     gap: 20px;
   }
+
   .table-card {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
   .order-data-table {
     min-width: 600px;
   }
@@ -5174,68 +5880,84 @@ const promoStatusMap = {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+
   .info-row {
     min-height: 68px;
     padding: 10px 14px;
   }
+
   .card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
+
   .btn-edit {
     width: 100%;
     justify-content: center;
   }
+
   .order-tabs {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
     padding: 4px;
   }
+
   .order-tab {
     width: 100%;
     justify-content: center;
   }
+
   .modal {
     width: calc(100% - 24px);
     margin: 12px;
   }
+
   .modal-head {
     padding: 18px 20px 0;
   }
+
   .modal-body {
     padding: 16px 20px 20px;
   }
+
   .modal-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
     padding: 12px;
   }
+
   .modal-item-right {
     width: 100%;
     text-align: left !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(255,255,255,0.07);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
     padding-top: 8px;
     margin-top: 4px;
   }
+
   .modal-footer {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
   }
+
   .modal-btns {
     flex-direction: column;
     gap: 8px;
   }
-  .btn-modal-huy, .btn-modal-mua, .btn-modal-hoantra {
+
+  .btn-modal-huy,
+  .btn-modal-mua,
+  .btn-modal-hoantra {
     width: 100%;
     text-align: center;
   }
+
   .modal-total-wrap {
     text-align: left;
   }
@@ -5243,11 +5965,35 @@ const promoStatusMap = {
 </style>
 
 <style scoped>
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: -4px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+}
 
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #2563eb; }
-.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.cat-tab {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.cat-tab:hover {
+  color: #2563eb;
+}
+
+.cat-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
 
 .empty-msg {
   display: flex;
@@ -5258,6 +6004,7 @@ const promoStatusMap = {
   color: #64748b;
   font-size: 15px;
 }
+
 .empty-icon {
   width: 64px;
   height: 64px;
@@ -5922,7 +6669,7 @@ const promoStatusMap = {
   padding: 14px 16px;
 }
 
-.modal .modal-total-wrap > div:last-child {
+.modal .modal-total-wrap>div:last-child {
   border-top-color: #dbeafe !important;
 }
 
@@ -6301,12 +7048,15 @@ const promoStatusMap = {
 .attendance-card {
   margin-top: 10px;
 }
+
 .attendance-card .card-title {
   font-size: 18px;
 }
+
 .attendance-card .card-sub {
   font-size: 13px;
 }
+
 .attendance-days-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(88px, 104px));
@@ -6314,6 +7064,7 @@ const promoStatusMap = {
   gap: 10px;
   margin: 14px 0;
 }
+
 .attendance-day-box {
   display: flex;
   flex-direction: column;
@@ -6329,13 +7080,14 @@ const promoStatusMap = {
   overflow: hidden;
   color: #1f2937;
 }
+
 .attendance-day-box::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 13px;
   padding: 1.5px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.12));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -6347,10 +7099,12 @@ const promoStatusMap = {
   background: rgba(251, 191, 36, 0.18);
   border-color: rgba(245, 158, 11, 0.35);
 }
+
 .attendance-day-box.checked .day-num {
   color: #92400e;
   font-weight: 800;
 }
+
 .attendance-day-box.checked .xu-val {
   color: #b45309;
 }
@@ -6363,10 +7117,12 @@ const promoStatusMap = {
   transform: translateY(-4px);
   animation: pulse-border 2s infinite;
 }
+
 .attendance-day-box.current .day-num {
   color: #92400e;
   font-weight: 800;
 }
+
 .attendance-day-box.current .xu-val {
   color: #92400e;
   font-weight: 800;
@@ -6377,6 +7133,7 @@ const promoStatusMap = {
   background: rgba(250, 204, 21, 0.12);
   opacity: 1;
 }
+
 .attendance-day-box.locked .day-num,
 .attendance-day-box.locked .xu-val {
   color: #4b5563;
@@ -6390,6 +7147,7 @@ const promoStatusMap = {
   letter-spacing: 0.02em;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
+
 .day-xu {
   display: flex;
   align-items: center;
@@ -6403,9 +7161,11 @@ const promoStatusMap = {
   width: fit-content;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(249, 115, 22, 0.08);
 }
+
 .coin-icon {
   font-size: 13px;
 }
+
 .xu-val {
   font-size: 13px;
   font-weight: 900;
@@ -6413,22 +7173,26 @@ const promoStatusMap = {
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
   letter-spacing: 0.02em;
 }
+
 .day-status-icon svg {
   width: 18px;
   height: 18px;
 }
+
 .icon-success {
   stroke: #10b981;
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
 .icon-current {
   stroke: #eab308;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
 .icon-locked {
   stroke: #64748b;
   stroke-width: 2;
@@ -6445,10 +7209,12 @@ const promoStatusMap = {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 12px;
 }
+
 .attendance-streak-info {
   font-size: 14px;
   color: #94a3b8;
 }
+
 .attendance-streak-info strong {
   color: #2563eb;
   font-size: 16px;
@@ -6470,11 +7236,13 @@ const promoStatusMap = {
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
+
 .btn-checkin:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
+
 .btn-checkin:disabled {
   background: rgba(148, 163, 184, 0.15);
   box-shadow: none;
@@ -6482,6 +7250,7 @@ const promoStatusMap = {
   color: #64748b;
   cursor: not-allowed;
 }
+
 .btn-checkin:disabled svg {
   stroke: #64748b;
 }
@@ -6490,9 +7259,11 @@ const promoStatusMap = {
   0% {
     box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
   }
@@ -6504,10 +7275,12 @@ const promoStatusMap = {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
 @media (max-width: 480px) {
   .attendance-days-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .attendance-footer {
     flex-direction: column;
     gap: 16px;
@@ -6529,10 +7302,12 @@ const promoStatusMap = {
   transition: all 0.2s ease;
   resize: none;
 }
+
 .cancel-textarea:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
+
 .btn-danger-confirm {
   padding: 10px 20px;
   border-radius: 10px;
@@ -6544,14 +7319,17 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-danger-confirm:hover {
   background: #dc2626;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
 }
+
 .btn-danger-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .btn-warning-confirm {
   padding: 10px 20px;
   border-radius: 10px;
@@ -6563,12 +7341,49 @@ const promoStatusMap = {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-warning-confirm:hover {
   background: #ea580c;
   box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
 }
+
 .btn-warning-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.modal-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  border-top: none !important;
+  padding-top: 12px !important;
+  background: transparent !important;
+}
+
+.modal-total-wrap {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.modal-btns {
+  width: 100% !important;
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.btn-modal-mua {
+  width: 100% !important;
+  padding: 12px 20px !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
 }
 </style>

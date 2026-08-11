@@ -51,6 +51,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
+Route::get('/refund-file', [DatHangController::class, 'getRefundFile']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/two-factor/challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
@@ -162,11 +163,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/send-email/{id}', [DatHangController::class, 'sendSuccessEmail']);
     Route::post('/orders/{id}/payment-notice', [DatHangController::class, 'notifyManualPayment']);
     Route::get('/orders', [DatHangController::class, 'orders']);
+    Route::get('/orders/{id}', [DatHangController::class, 'show']);
     Route::get('/orders/{id}/momo-status', [MomoController::class, 'momoQuery']);
     Route::get('/orders/{id}/sepay-status', [SepayController::class, 'status']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
     Route::post('/orders/{id}/reorder', [DatHangController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [DatHangController::class, 'refund']);
+    Route::post('/orders/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
+    Route::post('/donhang/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
+    Route::get('/refund-file', [DatHangController::class, 'getRefundFile']);
 
     // ===== YÊU THÍCH =====
     Route::get('/yeu-thich', [YeuThichController::class, 'index']);
@@ -343,6 +348,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/orders/{id}/shipment/retry', [DatHangController::class, 'retryDemoShipment']);
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
+        Route::post('/orders/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
 
         // ===== LIÊN HỆ ADMIN =====

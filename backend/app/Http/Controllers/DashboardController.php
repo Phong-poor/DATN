@@ -257,6 +257,8 @@ class DashboardController extends Controller
                 ->map(function ($variant) {
                     return [
                         'id' => $variant->id_bienthe,
+                        'id_bienthe' => $variant->id_bienthe,
+                        'id_sanpham' => $variant->id_sanpham,
                         'ten' => trim(($variant->sanPham?->tenSP ?? 'Sản phẩm') . ' - ' . ($variant->ten_bienthe ?? 'Mặc định'), ' -'),
                         'soluong' => (int) $variant->soluong,
                         'gia' => number_format((float) $variant->gia, 0, ',', '.') . 'đ',

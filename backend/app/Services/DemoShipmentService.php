@@ -8,6 +8,14 @@ use Illuminate\Support\Carbon;
 
 class DemoShipmentService
 {
+    private function safeBroadcastOrderStatus($order): void
+    {
+        try {
+            event(new OrderStatusUpdated($order));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Không thể gửi Pusher notification OrderStatusUpdated trong DemoShipmentService: '.$e->getMessage());
+        }
+    }
     public function syncDueShipments(): array
     {
         $checked = 0;
@@ -43,7 +51,7 @@ class DemoShipmentService
 
                         $created++;
                         $updated++;
-                        event(new OrderStatusUpdated($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
                     }
 
                     if (in_array($currentOrderStatus, ['confirmed', 'shipping', 'done', 'completed'], true)) {
@@ -58,7 +66,7 @@ class DemoShipmentService
                         ]);
 
                         $created++;
-                        event(new OrderStatusUpdated($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
                     }
 
                     return;
@@ -89,7 +97,7 @@ class DemoShipmentService
                         ]);
 
                         $updated++;
-                        event(new OrderStatusUpdated($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
                     }
 
                     return;
@@ -125,7 +133,7 @@ class DemoShipmentService
                 ]);
 
                 $updated++;
-                event(new OrderStatusUpdated($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
             });
 
         return compact('checked', 'updated', 'created');

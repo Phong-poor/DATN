@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import { getToken } from '@/services/auth'
 import { isFormDirty } from '@/services/unsavedChanges'
+import swal from '@/services/swal'
 
 // Form State
 const name = ref('')
@@ -200,6 +201,10 @@ async function sendContactRequest() {
       currentFormStep.value = 1
       resetCaptcha()
       isFormDirty.value = false
+      swal.success(
+        'Gửi liên hệ thành công! 🎉',
+        'Cảm ơn bạn đã gửi thông tin. Đội ngũ chuyên gia NextGen sẽ liên hệ hỗ trợ bạn trong vòng 2 giờ.'
+      )
       setTimeout(() => { success.value = false }, 6000)
     } else {
       error.value = data.message || 'Gửi yêu cầu thất bại, vui lòng thử lại'
@@ -1636,10 +1641,15 @@ const toggleFaq = (index) => {
   position: relative;
   flex-grow: 1;
 }
+.guided-inputs-wrapper input,
+.floating-input-field input,
 .input-block input {
-  border: none;
-  background: transparent;
-  outline: none;
+  border: none !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   font-family: inherit;
   font-size: 13.5px;
   color: var(--text-primary);
@@ -1735,14 +1745,18 @@ const toggleFaq = (index) => {
 .guided-textarea-field textarea {
   width: 100%;
   height: 140px;
-  border: none;
-  background: transparent;
-  outline: none;
+  border: none !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   font-family: inherit;
   font-size: 13.5px;
   color: var(--text-primary);
   line-height: 1.6;
   resize: none;
+  padding: 0 !important;
 }
 .guided-textarea-field:focus-within {
   border-color: var(--primary);

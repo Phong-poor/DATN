@@ -209,7 +209,7 @@ export default function CartScreen() {
         </>
       ) : (
         <View style={styles.emptyContainer}>
-          <Feather name="shopping-cart" size={58} color={COLORS.textSecondary} />
+          <Text style={styles.emptyIcon}>🛒</Text>
           <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
         </View>
       )}

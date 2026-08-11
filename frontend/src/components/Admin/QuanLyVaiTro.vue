@@ -87,7 +87,8 @@ const permissionGroups = [
   {
     title: 'Chăm sóc khách hàng',
     permissions: [
-      { code: 'lien_he_quan_ly', name: 'Hỗ trợ khách hàng', desc: 'Xem phản hồi liên hệ của khách và viết email trả lời.' }
+      { code: 'lien_he_quan_ly', name: 'Hỗ trợ khách hàng', desc: 'Xem phản hồi liên hệ của khách và viết email trả lời.' },
+      { code: 'chat_quan_ly', name: 'Tư vấn hỗ trợ trực tiếp', desc: 'Nhắn tin tư vấn trực tiếp với khách hàng qua mục Tin nhắn.' }
     ]
   },
   {

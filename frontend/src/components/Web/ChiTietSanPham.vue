@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import { getToken } from '@/services/auth'
+import { isWishlisted, findWishlistItem, fetchWishlistState, wishlistItems } from '@/services/wishlistStore'
 import { imageFallbackUrl, normalizeImageUrl, productImageUrl, withImageVersion } from '@/services/urls'
 import { findPrefetchedProductById, prefetchProductsPage } from '@/services/productsPrefetch'
 import ComboSelectionModal from './HopThoaiChonCombo.vue'
@@ -406,6 +407,55 @@ const themVaoGioHang = async () => {
         // 🔥 cập nhật badge header
         window.dispatchEvent(new Event('cart-updated'))
 
+    } catch (err) {
+        const msg = err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!'
+        hienThiThongBao('error', msg)
+    } finally {
+        dangThem.value = false
+    }
+}
+
+// MUA NGAY (THÊM VÀO GIỎ & CHUYỂN THẲNG SANG THANH TOÁN)
+const muaNgay = async () => {
+    const variantForApi = resolveSelectedVariantForApi()
+    if (!variantForApi) {
+        hienThiThongBao('error', 'Đang tải cấu hình sản phẩm, vui lòng thử lại sau giây lát!')
+        return
+    }
+
+    const token = getToken()
+    if (!token) {
+        hienThiThongBao('error', 'Vui lòng đăng nhập để tiến hành mua ngay!')
+        if (selectedVariant.value) {
+            localStorage.setItem('pendingCartItem', JSON.stringify({
+                id_bienthe: variantForApi.id_bienthe,
+                soluong: soLuongMua.value,
+            }));
+        }
+        setTimeout(() => {
+            router.push({
+                path: '/dang-nhap',
+                query: { redirect: '/thanhtoan' }
+            })
+        }, 1000)
+        return
+    }
+
+    if (Number(variantForApi.soluong ?? 0) === 0) {
+        hienThiThongBao('error', 'Sản phẩm này đã hết hàng!')
+        return
+    }
+
+    dangThem.value = true
+
+    try {
+        await api.post('/gio-hang/them', {
+            id_bienthe: variantForApi.id_bienthe,
+            soluong: soLuongMua.value,
+        })
+
+        window.dispatchEvent(new Event('cart-updated'))
+        router.push('/thanhtoan')
     } catch (err) {
         const msg = err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!'
         hienThiThongBao('error', msg)
@@ -1017,11 +1067,6 @@ const dangThemYeuThich = ref(false)
 
 const themVaoYeuThich = async () => {
     const variantForApi = resolveSelectedVariantForApi()
-    if (!variantForApi) {
-        hienThiThongBao('error', 'Đang tải cấu hình sản phẩm, vui lòng thử lại sau giây lát!')
-        return
-    }
-    // 1. Check đăng nhập
     const token = getToken()
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
@@ -1031,7 +1076,20 @@ const themVaoYeuThich = async () => {
         return
     }
 
-    // 2. Check xem khách đã chọn biến thể (RAM, SSD, Màu...) chưa
+    const existing = findWishlistItem(selectedVariant.value || product.value) || (variantForApi && wishlistItems.value.find(i => Number(i.id_bienthe || i.bienthe?.id_bienthe) === Number(variantForApi.id_bienthe)))
+
+    if (existing) {
+        try {
+            await api.delete(`/yeu-thich/xoa/${existing.id}`)
+            await fetchWishlistState()
+            window.dispatchEvent(new Event('wishlist-updated'))
+            hienThiThongBao('success', '💔 Đã bỏ sản phẩm khỏi danh sách yêu thích!')
+        } catch (err) {
+            hienThiThongBao('error', err.response?.data?.message || 'Có lỗi xảy ra!')
+        }
+        return
+    }
+
     if (!variantForApi) {
         hienThiThongBao('error', 'Vui lòng chọn biến thể sản phẩm trước khi yêu thích!')
         return
@@ -1039,17 +1097,13 @@ const themVaoYeuThich = async () => {
 
     dangThemYeuThich.value = true
     try {
-        // 3. Gọi API thêm vào Database
         await api.post('/yeu-thich/them', {
             id_bienthe: variantForApi.id_bienthe,
-            soluong: soLuongMua.value, // Thích bao nhiêu cái thì truyền bấy nhiêu
+            soluong: soLuongMua.value,
         })
-
-        // 4. Báo thành công và update Header
-        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích từ trang chi tiết!')
-
+        await fetchWishlistState()
+        hienThiThongBao('success', '❤️ Đã lưu vào danh sách yêu thích!')
         window.dispatchEvent(new Event('wishlist-updated'))
-
     } catch (err) {
         hienThiThongBao('error', err.response?.data?.message || 'Có lỗi xảy ra!')
     } finally {
@@ -1368,7 +1422,7 @@ const handleSelectVariantById = (idBienThe) => {
                             <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
                         </svg>
                     </button>
-                    <button class="btn btn-premium-glow" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0">
+                    <button class="btn btn-premium-glow" @click="muaNgay" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0">
                         Mua ngay
                     </button>
                 </div>
@@ -1568,16 +1622,26 @@ const handleSelectVariantById = (idBienThe) => {
                             <div class="actions-grid">
                                 <button class="btn-buy-now btn-glow-primary"
                                         :disabled="!selectedVariant || Number(selectedVariant.soluong) <= 0 || dangThem"
-                                        @click="themVaoGioHang">
+                                        @click="muaNgay">
                                     <span class="btn-ripple-bg"></span>
                                     <span v-if="dangThem" class="loading-spin-circle"></span>
-                                    <span v-else class="btn-content-text">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                                    <span v-else class="btn-content-text" style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px;">
+                                        ⚡ MUA NGAY
+                                    </span>
+                                </button>
+
+                                <button class="btn-buy-now"
+                                        style="background: #0f172a; border: 1px solid #334155; color: #ffffff;"
+                                        :disabled="!selectedVariant || Number(selectedVariant.soluong) <= 0 || dangThem"
+                                        @click="themVaoGioHang">
+                                    <span v-if="dangThem" class="loading-spin-circle"></span>
+                                    <span v-else class="btn-content-text" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
                                             <circle cx="9" cy="21" r="1"></circle>
                                             <circle cx="20" cy="21" r="1"></circle>
                                             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                                         </svg>
-                                        THÊM VÀO GIỎ HÀNG
+                                        THÊM GIỎ HÀNG
                                     </span>
                                 </button>
 
@@ -1589,16 +1653,22 @@ const handleSelectVariantById = (idBienThe) => {
 
                             <!-- Wishlist & Compare floating actions -->
                             <div class="floating-shortcuts-row">
-                                <button class="shortcut-action-btn wishlist-toggle" :disabled="dangThemYeuThich" @click="themVaoYeuThich" title="Lưu yêu thích">
+                                <button
+                                    class="shortcut-action-btn wishlist-toggle"
+                                    :class="{ 'is-wishlisted': isWishlisted(selectedVariant || product) }"
+                                    :disabled="dangThemYeuThich"
+                                    @click="themVaoYeuThich"
+                                    :title="isWishlisted(selectedVariant || product) ? 'Bỏ lưu yêu thích' : 'Lưu yêu thích'"
+                                >
                                     <span class="icon">
                                         <svg v-if="dangThemYeuThich" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
                                             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                                         </svg>
-                                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
+                                        <svg v-else viewBox="0 0 24 24" :fill="isWishlisted(selectedVariant || product) ? '#ef4444' : 'none'" :stroke="isWishlisted(selectedVariant || product) ? '#ef4444' : 'currentColor'" stroke-width="2" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;">
                                             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                                         </svg>
                                     </span>
-                                    <span>{{ dangThemYeuThich ? 'Đang lưu...' : 'Yêu thích' }}</span>
+                                    <span>{{ dangThemYeuThich ? 'Đang xử lý...' : (isWishlisted(selectedVariant || product) ? 'Đã yêu thích' : 'Yêu thích') }}</span>
                                 </button>
 
                                 <button class="shortcut-action-btn compare-toggle" @click="openCompareModal" title="So sánh tính năng">

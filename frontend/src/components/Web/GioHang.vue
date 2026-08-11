@@ -84,7 +84,14 @@ const fetchGioHang = async () => {
     try {
         if (cart.value.length === 0) isLoading.value = true
         const res = await api.get('/gio-hang')
-        cart.value = res.data.gio_hang
+        const rawCart = res.data.gio_hang || []
+        cart.value = rawCart.map(i => ({
+            ...i,
+            soluong: parseInt(i.soluong || 1, 10),
+            gia: Number(i.gia || 0),
+            thanh_tien: Number(i.thanh_tien || 0),
+            ton_kho: Number(i.ton_kho || 99)
+        }))
         localStorage.setItem('nextgen_cart_cache', JSON.stringify(cart.value))
     } catch (err) {
         console.error('Lỗi tải giỏ hàng:', err)
@@ -132,9 +139,11 @@ const groupedCart = computed(() => {
 })
 
 const capNhatSoLuongCombo = async (group, delta) => {
-    const soLuongMoi = group.soluong + delta
+    const currentQty = parseInt(group.soluong || 1, 10)
+    const deltaNum = parseInt(delta, 10)
+    const soLuongMoi = currentQty + deltaNum
     if (soLuongMoi < 1) return
-    if (soLuongMoi > group.ton_kho) {
+    if (soLuongMoi > Number(group.ton_kho)) {
         hienThiThongBao('error', `Kho chỉ còn ${group.ton_kho} combo.`)
         return
     }
@@ -180,9 +189,11 @@ const deleteCombo = async (group) => {
 }
 
 const capNhatSoLuong = async (item, delta) => {
-    const soLuongMoi = item.soluong + delta
+    const currentQty = parseInt(item.soluong || 1, 10)
+    const deltaNum = parseInt(delta, 10)
+    const soLuongMoi = currentQty + deltaNum
     if (soLuongMoi < 1) return
-    if (soLuongMoi > item.ton_kho) {
+    if (soLuongMoi > Number(item.ton_kho)) {
         hienThiThongBao('error', `Kho chỉ còn ${item.ton_kho} sản phẩm.`)
         return
     }
@@ -191,11 +202,11 @@ const capNhatSoLuong = async (item, delta) => {
     const originalItem = cart.value.find(c => c.id_giohang === item.id_giohang)
     if (originalItem) {
         originalItem.soluong = soLuongMoi
-        originalItem.thanh_tien = originalItem.gia * soLuongMoi
+        originalItem.thanh_tien = Number(originalItem.gia || 0) * soLuongMoi
     }
     
     item.soluong = soLuongMoi
-    item.thanh_tien = item.gia * soLuongMoi
+    item.thanh_tien = Number(item.gia || 0) * soLuongMoi
 
     if (appliedPromo.value) tinhDiscount(appliedPromo.value)
     if (appliedFreeshipPromo.value) tinhFreeshipDiscount(appliedFreeshipPromo.value)

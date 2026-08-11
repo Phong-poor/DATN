@@ -955,7 +955,7 @@ const loginGoogle = () => {
 .policy-footer > p svg { flex: 0 0 auto; width: 14px; height: 14px; color: #2563eb; }
 .policy-footer > div { display: flex; gap: 9px; }
 .policy-secondary,
-.policy-accept { height: 34px; padding: 0 11px; border-radius: 9px; font-size: 9.5px; font-weight: 750; cursor: pointer; }
+.policy-accept { height: 34px; padding: 0 11px; border-radius: 9px; font-size: 9.5px; font-weight: 750; cursor: pointer; text-transform: none !important; }
 .policy-secondary { border: 1px solid #cbd5e1; background: #fff; color: #475569; }
 .policy-secondary { transition: border-color .18s ease, background .18s ease, transform .18s ease; }
 .policy-secondary:hover { transform: translateY(-1px); border-color: #94a3b8; background: #f1f5f9; }

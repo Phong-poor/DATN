@@ -292,13 +292,13 @@ class AuthController extends Controller
             ]);
         }
 
-        $tokenName = ! empty($validated['remember']) ? 'remember_token' : 'session_token';
+        $tokenName = 'remember_token';
         $token = $this->issueSingleSessionToken($user, $tokenName);
 
         return response()->json([
             'message' => 'Đăng nhập thành công.',
             'token' => $token,
-            'remember' => (bool) ($validated['remember'] ?? false),
+            'remember' => true,
             'user' => $user,
         ]);
     }

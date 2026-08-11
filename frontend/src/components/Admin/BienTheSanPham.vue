@@ -100,8 +100,63 @@ const variants = ref([])
 const groups = ref([])
 const attrs = ref([])
 const colors = ref([])
+const parentCategories = ref([])
+const childCategories = ref([])
 const categories = ref([])
-const parentCategories = computed(() => categories.value.filter(c => !c.parent_id))
+
+const getCategoryName = (id) => {
+  if (!id && id !== 0) return 'N/A'
+  const found = categories.value.find(c => 
+    String(c.id_danhmuc) === String(id) ||
+    String(c.id_danhmuc_cha) === String(id) ||
+    String(c.id) === String(id)
+  )
+  return found ? (found.ten_danhmuc || found.ten || found.name) : 'N/A'
+}
+
+const isCategorySelected = (id, selectedList) => {
+  if (!Array.isArray(selectedList) || !selectedList.length) return false
+  return selectedList.some(item => String(item) === String(id))
+}
+
+const handleCategoryMultiSelect = (event, formObj) => {
+  const selectedOptions = Array.from(event.target.selectedOptions).map(opt => Number(opt.value)).filter(n => !isNaN(n))
+  formObj.danh_muc_ids = selectedOptions
+}
+
+const getSelectedCategoryBadges = (selectedIds) => {
+  if (!Array.isArray(selectedIds) || !selectedIds.length) return []
+  return selectedIds.map(id => {
+    const found = categories.value.find(c => String(c.id_danhmuc) === String(id) || String(c.id_danhmuc_cha) === String(id))
+    return found ? { id: Number(found.id_danhmuc), name: found.ten_danhmuc, isParent: !!found.is_parent } : { id: Number(id), name: `Danh mục #${id}`, isParent: false }
+  })
+}
+
+const getCategoryNamesTooltip = (ids) => {
+  if (!Array.isArray(ids) || !ids.length) return 'Tất cả danh mục'
+  const names = getSelectedCategoryBadges(ids).map(c => c.name)
+  return names.join(', ')
+}
+
+const toggleCategorySelection = (id, formObj) => {
+  const numId = Number(id)
+  if (!Array.isArray(formObj.danh_muc_ids)) {
+    formObj.danh_muc_ids = []
+  }
+  const index = formObj.danh_muc_ids.findIndex(item => Number(item) === numId)
+  if (index >= 0) {
+    formObj.danh_muc_ids.splice(index, 1)
+  } else {
+    formObj.danh_muc_ids.push(numId)
+  }
+}
+
+const removeCategorySelection = (id, formObj) => {
+  const numId = Number(id)
+  if (Array.isArray(formObj.danh_muc_ids)) {
+    formObj.danh_muc_ids = formObj.danh_muc_ids.filter(item => Number(item) !== numId)
+  }
+}
 const selectedColor = ref(null)
 
 // ── Filter ──
@@ -268,6 +323,27 @@ const buildPageItems = (currentPage, totalPages) => {
   return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
 }
 
+const normalizeCategoryIds = (raw) => {
+  let ids = raw
+  if (typeof ids === 'string') {
+    try {
+      ids = JSON.parse(ids)
+    } catch (e) {
+      ids = String(ids).split(',').map(s => s.trim()).filter(Boolean)
+    }
+  }
+  if (!Array.isArray(ids)) return []
+  return ids
+    .map(item => {
+      if (item && typeof item === 'object') {
+        return item.id_danhmuc || item.id_danh_muc || item.id || null
+      }
+      return item
+    })
+    .map(Number)
+    .filter(n => !isNaN(n) && n > 0)
+}
+
 const variantPageItems = computed(() => buildPageItems(variantPage.value, variantPages.value))
 const colorPageItems = computed(() => buildPageItems(colorPage.value, colorPages.value))
 const groupPageItems = computed(() => buildPageItems(groupPage.value, groupPages.value))
@@ -278,11 +354,7 @@ const normalizeData = (payload) => {
 
   const normalizedGroups = nhoms.map((g) => {
     const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
-    let dsId = g.danh_muc_ids || []
-    if (typeof dsId === 'string') {
-      try { dsId = JSON.parse(dsId) } catch(e) { dsId = [] }
-    }
-    dsId = Array.isArray(dsId) ? dsId : []
+    const dsId = normalizeCategoryIds(g.danh_muc_ids || g.danh_mucs || g.danhmucs || g.danhMucIds)
     return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length, danh_muc_ids: dsId }
   })
 
@@ -301,6 +373,7 @@ const normalizeData = (payload) => {
       })
       const giaTris = Array.isArray(a.giatri_thuoc_tinhs) ? a.giatri_thuoc_tinhs : Array.isArray(a.giatriThuocTinhs) ? a.giatriThuocTinhs : []
       giaTris.forEach((v) => {
+        const dsId = normalizeCategoryIds(v.danh_muc_ids || v.danh_mucs || v.danhmucs || v.danhMucIds || v.id_danhmuc)
         normalizedVariants.push({
           id: v.id_giatri,
           name: v.giatri,
@@ -308,7 +381,7 @@ const normalizeData = (payload) => {
           attrId: a.id_thuoctinh,
           status: Number(v.trangthai) === 1 ? 'Hoạt động' : 'Nháp',
           gia_cong_them: Number(v.gia_cong_them || 0),
-          danh_muc_ids: Array.isArray(v.danh_muc_ids) ? v.danh_muc_ids : []
+          danh_muc_ids: dsId
         })
       })
     })
@@ -364,10 +437,38 @@ const fetchColors = async () => {
 
 const fetchCategories = async () => {
   try {
-    const res = await api.get('/danhmuc')
-    categories.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    const [parentRes, childRes] = await Promise.allSettled([
+      api.get('/danhmuc-cha'),
+      api.get('/danhmuc')
+    ])
+
+    let parents = []
+    if (parentRes.status === 'fulfilled') {
+      const data = parentRes.value.data?.data || parentRes.value.data || []
+      parents = (Array.isArray(data) ? data : []).map(c => ({
+        id_danhmuc: Number(c.id_danhmuc_cha || c.id_danhmuc || c.id),
+        ten_danhmuc: c.ten_danhmuc_cha || c.ten_danhmuc || c.ten || c.name,
+        is_parent: true
+      }))
+    }
+
+    let children = []
+    if (childRes.status === 'fulfilled') {
+      const data = childRes.value.data?.data || childRes.value.data || []
+      children = (Array.isArray(data) ? data : []).map(c => ({
+        id_danhmuc: Number(c.id_danhmuc || c.id),
+        ten_danhmuc: c.ten_danhmuc || c.ten || c.name,
+        id_danhmuc_cha: Number(c.id_danhmuc_cha || c.parent_id || 0),
+        is_parent: false
+      }))
+    }
+
+    parentCategories.value = parents
+    childCategories.value = children
+
+    categories.value = [...parents, ...children]
   } catch (error) {
-    console.error('Không tải được danh mục')
+    console.error('Không tải được danh mục', error)
   }
 }
 
@@ -379,21 +480,49 @@ const openModal = (type, item = null) => {
 
   if (type === 'variant') variantForm.value = defaultVariantForm()
   else if (type === 'editVariant' && item) {
+    const rawIds = item.danh_muc_ids || item.danh_mucs || item.danhmucs || item.danhMucIds || []
+    const parsedCategoryIds = normalizeCategoryIds(rawIds)
+
+    let matchedType = item.type || ''
+    if (!attrs.value.some(a => a.name === matchedType)) {
+      const foundAttr = attrs.value.find(a => Number(a.id) === Number(item.attrId))
+      if (foundAttr) matchedType = foundAttr.name
+    }
+
     variantForm.value = {
       ...item,
-      gia_cong_them: item.gia_cong_them ?? 0,
-      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
+      name: item.name || item.giatri || '',
+      type: matchedType || (variantTypeOptions.value[0] || ''),
+      status: item.status || (Number(item.trangthai) === 1 ? 'Hoạt động' : 'Nháp'),
+      gia_cong_them: Number(item.gia_cong_them || 0),
+      danh_muc_ids: parsedCategoryIds
     }
   }
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
   else if (type === 'group') groupForm.value = defaultGroupForm()
-  else if (type === 'editGroup' && item)    groupForm.value = { 
-      name: item.name,
-      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids] : []
+  else if (type === 'editGroup' && item) {
+    const rawIds = item.danh_muc_ids || item.danh_mucs || item.danhmucs || item.danhMucIds || []
+    const parsedCategoryIds = normalizeCategoryIds(rawIds)
+
+    groupForm.value = { 
+      name: item.name || item.ten_nhom || '',
+      danh_muc_ids: parsedCategoryIds
     }
+  }
   else if (type === 'attr') attrForm.value = defaultAttrForm()
-  else if (type === 'editAttr' && item) attrForm.value = { name: item.name, group: item.group, status: item.status }
+  else if (type === 'editAttr' && item) {
+    let matchedGroup = item.group || ''
+    if (!groups.value.some(g => g.name === matchedGroup)) {
+      const foundGroup = groups.value.find(g => Number(g.id) === Number(item.groupId))
+      if (foundGroup) matchedGroup = foundGroup.name
+    }
+    attrForm.value = {
+      name: item.name || item.ten_thuoctinh || '',
+      group: matchedGroup || (groups.value[0]?.name || ''),
+      status: item.status || (Number(item.trangthai) === 1 ? 'Hoạt động' : 'Nháp')
+    }
+  }
 
   showModal.value = true
 }
@@ -660,15 +789,15 @@ const closeAttributeDropdown = (e) => {
   }
 }
 
-onMounted(() => {
-  fetchAll()
-  fetchColors()
+onMounted(async () => {
+  await fetchCategories()
+  await fetchAll()
+  await fetchColors()
   document.addEventListener('click', closeAttributeDropdown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeAttributeDropdown)
-  fetchCategories()
 })
 
 // ══════════════════════════════════════════════════════
@@ -924,7 +1053,7 @@ async function handleImportFile(e) {
               <td>
                 <div class="badges">
                   <span v-for="id in g.danh_muc_ids" :key="id" class="badge bg-blue">
-                    {{ parentCategories.find(c => String(c.id_danhmuc) === String(id))?.ten_danhmuc || 'N/A' }}
+                    {{ getCategoryName(id) }}
                   </span>
                   <span v-if="!g.danh_muc_ids || g.danh_muc_ids.length === 0" class="badge bg-gray">Tất cả</span>
                 </div>
@@ -953,8 +1082,8 @@ async function handleImportFile(e) {
         <PhanTrangAdmin
           v-model:currentPage="groupPage"
           :total-pages="groupPages"
-          :total-items="groupPagination.total"
-          :page-size="5"
+          :total-items="groupPagination.total.value"
+          :page-size="PER_PAGE"
           item-label="nhóm"
         />
       </div>
@@ -1023,8 +1152,8 @@ async function handleImportFile(e) {
         <PhanTrangAdmin
           v-model:currentPage="attrPage"
           :total-pages="attrPages"
-          :total-items="attrPagination.total"
-          :page-size="5"
+          :total-items="attrPagination.total.value"
+          :page-size="PER_PAGE"
           item-label="thuộc tính"
         />
       </div>
@@ -1140,10 +1269,10 @@ async function handleImportFile(e) {
                     :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
                 </td>
                 <td>
-                  <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12px; color: #64748b;">
+                  <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12.5px; color: #475569; font-weight: 500;" :title="getCategoryNamesTooltip(v.danh_muc_ids)">
                     {{ v.danh_muc_ids.length }} danh mục
                   </span>
-                  <span v-else style="font-size: 12px; color: #64748b;">Tất cả</span>
+                  <span v-else style="font-size: 12.5px; color: #94a3b8;">Tất cả</span>
                 </td>
                 <td>
                   <span class="status-dot" :class="v.status === 'Hoạt động' ? 'active' : 'draft'">● {{ v.status }}</span>
@@ -1171,8 +1300,8 @@ async function handleImportFile(e) {
           <PhanTrangAdmin
             v-model:currentPage="variantPage"
             :total-pages="variantPages"
-            :total-items="variantPagination.total"
-            :page-size="10"
+            :total-items="variantPagination.total.value"
+            :page-size="PER_PAGE"
             item-label="biến thể"
           />
         </div>
@@ -1219,8 +1348,8 @@ async function handleImportFile(e) {
           <PhanTrangAdmin
             v-model:currentPage="colorPage"
             :total-pages="colorPages"
-            :total-items="colorPagination.total"
-            :page-size="10"
+            :total-items="colorPagination.total.value"
+            :page-size="PER_PAGE"
             item-label="màu"
           />
         </div>
@@ -1403,10 +1532,59 @@ async function handleImportFile(e) {
                     <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
                   </div>
                   <div class="form-group">
-                    <label>DANH MỤC ÁP DỤNG (Bỏ trống để áp dụng cho tất cả)</label>
-                    <select v-model="variantForm.danh_muc_ids" multiple style="height: 100px; padding: 8px;">
-                      <option v-for="cat in categories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
-                    </select>
+                    <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                      <span>DANH MỤC ÁP DỤNG</span>
+                      <small style="color:#64748b;font-weight:normal">(Tùy chọn - Bỏ trống để áp dụng cho tất cả)</small>
+                    </label>
+
+                    <!-- BADGES HIỂN THỊ CÁC DANH MỤC ĐANG CHỌN -->
+                    <div class="selected-category-badges-box">
+                      <span class="box-title">Đang chọn ({{ variantForm.danh_muc_ids ? variantForm.danh_muc_ids.length : 0 }} danh mục):</span>
+                      <div class="badges-wrap">
+                        <template v-if="variantForm.danh_muc_ids && variantForm.danh_muc_ids.length">
+                          <span 
+                            v-for="cat in getSelectedCategoryBadges(variantForm.danh_muc_ids)" 
+                            :key="cat.id" 
+                            class="cat-pill-badge"
+                            :class="cat.isParent ? 'parent-pill' : 'child-pill'"
+                          >
+                            <span class="pill-name">{{ cat.isParent ? '📁 ' : '└─ ' }}{{ cat.name }}</span>
+                            <button type="button" class="btn-remove-pill" @click="removeCategorySelection(cat.id, variantForm)" title="Bỏ chọn danh mục này">✕</button>
+                          </span>
+                        </template>
+                        <span v-else class="all-cats-notice">
+                          ✔ Áp dụng cho <b>TẤT CẢ SẢN PHẨM &amp; DANH MỤC</b>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- CHECKBOX TREE TÍCH CHỌN NHANH -->
+                    <div class="category-checkbox-tree-box">
+                      <div v-for="parent in parentCategories" :key="'p_tree_' + parent.id_danhmuc" class="tree-parent-group">
+                        <label class="checkbox-row parent-row">
+                          <input 
+                            type="checkbox" 
+                            :checked="isCategorySelected(parent.id_danhmuc, variantForm.danh_muc_ids)" 
+                            @change="toggleCategorySelection(parent.id_danhmuc, variantForm)"
+                          />
+                          <span class="parent-title">📁 {{ parent.ten_danhmuc }} (Tất cả {{ parent.ten_danhmuc }})</span>
+                        </label>
+                        <div class="tree-children-rows">
+                          <label 
+                            v-for="child in childCategories.filter(c => String(c.id_danhmuc_cha) === String(parent.id_danhmuc))" 
+                            :key="'c_tree_' + child.id_danhmuc" 
+                            class="checkbox-row child-row"
+                          >
+                            <input 
+                              type="checkbox" 
+                              :checked="isCategorySelected(child.id_danhmuc, variantForm.danh_muc_ids)" 
+                              @change="toggleCategorySelection(child.id_danhmuc, variantForm)"
+                            />
+                            <span>└─ {{ child.ten_danhmuc }}</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div class="form-row">
                     <div class="form-group">
@@ -1486,11 +1664,41 @@ async function handleImportFile(e) {
                     <input v-model="groupForm.name" placeholder="VD: Cấu hình Laptop" />
                   </div>
                   <div class="form-group">
-                    <label>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></label>
-                    <select v-model="groupForm.danh_muc_ids" multiple class="custom-select" style="height: 100px;">
-                      <option v-for="cat in parentCategories" :key="cat.id_danhmuc" :value="cat.id_danhmuc">{{ cat.ten_danhmuc }}</option>
-                    </select>
-                    <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">Giữ Ctrl/Cmd để chọn nhiều danh mục</p>
+                    <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                      <span>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></span>
+                    </label>
+
+                    <!-- BADGES HIỂN THỊ CÁC DANH MỤC CHA ĐANG CHỌN -->
+                    <div class="selected-category-badges-box">
+                      <span class="box-title">Danh mục cha đang chọn:</span>
+                      <div class="badges-wrap">
+                        <template v-if="groupForm.danh_muc_ids && groupForm.danh_muc_ids.length">
+                          <span 
+                            v-for="cat in getSelectedCategoryBadges(groupForm.danh_muc_ids)" 
+                            :key="cat.id" 
+                            class="cat-pill-badge parent-pill"
+                          >
+                            <span class="pill-name">📁 {{ cat.name }}</span>
+                            <button type="button" class="btn-remove-pill" @click="removeCategorySelection(cat.id, groupForm)" title="Bỏ chọn danh mục này">✕</button>
+                          </span>
+                        </template>
+                        <span v-else class="warn-notice">
+                          ⚠️ Vui lòng tích chọn ít nhất 1 danh mục cha ở danh sách bên dưới
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- CHECKBOX TICK CHỌN DANH MỤC CHA -->
+                    <div class="category-checkbox-tree-box">
+                      <label v-for="parent in parentCategories" :key="'p_group_tree_' + parent.id_danhmuc" class="checkbox-row parent-row">
+                        <input 
+                          type="checkbox" 
+                          :checked="isCategorySelected(parent.id_danhmuc, groupForm.danh_muc_ids)" 
+                          @change="toggleCategorySelection(parent.id_danhmuc, groupForm)"
+                        />
+                        <span class="parent-title">📁 {{ parent.ten_danhmuc }}</span>
+                      </label>
+                    </div>
                   </div>
                 </template>
 
@@ -3045,6 +3253,135 @@ tbody td {
 @media (max-width:640px) {
   .bottom-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+}
+
+/* Selected Category Badges & Checkbox Tree Box */
+.selected-category-badges-box {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.selected-category-badges-box .box-title {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.badges-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cat-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.cat-pill-badge.parent-pill {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.cat-pill-badge.child-pill {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.btn-remove-pill {
+  border: none;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 2px;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.btn-remove-pill:hover {
+  opacity: 1;
+}
+
+.all-cats-notice {
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.warn-notice {
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.category-checkbox-tree-box {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.tree-parent-group {
+  margin-bottom: 8px;
+}
+
+.tree-parent-group:last-child {
+  margin-bottom: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.checkbox-row:hover {
+  background: #f1f5f9;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.parent-row {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.tree-children-rows {
+  padding-left: 20px;
+}
+
+.child-row {
+  color: #475569;
+  font-weight: 500;
 }
 </style>
 

@@ -20,6 +20,6 @@ class YeuThich extends Model
     // Quan hệ lấy ra thông tin biến thể và sản phẩm tương ứng
     public function bienthe()
     {
-        return $this->belongsTo(Bienthe::class, 'id_bienthe', 'id_bienthe')->with('sanpham');
+        return $this->belongsTo(BienThe::class, 'id_bienthe', 'id_bienthe')->with('sanPham');
     }
 }

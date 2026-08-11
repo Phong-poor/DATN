@@ -399,7 +399,7 @@ const handleLogin = async () => {
       const duration = 30 * Math.pow(2, lockCount.value)
       lockUntil.value = Date.now() + duration * 1000
       localStorage.setItem('login_lock_until', lockUntil.value)
-      
+
       // Increment lock count for next exponential lock
       lockCount.value += 1
       localStorage.setItem('login_lock_count', lockCount.value)
@@ -415,7 +415,8 @@ const handleLogin = async () => {
 <template>
   <div class="page">
 
-    <div class="login-box" :class="{ 'admin-opening': adminOpening, 'web-opening': webOpening, 'social-opening': socialOpening }">
+    <div class="login-box"
+      :class="{ 'admin-opening': adminOpening, 'web-opening': webOpening, 'social-opening': socialOpening }">
 
       <!-- LEFT (Dark Column) -->
       <div class="left-col">
@@ -438,8 +439,10 @@ const handleLogin = async () => {
       <!-- RIGHT (White Column) -->
       <div class="right-col">
         <div class="tab-header">
-          <span class="tab-btn active" @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-nhap')">Đăng nhập</span>
-          <span class="tab-btn" @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-ky')">Đăng ký</span>
+          <span class="tab-btn active"
+            @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-nhap')">Đăng nhập</span>
+          <span class="tab-btn" @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-ky')">Đăng
+            ký</span>
         </div>
 
         <div class="welcome-box">
@@ -453,13 +456,15 @@ const handleLogin = async () => {
           <div class="form-group">
             <label class="input-label">Địa chỉ Email</label>
             <div class="input-wrapper">
-               <span class="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="3"/>
-                  <path d="M2 7l10 7 10-7"/>
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <path d="M2 7l10 7 10-7" />
                 </svg>
               </span>
-              <input v-model="email" type="email" name="username" autocomplete="username" placeholder="Example@vinatech.vn" />
+              <input v-model="email" type="email" name="username" autocomplete="username"
+                placeholder="Example@vinatech.vn" />
             </div>
           </div>
 
@@ -468,18 +473,22 @@ const handleLogin = async () => {
             <label class="input-label">Mật khẩu</label>
             <div class="input-wrapper" :class="{ 'error': passwordError }">
               <span class="input-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </span>
-              <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password" autocomplete="current-password" placeholder="••••••••" />
+              <input :type="showPassword ? 'text' : 'password'" v-model="password" name="password"
+                autocomplete="current-password" placeholder="••••••••" />
               <button class="eye-toggle-btn" @click="showPassword = !showPassword" type="button">
-                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                   <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                   <line x1="1" y1="1" x2="23" y2="23" />
@@ -495,15 +504,19 @@ const handleLogin = async () => {
               <input type="checkbox" v-model="remember" />
               <span>Ghi nhớ đăng nhập</span>
             </label>
-            <a class="forgot-link" @click="!adminOpening && !webOpening && !socialOpening && router.push('/quen-mat-khau')">Quên mật khẩu?</a>
+            <a class="forgot-link"
+              @click="!adminOpening && !webOpening && !socialOpening && router.push('/quen-mat-khau')">Quên mật
+              khẩu?</a>
           </div>
 
           <!-- SUBMIT BUTTON -->
-          <button type="submit" class="submit-btn" :disabled="loading || adminOpening || webOpening || socialOpening || secondsRemaining > 0">
+          <button type="submit" class="submit-btn"
+            :disabled="loading || adminOpening || webOpening || socialOpening || secondsRemaining > 0">
             <span class="btn-text">
               {{ secondsRemaining > 0 ? `Thử lại sau ${secondsRemaining}s` : (adminOpening ? 'Đang mở trang quản trị...' : (webOpening ? 'Đang mở trang chủ...' : (socialOpening ? 'Đang kết nối...' : (loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay')))) }}
             </span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
@@ -519,12 +532,17 @@ const handleLogin = async () => {
 
         <!-- SOCIAL BUTTONS -->
         <div class="social-row">
-          <button @click="loginGoogle" class="social-btn-google" :disabled="adminOpening || webOpening || socialOpening">
+          <button @click="loginGoogle" class="social-btn-google"
+            :disabled="adminOpening || webOpening || socialOpening">
             <svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.179l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.583-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-              <path fill="#FBBC05" d="M3.964 10.711A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.711V4.957H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.043l3.007-2.332z"/>
-              <path fill="#EA4335" d="M9 3.578c1.322 0 2.508.454 3.44 1.346l2.581-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.957l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
+              <path fill="#4285F4"
+                d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.616z" />
+              <path fill="#34A853"
+                d="M9 18c2.43 0 4.467-.806 5.956-2.179l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.583-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
+              <path fill="#FBBC05"
+                d="M3.964 10.711A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.711V4.957H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.043l3.007-2.332z" />
+              <path fill="#EA4335"
+                d="M9 3.578c1.322 0 2.508.454 3.44 1.346l2.581-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.957l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z" />
             </svg>
             Đăng nhập bằng Google
           </button>
@@ -532,7 +550,8 @@ const handleLogin = async () => {
 
         <!-- FOOTER REGISTER LINK -->
         <p class="footer-register">
-          Bạn chưa có tài khoản? <span class="register-link" @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-ky')">Tạo tài khoản mới</span>
+          Bạn chưa có tài khoản? <span class="register-link"
+            @click="!adminOpening && !webOpening && !socialOpening && router.push('/dang-ky')">Tạo tài khoản mới</span>
         </p>
 
       </div>
@@ -1055,10 +1074,25 @@ const handleLogin = async () => {
 }
 
 @keyframes loginShellFade {
-  0% { transform: scale(1); opacity: 1; }
-  48% { transform: scale(1.01); opacity: 1; }
-  78% { transform: scale(1.025); opacity: 0.42; }
-  100% { transform: scale(1.035); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  48% {
+    transform: scale(1.01);
+    opacity: 1;
+  }
+
+  78% {
+    transform: scale(1.025);
+    opacity: 0.42;
+  }
+
+  100% {
+    transform: scale(1.035);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1067,7 +1101,10 @@ const handleLogin = async () => {
     width: 95%;
     height: auto;
   }
-  .left-col { display: none; }
+
+  .left-col {
+    display: none;
+  }
 
   .login-box.admin-opening .right-col,
   .login-box.web-opening .right-col,
@@ -1077,6 +1114,7 @@ const handleLogin = async () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .login-box,
   .left-col,
   .right-col {
@@ -1086,7 +1124,9 @@ const handleLogin = async () => {
 }
 
 @media (max-width: 480px) {
-  .right-col { padding: 24px 20px; }
+  .right-col {
+    padding: 24px 20px;
+  }
 }
 
 /* MODAL */
@@ -1119,8 +1159,15 @@ const handleLogin = async () => {
   margin: 0 auto 16px;
 }
 
-.modal-card.error .modal-icon { background: #fee2e2; color: #ef4444; }
-.modal-card.success .modal-icon { background: #dbeafe; color: #2563eb; }
+.modal-card.error .modal-icon {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.modal-card.success .modal-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
 
 .modal-title {
   font-size: 18px;
@@ -1147,19 +1194,37 @@ const handleLogin = async () => {
   transition: opacity 0.2s;
 }
 
-.modal-btn.error { background-color: #dc2626; color: white; }
-.modal-btn.success { background-color: #1e40af; color: white; }
-.modal-btn:hover { opacity: 0.88; }
+.modal-btn.error {
+  background-color: #dc2626;
+  color: white;
+}
+
+.modal-btn.success {
+  background-color: #1e40af;
+  color: white;
+}
+
+.modal-btn:hover {
+  opacity: 0.88;
+}
 
 .modal-enter-active,
-.modal-leave-active { transition: opacity 0.25s ease; }
+.modal-leave-active {
+  transition: opacity 0.25s ease;
+}
 
 .modal-enter-active .modal-card,
-.modal-leave-active .modal-card { transition: transform 0.25s ease; }
+.modal-leave-active .modal-card {
+  transition: transform 0.25s ease;
+}
 
 .modal-enter-from,
-.modal-leave-to { opacity: 0; }
+.modal-leave-to {
+  opacity: 0;
+}
 
 .modal-enter-from .modal-card,
-.modal-leave-to .modal-card { transform: scale(0.92) translateY(10px); }
+.modal-leave-to .modal-card {
+  transform: scale(0.92) translateY(10px);
+}
 </style>

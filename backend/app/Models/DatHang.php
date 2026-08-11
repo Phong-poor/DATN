@@ -20,6 +20,7 @@ class DatHang extends Model
         'diachi',
         'PTTT',
         'lydo',
+        'refund_proof',
         'minh_chung_hoan_tien',
         'id_khuyenmai',
         'giam_gia',

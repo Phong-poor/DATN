@@ -3,7 +3,8 @@
 use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('user.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    $userId = $user->id ?? $user->id_khachhang ?? $user->id_user ?? $user->getKey();
+    return (int) $userId === (int) $id;
 });
 
 Broadcast::channel('admin.orders', function ($user) {

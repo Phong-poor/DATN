@@ -23,7 +23,8 @@ class SendBirthdayCoupons extends Command
      */
     public function handle(BirthdayCouponService $service): int
     {
-        Cache::put('birthday-scheduler:last-run', now()->toIso8601String(), now()->addDays(2));
+        Cache::forever('birthday-scheduler:last-run', now()->toIso8601String());
+        Cache::put('birthday-scheduler:last-run', now()->toIso8601String(), now()->addDays(30));
         $forced = $this->option('force') ?? false;
         $result = $service->runAutomaticBirthdayCoupons(null, $forced);
 

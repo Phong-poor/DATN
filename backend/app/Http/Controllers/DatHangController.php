@@ -30,6 +30,14 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatHangController extends Controller
 {
+    private function safeBroadcastOrderStatus(DatHang $order): void
+    {
+        try {
+            event(new OrderStatusUpdated($order));
+        } catch (\Throwable $e) {
+            Log::warning('Không thể gửi Pusher notification OrderStatusUpdated: '.$e->getMessage());
+        }
+    }
     private function isAdminShoppingBlocked(): bool
     {
         return Auth::user()?->role === 'admin';
@@ -505,7 +513,7 @@ class DatHangController extends Controller
         $request->validate([
             'id_diachi' => 'nullable|integer',
             'diachi' => 'required_without:id_diachi|string|min:8|max:500',
-            'PTTT' => 'required|string|in:COD,VNPay,MoMo,SePay',
+            'PTTT' => 'required|string|in:COD,VNPay,VNPAY,vnpay,MoMo,MOMO,momo,SePay,SEPAY,sepay,Chuyển khoản,Chuyen khoản,bank,Bank',
             'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'-]+$/u'],
             'phone' => ['required', 'string', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
             'selected_cart_items' => 'nullable|array',
@@ -1051,9 +1059,13 @@ class DatHangController extends Controller
             Cache::forget('dashboard_data_month');
             Cache::forget('dashboard_data_year');
 
-            // MoMo chỉ thông báo đơn mới cho admin sau khi thanh toán thành công.
-            if (! in_array($paymentProvider, ['momo', 'vnpay', 'sepay'], true)) {
-                broadcast(new OrderPlaced($donHang));
+            // Thông báo đơn mới cho admin (bao gồm đơn hàng từ Chatbot, COD, Chuyển khoản ngân hàng/SePay)
+            if ($request->boolean('chatbot_order') || ! in_array($paymentProvider, ['momo', 'vnpay'], true)) {
+                try {
+                    broadcast(new OrderPlaced($donHang));
+                } catch (\Throwable $e) {
+                    Log::warning('DatHang broadcast notice: ' . $e->getMessage());
+                }
             }
 
             $payUrl = null;
@@ -1251,6 +1263,24 @@ class DatHangController extends Controller
         ]);
     }
 
+    public function show($id)
+    {
+        $userId = Auth::id();
+        $order = DatHang::with(['chi_tiets.bienThe.sanPham'])
+            ->where('id_dathang', $id)
+            ->where('id_khachhang', $userId)
+            ->first();
+
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+        ]);
+    }
+
     public function refund(Request $request, $id)
     {
         $userId = Auth::id();
@@ -1265,29 +1295,105 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        $request->validate([
+        // 1. Kiểm tra trạng thái upload tệp từ PHP server (bắt lỗi UPLOAD_ERR_*)
+        if ($request->hasFile('proof')) {
+            $proofFile = $request->file('proof');
+            if (!$proofFile->isValid()) {
+                $errCode = $proofFile->getError();
+                $errMsg = $proofFile->getErrorMessage();
+                $maxUpload = ini_get('upload_max_filesize');
+                $maxPost = ini_get('post_max_size');
+
+                $detailMsg = "Lỗi tải tệp (Mã {$errCode}: {$errMsg}). Cấu hình PHP hiện tại: upload_max_filesize={$maxUpload}, post_max_size={$maxPost}.";
+                if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
+                    $detailMsg = "Tệp bị PHP chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}) của Hosting. Vui lòng đặt cả 2 thông số này bằng 64M hoặc 2G trong cPanel.";
+                } elseif ($errCode === UPLOAD_ERR_CANT_WRITE || $errCode === UPLOAD_ERR_NO_TMP_DIR) {
+                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir) trên Hosting. Mã lỗi: {$errCode}.";
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $detailMsg,
+                    'errors' => ['proof' => [$detailMsg]]
+                ], 422);
+            }
+        }
+
+        // 2. Kiểm tra dữ liệu hợp lệ
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'lydo' => 'required|string',
-            'proof' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480',
+            'proof' => [
+                'required',
+                'file',
+                'max:51200',
+                function ($attribute, $value, $fail) {
+                    if ($value && $value->isValid()) {
+                        $ext = strtolower($value->getClientOriginalExtension());
+                        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
+                        if (!in_array($ext, $allowed)) {
+                            $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
+                        }
+                    }
+                }
+            ],
             'item_ids' => 'required|array|min:1',
-            'item_ids.*' => 'integer',
+        ], [
+            'proof.uploaded' => 'Tệp bằng chứng tải lên thất bại do giới hạn upload_max_filesize của PHP Hosting.',
+            'proof.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
+            'proof.required' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
+            'item_ids.required' => 'Vui lòng chọn ít nhất 1 sản phẩm cần hoàn trả.',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
 
-            $proofPath = null;
-            if ($request->hasFile('proof')) {
-                $file = $request->file('proof');
-                $filename = time().'_'.$file->getClientOriginalName();
-                $proofPath = $file->storeAs('refund_proofs', $filename, 'public');
+            $proofPaths = [];
+            $files = $request->file('proofs') ?? $request->file('proof');
+            if ($files) {
+                if (!is_array($files)) $files = [$files];
+                foreach ($files as $file) {
+                    if ($file && $file->isValid()) {
+                        $filename = time().'_'.$file->getClientOriginalName();
+                        $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
+                    }
+                }
             }
 
-            $order->update([
+            $proofValue = empty($proofPaths) ? null : (count($proofPaths) === 1 ? $proofPaths[0] : json_encode($proofPaths));
+
+            $payData = $this->paymentDataWithStatusTime($order, 'refund_pending');
+            if ($proofValue) {
+                $payData['minh_chung_hoan_tien'] = $proofValue;
+                $payData['refund_proof'] = $proofValue;
+            }
+
+            $updateData = [
                 'trangthai' => 'refund_pending',
                 'lydo' => $request->lydo,
-                'refund_proof' => $proofPath,
-                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, 'refund_pending'),
-            ]);
+                'minh_chung_hoan_tien' => $proofValue,
+                'du_lieu_thanh_toan' => $payData,
+            ];
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'refund_proof')) {
+                $updateData['refund_proof'] = $proofValue;
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'minh_chung')) {
+                $updateData['minh_chung'] = $proofValue;
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'minh_chung_hoan_tra')) {
+                $updateData['minh_chung_hoan_tra'] = $proofValue;
+            }
+
+            $order->update($updateData);
 
             // Cập nhật các sản phẩm được chọn hoàn trả
             DatHangChiTiet::where('id_dathang', $id)
@@ -1296,8 +1402,8 @@ class DatHangController extends Controller
 
             DB::commit();
 
-            // Broadcast the status update
-            event(new OrderStatusUpdated($order));
+            // Broadcast the status update safely
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1312,6 +1418,116 @@ class DatHangController extends Controller
                 'message' => 'Lỗi: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function uploadRefundProof(Request $request, $id)
+    {
+        $order = DatHang::findOrFail($id);
+
+        $existing = [];
+        $proofSource = $order->minh_chung_hoan_tien 
+            ?? $order->minh_chung 
+            ?? $order->minh_chung_hoan_tra 
+            ?? $order->refund_proof 
+            ?? ($order->du_lieu_thanh_toan['minh_chung_hoan_tien'] ?? null);
+
+        if ($proofSource) {
+            $trimmed = trim($proofSource);
+            if (str_starts_with($trimmed, '[') && str_ends_with($trimmed, ']')) {
+                $existing = json_decode($trimmed, true) ?: [];
+            } elseif (!empty($trimmed)) {
+                $existing = [$trimmed];
+            }
+        }
+
+        $proofPaths = [];
+        $files = $request->file('proofs') ?? $request->file('proof');
+        if ($files) {
+            if (!is_array($files)) $files = [$files];
+            foreach ($files as $file) {
+                if ($file && $file->isValid()) {
+                    $filename = time().'_'.$file->getClientOriginalName();
+                    $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
+                }
+            }
+        }
+
+        if (empty($proofPaths)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vui lòng chọn ít nhất 1 tệp ảnh hoặc video.',
+            ], 422);
+        }
+
+        $allProofs = array_merge($existing, $proofPaths);
+        $finalValue = count($allProofs) === 1 ? $allProofs[0] : json_encode($allProofs);
+
+        $payData = $order->du_lieu_thanh_toan ?? [];
+        if (is_string($payData)) {
+            try { $payData = json_decode($payData, true) ?: []; } catch (\Exception $e) {}
+        }
+        if (is_array($payData)) {
+            $payData['minh_chung_hoan_tien'] = $finalValue;
+            $payData['refund_proof'] = $finalValue;
+        }
+
+        $updateData = [
+            'minh_chung_hoan_tien' => $finalValue,
+            'du_lieu_thanh_toan' => $payData,
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'refund_proof')) {
+            $updateData['refund_proof'] = $finalValue;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'minh_chung')) {
+            $updateData['minh_chung'] = $finalValue;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('dathang', 'minh_chung_hoan_tra')) {
+            $updateData['minh_chung_hoan_tra'] = $finalValue;
+        }
+
+        $order->update($updateData);
+
+        $fresh = $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+        // Ensure minh_chung_hoan_tien and refund_proof are explicitly present in JSON response
+        $fresh->minh_chung_hoan_tien = $finalValue;
+        $fresh->refund_proof = $finalValue;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tải lên bằng chứng thành công!',
+            'order' => $fresh,
+        ]);
+    }
+
+    public function getRefundFile(Request $request)
+    {
+        $path = $request->query('path');
+        if (!$path) {
+            abort(404, 'Thieu duong dan tep.');
+        }
+
+        $normalized = ltrim(str_replace(['\\', '..'], ['/', ''], $path), '/');
+
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($normalized)) {
+            return response()->file(\Illuminate\Support\Facades\Storage::disk('public')->path($normalized));
+        }
+
+        if (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalized)) {
+            return response()->file(\Illuminate\Support\Facades\Storage::disk('local')->path($normalized));
+        }
+
+        $directPath = storage_path('app/' . $normalized);
+        if (file_exists($directPath)) {
+            return response()->file($directPath);
+        }
+
+        $directPublicPath = storage_path('app/public/' . $normalized);
+        if (file_exists($directPublicPath)) {
+            return response()->file($directPublicPath);
+        }
+
+        abort(404, 'Khong tim thay tep bang chung.');
     }
 
     // ===== ADMIN METHODS =====
@@ -1353,6 +1569,15 @@ class DatHangController extends Controller
         $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
         $oldStatus = $order->trangthai;
         $newStatus = $request->trangthai;
+
+        $pttt = strtolower(trim((string)$order->PTTT));
+        $isBankTransfer = in_array($pttt, ['chuyen_khoan', 'chuyenkhoan', 'sepay', 'vnpay', 'momo']);
+        if ($isBankTransfer && $order->trang_thai_thanh_toan !== 'paid' && in_array($newStatus, ['confirmed', 'shipping', 'done'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng chuyển khoản chưa được thanh toán. Vui lòng bấm "Xác nhận đã thanh toán" trước khi chuyển trạng thái đơn hàng.',
+            ], 422);
+        }
 
         if ($oldStatus === $newStatus) {
             return response()->json([
@@ -1429,8 +1654,8 @@ class DatHangController extends Controller
 
             DB::commit();
 
-            // Broadcast the status update
-            event(new OrderStatusUpdated($order));
+            // Broadcast the status update safely
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1446,6 +1671,36 @@ class DatHangController extends Controller
                 'message' => 'Có lỗi xảy ra: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function updatePaymentStatus(Request $request, $id)
+    {
+        $request->validate([
+            'trang_thai_thanh_toan' => 'required|string',
+        ]);
+
+        $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
+
+        $newStatus = in_array(strtolower($request->trang_thai_thanh_toan), ['paid', 'da_thanhtoan']) ? 'paid' : 'unpaid';
+
+        $updateData = [
+            'trang_thai_thanh_toan' => $newStatus,
+            'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
+        ];
+
+        if ($newStatus === 'paid') {
+            $updateData['thanh_toan_luc'] = now();
+        }
+
+        $order->update($updateData);
+
+        $this->safeBroadcastOrderStatus($order);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái thanh toán thành công!',
+            'order' => $order->fresh(),
+        ]);
     }
 
     public function createDemoShipment($id)
@@ -1475,7 +1730,7 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, 'confirmed');
 
             DB::commit();
-            event(new OrderStatusUpdated($order));
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1529,7 +1784,7 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, $nextOrderStatus);
 
             DB::commit();
-            event(new OrderStatusUpdated($order));
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1615,7 +1870,7 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, 'shipping', $extraUpdates);
 
             DB::commit();
-            event(new OrderStatusUpdated($order));
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1677,7 +1932,7 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, 'shipping');
 
             DB::commit();
-            event(new OrderStatusUpdated($order));
+            $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
                 'success' => true,
@@ -1692,29 +1947,6 @@ class DatHangController extends Controller
                 'message' => 'Có lỗi khi cập nhật giao lại: '.$e->getMessage(),
             ], 500);
         }
-    }
-
-    public function updatePaymentStatus(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'trang_thai_thanh_toan' => 'required|string|in:unpaid,pending,paid,failed,refunded',
-        ]);
-
-        $order = DatHang::findOrFail($id);
-        $newStatus = $validated['trang_thai_thanh_toan'];
-
-        $updateData = ['trang_thai_thanh_toan' => $newStatus];
-        if ($newStatus === 'paid') {
-            $updateData['thanh_toan_luc'] = now();
-        }
-
-        $order->update($updateData);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật trạng thái thanh toán thành công.',
-            'order' => $order->fresh(),
-        ]);
     }
 
     public function destroyAdmin($id)
@@ -1756,8 +1988,8 @@ class DatHangController extends Controller
             'MoMo', 'MOMO', 'momo' => 'momo',
             'Ví điện tử', 'VNPAY', 'VNPay', 'vnpay' => 'vnpay',
             'SePay', 'SEPAY', 'sepay' => 'sepay',
-            'COD' => 'cod',
-            'Chuyển khoản' => 'bank',
+            'COD', 'cod' => 'cod',
+            'Chuyển khoản', 'Chuyen khoản', 'bank', 'Bank' => 'bank',
             default => null,
         };
     }

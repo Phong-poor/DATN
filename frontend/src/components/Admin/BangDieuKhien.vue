@@ -149,17 +149,17 @@ async function fetchDashboard() {
 }
 function getColor(status) {
     return {
-        pending: '#facc15',
-        confirmed: '#93c5fd',
-        shipping: '#60a5fa',
-        done: '#2563eb',
-        cancelled: '#f87171',
+        pending: '#eab308',
+        confirmed: '#3b82f6',
+        shipping: '#06b6d4',
+        done: '#10b981',
+        cancelled: '#ef4444',
         refund_pending: '#3b82f6',
-        refund_pickup: '#fb923c',
-        refund_delivering: '#3b82f6',
-        refund_received: '#2563eb',
+        refund_pickup: '#f97316',
+        refund_delivering: '#8b5cf6',
+        refund_received: '#0284c7',
         refunded: '#ec4899'
-    }[status] || '#ccc'
+    }[status] || '#cbd5e1'
 }
 const isOpenPeriodDropdown = ref(false)
 const closePeriodDropdown = (e) => {
@@ -536,28 +536,36 @@ const refundStatusesData = computed(() => {
 
 const normalSegments = computed(() => {
     const list = normalStatusesData.value
-    const total = list.reduce((s, d) => s + d.count, 0) || 1
+    const total = list.reduce((s, d) => s + Number(d.count || 0), 0)
+    if (!total) return []
     let offset = 0
-    return list.map(d => {
-        const dash = (d.count / total) * circumference
-        const gap = circumference - dash
-        const seg = { ...d, dash, gap, offset, color: getColor(d.status) }
-        offset += dash
-        return seg
-    })
+    return list
+        .map(d => {
+            const count = Number(d.count || 0)
+            const dash = (count / total) * circumference
+            const gap = circumference - dash
+            const seg = { ...d, count, dash, gap, offset, color: getColor(d.status) }
+            offset += dash
+            return seg
+        })
+        .filter(s => s.count > 0)
 })
 
 const refundSegments = computed(() => {
     const list = refundStatusesData.value
-    const total = list.reduce((s, d) => s + d.count, 0) || 1
+    const total = list.reduce((s, d) => s + Number(d.count || 0), 0)
+    if (!total) return []
     let offset = 0
-    return list.map(d => {
-        const dash = (d.count / total) * circumference
-        const gap = circumference - dash
-        const seg = { ...d, dash, gap, offset, color: getColor(d.status) }
-        offset += dash
-        return seg
-    })
+    return list
+        .map(d => {
+            const count = Number(d.count || 0)
+            const dash = (count / total) * circumference
+            const gap = circumference - dash
+            const seg = { ...d, count, dash, gap, offset, color: getColor(d.status) }
+            offset += dash
+            return seg
+        })
+        .filter(s => s.count > 0)
 })
 
 const normalCenterStat = computed(() => {
@@ -1625,9 +1633,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <circle v-for="seg in normalSegments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
                                     :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
                                     :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
+                                    transform="rotate(-90 60 60)"
                                     @mouseenter="hoveredStatus = seg.status"
                                     @mouseleave="hoveredStatus = null"
-                                    style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
+                                    style="cursor: pointer; transition: stroke-width 0.2s;" 
                                     :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
                                 <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
                                     {{ normalCenterStat.pct }}%
@@ -1654,9 +1663,10 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                                 <circle v-for="seg in refundSegments" :key="seg.status" cx="60" cy="60" r="46" fill="none"
                                     :stroke="seg.color" stroke-width="14" :stroke-dasharray="`${seg.dash} ${seg.gap}`"
                                     :stroke-dashoffset="-seg.offset" stroke-linecap="butt"
+                                    transform="rotate(-90 60 60)"
                                     @mouseenter="hoveredStatus = seg.status"
                                     @mouseleave="hoveredStatus = null"
-                                    style="transform: rotate(-90deg); transform-origin: 50% 50%; cursor: pointer; transition: stroke-width 0.2s;" 
+                                    style="cursor: pointer; transition: stroke-width 0.2s;" 
                                     :stroke-width="hoveredStatus === seg.status ? 18 : 14" />
                                 <text x="60" y="55" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">
                                     {{ refundCenterStat.pct }}%
@@ -1725,28 +1735,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                 </div>
 
-                <div class="card operation-panel">
-                    <div class="section-header">
-                        <span class="section-title">Góc nhìn kinh doanh</span>
-                        <router-link to="/admin/quan-ly-san-pham" class="see-all">Chi tiết</router-link>
-                    </div>
-                    <div class="mini-section">
-                        <b>Thanh toán</b>
-                        <div v-for="item in paymentMethods" :key="item.label" class="mini-row">
-                            <span>{{ item.label }}</span>
-                            <strong>{{ item.total }}</strong>
-                        </div>
-                        <div v-if="!paymentMethods.length" class="empty-mini">Chưa có dữ liệu</div>
-                    </div>
-                    <div class="mini-section">
-                        <b>Danh mục bán chạy</b>
-                        <div v-for="item in topCategories" :key="item.label" class="mini-row">
-                            <span>{{ item.label }}</span>
-                            <strong>{{ item.total }}</strong>
-                        </div>
-                        <div v-if="!topCategories.length" class="empty-mini">Chưa có dữ liệu</div>
-                    </div>
-                </div>
+
             </div>
 
             <div class="insight-charts-row">
@@ -1797,28 +1786,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                 </div>
 
-                <div class="card insight-chart-card">
-                    <div class="section-header compact">
-                        <span class="section-title">Rủi ro tồn kho</span>
-                    </div>
-                    <div class="mini-donut-summary">
-                        <div class="mini-donut" :style="{ '--donut-value': `${stockDonut.pct}%` }">
-                            <div><b>{{ stockDonut.pct }}%</b><span>{{ stockDonut.label }}</span></div>
-                        </div>
-                    </div>
-                    <div class="horizontal-chart">
-                        <div v-for="item in stockRiskRows" :key="item.id" class="chart-bar-row">
-                            <div class="chart-bar-meta">
-                                <span>{{ item.ten }}</span>
-                                <b>{{ item.soluong }}</b>
-                            </div>
-                            <div class="chart-track">
-                                <span :class="['chart-fill', item.tone]" :style="{ width: `${item.risk}%` }"></span>
-                            </div>
-                        </div>
-                        <div v-if="!stockRiskRows.length" class="empty-mini">Kho đang ổn định</div>
-                    </div>
-                </div>
+
 
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
@@ -3336,7 +3304,14 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 /* BOTTOM ROW */
 .operations-row {
     display: grid;
-    grid-template-columns: 1.15fr 1fr 0.9fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding: 0 0 20px;
+}
+
+.insight-charts-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
     padding: 0 0 20px;
 }
@@ -3471,7 +3446,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .insight-charts-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
     padding: 0 0 20px;
 }
