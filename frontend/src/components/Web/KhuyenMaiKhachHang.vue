@@ -59,6 +59,7 @@ const esSeconds = ref('08')
 // Claimed voucher state
 const claimedVoucherId = ref(null)
 const claimingId = ref(null)
+const copiedVoucherCode = ref(null)
 // user's owned vouchers: { id_promotion, trang_thai, ngay_nhan, promotion: {...} }
 const userVouchers = ref([])
 // Set of promotion IDs user already owns with trang_thai != het_han
@@ -398,6 +399,48 @@ function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+function voucherTone(v) {
+  const category = String(v?.danhmuc ?? v?.category ?? '').toLowerCase()
+  const type = String(v?.loai ?? v?.type ?? '').toLowerCase()
+  if (category === 'freeship' || category === 'shipping' || type === 'freeship') return 'shipping'
+  if (category === 'payment') return 'payment'
+  return 'product'
+}
+
+function voucherCategoryLabel(v) {
+  const tone = voucherTone(v)
+  if (tone === 'shipping') return 'Freeship'
+  if (tone === 'payment') return 'Thanh toán'
+  return 'Giảm giá'
+}
+
+function voucherValueLabel(v) {
+  const type = String(v?.loai ?? v?.type ?? '').toLowerCase()
+  const value = toFiniteNumber(v?.giatri ?? v?.value)
+  if (type === 'percent' || type === 'percentage') return `${value}%`
+  if (type === 'freeship' && value <= 0) return 'Miễn phí'
+  if (type === 'maxprice') return `Tối đa ${formatCurrency(value)}`
+  return value > 0 ? formatCurrency(value) : 'Ưu đãi'
+}
+
+function voucherEndDate(v) {
+  return v?.ngayketthuc ?? v?.end_date ?? null
+}
+
+async function copyVoucherCode(v) {
+  const code = String(v?.code || '')
+  if (!code) return
+  try {
+    await navigator.clipboard.writeText(code)
+    copiedVoucherCode.value = code
+    window.setTimeout(() => {
+      if (copiedVoucherCode.value === code) copiedVoucherCode.value = null
+    }, 1600)
+  } catch (_) {
+    swal.info('Mã voucher', code)
+  }
 }
 
 // Helper: check if a voucher is still valid (not expired)
@@ -1034,47 +1077,71 @@ const initScrollReveal = () => {
         </div>
 
         <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
-          <div v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="v.category">
+          <article v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="voucherTone(v)">
             <div class="voucher-glow-accent"></div>
-            <div class="voucher-header">
-              <div class="voucher-badge">
-                {{ v.category === 'freeship' ? 'Freeship' : v.category === 'payment' ? 'Thanh toán' : 'Sản phẩm' }}
+            <div class="voucher-ticket-side" aria-hidden="true">
+              <span class="voucher-badge">{{ voucherCategoryLabel(v) }}</span>
+              <div class="voucher-ticket-icon">
+                <TicketPercent />
               </div>
-              <div class="voucher-code-label">
-                Code: <strong>{{ v.code }}</strong>
-              </div>
+              <span class="voucher-side-value">{{ voucherValueLabel(v) }}</span>
             </div>
 
-            <div class="voucher-body" style="text-align: left;">
-              <h3>{{ v.name }}</h3>
-              <p>{{ v.mota || v.desc }}</p>
-              <p v-if="v.end_date" style="font-size: 12px; color: #ef4444; margin-top: 8px; font-weight: 500;">
-                <Clock class="pill-icon" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"/>
-                HSD: {{ formatDate(v.end_date) }}
-              </p>
-            </div>
+            <div class="voucher-ticket-content">
+              <div class="voucher-code-row">
+                <span class="voucher-code-caption">Mã voucher</span>
+                <button
+                  type="button"
+                  class="voucher-copy-button"
+                  :class="{ copied: copiedVoucherCode === v.code }"
+                  :title="copiedVoucherCode === v.code ? 'Đã sao chép' : 'Sao chép mã'"
+                  @click.stop="copyVoucherCode(v)"
+                >
+                  <Check v-if="copiedVoucherCode === v.code" />
+                  <Copy v-else />
+                </button>
+              </div>
 
-            <div class="voucher-footer">
-              <button
-                @click="claimVoucher(v)"
-                class="btn-copy-code"
-                :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
-                :disabled="claimingId === v.id"
-              >
-                <template v-if="claimedVoucherId === v.id">
-                  <Check class="copy-icon" />
-                  Đã nhận!
-                </template>
-                <template v-else-if="claimingId === v.id">
-                  Đang xử lý...
-                </template>
-                <template v-else>
-                  <Gift class="copy-icon" />
-                  Nhận Voucher
-                </template>
-              </button>
+              <h3 class="voucher-code">{{ v.code }}</h3>
+              <p class="voucher-name">{{ v.ten || v.name }}</p>
+
+              <div class="voucher-meta-grid">
+                <div class="voucher-meta-item">
+                  <Tag />
+                  <span>Giá trị ưu đãi<strong>{{ voucherValueLabel(v) }}</strong></span>
+                </div>
+                <div class="voucher-meta-separator"></div>
+                <div class="voucher-meta-item">
+                  <Clock />
+                  <span>Hạn sử dụng<strong>{{ voucherEndDate(v) ? formatDate(voucherEndDate(v)) : 'Không giới hạn' }}</strong></span>
+                </div>
+              </div>
+
+              <p class="voucher-description">{{ v.mota || v.desc || 'Áp dụng theo điều kiện của chương trình.' }}</p>
+
+              <div class="voucher-footer">
+                <button
+                  @click="claimVoucher(v)"
+                  class="btn-copy-code"
+                  :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
+                  :disabled="claimingId === v.id"
+                >
+                  <template v-if="claimedVoucherId === v.id">
+                    <Check class="copy-icon" />
+                    Đã nhận voucher
+                  </template>
+                  <template v-else-if="claimingId === v.id">
+                    <span class="voucher-button-spinner"></span>
+                    Đang xử lý...
+                  </template>
+                  <template v-else>
+                    <Gift class="copy-icon" />
+                    Nhận Voucher
+                  </template>
+                </button>
+              </div>
             </div>
-          </div>
+          </article>
         </div>
       </div>
     </section>
@@ -2075,124 +2142,415 @@ const initScrollReveal = () => {
 
 .vouchers-glass-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .voucher-glass-card {
+  --ticket-accent: #4387ff;
+  --ticket-accent-rgb: 67, 135, 255;
   position: relative;
-  background: rgba(255, 255, 255, 0.02);
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  min-height: 204px;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(var(--ticket-accent-rgb), 0.13), transparent 34%),
+    linear-gradient(135deg, #071b3a 0%, #061126 58%, #07152c 100%);
+  border: 1.5px solid rgba(var(--ticket-accent-rgb), 0.8);
   border-radius: 20px;
-  padding: 24px;
-  border: 1px solid var(--border-glass);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  min-height: 220px;
+  isolation: isolate;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(var(--ticket-accent-rgb), 0.12) inset,
+    0 0 28px rgba(var(--ticket-accent-rgb), 0.12);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.voucher-glass-card.shipping {
+  --ticket-accent: #22d3ee;
+  --ticket-accent-rgb: 34, 211, 238;
+}
+
+.voucher-glass-card.payment {
+  --ticket-accent: #38bdf8;
+  --ticket-accent-rgb: 56, 189, 248;
+}
+
+.voucher-glass-card::before,
+.voucher-glass-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid rgba(var(--ticket-accent-rgb), 0.85);
+  border-radius: 50%;
+  background: var(--bg-dark);
+  transform: translateY(-50%);
+}
+
+.voucher-glass-card::before {
+  left: -17px;
+}
+
+.voucher-glass-card::after {
+  right: -17px;
 }
 
 .voucher-glass-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  transform: translateY(-6px);
+  border-color: var(--ticket-accent);
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.42), 0 0 34px rgba(var(--ticket-accent-rgb), 0.23);
 }
 
 .voucher-glow-accent {
   position: absolute;
-  top: -50px; right: -50px;
-  width: 150px; height: 150px;
+  top: -70px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
-  filter: blur(35px);
-  opacity: 0.12;
+  background: var(--ticket-accent);
+  filter: blur(70px);
+  opacity: 0.17;
   pointer-events: none;
 }
 
-.voucher-glass-card.shipping .voucher-glow-accent { background: #2563eb; }
-.voucher-glass-card.payment .voucher-glow-accent { background: #00e5ff; }
-.voucher-glass-card.product .voucher-glow-accent { background: #3b82f6; }
-
-.voucher-header {
+.voucher-ticket-side {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  padding: 10px 8px;
+  background:
+    radial-gradient(circle at 50% 78%, rgba(255, 255, 255, 0.18), transparent 37%),
+    linear-gradient(145deg, rgba(var(--ticket-accent-rgb), 0.98), rgba(30, 75, 200, 0.87));
+}
+
+.voucher-ticket-side::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  border-right: 2px dashed rgba(137, 190, 255, 0.55);
+  filter: drop-shadow(0 0 4px rgba(var(--ticket-accent-rgb), 0.6));
 }
 
 .voucher-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
-  text-transform: capitalize;
-}
-
-.voucher-glass-card.shipping .voucher-badge { color: #93c5fd !important; background: rgba(37, 99, 235, 0.08); }
-.voucher-glass-card.payment .voucher-badge { color: #3b82f6 !important; background: rgba(0, 229, 255, 0.08); }
-.voucher-glass-card.product .voucher-badge { color: #60a5fa !important; background: rgba(59, 130, 246, 0.08); }
-
-.voucher-code-label {
-  font-size: 11.5px;
-  color: #94a3b8 !important;
-}
-
-.voucher-code-label strong {
-  color: #ffffff !important;
-}
-
-.voucher-body {
-  margin-bottom: 24px;
-  flex-grow: 1;
-}
-
-.voucher-body h3 {
-  font-size: 18px;
+  align-self: flex-start;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9px;
+  background: rgba(7, 27, 67, 0.5);
+  color: #fff !important;
+  font-size: 9px;
   font-weight: 800;
-  margin: 0 0 6px 0;
-  color: #ffffff !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(0, 28, 91, 0.22);
 }
 
-.voucher-body p {
-  font-size: 12.5px;
-  color: #cbd5e1 !important;
-  line-height: 1.5;
+.voucher-ticket-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: #c8ddff;
+  filter: drop-shadow(0 0 12px rgba(219, 234, 254, 0.34));
+}
+
+.voucher-ticket-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.35;
+}
+
+.voucher-side-value {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0, 27, 91, 0.45);
+}
+
+.voucher-ticket-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+
+.voucher-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.voucher-code-caption {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #9fb0ca;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.voucher-code-caption::before,
+.voucher-code-caption::after {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--ticket-accent-rgb), 0.75));
+}
+
+.voucher-code-caption::after {
+  transform: rotate(180deg);
+}
+
+.voucher-copy-button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #c7d5ea;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.voucher-copy-button:hover,
+.voucher-copy-button.copied {
+  border-color: rgba(var(--ticket-accent-rgb), 0.65);
+  background: rgba(var(--ticket-accent-rgb), 0.16);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(var(--ticket-accent-rgb), 0.2);
+}
+
+.voucher-copy-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.voucher-code {
+  margin: 4px 0 1px;
+  overflow: hidden;
+  color: #fff !important;
+  font-size: clamp(19px, 1.55vw, 25px);
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.13);
+  white-space: nowrap;
+}
+
+.voucher-name {
+  margin: 1px 0 4px;
+  overflow: hidden;
+  color: #b9c7dc !important;
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: center;
+  min-height: 34px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding: 4px 0;
+}
+
+.voucher-meta-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.voucher-meta-item svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: #b7c8e5;
+}
+
+.voucher-meta-item span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  color: #8495ae;
+  font-size: 8.5px;
+  line-height: 1.3;
+}
+
+.voucher-meta-item strong {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--ticket-accent) !important;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-meta-separator {
+  width: 1px;
+  height: 27px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.voucher-description {
+  display: none;
   margin: 0;
+  overflow: hidden;
+  color: #8fa1ba !important;
+  display: -webkit-box;
+  font-size: 10.5px;
+  line-height: 1.35;
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.voucher-footer {
+  margin-top: auto;
 }
 
 .btn-copy-code {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-light);
-  padding: 8px 0;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
+  min-height: 34px;
+  border: 1px solid rgba(133, 177, 255, 0.56);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--ticket-accent), #244eea);
+  color: #fff !important;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 9px;
+  box-shadow: 0 9px 24px rgba(var(--ticket-accent-rgb), 0.29), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   transition: all 0.22s ease;
 }
 
-.btn-copy-code:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+.btn-copy-code:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(var(--ticket-accent-rgb), 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 .btn-copy-code.copied {
-  background: #2563eb !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
   color: white !important;
   border-color: transparent !important;
 }
 
+.btn-copy-code:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
 .copy-icon {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
+}
+
+.voucher-button-spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: voucher-spin 0.75s linear infinite;
+}
+
+@keyframes voucher-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1450px) {
+  .vouchers-glass-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voucher-glass-card {
+    grid-template-columns: 125px minmax(0, 1fr);
+  }
+
+  .voucher-ticket-side {
+    padding-inline: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .vouchers-glass-grid {
+    gap: 20px;
+  }
+
+  .voucher-glass-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .voucher-glass-card::before,
+  .voucher-glass-card::after {
+    top: 112px;
+  }
+
+  .voucher-ticket-side {
+    min-height: 112px;
+    flex-direction: row;
+    padding: 18px 24px;
+  }
+
+  .voucher-ticket-side::after {
+    top: auto;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    border-right: 0;
+    border-bottom: 2px dashed rgba(137, 190, 255, 0.55);
+  }
+
+  .voucher-ticket-icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .voucher-side-value {
+    font-size: 18px;
+  }
+
+  .voucher-ticket-content {
+    padding: 21px 22px 23px;
+  }
+
+  .voucher-code {
+    font-size: 24px;
+  }
 }
 
 /* ============================================================
