@@ -462,6 +462,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/cham-cong/nhan-vien/{id}/dang-ky-khuon-mat', [ChamCongController::class, 'adminDangKyKhuonMat']);
         Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [ChamCongController::class, 'adminXoaKhuonMat']);
         Route::post('/cham-cong/quick-check', [ChamCongController::class, 'adminQuickCheck']);
+        Route::put('/cham-cong/ban-ghi/{id}/bo-sung-gio-ra', [ChamCongController::class, 'adminBoSungGioRa']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);

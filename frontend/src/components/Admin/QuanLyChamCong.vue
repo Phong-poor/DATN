@@ -41,6 +41,9 @@ const calendarLogs = ref([])
 const calendarSummary = ref({})
 const calendarLoading = ref(false)
 const selectedCalendarLog = ref(null)
+const checkoutCorrectionRecord = ref(null)
+const checkoutCorrectionForm = ref({ gio_ra: '', ly_do: '' })
+const checkoutCorrectionSaving = ref(false)
 const calendarTitle = computed(() => {
   const [year, month] = calendarMonth.value.split('-').map(Number)
   return `Tháng ${month}/${year}`
@@ -115,6 +118,8 @@ function formatWorkDate(dateStr) {
 
 function attendanceStatus(log) {
   if (!log.gio_vao) return { text: 'Chưa check-in', className: 'status-missing' }
+  if (log.trang_thai === 'missing_checkout') return { text: 'Quên chấm ra', className: 'status-missing' }
+  if (log.trang_thai === 'manually_completed') return { text: 'Đã bổ sung giờ ra', className: 'status-complete' }
   if (!log.gio_ra) return { text: 'Đang làm việc', className: 'status-working' }
   if (Number(log.di_tre_phut) > 0) return { text: 'Hoàn tất · đi trễ', className: 'status-late' }
   return { text: 'Đã hoàn tất', className: 'status-complete' }
@@ -276,6 +281,47 @@ function closeEmployeeCalendar() {
   calendarEmployee.value = null
   calendarLogs.value = []
   selectedCalendarLog.value = null
+}
+
+function openCheckoutCorrection(record) {
+  checkoutCorrectionRecord.value = record
+  checkoutCorrectionForm.value = { gio_ra: '', ly_do: '' }
+}
+
+function closeCheckoutCorrection() {
+  if (checkoutCorrectionSaving.value) return
+  checkoutCorrectionRecord.value = null
+}
+
+async function saveCheckoutCorrection() {
+  if (checkoutCorrectionSaving.value || !checkoutCorrectionRecord.value) return
+  if (!checkoutCorrectionForm.value.gio_ra) {
+    await swal.warning('Thiếu giờ ra', 'Vui lòng chọn giờ ra cần bổ sung.')
+    return
+  }
+  if (checkoutCorrectionForm.value.ly_do.trim().length < 10) {
+    await swal.warning('Lý do chưa đầy đủ', 'Vui lòng nhập lý do có ít nhất 10 ký tự để lưu nhật ký.')
+    return
+  }
+
+  checkoutCorrectionSaving.value = true
+  try {
+    const response = await api.put(
+      `/admin/cham-cong/ban-ghi/${checkoutCorrectionRecord.value.id}/bo-sung-gio-ra`,
+      checkoutCorrectionForm.value,
+      { bypassOffline: true }
+    )
+    checkoutCorrectionRecord.value = null
+    await Promise.all([fetchEmployeeCalendar(), fetchLogs(currentPage.value)])
+    await swal.success('Đã bổ sung giờ ra', response.data.message)
+  } catch (error) {
+    const validationMessage = error.response?.data?.errors
+      ? Object.values(error.response.data.errors).flat()[0]
+      : null
+    await swal.error('Không thể bổ sung giờ ra', validationMessage || error.response?.data?.message || 'Vui lòng thử lại.')
+  } finally {
+    checkoutCorrectionSaving.value = false
+  }
 }
 
 async function removeEmployeeFace(employee) {
@@ -689,8 +735,49 @@ onMounted(() => {
             <div><span>Lương ngày</span><strong>{{ formatMoney(selectedCalendarLog.luong_ngay) }}</strong></div>
             <div class="detail-penalty"><span>Khấu trừ</span><strong>-{{ formatMoney(selectedCalendarLog.tien_phat) }}</strong></div>
             <div class="detail-net"><span>Thực nhận</span><strong>{{ formatMoney(selectedCalendarLog.luong_thuc_nhan) }}</strong></div>
+            <button
+              v-if="selectedCalendarLog.trang_thai === 'missing_checkout'"
+              type="button"
+              class="correct-checkout-button"
+              @click="openCheckoutCorrection(selectedCalendarLog)"
+            >Bổ sung giờ ra</button>
           </div>
           <p v-else class="calendar-hint">Bấm vào ngày có chấm công để xem đầy đủ giờ làm và lý do khấu trừ.</p>
+        </section>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="checkoutCorrectionRecord" class="correction-backdrop" @click.self="closeCheckoutCorrection">
+        <section class="correction-modal" role="dialog" aria-modal="true" aria-label="Bổ sung giờ ra">
+          <header>
+            <div>
+              <span>ĐIỀU CHỈNH CHẤM CÔNG</span>
+              <h3>Bổ sung giờ ra</h3>
+              <p>{{ calendarEmployee?.ten }} · {{ formatDate(checkoutCorrectionRecord.ngay_cham_cong) }}</p>
+            </div>
+            <button type="button" :disabled="checkoutCorrectionSaving" @click="closeCheckoutCorrection">×</button>
+          </header>
+          <div class="correction-warning">Bản ghi này đang ở trạng thái “Quên chấm ra”. Mọi điều chỉnh đều được lưu người sửa, thời gian và lý do.</div>
+          <label>
+            <span>Giờ vào đã ghi nhận</span>
+            <input :value="formatTime(checkoutCorrectionRecord.gio_vao)" disabled />
+          </label>
+          <label>
+            <span>Giờ ra cần bổ sung *</span>
+            <input v-model="checkoutCorrectionForm.gio_ra" type="time" required />
+          </label>
+          <label>
+            <span>Lý do điều chỉnh *</span>
+            <textarea v-model.trim="checkoutCorrectionForm.ly_do" rows="3" maxlength="500" placeholder="Ví dụ: Nhân viên quên chấm ra, quản lý ca đã xác nhận lúc về..."></textarea>
+            <small>{{ checkoutCorrectionForm.ly_do.length }}/500 · tối thiểu 10 ký tự</small>
+          </label>
+          <div class="correction-actions">
+            <button type="button" :disabled="checkoutCorrectionSaving" @click="closeCheckoutCorrection">Hủy</button>
+            <button type="button" :disabled="checkoutCorrectionSaving" @click="saveCheckoutCorrection">
+              {{ checkoutCorrectionSaving ? 'Đang lưu điều chỉnh...' : 'Xác nhận bổ sung giờ ra' }}
+            </button>
+          </div>
         </section>
       </div>
     </Teleport>
@@ -1058,6 +1145,7 @@ onMounted(() => {
   cursor: pointer;
   white-space: nowrap;
 }
+
 .schedule-edit-btn:hover { background: #1d4ed8; }
 .schedule-modal-backdrop {
   position: fixed;
@@ -1607,4 +1695,8 @@ onMounted(() => {
 
 .font-bold { font-weight: 700; }
 .text-gray { color: #64748b; }
+.correct-checkout-button{grid-column:1 / span 6;padding:9px 14px;border:0;border-radius:9px;background:#f59e0b;color:#fff;font-weight:800;cursor:pointer}
+.correction-backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.66);backdrop-filter:blur(4px)}
+.correction-modal{width:min(470px,100%);padding:20px;border-radius:18px;background:#fff;box-shadow:0 25px 70px rgba(15,23,42,.3)}
+.correction-modal header{display:flex;justify-content:space-between;gap:16px}.correction-modal header span{color:#2563eb;font-size:10px;font-weight:850;letter-spacing:.1em}.correction-modal h3{margin:4px 0;color:#0f172a}.correction-modal header p{margin:0;color:#64748b;font-size:12px}.correction-modal header button{width:36px;height:36px;border:1px solid #fecaca;border-radius:10px;background:#fff5f5;color:#dc2626;font-size:24px;cursor:pointer}.correction-warning{margin:16px 0;padding:11px;border:1px solid #fde68a;border-radius:10px;background:#fffbeb;color:#92400e;font-size:12px}.correction-modal label{display:grid;gap:6px;margin-top:12px}.correction-modal label span{color:#334155;font-size:12px;font-weight:750}.correction-modal input,.correction-modal textarea{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#0f172a;font:inherit;box-sizing:border-box}.correction-modal input:focus,.correction-modal textarea:focus{outline:3px solid rgba(37,99,235,.14);border-color:#2563eb}.correction-modal label small{color:#64748b;text-align:right;font-size:10px}.correction-actions{display:grid;grid-template-columns:1fr 1.7fr;gap:10px;margin-top:18px}.correction-actions button{min-height:42px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#334155;font-weight:800;cursor:pointer}.correction-actions button:last-child{border-color:#2563eb;background:#2563eb;color:#fff}.correction-actions button:disabled{opacity:.55;cursor:wait}
 </style>

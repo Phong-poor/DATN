@@ -25,10 +25,24 @@ class ChamCong extends Model
         'tong_gio',
         'tong_cong',
         'ghi_chu',
+        'trang_thai',
+        'ly_do_dieu_chinh',
+        'dieu_chinh_boi',
+        'dieu_chinh_luc',
+    ];
+
+    protected $casts = [
+        'ngay_cham_cong' => 'date:Y-m-d',
+        'dieu_chinh_luc' => 'datetime',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class, 'id_nhanvien');
+    }
+
+    public function nguoiDieuChinh()
+    {
+        return $this->belongsTo(User::class, 'dieu_chinh_boi');
     }
 }
