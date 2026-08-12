@@ -155,7 +155,7 @@ class ChamCongController extends Controller
         ]);
 
         $user = $request->user();
-        $missedCheckoutCount = $this->markPreviousMissedCheckouts($user->id);
+        $incomingDescriptor = array_map('floatval', $request->input('face_descriptor'));
 
         if ($user->vaitro === 'user') {
             return response()->json([
@@ -165,8 +165,17 @@ class ChamCongController extends Controller
         }
 
         if (! $user->face_registered || ! $user->face_descriptor) {
+            if ($this->matchesAnotherRegisteredEmployee($incomingDescriptor, $user->id)) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'FACE_IDENTITY_MISMATCH',
+                    'message' => 'Khuôn mặt không đúng với tài khoản đang chấm công.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => false,
+                'code' => 'FACE_NOT_REGISTERED',
                 'message' => 'Nhân viên chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi chấm công.',
             ], 422);
         }
@@ -181,13 +190,14 @@ class ChamCongController extends Controller
 
         $faceDistance = $this->calculateEuclideanDistance(
             array_map('floatval', $storedDescriptor),
-            array_map('floatval', $request->input('face_descriptor'))
+            $incomingDescriptor
         );
 
         if ($faceDistance > self::FACE_MATCH_THRESHOLD) {
             return response()->json([
                 'success' => false,
-                'message' => 'Khuôn mặt không khớp với nhân viên đang đăng nhập.',
+                'code' => 'FACE_IDENTITY_MISMATCH',
+                'message' => 'Khuôn mặt không đúng với tài khoản đang chấm công.',
                 'match_score' => round($faceDistance, 4),
             ], 422);
         }
@@ -195,7 +205,7 @@ class ChamCongController extends Controller
         // Ngoài việc khớp hồ sơ hiện tại, khuôn mặt phải gần hồ sơ của chính tài khoản
         // hơn mọi nhân viên khác. Điều này chặn việc dùng mặt đồng nghiệp để check-out.
         $identityConflict = $this->detectFaceIdentityConflict(
-            array_map('floatval', $request->input('face_descriptor')),
+            $incomingDescriptor,
             $user->id,
             $faceDistance
         );
@@ -203,9 +213,12 @@ class ChamCongController extends Controller
             return response()->json([
                 'success' => false,
                 'code' => 'FACE_IDENTITY_MISMATCH',
-                'message' => 'Khuôn mặt nhận diện không thuộc tài khoản đang chấm công. Vui lòng sử dụng đúng khuôn mặt đã đăng ký của bạn.',
+                'message' => 'Khuôn mặt không đúng với tài khoản đang chấm công.',
             ], 422);
         }
+
+        // Chỉ cập nhật dữ liệu ca cũ sau khi đã xác minh đúng danh tính.
+        $missedCheckoutCount = $this->markPreviousMissedCheckouts($user->id);
 
         // Chỉ lưu ảnh sau khi đã xác thực đúng khuôn mặt nhân viên.
         $today = Carbon::today()->toDateString();
@@ -984,6 +997,20 @@ class ChamCongController extends Controller
             $otherDistance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor);
             if ($otherDistance <= self::FACE_MATCH_THRESHOLD
                 && $otherDistance + self::FACE_AMBIGUITY_MARGIN < $currentDistance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchesAnotherRegisteredEmployee(array $descriptor, int $currentUserId): bool
+    {
+        foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
+            $stored = json_decode($employee->face_descriptor, true);
+            if (! is_array($stored) || count($stored) !== 128) continue;
+
+            if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_MATCH_THRESHOLD) {
                 return true;
             }
         }
