@@ -37,6 +37,36 @@ const showWishlist = ref(false)
 const showUser = ref(false)
 const isMobileMenuOpen = ref(false)
 
+// ===================== SCROLL HIDE/SHOW HEADER =====================
+const isHeaderHidden = ref(false)
+const isScrolled = ref(false)
+let lastScrollY = 0
+
+const handleScroll = () => {
+  const currentScrollY = window.scrollY || window.pageYOffset || 0
+  isScrolled.value = currentScrollY > 20
+
+  if (currentScrollY <= 100) {
+    isHeaderHidden.value = false
+    lastScrollY = currentScrollY
+    return
+  }
+
+  if (currentScrollY > lastScrollY && currentScrollY > 100) {
+    if (!isHeaderHidden.value) {
+      isHeaderHidden.value = true
+      activeMegaMenu.value = null
+      showWishlist.value = false
+      showUser.value = false
+      showSearchSuggestions.value = false
+    }
+  } else if (currentScrollY < lastScrollY) {
+    isHeaderHidden.value = false
+  }
+
+  lastScrollY = currentScrollY
+}
+
 // ===================== ANNOUNCEMENT BAR =====================
 const announcementIcons = {
   delivery: '<svg class="ann-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
@@ -832,6 +862,7 @@ onMounted(() => {
   window.addEventListener('cart-updated', handleCartUpdated)
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
   window.addEventListener('user-updated', fetchUser)
+  window.addEventListener('scroll', handleScroll, { passive: true })
   scheduleHeaderDataHydration()
 
   // Announcement bar rotation
@@ -865,6 +896,7 @@ onUnmounted(() => {
   window.removeEventListener('cart-updated', handleCartUpdated)
   window.removeEventListener('wishlist-updated', handleWishlistUpdated)
   window.removeEventListener('user-updated', fetchUser)
+  window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleOutside)
   if (headerDataIdleId !== null && 'cancelIdleCallback' in window) {
     window.cancelIdleCallback(headerDataIdleId)
@@ -1037,7 +1069,7 @@ const openLuckyWheelMobile = () => {
   </div>
 
   <!-- ===== MAIN HEADER ===== -->
-  <header class="header">
+  <header class="header" :class="{ 'header--hidden': isHeaderHidden, 'header--scrolled': isScrolled }">
     <div class="header-inner">
 
       <!-- LOGO -->
@@ -1600,8 +1632,17 @@ const openLuckyWheelMobile = () => {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom: 0;
-  transition: none;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  will-change: transform;
   height: 128px;
+}
+
+.header.header--hidden {
+  transform: translateY(-100%);
+}
+
+.header.header--scrolled {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .header-inner {
