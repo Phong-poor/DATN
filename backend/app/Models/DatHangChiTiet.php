@@ -21,6 +21,22 @@ class DatHangChiTiet extends Model
         'hoantien',
     ];
 
+    protected $casts = [
+        'hoantien' => 'boolean',
+    ];
+
+    protected $appends = [
+        'is_refund',
+    ];
+
+    /**
+     * Keep the API compatible with clients that use the more descriptive name.
+     */
+    public function getIsRefundAttribute(): bool
+    {
+        return (bool) $this->hoantien;
+    }
+
     public function datHang()
     {
         return $this->belongsTo(DatHang::class, 'id_dathang', 'id_dathang');

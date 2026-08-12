@@ -445,6 +445,19 @@
   --admin-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
   --admin-shadow-raised: 0 16px 38px rgba(0, 0, 0, 0.30);
   color-scheme: dark;
+  /* Khung layout có thể nhận focus vì chứa vùng cuộn. Trình duyệt vẽ
+     focus ring màu cam quanh toàn bộ viewport ở chế độ tối. */
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark:focus,
+.admin-layout.theme-dark:focus-visible,
+.admin-layout.theme-dark:focus-within {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 
 .admin-layout,

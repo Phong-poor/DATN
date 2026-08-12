@@ -85,6 +85,8 @@ const adminChildren = [
   { path: 'quan-ly-vai-tro', alias: ['roles', 'vaitro'], name: 'admin-roles', component: () => import('../components/Admin/QuanLyVaiTro.vue'), meta: { title: 'Quản lý vai trò' } },
   { path: 'cham-cong-camera', name: 'admin-chamcong-camera', component: () => import('../components/Admin/ChamCongCamera.vue'), meta: { title: 'Xác thực nhân viên' } },
   { path: 'quan-ly-cham-cong', name: 'admin-quanly-chamcong', component: () => import('../components/Admin/QuanLyChamCong.vue'), meta: { title: 'Quản lý chấm công' } },
+  { path: 'quan-ly-don-xin-nghi', name: 'admin-quanly-don-xin-nghi', component: () => import('../components/Admin/QuanLyDonXinNghi.vue'), meta: { title: 'Quản lý đơn nghỉ', requiresSuperAdmin: true } },
+  { path: 'xin-nghi-phep', name: 'admin-xin-nghi-phep', component: () => import('../components/Admin/XinNghiPhep.vue'), meta: { title: 'Xin nghỉ phép' } },
 ]
 
 const routes = [
@@ -195,6 +197,10 @@ router.beforeEach((to, from, next) => {
     if (!user || !token) return next({ path: '/dang-nhap', query: { redirect: to.fullPath } })
     const role = getUserRole(user)
 
+    if (to.matched.some((route) => route.meta.requiresSuperAdmin) && role !== 'admin') {
+      return next(getDefaultAdminPath(user))
+    }
+
     if (role === 'user') return next('/')
 
     if (!role) return next('/')
@@ -245,6 +251,7 @@ router.beforeEach((to, from, next) => {
         '/admin/vong-quay': 'vong_quay_quan_ly',
         '/admin/diem-danh': 'diem_danh_quan_ly',
         '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
+        '/admin/quan-ly-don-xin-nghi': 'quan_ly_cham_cong',
       }
 
       const basicPaths = [

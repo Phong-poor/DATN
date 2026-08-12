@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CauHinhCaLam;
 use App\Models\ChamCong;
 use App\Models\LichLamNhanVien;
+use App\Models\DonXinNghi;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\Storage;
  */
 class ChamCongController extends Controller
 {
+    private const FACE_MATCH_THRESHOLD = 0.48;
+    private const FACE_DUPLICATE_THRESHOLD = 0.42;
+    private const FACE_AMBIGUITY_MARGIN = 0.06;
+
     /**
      * Lấy trạng thái chấm công hôm nay của nhân viên hiện tại
      */
@@ -74,7 +79,16 @@ class ChamCongController extends Controller
             ], 403);
         }
 
-        $user->face_descriptor = json_encode($request->face_descriptor);
+        $descriptor = array_map('floatval', $request->input('face_descriptor'));
+        if ($duplicate = $this->findDuplicateFaceOwner($descriptor, $user->id)) {
+            return response()->json([
+                'success' => false,
+                'code' => 'FACE_ALREADY_REGISTERED',
+                'message' => 'Khuôn mặt này đã được đăng ký cho một nhân viên khác. Mỗi nhân viên chỉ được sử dụng khuôn mặt của chính mình.',
+            ], 422);
+        }
+
+        $user->face_descriptor = json_encode($descriptor);
         $user->face_registered = true;
         $user->save();
 
@@ -170,12 +184,26 @@ class ChamCongController extends Controller
             array_map('floatval', $request->input('face_descriptor'))
         );
 
-        // Ngưỡng phổ biến của descriptor 128 chiều: nhỏ hơn hoặc bằng 0.55 là cùng một người.
-        if ($faceDistance > 0.55) {
+        if ($faceDistance > self::FACE_MATCH_THRESHOLD) {
             return response()->json([
                 'success' => false,
                 'message' => 'Khuôn mặt không khớp với nhân viên đang đăng nhập.',
                 'match_score' => round($faceDistance, 4),
+            ], 422);
+        }
+
+        // Ngoài việc khớp hồ sơ hiện tại, khuôn mặt phải gần hồ sơ của chính tài khoản
+        // hơn mọi nhân viên khác. Điều này chặn việc dùng mặt đồng nghiệp để check-out.
+        $identityConflict = $this->detectFaceIdentityConflict(
+            array_map('floatval', $request->input('face_descriptor')),
+            $user->id,
+            $faceDistance
+        );
+        if ($identityConflict) {
+            return response()->json([
+                'success' => false,
+                'code' => 'FACE_IDENTITY_MISMATCH',
+                'message' => 'Khuôn mặt nhận diện không thuộc tài khoản đang chấm công. Vui lòng sử dụng đúng khuôn mặt đã đăng ký của bạn.',
             ], 422);
         }
 
@@ -288,6 +316,7 @@ class ChamCongController extends Controller
         $incoming = array_map('floatval', $request->input('face_descriptor'));
         $bestEmployee = null;
         $bestDistance = PHP_FLOAT_MAX;
+        $secondBestDistance = PHP_FLOAT_MAX;
 
         $employees = User::where('vaitro', '!=', 'user')
             ->where('face_registered', true)
@@ -303,15 +332,27 @@ class ChamCongController extends Controller
 
             $distance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $incoming);
             if ($distance < $bestDistance) {
+                $secondBestDistance = $bestDistance;
                 $bestDistance = $distance;
                 $bestEmployee = $employee;
+            } elseif ($distance < $secondBestDistance) {
+                $secondBestDistance = $distance;
             }
         }
 
-        if (! $bestEmployee || $bestDistance > 0.55) {
+        if (! $bestEmployee || $bestDistance > self::FACE_MATCH_THRESHOLD) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không nhận diện được nhân viên. Vui lòng đăng ký hoặc cập nhật khuôn mặt trước.',
+            ], 422);
+        }
+
+        if ($secondBestDistance <= self::FACE_MATCH_THRESHOLD
+            && ($secondBestDistance - $bestDistance) < self::FACE_AMBIGUITY_MARGIN) {
+            return response()->json([
+                'success' => false,
+                'code' => 'FACE_MATCH_AMBIGUOUS',
+                'message' => 'Khuôn mặt đang khớp với nhiều hồ sơ nhân viên. Quản trị viên cần đăng ký lại các khuôn mặt bị trùng trước khi chấm công.',
             ], 422);
         }
 
@@ -618,7 +659,16 @@ class ChamCongController extends Controller
                 'message' => 'Tài khoản nhân viên đang bị khóa, không thể đăng ký khuôn mặt.',
             ], 422);
         }
-        $employee->face_descriptor = json_encode(array_map('floatval', $validated['face_descriptor']));
+        $descriptor = array_map('floatval', $validated['face_descriptor']);
+        if ($duplicate = $this->findDuplicateFaceOwner($descriptor, $employee->id)) {
+            return response()->json([
+                'success' => false,
+                'code' => 'FACE_ALREADY_REGISTERED',
+                'message' => "Khuôn mặt này đã thuộc hồ sơ của {$duplicate->ten}. Không thể gán cùng một khuôn mặt cho nhiều nhân viên.",
+            ], 422);
+        }
+
+        $employee->face_descriptor = json_encode($descriptor);
         $employee->face_registered = true;
         $employee->save();
 
@@ -819,6 +869,17 @@ class ChamCongController extends Controller
 
     private function attendanceScheduleError(User $user, Carbon $date): ?string
     {
+        $approvedLeave = DonXinNghi::where('id_nhanvien', $user->id)
+            ->where('trang_thai', 'approved')
+            ->where('thoi_luong', 'full_day')
+            ->whereNotIn('loai_nghi', ['late', 'early_leave', 'remote'])
+            ->whereDate('tu_ngay', '<=', $date->toDateString())
+            ->whereDate('den_ngay', '>=', $date->toDateString())
+            ->first();
+        if ($approvedLeave) {
+            return 'Hôm nay bạn có đơn nghỉ đã được duyệt. Không cần thực hiện chấm công.';
+        }
+
         $assignment = LichLamNhanVien::where('id_nhanvien', $user->id)->first();
         if (! $assignment) {
             return 'Bạn chưa được đăng ký lịch và ca làm việc. Vui lòng liên hệ quản trị viên.';
@@ -898,6 +959,47 @@ class ChamCongController extends Controller
         }
 
         return sqrt($sum);
+    }
+
+    private function findDuplicateFaceOwner(array $descriptor, int $exceptUserId): ?User
+    {
+        foreach ($this->registeredFaceOwners($exceptUserId) as $employee) {
+            $stored = json_decode($employee->face_descriptor, true);
+            if (! is_array($stored) || count($stored) !== 128) continue;
+
+            if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_DUPLICATE_THRESHOLD) {
+                return $employee;
+            }
+        }
+
+        return null;
+    }
+
+    private function detectFaceIdentityConflict(array $descriptor, int $currentUserId, float $currentDistance): bool
+    {
+        foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
+            $stored = json_decode($employee->face_descriptor, true);
+            if (! is_array($stored) || count($stored) !== 128) continue;
+
+            $otherDistance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor);
+            if ($otherDistance <= self::FACE_MATCH_THRESHOLD
+                && $otherDistance + self::FACE_AMBIGUITY_MARGIN < $currentDistance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function registeredFaceOwners(int $exceptUserId)
+    {
+        return User::query()
+            ->where('id', '!=', $exceptUserId)
+            ->where('vaitro', '!=', 'user')
+            ->where('face_registered', true)
+            ->whereNotNull('face_descriptor')
+            ->where('trangthai', '!=', 'locked')
+            ->get(['id', 'ten', 'face_descriptor']);
     }
 
     /**

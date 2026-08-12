@@ -990,6 +990,7 @@ onMounted(() => {
   font-family: var(--font-display);
   font-size: 30px;
   font-weight: 800;
+  text-transform: none !important;
   letter-spacing: -1px;
   color: var(--text-1);
   display: flex;

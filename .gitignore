@@ -2,3 +2,9 @@
 
 # Cấu hình môi trường chỉ dùng cục bộ, không đưa lên repository.
 backend/environment/
+
+# Goi ENV tam thoi de gui leader (co chua secrets).
+env-share-leader-*/
+env-share-leader-*.zip
+backend/environment.zip
+node-v*-win-x64.zip

@@ -56,9 +56,11 @@ export function getToken() {
 }
 
 export function getUser() {
-  const raw =
-    localStorage.getItem('user') ||
-    sessionStorage.getItem('user')
+  // Luôn đọc user cùng nơi với token của phiên hiện tại. Tránh lấy nhầm
+  // hồ sơ cũ ở localStorage khi tài khoản mới đăng nhập theo session.
+  const raw = sessionStorage.getItem('token')
+    ? sessionStorage.getItem('user')
+    : localStorage.getItem('user')
 
   if (!raw) return null
 
@@ -78,10 +80,12 @@ export function updateUser(user) {
   const normalizedUser = normalizeAuthUser(user)
   const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedUser))))
 
-  if (localStorage.getItem('user')) {
-    localStorage.setItem('user', encodedUser)
-  } else {
+  if (sessionStorage.getItem('token')) {
     sessionStorage.setItem('user', encodedUser)
+    localStorage.removeItem('user')
+  } else {
+    localStorage.setItem('user', encodedUser)
+    sessionStorage.removeItem('user')
   }
 
   window.dispatchEvent(new Event('user-updated'))

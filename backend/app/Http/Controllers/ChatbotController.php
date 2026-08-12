@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BienThe;
 use App\Models\DanhMuc;
+use App\Models\DatHang;
 use App\Models\Promotion;
 use App\Models\ThuongHieu;
 use Illuminate\Http\Request;
@@ -15,6 +16,78 @@ use Illuminate\Support\Facades\Log;
  */
 class ChatbotController extends Controller
 {
+    public function refundAssist(Request $request)
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $orderId = null;
+        if (preg_match('/\bVT-\d{4}-(\d+)\b/i', $validated['message'], $matches)
+            || preg_match('/(?:mã\s+)?đơn(?:\s+hàng)?\s*#?\s*(\d+)/iu', $validated['message'], $matches)
+            || preg_match('/#(\d+)\b/', $validated['message'], $matches)) {
+            $orderId = (int) $matches[1];
+        }
+
+        if (! $orderId) {
+            return response()->json([
+                'reply' => 'Bạn vui lòng cho Mia biết mã đơn cần hoàn, ví dụ: “Tôi muốn hoàn đơn 123”. Mã đơn có trong trang Đơn hàng của tôi.',
+                'action' => [
+                    'label' => 'Xem đơn hàng của tôi',
+                    'route' => '/trang-ca-nhan?tab=orders',
+                ],
+            ]);
+        }
+
+        $order = DatHang::query()
+            ->where('id_dathang', $orderId)
+            ->where('id_khachhang', $request->user()->getAuthIdentifier())
+            ->first();
+
+        if (! $order) {
+            return response()->json([
+                'reply' => "Mia không tìm thấy đơn #{$orderId} trong tài khoản của bạn. Bạn kiểm tra lại mã đơn giúp Mia nhé.",
+                'action' => [
+                    'label' => 'Xem danh sách đơn hàng',
+                    'route' => '/trang-ca-nhan?tab=orders',
+                ],
+            ], 404);
+        }
+
+        $status = strtolower(trim((string) $order->trangthai));
+        if (! in_array($status, ['done', 'completed'], true)) {
+            $message = str_starts_with($status, 'refund')
+                ? "Đơn #{$orderId} đã có yêu cầu hoàn trả và đang được xử lý."
+                : "Đơn #{$orderId} chưa hoàn thành nên hiện chưa thể tạo yêu cầu hoàn trả.";
+
+            return response()->json([
+                'reply' => $message,
+                'action' => [
+                    'label' => 'Theo dõi đơn hàng',
+                    'route' => '/trang-ca-nhan?tab=orders',
+                ],
+            ]);
+        }
+
+        if ($order->updated_at && $order->updated_at->lt(now()->subDays(30))) {
+            return response()->json([
+                'reply' => "Đơn #{$orderId} đã quá thời hạn yêu cầu hoàn trả 30 ngày. Bạn có thể nhắn Admin nếu cần hỗ trợ thêm.",
+                'action' => [
+                    'label' => 'Xem chi tiết đơn hàng',
+                    'route' => '/trang-ca-nhan?tab=orders',
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'reply' => "Đơn #{$orderId} đủ điều kiện gửi yêu cầu hoàn trả trong 30 ngày. Bạn cần chọn sản phẩm, nhập lý do và tải ảnh hoặc video minh chứng.",
+            'action' => [
+                'label' => "Mở form hoàn trả đơn #{$orderId}",
+                'route' => "/trang-ca-nhan?tab=orders&refund_order={$orderId}",
+            ],
+        ]);
+    }
+
     public function chat(Request $request)
     {
         $request->validate([

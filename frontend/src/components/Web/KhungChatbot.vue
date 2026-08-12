@@ -44,6 +44,15 @@
               <div class="message-bubble" :class="msg.role">
                 <span v-html="formatMessage(msg.content)"></span>
 
+                <button
+                  v-if="msg.action"
+                  type="button"
+                  class="chatbot-action-btn"
+                  @click="handleChatAction(msg.action)"
+                >
+                  {{ msg.action.label }}
+                </button>
+
                 <!-- Danh sách sản phẩm nếu có -->
                 <div v-if="msg.products && msg.products.length" class="chatbot-products">
                   <div v-for="prod in msg.products" :key="prod.id_bienthe" class="bot-product-card"
@@ -774,6 +783,12 @@ const submitDirectOrder = async () => {
     return;
   }
 
+  const shippingAddress = String(checkoutForm.value.address || '').trim();
+  if (!selectedAddressId.value && shippingAddress.length < 8) {
+    swal.warning('Địa chỉ chưa đầy đủ', 'Vui lòng nhập địa chỉ nhận hàng ít nhất 8 ký tự.');
+    return;
+  }
+
   isLoading.value = true;
   let addedCartItem = null;
 
@@ -798,7 +813,7 @@ const submitDirectOrder = async () => {
     checkoutForm.value.paymentMethod = 'bank';
     const response = await api.post('/checkout', {
         id_diachi: selectedAddressId.value || undefined,
-        diachi: checkoutForm.value.address,
+        diachi: selectedAddressId.value ? undefined : shippingAddress,
         name: checkoutForm.value.name,
         phone: phoneStr,
         email: checkoutForm.value.email,
@@ -979,6 +994,24 @@ const formatMessage = (text) => {
   return formatted;
 };
 
+const normalizeIntentText = (text) => String(text || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .toLowerCase();
+
+const isRefundIntent = (text) => {
+  const normalized = normalizeIntentText(text);
+  return /(hoan|tra|doi)\s*(hang|don|san pham|may)/.test(normalized)
+    || /(yeu cau|muon|can)\s*(hoan|tra)/.test(normalized);
+};
+
+const handleChatAction = async (action) => {
+  if (!action?.route) return;
+  isOpen.value = false;
+  await router.push(action.route);
+};
+
 const scrollToBottom = async () => {
   await nextTick();
   if (chatBody.value) {
@@ -1013,6 +1046,34 @@ const sendMessage = async () => {
   let botMessage = null;
 
   try {
+    if (isRefundIntent(userText)) {
+      if (!getToken()) {
+        botMessage = {
+          role: 'bot',
+          content: 'Bạn cần đăng nhập để Mia kiểm tra đơn hàng và điều kiện hoàn trả.',
+          action: { label: 'Đăng nhập', route: `/dang-nhap?redirect=${encodeURIComponent('/trang-ca-nhan?tab=orders')}` }
+        };
+      } else {
+        try {
+          const refundResponse = await api.post('/chat/refund-assist', { message: userText });
+          botMessage = {
+            role: 'bot',
+            content: refundResponse.data.reply,
+            action: refundResponse.data.action || null
+          };
+        } catch (refundError) {
+          const refundData = refundError.response?.data;
+          botMessage = {
+            role: 'bot',
+            content: refundData?.reply || refundData?.message || 'Mia chưa kiểm tra được đơn hàng. Bạn vui lòng thử lại.',
+            action: refundData?.action || { label: 'Xem đơn hàng của tôi', route: '/trang-ca-nhan?tab=orders' }
+          };
+        }
+      }
+    }
+
+    if (botMessage) return;
+
     const history = messages.value
       .slice(0, -1)
       .slice(-10)
@@ -3074,8 +3135,29 @@ onUnmounted(() => {
 }
 
 .deposit-policy {
-  margin: 10px 20px 0;
+  margin: 10px 20px 18px;
   width: calc(100% - 40px);
+}
+
+.chatbot-action-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.chatbot-action-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .deposit-row,
@@ -3136,6 +3218,7 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 900;
   cursor: pointer;
+  margin-bottom: 4px;
 }
 
 .confirm-deposit-plan {
