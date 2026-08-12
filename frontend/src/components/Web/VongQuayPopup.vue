@@ -364,11 +364,20 @@ const unlockScroll = () => {
 onMounted(async () => {
   lockScroll()
   
-  // Parallel fetch wheel setup, history, and tickets
+  // Auto-claim daily free ticket in background when user opens the wheel
+  try {
+    const claimRes = await api.post('/vong-quay/nhan-luot')
+    if (claimRes.data?.tickets !== undefined) {
+      tickets.value = claimRes.data.tickets
+      localStorage.setItem('vongquay_tickets', claimRes.data.tickets.toString())
+    }
+  } catch (e) {
+    // Ignore error
+  }
+
   await fetchPrizes()
   await fetchHistory()
   await fetchUserProfile()
-  
 
   window.addEventListener('resize', drawWheel)
 })
@@ -430,10 +439,10 @@ onUnmounted(() => {
           <div class="hud-container">
             <div class="tickets-hud">
               <span class="ticket-icon">⚡</span>
-              <span>Mỗi ngày <strong>1</strong> lượt quay miễn phí</span>
+              <span>Tự động nhận <strong>1</strong> lượt quay miễn phí mỗi ngày</span>
             </div>
             
-            <div class="tickets-hud">
+            <div class="tickets-hud highlight-hud">
               <span class="ticket-icon">🎟️</span>
               <span>Lượt của bạn: <strong>{{ tickets }}</strong></span>
             </div>
@@ -733,6 +742,34 @@ onUnmounted(() => {
   color: #ef4444;
   font-size: 15px;
   margin: 0 2px;
+}
+
+.tickets-hud.highlight-hud {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
+
+.claim-free-ticket-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+  transition: all 0.2s ease;
+}
+
+.claim-free-ticket-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, #f87171, #ef4444);
 }
 
 /* RIGHT COLUMN - SIDEBAR */

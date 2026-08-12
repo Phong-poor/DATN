@@ -426,15 +426,20 @@ const filteredMenuConfig = computed(() => {
   const isAdmin = Boolean(user.value?.vaitro && user.value.vaitro !== 'user')
   const isSuperAdmin = String(user.value?.vaitro || '').toLowerCase() === 'admin'
 
-  const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
+  const hasPerm = (required) => {
+    if (isSuperAdmin) return true
+    if (!required) return true
+    const list = Array.isArray(required) ? required : [required]
+    return list.some(p => userPerms.includes(p))
+  }
 
   const pathPermissionMap = {
-    '/admin/quan-ly-san-pham': 'san_pham_xem',
-    '/admin/quan-ly-danh-muc': 'danh_muc_xem',
-    '/admin/quan-ly-thuong-hieu': 'thuong_hieu_xem',
-    '/admin/bien-the-san-pham': 'bien_the_xem',
+    '/admin/quan-ly-san-pham': ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho'],
+    '/admin/quan-ly-danh-muc': ['danh_muc_xem', 'danh_muc_sua'],
+    '/admin/quan-ly-thuong-hieu': ['thuong_hieu_xem', 'thuong_hieu_sua'],
+    '/admin/bien-the-san-pham': ['bien_the_xem', 'bien_the_sua'],
     
-    '/admin/quan-ly-don-hang': 'don_hang_xem',
+    '/admin/quan-ly-don-hang': ['don_hang_xem', 'don_hang_sua', 'hoa_don_xem'],
     
     '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
     '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',

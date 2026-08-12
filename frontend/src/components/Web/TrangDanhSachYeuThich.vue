@@ -345,17 +345,22 @@ const removeItem = async (id) => {
 
 const moveToCart = async (item) => {
   try {
-    await api.post('/gio-hang/them', {
+    const res = await api.post('/gio-hang/them', {
       id_bienthe: item.id_bienthe,
       soluong: item.soluong
     })
 
     await removeItem(item.id)
-
-    swal.success('Thành công', 'Đã chuyển sản phẩm sang giỏ hàng thành công!')
     window.dispatchEvent(new Event('cart-updated'))
+
+    const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
+    if (cartItemId) {
+      router.push(`/thanh-toan?buy_now=1&cart_item=${cartItemId}`)
+    } else {
+      router.push(`/thanh-toan?buy_now=1&variant=${item.id_bienthe}`)
+    }
   } catch (err) {
-    swal.error('Lỗi', err.response?.data?.message || 'Lỗi khi chuyển sang giỏ hàng!')
+    swal.error('Lỗi', err.response?.data?.message || 'Lỗi khi chuyển sang mua hàng!')
   }
 }
 

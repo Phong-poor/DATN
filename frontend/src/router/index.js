@@ -207,19 +207,19 @@ router.beforeEach((to, from, next) => {
 
     if (role !== 'admin') {
       const pathPermissionMap = {
-        '/admin/quan-ly-san-pham': 'san_pham_xem',
-        '/admin/products': 'san_pham_xem',
-        '/admin/quan-ly-danh-muc': 'danh_muc_xem',
-        '/admin/categories': 'danh_muc_xem',
-        '/admin/quan-ly-thuong-hieu': 'thuong_hieu_xem',
-        '/admin/brands': 'thuong_hieu_xem',
-        '/admin/bien-the': 'bien_the_xem',
-        '/admin/variants': 'bien_the_xem',
-        '/admin/bien-the-san-pham': 'bien_the_xem',
-        '/admin/quan-ly-don-hang': 'don_hang_xem',
-        '/admin/orders': 'don_hang_xem',
-        '/admin/hoa-don': 'hoa_don_xem',
-        '/admin/billing': 'hoa_don_xem',
+        '/admin/quan-ly-san-pham': ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho'],
+        '/admin/products': ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho'],
+        '/admin/quan-ly-danh-muc': ['danh_muc_xem', 'danh_muc_sua'],
+        '/admin/categories': ['danh_muc_xem', 'danh_muc_sua'],
+        '/admin/quan-ly-thuong-hieu': ['thuong_hieu_xem', 'thuong_hieu_sua'],
+        '/admin/brands': ['thuong_hieu_xem', 'thuong_hieu_sua'],
+        '/admin/bien-the': ['bien_the_xem', 'bien_the_sua'],
+        '/admin/variants': ['bien_the_xem', 'bien_the_sua'],
+        '/admin/bien-the-san-pham': ['bien_the_xem', 'bien_the_sua'],
+        '/admin/quan-ly-don-hang': ['don_hang_xem', 'don_hang_sua', 'hoa_don_xem'],
+        '/admin/orders': ['don_hang_xem', 'don_hang_sua', 'hoa_don_xem'],
+        '/admin/hoa-don': ['hoa_don_xem', 'don_hang_xem'],
+        '/admin/billing': ['hoa_don_xem', 'don_hang_xem'],
         '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
         '/admin/promotions': 'marketing_quan_ly',
         '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
@@ -261,7 +261,8 @@ router.beforeEach((to, from, next) => {
         '/admin/profile',
         '/admin/cai-dat-he-thong',
         '/admin/settings',
-        '/admin/cham-cong-camera'
+        '/admin/cham-cong-camera',
+        '/admin/xin-nghi-phep'
       ]
 
       const cleanPath = to.path.replace(/\/$/, '')
@@ -281,7 +282,9 @@ router.beforeEach((to, from, next) => {
 
         if (requiredPerm) {
           const userPerms = user.cac_quyen || []
-          if (!userPerms.includes(requiredPerm)) {
+          const permList = Array.isArray(requiredPerm) ? requiredPerm : [requiredPerm]
+          const hasAccess = permList.some(p => userPerms.includes(p))
+          if (!hasAccess) {
             swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!')
             return next(false)
           }

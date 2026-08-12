@@ -714,25 +714,31 @@ const toggleWishlist = async (product) => {
 const addToCart = async (product) => {
   const token = getToken()
   if (!token) {
-    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
-    router.push('/dang-nhap')
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để tiến hành mua ngay!')
+    router.push({ path: '/dang-nhap', query: { redirect: '/thanh-toan' } })
     return
   }
   try {
     const variantId = product.id_bienthe
     if (!variantId) {
-      swal.error('Thất bại', 'Sản phẩm này chưa có biến thể để thêm vào giỏ hàng.')
+      swal.error('Thất bại', 'Sản phẩm này chưa có biến thể.')
       return
     }
-    await api.post('/gio-hang/them', {
+    const res = await api.post('/gio-hang/them', {
       id_bienthe: variantId,
       soluong: 1
     })
-    swal.success('Đã thêm vào giỏ', `${product.tenSP} đã nằm trong giỏ hàng của bạn!`)
     window.dispatchEvent(new Event('cart-updated'))
+
+    const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
+    if (cartItemId) {
+      router.push(`/thanh-toan?buy_now=1&cart_item=${cartItemId}`)
+    } else {
+      router.push(`/thanh-toan?buy_now=1&variant=${variantId}`)
+    }
   } catch (err) {
-    console.error('Lỗi thêm giỏ hàng:', err)
-    swal.error('Thất bại', err.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng.')
+    console.error('Lỗi mua hàng:', err)
+    swal.error('Thất bại', err.response?.data?.message || 'Không thể tiến hành mua sản phẩm.')
   }
 }
 

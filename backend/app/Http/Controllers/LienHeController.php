@@ -128,13 +128,20 @@ class LienHeController extends Controller
 
     public function reply(Request $request, $id)
     {
-        $request->validate([
-            'phanhoi' => 'required|string|max:5000'
-        ]);
+        $replyContent = $request->input('phanhoi', $request->input('reply'));
+
+        if (empty($replyContent)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Nội dung phản hồi không được để trống.'
+            ], 422);
+        }
 
         $contact = LienHe::findOrFail($id);
+        $mailSent = false;
 
-            Mail::send([], [], function ($mail) use ($contact, $request) {
+        try {
+            Mail::send([], [], function ($mail) use ($contact, $replyContent) {
                 $mail->to($contact->email, $contact->hoten)
                     ->subject('💻 Predator | Phản hồi liên hệ #' . $contact->id)
                     ->html("
@@ -174,7 +181,7 @@ class LienHeController extends Controller
                                 border:1px solid #e0e7ff'>
 
                         <p style='margin:0;color:#111827;font-size:14px;line-height:1.6'>
-                            " . nl2br(e($request->phanhoi)) . "
+                            " . nl2br(e($replyContent)) . "
                         </p>
                     </div>
 
@@ -213,16 +220,29 @@ class LienHeController extends Controller
             </html>
             ");
             });
+            $mailSent = true;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Mail send failed: " . $e->getMessage());
+            $mailSent = false;
+        }
 
         $contact->update([
-            'phanhoi'      => $request->phanhoi,
+            'phanhoi'      => $replyContent,
             'trangthai'     => 'replied',
             'phan_hoi_luc' => now()
         ]);
 
+        if ($mailSent) {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Đã gửi email phản hồi tới khách hàng thành công!'
+            ]);
+        }
+
         return response()->json([
-            'status'  => true,
-            'message' => 'Đã gửi phản hồi thành công'
+            'status'    => true,
+            'message'   => 'Đã lưu phản hồi vào hệ thống! (Lưu ý: Email chưa gửi được trực tiếp do máy chủ cPanel chưa cấu hình SMTP)',
+            'mail_sent' => false
         ]);
     }
 

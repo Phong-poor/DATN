@@ -559,8 +559,8 @@ const addToCart = async (product) => {
   const token = getToken()
   const swal = await getSwal()
   if (!token) {
-    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước khi thêm giỏ hàng.')
-    router.push({ path: '/dang-nhap', query: { redirect: route.fullPath } })
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để tiến hành mua ngay!')
+    router.push({ path: '/dang-nhap', query: { redirect: '/thanh-toan' } })
     return
   }
 
@@ -568,11 +568,17 @@ const addToCart = async (product) => {
     const variantId = await resolveVariantId(product)
     if (!variantId) throw new Error('Sản phẩm chưa có biến thể.')
 
-    await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: 1 })
+    const res = await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: 1 })
     window.dispatchEvent(new Event('cart-updated'))
-    swal.success('Đã thêm vào giỏ', 'Sản phẩm đã được thêm vào giỏ hàng.')
+    
+    const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
+    if (cartItemId) {
+      router.push(`/thanh-toan?buy_now=1&cart_item=${cartItemId}`)
+    } else {
+      router.push(`/thanh-toan?buy_now=1&variant=${variantId}`)
+    }
   } catch (error) {
-    swal.error('Lỗi giỏ hàng', error.response?.data?.message || error.message)
+    swal.error('Lỗi mua hàng', error.response?.data?.message || error.message)
   }
 }
 

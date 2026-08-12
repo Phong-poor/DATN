@@ -42,12 +42,6 @@ class DanhGiaController extends Controller
 
         $reviews = DanhGia::with(['user', 'bienThe.sanPham'])
             ->when($status && $status !== 'all', function ($q) use ($status) {
-                if ($status === 'pending') {
-                    $q->whereIn('trangthai', ['pending', 'spam']);
-
-                    return;
-                }
-
                 $q->where('trangthai', $status);
             })
             ->orderBy('created_at', 'desc')
@@ -64,7 +58,8 @@ class DanhGiaController extends Controller
             ],
             'stats' => [
                 'total' => DanhGia::count(),
-                'pending' => DanhGia::whereIn('trangthai', ['pending', 'spam'])->count(),
+                'pending' => DanhGia::where('trangthai', 'pending')->count(),
+                'spam' => DanhGia::where('trangthai', 'spam')->count(),
                 'avg' => round(DanhGia::avg('danhgia') ?: 0, 1),
             ],
         ]);
@@ -190,7 +185,7 @@ class DanhGiaController extends Controller
         $limit = (int) $request->input('limit', 100);
         $limit = max(1, min($limit, 500));
 
-        $reviews = DanhGia::where('trangthai', 'pending')
+        $reviews = DanhGia::whereIn('trangthai', ['pending', 'approved'])
             ->orderBy('created_at', 'asc')
             ->limit($limit)
             ->get();
@@ -205,24 +200,32 @@ class DanhGiaController extends Controller
         foreach ($reviews as $review) {
             $result = $this->analyzeCommentWithAI((string) $review->binhluan, (int) $review->danhgia);
 
-            if ($result['trangthai'] === 'pending') {
+            if ($result['trangthai'] === 'spam') {
+                if ($review->trangthai !== 'spam') {
+                    $cleanText = trim(preg_split('/\n\nCảm ơn/u', (string) $review->binhluan)[0]);
+                    $review->update([
+                        'trangthai' => 'spam',
+                        'binhluan' => $cleanText
+                    ]);
+                    $this->clearProductCacheByReview($review);
+                    $summary['spam']++;
+                }
+            } elseif ($review->trangthai === 'pending' && $result['trangthai'] === 'approved') {
+                $updates = ['trangthai' => 'approved'];
+                if (! empty($result['reply']) && ! str_contains((string) $review->binhluan, 'Cảm ơn')) {
+                    $updates['binhluan'] = trim(((string) $review->binhluan)."\n\n".$result['reply']);
+                }
+                $review->update($updates);
+                $this->clearProductCacheByReview($review);
+                $summary['approved']++;
+            } elseif ($review->trangthai === 'pending') {
                 $summary['pending']++;
-                continue;
             }
-
-            $updates = ['trangthai' => $result['trangthai']];
-            if (! empty($result['reply']) && ! str_contains((string) $review->binhluan, 'VinaTech')) {
-                $updates['binhluan'] = trim(((string) $review->binhluan)."\n\n".$result['reply']);
-            }
-
-            $review->update($updates);
-            $this->clearProductCacheByReview($review);
-            $summary[$result['trangthai']]++;
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Da chay tool tu duyet danh gia.',
+            'message' => 'Đã chạy tool kiểm duyệt đánh giá tự động.',
             'summary' => $summary,
         ]);
     }
@@ -251,91 +254,16 @@ class DanhGiaController extends Controller
      */
     private function analyzeCommentWithAI($text, $rating)
     {
-        $textLower = mb_strtolower($text, 'UTF-8');
-
-        // 1. Danh sách từ khóa chửi tục, thô tục phổ biến tiếng Việt (bao gồm cả viết tắt/teencode)
-        $profanityWords = [
-            'đm', 'dm', 'dkm', 'vcl', 'clgt', 'lồn', 'lon', 'chó', 'cho', 'đần', 'dan', 'ngu',
-            'mất dạy', 'mat day', 'cứt', 'cut', 'hãm', 'ham', 'đéo', 'deo', 'buồi', 'buoi',
-            'cặc', 'cac', 'óc chó', 'oc cho', 'đĩ', 'di', 'điếm', 'diem', 'khốn nạn', 'khon nan',
-            'bậy', 'bay', 'đớp', 'dop', 'hít', 'hit', 'địt', 'dit', 'mẹ mày', 'me may', 'cha mày', 'cha may',
-            'cl', 'dcm', 'vl', 'đmm', 'dmm',
-        ];
-
-        // Kiểm tra xem bình luận có chứa từ thô tục nào không
-        $isSpam = false;
-        if (! empty($text)) {
-            foreach ($profanityWords as $word) {
-                if (mb_strpos($textLower, $word) !== false) {
-                    $isSpam = true;
-                    break;
-                }
-            }
-        }
-
-        if ($isSpam) {
-            return [
-                'trangthai' => 'spam',
-                'reply' => null,
-            ];
-        }
-
-        // 2. Kiểm tra xem Trợ lý AI Smart Reply có được kích hoạt không
-        $aiActive = false;
-        if (Storage::exists('admin/ai_status.json')) {
-            $aiActive = filter_var(Storage::get('admin/ai_status.json'), FILTER_VALIDATE_BOOLEAN);
-        }
-
-        if ($aiActive && ! empty($text)) {
-            // Phân tích cảm xúc tích cực để tự động duyệt & phản hồi
-            $positiveWords = [
-                'tốt', 'tot', 'tuyệt vời', 'tuyet voi', 'ưng ý', 'ung y', 'chất lượng', 'chat luong',
-                'đẹp', 'dep', 'mượt', 'muot', 'nhanh', 'nhiệt tình', 'nhiet tinh', 'thích', 'thich',
-                'hài lòng', 'hai long', 'yêu', 'yeu', 'xịn', 'xin', 'quá ngon', 'qua ngon', 'ok',
-                'recommend', 'tuyệt', 'tuyet', 'quá đỉnh', 'qua dinh',
-            ];
-
-            $isPositive = ($rating >= 4);
-            if (! $isPositive) {
-                foreach ($positiveWords as $word) {
-                    if (mb_strpos($textLower, $word) !== false) {
-                        $isPositive = true;
-                        break;
-                    }
-                }
-            }
-
-            if ($isPositive) {
-                // Danh sách các câu trả lời tự động ngẫu nhiên của AI để tăng tính tự nhiên
-                $thankReplies = [
-                    'Cảm ơn bạn rất nhiều vì đánh giá tích cực! Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm.',
-                    'Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm. Sự hài lòng của bạn là động lực để chúng tôi tiếp tục cải thiện dịch vụ.',
-                    'Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn sử dụng sản phẩm thật hiệu quả và hài lòng.',
-                    'Cảm ơn phản hồi rất chất lượng từ bạn! Chúng tôi sẽ luôn cố gắng hỗ trợ bạn tốt nhất trong quá trình sử dụng.',
-                ];
-
-                $reply = $thankReplies[array_rand($thankReplies)];
-
-                return [
-                    'trangthai' => 'approved', // Tự động duyệt hiển thị lên giao diện
-                    'reply' => $reply,
-                ];
-            }
-        }
-
-        // Mặc định: Chờ duyệt thủ công
-        return [
-            'trangthai' => 'pending',
-            'reply' => null,
-        ];
+        return $this->analyzeCommentWithModerationTool((string) $text, (int) $rating);
     }
 
-    /**
-     * Admin: Lấy trạng thái kích hoạt của Trợ lý AI Smart Reply
-     */
     private function analyzeCommentWithModerationTool(string $text, int $rating): array
     {
-        $normalized = $this->normalizeModerationText($text);
+        // Tách câu gốc nếu bình luận đã chứa câu trả lời tự động trước đó
+        $parts = preg_split('/\n\nCảm ơn/u', (string) $text);
+        $userText = trim($parts[0] ?? '');
+
+        $normalized = $this->normalizeModerationText($userText);
         $compact = preg_replace('/[^a-z0-9]+/', '', $normalized);
         $hasText = trim($normalized) !== '';
 
@@ -343,6 +271,8 @@ class DanhGiaController extends Controller
             'dm', 'dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'vl', 'cc', 'buoi',
             'dit', 'deo', 'loz', 'cuc', 'cut', 'ngu', 'oc cho', 'occho',
             'mat day', 'ham', 'khon nan', 'cho chet', 'me may', 'cha may',
+            'lon', 'nhu lon', 'nhu l', 'nhu c', 'nhu cut', 'nhu cac', 'cl', 'kac',
+            'shop nhu', 'shopnhu', 'cai lon', 'mat lon', 'con lon', 'nhu rác', 'nhu rac'
         ];
 
         $attackPhrases = [
@@ -372,37 +302,48 @@ class DanhGiaController extends Controller
             'vay tien', 'kiem tien', 'khuyen mai soc', 'inbox rieng',
         ];
 
-        $profanityScore = $this->countPhraseHits($normalized, $profanityWords)
-            + $this->countCompactHits($compact, ['dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'loz']);
-        $attackScore = $this->countPhraseHits($normalized, $attackPhrases);
-        $complaintScore = $this->countPhraseHits($normalized, $complaintPhrases);
-        $positiveScore = $this->countPhraseHits($normalized, $positivePhrases);
-        $spamScore = $this->countPhraseHits($normalized, $spamSignals);
-        $repeatedChars = preg_match('/(.)\1{5,}/u', $text) ? 1 : 0;
-        $tooShortNegative = (! $hasText && $rating <= 2) ? 1 : 0;
+        $profanityHits = $this->countPhraseHits($normalized, $profanityWords)
+            + $this->countCompactHits($compact, ['dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'loz', 'cc', 'nhul', 'nhuc', 'nhucut', 'nhulon']);
+        $attackHits = $this->countPhraseHits($normalized, $attackPhrases);
+        $complaintHits = $this->countPhraseHits($normalized, $complaintPhrases);
+        $positiveHits = $this->countPhraseHits($normalized, $positivePhrases);
+        $spamHits = $this->countPhraseHits($normalized, $spamSignals);
+        $repeatedChars = preg_match('/(.)\1{5,}/u', $userText) ? 1 : 0;
 
-        if ($profanityScore > 0 || $attackScore > 0 || $spamScore > 0 || $repeatedChars > 0) {
+        // ƯU TIÊN HÀNG ĐẦU: Nếu có từ chửi tục, công kích, hoặc spam => GÁN THÀNH SPAM NGAY BẤT KỂ SAO MẤY
+        if ($profanityHits > 0 || $attackHits > 0 || $spamHits > 0 || $repeatedChars > 0) {
             return ['trangthai' => 'spam', 'reply' => null];
         }
 
-        if ($rating <= 2 && ($complaintScore > 0 || $tooShortNegative)) {
+        if ($rating <= 2 && ($complaintHits > 0 || ! $hasText)) {
             return ['trangthai' => 'spam', 'reply' => null];
         }
 
-        if ($rating === 3 && $complaintScore >= 2) {
+        if ($rating === 3 && $complaintHits >= 2) {
             return ['trangthai' => 'spam', 'reply' => null];
         }
 
-        if ($rating >= 4 || $positiveScore > 0) {
-            return ['trangthai' => 'approved', 'reply' => null];
-        }
+        // Chỉ khi SẠCH TỪ XẤU và ĐÁNH GIÁ TỐT mới duyệt và sinh phản hồi cảm ơn
+        $isPositive = ($rating >= 4 || $positiveHits > 0);
 
-        if ($rating === 3 && $complaintScore === 0) {
-            return ['trangthai' => 'approved', 'reply' => null];
-        }
+        if ($isPositive) {
+            $reply = null;
+            $aiActive = false;
+            if (Storage::exists('admin/ai_status.json')) {
+                $aiActive = filter_var(Storage::get('admin/ai_status.json'), FILTER_VALIDATE_BOOLEAN);
+            }
 
-        if ($hasText && $complaintScore === 0) {
-            return ['trangthai' => 'approved', 'reply' => null];
+            if ($aiActive && $hasText) {
+                $thankReplies = [
+                    'Cảm ơn bạn rất nhiều vì đánh giá tích cực! Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm.',
+                    'Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm. Sự hài lòng của bạn là động lực để chúng tôi tiếp tục cải thiện dịch vụ.',
+                    'Cảm ơn bạn đã dành thời gian đánh giá sản phẩm. Chúc bạn sử dụng sản phẩm thật hiệu quả và hài lòng.',
+                    'Cảm ơn phản hồi rất chất lượng từ bạn! Chúng tôi sẽ luôn cố gắng hỗ trợ bạn tốt nhất trong quá trình sử dụng.',
+                ];
+                $reply = $thankReplies[array_rand($thankReplies)];
+            }
+
+            return ['trangthai' => 'approved', 'reply' => $reply];
         }
 
         return ['trangthai' => 'pending', 'reply' => null];

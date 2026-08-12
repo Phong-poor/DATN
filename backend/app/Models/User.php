@@ -108,10 +108,14 @@ class User extends Authenticatable
 
     public function getCacQuyenAttribute()
     {
-        if ($this->vaitro === 'user') {
+        $roleCode = strtolower($this->vaitro ?? '');
+
+        if ($roleCode === 'user' || empty($roleCode)) {
             return [];
         }
-        if ($this->vaitro !== 'user') {
+
+        // Super Admin tối cao có toàn bộ quyền
+        if ($roleCode === 'admin') {
             return [
                 'san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 
                 'danh_muc_xem', 'danh_muc_sua', 
@@ -125,22 +129,27 @@ class User extends Authenticatable
             ];
         }
 
+        // Lấy quyền đã cài đặt thực tế của Chức vụ trong bảng vai_tro
         $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
         if ($role) {
-            return is_array($role->quyen) ? $role->quyen : (json_decode($role->quyen, true) ?: []);
+            $perms = is_array($role->quyen) ? $role->quyen : (json_decode($role->quyen, true) ?: []);
+            return $perms;
         }
 
+        // Mặc định cho các mã vai trò chuẩn
         $defaults = [
-            'inventory' => ['san_pham_xem', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
+            'inventory' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
+            'thu_kho' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
             'order_manager' => ['don_hang_xem', 'don_hang_sua'],
             'marketing' => ['marketing_quan_ly'],
             'affiliate_manager' => ['affiliate_quan_ly'],
             'editor' => ['tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly'],
             'support' => ['lien_he_quan_ly', 'chat_quan_ly'],
             'accountant' => ['don_hang_xem', 'hoa_don_xem'],
+            'ke_toan' => ['don_hang_xem', 'hoa_don_xem'],
         ];
 
-        return $defaults[strtolower($this->vaitro)] ?? [];
+        return $defaults[$roleCode] ?? [];
     }
 
     public function getTenVaitroHienthiAttribute()

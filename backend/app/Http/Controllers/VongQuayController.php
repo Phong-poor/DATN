@@ -254,15 +254,46 @@ class VongQuayController extends Controller
     }
 
     /**
+     * Tự động nhận 1 lượt quay miễn phí cho user nếu hôm nay chưa nhận.
+     */
+    public static function autoGrantDailyTicketIfNeeded(User $user)
+    {
+        if (!$user || !$user->id) return;
+        try {
+            $todayClaim = LichSuQuay::where('id_khachhang', $user->id)
+                ->where('loai_qua', 'claim')
+                ->whereDate('created_at', Carbon::today())
+                ->exists();
+
+            if (!$todayClaim) {
+                $user->luot_quay = (int)$user->luot_quay + 1;
+                $user->save();
+
+                LichSuQuay::create([
+                    'id_khachhang' => $user->id,
+                    'id_vongquay' => null,
+                    'ten_qua' => 'Nhận lượt quay hàng ngày',
+                    'loai_qua' => 'claim',
+                    'gia_tri_qua' => '1',
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Silence exception
+        }
+    }
+
+    /**
      * Claim daily tickets (limit once per calendar day).
      */
     public function nhanLuotHangNgay(Request $request)
     {
         $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập để nhận lượt quay'], 401);
+        }
 
         DB::beginTransaction();
         try {
-            // Lock the account to prevent two simultaneous daily claims.
             $currentUser = User::lockForUpdate()->findOrFail($user->id);
             $todayClaim = LichSuQuay::where('id_khachhang', $currentUser->id)
                 ->where('loai_qua', 'claim')
@@ -270,32 +301,19 @@ class VongQuayController extends Controller
                 ->exists();
 
             if ($todayClaim) {
-                $hasSpunToday = LichSuQuay::where('id_khachhang', $currentUser->id)
-                    ->where('loai_qua', '!=', 'claim')
-                    ->whereDate('created_at', Carbon::today())
-                    ->exists();
-
-                // Repair legacy accumulated values without restoring a spent ticket.
-                $currentUser->luot_quay = $hasSpunToday
-                    ? 0
-                    : min(1, max(0, (int) $currentUser->luot_quay));
-                $currentUser->save();
                 DB::commit();
-
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bạn đã nhận lượt quay ngày hôm nay rồi. Hãy quay lại vào ngày mai!',
-                    'tickets' => $currentUser->luot_quay,
-                ], 400);
+                    'message' => 'Bạn đã nhận lượt quay miễn phí ngày hôm nay rồi. Hãy quay lại vào ngày mai!',
+                    'tickets' => (int) $currentUser->luot_quay,
+                ], 200);
             }
 
-            // Assignment is intentional: free daily tickets do not accumulate.
-            $currentUser->luot_quay = 1;
+            $currentUser->luot_quay = (int) $currentUser->luot_quay + 1;
             $currentUser->save();
 
-            // Log this claim
             LichSuQuay::create([
-                'id_khachhang' => $user->id,
+                'id_khachhang' => $currentUser->id,
                 'id_vongquay' => null,
                 'ten_qua' => 'Nhận lượt quay hàng ngày',
                 'loai_qua' => 'claim',
@@ -303,6 +321,11 @@ class VongQuayController extends Controller
             ]);
 
             DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Nhận 1 lượt quay miễn phí hàng ngày thành công!',
+                'tickets' => (int) $currentUser->luot_quay,
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -310,12 +333,6 @@ class VongQuayController extends Controller
                 'message' => 'Lỗi nhận lượt quay: ' . $e->getMessage(),
             ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nhận 1 lượt quay miễn phí hàng ngày thành công!',
-            'tickets' => 1,
-        ]);
     }
 
     // =========================================================================
