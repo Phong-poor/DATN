@@ -54,6 +54,8 @@ class DonXinNghiController extends Controller
             'tu_ngay.after_or_equal' => 'Không thể gửi đơn nghỉ lùi ngày.',
             'ly_do.min' => 'Lý do nghỉ cần có ít nhất 10 ký tự.',
             'minh_chung.max' => 'Tệp minh chứng không được vượt quá 5MB.',
+            'minh_chung.file' => 'Minh chứng phải là một tệp ảnh hoặc PDF hợp lệ.',
+            'minh_chung.mimes' => 'Minh chứng chỉ chấp nhận định dạng JPG, JPEG, PNG hoặc PDF.',
         ]);
 
         $from = Carbon::parse($validated['tu_ngay']);
@@ -97,12 +99,64 @@ class DonXinNghiController extends Controller
         return response()->json(['success' => true, 'message' => 'Đã hủy đơn nghỉ.']);
     }
 
+    public function resubmit(Request $request, DonXinNghi $donXinNghi)
+    {
+        abort_unless((int) $donXinNghi->id_nhanvien === (int) $request->user()->id, 403);
+        if ($donXinNghi->trang_thai !== 'needs_info') {
+            return response()->json(['success' => false, 'message' => 'Đơn này hiện không yêu cầu bổ sung thông tin.'], 409);
+        }
+
+        $validated = $request->validate([
+            'loai_nghi' => ['required', Rule::in(self::TYPES)],
+            'thoi_luong' => ['required', Rule::in(self::DURATIONS)],
+            'tu_ngay' => ['required', 'date', 'after_or_equal:today'],
+            'den_ngay' => ['required', 'date', 'after_or_equal:tu_ngay'],
+            'ly_do' => ['required', 'string', 'min:10', 'max:1000'],
+            'nguoi_ban_giao' => ['nullable', 'string', 'max:150'],
+            'ghi_chu_ban_giao' => ['nullable', 'string', 'max:1000'],
+            'minh_chung' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ], [
+            'tu_ngay.after_or_equal' => 'Không thể gửi lại đơn nghỉ lùi ngày.',
+            'ly_do.min' => 'Lý do nghỉ cần có ít nhất 10 ký tự.',
+            'minh_chung.file' => 'Minh chứng phải là một tệp ảnh hoặc PDF hợp lệ.',
+            'minh_chung.mimes' => 'Minh chứng chỉ chấp nhận định dạng JPG, JPEG, PNG hoặc PDF.',
+            'minh_chung.max' => 'Tệp minh chứng không được vượt quá 5MB.',
+        ]);
+
+        $from = Carbon::parse($validated['tu_ngay']);
+        $to = Carbon::parse($validated['den_ngay']);
+        if ($from->diffInDays($to) > 60) {
+            return response()->json(['success' => false, 'message' => 'Một đơn nghỉ không được dài quá 60 ngày.'], 422);
+        }
+        if ($validated['thoi_luong'] !== 'full_day' && ! $from->isSameDay($to)) {
+            return response()->json(['success' => false, 'message' => 'Nghỉ theo buổi hoặc theo giờ chỉ áp dụng trong một ngày.'], 422);
+        }
+
+        if ($request->hasFile('minh_chung')) {
+            $validated['minh_chung'] = $request->file('minh_chung')->store('leave-evidence', 'public');
+        } else {
+            unset($validated['minh_chung']);
+        }
+
+        $donXinNghi->update($validated + [
+            'trang_thai' => 'pending',
+            'xu_ly_boi' => null,
+            'xu_ly_luc' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gửi thông tin bổ sung. Đơn đã được chuyển lại cho quản trị viên phê duyệt.',
+            'data' => $donXinNghi->fresh(),
+        ]);
+    }
+
     public function adminIndex(Request $request)
     {
         $this->ensureSuperAdmin($request);
         $query = DonXinNghi::with(['nhanVien:id,ten,email,anhdaidien,vaitro', 'nguoiXuLy:id,ten']);
         if ($request->query('status') === 'actionable') {
-            $query->whereIn('trang_thai', ['pending', 'needs_info']);
+            $query->where('trang_thai', 'pending');
         } elseif ($request->query('status') === 'history') {
             $query->whereIn('trang_thai', ['approved', 'rejected', 'cancelled']);
         } elseif ($request->filled('status')) {
@@ -125,7 +179,7 @@ class DonXinNghiController extends Controller
         if ((int) $donXinNghi->id_nhanvien === (int) $request->user()->id) {
             return response()->json(['success' => false, 'message' => 'Bạn không được tự duyệt đơn nghỉ của chính mình.'], 422);
         }
-        if (! in_array($donXinNghi->trang_thai, ['pending', 'needs_info'], true)) {
+        if ($donXinNghi->trang_thai !== 'pending') {
             return response()->json(['success' => false, 'message' => 'Đơn này đã được xử lý trước đó.'], 409);
         }
         if ($validated['action'] === 'approve' && ChamCong::where('id_nhanvien', $donXinNghi->id_nhanvien)

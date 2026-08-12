@@ -413,10 +413,10 @@ const menuConfig = [
       { path: '/admin/quan-ly-nguoi-dung', label: 'Người dùng', badge: 'ADMIN' },
       { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
       { path: '/admin/quan-ly-cham-cong', label: 'Quản lý chấm công', badge: 'ADMIN' },
-      { path: '/admin/xin-nghi-phep', label: 'Xin nghỉ phép' },
       { path: '/admin/quan-ly-don-xin-nghi', label: 'Quản lý đơn nghỉ', badge: 'ADMIN', superAdminOnly: true },
     ]
   },
+  { path: '/admin/xin-nghi-phep', label: 'Xin nghỉ phép', icon: ClipboardCheck },
   { path: '/admin/cham-cong-camera', label: 'Xác thực nhân viên', icon: Camera },
   { path: '/admin/nhat-ky-hoat-dong', label: 'Nhật ký hệ thống', icon: Activity },
 ]
