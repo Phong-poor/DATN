@@ -601,8 +601,9 @@ const normalCenterStat = computed(() => {
         : 'done'
     const found = normalStatusesData.value.find(t => t.status === statusToShow)
     const list = normalStatusesData.value
-    const total = list.reduce((s, d) => s + d.count, 0) || 0
-    const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
+    const total = list.reduce((s, d) => s + Number(d.count || 0), 0)
+    const count = Number(found?.count || 0)
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0
     return {
         pct,
         label: found?.label ?? 'Hoàn thành'
@@ -615,8 +616,9 @@ const refundCenterStat = computed(() => {
         : 'refunded'
     const found = refundStatusesData.value.find(t => t.status === statusToShow)
     const list = refundStatusesData.value
-    const total = list.reduce((s, d) => s + d.count, 0) || 0
-    const pct = total > 0 ? Math.round(((found?.count ?? 0) / total) * 100) : 0
+    const total = list.reduce((s, d) => s + Number(d.count || 0), 0)
+    const count = Number(found?.count || 0)
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0
     return {
         pct,
         label: found?.label ?? 'Đã hoàn tiền'

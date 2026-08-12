@@ -449,13 +449,18 @@ const muaNgay = async () => {
     dangThem.value = true
 
     try {
-        await api.post('/gio-hang/them', {
+        const res = await api.post('/gio-hang/them', {
             id_bienthe: variantForApi.id_bienthe,
             soluong: soLuongMua.value,
         })
 
         window.dispatchEvent(new Event('cart-updated'))
-        router.push('/thanhtoan')
+        const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
+        if (cartItemId) {
+            router.push(`/thanh-toan?buy_now=1&cart_item=${cartItemId}`)
+        } else {
+            router.push(`/thanh-toan?buy_now=1&variant=${variantForApi.id_bienthe}`)
+        }
     } catch (err) {
         const msg = err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại!'
         hienThiThongBao('error', msg)
@@ -1415,16 +1420,23 @@ const handleSelectVariantById = (idBienThe) => {
                     <div class="sticky-price-glow">
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
-                    <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
-                        <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
-                        </svg>
-                    </button>
-                    <button class="btn btn-premium-glow" @click="muaNgay" :disabled="dangThem || !selectedVariant || Number(selectedVariant.soluong) <= 0">
-                        Mua ngay
-                    </button>
+                    <template v-if="selectedVariant && Number(selectedVariant.soluong) > 0">
+                        <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                            <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
+                            </svg>
+                        </button>
+                        <button class="btn btn-premium-glow" @click="muaNgay" :disabled="dangThem">
+                            Mua ngay
+                        </button>
+                    </template>
+                    <template v-else>
+                        <button class="btn btn-out-of-stock-disabled" disabled style="background: #94a3b8; color: #ffffff; cursor: not-allowed; opacity: 0.8; padding: 10px 20px; border-radius: 9999px; font-weight: 700; border: none;">
+                            Hết hàng
+                        </button>
+                    </template>
                 </div>
             </div>
         </div>

@@ -243,7 +243,10 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $data = $user->toArray();
+        // Tự động nhận 1 lượt quay miễn phí hàng ngày nếu hôm nay chưa nhận
+        \App\Http\Controllers\VongQuayController::autoGrantDailyTicketIfNeeded($user);
+
+        $data = $user->fresh()->toArray();
         $data['is_google_account'] = !empty($user->id_google);
 
         return response()->json($data);
