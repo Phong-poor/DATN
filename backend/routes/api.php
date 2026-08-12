@@ -211,6 +211,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cham-cong/leaderboard', [ChamCongController::class, 'getLeaderboard']);
     Route::get('/cham-cong/don-xin-nghi', [DonXinNghiController::class, 'index']);
     Route::post('/cham-cong/don-xin-nghi', [DonXinNghiController::class, 'store']);
+    Route::post('/cham-cong/don-xin-nghi/{donXinNghi}/bo-sung', [DonXinNghiController::class, 'resubmit']);
     Route::patch('/cham-cong/don-xin-nghi/{donXinNghi}/huy', [DonXinNghiController::class, 'cancel']);
 
     // ===== AFFILIATE =====

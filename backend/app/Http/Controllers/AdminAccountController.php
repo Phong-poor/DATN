@@ -111,12 +111,12 @@ class AdminAccountController extends Controller
                 ->get()
                 ->map(function ($leave) {
                 return [
-                    'id' => 'leave-pending-'.$leave->id,
+                    'id' => 'leave-pending-'.$leave->id.'-'.optional($leave->updated_at)->timestamp,
                     'type' => 'leave_request',
                     'title' => 'Đơn xin nghỉ mới #'.$leave->id.' - '.($leave->nhanVien?->ten ?? 'Nhân viên'),
                     'description' => 'Thời gian: '.$leave->tu_ngay->format('d/m/Y').' - '.$leave->den_ngay->format('d/m/Y'),
                     'actor' => $leave->nhanVien?->ten ?? 'Nhân viên',
-                    'at' => optional($leave->created_at)->toISOString(),
+                    'at' => optional($leave->updated_at)->toISOString(),
                     'path' => '/admin/quan-ly-don-xin-nghi',
                     ];
                 });
