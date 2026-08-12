@@ -1297,7 +1297,7 @@ async function exportExcel() {
                                     <div class="item-info">
                                         <p class="item-name">
                                             {{ getOrderItemName(item) }}
-                                            <span v-if="item.is_refund == 1"
+                                            <span v-if="item.is_refund == 1 || item.hoantien == 1"
                                                 style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã
                                                 chọn hoàn trả</span>
                                         </p>

@@ -15,6 +15,7 @@ import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchA
 // â”€â”€ Active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const route = useRoute()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
+const handledRefundOrderId = ref(null)
 
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
@@ -400,7 +401,7 @@ const fetchOrders = async () => {
             return {
               id_bienthe: item.id_bienthe,
               is_reviewed: item.is_reviewed,
-              is_refund: item.is_refund,
+              is_refund: item.hoantien ?? item.is_refund ?? false,
               name: fullName,
               qty: item.soluong,
               price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
@@ -415,6 +416,7 @@ const fetchOrders = async () => {
         const freshSelected = orders.value.find(order => order.id_dathang === selectedOrder.value.id_dathang)
         if (freshSelected) selectedOrder.value = freshSelected
       }
+      openRequestedRefundForm()
     }
   } catch (error) {
     console.error('Lỗi tải đơn hàng:', error)
@@ -707,10 +709,37 @@ const isVideoFile = (file) => {
 const isRefundable = (order) => {
   if (order.trangthai !== 'done') return false;
   const updated = new Date(order.updated_at).getTime();
+  if (!Number.isFinite(updated)) return false;
   const now = new Date().getTime();
-  const diffHours = (now - updated) / (1000 * 60 * 60);
-  return diffHours <= 42;
+  const diffDays = (now - updated) / (1000 * 60 * 60 * 24);
+  return diffDays <= 30;
 }
+
+const openRequestedRefundForm = () => {
+  const requestedId = Number(route.query.refund_order)
+  if (!Number.isInteger(requestedId) || requestedId <= 0 || handledRefundOrderId.value === requestedId) return
+
+  handledRefundOrderId.value = requestedId
+  activeTab.value = 'orders'
+  const order = orders.value.find(item => Number(item.id_dathang) === requestedId)
+
+  if (!order) {
+    showToast(`Không tìm thấy đơn hàng #${requestedId} trong tài khoản của bạn.`)
+    return
+  }
+
+  if (!isRefundable(order)) {
+    showToast(`Đơn hàng #${requestedId} hiện không đủ điều kiện hoàn trả.`)
+    return
+  }
+
+  openRefundModal(order)
+}
+
+watch(() => route.query.refund_order, () => {
+  handledRefundOrderId.value = null
+  if (orders.value.length) openRequestedRefundForm()
+})
 
 const handleReorder = async (order) => {
   const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại đơn hàng này?')

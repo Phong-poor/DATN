@@ -141,7 +141,13 @@
               </svg>
             </button>
             <div class="topbar-popover" ref="notifyMenuRef">
-              <button class="topbar-icon-button" type="button" aria-label="Thông báo" @click="toggleNotifyMenu">
+              <button
+                class="topbar-icon-button"
+                :class="{ 'notification-alerting': unreadCount > 0 }"
+                type="button"
+                aria-label="Thông báo"
+                @click="toggleNotifyMenu"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
                 <span class="icon-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
               </button>
@@ -228,7 +234,7 @@
 <script setup>
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { clearAuth, getUser } from '@/services/auth'
+import { clearAuth, getUser, normalizeAuthUser, updateUser } from '@/services/auth'
 import ChamCongNhanhModal from '@/components/Admin/Layout/ChamCongNhanhModal.vue'
 import { storageUrl } from '@/services/urls'
 import api from '@/services/api'
@@ -288,6 +294,10 @@ const sidebarCollapsed = ref(localStorage.getItem('admin-sidebar-collapsed') ===
 let adminIntroTimer = null
 const adminClock = ref(new Date())
 let adminClockTimer = null
+let notificationRefreshTimer = null
+let notificationAudioContext = null
+let notificationAudioUnlocked = false
+let pendingNotificationSound = false
 const adminClockTime = computed(() =>
   adminClock.value.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 )
@@ -403,6 +413,8 @@ const menuConfig = [
       { path: '/admin/quan-ly-nguoi-dung', label: 'Người dùng', badge: 'ADMIN' },
       { path: '/admin/quan-ly-vai-tro', label: 'Vai trò & quyền', badge: 'ADMIN' },
       { path: '/admin/quan-ly-cham-cong', label: 'Quản lý chấm công', badge: 'ADMIN' },
+      { path: '/admin/xin-nghi-phep', label: 'Xin nghỉ phép' },
+      { path: '/admin/quan-ly-don-xin-nghi', label: 'Quản lý đơn nghỉ', badge: 'ADMIN', superAdminOnly: true },
     ]
   },
   { path: '/admin/cham-cong-camera', label: 'Xác thực nhân viên', icon: Camera },
@@ -412,6 +424,7 @@ const menuConfig = [
 const filteredMenuConfig = computed(() => {
   const userPerms = user.value?.cac_quyen || []
   const isAdmin = Boolean(user.value?.vaitro && user.value.vaitro !== 'user')
+  const isSuperAdmin = String(user.value?.vaitro || '').toLowerCase() === 'admin'
 
   const hasPerm = (perm) => isAdmin || userPerms.includes(perm)
 
@@ -446,6 +459,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/nhat-ky-hoat-dong': 'nhat_ky_quan_ly',
     '/admin/xu': 'xu_quan_ly',
     '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
+    '/admin/quan-ly-don-xin-nghi': 'quan_ly_cham_cong',
   }
 
   return menuConfig.map(item => {
@@ -457,6 +471,7 @@ const filteredMenuConfig = computed(() => {
     }
 
     const filteredChildren = item.children.filter(child => {
+      if (child.superAdminOnly && !isSuperAdmin) return false
       const required = pathPermissionMap[child.path]
       if (required && !hasPerm(required)) return false
       return true
@@ -529,6 +544,48 @@ watch(
 
 const notifications = ref([])
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
+const notificationStorageKey = computed(() => `admin-topbar-notifications-${user.value?.id || 'guest'}`)
+
+async function unlockNotificationAudio() {
+  if (notificationAudioUnlocked) return false
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextClass) return
+    notificationAudioContext ||= new AudioContextClass()
+    if (notificationAudioContext.state === 'suspended') await notificationAudioContext.resume()
+    notificationAudioUnlocked = notificationAudioContext.state === 'running'
+    if (notificationAudioUnlocked && pendingNotificationSound) {
+      pendingNotificationSound = false
+      playNotificationChime()
+      return true
+    }
+  } catch (_) {
+    // Thiết bị/trình duyệt không hỗ trợ âm thanh thì chuông hình ảnh vẫn hoạt động.
+  }
+  return false
+}
+
+function playNotificationChime() {
+  if (!notificationAudioUnlocked || !notificationAudioContext) return
+  try {
+    const context = notificationAudioContext
+    const startAt = context.currentTime
+    const gain = context.createGain()
+    gain.gain.setValueAtTime(0.0001, startAt)
+    gain.gain.exponentialRampToValueAtTime(0.12, startAt + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.72)
+    gain.connect(context.destination)
+
+    ;[0, 0.18].forEach((delay, index) => {
+      const oscillator = context.createOscillator()
+      oscillator.type = 'triangle'
+      oscillator.frequency.setValueAtTime(index === 0 ? 783.99 : 1046.5, startAt + delay)
+      oscillator.connect(gain)
+      oscillator.start(startAt + delay)
+      oscillator.stop(startAt + delay + 0.42)
+    })
+  } catch (_) {}
+}
 
 const adminVars = computed(() => {
   const shadowMap = {
@@ -588,7 +645,9 @@ function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value
 }
 
-function toggleNotifyMenu() {
+async function toggleNotifyMenu() {
+  const playedPendingSound = await unlockNotificationAudio()
+  if (unreadCount.value > 0 && !playedPendingSound) playNotificationChime()
   const next = !notifyMenuOpen.value
   closeTopMenus()
   notifyMenuOpen.value = next
@@ -607,7 +666,7 @@ function openNotification(item) {
 }
 
 function persistNotifications() {
-  const saved = localStorage.getItem('admin-topbar-notifications')
+  const saved = localStorage.getItem(notificationStorageKey.value)
   let savedList = []
   if (saved) {
     try {
@@ -631,11 +690,11 @@ function persistNotifications() {
     savedList.splice(0, savedList.length - 100)
   }
 
-  localStorage.setItem('admin-topbar-notifications', JSON.stringify(savedList))
+  localStorage.setItem(notificationStorageKey.value, JSON.stringify(savedList))
 }
 
 function hydrateNotifications() {
-  const saved = localStorage.getItem('admin-topbar-notifications')
+  const saved = localStorage.getItem(notificationStorageKey.value)
   if (!saved) return
   try {
     const parsed = JSON.parse(saved)
@@ -652,10 +711,13 @@ async function loadNotifications() {
   try {
     const res = await api.get('/admin/account/activity-log')
     const rows = Array.isArray(res.data?.data) ? res.data.data.slice(0, 6) : []
-    if (!rows.length) return
+    if (!rows.length) {
+      notifications.value = []
+      return
+    }
 
     // Get existing notifications from localStorage to preserve read status
-    const saved = localStorage.getItem('admin-topbar-notifications')
+    const saved = localStorage.getItem(notificationStorageKey.value)
     let savedList = []
     if (saved) {
       try {
@@ -668,21 +730,26 @@ async function loadNotifications() {
       // Generate unique, stable ID based on title and timestamp so it doesn't shift and reset
       const cleanTitle = (row.title || '').replace(/\s+/g, '').replace(/#/g, '')
       const cleanAt = (row.at || '').replace(/[^a-zA-Z0-9]/g, '')
-      const id = `log-${cleanTitle}-${cleanAt || idx}`
+      const id = row.id ? `log-${row.id}` : `log-${cleanTitle}-${cleanAt || idx}`
       const existing = savedList.find(n => n.id === id)
       return {
         id: id,
         title: row.title || row.description || 'Hoạt động mới',
         time: row.at ? new Date(row.at).toLocaleString('vi-VN') : 'Vừa xong',
         read: existing ? existing.read : false,
-        path: '/admin/nhat-ky-hoat-dong',
+        path: row.path || (row.type === 'leave_request' ? '/admin/quan-ly-don-xin-nghi' : row.type === 'leave_result' ? '/admin/xin-nghi-phep' : '/admin/nhat-ky-hoat-dong'),
       }
     })
+    const hasNewNotification = mapped.some((item) => !savedList.some((savedItem) => savedItem.id === item.id))
     notifications.value = mapped
     persistNotifications()
+    if (hasNewNotification) {
+      if (notificationAudioUnlocked) playNotificationChime()
+      else pendingNotificationSound = true
+    }
   } catch (e) {
     if (!notifications.value.length) {
-      const saved = localStorage.getItem('admin-topbar-notifications')
+      const saved = localStorage.getItem(notificationStorageKey.value)
       let savedList = []
       if (saved) {
         try {
@@ -690,10 +757,12 @@ async function loadNotifications() {
           if (Array.isArray(parsed)) savedList = parsed
         } catch (_) {}
       }
-      notifications.value = [
-        { id: 'seed-1', title: 'Có đơn hàng mới cần xử lý', time: 'Vừa xong', read: savedList.find(n => n.id === 'seed-1')?.read || false, path: '/admin/quan-ly-don-hang' },
-        { id: 'seed-2', title: 'Có liên hệ mới từ khách hàng', time: '5 phút trước', read: savedList.find(n => n.id === 'seed-2')?.read || false, path: '/admin/quan-ly-lien-he' },
-      ]
+      notifications.value = String(user.value?.vaitro || '').toLowerCase() === 'admin'
+        ? [
+            { id: 'seed-1', title: 'Có đơn hàng mới cần xử lý', time: 'Vừa xong', read: savedList.find(n => n.id === 'seed-1')?.read || false, path: '/admin/quan-ly-don-hang' },
+            { id: 'seed-2', title: 'Có liên hệ mới từ khách hàng', time: '5 phút trước', read: savedList.find(n => n.id === 'seed-2')?.read || false, path: '/admin/quan-ly-lien-he' },
+          ]
+        : []
     }
   }
 }
@@ -747,8 +816,8 @@ async function fetchLatestUserProfile() {
   try {
     const res = await api.get('/admin/account/profile')
     if (res.data?.success && res.data?.data) {
-      const latestUser = res.data.data
-      localStorage.setItem('user', JSON.stringify(latestUser))
+      const latestUser = normalizeAuthUser(res.data.data)
+      updateUser(latestUser)
       user.value = latestUser
     }
   } catch (err) {
@@ -779,6 +848,8 @@ onMounted(async () => {
   }
 
   document.addEventListener('mousedown', handleClickOutside)
+  document.addEventListener('pointerdown', unlockNotificationAudio, { once: true })
+  document.addEventListener('keydown', unlockNotificationAudio, { once: true })
   window.addEventListener('user-updated', refreshUser)
   window.addEventListener('admin-settings-updated', handleSettingsUpdated)
   window.addEventListener('offline-sync-success', handleSyncSuccess)
@@ -789,12 +860,20 @@ onMounted(async () => {
     loadNotifications(),
     fetchLatestUserProfile(),
   ])
+  notificationRefreshTimer = window.setInterval(loadNotifications, 30000)
 })
 
 onUnmounted(() => {
   delete document.documentElement.dataset.adminTheme
   document.documentElement.style.colorScheme = ''
   if (adminClockTimer) window.clearInterval(adminClockTimer)
+  if (notificationRefreshTimer) window.clearInterval(notificationRefreshTimer)
+  document.removeEventListener('pointerdown', unlockNotificationAudio)
+  document.removeEventListener('keydown', unlockNotificationAudio)
+  if (notificationAudioContext) {
+    notificationAudioContext.close().catch(() => {})
+    notificationAudioContext = null
+  }
   if (adminIntroTimer) {
     clearTimeout(adminIntroTimer)
     adminIntroTimer = null
@@ -1453,6 +1532,32 @@ a { text-decoration: none; }
   45% { transform: scale(1.28); }
   100% { transform: scale(1.08); }
 }
+
+@keyframes adminBellRing {
+  0%, 56%, 100% { transform: rotate(0deg); }
+  62% { transform: rotate(13deg); }
+  68% { transform: rotate(-11deg); }
+  74% { transform: rotate(8deg); }
+  80% { transform: rotate(-6deg); }
+  86% { transform: rotate(3deg); }
+  92% { transform: rotate(0deg); }
+}
+
+.topbar-icon-button.notification-alerting > svg {
+  transform-origin: 50% 12%;
+  animation: adminBellRing 1.8s ease-in-out infinite;
+}
+
+.topbar-icon-button.notification-alerting:hover > svg,
+.topbar-icon-button.notification-alerting:focus-visible > svg {
+  animation-duration: 1.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar-icon-button.notification-alerting > svg {
+    animation: none;
+  }
+}
 .admin-layout.dark .main, .admin-layout.dark .admin-topbar { background: #0f172a; border-color: rgba(255,255,255,.05); }
 .admin-layout.dark .admin-topbar-title h2 { color: #fff; }
 .admin-layout.dark .admin-topbar-title p, .admin-layout.dark .user-role { color: #94a3b8; }
@@ -1460,6 +1565,38 @@ a { text-decoration: none; }
 .admin-layout.dark .topbar-home-link { background: #0f172a; border-color: rgba(255,255,255,.08); color: #38bdf8; }
 .admin-layout.dark .dropdown-item, .admin-layout.dark .notify-item { background: #1e293b; border-color: rgba(255,255,255,.08); color: #e2e8f0; }
 .admin-layout.dark .notify-item.unread, .admin-layout.dark .dropdown-item.active, .admin-layout.dark .dropdown-item:hover { background: rgba(37, 99, 235, 0.15); }
+.admin-layout.theme-dark .notify-menu {
+  background: #171a1f !important;
+  border-color: #454c56 !important;
+}
+.admin-layout.theme-dark .notify-head {
+  border-bottom-color: #59616c !important;
+}
+.admin-layout.theme-dark .notify-head b {
+  color: #f8fafc !important;
+}
+.admin-layout.theme-dark .notify-mark-read {
+  color: #60a5fa !important;
+}
+.admin-layout.theme-dark .notify-empty {
+  color: #cbd5e1 !important;
+}
+.admin-layout.theme-dark .notify-item {
+  background: #111315 !important;
+  border-color: #454c56 !important;
+}
+.admin-layout.theme-dark .notify-item:hover,
+.admin-layout.theme-dark .notify-item.unread {
+  background: #1b2b45 !important;
+  border-color: #3b82f6 !important;
+}
+.admin-layout.theme-dark .notify-title {
+  color: #f8fafc !important;
+  font-weight: 750 !important;
+}
+.admin-layout.theme-dark .notify-time {
+  color: #b8c2d1 !important;
+}
 
 .admin-layout.intro-active {
   animation: adminIntroBase 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;

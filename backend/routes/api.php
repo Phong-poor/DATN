@@ -13,6 +13,7 @@ use App\Http\Controllers\BienTheController;
 use App\Http\Controllers\BienTheHinhAnhController;
 use App\Http\Controllers\BirthdayCodeController;
 use App\Http\Controllers\ChamCongController;
+use App\Http\Controllers\DonXinNghiController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ColorController;
@@ -164,6 +165,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{id}/payment-notice', [DatHangController::class, 'notifyManualPayment']);
     Route::get('/orders', [DatHangController::class, 'orders']);
     Route::get('/orders/{id}', [DatHangController::class, 'show']);
+    Route::post('/chat/refund-assist', [ChatbotController::class, 'refundAssist']);
     Route::get('/orders/{id}/momo-status', [MomoController::class, 'momoQuery']);
     Route::get('/orders/{id}/sepay-status', [SepayController::class, 'status']);
     Route::post('/orders/{id}/cancel', [DatHangController::class, 'cancelOrder']);
@@ -207,6 +209,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cham-cong/check', [ChamCongController::class, 'checkInCheckOut']);
     Route::get('/cham-cong/my-history', [ChamCongController::class, 'getLichSuCaNhan']);
     Route::get('/cham-cong/leaderboard', [ChamCongController::class, 'getLeaderboard']);
+    Route::get('/cham-cong/don-xin-nghi', [DonXinNghiController::class, 'index']);
+    Route::post('/cham-cong/don-xin-nghi', [DonXinNghiController::class, 'store']);
+    Route::patch('/cham-cong/don-xin-nghi/{donXinNghi}/huy', [DonXinNghiController::class, 'cancel']);
 
     // ===== AFFILIATE =====
     Route::get('/affiliate/me', [AffiliateController::class, 'me']);
@@ -469,6 +474,8 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/cham-cong/nhan-vien/{id}/khuon-mat', [ChamCongController::class, 'adminXoaKhuonMat']);
         Route::post('/cham-cong/quick-check', [ChamCongController::class, 'adminQuickCheck']);
         Route::put('/cham-cong/ban-ghi/{id}/bo-sung-gio-ra', [ChamCongController::class, 'adminBoSungGioRa']);
+        Route::get('/cham-cong/don-xin-nghi', [DonXinNghiController::class, 'adminIndex']);
+        Route::patch('/cham-cong/don-xin-nghi/{donXinNghi}/xu-ly', [DonXinNghiController::class, 'review']);
 
         // ===== ADMIN LUCKY WHEEL =====
         Route::get('/vong-quay', [VongQuayController::class, 'adminIndex']);

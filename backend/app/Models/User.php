@@ -274,4 +274,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(LichLamNhanVien::class, 'id_nhanvien');
     }
+
+    public function donXinNghis()
+    {
+        return $this->hasMany(DonXinNghi::class, 'id_nhanvien');
+    }
 }

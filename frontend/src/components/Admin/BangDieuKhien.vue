@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
     AlertTriangle,
     BarChart3,
@@ -15,9 +16,16 @@ import {
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import echo from '@/services/echo'
+import { getUser } from '@/services/auth'
 
 // State
 const period = ref('all')          // all | week | month | year
+const router = useRouter()
+const currentUser = getUser() || {}
+const isSuperAdmin = String(currentUser.vaitro || '').toLowerCase() === 'admin'
+const pendingLeaveCount = ref(0)
+const newestPendingLeave = ref(null)
+let pendingLeaveTimer = null
 const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v4_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -147,6 +155,22 @@ async function fetchDashboard() {
         loading.value = false
     }
 }
+
+async function fetchPendingLeaveAlert() {
+    if (!isSuperAdmin) return
+    try {
+        const response = await api.get('/admin/cham-cong/don-xin-nghi', {
+            params: { status: 'pending' },
+            skipGlobalLoader: true,
+        })
+        const pagination = response.data?.data || {}
+        pendingLeaveCount.value = Number(pagination.total || 0)
+        newestPendingLeave.value = pagination.data?.[0] || null
+    } catch (_) {
+        pendingLeaveCount.value = 0
+        newestPendingLeave.value = null
+    }
+}
 function getColor(status) {
     return {
         pending: '#eab308',
@@ -170,6 +194,8 @@ const closePeriodDropdown = (e) => {
 
 onMounted(() => {
     fetchDashboard()
+    fetchPendingLeaveAlert()
+    if (isSuperAdmin) pendingLeaveTimer = window.setInterval(fetchPendingLeaveAlert, 30000)
     document.addEventListener('click', closePeriodDropdown)
 
     echo.channel('admin-orders')
@@ -199,6 +225,7 @@ onMounted(() => {
         })
 })
 onUnmounted(() => {
+    if (pendingLeaveTimer) window.clearInterval(pendingLeaveTimer)
     echo.leaveChannel('admin-orders')
     document.removeEventListener('click', closePeriodDropdown)
 })
@@ -1151,6 +1178,26 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
             <button type="button" @click="fetchDashboard">Tải lại</button>
         </div>
 
+        <section v-if="isSuperAdmin && pendingLeaveCount > 0" class="leave-priority-alert" role="alert">
+            <div class="leave-priority-icon"><AlertTriangle aria-hidden="true" /></div>
+            <div class="leave-priority-content">
+                <div class="leave-priority-title">
+                    <strong>Có {{ pendingLeaveCount }} đơn xin nghỉ đang chờ duyệt</strong>
+                    <span>Ưu tiên xử lý</span>
+                </div>
+                <p v-if="newestPendingLeave">
+                    Đơn mới nhất từ <b>{{ newestPendingLeave.nhan_vien?.ten || 'nhân viên' }}</b>,
+                    nghỉ từ {{ new Date(`${String(newestPendingLeave.tu_ngay).slice(0, 10)}T00:00:00`).toLocaleDateString('vi-VN') }}
+                    đến {{ new Date(`${String(newestPendingLeave.den_ngay).slice(0, 10)}T00:00:00`).toLocaleDateString('vi-VN') }}.
+                </p>
+                <p v-else>Nhân viên đang chờ phản hồi để chủ động sắp xếp và bàn giao công việc.</p>
+            </div>
+            <button type="button" @click="router.push('/admin/quan-ly-don-xin-nghi')">
+                Xử lý ngay
+                <span aria-hidden="true">→</span>
+            </button>
+        </section>
+
         <template v-if="data">
 
             <div class="dashboard-controls">
@@ -2062,6 +2109,89 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .dashboard-error button:hover {
     background: #b91c1c;
+}
+
+.leave-priority-alert {
+    margin: 0 0 18px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid #f59e0b;
+    border-radius: 16px;
+    background: linear-gradient(110deg, #fffbeb 0%, #fff7d6 100%);
+    box-shadow: 0 10px 24px rgba(180, 83, 9, .10);
+}
+.leave-priority-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    background: #f59e0b;
+    color: #fff;
+}
+.leave-priority-icon svg { width: 23px; height: 23px; }
+.leave-priority-content { min-width: 0; }
+.leave-priority-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.leave-priority-title strong { color: #7c2d12; font-size: 16px; }
+.leave-priority-title span {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.leave-priority-content p { margin: 5px 0 0; color: #92400e; font-size: 13px; }
+.leave-priority-alert > button {
+    min-height: 40px;
+    padding: 9px 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 10px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform .16s ease, background .16s ease;
+}
+.leave-priority-alert > button:hover { background: #b91c1c; transform: translateY(-1px); }
+:global(.admin-layout.theme-dark) .leave-priority-alert {
+    border-color: #f59e0b !important;
+    background: linear-gradient(110deg, #2a1c08 0%, #17130c 100%) !important;
+    box-shadow: 0 12px 30px rgba(245, 158, 11, .14) !important;
+}
+:global(.admin-layout.theme-dark) .leave-priority-icon {
+    background: #f59e0b !important;
+    color: #111827 !important;
+}
+:global(.admin-layout.theme-dark) .leave-priority-title strong {
+    color: #fef3c7 !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .25);
+}
+:global(.admin-layout.theme-dark) .leave-priority-title span {
+    background: #7f1d1d !important;
+    color: #fecaca !important;
+    border: 1px solid #dc2626;
+}
+:global(.admin-layout.theme-dark) .leave-priority-content p { color: #e5e7eb !important; }
+:global(.admin-layout.theme-dark) .leave-priority-content p b { color: #fbbf24 !important; }
+:global(.admin-layout.theme-dark) .leave-priority-alert > button {
+    background: #dc2626 !important;
+    color: #fff !important;
+}
+:global(.admin-layout.theme-dark) .leave-priority-alert > button:hover { background: #ef4444 !important; }
+@media (max-width: 720px) {
+    .leave-priority-alert { grid-template-columns: auto 1fr; padding: 14px; }
+    .leave-priority-alert > button { grid-column: 1 / -1; justify-content: center; width: 100%; }
 }
 
 /* PERIOD BAR */
@@ -4088,6 +4218,40 @@ tbody td {
 .fade-slide-leave-to {
     opacity: 0;
     transform: translateY(-8px);
+}
+</style>
+
+<style>
+html[data-admin-theme='dark'] .leave-priority-alert,
+.admin-layout.theme-dark .main .leave-priority-alert {
+    background: #211707 !important;
+    border: 1px solid #f59e0b !important;
+    color: #ffffff !important;
+}
+html[data-admin-theme='dark'] .leave-priority-alert .leave-priority-title strong,
+.admin-layout.theme-dark .main .leave-priority-alert .leave-priority-title strong {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+}
+html[data-admin-theme='dark'] .leave-priority-alert .leave-priority-content p,
+.admin-layout.theme-dark .main .leave-priority-alert .leave-priority-content p {
+    color: #f3f4f6 !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+}
+html[data-admin-theme='dark'] .leave-priority-alert .leave-priority-content p b,
+.admin-layout.theme-dark .main .leave-priority-alert .leave-priority-content p b {
+    color: #fbbf24 !important;
+    font-weight: 900 !important;
+}
+html[data-admin-theme='dark'] .leave-priority-alert .leave-priority-title span,
+.admin-layout.theme-dark .main .leave-priority-alert .leave-priority-title span {
+    background: #991b1b !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
 }
 </style>
 

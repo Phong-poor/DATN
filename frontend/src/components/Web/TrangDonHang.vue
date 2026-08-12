@@ -227,9 +227,10 @@ const closeRefundModal = async () => {
 const isRefundable = (order) => {
     if (order.trangthai !== 'done') return false;
     const updated = new Date(order.updated_at).getTime();
+    if (!Number.isFinite(updated)) return false;
     const now = new Date().getTime();
-    const diffHours = (now - updated) / (1000 * 60 * 60);
-    return diffHours <= 42;
+    const diffDays = (now - updated) / (1000 * 60 * 60 * 24);
+    return diffDays <= 30;
 }
 
 const handleReorder = async (order) => {
@@ -813,7 +814,7 @@ onUnmounted(() => {
                             <div class="order-item-info">
                                 <p class="order-item-name">
                                     {{ getFullProductName(item) }}
-                                    <span v-if="item.is_refund == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
+                                    <span v-if="item.hoantien == 1" style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã hoàn trả</span>
                                 </p>
                                 <p class="order-item-variant">{{ item.bien_the?.ten_bienthe }}</p>
                                 <p class="order-item-qty">x{{ item.soluong }}</p>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AdminActivityLog;
 use App\Models\DatHang;
+use App\Models\DonXinNghi;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -97,8 +98,59 @@ class AdminAccountController extends Controller
         ]);
     }
 
-    public function activityLog()
+    public function activityLog(Request $request)
     {
+        $leaveRequests = collect();
+        $currentUser = $request->user();
+        $isSuperAdmin = strtolower((string) $currentUser?->vaitro) === 'admin';
+        if ($isSuperAdmin) {
+            $leaveRequests = DonXinNghi::with('nhanVien:id,ten')
+                ->where('trang_thai', 'pending')
+                ->latest('created_at')
+                ->limit(30)
+                ->get()
+                ->map(function ($leave) {
+                return [
+                    'id' => 'leave-pending-'.$leave->id,
+                    'type' => 'leave_request',
+                    'title' => 'Đơn xin nghỉ mới #'.$leave->id.' - '.($leave->nhanVien?->ten ?? 'Nhân viên'),
+                    'description' => 'Thời gian: '.$leave->tu_ngay->format('d/m/Y').' - '.$leave->den_ngay->format('d/m/Y'),
+                    'actor' => $leave->nhanVien?->ten ?? 'Nhân viên',
+                    'at' => optional($leave->created_at)->toISOString(),
+                    'path' => '/admin/quan-ly-don-xin-nghi',
+                    ];
+                });
+        } else {
+            $leaveRequests = DonXinNghi::query()
+                ->where('id_nhanvien', $currentUser->id)
+                ->whereIn('trang_thai', ['approved', 'rejected', 'needs_info'])
+                ->whereNotNull('xu_ly_luc')
+                ->latest('xu_ly_luc')
+                ->limit(20)
+                ->get()
+                ->map(function ($leave) {
+                    $statusLabels = [
+                        'approved' => 'Đơn xin nghỉ đã được duyệt',
+                        'rejected' => 'Đơn xin nghỉ đã bị từ chối',
+                        'needs_info' => 'Đơn xin nghỉ cần bổ sung thông tin',
+                    ];
+                    $feedback = trim((string) $leave->phan_hoi_quan_ly);
+                    return [
+                        'id' => 'leave-result-'.$leave->id.'-'.$leave->trang_thai.'-'.optional($leave->xu_ly_luc)->timestamp,
+                        'type' => 'leave_result',
+                        'title' => ($statusLabels[$leave->trang_thai] ?? 'Đơn xin nghỉ đã được xử lý').' #'.$leave->id,
+                        'description' => $feedback !== '' ? 'Phản hồi: '.$feedback : 'Bấm để xem chi tiết đơn.',
+                        'actor' => 'Quản trị viên',
+                        'at' => optional($leave->xu_ly_luc)->toISOString(),
+                        'path' => '/admin/xin-nghi-phep',
+                    ];
+                });
+        }
+
+        if (! $isSuperAdmin) {
+            return response()->json(['success' => true, 'data' => $leaveRequests->values()]);
+        }
+
         $orders = DatHang::with('user:id,ten,email')
             ->latest('updated_at')
             ->limit(30)
@@ -126,9 +178,15 @@ class AdminAccountController extends Controller
                 ];
             });
 
-        $logs = $orders
+        $generalLogs = $orders
             ->concat($users)
             ->sortByDesc('at')
+            ->take(40)
+            ->values();
+
+        // Đơn đang chờ duyệt là tác vụ ưu tiên, luôn đặt trước nhật ký thông thường.
+        $logs = $leaveRequests
+            ->concat($generalLogs)
             ->take(40)
             ->values();
 

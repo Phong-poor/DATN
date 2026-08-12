@@ -1284,7 +1284,7 @@ class DatHangController extends Controller
     public function refund(Request $request, $id)
     {
         $userId = Auth::id();
-        $order = DatHang::where('id_dathang', $id)
+        $order = DatHang::with('chi_tiets')->where('id_dathang', $id)
             ->where('id_khachhang', $userId)
             ->firstOrFail();
 
@@ -1293,6 +1293,13 @@ class DatHangController extends Controller
                 'success' => false,
                 'message' => 'Chỉ có thể yêu cầu hoàn trả khi đơn hàng đã hoàn thành.',
             ], 400);
+        }
+
+        if ($order->updated_at && $order->updated_at->lt(now()->subDays(30))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng đã quá thời hạn yêu cầu hoàn trả 30 ngày.',
+            ], 422);
         }
 
         // 1. Kiểm tra trạng thái upload tệp từ PHP server (bắt lỗi UPLOAD_ERR_*)
@@ -1337,6 +1344,7 @@ class DatHangController extends Controller
                 }
             ],
             'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer|distinct',
         ], [
             'proof.uploaded' => 'Tệp bằng chứng tải lên thất bại do giới hạn upload_max_filesize của PHP Hosting.',
             'proof.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
@@ -1350,6 +1358,16 @@ class DatHangController extends Controller
                 'success' => false,
                 'message' => $validator->errors()->first(),
                 'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $itemIds = collect($validated['item_ids'])->map(fn ($itemId) => (int) $itemId)->unique()->values();
+        $orderItemIds = $order->chi_tiets->pluck('id_bienthe')->map(fn ($itemId) => (int) $itemId)->unique();
+        if ($itemIds->diff($orderItemIds)->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Danh sách sản phẩm hoàn trả không hợp lệ hoặc không thuộc đơn hàng này.',
             ], 422);
         }
 
@@ -1378,7 +1396,7 @@ class DatHangController extends Controller
 
             $updateData = [
                 'trangthai' => 'refund_pending',
-                'lydo' => $request->lydo,
+                'lydo' => $validated['lydo'],
                 'minh_chung_hoan_tien' => $proofValue,
                 'du_lieu_thanh_toan' => $payData,
             ];
@@ -1397,7 +1415,7 @@ class DatHangController extends Controller
 
             // Cập nhật các sản phẩm được chọn hoàn trả
             DatHangChiTiet::where('id_dathang', $id)
-                ->whereIn('id_bienthe', $request->item_ids)
+                ->whereIn('id_bienthe', $itemIds->all())
                 ->update(['hoantien' => 1]);
 
             DB::commit();
@@ -1408,6 +1426,7 @@ class DatHangController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Gửi yêu cầu hoàn trả thành công!',
+                'order' => $order,
             ]);
 
         } catch (\Exception $e) {
