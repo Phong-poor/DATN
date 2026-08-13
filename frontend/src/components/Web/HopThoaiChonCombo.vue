@@ -149,8 +149,8 @@ const handleAddToCart = async () => {
         
         <!-- Header -->
         <div class="modal-hdr">
-          <span class="badge-promo">{{ triggerVariant ? '🎁 QUÀ TẶNG MIỄN PHÍ' : '🔥 COMBO ƯU ĐÃI' }}</span>
-          <h2>{{ triggerVariant ? 'Chọn Phụ Kiện Quà Tặng VIP' : 'Cấu hình Combo Phụ Kiện' }}</h2>
+          <span class="badge-promo">{{ (triggerVariant || Number(combo.giakhuyenmai || 0) === 0) ? '🎁 QUÀ TẶNG MIỄN PHÍ' : '🔥 COMBO ƯU ĐÃI' }}</span>
+          <h2>{{ (triggerVariant || Number(combo.giakhuyenmai || 0) === 0) ? 'Chọn Phụ Kiện Quà Tặng VIP' : 'Cấu hình Combo Phụ Kiện' }}</h2>
           <p class="combo-title">{{ combo.ten_combo }}</p>
         </div>
 
@@ -213,7 +213,8 @@ const handleAddToCart = async () => {
               </div>
               <div class="sum-row highlight">
                 <span>Giá Combo ưu đãi:</span>
-                <span class="combo-price">{{ totalComboPriceAllQty.toLocaleString('vi-VN') }}đ</span>
+                <span class="combo-price" v-if="Number(combo.giakhuyenmai || 0) > 0">{{ totalComboPriceAllQty.toLocaleString('vi-VN') }}đ</span>
+                <span class="combo-price free-text" v-else style="color: #10b981; font-weight: 800;">MIỄN PHÍ (0đ)</span>
               </div>
               <div class="sum-row saving">
                 <span>Tiết kiệm được:</span>
@@ -232,7 +233,7 @@ const handleAddToCart = async () => {
             </div>
 
             <button 
-              :class="['add-to-cart-btn', triggerVariant ? 'btn-gift-mode' : '']"
+              :class="['add-to-cart-btn', (triggerVariant || Number(combo.giakhuyenmai || 0) === 0) ? 'btn-gift-mode' : '']"
               :disabled="isAdding || !isSelectionComplete"
               @click="handleAddToCart"
             >
@@ -240,7 +241,7 @@ const handleAddToCart = async () => {
                 <span class="btn-spinner"></span>
                 Đang xử lý...
               </template>
-              <template v-else-if="triggerVariant">
+              <template v-else-if="triggerVariant || Number(combo.giakhuyenmai || 0) === 0">
                 <span style="font-size:18px">🎁</span>
                 Nhận Quà VIP Ngay
               </template>
@@ -250,7 +251,7 @@ const handleAddToCart = async () => {
                   <circle cx="20" cy="21" r="1" />
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                 </svg>
-                Thêm vào Giỏ Hàng
+                Thêm Combo Vào Giỏ Hàng
               </template>
             </button>
           </div>
@@ -268,23 +269,25 @@ const handleAddToCart = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  z-index: 9999;
-  padding: 20px;
+  z-index: 999999 !important;
+  padding: 100px 20px 20px 20px;
+  overflow-y: auto;
 }
 
 .combo-modal {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
   border-radius: 24px;
   width: 100%;
   max-width: 960px;
-  max-height: 90vh;
+  max-height: calc(100vh - 130px);
+  margin: 0 auto;
   overflow-y: auto;
   position: relative;
   padding: 32px;
@@ -574,9 +577,12 @@ const handleAddToCart = async () => {
   border: none;
   border-left: 1px solid #cbd5e1;
   border-right: 1px solid #cbd5e1;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  opacity: 1 !important;
+  background: #ffffff !important;
   outline: none;
 }
 

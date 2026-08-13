@@ -1850,11 +1850,23 @@ const handleSelectVariantById = (idBienThe) => {
                                 </div>
                                 <div class="offer-right">
                                     <div class="price-label-free">
-                                        <span class="old-price" v-if="offer.giakhuyenmai > 0">Trị giá: {{ formatPrice(offer.giakhuyenmai) }}</span>
-                                        <span class="free-badge-text">MIỄN PHÍ 0đ</span>
+                                        <template v-if="Number(offer.giakhuyenmai || offer.gia_combo || 0) > 0">
+                                            <span class="old-price" v-if="(offer.tong_gia_goc || offer.tong_gia_le) > Number(offer.giakhuyenmai || offer.gia_combo)">
+                                                Trị giá: {{ formatPrice(offer.tong_gia_goc || offer.tong_gia_le) }}
+                                            </span>
+                                            <span class="free-badge-text" style="color: #2563eb; font-weight: 800;">
+                                                Giá Ưu Đãi: {{ formatPrice(offer.giakhuyenmai || offer.gia_combo) }}
+                                            </span>
+                                        </template>
+                                        <template v-else>
+                                            <span class="old-price" v-if="(offer.tong_gia_goc || offer.tong_gia_le || offer.giakhuyenmai) > 0">
+                                                Trị giá: {{ formatPrice(offer.tong_gia_goc || offer.tong_gia_le || offer.giakhuyenmai) }}
+                                            </span>
+                                            <span class="free-badge-text" style="color: #10b981; font-weight: 800;">MIỄN PHÍ 0đ</span>
+                                        </template>
                                     </div>
                                     <button class="btn-claim-offer" @click="openCombo(offer, selectedVariant)">
-                                        Nhận Quà Ngay
+                                        {{ Number(offer.giakhuyenmai || offer.gia_combo || 0) > 0 ? 'Nhận Ưu Đãi Ngay' : 'Nhận Quà Ngay' }}
                                     </button>
                                 </div>
                             </div>
@@ -2596,7 +2608,7 @@ const handleSelectVariantById = (idBienThe) => {
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
-    top: var(--product-sticky-offset, 128px);
+    top: var(--header-offset, var(--product-sticky-offset, 128px));
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.95);
@@ -2607,7 +2619,7 @@ const handleSelectVariantById = (idBienThe) => {
     z-index: 990;
     padding: 12px 0;
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .product-detail-wrapper {
